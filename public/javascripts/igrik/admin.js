@@ -1,9 +1,8 @@
 
+
 function movetotop(){
-    
-        footer.style.bottom = 'initial'
-        footer.style.top = '10px';
-    
+    footer.style.bottom = 'initial'
+    footer.style.top = '10px';    
 }
 
 function sendReply(id){
@@ -37,7 +36,7 @@ function sendReply(id){
     
 }
 
-let tg =window.Telegram.WebAppж
+let tg = window.Telegram.WebAppж
 
 window.onload =()=>{
     window.Telegram.WebApp.BackButton.show();

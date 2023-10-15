@@ -14,60 +14,7 @@ axios.get(`/auditoria/admin/check?id=${userid}`).then(s=>{
 })
 
 
-// function clearPopUp(){
-//     let p = document.querySelector('#popup')
-//     p.classList.add('sb')
-//     setTimeout(function(){
-//         p.remove()
-//         tg.BackButton.hide()
-        
-//     },500)
-//     if(mcb){
-//         tg.MainButton.offClick(mcb)
-//         mcb = null;
-//         tg.MainButton.hide()
-//     }
 
-//     if(mbbc){
-//         tg.MainButton.hide()
-//         tg.MainButton.offClick(mbbc)
-//         mbbc = null
-//     }
-// }
-
-function clearPopUp() {
-    let length = document.querySelectorAll('.popup').length;
-
-    console.log(length)
-
-    let p = document.querySelectorAll('.popup')[length - 1]
-
-    console.log(p)
-
-    p.classList.add('sb')
-
-    setTimeout(function () {
-        p.remove()
-        if (!document.querySelectorAll('.popup').length) tg.BackButton.hide()
-
-    }, 500)
-
-    if (mcb) {
-        tg.MainButton.offClick(mcb)
-        mcb = null;
-        tg.MainButton.hide()
-    }
-
-    if (mbbc) {
-        tg.MainButton.hide()
-        tg.MainButton.offClick(mbbc)
-        mbbc = null
-    }
-}
-
-function uname(u,id){
-    return `${u.admin? `админ` : (u.insider ? 'сотрудник' : (u.fellow ? 'fellow' : (u.known ? 'гость' : 'пионер')))} ${u.username ? `@${u.username}` : `id ${id}` } (${u.first_name||''} ${u.last_name||''})`
-}
 
 function checkQR(data){
     
@@ -1040,27 +987,6 @@ function showLogs(){
 // }
 
 
-function preparePopup(type) {
-    tg.BackButton.show();
-    tg.onEvent('backButtonClicked', clearPopUp)
-
-    if (document.querySelector(`[data-type="${type}"]`)) {
-        document.querySelector(`[data-type="${type}"]`).remove()
-    }
-
-    mcb = clearPopUp
-    let popup = ce('div', false, 'popup', false, {
-        dataset: {
-            type: type
-        }
-    })
-    document.body.append(popup)
-    let content = ce('div')
-    popup.append(content)
-
-    tg.MainButton.hide()
-    return content
-}
 
 function handleError(err){
     tg.showAlert(err.data || err.message)

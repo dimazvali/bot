@@ -37,8 +37,6 @@ class appLecture{
     }
 }
 
-
-
 function letterize(v, word) {
     switch (word) {
         case 'человек': {
@@ -290,3 +288,4 @@ function letterize(v, word) {
 
     return word;
 }
+

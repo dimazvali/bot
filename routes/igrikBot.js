@@ -11,6 +11,7 @@ var mail =      require('nodemailer')
 var parser =    require('vdata-parser');
 
 
+
 let transporter = mail.createTransport({
     service: 'Yandex', // no need to set host or port etc.
     auth: {
@@ -69,6 +70,7 @@ let fb = getFirestore(gcp);
 let users = {};
 var path = require('path');
 var cron = require('node-cron');
+const { admob } = require('googleapis/build/src/apis/admob');
 
 let token =      `5841330129:AAHW7ec-2JNhqw5odjDOVDcP5slT36CONo0`
 let adminToken = `6174033726:AAH8QaTasCMq6JscwxLo_Md9JVpB6USvBzY`
@@ -77,13 +79,13 @@ let adminToken = `6174033726:AAH8QaTasCMq6JscwxLo_Md9JVpB6USvBzY`
 let ngrok = process.env.ngrok;
 
 
-// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/igrik/hook`).then(s=>{
-//     console.log(`igrik hook set to ${ngrok}`)
-// })
+axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/igrik/hook`).then(s=>{
+    console.log(`igrik hook set to ${ngrok}`)
+})
 
-// axios.get(`https://api.telegram.org/bot${adminToken}/setWebHook?url=${ngrok}/igrik/adminHook`).then(s=>{
-//     console.log(`igrik hook set to ${ngrok}`)
-// })
+axios.get(`https://api.telegram.org/bot${adminToken}/setWebHook?url=${ngrok}/igrik/adminHook`).then(s=>{
+    console.log(`igrik hook set to ${ngrok}`)
+})
 
 
 
@@ -96,6 +98,8 @@ let newsReads =     fb.collection('newsReads');
 let newsPosts =     fb.collection('newsPosts');
 let usersClasses =  fb.collection('usersClasses');
 let userTags =      fb.collection('userTags');
+let logs =          fb.collection('logs');
+let spams =         fb.collection('spams');
 
 let prices =        fb.collection('prices');
 
@@ -126,6 +130,15 @@ function updatePrices(){
     })
 }
 
+function log(data){
+    if(!data.createdAt) data.createdAt = new Date() 
+    return logs.add(data)
+        .then(rec=> rec.id)
+        .catch(err=>{
+            console.log(err)
+            return false
+        })
+}
 
 
 
@@ -288,17 +301,28 @@ function alertUsersByClass(){
     
 // })
 
-cron.schedule(`0 10 * * 1`,()=>{
-    // каждый понедельник в 10
-    alertStats('week')
-})
+if(process.env.develop !== `true`){
+    cron.schedule(`0 6-23 * * *`,()=>{
+        // каждый час с 6 до 23
+        alertUsersByClass()
+        updatePrices()
+    })
+
+    cron.schedule(`0 10 * * 1`,()=>{
+        // каждый понедельник в 10
+        alertStats('week')
+    })
+    
+    
+    cron.schedule(`0 10 1 * *`,()=>{
+        // каждое первое число в 10
+        alertStats('month')
+    
+    })
+
+}
 
 
-cron.schedule(`0 10 1 * *`,()=>{
-    // каждое первое число в 10
-    alertStats('month')
-
-})
 
 function alertStats(period){
     
@@ -325,13 +349,9 @@ function alertStats(period){
 }
 
 
-cron.schedule(`0 6-23 * * *`,()=>{
-    // каждый час с 6 до 23
-    alertUsersByClass()
-    updatePrices()
 
-    
-})
+
+
 
 // let newsReady =     news.where('active','==',true)
 //     // .orderBy('createdAt')
@@ -351,6 +371,12 @@ router.get('/app', (req, res) => {
         user:   req.query.id,
         start:  req.query.start || req.query.tgWebAppStartParam,
         prices: pd
+    })
+})
+
+router.get(`/adminApp2`,(req,res)=>{
+    res.render('igrik/adminApp2',{
+        start:  req.query.start || req.query.tgWebAppStartParam,
     })
 })
 
@@ -1225,14 +1251,16 @@ router.get(`/api/user`,(req,res)=>{
     
     udb.doc(req.query.id.toString())
         .get()
-        .then(d=>{
-            admins.doc(req.query.id.toString()).get().then(admin=>{
-                let data = d.data() || {};
-                data.admin = admin.exists ? admin.data().confirmed : false 
-                res.json(data)
-            })
+        .then(d=> res.json(common.handleDoc(d))
+        // {
+        //     admins.doc(req.query.id.toString()).get().then(admin=>{
+        //         let data = d.data() || {};
+        //         data.admin = admin.exists ? admin.data().confirmed : false 
+        //         res.json(data)
+        //     })
             
-        })
+        // }
+        )
         .catch(err=>{
             console.log(err)
             res.send(false)
@@ -1302,6 +1330,197 @@ router.post(`/api/requestPhone`,(req,res)=>{
     })
 })
 
+router.all(`/admin/:method`,(req,res)=>{
+    if(!req.query.id) return res.sendStatus(401)
+    checkAdmin(req.query.id)
+        .then(admin=>{
+            if(admin){
+                switch(req.params.method){
+                    case 'logs':{
+                        let r = logs;
+                
+                        return r.orderBy('createdAt', 'DESC')
+                            .get()
+                            .then(col => {
+                                let result = common.handleQuery(col) 
+                                if(req.query.by){
+                                    result = result.filter(r=>r[req.query.by] == (+req.query.value?+req.query.value:req.query.value))
+                                }
+                                res.json(result)
+                                // TBD: сделать индексы и штатную фильтрацию
+                            })
+                    }
+                }
+            } else {
+                res.sendStatus(403)
+            }
+        })
+})
+
+router.all(`/admin/:method/:id`,(req,res)=>{
+    if(!req.query.id) return res.sendStatus(401)
+
+    common.devlog(req.query.id)
+
+    checkAdmin(req.query.id)
+        .then(admin=>{
+            if(admin){
+                switch(req.params.method){
+                    case `message`:{
+                        if(req.body.text){
+                            return m.sendMessage2({
+                                chat_id:    req.params.id,
+                                text:       req.body.text,
+                            },false,token).then(s=>{
+                                messages.add({
+                                    user:       +req.params.id,
+                                    text:       req.body.text,
+                                    createdAt:  new Date(),
+                                    isReply:    +req.query.id
+                                }).then(ref=>{
+                                    messages
+                                        .doc(ref.id)
+                                        .get()
+                                        .then(m=>{
+                                            res.json(common.handleDoc(m))
+                                        })
+                                })
+                                
+                            }).catch(err=>{
+                                res.sendStatus(400)
+                            })
+                        } else {
+                            return res.status(400).send(`no text provided`)
+                        }
+                    }
+                    case `messages`:{
+                        return messages
+                            .where(`user`,'==',+req.params.id)
+                            .orderBy(`createdAt`,'desc')
+                            .get()
+                            .then(col=>{
+                                res.json(common.handleQuery(col))
+                            })
+                    }
+                    case `check`:{
+                        return res.json(true)
+                    }
+                    case 'users':{
+                        if(req.params.id == `all`){
+                            return udb.get().then(u=>res.json(common.handleQuery(u)))
+                        } else {
+                            switch (req.method){
+                                case 'PUT':{
+                                    return udb.doc(req.params.id).get().then(u=>{
+                                        if(!u.exists) return res.sendStatus(404)
+                                        udb.doc(req.params.id).update({
+                                            [req.body.attr]: req.body.value,
+                                            updatedAt: new Date(),
+                                            updatedBy: +req.query.id
+                                        }).then(s=>res.sendStatus(200))
+                                        .catch(err=>res.status(500).send(err.message))
+                                    })
+                                }
+                                case "GET":{
+                                    return udb.doc(req.params.id).get().then(u=>res.json(common.handleDoc(u)))
+                                }
+                            }
+                            
+                        }
+                    }
+
+                    case 'news':{
+                        switch(req.method){
+                            case 'POST':{
+                                if(!req.body.text || !req.body.name) return res.sendStatus(400)
+                                return spams.add({
+                                    createdAt:      new Date(),
+                                    silent:         req.body.silent || null,
+                                    createdBy:      +req.query.id,
+                                    text:           req.body.text,
+                                    name:           req.body.name,
+                                    appointment:    req.body.appointment || null,
+                                    class:          req.body.class || null
+                                }).then(s=>{
+                                    log({
+                                        text: `${common.uname(admin,+req.query.id)} стартует рассылку под названием ${req.body.name}`
+                                    })
+                                    udb
+                                        .where(`active`,'==',true)
+                                        .get()
+                                        .then(col=>{
+                                            let m = {
+                                                text: req.body.text
+                                            }
+                                            
+                                            if(req.body.silent){
+                                                m.disable_notification = true
+                                            }
+
+                                            if(req.body.class){
+                                                m.reply_markup = {
+                                                    inline_keyboard:[[{
+                                                        text: `Записаться`,
+                                                        web_app:{
+                                                            url: `${process.env.ngrok}/igrik/app?start=service_${req.body.class}`
+                                                        }
+                                                    }]]
+                                                }
+                                            }
+                                            common.handleQuery(col).forEach((u,i)=>{
+                                                let pass = true;
+
+                                                if(req.body.filter){
+                                                    let field = req.body.filter.split('_')[0]
+                                                    let value = req.body.filter.split('_')[1] == 'true' ? true : false;
+                                                    if(u[field] != value){
+                                                        pass = false
+                                                    }
+                                                    
+                                                }
+                                                m.chat_id = u.id;
+
+                                                if(pass) setTimeout(function(){
+                                                    common.devlog(u.id)
+                                                    // m.sendMessage2(m,false,token)
+                                                },i*300)
+
+                                            })
+                                        })
+
+                                        res.sendStatus(200)
+                                })
+                            }
+                            case `GET`:{
+                                if(req.params.id == `all`){
+                                    return spams
+                                        .orderBy(`createdAt`,'desc')
+                                        .get()
+                                        .then(col=>{
+                                            res.json(common.handleQuery(col))
+                                        })
+                                }
+                                return spams.doc(req.params.id)
+                                    .get()
+                                    .then(d=>{
+                                        res.json(common.handleDoc(d))
+                                    })
+                            }
+                        }
+                        
+                    }
+                    default:
+                        return res.sendStatus(404)
+                }
+            } else {
+                res.sendStatus(403)    
+            }
+        })
+        .catch(err=>{
+            common.devlog(err)
+            res.sendStatus(403)
+        })
+})
 
 
 router.all(`/api/user/appointment`,(req,res)=>{
@@ -1390,6 +1609,10 @@ router.post(`/api/news`,(req,res)=>{
                 photo:      req.body.photo || null
             }).then(rec=>{
                 res.send(rec.id)
+                log({
+                    text: `${common.uname(admin,req.body.admin)} создает новость ${req.body.title}`,
+                    admin: +req.body.admin
+                })
             }).catch(err=>{
                 res.status(500).send(err.message)
             })
@@ -1483,6 +1706,11 @@ router.post(`/api/news/read`,(req,res)=>{
             views: FieldValue.increment(1)
         })
 
+        log({
+            user: +req.body.user,
+            text: `Пользователь ${req.body.user} открывает новость ${p.data().title}.`
+        })
+
         newsReads.add({
             createdAt: new Date(),
             user: req.body.user,
@@ -1506,18 +1734,18 @@ router.post(`/api/news/:id`,(req,res)=>{
         news.doc(req.params.id).get().then(pub=>{
             console.log()
             if(!pub.exists) return res.sendStatus(404)
+
+            log({
+                text: `${common.uname(admin,req.body.admin)} делает рассылку по новости ${pub.data().title}`,
+                admin: +req.body.admin
+            })
+
             udb.where('active','==',true).get().then(col=>{
                 col.docs.forEach((user,i)=>{
                     // common.devlog(user.id)
                     setTimeout(function(){
                         alertNews(user,pub)    
                     },i*200)
-                    // if(user.id == common.dimazvali){
-                        
-                        
-                    // }
-                    
-                    
                 })
             })
             news.doc(req.params.id).update({
@@ -1617,9 +1845,11 @@ router.get(`/api/user/schedule`,(req,res)=>{
 
 
 function checkAdmin(id){
+    
     if(!id) return false
-    return admins.doc(id.toString()).get().then(a=>{
-        if(a.exists && a.data().active) return true
+
+    return udb.doc(id.toString()).get().then(a=>{
+        if(a.exists && a.data().admin) return a.data()
         return false;
     }).catch(err=>{
         return false
@@ -1627,8 +1857,9 @@ function checkAdmin(id){
 }
 
 router.post(`/api/postMessage`,(req,res)=>{
-    admins.doc(req.body.admin.toString()).get().then(a=>{
-        if(a.exists && a.data().confirmed){
+
+    checkAdmin(req.body.admin.toString()).then(admin=>{
+        if(admin){
             messages.add({
                 user:       +req.body.user,
                 text:       req.body.text,
@@ -1651,9 +1882,9 @@ router.post(`/api/postMessage`,(req,res)=>{
                 console.log(err)
                 res.status(500).send(err.message)
             })
+        } else {
+            res.sendStatus(403)
         }
-    }).catch(err=>{
-        console.log(err)
     })
 })
 
@@ -1716,9 +1947,22 @@ router.post('/adminHook', (req, res) => {
             text: `Приложенька с дева`,
             reply_markup:{
                 inline_keyboard:[[{
-                    text: `test`,
+                    text: process.env.ngrok,
                     web_app: {
                         url: `${process.env.ngrok}/igrik/adminApp?action=start`
+                    }
+                }]]
+            }
+        },false,adminToken)
+
+        m.sendMessage2({
+            chat_id: user.id,
+            text: `Тестовая админка`,
+            reply_markup:{
+                inline_keyboard:[[{
+                    text: process.env.ngrok,
+                    web_app: {
+                        url: `${process.env.ngrok}/igrik/adminApp2`
                     }
                 }]]
             }
@@ -1887,12 +2131,12 @@ router.post('/hook', (req, res) => {
 
                 m.sendMessage2({
                     chat_id: user.id,
-                    text: `Админка с дева`,
+                    text: process.env.ngrok,
                     reply_markup:{
                         inline_keyboard:[[{
                             text: `test`,
                             web_app: {
-                                url: `${process.env.ngrok}/igrik/appApp`
+                                url: `${process.env.ngrok}/igrik/adminApp2`
                             }
                         }]]
                     }
@@ -1984,6 +2228,21 @@ router.post('/hook', (req, res) => {
         })
     }
 })
+
+// common.devlog(`Переносим админов`)
+// admins
+//     .where(`active`,'==',true)
+//     .where(`confirmed`,'==',true)
+//     .get()
+//     .then(col=>{
+//         common.handleQuery(col).forEach(u=>{
+//             udb.doc(u.id.toString()).update({
+//                 admin: true
+//             }).then(s=>{
+//                 console.log(s.id)
+//             })
+//         })
+//     })
 
 
 module.exports = router;

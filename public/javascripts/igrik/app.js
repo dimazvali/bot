@@ -3,15 +3,15 @@ let tg = window.Telegram.WebApp;
 
 let userid = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : userId
 let isAdmin = false;
+const host = `igrik` 
 
-
-axios.get(`/igrik/api/user?id=${userid}`).then(u => {
+axios.get(`/${host}/api/user?id=${userid}`).then(u => {
 
     isAdmin = u.data.admin;
 
     if(!u.data.phone) { 
         tg.showAlert(`Чтобы получить йога-пасс, поделитесь своим номером телефона`)
-        axios.post(`/igrik/api/requestPhone?id=${userid}`);
+        axios.post(`/${host}/api/requestPhone?id=${userid}`);
         // tg.close()
 
         drawPass(u.data)
@@ -75,7 +75,7 @@ function drawPass(user){
         //     displayValue:   false,
         //     height:         40
         // });
-        axios.get(`/igrik/api/user/deposit?id=${userid}`).then(d=>{
+        axios.get(`/${host}/api/user/deposit?id=${userid}`).then(d=>{
             console.log(d.data)
             let b = d.data.data.filter(d=>d.status == 'active').reduce((a,b)=>a+b.count,0)
             if(b<30000){
@@ -102,6 +102,11 @@ function drawPass(user){
         })
     }
     
+    if(user.admin){
+        c.append(ce('h2',false,`adminLink`,`Админка`,{
+            onclick: () => window.location.href = `/${host}/adminApp?action=start`
+        }))
+    }
 
     let bc = ce('div',false, 'buttonsContainer')
     
@@ -109,7 +114,14 @@ function drawPass(user){
 
     if(user.phone){
         bc.append(ce('button',false,false,'Мои классы',{
-            onclick:()=> user.phone ? showSchedule(user,true) : tg.showAlert(`Ты еще не поделилась своим номером.`)
+            onclick:()=> {
+                if(user.phone){
+                    showSchedule(user,true)
+                } else {
+                    shimmer()
+                    tg.showAlert(`Ты еще не поделилась своим номером.`)
+                }
+            }
         }))
     }
     
@@ -226,8 +238,24 @@ function drawAppointMent(a,user,already,noname){
                         }
                     }))
 
-                    c.append(ce(`a`,false,`navlink`,`ссылка на класс`,{
-                        href: `https://t.me/igrikyobot/app?startapp=service_${a.service.id}`
+                    c.append(ce(`p`,false,`navlink`,`скопировать ссылку`,{
+                        onclick:function(){
+                            navigator.clipboard.writeText(`https://t.me/igrikyobot/app?startapp=service_${a.service.id}`).then(s=>{
+                                tg.showAlert(`Ссылка скопирована`)
+                            }).catch(err=>{
+                                console.warn(err)
+                            })
+                        }
+                    }))
+
+                    c.append(ce(`p`,false,`navlink`,`скопировать id`,{
+                        onclick:function(){
+                            navigator.clipboard.writeText(a.service.id).then(s=>{
+                                tg.showAlert(`id скопирован`)
+                            }).catch(err=>{
+                                console.warn(err)
+                            })
+                        }
                     }))
                 }
                 
@@ -245,8 +273,10 @@ function drawAppointMent(a,user,already,noname){
     c.append(ce('button',false,'appButton',a.booked?` `:` `,{
         onclick:()=>{
             if(user.phone){
+                shimmer(true)
                 already ? unBook(a,user,c)  : book(a,user,c)
             } else {
+                shimmer()
                 tg.showAlert(`Жаль, но ты еще не в клубе. Пожалуйста, поделись своим номером телефона (нажми кнопку на основном экране, для этого нужно свернуть это приложение).`)
             }
             
@@ -264,7 +294,7 @@ function alertUsers(button, c, classid){
         onclick:function(){
             if(!txt.value) return tg.showAlert('Я не вижу ваших букв!')
             this.setAttribute('disabled',true)
-            axios.post('/igrik/api/alertUsers',{
+            axios.post(`/${host}/api/alertUsers`,{
                 admin: userid,
                 text: txt.value,
                 class: classid
@@ -285,7 +315,7 @@ function alertUsers(button, c, classid){
 function unBook(a, user,c){
     tg.showConfirm(`Хочешь отменить запись на ${new Date(a.start_date).toLocaleTimeString().replace(/\:00/,'')}`,(e)=>{
         console.log(e)
-        if(e){axios.delete(`/igrik/api/user/appointment?appointment=${a.appointment_id}&id=${userid}&token=${user.user_token}`).then(s=>{
+        if(e){axios.delete(`/${host}/api/user/appointment?appointment=${a.appointment_id}&id=${userid}&token=${user.user_token}`).then(s=>{
             tg.showPopup({
                 title: `Печально...`,
                 message: `Запись отменили. Может быть, в другой раз?`
@@ -301,7 +331,7 @@ function book(a, user,c){
     tg.showConfirm(`Хочешь записаться на ${new Date(a.start_date).toLocaleTimeString().replace(/\:00/,'')}`,(e)=>{
         console.log(e)
         if(e) {
-            axios.post(`/igrik/api/user/appointment?appointment=${a.appointment_id}&id=${userid}&token=${user.user_token}`,{a}).then(s=>{
+            axios.post(`/${host}/api/user/appointment?appointment=${a.appointment_id}&id=${userid}&token=${user.user_token}`,{a}).then(s=>{
             tg.showPopup({
                 title: `Ура!`,
                 message: `Все готово, приходи (я пришлю напоминание за пару часов до начала класса).\nСсылка на оплату придет следующим сообщением.`
@@ -317,7 +347,7 @@ function book(a, user,c){
 
 function updateUserAlerts(c,type){
     if(c == 'alerted'){
-        axios.post(`/igrik/api/user/alerts`,{
+        axios.post(`/${host}/api/user/alerts`,{
             alerts:{[type]: true},
             id: userid
         })
@@ -375,7 +405,7 @@ function showReserve(user){
 
 
 function setOrder(order, table){
-    axios.post(`/igrik/api/tables`,{
+    axios.post(`/${host}/api/tables`,{
         user:   userid,
         table:  table,
         guests: order.guests,
@@ -396,7 +426,7 @@ function sendOrder(){
     tg.MainButton.showProgress()
     console.log(curOrder)  
     
-    axios.get(`/igrik/api/tables?guests=${curOrder.guests}&date=${curOrder.date}`).then(s=>{
+    axios.get(`/${host}/api/tables?guests=${curOrder.guests}&date=${curOrder.date}`).then(s=>{
         console.log(s.data)
         let tc = ce('div')
         tc.append(ce('span',false,'info','Выберите подходящий столик'))
@@ -428,8 +458,8 @@ function showMenu(user){
         document.body.append(popup)
         popup.append(ce('h2',false,false,'Меню'))
     
-    axios.get(`/igrik/api/menu?user=${user.id}`).then(menu=>{
-
+    axios.get(`/${host}/api/menu?user=${user.id}`).then(menu=>{
+        shimmer(true)
         let order = [
             '02b6bed3-5f28-4454-ba47-c5cd2fc09bc2',
             '45964a5f-c4af-424d-81e7-cdb03e14e3bb',
@@ -449,6 +479,7 @@ function showMenu(user){
             let bcontent = ce('div',false,['hidden','mleft'])
             popup.append(ce('h3',false,false,'ВИНО',{
                 onclick:()=>{
+                    shimmer(true)
                     bcontent.classList.toggle('hidden')
                 }
             }))
@@ -492,6 +523,7 @@ function drawSection(section,dishes){
     let c = ce('div')
     c.append(ce('h3',false,false,section.name,{
         onclick:()=>{
+            shimmer(true)
             if(c.querySelectorAll('.dish').length) {
                 c.querySelectorAll('.dish').forEach(d=>d.remove())
             } else {
@@ -524,7 +556,8 @@ function showNews(user){
     let popup = ce('div','popup','blink')
         document.body.append(popup)
         popup.append(ce('h2',false,false,'Не пропустите!'))
-    axios.get(`/igrik/api/news?user=${user.id}`).then(news=>{
+    axios.get(`/${host}/api/news?user=${user.id}`).then(news=>{
+        shimmer(true)
         news.data.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds).forEach(pub=>{
             popup.append(drawNews(pub))
         })
@@ -541,6 +574,7 @@ function drawNews(pub){
         })))
         c.append(ce('h3',false,false,pub.title,{
             onclick:()=>{
+                shimmer(true)
                 drawPublication(pub,c,)
 
                 c.append()
@@ -562,7 +596,7 @@ function drawPublication(p,container){
     } 
     container.append(ce('p',false,false,p.text || null))
 
-    axios.post(`/igrik/api/news/read`,{
+    axios.post(`/${host}/api/news/read`,{
         user: userid,
         publication: p.id
     })
@@ -579,7 +613,7 @@ function showService(service,date,user){
             tg.onEvent('backButtonClicked',showStart)
         }, 100)
 
-        axios.get(`/igrik/api/user/service?${date?`from=${date}&`:''}id=${service}&utoken=${user.user_token}`)
+        axios.get(`/${host}/api/user/service?${date?`from=${date}&`:''}id=${service}&utoken=${user.user_token}`)
         .then(r=>{
 
             service = r.data[0].service;
@@ -675,7 +709,7 @@ function showService(service,date,user){
 
         popup.append(loader)
 
-        axios.get(`/igrik/api/user/service?${date?`from=${date}&`:''}id=${service.id}&utoken=${user.user_token}`)
+        axios.get(`/${host}/api/user/service?${date?`from=${date}&`:''}id=${service.id}&utoken=${user.user_token}`)
         .then(r=>{
             loader.remove()
             r.data.filter(a=>new Date(a.start_date)>new Date()).forEach((a,i) => {
@@ -696,6 +730,7 @@ function showService(service,date,user){
 }
 
 function showContacts(user){
+    shimmer(true)
     let popup = ce('div','popup')
 
         document.body.append(popup)
@@ -729,8 +764,9 @@ function showMasters(user){
 
     if(document.querySelector(`#popup`)) document.querySelector(`#popup`).classList.add('blink')
 
-    axios.get(`/igrik/api/masters/`)
+    axios.get(`/${host}/api/masters/`)
         .then(r=>{
+            shimmer(true)
             try{
                 document.querySelector(`#popup`).remove()
             }catch(err){
@@ -757,6 +793,7 @@ function showMasters(user){
 }
 
 function drawMaster(m){
+    shimmer(true)
     let c = ce('div',false,'master')
         c.append(ce('h3',false,false,m.name))
         c.append(ce('span',false,'cred',mastersDesc[m.id] || m.position.title))
@@ -768,7 +805,7 @@ function drawMaster(m){
             
             p.classList.add('blink')
 
-            axios.get(`/igrik/api/masters/${m.id}`).then(d=>{
+            axios.get(`/${host}/api/masters/${m.id}`).then(d=>{
                 console.log(d.data)
                 
                 p.innerHTML = '';
@@ -807,8 +844,10 @@ function showSchedule(user,filtered,date){
     },function(cv){updateUserAlerts(cv,'schedule')})
 
     if(!filtered){
-        axios.get(`/igrik/api/user/schedule?${date?`from=${date}&`:''}id=${userid}&utoken=${user.user_token}`)
+
+        axios.get(`/${host}/api/user/schedule?${date?`from=${date}&`:''}id=${userid}&utoken=${user.user_token}`)
         .then(r=>{
+            shimmer(true)
             try{
                 document.querySelector(`#popup`).remove()
             }catch(err){
@@ -865,8 +904,9 @@ function showSchedule(user,filtered,date){
             tg.showAlert(err.response? err.response.data : err.message)
         })
     } else {
-        axios.get(`/igrik/api/user/schedule?filtered=true&id=${userid}&utoken=${user.user_token}`)
+        axios.get(`/${host}/api/user/schedule?filtered=true&id=${userid}&utoken=${user.user_token}`)
         .then(r=>{
+            shimmer(true)
             try{
                 document.querySelector(`#popup`).remove()
             }catch(err){

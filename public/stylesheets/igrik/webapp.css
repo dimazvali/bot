@@ -37,6 +37,9 @@ div#user>p {
     padding-left: 10px;
 }
 
+.block{
+    display: block;
+}
 span.info {
     font-style: italic;
     font-size: small;
@@ -44,6 +47,28 @@ span.info {
     display: block;
     margin-bottom: -15px;
     margin-top: 20px;
+}
+
+p.info{
+    margin-bottom: 0;
+}
+
+.divided {
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--blackish);
+    padding-bottom: 20px;
+}
+
+
+div#loader {
+    background: var(--blackish);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    filter: opacity(0.5);
+    backdrop-filter: blur(3px);
 }
 
 div#footer {
@@ -220,9 +245,10 @@ body.mobile.f.s {
     color: var(--blackish);
 }
 
+div.popup,
 div#popup {
     position: absolute;
-    top: 160px;
+    /* top: 160px; */
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px) contrast(0.6);
     width: 100%;
@@ -243,6 +269,27 @@ div#popup {
         top: 160px;
     }
 }
+
+
+@keyframes slideUp2 {
+    0%{
+        top: 100vh;
+    }
+    100%{
+        top: 0px;
+    }
+}
+
+.admin>.popup {
+    animation: slideUp2 .5s forwards;
+    left: 0;
+    min-height: 100vh;
+    position: sticky;
+    width: 100vw;
+    margin-left: -20px;
+    top: 0;
+}
+
 
 button.appButton {
     position: absolute;
@@ -348,6 +395,7 @@ input[type="datetime-local"] {
     }
 }
 
+div.popup:before,
 div#popup:before {
     content: '';
     position: absolute;
@@ -366,6 +414,10 @@ div#popup:before {
     background-image: url(/images/igrik/SVG/IGRIK_Bar&Yoga_logo_ALLLL-05.svg);
 }
 
+
+[data-is-reply="true"] {
+    padding-left: 30px;
+}
 .buttonsContainer {
     display: flex;
     flex-direction: column;
@@ -387,6 +439,28 @@ input[type="number"] {
     border-bottom: 1px solid var(--blackish);
     line-height: 40px;
     margin-top: 20px;
+}
+
+
+.br {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px;
+    line-height: 30px;
+}
+
+
+button.dark {
+    background: #FEA094;
+    box-shadow: 3px 2px 5px #ca857c;
+    color: var(--blackish);
+    border: none;
+    font-family: manege, serif;
+    line-height: 30px;
+    margin: 0 10px 10px 0px;
+    padding: 5px 10px;
+    font-size: large;
+    border-radius: 4px;
 }
 
 button.table {
@@ -414,8 +488,10 @@ button.table {
 
 body.mobile.p {
     padding: 20px;
+    /* position: relative; */
 }
 
+div.popup.m 
 div#popup.m {
     top: 0px !important;
     left: 0;
@@ -482,4 +558,21 @@ a.b {
 
 div#messages {
     padding-bottom: 150px;
+}
+
+h2.adminLink {
+    position: absolute;
+    top: 0;
+    background: white;
+    padding: 10px 20px;
+    right: 0;
+    transform: rotate(-90deg) translate(-10%, 100%);
+}
+
+button.thin {
+    font-family: 'manege';
+    border: none;
+    border-bottom: 1px solid;
+    background: no-repeat;
+    text-align: center;
 }

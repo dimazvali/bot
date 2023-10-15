@@ -12,6 +12,12 @@ function line(tag, values,cb) {
 }
 
 
+
+function shimmer(light){
+    if(light) return tg.HapticFeedback.impactOccurred('light')
+    tg.HapticFeedback.notificationOccurred('success')
+}
+
 function drawDate(d,l,o){
     let options = {
         weekday: 'short',
@@ -89,516 +95,81 @@ function subscribe(id){
 }
 
 
+function clearPopUp() {
+    let length = document.querySelectorAll('.popup').length;
 
-let reminderThemes = {
-    '1': 'Позвонить клиенту',
-    '2': 'Позвонить в ресторан',
-    '3': 'Назначить встречу',
-    '4': 'Взять отзыв',
-    '5': 'Сумма счета',
-    '6': 'Снять резервации',
-    '7': 'Сменить дату',
-    '8': 'Проверить заказ',
-    '9': 'Подтвердить предварительный заказ'
-}
+    console.log(length)
 
-let avOrders = [
-    474,
-    422,
-    447,
-    481,
-    551,
-    756,
-    754
-]
+    let p = document.querySelectorAll('.popup')[length - 1]
 
-let avDayLoad = [
-    0.0092,
-    0.0044,
-    0.0024,
-    0.0012,
-    0.0007,
-    0.0008,
-    0.0012,
-    0.0035,
-    0.0083,
-    0.0188,
-    0.0489,
-    0.0683,
-    0.0891,
-    0.0898,
-    0.0870,
-    0.0862,
-    0.0865,
-    0.0841,
-    0.0800,
-    0.0724,
-    0.0613,
-    0.0463,
-    0.0325,
-    0.0172
-]
+    console.log(p)
 
-function getUserName(operator) {
-    if(operator === null){
-        return 'без консультанта'
+    p.classList.add('sb')
+
+    setTimeout(function () {
+        p.remove()
+        if (!document.querySelectorAll('.popup').length) tg.BackButton.hide()
+
+    }, 500)
+
+    if (mcb) {
+        tg.MainButton.offClick(mcb)
+        mcb = null;
+        tg.MainButton.hide()
     }
-    try {
-        return users.filter(u => u.id == operator)[0].name
-    } catch (error) {
-        return operator
+
+    if (mbbc) {
+        tg.MainButton.hide()
+        tg.MainButton.offClick(mbbc)
+        mbbc = null
     }
 }
 
+function uname(u,id){
+    return `${u.admin? `админ` : (u.insider ? 'сотрудник' : (u.fellow ? 'fellow' : (u.known ? 'гость' : 'пионер')))} ${u.username ? `@${u.username}` : `id ${id}` } (${u.first_name||''} ${u.last_name||''})`
+}
 
-function getWikiPages() {
-    document.querySelectorAll('[data-wiki]').forEach(w=>{
-        axios(window.location.origin + `/wiki/${w.dataset.project||'call'}/${w.dataset.wiki}`).then(d => {
-            w.innerHTML = d.data.wiki_page.text
-            w.append(ce('a',false,'info','открыть в вики',{
-                href: `https://r.restorating.ru/projects/${w.dataset.project||'call'}/wiki/${w.dataset.wiki}`
-            }))
-        })
+
+function preparePopup(type) {
+    tg.BackButton.show();
+    tg.onEvent('backButtonClicked', clearPopUp)
+
+    tg.HapticFeedback.notificationOccurred('success')
+
+    if (document.querySelector(`[data-type="${type}"]`)) {
+        document.querySelector(`[data-type="${type}"]`).remove()
+    }
+
+    mcb = clearPopUp
+    let popup = ce('div', false, 'popup', false, {
+        dataset: {
+            type: type
+        }
     })
-}
+    
 
-function getUserStats(id,el) {
-    axios(window.location.origin + `/edu/api/users/${id}/stats`).then(r=>{
-        let statsDiv = ce('div');
-        Object.keys(r.data).forEach(p=>{
-            let pDiv = ce('div')
-                pDiv.append(ce('h3',false,false,'Программа '+p))
-                pDiv.append(ce('h5', false, false, 'Начинал(-а)'))
-            r.data[p].attempts.sort().forEach(a=>{
-                pDiv.append(ce('p',false,'info',new Date(a).toLocaleString()))
-            })
-            pDiv.append(ce('h5', false, false, 'Пройденные шаги:'))
-            let s = [...new Set(r.data[p].steps.map(s => s.step))]
-            console.log(s)
-            console.log(r.data[p].steps.map(s => s.step))
-            s.forEach(step=>{
-                pDiv.append(ce('p', false, false, step))
-                r.data[p].steps.filter(s=>s.step == step).sort().forEach(s=>{
-                    pDiv.append(ce('span', false, 'info', new Date(s.time).toLocaleString()))
-                })
-            })
-            statsDiv.append(pDiv)
-        })
-        el.parentNode.insertBefore(statsDiv,el)
+    document.body.append(popup)
+    let content = ce('div')
+    popup.append(content)
 
-    })
-}
-
-function updateUser(el,id) {
-    let newSet = [];
-        el.parentNode.querySelectorAll("input:checked").forEach(i => newSet.push(i.name))
-    axios.put(window.location.origin + `/edu/api/users/${id}/update`,{departments:newSet}).then(r => {
-        console.log(r.data)
-    }).catch(err=>alert(err.message))
-}
-
-function updateProgrma(el, id) {
-    let newSet = [];
-    el.parentNode.querySelectorAll("input:checked").forEach(i => newSet.push(i.name))
-    axios.put(window.location.origin + `/edu/api/programs/${id}/update`, {departments: newSet}).then(r => {
-        console.log(r.data)
-    }).catch(err => alert(err.message))
-}
-
-function activateProgram(slug,status,el) {
-    axios.put(window.location.origin + `/edu/api/programs/${slug}/update`, {
-        active: status
-    }).then(r => {
-        console.log(r.data)
-        if (status) {
-            el.parentNode.dataset.active = status
+    popup.addEventListener('scroll', function(){
+        if(content.getClientRects()[0].y<0){
+            popup.querySelector('.header').classList.add('small')  
         } else {
-            delete el.parentNode.dataset.active
+            popup.querySelector('.header').classList.remove('small')  
         }
-    }).catch(err => alert(err.message))
+    });
+
+    tg.MainButton.hide()
+    return content
 }
 
-function activate(id, status, el) {
-    axios.put(window.location.origin + `/edu/api/users/${id}/update`, {
-        active: status
-    }).then(r => {
-        console.log(r.data)
-        if(status){
-            el.parentNode.dataset.active = status
-        } else {
-            delete el.parentNode.dataset.active
-        }
-
-    }).catch(err => alert(err.message))
-}
-
-function changeProgramName(slug,el) {
-    let newName = prompt('Введите новое название')
-    if (newName){
-        axios.put(window.location.origin + `/edu/api/programs/${slug}/update`, {
-            title: newName
-        }).then(r => {
-            console.log(r.data)
-            el.innerHTML = newName
-
-        }).catch(err => alert(err.message))
-    }
-}
-
-function changeProgramDesc(slug, el) {
-    let ta = ce('textarea',false,false,false,{
-        placeholder: 'Новое описание',
-        value: el.innerHTML
-    })
-    let sv = ce('button',false,false,'Сохранить',{
-        onclick:()=>{
-            if(ta.value){
-                sv.setAttribute('disabled',true)
-                axios.put(window.location.origin + `/edu/api/programs/${slug}/update`, {
-                    description: ta.value
-                }).then(r => {
-                    el.innerHTML = ta.value;
-                    ta.remove()
-                    sv.remove()
-                }).catch(err => {
-                    alert(err.message)
-                    sv.removeAttribute('disabled')
-                })
-            } else {
-                alert('Я не вижу ваших букв')
-            }
-        }
-    })
-    el.parentNode.insertBefore(ta,el)
-    el.parentNode.insertBefore(sv, el)
-}
-
-function addProgram(el) {
-    let deps=[
-        {
-            code: 'ed',
-            label: 'Редакция'
-        },
-        {
-            code: 'cc',
-            label: 'Кол-центр'
-        },
-        {
-            code: 'sales',
-            label: 'Отдел продаж'
-        }, {
-            code: 'admin',
-            label: 'Админы КЦ'
-        }
-    ]
-    
-    let npc = ce('div')
-
-    let slug = ce('input', false, false, false, {
-        placeholder: 'slug'
-    })
-
-    let title = ce('input', false, false, false, {
-        placeholder: 'Название'
-    })
-    let description = ce('textarea', false, false, false, {
-        placeholder: 'Описание'
-    })
-    let departments = ce('select',false,false,false,{
-        multiple: true
-    })
-
-    deps.forEach(d=>{
-        departments.append(ce('option', false, false, d.label,{
-            value: d.code
-        }))
-    })
-
-    
-
-    
-    let sv = ce('button', false, false, 'Сохранить', {
-        onclick: () => {
-            if (slug.value && title.value && description.value && departments.value) {
-                sv.setAttribute('disabled', true)
-                axios.put(window.location.origin + `/edu/api/programs/${slug.value}/add`, {
-                    title:title.value,
-                    departments: [...departments.options].filter(x => x.selected).map(s => s.value),
-                    description:description.value
-                }).then(r => {
-                    alert('Отлично! Обновите страницу, чтобы увидеть результат')
-                    npc.remove()
-                }).catch(err => {
-                    alert(err.message)
-                    sv.removeAttribute('disabled')
-                })
-            } else {
-                alert('Я не вижу ваших букв')
-            }
-        }
-    })
-    
-    npc.append(slug)
-    npc.append(title)
-    npc.append(description)
-    npc.append(departments)
-    npc.append(sv)
-
-    el.parentNode.insertBefore(npc, el)
-}
-
-function showSteps(slug,button) {
-    axios(window.location.origin + `/edu/api/programs/${slug}/steps`).then(r => {
-        let sc = ce('div')
-            r.data.forEach(step=>{
-                sc.append(stepContainer(step, slug))
-            })
-            sc.append(stepContainer({}, slug))
-        button.parentNode.insertBefore(sc,button)
-        button.remove()
-    }).catch(err => {
-        alert(err.message)
-    })
-}
-
-let stepContainer = (v,slug)=>{
-    if(!v){
-        v = {}
-    }
-    let stepC = ce('div')
-        let h = ce('h4', false,false, 'Шаг #'+v.id)
-        if (!v.id) {
-            h.innerHTML = 'Новый шаг'
-        }
-
-        let index = ce('input', false, false, false, {
-            placeholder: 'Порядковый номер',
-            value: v.index || null
-        })
-
-        let l = ce('label')
-            let active = ce('input', false, 'ci', false, {
-                type: 'checkbox'
-            })
-            l.append(active);
-        
-        if(v.active){
-            active.checked = true;
-        }
-
-        // l.innerHTML += ' Активность'
-
-        let title = ce('input', false, false, false, {
-            placeholder: 'Название шага',
-            value: v.title || null
-        })
-        let description = ce('input', false, false, false, {
-            placeholder: 'Описание шага',
-            value: v.description || null
-        })
-        let beforeLabel = ce('p',false,false,'Укажите id предыдущего шага')
-        let before = ce('input', false, false, false, {
-            placeholder: 'что-то типа wJf0mp55W4a6pBEK7dFA',
-            value: v.before || null
-        })
-        let afterLabel = ce('p',false,false,'Укажите id следующего шага')
-        let next = ce('input', false, false, false, {
-            placeholder: 'что-то типа wJf0mp55W4a6pBEK7dFA',
-            value: v.next || null
-        })
-        
-        stepC.append(h)
-        stepC.append(index)
-        stepC.append(title)
-        stepC.append(l)
-        stepC.append(description)
-        stepC.append(beforeLabel)
-        stepC.append(before)
-        stepC.append(afterLabel)
-        stepC.append(next)
-
-        let sb = ce('button', false, (v.id ? 'gb' : 'bb'), (v.id ? 'обновить' : 'добавить'))
-
-        if(v.id){
-            sb.onclick = () => {
-                sb.setAttribute('disabled',true)
-                axios.put(window.location.origin + `/edu/api/steps/${v.id}/update`,{
-                    index:+index.value || 0,
-                    active: active.checked || false,
-                    title:title.value || null,
-                    description:description.value || null,
-                    before:before.value || null,
-                    next:next.value || null,
-                }).then(()=>{
-                    sb.removeAttribute('disabled')
-                }).catch(err=>{
-                    sb.removeAttribute('disabled')
-                    alert(err.message)
-                })
-            }
-        } else {
-            sb.onclick = () => {
-                sb.setAttribute('disabled', true)
-                axios.post(window.location.origin + `/edu/api/${slug}`, {
-                    index: index.value || null,
-                    title: title.value || null,
-                    description: description.value || null,
-                    before: before.value || null,
-                    next: next.value || null,
-                },{
-                    headers: {
-                        user: adminKey
-                    }
-                }).then(result=>{
-                    sb.removeAttribute('disabled')
-                    sb.parentNode.parentNode.insertBefore(stepContainer(result.data), sb.parentNode)
-                }).catch(err=>{
-                    sb.removeAttribute('disabled')
-                    alert(err.message)
-                })
-            }
-        }
-
-        stepC.append(sb)
-
-        if(v.id){
-            stepC.append(ce('button',false,'hb','Открыть контент',{
-                onclick:()=>{
-                    axios(window.location.origin + `/edu/api/steps/${v.id}/content`).then(steps=>{
-                        let stepsContainer = ce('div');
-                        steps.data.forEach(c=>{
-                            stepsContainer.append(stepContentContainer(c, slug, v.id))
-                        })
-                        stepsContainer.append(stepContentContainer(null, slug, v.id))
-                        stepC.append(stepsContainer)
-                    })
-                }
-            }))
-        }
-
-        return stepC
-}
 
 
 function handleError(err){
     tg.showAlert(err.data || err.message)
 }
 
-let stepContentContainer = (v, slug,step) => {
-    if (!v) {
-        v = {}
-    }
-    let stepC = ce('div')
-        
-        let h = ce('h5', false, false, 'Блок #' + v.id)
-
-        if(!v.id){
-            h.innerHTML = 'Новый блок'
-        }
-
-        let index = ce('input', false, false, false, {
-            placeholder: 'Порядковый номер',
-            value: v.index || null
-        })
-
-        let l = ce('label')
-        let active = ce('input', false, 'ci', false, {
-            type: 'checkbox'
-        })
-        l.append(active);
-        if (v.active) {
-            active.checked = true;
-        }
-
-
-        let type = ce('select')
-
-        let pt = [
-            {
-                code: 'wiki',
-                label: 'вики'
-            }, {
-                code: 'HTML',
-                label: 'html'
-            }, {
-                code: 'video',
-                label: 'видео'
-            }
-        ]
-
-        pt.forEach(t=>{
-            let o = ce('option',false,false,t.label,{
-                value: t.code
-            })
-            type.append(o)
-        })
-        if(v.type){
-            type.value = v.type
-        }
-        
-
-        let data = ce('textarea', false, false, false, {
-            placeholder: 'контент',
-            value: v.data || null
-        })
-
-        let project = ce('input',false,false,false,{
-            value: v.project || null,
-            placeholder: 'проект (применимо для блоков типа «вики»)'
-        })
-
-    stepC.append(h)
-    stepC.append(index)
-    stepC.append(l)
-    stepC.append(type)
-    stepC.append(data)
-    stepC.append(project)
-
-    let sb = ce('button', false, (v.id ? 'gb' : 'bb'), (v.id ? 'обновить' : 'добавить'))
-
-    if (v.id) {
-        sb.onclick = () => {
-            sb.setAttribute('disabled', true)
-            axios.put(window.location.origin + `/edu/api/stepsContent/${v.id}/update`, {
-                index: +index.value || 0,
-                type: type.value || null,
-                active: active.checked || false,
-                data: data.value || null,
-                project: project.value || null
-            }).then(() => {
-                sb.removeAttribute('disabled')
-            }).catch(err => {
-                sb.removeAttribute('disabled')
-                alert(err.message)
-            })
-        }
-    } else {
-        sb.onclick = () => {
-            sb.setAttribute('disabled', true)
-            axios.post(window.location.origin + `/edu/api/${slug}/${step}`, {
-                type: type.value || null,
-                data: data.value || null,
-                project: project.value || null
-            }, {
-                headers: {
-                    user: adminKey
-                }
-            }).then(result => {
-                sb.removeAttribute('disabled')
-                sb.parentNode.parentNode.insertBefore(stepContentContainer(result.data,slug,step), sb.parentNode)
-                sb.parentNode.parentNode.append(stepContentContainer(null, slug, step))
-                sb.parentNode.remove()
-            }).catch(err => {
-                sb.removeAttribute('disabled')
-                alert(err.message)
-            })
-        }
-    }
-
-    stepC.append(sb)
-
-    return stepC
-}
 
 
 
@@ -893,4 +464,55 @@ function letterize(v, word) {
     }
 
     return word;
+}
+
+function showLogs(filter,description) {
+    showLoader();
+    axios.get(`/${host}/admin/logs?id=${userid}${filter||''}`)
+        .then(data => {
+            let p = preparePopup(filter?'log':'logs')
+            p.append(ce('h1', false, `header`, 'Логи'+(description||'')))
+            data.data.forEach(record => {
+                let lc = ce('div',false,'divided')
+                    lc.append(ce('span', false, 'info', drawDate(record.createdAt._seconds * 1000),{
+                        dataset:{ctx: `🕒`},
+                    }))
+                    lc.append(ce('p', false, false, record.text))
+                    if(record.admin){
+                        lc.append(ce('a',false,'clickable',`по админу`,{
+                            onclick:()=>showLogs(`&by=admin&value=${record.admin}`,` по админу ${record.admin}`)
+                        }))
+                    }
+                    if(record.user){
+                        lc.append(ce('a',false,'clickable',`по пользователю`,{
+                            onclick:()=>showLogs(`&by=user&value=${record.user}`, ` по пользователю ${record.user}`)
+                        }))
+                    }
+                    if(record.event){
+                        lc.append(ce('a',false,'clickable',`по событию`,{
+                            onclick:()=>showLogs(`&by=event&value=${record.event}`, ` по событию ${record.event}`)
+                        }))
+                    }
+                    if(record.chain){
+                        lc.append(ce('a',false,'clickable',`по сетке`,{
+                            onclick:()=>showLogs(`&by=chain&value=${record.chain}`, ` по сетке ${record.chain}`)
+                        }))
+                    }
+                p.append(lc)
+            });
+        })
+        .catch(handleError)
+        .finally(hideLoader)
+}
+
+function copyLink(link,app){
+    return ce('button',false,`thin`,`ссылка`,{
+        onclick:function(){
+            navigator.clipboard.writeText(`${app||appLinkAdmin}?startapp=${link}`).then(s=>{
+                tg.showAlert(`Ссылка на раздел скопирована`)
+            }).catch(err=>{
+                console.warn(err)
+            })
+        }    
+    })
 }
