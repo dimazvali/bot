@@ -1,0 +1,30 @@
+
+doctype html
+html
+  head
+    title AlcoBer
+    script(src='https://telegram.org/js/telegram-web-app.js')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(type='description' content='Попробуйте — вам понравится.')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script!=`userId="${user}"`
+    script!=`intention=${start ? `"${start}"` : false }`
+    script!=`translations = ${JSON.stringify(translations)}`
+    script(src='/javascripts/common.js')
+    script!=`${start?`let start="${start}"`:'let start=null'}`
+    link(rel='stylesheet', href='/stylesheets/kaha/style.css')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&family=Neucha&display=swap")
+  body.mobile
+    #starts
+        
+    #orders
+        h2.countable(onclick="order(this)") Оформить заказ
+    #ordersHistory
+      h2.countable(onclick="orderList(this)") История заказов
+    #profile
+      h2(onclick="showProfile(this)") Профиль
+    #contacts
+      h2(onclick="showContacts(this)") Контакты
+    script(src='/javascripts/kaha/app.js')

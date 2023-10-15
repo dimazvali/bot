@@ -1,0 +1,10 @@
+.env
+node_modules 
+.vscode
+gs
+commands.ini
+обновления
+# public/images/papers/qr
+# public/images/auditoria/qr
+# public/images/ecs/qr
+# public/images/wtg/qr

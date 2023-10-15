@@ -1,0 +1,57 @@
+@font-face {
+    font-family: 'Signal';
+    src: 
+         url('/stylesheets/au/signal.ttf')  format('truetype') /* Safari, Android, iOS */
+}
+
+:root{
+    --blue: #001DFF
+}
+
+*{
+    font-family: 'Signal', sans-serif;
+}
+
+#header{
+    color: var(--blue);
+    height: 100px;
+    border-bottom: 2px solid var(--blue);
+    margin-bottom: 30px;
+    padding-bottom: 0px;
+    font-size: 24px;
+}
+
+#links{
+    margin-bottom: 2px solid var(--blue);
+}
+
+button{
+    font-family: 'Signal', sans-serif;
+}
+#links>button{
+    background-color: var(--blue);
+    line-height: 80px;
+    font-size: 3em;
+    border: none;
+    border-radius: 1.5em;
+    margin: 0 10px 10px 0;
+    color: white;
+    padding: 0 20px;
+}
+
+body {
+    margin: 0;
+    width: 100%;
+    padding: 0 10px;
+    position: relative;
+    box-sizing: border-box;
+}
+
+
+div#logo {
+    width: 100%;
+}
+
+div#logo>img {
+    width: 100%;
+}

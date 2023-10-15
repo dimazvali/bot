@@ -1,0 +1,43 @@
+
+doctype html
+html
+  head
+    title PressPapers
+    script(src='https://telegram.org/js/telegram-web-app.js')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(type='description' content='Попробуйте — вам понравится.')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script!=`userId="${user}"`
+    script!=`intention=${start ? `"${start}"` : false }`
+    script!=`translations = ${JSON.stringify(translations)}`
+    script!=`coworkingRules=${JSON.stringify(rules)}`
+    script(src='/javascripts/common.js')
+    script!=`${start?`let start="${start}"`:'let start=null'}`
+    script(src="https://cdn.jsdelivr.net/jsbarcode/3.3.20/JsBarcode.all.min.js") 
+    link(rel='stylesheet', href='/stylesheets/papers/webapp.css')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap")
+  body.mobile
+    #start(data-count="0" onclick="toggleStart(this)")
+        h1 What is Papers?
+        img.cs(src="/images/papers/cs.png")
+        img.bpc(src="/images/papers/bpc.svg")
+    #classes
+        h2.countable(onclick="showSchedule(this)") Schedule
+        .data
+    #coworking
+        h2.countable(onclick="showCoworking(this)") Coworking 
+        .data
+    #mr
+        h2.countable(onclick="showMR(this)") Meeting Room
+    #bar
+        h2(onclick="showBar()") Gamotsema Bar
+    #fellows
+    #profile
+      h2(onclick="showProfile(this)") Profile
+        .data
+    #contacts
+      h2(onclick="showContacts(this)") Contacts
+        .data
+    script(src='/javascripts/papers/app.js')

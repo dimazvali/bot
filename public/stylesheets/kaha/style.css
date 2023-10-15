@@ -1,0 +1,96 @@
+h2 {
+    font-family: 'Amatic SC', cursive;
+    font-weight: 700;
+    font-size: 3em;
+}
+
+body.mobile {
+    padding: 20px;
+    font-family: 'Neucha', cursive;
+}
+
+
+div#popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    padding: 10px;
+    background: white;
+    overflow-y: auto;
+    box-sizing: border-box;
+    animation: slideRight .5s forwards;
+    background-size: cover;
+    background-position: 50%;
+    z-index: 10;
+}
+
+
+#popup>div {
+    padding: 20px;
+}
+
+
+input,
+textarea{
+  width: 100%;
+  display: block;
+  margin-bottom: 10px;
+  border: none;
+  border-bottom: 1px solid #dddddd;
+  line-height: 30px;
+}
+
+button {
+    background: var(--tg-theme-button-color);
+    border: none;
+    color: var(--tg-theme-button-text-color);
+    line-height: 40px;
+    min-width: 200px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+@keyframes slideRight {
+    0%{
+        left: -100vw;
+    }
+    100%{
+        left: 0vw;
+    }
+}
+
+@keyframes slideLeft {
+    0%{
+        left: 0vw;
+    }
+    100%{
+        left: -100vw;
+    }
+}
+
+.order {
+    border-top: 1px solid gray;
+    padding-top: 10px;
+    margin-top: 20px;
+}
+
+button.cancelButton {
+    background: var(--tg-theme-secondary-bg-color);
+}
+
+.order[data-active="false"] {
+    filter: opacity(0.5);
+}
+
+.order[data-status="completed"]::after {
+    content: 'выдан';
+    background: var(--tg-theme-button-color);
+    color: white;
+    padding: 0px 5px;
+    border-radius: 3px;
+    position: absolute;
+    top: 10px;
+    right: 0px;
+}

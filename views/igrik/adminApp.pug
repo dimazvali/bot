@@ -1,0 +1,58 @@
+
+doctype html
+html
+  head
+    title Амдминская прилога
+    script(src='https://telegram.org/js/telegram-web-app.js')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script(src='/javascripts/common.js')
+    script(src='/javascripts/igrik/admin.js')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap")
+    link(rel="stylesheet", href="/stylesheets/igrik/webapp.css")
+  //- body.mobile.f
+  //-   img#logo(src="/images/igrik/logo.svg") 
+  //-   #starter
+  
+  body.mobile.p
+    if(intent=="messenger")
+      #user 
+        p!=`${user.first_name} ${user.last_name} (${user.username})`
+        p!=`дата регистрации: ${new Date(user.createdAt._seconds*1000).toLocaleString('ru-RU')}`
+        input(type="text" placeholder="подпись" value!=(user.credit||null) onchange=`updateUser(${user.id},"credit",this)`)
+        p!=`теги: ${tags.map(t=>t.tag).join(', ')}`
+        button(onclick=`addTag("${user.id}")`) Добавить
+      #classes
+        h2 Классы
+        for c in classes
+          .message
+            span.info!=new Date(c.createdAt._seconds*1000).toLocaleString()
+            p!=c.date
+            p!=c.name
+      #messages
+        h2 Переписка
+        for m in messages 
+          .message(data-answer=m.isReply?'answer':false)
+            span.info!=new Date(m.createdAt._seconds*1000).toLocaleString()
+            p!=m.text
+      #footer
+        textarea#response(placeholder="вам слово" onfocus="movetotop()")
+        button(onclick=`sendReply(${user.id})`) Отправить 
+    else if (intent=="start")
+      div#starter!=`Секунду, проверяем ваши доступы`
+      script!=`checkUser()`
+    else if (intent="news")
+      #popup.m
+        span.info!=new Date(publication.createdAt._seconds*1000).toLocaleString()
+        span.info!=`Просмотров: ${publication.views || 0}`
+        h2!=publication.title
+        if(publication.video)
+          video(src!=publication.video autoplay="true" type="video/mp4" style="width:100%;" loop="true")
+        p!=publication.text
+        if(publication.active && !publication.posted)
+          button(onclick!=`postNews('${publication.id}')`) Разослать
+        if(!publication.active)
+          button(onclick=`publish('${publication.id}')`) Опубликовать
+        

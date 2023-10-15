@@ -1,0 +1,46 @@
+-let  statuses = {"booked":"вас ждут","cancel_c":"Вы отменили резерв","cancel_r":"Ресторан отклонил резерв","closed_by_admin":"Заказ закрыт","confirmed":"Заказ состоялся","moot":"Ресторан полагает, что вы не пришли","nc":"Вы не пришли в ресторан","pre_confirmed":"Вас ждут в ресторане","active":"Заказ обрабатывается"}
+-let changeAble={"booked":true,"pre_confirmed": true,"active":true}
+doctype html
+html
+  head
+    title= 'Управление заказом'
+    script(src='https://telegram.org/js/telegram-web-app.js')
+    link(rel='stylesheet', href='/stylesheets/styleWA.css')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(type='description' content='Попробуйте — вам понравится.')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script(src='/javascripts/common.js')
+    script(src='/javascripts/userwebapp.js')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap")
+    script!=`let oid=${o.id}`
+  body.mobile
+    #start
+        img(src!=`https://inner-node.restorating.ru/cover/reservation/${o.uid}`, alt="Обложка заказа")
+        h2!=`Ваш заказ в ${o.name}`
+        p(style="font-weight:bold;")!=statuses[o.status]
+        p!=`Подробности:<ul><li>На имя: ${o.client_nm}</li><li>Когда: ${new Date(o.date).toLocaleDateString()}, ${o.time}</li><li>Гостей: ${o.guests}</li><li>Пожелания: ${o.comment || 'не указаны'}</li></ul>`
+        
+        if(changeAble[o.status])
+            p Вы можете уточнить или отменить резерв.
+
+        if(history)
+            .historyLog
+                h2 История заказа
+                for c in history
+                    div 
+                        p.info!=new Date(c.createdAt._seconds*1000).toLocaleDateString()
+                        if c.status
+                            p!=`вы попросили отменить заказ`
+                        if c.date
+                            p!=`вы попросили сменить дату на ${c.date.after}`
+                        if c.guests
+                            p!=`вы попросили заменить количество гостей на ${c.guests.after}`
+                        if c.time
+                            p!=`вы попросили сменить время на ${c.time.after}`
+        if(changeAble[o.status])
+            .buttonsContainer
+                button.accept(onclick=`changeOrder(${JSON.stringify(o)})`) Изменить
+                button.decline(onclick=`toggleStatus(${o.id},"decline")`) отменить
+        

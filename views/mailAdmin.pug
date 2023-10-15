@@ -1,0 +1,27 @@
+doctype html
+html
+  head
+    title= 'Самокатчики в атаке'
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    meta(type='description' content='Попробуйте — вам понравится.')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script(src='/javascripts/common.js')
+    script(src='/javascripts/samobot/admin.js')
+  body.mobile
+    div.mobile
+        img(src="/images/samologo.png" class="logo" onclick="window.open('https://t.me/"+process.env.samobot+"')")
+        h1!= title ? title : ''
+        p!= description
+        #courses
+          for list in courses
+            button(onclick="getCourse('"+list.key +"')")!= list.title
+        button(class="gb" onclick="addNewCourse()")!= 'Создать курс'
+        
+        script!= 'let authkey="'+key+'"' 
+        script!= 'let author="'+author+'"' 
+        script!= 'let lists='+JSON.stringify(courses)
+
+        #dc
+
+
+    block content

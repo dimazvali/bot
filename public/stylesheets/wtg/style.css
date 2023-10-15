@@ -1,0 +1,247 @@
+:root {
+    --light:    #fff5d7;
+    --half:     #edae74;
+    --dark:     #1b334c;
+    --accent:   #b84440;
+}
+
+@font-face {
+    font-family: 'marty';
+    src: url('/stylesheets/wtg/marty/Marty.otf') format('opentype'); 
+}
+
+body.mobile {
+    font-family: 'marty', sans-serif;
+    background: var(--light);
+    color: var(--dark);
+}
+
+h1,h2,h3 {
+    color: var(--accent);
+}
+
+[data-active="false"] {
+    filter: opacity(0.3);
+}
+
+body.mobile>h2 {
+    text-align: center;
+}
+
+h2 {
+    font-size: xxx-large;
+}
+
+
+div#loader {
+    background: #fdfdfd;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100vw;
+    height: 100vh;
+    background-image: url(/images/wtg/logo.jpg);
+    background-position: center;
+    background-size: cover;
+}
+
+.hide{
+    animation: disappear .3s forwards;
+}
+
+@keyframes disappear  {
+    0%{
+        filter: opacity(1);
+    }
+    100%{
+        filter: opacity(0);
+    }
+}
+
+
+div.popup,
+div#popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    padding: 10px;
+    background: var(--light);
+    overflow-y: auto;
+    box-sizing: border-box;
+    animation: slideRight .5s forwards;
+    filter: opacity(.3);
+    background-size: cover;
+    background-position: 50%;
+    z-index: 10;
+}
+
+@keyframes slideRight {
+    0% {
+        left: -100vw;
+        filter: opacity(.3);
+    }
+
+    100% {
+        left: 0vw;
+        filter: opacity(1);
+    }
+}
+
+
+
+
+.sb {
+    animation: slideLeft .5s forwards !important;
+}
+
+
+@keyframes slideLeft {
+    0% {
+        left: 0vw;
+    }
+
+    100% {
+        left: -100vw;
+    }
+}
+
+
+
+.hidden{
+    display: none;
+}
+
+button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    font-family: 'marty', sans-serif;
+    letter-spacing: 1px;
+    margin: 0px 10px 10px 0;
+    padding: 5px 10px;
+    border-radius: 6px;
+    transition: .5s;
+    cursor: pointer;
+}
+
+button.active {
+    background: var(--dark);
+}
+
+.divided {
+    border-bottom: 1px solid var(--dark);
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.info {
+    font-size: small;
+    filter: opacity(0.5);
+}
+
+#ticket>img{display: inline-block;text-align: center;width: 60%;object-fit: none;border-radius: 50%;margin: 0 auto;margin-left: 0;margin-right: 0;background: white;box-shadow: 0px 0px 160px var(--half);border: 1px solid var(--dark);border-bottom: solid;}
+
+h1,h2 {
+    text-shadow: 2px 2px var(--dark);
+}
+
+#profileC,#barsC,#counter,#ticket {
+    text-align: center;
+}
+
+.selectable>h2{
+    animation-direction: alternate-reverse;
+    animation: shadow 1s infinite;
+    animation-direction: alternate-reverse;
+}
+
+@keyframes shadow {
+    0%{
+        text-shadow: 2px 2px var(--dark);
+    }
+    100%{
+        text-shadow: -2px -2px var(--dark);
+    }
+}
+button.big {
+    width: 100%;
+    line-height: 30px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: var(--dark);
+}
+
+button.big {
+    width: 100%;
+    line-height: 30px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: var(--dark);
+}
+
+[data-type="newBar"]>div>input, [data-type="newBar"]>div>textarea {
+    display: block;
+    margin-bottom: 10px;
+    line-height: 30px;
+    width: calc(100% - 20px);
+}
+
+textarea,input {
+    background: no-repeat;
+    border: none;
+    border-bottom: 1px solid var(--dark);
+    font-family: 'marty';
+    letter-spacing: 1px;
+}
+textarea {
+    background-color: #ffffff99;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+div#links {
+    display: flex;
+    justify-content: space-around;
+}
+
+h2 {
+    font-size: 13vw;
+}
+
+h3 {
+    font-size: xx-large;
+    margin: 0;
+    margin-top: 20px;
+}
+
+.ratingContainer {
+    margin-top: 20px;
+    /* display: flex; */
+    justify-content: flex-start;
+}
+
+.ratingContainer::before {
+    content: 'Оцените бар:';
+    display: block;
+    margin-bottom: 10px;
+}
+
+[data-rating]::after {
+    content: ' 'attr(data-rating);
+    font-size: small;
+    color: var(--dark);
+    vertical-align: super;
+    padding-left: 8px;
+}
+
+.clickable {
+    border-bottom: 1px dotted var(--dark);
+}
+
+.block {
+    display: block;
+}

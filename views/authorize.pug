@@ -1,0 +1,20 @@
+doctype html
+html
+  head
+    title= 'Самокатчики в атаке'
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    meta(type='description' content='Попробуйте — вам понравится.')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+
+  body.mobile
+    div.mobile
+        img(src="/images/samologo.png" class="logo" onclick="window.open('https://t.me/"+process.env.samobot+"')")
+        h1!=  title ? title : ''
+        p!=   description
+        form(action=`${regDom ? '/'+regDom : '' }/${noadmin?'':'admin'}` method="post")
+            input(type="text" placeholder="логин" name="username")
+            input(type="password" placeholder="пароль" name="pass")
+            button(type="submit") Авторизоваться
+        if register
+          a.hb(href!=`/${regDom}/register`) Зарегистрироваться
+    block content

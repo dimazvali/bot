@@ -1,0 +1,36 @@
+doctype html
+html
+  head
+    title= title
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    script!=`function updateCity(el,id){fetch("/bot/updateUser/"+id+"/city?value="+Number(el.value)).then(res=>res.status==200?alert('ok'):alert('ошибка'))}`
+  body
+    #user
+        h2!=`${name} (${username})`
+        if active === false
+          p!=`кажется, пользователь заблокировал бота`
+        if cityName
+          p!=`порт приписки: ${cityName}`
+        else 
+          p Город не выбран
+        select(onchange=`updateCity(this,${id})`)
+          if cityName
+            option Смените город
+          else 
+            option Укажите город
+          option(value="1") Петербург
+          option(value="2") Москва
+          option(value="3") Калининград 
+          option(value="4") Сочи
+          option(value="5") Тбилиси
+
+        p!=`первое сообщение: ${new Date(since).toLocaleDateString('ru-Ru')}`
+        if authPhone
+            p!=authPhone
+        else
+            p Телефон не установлен
+    #messages
+        h2 Переписка
+        each m,key in messages
+            p!=`${new Date(+key*1000).toLocaleDateString()}: ${m}`

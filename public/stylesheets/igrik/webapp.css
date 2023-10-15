@@ -1,0 +1,485 @@
+:root {
+    --blackish: #2f2f34;
+    /* --tg-theme-secondary-bg-color: #e6e6e6 */
+}
+
+
+@font-face {
+    font-family: diaspora;
+    src: url("/stylesheets/igrik/diaspora.otf") format("opentype");
+}
+
+@font-face {
+    font-family: manege;
+    src: url("/stylesheets/igrik/Manege.otf") format("opentype");
+}
+
+body.mobile {
+    padding: 10px;
+    font-family: manege, serif;
+    box-sizing: border-box;
+    width: 600px;
+    position: relative;
+    margin:  0;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+div#user>p {
+    font-weight: bold;
+}
+
+.hidden{
+    display: none !important;
+}
+
+.mleft{
+    padding-left: 10px;
+}
+
+span.info {
+    font-style: italic;
+    font-size: small;
+    color: grey;
+    display: block;
+    margin-bottom: -15px;
+    margin-top: 20px;
+}
+
+div#footer {
+    position: fixed;
+    bottom: 0;
+    width: calc(100% - 40px);
+    padding-bottom: -30px;
+}
+
+div#footer>textarea {
+    width: 100%;
+    display: block;
+    padding: 10px;
+    box-sizing: border-box;
+}
+[data-answer] {
+    margin-left: 30px;
+}
+
+
+div#footer>button {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    height: 40px;
+}
+
+#starter{
+    background: url(/images/igrik/bg.svg);
+}
+
+img#logo {
+    width: 80%;
+    margin: 0 auto;
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 30px;
+    animation: appear 2s forwards;
+    filter: opacity(0);
+    /* z-index: 0; */
+}
+
+@keyframes appear {
+    0%{
+        filter: opacity(0);
+    }
+    100%{
+        filter: opacity(1);
+    }
+}
+body.mobile,
+body.mobile.f {
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(140deg, #FED0AF, #FEA094 30%, #FE93C7 80%, #FE93C7);
+    transition: 1s;
+    padding: 0;
+}
+
+div#starter {
+    width: 100%;
+    background-size: cover;
+    transition: 1s;
+    height: 160px;
+    background-position: 0%;
+}
+
+.f>#starter{
+    height: 100vh;
+    animation: slide 5s forwards;
+}
+
+@keyframes slide {
+    0%{
+        background-position: 0%;
+    }
+    100%{
+        background-position: 100%;
+    }
+}
+
+.f>#logo {
+    margin-top: 50%;
+    transform: translate(0, -50%);
+    transition: 1s;
+}
+
+.s>#logo {
+    margin-top: 0;
+    transform: translate(0, 0);  
+}
+
+.s>#starter {
+    height: 160px;
+    border-radius: 20px;
+}
+
+
+div#content {
+    padding: 0 30px;
+    z-index: 50;
+}
+
+div#content>h2 {
+    font-size: 30px;
+    font-weight: 200;
+    color: var(--blackish);
+}
+
+p.white {
+    color: white;
+    margin-top: -20px;
+}
+
+.white{
+    color: white;
+}
+
+canvas#barcode {
+    border-radius: 10px;
+}
+
+.scroll {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    overflow-x: scroll;
+    /* min-width: calc(100vw); */
+}
+
+.account {
+    background: white;
+    border-radius:  10px;
+}
+
+
+.scroll>* {
+    border-radius: 10px;
+    display: block;
+    margin-right: 20px;
+}
+
+.account {
+    font-size: 30px;
+    padding: 10px;
+    font-family: 'manege';
+    width: max-content;
+    white-space: nowrap;
+}
+
+.account::after {
+    content: ' руб.';
+    display: inline;
+}
+
+body.mobile.f.s {
+    /* overflow-x: hidden; */
+    /* overflow-y: hidden; */
+}
+.container>div>button,
+.buttonsContainer>button {
+    font-family: 'manege';
+    display: block;
+    margin-bottom: 10px;
+    font-size: 20px;
+    min-height: 45px;
+    padding: 0px 15px;
+    border: none;
+    border-radius: 5px;
+    background: #ffffff57;
+    color: var(--blackish);
+}
+
+div#popup {
+    position: absolute;
+    top: 160px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px) contrast(0.6);
+    width: 100%;
+    padding: 0 30px;
+    box-sizing: border-box;
+    background: rgb(255 255 255 / 86%);
+    min-height: calc(100vh - 160px);
+    bottom: 0;
+    animation: slideUp .5s forwards;
+    height: fit-content;
+}
+
+@keyframes slideUp {
+    0%{
+        top: 100vh;
+    }
+    100%{
+        top: 160px;
+    }
+}
+
+button.appButton {
+    position: absolute;
+    right: 0;
+    top: 0;
+    background: none;
+    border: none;
+    background: white;
+    border-radius: 50%;
+    line-height: 25px;
+    width: 34px;
+    display: block;
+    height: 34px;
+    padding: 0;
+    text-align: center;
+    display: block;
+    font-family: manege;
+    font-weight: bold;
+    background: url(/images/igrik/SVG/IGRIK_Bar&Yoga_logo_ALLLL-06.svg);
+    background-size: 200%;
+    background-position: 50%;
+    /* filter: saturate(0.5); */
+}
+
+
+[data-booked] {
+    position: relative;
+    border-bottom: 1px solid rgb(47 47 52 / 20%);
+    padding-bottom: 0px;
+    animation: appear .5s forwards;
+    margin-bottom: 10px;
+}
+
+input.fr {
+    /* position: absolute; */
+    /* top: 25px; */
+    /* right: 30px; */
+}
+
+input[type="date"],
+input[type="datetime-local"] {
+    background: none;
+    border: beige;
+    font-family: manege;
+    font-weight: bold;
+    font-size: 1em;
+    color: var(--blackish);
+    border-bottom: 1px solid var(--blackish);
+}
+
+.blink{
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%{
+        filter: opacity(1);
+    }
+    50%{
+        filter: opacity(.6);
+    }
+}
+
+.buttonsContainer {
+    margin-top: 20px;
+}
+
+.flex {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+[data-booked]:last-of-type{
+    border-bottom: none;
+}
+
+.master:last-of-type::after,
+[data-booked]:last-of-type::after{
+    content: ' ';
+    width: 150px;
+    height: 150px;
+    background: url(/images/igrik/SVG/IGRIK_Bar&Yoga_logo_ALLLL-05.svg);
+    display: block;
+    margin: 0 auto;
+    transform: rotate(45deg);
+    animation: dance 5s infinite;
+}
+
+@keyframes dance {
+    0%{
+        transform: rotate(0);
+    }
+    40%{
+        transform: rotate(-30deg);
+    }
+    70%{
+        transform: rotate(40deg);
+    }
+    100%{
+        transform: rotate(0);
+    }
+}
+
+div#popup:before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    height: 20px;
+    width: 100%;
+    background: linear-gradient(to bottom, transparent, rgb(255 255 255 / 86%));
+    left: 0;
+}
+
+[data-booked="0"]>button.appButton {
+    background-image: url(/images/igrik/SVG/IGRIK_Bar&Yoga_logo_ALLLL-06.svg);
+}
+
+[data-booked="1"]>button.appButton {
+    background-image: url(/images/igrik/SVG/IGRIK_Bar&Yoga_logo_ALLLL-05.svg);
+}
+
+.buttonsContainer {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+.buttonsContainer>button {
+    margin-right: 10px;
+}
+
+input[type="datetime-local"] {
+    margin-top: 20px;
+}
+
+input[type="number"] {
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--blackish);
+    line-height: 40px;
+    margin-top: 20px;
+}
+
+button.table {
+    font-family: 'manege';
+    display: inline-block;
+    margin-bottom: 10px;
+    font-size: 16px;
+    height: 45px;
+    padding: 0px 15px;
+    border: none;
+    border-radius: 5px;
+    background: #ffffff57;
+    color: var(--blackish);
+}
+
+.container>div {
+    text-align: center;
+}
+
+.container>div {
+    display: flex;
+    flex-direction: column;
+    padding-top: 40px;
+}
+
+body.mobile.p {
+    padding: 20px;
+}
+
+div#popup.m {
+    top: 0px !important;
+    left: 0;
+    min-height: 100vh;
+}
+
+p.navlink {
+    text-align: center;
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--blackish);
+    cursor: pointer;
+}
+
+button {
+    cursor: pointer;
+}
+
+.mtop {
+    margin-top: 30px;
+}
+
+.mtopMin {
+    margin-top: -14px;
+}
+
+.dish {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+span.cred {
+    font-style: italic;
+    font-size: small;
+    color: gray;
+    margin-top: -12px;
+    display: block;
+}
+
+a.b {
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.descC {
+    transition: .7s;
+    max-height: 4em;
+    overflow: hidden;
+    padding-bottom: 10px;
+    position: relative;
+}
+
+.descC>.navlink {
+    position: absolute;
+    bottom: -14px;
+    right: 0;
+    left: 0;
+}
+
+.descC[data-open="true"] {
+    max-height: initial;
+}
+
+div#messages {
+    padding-bottom: 150px;
+}

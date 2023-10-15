@@ -1,0 +1,389 @@
+:root {
+    --tg-theme-bg-color: white;
+    --tg-theme-secondary-bg-color: #e6e6e6
+}
+
+h2,
+h3,
+h4 {
+    margin-top: 0;
+}
+
+body {
+    color: var(--tg-theme-text-color);
+    background: var(--tg-theme-secondary-bg-color);
+    font-family: 'Roboto', sans-serif;
+    ;
+    margin: 0;
+    padding: 5vw 0 5vw 5vw;
+    font-size: 1em;
+    box-sizing: border-box;
+    max-width: 100vw;
+}
+
+img {
+    max-width: calc(100% + 5vw);
+    margin-left: -5vw;
+}
+
+#datadiv {
+    background: var(--tg-theme-bg-color);
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 3vw;
+    border-radius: 3vw;
+    position: relative;
+}
+
+a {
+    color: var(--tg-theme-link-color);
+}
+
+.wine>h2 {
+    margin-left: 20px;
+}
+
+.wine {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 20px;
+    align-content: center;
+    align-items: center;
+    animation: appear .5s forwards;
+    cursor: pointer;
+}
+
+.wine>img {
+    object-position: center;
+    object-fit: contain;
+    width: 10vw;
+    height: 10vw;
+}
+
+.wd {
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: var(--tg-theme-bg-color);
+    padding: 20px;
+    box-sizing: border-box;
+    width: 100%;
+    /* max-width: 600px; */
+    animation: slide .5s forwards;
+    height: 100vh;
+    overflow: auto;
+}
+
+.wd>img {
+    width: 100%;
+    max-height: 20vw;
+    object-fit: contain;
+}
+
+@keyframes appear {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes slide {
+    0% {
+        top: 100vh;
+    }
+
+    100% {
+        top: 0vh;
+    }
+}
+
+
+
+.bc {
+    position: absolute;
+    right: 0;
+    display: flex;
+}
+
+.bc>* {
+    width: 5vw;
+    height: 5vw;
+    display: block;
+    border: none;
+    border-radius: 3px;
+    margin: 5px;
+    font-weight: bold;
+    font-size: 5vw;
+    text-align: center;
+    vertical-align: baseline;
+}
+
+.plus {
+    background: #4caf50;
+    color: white;
+}
+
+.minus {
+    background: #ff5722;
+    color: white;
+}
+
+[data-count="0"]>.bc>.minus {
+    display: none;
+}
+
+[data-count="0"]>.bc>span {
+    display: none;
+}
+
+
+div#nav {
+    display: flex;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    align-items: center;
+    overflow: auto;
+}
+
+div#nav>span {
+    border: 1px solid grey;
+    border-radius: 10px;
+    margin-right: 30px;
+    line-height: 40px;
+    padding: 0 20px;
+}
+
+div#start {
+    overflow-x: visible;
+}
+
+div#bests {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+    padding-right: 5vw;
+}
+
+div#bests>.best {
+    background-color: beige;
+    padding: 20px;
+    box-sizing: border-box;
+    width: 47%;
+    border-radius: 20px;
+}
+
+span.cnt {
+    float: right;
+}
+
+.line {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    height: 200px;
+    position: relative;
+    overflow: auto;
+}
+
+.wine2 {
+    display: flex;
+    width: 300px;
+    background: var(--tg-theme-bg-color);
+    margin-right: 10vw;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    min-width: 70vw;
+    padding: 20px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    justify-content: space-between;
+}
+
+.wine2>img.vert {
+    width: 50px;
+    margin-right: 20px;
+    object-fit: contain;
+    object-position: 50% 0;
+}
+
+.block {
+    margin-top: 40px;
+}
+
+.details>P {
+    font-size: smaller;
+    color: grey;
+}
+
+.bottom {
+    bottom: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.details {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    width: 220px;
+}
+
+.bottom>span {
+    font-size: small;
+}
+
+.bottom>span {
+    height: 40px;
+    border: 1px solid grey;
+    line-height: 40px;
+    padding: 0 10px;
+    border-radius: 10px;
+    color: gray;
+    font-size: x-small;
+}
+
+.details>h4 {
+    margin-bottom: -20px;
+}
+
+span.toCart {
+    width: -webkit-fill-available;
+    margin-left: 20px;
+    text-align: center;
+    font-size: small;
+}
+
+span.price {
+    font-weight: bold;
+}
+
+span.price:after {
+    content: ' ₾';
+}
+
+span.like {
+    width: 40px;
+    background-image: url(/images/ico_heart.png);
+    background-position: 50%;
+    background-repeat: no-repeat;
+}
+
+
+/* для нашего */
+
+.buttonsContainer>button {
+    display: block;
+    width: 100%;
+    line-height: 40px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+}
+
+.accept {
+    background: #558b2f;
+}
+
+.decline {
+    background: #e64a19;
+}
+
+.buttonsContainer {
+    padding-right: 5vw;
+}
+
+button.accept {
+    margin-bottom: 5vw;
+}
+
+
+textarea#comment {
+    width: calc(100vw - 10vw);
+    height: 30vh;
+    line-height: 20px;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.cc {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-right: 5vw;
+}
+
+.cc>textarea {
+    width: 100%;
+    display: block;
+}
+/* 
+cc>input {
+    width: 40%;
+} */
+
+.cc>input,
+.cc>textarea {
+    margin-bottom: 20px;
+    line-height: 40px;
+    border: none;
+    background: #ffffff57;
+    border-bottom: 1px solid #b9b9b9;
+    font-size: smaller;
+}
+
+.info{
+    font-size: smaller;
+    font-style: italic;
+    color: var(--tg-theme-hint-color);
+    display: block;
+    margin-bottom: 20px;
+}
+
+div#det {padding-right: 5vw;}
+
+#det>select,
+#det>input,
+#det>textarea {
+    background: none;
+    border: none;
+    border-bottom: 1px solid lightgray;
+    line-height: 30px;
+    width: 100%;
+    font-family: 'Roboto', sans-serif;
+    height: 30px;
+    background-color: #ffffff5e;
+    padding: 0 5px;
+    -webkit-min-logical-width: 100%;
+}
+
+body.mobile.p>h2 {
+    margin-top: 20px;
+}
+
+/* .mbutton{
+    background: ;
+} */
+
+button.mbutton {
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-bg-color);
+    border: none;
+    line-height: 30px;
+    border-radius: 4px;
+    margin-right: 30px;
+    margin-top: 20px;
+    padding: 0 20px;
+}
+
+#det>div>h3{
+    margin-top: 20px;
+}
