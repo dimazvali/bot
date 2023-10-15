@@ -77,13 +77,13 @@ let adminToken = `6174033726:AAH8QaTasCMq6JscwxLo_Md9JVpB6USvBzY`
 let ngrok = process.env.ngrok;
 
 
-axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/igrik/hook`).then(s=>{
-    console.log(`igrik hook set to ${ngrok}`)
-})
+// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/igrik/hook`).then(s=>{
+//     console.log(`igrik hook set to ${ngrok}`)
+// })
 
-axios.get(`https://api.telegram.org/bot${adminToken}/setWebHook?url=${ngrok}/igrik/adminHook`).then(s=>{
-    console.log(`igrik hook set to ${ngrok}`)
-})
+// axios.get(`https://api.telegram.org/bot${adminToken}/setWebHook?url=${ngrok}/igrik/adminHook`).then(s=>{
+//     console.log(`igrik hook set to ${ngrok}`)
+// })
 
 
 

@@ -31,6 +31,7 @@ app.use('/auditoria', require('./routes/auditoriaBot'));
 app.use('/sss', require('./routes/sss'));
 app.use('/kaha', require('./routes/kaha'));
 app.use('/wtg', require('./routes/wtgBot'));
+app.use('/test', require('./routes/test'));
 
 
 // catch 404 and forward to error handler
