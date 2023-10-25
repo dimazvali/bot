@@ -3,6 +3,7 @@ let tg = window.Telegram.WebApp;
 let userid = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : userId
 let mbbc, mcb = null;
 let host = `paper`
+let appLink = `https://t.me/paperstuffbot/app`
 
 axios.get(`/${host}/admin/check?id=${userid}`).then(s=>{
     loader.classList.remove('active')
@@ -440,11 +441,14 @@ function drawClass(l){
     
     c.append(ce('h3',false,'light',l.name))
 
+    c.append(copyLink(`class_${l.id}`,appLink, `скопировать ссылку`))
+
     let details = ce('div',false,'hidden')
 
     details.append(ce('span',false,'info', new Date(l.date).toLocaleString('ru-RU',{
         timeZone: 'Asia/Tbilisi'
     })))
+    
     details.append(ce('p',false,'story',l.description || 'без короткой подписи'))
     
     let questions = ce('p',false,false,'загружаю вопросы...')
@@ -469,6 +473,7 @@ function drawClass(l){
                             active: q.active
                         }
                     })
+                    c.append(ce(`p`,false,false,``))
                     c.append(ce(`span`,false,'info',drawDate(q.createdAt._seconds,false,{time:true})))
                     c.append(ce('p',false,false,uname(q.userData,q.userData.id)))
                     c.append(ce('p',false,'story',q.text))

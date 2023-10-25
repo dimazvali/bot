@@ -327,6 +327,8 @@ function showContacts(el){
 
 function showProfile(el){
 
+    shimmer(true)
+
     tg.BackButton.show();
 
     tg.onEvent('backButtonClicked',clearPopUp)
@@ -520,8 +522,9 @@ function showProfile(el){
 }
 
 function showMR(el){
-    // tg.showAlert(`not ready yet. you should use /meetingroom command instead`)
     
+    shimmer(true)
+
     if(el.className.indexOf('switched')>-1){
         el.classList.remove('switched')    
         el.parentNode.classList.remove('open')
@@ -704,6 +707,8 @@ function showCoworking(el){
 
     el.scrollIntoView({block: "start", behavior: "smooth"})
 
+    shimmer(true)
+
     if(el.className.indexOf('switched')>-1){
         el.classList.remove('switched')    
         el.parentNode.classList.remove('open')
@@ -730,7 +735,9 @@ function showCoworking(el){
 }
 
 function showSchedule(el){
-    console.log(el)
+    
+    shimmer(true)
+
     if(el.className.indexOf('switched')>-1){
         el.classList.remove('switched')    
         el.parentNode.classList.remove('open')
@@ -849,6 +856,9 @@ function drawDay(d){
             booked: 1
         },
         onclick:function(){
+            
+            shimmer(true)
+
             tg.BackButton.show();
             tg.onEvent('backButtonClicked',clearPopUp)
             mcb = clearPopUp
@@ -1118,6 +1128,8 @@ function drawLectureQuestion(cl){
 }
 
 function drawLecturePopup(c){
+
+        shimmer(true)
 
         curLecture = c.id
 

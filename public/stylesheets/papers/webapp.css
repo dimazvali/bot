@@ -424,3 +424,11 @@ body.mobile>h2 {
 .price{
     float: right;
 }
+
+button.thin {
+    color: var(--light);
+    background: no-repeat;
+    border: none;
+    font-family: stapel;
+    margin-bottom: 20px;
+}

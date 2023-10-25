@@ -505,8 +505,8 @@ function showLogs(filter,description) {
         .finally(hideLoader)
 }
 
-function copyLink(link,app){
-    return ce('button',false,`thin`,`ссылка`,{
+function copyLink(link,app, text){
+    return ce('button',false,`thin`,text||`ссылка`,{
         onclick:function(){
             navigator.clipboard.writeText(`${app||appLinkAdmin}?startapp=${link}`).then(s=>{
                 tg.showAlert(`Ссылка на раздел скопирована`)

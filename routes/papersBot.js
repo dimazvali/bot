@@ -71,11 +71,11 @@ let ngrok = process.env.ngrok
 
 let sheet = process.env.papersSheet
 
-// setTimeout(function(){
-//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
-//         console.log(`papers hook set on ${ngrok}`)
-//     }).catch(handleError)   
-// },1500)
+setTimeout(function(){
+    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
+        console.log(`papers hook set on ${ngrok}`)
+    }).catch(handleError)   
+},1500)
 
 
 
@@ -2047,8 +2047,6 @@ function alertAdmins(mess) {
             if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, false, token)
         })
     })
-
-
 }
 
 function registerUser(u) {
@@ -2066,7 +2064,7 @@ function registerUser(u) {
             "type": "web_app",
             "text": translations.app[u.language_code] || translations.app.en,
             "web_app": {
-                "url": "https://api-bot.restorating.ru/paper/app"
+                "url": process.env.ngrok+"/paper/app"
             }
         }
     })
@@ -4965,6 +4963,7 @@ router.post('/slack', (req, res) => {
 })
 
 router.post('/hook', (req, res) => {
+    
     res.sendStatus(200)
 
     let user = {}
@@ -4975,7 +4974,20 @@ router.post('/hook', (req, res) => {
         user = req.body.message.from
 
         udb.doc(user.id.toString()).get().then(u => {
+            
+            
             if (!u.exists) registerUser(user)
+
+            if(!u.data().active){
+                udb.doc(user.id.toString()).update({
+                    active: true,
+                    stopped: null
+                }).then(s=>{
+                    log({
+                        text: `Пользователь id ${user.id} возвращается`
+                    })  
+                })
+            }
 
             if (req.body.message.text && req.body.message.text.indexOf('/start campaign') == 0) {
                 userTags.add({
@@ -5116,6 +5128,21 @@ router.post('/hook', (req, res) => {
                                         text: `test`,
                                         web_app: {
                                             url: `${process.env.ngrok}/paper/app`
+                                        }
+                                    }]
+                                ]
+                            }
+                        }, false, token)
+
+                        m.sendMessage2({
+                            chat_id: user.id,
+                            text: `админка с дева`,
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [{
+                                        text: `test`,
+                                        web_app: {
+                                            url: `${process.env.ngrok}/paper/admin`
                                         }
                                     }]
                                 ]
@@ -6008,6 +6035,29 @@ router.post('/hook', (req, res) => {
             }
         }
     }
+
+    if (req.body.my_chat_member) {
+        if (req.body.my_chat_member.new_chat_member.status == 'kicked') {
+            common.devlog(`пользователь выходит`)
+            udb.doc(req.body.my_chat_member.chat.id.toString()).update({
+                active: false,
+                stopped: true
+            }).then(s=>{
+                udb.doc(req.body.my_chat_member.chat.id.toString()).get().then(u=>{
+                    
+                    u = common.handleDoc(u)
+
+                    log({
+                        text: `${uname(u,u.id)} блочит бот`,
+                        user: u.id
+                    })
+                })
+                
+            }).catch(err=>{
+                console.log(err)
+            })
+        }
+    }
 })
 
 
@@ -6628,7 +6678,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                             "type": "web_app",
                                             "text": translations.app[req.body.type] || translations.app.en,
                                             "web_app": {
-                                                "url": "https://api-bot.restorating.ru/paper/app"
+                                                "url": process.env.ngrok+"/paper/app"
                                             }
                                         }
                                     })
@@ -7513,3 +7563,27 @@ function unbookMR(id, userid, callback, res) {
 }
 
 module.exports = router;
+
+// udb.get().then(col=>{
+//     common.handleQuery(col).forEach((u,i)=>{
+//         setTimeout(function(){
+//             axios.post(`https://api.telegram.org/bot${token}/setChatMenuButton`, {
+//             "chat_id": u.id,
+//             "menu_button": {
+//                 "type": "web_app",
+//                 "text": translations.app[u.language_code] || translations.app.en,
+//                 "web_app": {
+//                     "url": process.env.ngrok+"/paper/app"
+//                 }
+//             }
+//         }).then(console.count(`set`))
+//         .catch(err=>{
+//             udb.doc(u.id.toString()).update({
+//                 active: false
+//             })
+//             console.count(`deactivated`)
+//         })
+//         },i*200)
+        
+//     })
+// })

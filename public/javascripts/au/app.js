@@ -1349,7 +1349,7 @@ function drawClassPopup(c, id) {
     } else {
         if (c.payed || c.isPayed) {
             p.append(ce('p', false, 'bold', `Ваша трансляция оплачена. Пароль и ссылку вы получите за полчаса до начала меропориятия`))
-        } else {
+        } else if (c.price1) {
             p.append(ce(`p`, false, `bold`, `Чтобы оплатить трансляцию, переведите ${cur(c.price1 ,`GEL`)} на ${c.paymentDesc || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
         }
     }
