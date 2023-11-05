@@ -17,7 +17,7 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(cookieParser(process.env.papersToken));
 app.use(express.json({limit:'10mb'}));
 app.use(bodyParser.json({limit: '50mb'}))
 bodyParser.json({limit: '50mb'})

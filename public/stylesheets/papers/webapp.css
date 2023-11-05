@@ -432,3 +432,8 @@ button.thin {
     font-family: stapel;
     margin-bottom: 20px;
 }
+
+iframe#telegram-login-paperstuffbot {
+    margin: 0 auto;
+    display: block;
+}

@@ -12,6 +12,17 @@ function line(tag, values,cb) {
 }
 
 
+function onTelegramAuth(user,host) {
+    console.log(user)
+    axios.post(`/${host}/auth`,user)
+        .then(ok=>{
+            window.location.pathname = `/${host}/web`
+        }).catch(err=>{
+            alert(err.message)
+        })
+  }
+
+
 
 function shimmer(light){
     if(light) return tg.HapticFeedback.impactOccurred('light')

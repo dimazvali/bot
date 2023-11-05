@@ -12,7 +12,8 @@ var modals =    require('./modals.js').modals
 const qs =      require('qs');
 var uname =     require('./common').uname;
 var drawDate =  require('./common').drawDate;
-
+const { createHash,createHmac } = require('node:crypto');
+const devlog = require(`./common`).devlog
 
 router.use(cors())
 
@@ -105,6 +106,7 @@ let news =              fb.collection('news');
 let eventTypes =        fb.collection('eventTypes');
 let coworkingRules =    fb.collection('cooorkingRules');
 let tokens =            fb.collection('tokens');
+let adminTokens =       fb.collection('adminTokens');
 let userTags =          fb.collection('userTags');
 let roomsBlocked =      fb.collection('roomsBlocked');
 let polls =             fb.collection('polls');
@@ -180,6 +182,85 @@ router.post(`/oauth`, (req, res) => {
     console.log(req.body);
 
     res.json(req.body)
+})
+
+
+router.get(`/web`,(req,res)=>{
+    if(!req.signedCookies.adminToken) res.redirect(`${process.env.ngrok}/papers/auth`)
+    adminTokens
+        .doc(req.signedCookies.adminToken)
+        .get()
+        .then(data=>{
+            if(!data.exists) res.sendStatus(403)
+            if(data.data().active){
+                logs
+                    .orderBy(`createdAt`,'desc')
+                    .limit(100)
+                    .get()
+                    .then(col=>{
+                        res.render(`papers/web`,{
+                            logs: common.handleQuery(col),
+                            // token: req.signedCookies.adminToken
+                        })
+                    })
+                
+
+            }
+        })
+})
+
+router.get(`/auth`,(req,res)=>{
+    res.render(`papers/auth`)
+})
+
+router.post(`/auth`,(req,res)=>{
+    
+    console.log(Object.keys(req.body).sort())
+
+    data_check_string=Object.keys(req.body)
+        .filter(key => key !== 'hash')
+        .sort()
+        .map(key=>`${key}=${req.body[key]}`)
+        .join('\n')
+
+        devlog(data_check_string)
+
+    const secretKey = createHash('sha256')
+        .update(token)
+        .digest();
+
+    const hmac = createHmac('sha256', secretKey)
+        .update(data_check_string)
+        .digest('hex');
+
+        devlog(req.body.hash)
+        devlog(hmac)
+
+    if(req.body.hash == hmac){
+
+        isAdmin(req.body.id.toString())
+            .then(s=>{
+                
+                if(!s) return res.sendStatus(403)
+                
+                adminTokens.add({
+                    createdAt:  new Date(),
+                    user:       +req.body.id,
+                    active: true 
+                }).then(c=>{
+                    res.cookie('adminToken', c.id, {
+                        maxAge: 24 * 60 * 60 * 1000,
+                        signed: true,
+                        httpOnly: true,
+                    }).sendStatus(200)
+                })
+            })
+
+        // res.sendStatus(200)
+    } else {
+        res.sendStatus(403)
+    }
+
 })
 
 // udb.get().then(col=>{
@@ -289,697 +370,715 @@ router.post(`/sendMe/:type`, (req, res) => {
 })
 
 router.all(`/admin/:method`, (req, res) => {
-    if (!req.query.id) return res.status(401).send(`Вы кто вообще?`)
-    udb.doc(req.query.id).get().then(user => {
-        if (!user.exists) return res.status(401).send(`Вы кто вообще?`)
-        user = user.data();
-        if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
-        switch (req.params.method) {
-            case 'feedBack':{
-                if(!req.query.class) res.sendStatus(404)
-                feedBackRequest(req.query.class)
-                res.sendStatus(200)
-                break;
-            }
-            case `q`:{
-                return userClassesQ
-                    .where(`class`,'==',req.query.class)
-                    .get()
-                    .then(col=>{
-                        let fin = [];
+    if (!req.query.id && !req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
+    
+    if(!req.query.id) req.query.id = adminTokens.doc(req.signedCookies.adminToken).get().then(doc=>{
+        if(!doc.exists) return false
+        doc = common.handleDoc(doc)
+        if(!doc.active) return false
+        return doc.user
+    })
 
-                        common.handleQuery(col).forEach(q=>{
-                            fin.push(m.getUser(q.user,udb).then(u=>{
-                                let t = q;
-                                    q.userData = u;
-                                return t;
-                            }))
-                        })
+    Promise.resolve(req.query.id).then(adminId=>{
+        if(!adminId) return res.sendStatus(403)
+        
+        req.query.id = adminId.toString()
+        
+        devlog(req.query.id)
 
-                        Promise.all(fin).then(data=>{
-                            res.json(data)
-                        })
-
-                        
-                    })
-            }
-            case `authors`:{
-                switch (req.method){
-                    case `GET`:{
-                        return authors
-                            .where(`active`,'==',true)
-                            .get().then(col=>{
-                                res.json(common.handleQuery(col))
-                            })
-                    }
-                    case 'POST':{
-                        
-                        if(!req.body.name) return res.json({success: false, comment: `no name provided`})
-                        if(!req.body.txt) return res.json({success: false, comment: `no description provided`})
-                        
-                        return authors.add({
-                            createdAt:      new Date(),
-                            createdBy:      +req.query.id,
-                            name:           req.body.name,
-                            description:    req.body.description,
-                            pic:            req.body.pic || null
-                        }).then(s=>{
-                            res.json({success:true,comment: `Автор ${req.body.name} создан. Можно добавить еще.`})
-                        }).catch(err=>{
-                            res.json({success: false, comment: err.message})
-                        })
-                    }
+        udb.doc(req.query.id).get().then(user => {
+            if (!user.exists) return res.status(401).send(`Вы кто вообще?`)
+            user = user.data();
+            if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
+            switch (req.params.method) {
+                case 'feedBack':{
+                    if(!req.query.class) res.sendStatus(404)
+                    feedBackRequest(req.query.class)
+                    res.sendStatus(200)
+                    break;
                 }
-                break;
-            }
-            case `news`: {
-                return news.orderBy('createdAt', 'DESC').get().then(col => {
-                    res.json(common.handleQuery(col))
-                }).catch(err => {
-                    res.status(500).send(err.message)
-                })
-            }
-            case `subscribe`:{
-                if(!req.body.plan || !req.body.user) {
-                    return res.status(400).send(`plan or user missing`)
-                }
-                return plans.doc(req.body.plan).get().then(p=>{
-                    if(!p.exists || !p.data().active) return res.status(404).send(`plan is not available`)
-                    
-                    p = p.data();
-
-                    m.getUser(req.body.user,udb).then(user=>{
-
-                        if(!user) return res.status(400).send(`Нет такого пользователя`)
-
-                        if(user.blocked) return res.status(400).send(`Пользователь заблокирован`)
-
-                        plansUsers.add({
-                            user:       +req.body.user,
-                            createdAt:  new Date(),
-                            to:         new Date(+new Date()+p.days*24*60*60*1000),
-                            visitsLeft: p.visits,
-                            eventsLeft: p.events,
-                            createdBy:  +req.query.id,
-                            name:       p.name,
-                            active:     true,
-                            plan:       req.body.plan
-                        }).then(s=>{
-                            res.send(`Подписка оформлена`)
-
-                            common.devlog(user)
-
-                            m.sendMessage2({
-                                chat_id: user.id,
-                                text: translations.planConfirmed(p)[user.language_code] || translations.planConfirmed(p).en
-                            },false,token)
-
-                            log({
-                                text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${req.body.user}`,
-                                admin: +req.query.id,
-                                user:   req.body.user,
-                                silent: true
+                case `q`:{
+                    return userClassesQ
+                        .where(`class`,'==',req.query.class)
+                        .get()
+                        .then(col=>{
+                            let fin = [];
+    
+                            common.handleQuery(col).forEach(q=>{
+                                fin.push(m.getUser(q.user,udb).then(u=>{
+                                    let t = q;
+                                        q.userData = u;
+                                    return t;
+                                }))
                             })
-                        }).catch(err=>{
-                            console.log(err);
-                            res.status(500).send(err.message)
+    
+                            Promise.all(fin).then(data=>{
+                                res.json(data)
+                            })
+    
+                            
+                        })
+                }
+                case `authors`:{
+                    switch (req.method){
+                        case `GET`:{
+                            return authors
+                                .where(`active`,'==',true)
+                                .get().then(col=>{
+                                    res.json(common.handleQuery(col))
+                                })
+                        }
+                        case 'POST':{
+                            
+                            if(!req.body.name) return res.json({success: false, comment: `no name provided`})
+                            if(!req.body.txt) return res.json({success: false, comment: `no description provided`})
+                            
+                            return authors.add({
+                                createdAt:      new Date(),
+                                createdBy:      +req.query.id,
+                                name:           req.body.name,
+                                description:    req.body.description,
+                                pic:            req.body.pic || null
+                            }).then(s=>{
+                                res.json({success:true,comment: `Автор ${req.body.name} создан. Можно добавить еще.`})
+                            }).catch(err=>{
+                                res.json({success: false, comment: err.message})
+                            })
+                        }
+                    }
+                    break;
+                }
+                case `news`: {
+                    return news.orderBy('createdAt', 'DESC').get().then(col => {
+                        res.json(common.handleQuery(col))
+                    }).catch(err => {
+                        res.status(500).send(err.message)
+                    })
+                }
+                case `subscribe`:{
+                    if(!req.body.plan || !req.body.user) {
+                        return res.status(400).send(`plan or user missing`)
+                    }
+                    return plans.doc(req.body.plan).get().then(p=>{
+                        if(!p.exists || !p.data().active) return res.status(404).send(`plan is not available`)
+                        
+                        p = p.data();
+    
+                        m.getUser(req.body.user,udb).then(user=>{
+    
+                            if(!user) return res.status(400).send(`Нет такого пользователя`)
+    
+                            if(user.blocked) return res.status(400).send(`Пользователь заблокирован`)
+    
+                            plansUsers.add({
+                                user:       +req.body.user,
+                                createdAt:  new Date(),
+                                to:         new Date(+new Date()+p.days*24*60*60*1000),
+                                visitsLeft: p.visits,
+                                eventsLeft: p.events,
+                                createdBy:  +req.query.id,
+                                name:       p.name,
+                                active:     true,
+                                plan:       req.body.plan
+                            }).then(s=>{
+                                res.send(`Подписка оформлена`)
+    
+                                common.devlog(user)
+    
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    text: translations.planConfirmed(p)[user.language_code] || translations.planConfirmed(p).en
+                                },false,token)
+    
+                                log({
+                                    text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${req.body.user}`,
+                                    admin: +req.query.id,
+                                    user:   req.body.user,
+                                    silent: true
+                                })
+                            }).catch(err=>{
+                                console.log(err);
+                                res.status(500).send(err.message)
+                            })
                         })
                     })
-                })
-            }
-            case `qr`: {
-                if (!req.query.data) return res.sendStatus(404)
-                let inc = req.query.data.split('_')
-
-                if (inc[1] == 'coworking') {
-                    fb.collection(inc[1]).doc(inc[0]).get().then(d => {
-
-                        if (!d.exists) return res.sendStatus(404)
-
-                        d = d.data();
-
-
-                        switch (req.method) {
-                            case 'GET': {
-
-
-
-                                m.getUser(d.user, udb).then(user => {
-                                    d.user = user;
-                                    if (user.blocked) {
-                                        d.alert = `Этот человек в черном списке!!!`
-                                    }
-                                    halls.doc(d.hall).get().then(h => {
-                                        d.hall = h.data()
-
+                }
+                case `qr`: {
+                    if (!req.query.data) return res.sendStatus(404)
+                    let inc = req.query.data.split('_')
+    
+                    if (inc[1] == 'coworking') {
+                        fb.collection(inc[1]).doc(inc[0]).get().then(d => {
+    
+                            if (!d.exists) return res.sendStatus(404)
+    
+                            d = d.data();
+    
+    
+                            switch (req.method) {
+                                case 'GET': {
+    
+    
+    
+                                    m.getUser(d.user, udb).then(user => {
+                                        d.user = user;
+                                        if (user.blocked) {
+                                            d.alert = `Этот человек в черном списке!!!`
+                                        }
+                                        halls.doc(d.hall).get().then(h => {
+                                            d.hall = h.data()
+    
+                                            common.devlog(user.id)
+    
+                                            plansUsers
+                                                .where('user','==',+user.id)
+                                                .where('active','==',true)
+                                                .get().then(col=>{
+                                                    
+                                                    common.devlog(col.docs)
+    
+                                                    let plan = common.handleQuery(col)[0]
+    
+                                                    common.devlog(plan)
+    
+                                                    if(plan && plan.visitsLeft){
+                                                        
+                                                        // plansUsers.doc(plan.id).update({
+                                                        //     visitsLeft: FieldValue.increment(-1)
+                                                        // })
+    
+                                                        common.devlog(`подписка есть`)
+    
+                                                        res.json({
+                                                            alert: `Гость  на подписке (у него еще ${plan.visitsLeft} посещений)`,
+                                                            data: d
+                                                        })
+    
+                                                    } else {
+    
+                                                        common.devlog(`подписки нет`)
+    
+                                                        res.json({
+                                                            alert: d.alert || null,
+                                                            data: d
+                                                        })
+                                                    }
+                                                })
+    
+                                            
+                                        })
+    
+                                    })
+    
+                                    break;
+                                }
+                                case 'POST': {
+    
+                                    m.getUser(d.user, udb).then(user => {
+                                        d.user = user;
+    
+                                        let toPay = null;
+    
+                                        let withdraw = 0;
+    
+                                        if (d.paymentNeeded && !d.payed) {
+                                            toPay = 30;
+                                        }
+    
+                                        if (user.deposit) {
+                                            if (user.deposit > 30) {
+                                                toPay = 0
+                                                alertWithdrawal(user, false, 30, `coworking`)
+                                            } else {
+                                                toPay = 30 - user.deposit;
+                                                alertWithdrawal(user, false, user.deposit, `coworking`)
+                                            }
+                                        }
+    
+                                        fb.collection(inc[1]).doc(inc[0]).update({
+                                            payed: d.paymentNeeded ? true : false,
+                                            status: 'used'
+                                        })
+                                        
+    
                                         common.devlog(user.id)
-
+    
                                         plansUsers
                                             .where('user','==',+user.id)
                                             .where('active','==',true)
                                             .get().then(col=>{
-                                                
-                                                common.devlog(col.docs)
-
                                                 let plan = common.handleQuery(col)[0]
-
+                                                
                                                 common.devlog(plan)
-
+    
                                                 if(plan && plan.visitsLeft){
                                                     
-                                                    // plansUsers.doc(plan.id).update({
-                                                    //     visitsLeft: FieldValue.increment(-1)
-                                                    // })
-
-                                                    common.devlog(`подписка есть`)
-
-                                                    res.json({
-                                                        alert: `Гость  на подписке (у него еще ${plan.visitsLeft} посещений)`,
-                                                        data: d
-                                                    })
-
-                                                } else {
-
-                                                    common.devlog(`подписки нет`)
-
-                                                    res.json({
-                                                        alert: d.alert || null,
-                                                        data: d
-                                                    })
-                                                }
-                                            })
-
-                                        
-                                    })
-
-                                })
-
-                                break;
-                            }
-                            case 'POST': {
-
-                                m.getUser(d.user, udb).then(user => {
-                                    d.user = user;
-
-                                    let toPay = null;
-
-                                    let withdraw = 0;
-
-                                    if (d.paymentNeeded && !d.payed) {
-                                        toPay = 30;
-                                    }
-
-                                    if (user.deposit) {
-                                        if (user.deposit > 30) {
-                                            toPay = 0
-                                            alertWithdrawal(user, false, 30, `coworking`)
-                                        } else {
-                                            toPay = 30 - user.deposit;
-                                            alertWithdrawal(user, false, user.deposit, `coworking`)
-                                        }
-                                    }
-
-                                    fb.collection(inc[1]).doc(inc[0]).update({
-                                        payed: d.paymentNeeded ? true : false,
-                                        status: 'used'
-                                    })
-                                    
-
-                                    common.devlog(user.id)
-
-                                    plansUsers
-                                        .where('user','==',+user.id)
-                                        .where('active','==',true)
-                                        .get().then(col=>{
-                                            let plan = common.handleQuery(col)[0]
-                                            
-                                            common.devlog(plan)
-
-                                            if(plan && plan.visitsLeft){
-                                                
-                                                plansUsers.doc(plan.id).update({
-                                                    visitsLeft: FieldValue.increment(-1)
-                                                })
-
-                                                res.json({
-                                                    success: true,
-                                                    alert: `Посещение вычтено из подписки.`
-                                                })
-
-                                            } else {
-                                                res.json({
-                                                    success: true,
-                                                    alert: toPay ? `К оплате на месте: ${common.cur(toPay,'GEL')}` : `Оплата не требуется.`
-                                                })
-                                            }
-                                        })
-
-                                    
-
-                                })
-
-
-                                break;
-                            }
-                        }
-                    })
-                } else if (inc[1] == 'wineList') {
-                    fb.collection(inc[1]).doc(inc[0]).get().then(d => {
-
-                        if (!d.exists) return res.sendStatus(404)
-
-                        d = d.data();
-
-
-                        switch (req.method) {
-                            case 'GET': {
-                                res.json({data:d})
-                                break;
-                            }
-                            case 'POST': {
-                                if (d.left) {
-                                    fb.collection(inc[1])
-                                        .doc(inc[0])
-                                        .update({
-                                            left: FieldValue.increment(-1),
-                                            updatedAt: new Date(),
-                                            statusBy: req.query.id
-                                        }).then(() => {
-                                            res.sendStatus(201)
-                                            if (d.left - 1) {
-                                                m.sendMessage2({
-                                                    photo: process.env.ngrok + `/paper/qr?id=${inc[0]}&entity=wineList`,
-                                                    chat_id: d.user,
-                                                    caption: `Ваш депозит убыл. На балансе ${common.letterize(d.left-1, 'ходка')}`
-                                                }, 'sendPhoto', token)
-                                            } else {
-                                                m.sendMessage2({
-                                                    photo: process.env.ngrok + `/paper/qr?id=${inc[0]}&entity=wineList`,
-                                                    chat_id: d.user,
-                                                    caption: `Приплыли. Депозит на нуле. Пора домой`
-                                                }, 'sendPhoto', token)
-                                            }
-
-                                        }).catch(err => {
-                                            console.log(err)
-                                            res.sendStatus(500).send(err.message)
-                                        })
-                                } else {
-                                    res.status(403).send(`Этому больше не наливать`)
-                                }
-                                break;
-
-                            }
-                        }
-
-                    })
-
-                } else if (inc[1] == 'promos') {
-                    fb.collection(inc[1]).doc(inc[0]).get().then(d => {
-
-                        if (!d.exists) return res.sendStatus(404)
-
-                        d = d.data();
-
-
-                        switch (req.method) {
-                            case 'GET': {
-                                common.devlog(d)
-                                res.json({data:d})
-                                break;
-                            }
-                            case 'POST': {
-                                if (d.left) {
-                                    fb.collection(inc[1])
-                                        .doc(inc[0])
-                                        .update({
-                                            left: FieldValue.increment(-1),
-                                            updatedAt: new Date(),
-                                            statusBy: req.query.id
-                                        }).then(() => {
-                                            res.sendStatus(200)
-
-                                        }).catch(err => {
-                                            console.log(err)
-                                            res.sendStatus(500).send(err.message)
-                                        })
-                                } else {
-                                    res.status(403).send(`Этому больше не наливать`)
-                                }
-                                break;
-
-                            }
-                        }
-
-                    })
-
-                } else if (inc[1] == `planRequests`) {
-
-                    switch(req.method){
-                        case 'GET':{
-                            return plansRequests.doc(inc[0]).get().then(r=>{
-                                let data = [];
-                                if(!r.exists) return res.status(500).send(`Такой заявки нет в базе данных`)
-                                r = r.data();
-                                data.push(m.getUser(r.user,udb).then(u=>u))
-                                data.push(plans.doc(r.plan).get().then(p=>p.data()))
-                                Promise.all(data).then(data=>{
-                                    res.json({
-                                        data:{
-                                            user: data[0],
-                                            plan: data[1]
-                                        }
-                                        
-                                    })
-                                })
-                            }).catch(err=>{
-                                console.log(err)
-                                res.status(500).send(err.message)
-                            })
-
-                            break;
-                        }
-                        case 'POST':{
-                            return plansRequests.doc(inc[0]).get().then(r=>{
-                                if(!r.exists) return res.status(500).send(`Такой заявки нет в базе данных`)
-                                r = r.data();
-                                plans.doc(r.plan).get().then(p=>{
-                                    p = p.data()
-                                    
-                                    plansUsers.add({
-                                        user:       r.user,
-                                        createdAt:  new Date(),
-                                        to:         new Date(+new Date()+p.days*24*60*60*1000),
-                                        visitsLeft: p.visits,
-                                        eventsLeft: p.events,
-                                        createdBy:  +req.query.id,
-                                        name:       p.name,
-                                        active:     true,
-                                        plan:       r.plan
-                                    }).then(()=>{
-                                        m.getUser(r.user,udb).then(user=>{
-                                            m.sendMessage2({
-                                                chat_id: r.user,
-                                                text: translations.planConfirmed(p)[user.language_code] || translations.planConfirmed(p).en
-                                            },false,token)
-                                            log({
-                                                text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${uname(user,r.user)}`,
-                                                admin: +req.query.id,
-                                                user:   r.user,
-                                                silent: true
-                                            })
-        
-                                            res.sendStatus(200)
-        
-                                        })
-        
-                                        
-                                    })
-                                })
-                                
-                            })
-                        }
-                    }
-                    
-                } else {
-                    switch (req.method) {
-
-
-                        case 'GET': {
-                            return fb.collection(inc[1])
-                                .doc(inc[0])
-                                .get()
-                                .then(d => {
-                                    if (!d.exists) {
-                                        res.send({
-                                            success: false,
-                                            alert: `Такого билета нет в природе`
-                                        })
-                                    }
-                                    classes.doc(d.data().class).get().then(c => {
-                                        c = c.data()
-
-                                        if (!c.active) return res.json(res.json({
-                                            success: false,
-                                            data: d.data(),
-                                            alert: `Мероприятие было отменено!`
-                                        }))
-
-                                        d = d.data();
-
-                                        d.date = common.drawDate(c.date, 'ru', {
-                                            time: true
-                                        })
-                                        
-                                        d.hall = c.hallName
-
-                                        plansUsers
-                                            .where('user','==',+d.user)
-                                            .where('active','==',true)
-                                            .get().then(col=>{
-                                                let plan = common.handleQuery(col)[0]
-                                                if(plan && plan.eventsLeft){
-                                                    
                                                     plansUsers.doc(plan.id).update({
-                                                        eventsLeft: FieldValue.increment(-1)
+                                                        visitsLeft: FieldValue.increment(-1)
                                                     })
-
+    
                                                     res.json({
-                                                        alert: `Посещение по подписке (осталось ${plan.eventsLeft-1})`,
                                                         success: true,
-                                                        data: d
+                                                        alert: `Посещение вычтено из подписки.`
                                                     })
-
+    
                                                 } else {
                                                     res.json({
                                                         success: true,
-                                                        data: d
+                                                        alert: toPay ? `К оплате на месте: ${common.cur(toPay,'GEL')}` : `Оплата не требуется.`
                                                     })
                                                 }
                                             })
-                                            
-
-
+    
                                         
+    
                                     })
-
-                                })
-                        }
-                        case 'POST': {
-
-                            fb.collection(inc[1])
-                                .doc(inc[0])
-                                .update({
-                                    status: 'used',
-                                    known: true,
-                                    updatedAt: new Date(),
-                                    statusBy: req.query.id
-                                }).then(() => {
-                                    res.sendStatus(200)
-
-
-
-                                }).catch(err => {
+    
+    
+                                    break;
+                                }
+                            }
+                        })
+                    } else if (inc[1] == 'wineList') {
+                        fb.collection(inc[1]).doc(inc[0]).get().then(d => {
+    
+                            if (!d.exists) return res.sendStatus(404)
+    
+                            d = d.data();
+    
+    
+                            switch (req.method) {
+                                case 'GET': {
+                                    res.json({data:d})
+                                    break;
+                                }
+                                case 'POST': {
+                                    if (d.left) {
+                                        fb.collection(inc[1])
+                                            .doc(inc[0])
+                                            .update({
+                                                left: FieldValue.increment(-1),
+                                                updatedAt: new Date(),
+                                                statusBy: req.query.id
+                                            }).then(() => {
+                                                res.sendStatus(201)
+                                                if (d.left - 1) {
+                                                    m.sendMessage2({
+                                                        photo: process.env.ngrok + `/paper/qr?id=${inc[0]}&entity=wineList`,
+                                                        chat_id: d.user,
+                                                        caption: `Ваш депозит убыл. На балансе ${common.letterize(d.left-1, 'ходка')}`
+                                                    }, 'sendPhoto', token)
+                                                } else {
+                                                    m.sendMessage2({
+                                                        photo: process.env.ngrok + `/paper/qr?id=${inc[0]}&entity=wineList`,
+                                                        chat_id: d.user,
+                                                        caption: `Приплыли. Депозит на нуле. Пора домой`
+                                                    }, 'sendPhoto', token)
+                                                }
+    
+                                            }).catch(err => {
+                                                console.log(err)
+                                                res.sendStatus(500).send(err.message)
+                                            })
+                                    } else {
+                                        res.status(403).send(`Этому больше не наливать`)
+                                    }
+                                    break;
+    
+                                }
+                            }
+    
+                        })
+    
+                    } else if (inc[1] == 'promos') {
+                        fb.collection(inc[1]).doc(inc[0]).get().then(d => {
+    
+                            if (!d.exists) return res.sendStatus(404)
+    
+                            d = d.data();
+    
+    
+                            switch (req.method) {
+                                case 'GET': {
+                                    common.devlog(d)
+                                    res.json({data:d})
+                                    break;
+                                }
+                                case 'POST': {
+                                    if (d.left) {
+                                        fb.collection(inc[1])
+                                            .doc(inc[0])
+                                            .update({
+                                                left: FieldValue.increment(-1),
+                                                updatedAt: new Date(),
+                                                statusBy: req.query.id
+                                            }).then(() => {
+                                                res.sendStatus(200)
+    
+                                            }).catch(err => {
+                                                console.log(err)
+                                                res.sendStatus(500).send(err.message)
+                                            })
+                                    } else {
+                                        res.status(403).send(`Этому больше не наливать`)
+                                    }
+                                    break;
+    
+                                }
+                            }
+    
+                        })
+    
+                    } else if (inc[1] == `planRequests`) {
+    
+                        switch(req.method){
+                            case 'GET':{
+                                return plansRequests.doc(inc[0]).get().then(r=>{
+                                    let data = [];
+                                    if(!r.exists) return res.status(500).send(`Такой заявки нет в базе данных`)
+                                    r = r.data();
+                                    data.push(m.getUser(r.user,udb).then(u=>u))
+                                    data.push(plans.doc(r.plan).get().then(p=>p.data()))
+                                    Promise.all(data).then(data=>{
+                                        res.json({
+                                            data:{
+                                                user: data[0],
+                                                plan: data[1]
+                                            }
+                                            
+                                        })
+                                    })
+                                }).catch(err=>{
+                                    console.log(err)
                                     res.status(500).send(err.message)
                                 })
-                            if (inc[1] == 'userClasses') {
-                                fb.collection(inc[1])
+    
+                                break;
+                            }
+                            case 'POST':{
+                                return plansRequests.doc(inc[0]).get().then(r=>{
+                                    if(!r.exists) return res.status(500).send(`Такой заявки нет в базе данных`)
+                                    r = r.data();
+                                    plans.doc(r.plan).get().then(p=>{
+                                        p = p.data()
+                                        
+                                        plansUsers.add({
+                                            user:       r.user,
+                                            createdAt:  new Date(),
+                                            to:         new Date(+new Date()+p.days*24*60*60*1000),
+                                            visitsLeft: p.visits,
+                                            eventsLeft: p.events,
+                                            createdBy:  +req.query.id,
+                                            name:       p.name,
+                                            active:     true,
+                                            plan:       r.plan
+                                        }).then(()=>{
+                                            m.getUser(r.user,udb).then(user=>{
+                                                m.sendMessage2({
+                                                    chat_id: r.user,
+                                                    text: translations.planConfirmed(p)[user.language_code] || translations.planConfirmed(p).en
+                                                },false,token)
+                                                log({
+                                                    text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${uname(user,r.user)}`,
+                                                    admin: +req.query.id,
+                                                    user:   r.user,
+                                                    silent: true
+                                                })
+            
+                                                res.sendStatus(200)
+            
+                                            })
+            
+                                            
+                                        })
+                                    })
+                                    
+                                })
+                            }
+                        }
+                        
+                    } else {
+                        switch (req.method) {
+    
+    
+                            case 'GET': {
+                                return fb.collection(inc[1])
                                     .doc(inc[0])
                                     .get()
-                                    .then(t => {
-                                        
-                                        let userid =  t.data().user;
-
-                                        plansUsers
-                                            .where('user','==',+userid)
-                                            .where('active','==',true)
-                                            .get().then(col=>{
-                                                let plan = common.handleQuery(col)[0]
-                                                if(plan && plan.eventsLeft){
-                                                    plansUsers.doc(plan.id).update({
-                                                        eventsLeft: FieldValue.increment(-1)
-                                                    })
-                                                }
+                                    .then(d => {
+                                        if (!d.exists) {
+                                            res.send({
+                                                success: false,
+                                                alert: `Такого билета нет в природе`
                                             })
-
-                                        m.getUser(userid, udb).then(user => {
-                                            m.sendMessage2({
-                                                chat_id: user.id,
-                                                text: translations.welcomeOnPremise[user.language_code] || translations.welcomeOnPremise.en
-                                            }, false, token)
-
-                                            classes.doc(t.data().class).get().then(cl=>{
-                                                if(cl.data().welcome){
-                                                    m.sendMessage2({
-                                                        chat_id: user.id,
-                                                        text: cl.data().welcome
-                                                    }, false, token)
-                                                }
+                                        }
+                                        classes.doc(d.data().class).get().then(c => {
+                                            c = c.data()
+    
+                                            if (!c.active) return res.json(res.json({
+                                                success: false,
+                                                data: d.data(),
+                                                alert: `Мероприятие было отменено!`
+                                            }))
+    
+                                            d = d.data();
+    
+                                            d.date = common.drawDate(c.date, 'ru', {
+                                                time: true
                                             })
-
-
-
+                                            
+                                            d.hall = c.hallName
+    
+                                            plansUsers
+                                                .where('user','==',+d.user)
+                                                .where('active','==',true)
+                                                .get().then(col=>{
+                                                    let plan = common.handleQuery(col)[0]
+                                                    if(plan && plan.eventsLeft){
+                                                        
+                                                        plansUsers.doc(plan.id).update({
+                                                            eventsLeft: FieldValue.increment(-1)
+                                                        })
+    
+                                                        res.json({
+                                                            alert: `Посещение по подписке (осталось ${plan.eventsLeft-1})`,
+                                                            success: true,
+                                                            data: d
+                                                        })
+    
+                                                    } else {
+                                                        res.json({
+                                                            success: true,
+                                                            data: d
+                                                        })
+                                                    }
+                                                })
+                                                
+    
+    
+                                            
                                         })
-
+    
                                     })
+                            }
+                            case 'POST': {
+    
+                                fb.collection(inc[1])
+                                    .doc(inc[0])
+                                    .update({
+                                        status: 'used',
+                                        known: true,
+                                        updatedAt: new Date(),
+                                        statusBy: req.query.id
+                                    }).then(() => {
+                                        res.sendStatus(200)
+    
+    
+    
+                                    }).catch(err => {
+                                        res.status(500).send(err.message)
+                                    })
+                                if (inc[1] == 'userClasses') {
+                                    fb.collection(inc[1])
+                                        .doc(inc[0])
+                                        .get()
+                                        .then(t => {
+                                            
+                                            let userid =  t.data().user;
+    
+                                            plansUsers
+                                                .where('user','==',+userid)
+                                                .where('active','==',true)
+                                                .get().then(col=>{
+                                                    let plan = common.handleQuery(col)[0]
+                                                    if(plan && plan.eventsLeft){
+                                                        plansUsers.doc(plan.id).update({
+                                                            eventsLeft: FieldValue.increment(-1)
+                                                        })
+                                                    }
+                                                })
+    
+                                            m.getUser(userid, udb).then(user => {
+                                                m.sendMessage2({
+                                                    chat_id: user.id,
+                                                    text: translations.welcomeOnPremise[user.language_code] || translations.welcomeOnPremise.en
+                                                }, false, token)
+    
+                                                classes.doc(t.data().class).get().then(cl=>{
+                                                    if(cl.data().welcome){
+                                                        m.sendMessage2({
+                                                            chat_id: user.id,
+                                                            text: cl.data().welcome
+                                                        }, false, token)
+                                                    }
+                                                })
+    
+    
+    
+                                            })
+    
+                                        })
+                                }
                             }
                         }
                     }
+                    break;
+    
+    
+    
                 }
-                break;
-
-
-
-            }
-            case 'check': {
-                return res.json(user)
-            }
-
-            case 'classes': {
-                return classes
-                    .where('active', '==', true)
-                    .orderBy('date', 'desc')
-                    .get()
-                    .then(col => {
-                        res.json(common.handleQuery(col))
-                    })
-            }
-
-            case 'class': {
-                if (!req.query.class) return res.sendStatus(404)
-                return userClasses
-                    .where('active', '==', true)
-                    .where('class', '==', req.query.class)
-                    .get()
-                    .then(col => {
-                        res.json(common.handleQuery(col))
-                    })
-            }
-            case 'user': {
-
-                if (!req.query.user) return res.sendStatus(404)
-
-                switch (req.query.data) {
-                    case 'subscriptions': {
-                        return subscriptions
-                            .where('user', '==', +req.query.user)
-                            .orderBy('createdAt', 'DESC')
-                            .get()
-                            .then(col => {
-                                res.json(common.handleQuery(col))
-                            })
-                    }
-                    case 'messages': {
-                        return messages
-                            .where('user', '==', +req.query.user)
-                            .orderBy('createdAt', 'DESC')
-                            .get()
-                            .then(col => {
-                                res.json(common.handleQuery(col))
-                            })
-                    }
-                    case 'lections': {
-                        return userClasses
-                            .where('user', '==', +req.query.user)
-                            .where('active', '==', true)
-                            .orderBy('createdAt', 'DESC')
-                            .get()
-                            .then(col => {
-                                res.json(common.handleQuery(col))
-                            })
-                    }
+                case 'check': {
+                    return res.json(user)
                 }
-            }
-            case 'users': {
-                switch (req.method) {
-                    case 'GET': {
-
-                        let data = [];
-                        data.push(udb
-                            .orderBy((req.query.order || 'createdAt'), (req.query.direction || 'ASC'))
-                            .get()
-                            .then(d => common.handleQuery(d)))
-
-                        data.push(plansUsers
-                            .where('active','==',true)
-                            .get()
-                            .then(col=>common.handleQuery(col)))
-
-                        data.push(plans
-                            .where('active','==',true)
-                            .get()
-                            .then(col=>common.handleQuery(col)))
-
-                        return Promise.all(data).then(data=>{
-                            res.json({
-                                users: data[0],
-                                plans: data[1],
-                                plansA:data[2]
-                            })
+    
+                case 'classes': {
+                    return classes
+                        .where('active', '==', true)
+                        .orderBy('date', 'desc')
+                        .get()
+                        .then(col => {
+                            res.json(common.handleQuery(col))
                         })
-                    }
-                    case 'POST': {
-                        udb.doc(req.body.user.toString()).update({
-                            [req.body.field]: req.body.value,
-                            updatedAt: new Date(),
-                            updatedBy: +req.query.id
-                        }).then(() => {
-                            let actors = []
-
-                            actors.push(udb.doc(req.body.user.toString()).get().then(u => u.data()))
-                            actors.push(udb.doc(req.query.id.toString()).get().then(u => u.data()))
-                            Promise.all(actors).then(actors => {
-
-                                log({
-                                    text: `Админ @${actors[1].username} ${interprete(req.body.field,req.body.value)} @${actors[0].username || req.body.user}`,
-                                    user: req.body.user,
-                                    admin: +req.query.id
+                }
+    
+                case 'class': {
+                    if (!req.query.class) return res.sendStatus(404)
+                    return userClasses
+                        .where('active', '==', true)
+                        .where('class', '==', req.query.class)
+                        .get()
+                        .then(col => {
+                            res.json(common.handleQuery(col))
+                        })
+                }
+                case 'user': {
+    
+                    if (!req.query.user) return res.sendStatus(404)
+    
+                    switch (req.query.data) {
+                        case 'subscriptions': {
+                            return subscriptions
+                                .where('user', '==', +req.query.user)
+                                .orderBy('createdAt', 'DESC')
+                                .get()
+                                .then(col => {
+                                    res.json(common.handleQuery(col))
                                 })
-
-                                if (req.body.value) {
-                                    if (req.body.field == 'insider') {
-                                        m.sendMessage2({
-                                            chat_id: req.body.user,
-                                            text: translations.congrats[actors[0].language_code] || translations.congrats.en
-                                        }, false, token)
-                                    }
-
-                                    if (req.body.field == 'admin') {
-                                        m.sendMessage2({
-                                            chat_id: req.body.user,
-                                            text: `Поздравляем, вы зарегистрированы как админ приложения.`
-                                        }, false, token)
-                                    }
-
-                                    if (req.body.field == 'fellow') {
-                                        m.sendMessage2({
-                                            chat_id: req.body.user,
-                                            text: translations.fellow[actors[0].language_code] || translations.fellow.en
-                                        }, false, token)
-                                    }
-                                }
-                            })
-                        })
+                        }
+                        case 'messages': {
+                            return messages
+                                .where('user', '==', +req.query.user)
+                                .orderBy('createdAt', 'DESC')
+                                .get()
+                                .then(col => {
+                                    res.json(common.handleQuery(col))
+                                })
+                        }
+                        case 'lections': {
+                            return userClasses
+                                .where('user', '==', +req.query.user)
+                                .where('active', '==', true)
+                                .orderBy('createdAt', 'DESC')
+                                .get()
+                                .then(col => {
+                                    res.json(common.handleQuery(col))
+                                })
+                        }
                     }
-
                 }
-
+                case 'users': {
+                    switch (req.method) {
+                        case 'GET': {
+    
+                            let data = [];
+                            data.push(udb
+                                .orderBy((req.query.order || 'createdAt'), (req.query.direction || 'ASC'))
+                                .get()
+                                .then(d => common.handleQuery(d)))
+    
+                            data.push(plansUsers
+                                .where('active','==',true)
+                                .get()
+                                .then(col=>common.handleQuery(col)))
+    
+                            data.push(plans
+                                .where('active','==',true)
+                                .get()
+                                .then(col=>common.handleQuery(col)))
+    
+                            return Promise.all(data).then(data=>{
+                                res.json({
+                                    users: data[0],
+                                    plans: data[1],
+                                    plansA:data[2]
+                                })
+                            })
+                        }
+                        case 'POST': {
+                            udb.doc(req.body.user.toString()).update({
+                                [req.body.field]: req.body.value,
+                                updatedAt: new Date(),
+                                updatedBy: +req.query.id
+                            }).then(() => {
+                                let actors = []
+    
+                                actors.push(udb.doc(req.body.user.toString()).get().then(u => u.data()))
+                                actors.push(udb.doc(req.query.id.toString()).get().then(u => u.data()))
+                                Promise.all(actors).then(actors => {
+    
+                                    log({
+                                        text: `Админ @${actors[1].username} ${interprete(req.body.field,req.body.value)} @${actors[0].username || req.body.user}`,
+                                        user: req.body.user,
+                                        admin: +req.query.id
+                                    })
+    
+                                    if (req.body.value) {
+                                        if (req.body.field == 'insider') {
+                                            m.sendMessage2({
+                                                chat_id: req.body.user,
+                                                text: translations.congrats[actors[0].language_code] || translations.congrats.en
+                                            }, false, token)
+                                        }
+    
+                                        if (req.body.field == 'admin') {
+                                            m.sendMessage2({
+                                                chat_id: req.body.user,
+                                                text: `Поздравляем, вы зарегистрированы как админ приложения.`
+                                            }, false, token)
+                                        }
+    
+                                        if (req.body.field == 'fellow') {
+                                            m.sendMessage2({
+                                                chat_id: req.body.user,
+                                                text: translations.fellow[actors[0].language_code] || translations.fellow.en
+                                            }, false, token)
+                                        }
+                                    }
+                                })
+                            })
+                        }
+    
+                    }
+    
+                }
+                case 'logs': {
+                    return logs
+                        .orderBy('createdAt', 'DESC')
+                        .limit(req.query.offset ? +req.query.offset : 50)
+                        // .limitToFirst(req.query.offset? +req.query.offset : 50)
+                        .get()
+                        .then(col => {
+                            res.json(common.handleQuery(col))
+                        })
+                }
+                default:
+                    res.sendStatus(404)
             }
-            case 'logs': {
-                return logs
-                    .orderBy('createdAt', 'DESC')
-                    .limit(req.query.offset ? +req.query.offset : 50)
-                    // .limitToFirst(req.query.offset? +req.query.offset : 50)
-                    .get()
-                    .then(col => {
-                        res.json(common.handleQuery(col))
-                    })
-            }
-            default:
-                res.sendStatus(404)
-        }
-
+    
+        })
     })
+
+    
 
 
 })
@@ -4740,22 +4839,22 @@ router.post('/slack', (req, res) => {
 
                     return Promise.resolve(capacity).then(capacity => {
                         let l = {
-                            active: true,
-                            date: new Date(nl.date.date.selected_date + ' ' + nl.time.time.selected_time).toISOString(),
-                            type: nl.type.type.selected_option.value,
-                            hall: nl.hall.hall.selected_option.value,
-                            hallName: decodeURIComponent(nl.hall.hall.selected_option.text.text),
-                            name: nl.name.name.value,
-                            author: nl.author.author.value,
-                            duration: nl.duration.duration.value,
-                            price: +nl.price.price.value || 0,
-                            description: nl.description.description.value,
-                            pic: nl.pic.pic.value || null,
-                            fellows: nl.extras.extras.selected_options.filter(o => o.value == 'fellows').length ? true : false,
-                            admins: nl.extras.extras.selected_options.filter(o => o.value == 'admins').length ? true : false,
+                            active:         true,
+                            date:           new Date(nl.date.date.selected_date + ' ' + nl.time.time.selected_time).toISOString(),
+                            type:           nl.type.type.selected_option.value,
+                            hall:           nl.hall.hall.selected_option.value,
+                            hallName:       decodeURIComponent(nl.hall.hall.selected_option.text.text),
+                            name:           nl.name.name.value,
+                            author:         nl.author.author.value,
+                            duration:       nl.duration.duration.value,
+                            price:          +nl.price.price.value || 0,
+                            description:    nl.description.description.value,
+                            pic:            nl.pic.pic.value || null,
+                            fellows:        nl.extras.extras.selected_options.filter(o => o.value == 'fellows').length ? true : false,
+                            admins:         nl.extras.extras.selected_options.filter(o => o.value == 'admins').length ? true : false,
                             noRegistration: nl.extras.extras.selected_options.filter(o => o.value == 'noRegistration').length ? true : false,
-                            createdAt: new Date(),
-                            capacity: capacity || null
+                            createdAt:      new Date(),
+                            capacity:       capacity || null
                         }
 
 
@@ -7563,6 +7662,19 @@ function unbookMR(id, userid, callback, res) {
 }
 
 module.exports = router;
+
+// // 
+
+// axios.post(`https://api.telegram.org/bot${token}/setChatMenuButton`, {
+//         "chat_id":1075918604,
+//         "menu_button": {
+//             "type": "web_app",
+//             "text": translations.app.ru || translations.app.en,
+//             "web_app": {
+//                 "url": process.env.ngrok+"/paper/app"
+//             }
+//         }
+//     })
 
 // udb.get().then(col=>{
 //     common.handleQuery(col).forEach((u,i)=>{

@@ -22,9 +22,13 @@ let transporter = mail.createTransport({
 
 // transporter.sendMail({
 //     from:       'igrikbaryoga@yandex.ru',
-//     to:         'dimazvali@yandex.ru',
+//     to:         'dimazvali@gmail.com',
 //     text:       'the very first letter',
 //     subject:    'test email '+new Date().toLocaleDateString()
+// }).then(s=>{
+//     common.devlog(`the mail was sent`)
+// }).catch(err=>{
+//     console.log(err)
 // })
 
 
@@ -79,13 +83,13 @@ let adminToken = `6174033726:AAH8QaTasCMq6JscwxLo_Md9JVpB6USvBzY`
 let ngrok = process.env.ngrok;
 
 
-axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/igrik/hook`).then(s=>{
-    console.log(`igrik hook set to ${ngrok}`)
-})
+// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/igrik/hook`).then(s=>{
+//     console.log(`igrik hook set to ${ngrok}`)
+// })
 
-axios.get(`https://api.telegram.org/bot${adminToken}/setWebHook?url=${ngrok}/igrik/adminHook`).then(s=>{
-    console.log(`igrik hook set to ${ngrok}`)
-})
+// axios.get(`https://api.telegram.org/bot${adminToken}/setWebHook?url=${ngrok}/igrik/adminHook`).then(s=>{
+//     console.log(`igrik hook set to ${ngrok}`)
+// })
 
 
 
@@ -276,30 +280,66 @@ function alertUsersByClass(){
     })
 }
 
-// router.get('/test/:pub',(req,res)=>{
+router.get('/test/:pub',(req,res)=>{
+//     m.sendMessage2({
+//         chat_id: 548400016,
+//         parse_mode: 'HTML',
+//         caption: `<strong>21 октября в 19:00</strong> IGRIK проведет <strong>особенный спектакль «Феликс»</strong>, который начнется как обыкновенное занятие по йоге, а затем перерастет в необычное театральное представление. Участниками перформанса станут не только актеры, но и сами гости пространства. В спектакле всё сплетается в одно: иконографический беспредел, музей кораблестроения, вино, нарисованный кот, быт и искусство, мечта и реальность.
+
+// <strong>В программе:</strong>
+// - Welcome drink
+// - Занятие по йоге
+// - Иммерсивный спектакль
+// - Фуршет и общение с актерами
+// Начало мероприятия: 19:00
+// Стоимость билета: 2500 рублей
+// С собой необходимо взять удобную одежду для занятия йогой`,
+//         photo: `https://firebasestorage.googleapis.com/v0/b/igrikbot-dcd61.appspot.com/o/IMG_9666.JPEG?alt=media&token=ed9e85c1-95c5-4081-8dce-869f0c0c674b&_gl=1*1wm29ba*_ga*MTUzNjk5OTk3MS4xNjM3ODM1NDYx*_ga_CW55HF8NVT*MTY5NzYxOTE5My4zNjIuMS4xNjk3NjE5Nzg3LjYwLjAuMA..`,
+//         reply_markup:{
+//             inline_keyboard:[[{
+//                 text: `Записаться`,
+//                 web_app:{
+//                     url: `https://api-bot.restorating.ru/igrik/app?start=service_8a3eeee2-6cef-11ee-97b8-005056833ca1`
+//                 }
+//             }]]
+//         }
+// },'sendPhoto',token)
+
+    
 //     udb.get().then(col=>{
+
 //         common.handleQuery(col).forEach((u,i)=>{
 //             setTimeout(function(){
 //                 console.log(i)
 //                 m.sendMessage2({
 //                     chat_id: u.id,
 //                     parse_mode: 'HTML',
-//                     caption: `\nЙога, на которой можно попивать коктейли!\nЕсли вы улыбнулись, увидев, что мы существуем, то это именно то что вам нужно в эту субботу!🧘♀️🙌\n<strong>14 октября в 19:00 </strong>пройдет первая коктейльная йога в СПБ! В программе &mdash; час медитативной тренировки под бокал специального коктейля от Ola Bar, фуршет от винного бара IGRIK и дегустация еще одного коктейля от Ola Bar. В качестве сюрприза на занятии вас ожидает практика с метафорическими картами, на которой можно будет получить ответ на волнующий вопрос! Не сможете прийти на йогу, но все еще хотите присоединиться к веселью? Нет проблем! Для всех желающих есть свободные столики в винном баре IGRIK.\nСтоимость: 2 900 рублей (участие по предварительной записи) / Вход в бар: свободный\nВстречаемся на Петроградке. Ул. Пионерская, 2.🤍`,
-//                     photo: `AgACAgIAAxkBAAJkOmUmn0aE53a4tiPHB1t8L04FdskJAALf2TEbLLA5SQ61ht1JJ1hLAQADAgADeQADMAQ`,
+//                     caption: `<strong>21 октября в 19:00</strong> IGRIK проведет <strong>особенный спектакль «Феликс»</strong>, который начнется как обыкновенное занятие по йоге, а затем перерастет в необычное театральное представление. Участниками перформанса станут не только актеры, но и сами гости пространства. В спектакле всё сплетается в одно: иконографический беспредел, музей кораблестроения, вино, нарисованный кот, быт и искусство, мечта и реальность.
+
+// <strong>В программе:</strong>
+// - Welcome drink
+// - Занятие по йоге
+// - Иммерсивный спектакль
+// - Фуршет и общение с актерами
+// Начало мероприятия: 19:00
+// Стоимость билета: 2500 рублей
+// С собой необходимо взять удобную одежду для занятия йогой`,
+//                     photo: `https://firebasestorage.googleapis.com/v0/b/igrikbot-dcd61.appspot.com/o/IMG_9666.JPEG?alt=media&token=ed9e85c1-95c5-4081-8dce-869f0c0c674b&_gl=1*1wm29ba*_ga*MTUzNjk5OTk3MS4xNjM3ODM1NDYx*_ga_CW55HF8NVT*MTY5NzYxOTE5My4zNjIuMS4xNjk3NjE5Nzg3LjYwLjAuMA..`,
 //                     reply_markup:{
 //                         inline_keyboard:[[{
 //                             text: `Записаться`,
 //                             web_app:{
-//                                 url: `https://api-bot.restorating.ru/igrik/app?start=service_966eb0f6-586a-11ee-8777-005056833ca1`
+//                                 url: `https://api-bot.restorating.ru/igrik/app?start=service_8a3eeee2-6cef-11ee-97b8-005056833ca1`
 //                             }
 //                         }]]
 //                     }
 //                 },`sendPhoto`,token)
 //             },i*200)
+                
 //         })
 //     })
-    
-// })
+})
+
 
 if(process.env.develop !== `true`){
     cron.schedule(`0 6-23 * * *`,()=>{
@@ -1481,8 +1521,8 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                                 m.chat_id = u.id;
 
                                                 if(pass) setTimeout(function(){
-                                                    common.devlog(u.id)
-                                                    // m.sendMessage2(m,false,token)
+                                                    // common.devlog(u.id)
+                                                    m.sendMessage2(m,false,token)
                                                 },i*300)
 
                                             })
