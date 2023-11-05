@@ -186,7 +186,7 @@ router.post(`/oauth`, (req, res) => {
 
 
 router.get(`/web`,(req,res)=>{
-    if(!req.signedCookies.adminToken) res.redirect(`${process.env.ngrok}/papers/auth`)
+    if(!req.signedCookies.adminToken) res.redirect(`${process.env.ngrok}/paper/auth`)
     adminTokens
         .doc(req.signedCookies.adminToken)
         .get()
