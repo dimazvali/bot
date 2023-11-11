@@ -24,14 +24,15 @@ bodyParser.json({limit: '50mb'})
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-app.use('/wine/', wineRouter);
-app.use('/igrik', require('./routes/igrikBot'));
-app.use('/paper', require('./routes/papersBot'));
-app.use('/auditoria', require('./routes/auditoriaBot'));
-app.use('/sss', require('./routes/sss'));
-app.use('/kaha', require('./routes/kaha'));
-app.use('/wtg', require('./routes/wtgBot'));
-app.use('/test', require('./routes/test'));
+app.use('/wine/',       wineRouter);
+app.use('/igrik',       require('./routes/igrikBot'));
+app.use('/paper',       require('./routes/papersBot'));
+app.use('/auditoria',   require('./routes/auditoriaBot'));
+app.use('/sss',         require('./routes/sss'));
+app.use('/kaha',        require('./routes/kaha'));
+app.use('/wtg',         require('./routes/wtgBot'));
+app.use('/test',        require('./routes/test'));
+// app.use('/cyprus',      require('./routes/cyprus'));
 
 
 // catch 404 and forward to error handler

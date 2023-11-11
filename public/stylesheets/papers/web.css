@@ -36,7 +36,8 @@ div#left>h3 {
     color: var(--dark);
     padding: 20px;
     box-sizing: border-box;
-    height: 100vh;
+    overflow: scroll;
+    min-height: 100vh;
 }
 
 @keyframes slideFromRight {
@@ -92,4 +93,55 @@ div#left>h3 {
         font-size: 2em;
     }
 
+}
+
+
+img.cover {
+    width: 300px;
+    border-radius: 30px;
+}
+
+.content{
+    height: 80vh;
+}
+
+
+
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+    transition: .3s;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+    height: 7px;
+    transition: .3s;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark);
+    border-radius: 3px;
+}
+
+
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+    transition: .3s;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+    height: 7px;
+    transition: .3s;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark);
+    border-radius: 3px;
+}
+
+.editable::after{
+    content: "✏️";
 }

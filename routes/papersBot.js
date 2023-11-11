@@ -43,7 +43,6 @@ const {
 const {
     sendAt
 } = require('cron');
-const { runtimeconfig } = require('googleapis/build/src/apis/runtimeconfig');
 
 
 
@@ -77,6 +76,8 @@ setTimeout(function(){
         console.log(`papers hook set on ${ngrok}`)
     }).catch(handleError)   
 },1500)
+
+
 
 
 
@@ -186,7 +187,23 @@ router.post(`/oauth`, (req, res) => {
 
 
 router.get(`/web`,(req,res)=>{
-    if(!req.signedCookies.adminToken) res.redirect(`${process.env.ngrok}/paper/auth`)
+    if(process.env.develop == `true`) return logs
+        .orderBy(`createdAt`,'desc')
+        .limit(100)
+        .get()
+        .then(col=>{
+            res.cookie('adminToken', `zOgpSBtoVWIsc23qdBDB`, {
+                maxAge: 24 * 60 * 60 * 1000,
+                signed: true,
+                httpOnly: true,
+            }).render(`papers/web`,{
+                logs: common.handleQuery(col),
+                // token: req.signedCookies.adminToken
+            })
+        }) 
+
+    if(!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/paper/auth`)
+    
     adminTokens
         .doc(req.signedCookies.adminToken)
         .get()
@@ -391,6 +408,80 @@ router.all(`/admin/:method`, (req, res) => {
             user = user.data();
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
+                case `channel`:{
+                    return classes.doc(req.query.class).get().then(c=>{
+                        if(!c.exists) return res.sendStatus(404)
+                        let lang = `ru`
+                        let h = c.data();
+                        let kbd = [
+                            [{
+                                text: translations.book[lang] || translations.book.en,
+                                callback_data: 'class_' + req.query.class
+                            }]
+                        ]
+                        let message = {
+                            chat_id: -1002103011599,
+                            text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                            parse_mode: 'HTML',
+                            reply_markup: {
+                                inline_keyboard: kbd
+                            }
+                        }
+                        if (h.pic) {
+                            message.caption = message.text.slice(0, 1000)
+                            message.photo = h.pic
+                            // delete message.text
+                        }
+                        m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
+                    })
+                }
+                case `ticket`:{
+                    
+                    if(!req.query.ticket) return res.sendStatus(400)
+
+                    return userClasses.doc(req.query.ticket).get().then(t=>{
+                        if(!t.exists) return res.sendStatus(404)
+                        userClasses.doc(req.query.ticket).update({
+                            [req.body.attr]: req.body.value
+                        }).then(s=>{
+                            res.sendStatus(200)
+                        }).catch(err=>{
+                            res.status(500).send(err.message)
+                        })
+                    })
+                }
+                case `announce`:{
+                    devlog(req.body)
+                    let list = userClasses.where(`class`,`==`,req.body.class);
+                    if(req.body.type == `all`) list = list.where('active', '==', true)
+                    if(req.body.type == `inside`) list = list.where('status', '==', `used`)
+                    if(req.body.type == `outside`) list = list.where('status', '!=', `used`)
+                    
+                    return list.get()
+                    .then(tickets=>{
+                        common.handleQuery(tickets).forEach(t=>{
+                            
+                            devlog(t);
+
+                            m.sendMessage2({
+                                chat_id: t.user,
+                                text: req.body.text,
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{
+                                            text: 'Открыть событие',
+                                            web_app: {
+                                                url: process.env.ngrok + '/paper/app/start=class_'+req.body.class
+                                            }
+                                        }]
+                                    ]
+                                }
+                            }, false, token)
+                        })
+                        res.sendStatus(200)
+                    })
+                    .catch(handleError)
+                }
                 case 'feedBack':{
                     if(!req.query.class) res.sendStatus(404)
                     feedBackRequest(req.query.class)
@@ -951,11 +1042,44 @@ router.all(`/admin/:method`, (req, res) => {
                             res.json(common.handleQuery(col))
                         })
                 }
+
+                case 'classWL': {
+                    if (!req.query.class) return res.sendStatus(404)
+                    return userClassesWL
+                        .where('active', '==', true)
+                        .where('class', '==', req.query.class)
+                        .get()
+                        .then(col => {
+                            col = common.handleQuery(col)
+                            let usersData = [];
+                            let usersToCome = col.map(r=>r.user)
+                            usersToCome.forEach(u=>{
+                                usersData.push(m.getUser(u,udb))
+                            })
+
+                            Promise.all(usersData).then(usersData=>{
+                                res.json(col.map(r=>{
+                                    let t = r;
+                                    t.user = usersData.filter(u=>u.id == t.user)[0]
+                                    return t;
+                                }))
+                            })
+
+                            
+                        })
+                }
+
                 case 'user': {
     
                     if (!req.query.user) return res.sendStatus(404)
     
                     switch (req.query.data) {
+                        case 'profile':{
+                            return udb.doc(req.query.user).get().then(u=>{
+                                if(!u.exists) return res.sendStatus(404)
+                                return res.json(common.handleDoc(u))
+                            })
+                        }
                         case 'subscriptions': {
                             return subscriptions
                                 .where('user', '==', +req.query.user)
@@ -3684,7 +3808,12 @@ router.post('/slack', (req, res) => {
                             }).then(() => {
 
                                 userClasses.doc(a.value).get().then(doc=>{
+                                    
                                     let user = doc.data().user;
+
+                                    udb.doc(user.toString()).update({
+                                        classes: FieldValue.increment(1)
+                                    })
 
                                     plansUsers
                                         .where('user','==',+user)
@@ -4535,7 +4664,9 @@ router.post('/slack', (req, res) => {
                                 .where('active', '==', true)
                                 .get()
                                 .then(col => {
-                                    common.handleQuery(col).filter(r => r.status != 'used').forEach(record => {
+                                    common.handleQuery(col)
+                                    .filter(r => r.status != 'used')
+                                    .forEach(record => {
 
                                         m.sendMessage2({
                                             chat_id: record.data().user,
@@ -4630,41 +4761,47 @@ router.post('/slack', (req, res) => {
                                                     if (!u.noSpam) {
                                                         lang = u.language_code
 
-                                                    let kbd = [
-                                                        [{
-                                                            text: translations.book[lang] || translations.book.en,
-                                                            callback_data: 'class_' + h.id
-                                                        }]
-                                                    ]
+                                                        let kbd = [
+                                                            [{
+                                                                text: translations.book[lang] || translations.book.en,
+                                                                callback_data: 'class_' + h.id
+                                                            }]
+                                                        ]
 
 
 
-                                                    if (h.noRegistration) {
-                                                        kbd = []
-                                                    }
-
-                                                    kbd.push([{
-                                                        text: translations.unsubscribe[lang] || translations.unsubscribe.en,
-                                                        callback_data: `unsubscribe`
-                                                    }])
-
-                                                    let message = {
-                                                        chat_id: u.id,
-                                                        text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
-                                                        parse_mode: 'HTML',
-                                                        reply_markup: {
-                                                            inline_keyboard: kbd
+                                                        if (h.noRegistration) {
+                                                            kbd = []
                                                         }
-                                                    }
 
-                                                    if (h.pic) {
-                                                        message.caption = message.text.slice(0, 1000)
-                                                        message.photo = h.pic
-                                                        // delete message.text
-                                                    }
-                                                    setTimeout(function(){
-                                                        m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
-                                                    },i*200)
+                                                        kbd.push([{
+                                                            text: translations.unsubscribe[lang] || translations.unsubscribe.en,
+                                                            callback_data: `unsubscribe`
+                                                        }])
+
+                                                        let message = {
+                                                            chat_id: u.id,
+                                                            text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                                                            parse_mode: 'HTML',
+                                                            reply_markup: {
+                                                                inline_keyboard: kbd
+                                                            }
+                                                        }
+
+                                                        if (h.pic) {
+                                                            message.caption = message.text.slice(0, 1000)
+                                                            message.photo = h.pic
+                                                            // delete message.text
+                                                        }
+                                                        setTimeout(function(){
+                                                            m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token).then(s=>{
+                                                                if(!s) {
+                                                                    udb.doc(u.id.toString()).update({active:false})
+                                                                } else {
+                                                                    udb.doc(u.id.toString()).update({testTag:new Date()})
+                                                                }
+                                                            })
+                                                        },i*200)
                                                     
                                                     }
                                                     
@@ -7480,37 +7617,44 @@ function unClassUser(ref, user, res, id) {
                                 })
                             })
 
+
+
                             userClassesWL
-                            .where(`active`,'==',true)
-                            .where('class','==',d.data().class)
-                            .get()
-                            .then(col=>{
-                                common.handleQuery(col).forEach(wl=>{
-                                    udb.doc(wl.user.toString()).get().then(u=>{
-                                        u = u.data();
-                                        if(!u.blocked){
-                                            m.sendMessage2({
-                                                chat_id: wl.user,
-                                                text: translations.spareTicket(wl.className)[u.language_code] || translations.spareTicket(wl.className).en,
-                                                reply_markup:{
-                                                    inline_keyboard:[[{
-                                                        text: translations.book[u.language_code] || translations.book.en,
-                                                        callback_data: 'class_' + wl.class
-                                                    }]]
-                                                }
-                                            },false,token).then(s=>{
-                                                userClassesWL.doc(wl.id).update({
-                                                    active: false,
-                                                    sent: new Date()
-                                                })
-                                            }).catch(err=>{
-                                                console.log(err)
-                                            })
-                                        }
-                                    })
-                                    
+                                .where(`active`,'==',true)
+                                .where('class','==',d.data().class)
+                                .get()
+                                .then(col=>{
+                                    let line = common.handleQuery(col)
+                                    if(line.length){
+                                        let next = line.sort((a,b)=>a.createdAt._seconds - b.createdAt._seconds)[0]
+                                        bookClass(false,d.data().class,false,next.user)
+                                    }
+                                    // common.handleQuery(col).forEach(wl=>{
+                                    //     udb.doc(wl.user.toString()).get().then(u=>{
+                                    //         u = u.data();
+                                    //         if(!u.blocked){
+                                    //             m.sendMessage2({
+                                    //                 chat_id:    wl.user,
+                                    //                 text:       translations.spareTicket(wl.className)[u.language_code] || translations.spareTicket(wl.className).en,
+                                    //                 reply_markup:{
+                                    //                     inline_keyboard:[[{
+                                    //                         text: translations.book[u.language_code] || translations.book.en,
+                                    //                         callback_data: 'class_' + wl.class
+                                    //                     }]]
+                                    //                 }
+                                    //             },false,token).then(s=>{
+                                    //                 userClassesWL.doc(wl.id).update({
+                                    //                     active: false,
+                                    //                     sent: new Date()
+                                    //                 })
+                                    //             }).catch(err=>{
+                                    //                 console.log(err)
+                                    //             })
+                                    //         }
+                                    //     })
+                                        
+                                    // })
                                 })
-                            })
                         })
 
                         
@@ -7660,6 +7804,22 @@ function unbookMR(id, userid, callback, res) {
         console.log(err)
     })
 }
+
+
+// userClasses
+//     .get()
+//     .then(col=>{
+//         common.handleQuery(col)
+//             .filter(r=>r.status == `used`)
+//             .forEach(cl=>{
+//                 udb.doc(cl.user.toString()).update({
+//                     classes: FieldValue.increment(1)
+//                 }).then(s=>{
+//                     console.log(`${cl.user} +1`)
+//                 })
+//             })
+//     })
+
 
 module.exports = router;
 

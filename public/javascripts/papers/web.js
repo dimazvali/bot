@@ -1,4 +1,4 @@
-// const { default: axios } = require("axios")
+
 let host = `paper`
 
 let mc = document.querySelector(`#main`)
@@ -32,11 +32,195 @@ function drawClassLine(cl){
     let c = ce('div',false,'divided',false,{
         dataset:{
             active: cl.active
+        },
+        onclick:()=>{
+            showClass(cl)
         }
     })
     c.append(ce('h2',false,false,cl.name))
     c.append(ce('p',false,false,`${drawDate(cl.date)} @ ${cl.hallName}`))
     return c
+}
+
+function addComment(c,id){
+    let comment = prompt(`О чем предупредить администратора?`)
+    if(!comment) return alert(`запрос прерван`)
+    axios.put(`/${host}/admin/ticket/?ticket=${id}`,{
+        value: comment,
+        attr: `comment`
+    }).then(s=>{
+        alert(`ok`)
+        c.innerHTML = comment
+    }).catch(err=>{
+        alert(err.message)
+    })
+}
+
+
+
+function filterUsers(role,container,button){
+    let c = button.parentNode;
+        c.querySelectorAll('button').forEach(b=>b.classList.remove('active'))
+        c.querySelectorAll('button').forEach(b=>b.classList.add('passive'))
+    button.classList.add('active')
+    button.classList.remove('passive')
+    container.querySelectorAll('.userLine').forEach(user=>{
+        if(!role) return user.classList.remove('hidden')
+        
+        if(user.dataset[role] == 'true') {
+            user.classList.remove('hidden')
+        } else {
+            user.classList.add('hidden')
+        }
+    })
+
+    
+}
+
+
+function showClass(cl){
+    let p = preparePopupWeb(`class_${cl.id}`)
+    
+    if(cl.pic) p.append(ce(`img`,false,`cover`,false,{src: cl.pic})) 
+    
+    p.append(ce('h1',false,false,cl.name))
+        
+        let alertsContainer = ce('div',false,'flexible')
+        if(cl.admin)            alertsContainer.append(ce('button',false,`accent`,`только для админов`))
+        if(cl.fellows)          alertsContainer.append(ce('button',false,`fellows`,`только для fellows`))
+        if(cl.noRegistration)   alertsContainer.append(ce(`button`,false,`accent`,`регистрация закрыта`))
+        if(!cl.capacity)        alertsContainer.append(ce(`button`,false,`accent`,`вместимость не указана`))
+        if(!cl.pic)             alertsContainer.append(ce(`button`,false,`accent`,`картинка не указана`))
+        p.append(alertsContainer)
+
+        p.append(ce('p',false,false,`ведет: ${cl.author}`))
+        p.append(ce('p',false,false,`цена: ${cur(cl.price,`GEL`)}`))
+        p.append(ce('p',false,false,`${drawDate(cl.date,'ru',{time:true})}, продолжительность ${cl.duration} мин.`))
+
+        p.append(ce('p',false,`clickable`,`@${cl.hallName}`,{
+            onclick:()=>showHall(false, cl.hall)
+        }))
+
+        p.append(ce('p',false,`story`,cl.description))
+
+        let guests = ce('div');
+        
+        p.append(guests)
+
+        p.append(ce('button',false,`dateButton`,`Показать гостей`,{
+            dataset:{booked:1},
+            onclick:function(){
+                this.remove()
+                axios.get(`/paper/admin/class?class=${cl.id}`)
+                    .then(data=>{
+                        let rating = data.data.filter(t=>t.rate).map(t=>t.rate)
+                    
+                        if(rating.length){
+
+                            let av = (rating.reduce((a,b)=>a+b,0)/rating.length).toFixed(2)
+                            
+                            guests.prepend(ce('h4',false,'light',`Рейтинг ${av} (${rating.length} голосов)`))
+                        }
+
+
+                        guests.append(ce(`p`,false,false,`Гостей: ${data.data.length}${cl.price ? ` // оплачено ${data.data.filter(g=>g.isPayed).length}` : ''}${` // пришли ${data.data.filter(g=>g.status == 'used').length}`}`))
+                        guests.innerHTML+=`<table><tr><th>Имя</th><th>💲</th><th>📍</th><th>примечания админу</th></tr>
+                            ${data.data.map(u=>`<tr class="story">
+                                <td onclick="showUser(false,${u.user})">${u.userName}</td>
+                                <td>${cl.price ? (u.isPayed?'✔️':'❌') : '🚫'}</td>
+                                <td>${(u.status == 'used'? '✔️' : '❌')}</td>
+                                <td class="editable" onclick=addComment(this,"${u.id}")>${u.comment || `без примечаний`}</td>
+                            </tr>`).join('')}</table>`
+                        })
+                    }
+                }))
+
+        p.append(ce('button',false,`dateButton`,`Написать гостям`,{
+            dataset:{booked:1},
+            onclick:function(){
+                this.remove;
+                let txt = ce('textarea',false,false,false,{
+                    placeholder: `Вам слово`
+                })
+
+                let type = ce('select')
+                
+                    type.append(ce('option',false,false,`Всем`,{
+                        value: `all`
+                    }))
+                    type.append(ce('option',false,false,`Пришедшим`,{
+                        value: `inside`
+                    }))
+                    type.append(ce('option',false,false,`Опаздантам`,{
+                        value: `outside`
+                    }))
+
+                p.append(txt)
+                p.append(type)
+
+                 
+                p.append(ce('button',false,`dateButton`,`Отправить`,{
+                    dataset:{booked:1},
+                    onclick:function(){
+                        
+                        if(!txt.value) return alert(`Я не вижу ваших букв!`)
+
+                        this.setAttribute(`disabled`,true)
+
+                        axios.post(`/paper/admin/announce`,{
+                            class: cl.id,
+                            type: type.value,
+                            text: txt.value
+                        }).then(s=>{
+                            alert(`ok`)
+                            txt.value = null;
+                        }).catch(err=>{
+                            alert(err.message)
+                        }).finally(()=>{
+                            this.removeAttribute('disabled')
+                        })
+                        
+                    }
+                }))
+            }
+        }))
+
+        p.append(ce(`button`,false,`dateButton`,`Показать лист ожидания`,{
+            dataset:{booked:1},
+            onclick:()=>{
+                let wl =    ce('div')
+                let t =     ce('table')
+                let n =     ce(`tr`)
+                    n.append(ce(`th`,false,false,`гость`))
+                    n.append(ce(`th`,false,false,`дата`))
+                    n.append(ce(`th`,false,false,`статус`))
+                t.append(n)
+                axios.get(`/${host}/admin/classWL?class=${cl.id}`).then(d=>{
+                    d.data.sort((a,b)=>a.createdAt._seconds-b.createdAt._seconds).forEach(rec=>{
+                        let line = ce('tr')
+                            line.append(ce(`td`,false,false,uname(rec.user, rec.user.id)))
+                            line.append(ce(`td`,false,false,drawDate(rec.createdAt._seconds*1000,`ru`,{time: true})))
+                            line.append(ce(`td`,false,false,rec.active))
+                        t.append(line)
+                    })
+                })
+                wl.append(t)
+                p.append(wl)
+            }
+        }))
+
+        p.append(ce(`button`,false,`dateButton`,`Запостить в канал`,{
+            dataset:{booked:1},
+            onclick:()=>{
+                axios.post(`/${host}/admin/channel?class=${cl.id}`)
+                    .then(s=>{
+                        alert(`ok`)
+                    })
+                    .catch(err=>{
+                        alert(err.message)
+                    })
+            }
+        }))
 }
 
 function showLogs(){
@@ -52,9 +236,42 @@ function showUsers(){
             mc.innerHTML = '';
             mc.append(ce('h1',false,`header2`,`Пользователи`))
             let c = ce('div')
+            
             data.data.users.forEach(cl => {
                 c.append(drawUserLine(cl))
             });
+
+            let filterTypes = {
+                blocked: `Вышли из чата`,
+                admin: `админы`,
+                fellow: `fellows`,
+            }
+
+            Object.keys(filterTypes).forEach(type=>{
+                mc.append(ce('button',false,type,filterTypes[type],{
+                    onclick: function(){
+                        filterUsers(type,c,this)
+                    }
+                }))
+            })
+
+            let sortTypes = {
+                appOpens: `По частоте использования`,
+                classes: `По количеству лекций`,
+                // fellow: `fellows`,
+            }
+
+            Object.keys(sortTypes).forEach(type=>{
+                mc.append(ce('button',false,type,sortTypes[type],{
+                    onclick: function(){
+                        c.innerHTML = ''
+                        data.data.users.sort((a,b)=>(b[type]||0)-(a[type]||0)).forEach(cl => {
+                            c.append(drawUserLine(cl,(cl[type]||0)))
+                        });
+                    }
+                }))
+            })
+
             mc.append(c)
         })
         .catch(err=>{
@@ -63,12 +280,17 @@ function showUsers(){
 }
 
 
-function drawUserLine(u){
-    let c = ce(`div`,false,`divided`,false,{
-        dataset:{active:u.active}
+function drawUserLine(u,cnt){
+    let c = ce(`div`,false,`userLine`,false,{
+        dataset:{
+            active:     u.active,
+            blocked:    !u.active,
+            admin:      u.admin,
+            fellow:     u.fellow,
+        }
     })
 
-    c.append(ce('h3',false,false,uname(u,u.id),{
+    c.append(ce('h3',false,false,(cnt?`${cnt}: `:'')+uname(u,u.id),{
         onclick:()=>{
             showUser(u)
         }
@@ -78,13 +300,40 @@ function drawUserLine(u){
 }
 
 
-function showUser(u){
-    let p = preparePopupWeb(`user${u.id}`)
+function showUser(u,id){
+
+    if(!u){
+        u = axios.get(`/${host}/admin/user?data=profile&user=${id}`)
+            .then(d=>d.data)
+            .catch(err=>{
+                return alert(err.message)
+            })
+    }
+
+    Promise.resolve(u).then(u=>{
+        let p = preparePopupWeb(`user${u.id}`)
         p.append(ce('h1',false,false,`${uname(u,u.id)} (${u.language_code})`))
-        p.append(ce('p',false,false,`Регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
+        p.append(ce('p',false,false,`регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
         p.append(ce('p',false,false,`email: ${u.email || `не указан`}`))
         p.append(ce('p',false,false,`about: ${u.about || `о себе не рассказывал`}`))
         p.append(ce('p',false,false,`occupation: ${u.occupation || `о себе не рассказывал`}`))
+
+        p.append(ce(`h2`,false,false,`Лекции`))
+        axios
+            .get(`/${host}/admin/user?user=${u.id}&data=lections`)
+            .then(data=>{
+                data.data.forEach(c=>{
+                    p.append(ce('p',false,false,`${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`,{
+                        dataset:{
+                            active: c.active
+                        }
+                    }))
+                })
+            })
+    })
+
+    
+    
 }
 
 
@@ -93,11 +342,13 @@ function preparePopupWeb(name){
     c.append(ce('span',false,`closeMe`,`✖`,{
         onclick:()=>{
             c.classList.add(`slideBack`)
-            // setTimeout(function(){
-            //     c.remove()
-            // },500)
+            setTimeout(function(){
+                c.remove()
+            },500)
         }
     }))
     document.body.append(c)
-    return c;
+    let content = ce('div',false,`content`)
+    c.append(content)
+    return content;
 }

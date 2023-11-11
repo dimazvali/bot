@@ -495,7 +495,9 @@ function drawClass(l){
             })
 
             details.classList.remove('hidden')
+            
             this.remove()
+
             axios.get(`/${host}/admin/class?id=${userid}&class=${l.id}`)
                 .then(data=>{
 
