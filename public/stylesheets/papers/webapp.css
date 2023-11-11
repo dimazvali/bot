@@ -437,3 +437,12 @@ iframe#telegram-login-paperstuffbot {
     margin: 0 auto;
     display: block;
 }
+
+button.num {
+    background: var(--light);
+    border: none;
+    border-radius: 4px;
+    width: 30px;
+    height: 30px;
+    font-weight: bold;
+}

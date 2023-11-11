@@ -817,7 +817,7 @@ function showCoworkingIntro(plans){
 function showBar(){
     let p = preparePopup()
 
-    p.append(ce('h2',false,'light',`Gamotsema Bar`))
+    p.append(ce('h2',false,'light',`Papers Bar`))
 
     let loader = ce('p',false,false,`Разливаем меню...`)
 
@@ -1079,6 +1079,64 @@ function drawUser(u){
 }
 
 
+function rateClass(cl,rate,container){
+    axios.post(`/${host}/api/classes/review?intention=rate`,{
+        className: cl.name,
+        class:  cl.id,
+        ticket: cl.appointmentId,
+        rate:   rate 
+    }).then(s=>{
+        tg.showAlert(translations.thanks[userLang] || translations.thanks.en)
+        container.remove();        
+    }).catch(err=>{
+        tg.showAlert(err.message)
+    })
+       
+}
+
+function drawLectureReview(cl){
+    let c = ce('div')
+
+    c.append(ce('h2',false,'light', translations.review[userLang] || translations.review.en))
+    let numContainer = ce('div',false,`flex`)
+    let i = 1
+    while(i<6){
+        numContainer.append(ce('button',false,`num`,i,{
+            onclick:()=>rateClass(cl,i,numContainer)
+        }))
+        i++
+    }
+    c.append(numContainer)
+
+    let txt = ce('textarea',false,false,false,{
+        placeholder: translations.askForReview[userLang] || translations.askForReview.en
+    })
+
+    c.append(txt)
+
+    c.append(ce('button',false,`dateButton`,`Отправить`,{
+        onclick:function(){
+            if(!txt.value) return tg.showAlert(translations.askForReview[userLang] || translations.askForReview.en)
+            axios.post(`/${host}/api/classes/review?intention=review`,{
+                className: cl.name,
+                class: cl.id,
+                ticket: cl.appointmentId,
+                text:   txt.value 
+            }).then(s=>{
+                tg.showAlert(translations.thanks[userLang] || translations.thanks.en)
+                this.remove();
+                c.append(ce('p',false,false,txt.value))
+                
+                txt.remove()
+            }).catch(err=>{
+                tg.showAlert(err.message)
+            })
+        }
+    }))
+
+    return c;
+}
+
 
 function drawLectureQuestion(cl){
     let c = ce('div')
@@ -1128,6 +1186,8 @@ function drawLectureQuestion(cl){
 }
 
 function drawLecturePopup(c){
+
+        console.log(c);
 
         shimmer(true)
 
@@ -1191,6 +1251,7 @@ function drawLecturePopup(c){
 
             if(c.status == 'used') {
                 content.append(drawLectureQuestion(c))
+                content.append(drawLectureReview(c))
             }
             popup.append(content)
             document.body.append(popup)

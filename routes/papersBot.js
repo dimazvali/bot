@@ -469,7 +469,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 reply_markup: {
                                     inline_keyboard: [
                                         [{
-                                            text: 'Открыть событие',
+                                            text: translations.openClass.en,
                                             web_app: {
                                                 url: process.env.ngrok + '/paper/app/start=class_'+req.body.class
                                             }
@@ -992,7 +992,18 @@ router.all(`/admin/:method`, (req, res) => {
                                             m.getUser(userid, udb).then(user => {
                                                 m.sendMessage2({
                                                     chat_id: user.id,
-                                                    text: translations.welcomeOnPremise[user.language_code] || translations.welcomeOnPremise.en
+                                                    text: translations.welcomeOnPremise[user.language_code] || translations.welcomeOnPremise.en,
+                                                    reply_markup:{
+                                                        inline_keyboard: [
+                                                            [{
+                                                                text: translations.openClass[user.language_code] || translations.openClass.en,
+                                                                web_app: {
+                                                                    url: process.env.ngrok + '/paper/app/start=class_'+req.body.class
+                                                                }
+                                                            }]
+                                                        ]
+                                                    }
+                                                    
                                                 }, false, token)
     
                                                 classes.doc(t.data().class).get().then(cl=>{
@@ -2430,6 +2441,18 @@ function sendHalls(id, lang) {
 
 
 const translations = {
+    openClass:{
+        ru: `открыть событие`,
+        en: `open app`
+    },
+    review: {
+        ru: `Оставьте отзыв`,
+        en: `Review`
+    },
+    askForReview: {
+        ru: `Добавьте пару слов, нам страшно интересно.`,
+        en: `Review is well appreciated.`
+    },
     notYourTicket: {
         ru: `Извините, но это не ваш билет.`,
         en: `Sorry, but that's not your ticket.`
@@ -2502,7 +2525,7 @@ const translations = {
         }
     },
     welcomeOnPremise: {
-        ru: `Добро пожаловать! Ваш билет был принят.\nЕсли произошла ошибка и вы не находитесь в Papers, пожалуйста, напишите об этом.\nВопросы лектору (или организаторам) вы можете задать через приложение, на странице мероприятия.`,
+        ru: `Добро пожаловать! Ваш билет был принят.\nЕсли произошла ошибка и вы не находитесь в Papers, пожалуйста, напишите об этом.\nВопросы лектору (или организаторам) вы можете задать через приложение, на странице мероприятия.\nТам же вы сможете поставить оценку и оставить отзыв о мероприятии (они очень важны для нас).`,
         en: `Glad to see you on premise.\nIf there's been a mistake and you are not in Papers Space right now, please, write about immediately.`
     },
     roomBlocked: {
@@ -2764,7 +2787,7 @@ const translations = {
         ka: 'განრიგის ნახვა'
     },
     intro: {
-        ru: `Добро пожаловать в пространство PAPERS от Paper Kartuli.Тут можно забронировать место в коворкинге или переговорке, посмотреть расписание лекций, — или сразу пройти в бар.\nУдобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка внизу (или в нижнем левом углу).Вы можете записаться на бесплатный тестовый день в коворкинге. Следующие дни — по стандартному тарифу (30 GEL в день, оплата на месте). Для аренды переговорки или ивент-пространства, напишите прямо в наш чат-бот, и наш администратор вам ответит.`,
+        ru: `Добро пожаловать в пространство PAPERS от Paper Kartuli. Тут можно забронировать место в коворкинге или переговорке, посмотреть расписание лекций, — или сразу пройти в бар.\nУдобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка внизу (или в нижнем левом углу).Вы можете записаться на бесплатный тестовый день в коворкинге. Следующие дни — по стандартному тарифу (30 GEL в день, оплата на месте). Для аренды переговорки или ивент-пространства, напишите прямо в наш чат-бот, и наш администратор вам ответит.`,
         en: `Welcome to the PAPERS space by Paper Kartuli. Here you can book a place in a coworking or meeting room, see the lecture schedule, or go straight to the bar.\nThe most convenient way to use the bot is through the application: this button is at the bottom (or in the lower left corner). You can sign up for a free test day in a coworking space. The following days - at the standard rate (30 GEL per day, payable locally). To rent a meeting room or event space, write directly to our chatbot, and our administrator will answer you.`,
         ka: 'კეთილი იყოს თქვენი მობრძანება Paper Kartuli-ის PAPERS სივრცეში, აქ შეგიძლიათ დაჯავშნოთ ადგილი კოვორკინგში ან შეხვედრების ოთახში, ნახოთ ლექციების განრიგი ან პირდაპირ ბარში ჩაბრძანდეთ. ბოტის გამოყენების ყველაზე მოსახერხებელი გზაა აპლიკაციის საშუალებით: ეს არის ქვედა ღილაკი (ან ქვედა მარცხენა კუთხეში) შეგიძლიათ დარეგისტრირდეთ უფასო ტესტის დღეს კოვორკინგის სივრცეში. მომდევნო დღეებში - სტანდარტული ღირებულობით (დღეში 30 ლარი, გადასახდელი ადგილობრივად). შეხვედრების ოთახის ან ღონისძიების სივრცის დასაქირავებლად მოგვწერეთ პირდაპირ ჩვენს ჩატბოტში და ჩვენი ადმინისტრატორი გიპასუხებთ.'
     },
@@ -2919,10 +2942,10 @@ function log(o) {
     logs.add(o).then(r => {
 
         alertAdmins({
-            text: o.text,
-            type: (o.class && o.user) ? 'class' : 'logRecord',
-            id: o.class,
-            user: o.user || o.user_id || null,
+            text:   o.text,
+            type:   (o.class && o.user) ? 'class' : 'logRecord',
+            id:     o.class,
+            user:   o.user || o.user_id || null,
             ticket: o.ticket
         })
 
@@ -4674,7 +4697,7 @@ router.post('/slack', (req, res) => {
                                             reply_markup: {
                                                 inline_keyboard: [
                                                     [{
-                                                        text: 'Открыть событие',
+                                                        text: translations.openClass.en,
                                                         web_app: {
                                                             url: process.env.ngrok + '/paper/app/start=classes'
                                                         }
@@ -6315,6 +6338,7 @@ router.get(`/api/:type`, (req, res) => {
             if(!req.query.class) return res.status(400).send(`no class provided`)
             return userClassesQ
                 .where(`active`,'==',true)
+                .where(`class`,'==',req.query.class)
                 .get()
                 .then(col=>{
                     res.json(common.handleQuery(col))
@@ -6999,7 +7023,51 @@ router.all(`/api/:data/:id`, (req, res) => {
                     if (req.query.intention == 'book') {
                         if (!req.query.user) return res.sendStatus(400)
                         return bookClass(false, req.params.id, res, req.query.user)
-
+                    } else if (req.query.intention == `rate`) {
+                        if(!req.body.rate || !req.body.ticket) return res.sendStatus(400)
+                        return userClasses.doc(req.body.ticket).get().then(t=>{
+                            if(!t.exists) return res.sendStatus(404)
+                            t = common.handleDoc(t)
+                            if(t.status != `used`) return res.sendStatus(403)
+                            userClasses.doc(req.body.ticket).update({
+                                rate:           +req.body.rate,
+                                reviewed:    new Date()
+                            }).then(s=>{
+                                log({
+                                    text:   `Новая оценка к мероприятию ${req.body.className}: ${req.body.rate}`,
+                                    user:   t.user,
+                                    class:  t.class,
+                                    ticket: req.body.ticket
+                                })
+                                res.send(`ok`)
+                            }).catch(err=>{
+                                res.sendStatus(500)
+                                console.log(err)
+                            })
+                        })
+                    } else if (req.query.intention == `review`) {
+                        if(!req.body.text || !req.body.ticket) return res.sendStatus(400)
+                        return userClasses.doc(req.body.ticket).get().then(t=>{
+                            if(!t.exists) return res.sendStatus(404)
+                            t = common.handleDoc(t)
+                            if(t.status != `used`) return res.sendStatus(403)
+                            userClasses.doc(req.body.ticket).update({
+                                review:     req.body.text,
+                                reviewed:    new Date()
+                            }).then(s=>{
+                                log({
+                                    text:   `Новый отзыв к мероприятию ${req.body.className}: ${req.body.text}`,
+                                    user:   t.user,
+                                    class:  t.class,
+                                    ticket: req.body.ticket
+                                })
+                                res.send(`ok`)
+                            }).catch(err=>{
+                                res.sendStatus(500)
+                                console.log(err)
+                            })
+                        })
+                        return res.sendStatus(200)
                     } else {
 
                         if (!req.body[2]) return res.status(400).send(`вы не указали дату`)
