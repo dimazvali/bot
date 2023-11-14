@@ -62,15 +62,23 @@ function letterize2(v,word){
     return options[r][v]+' '+r
 }
 
-function handleQuery(col){
-    return col.docs.map(q => {
+function handleQuery(col,byDate){
+    let res = col.docs.map(q => {
         let f = q.data();
         f.id = q.id
         return f
     })
+    if(byDate){
+        res = res.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds)
+    }
+    devlog(res)
+    return res
 }
 
 function handleDoc(d){
+    
+    if(!d.exists) return false;
+
     let t = d.data();
         t.id = d.id;
     return t;
@@ -463,8 +471,14 @@ function checkObscene(v) {
     return clear
 }
 
+async function getDoc(col,id){
+    if(typeof id == 'number') id = id.toString()
+    if(!id) return {}
+    return col.doc(id).get().then(doc=>handleDoc(doc)) 
+}
+
 
 module.exports = {
-    handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
+    getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
 };
 

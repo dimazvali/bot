@@ -1,0 +1,174 @@
+div#left {
+    position: fixed;
+    left: 0;
+    width: 300px;
+    max-width: 100%;
+    top: 0;
+    padding: 20px;
+    box-sizing: border-box;
+    height: 100vh;
+    box-shadow: 4px 4px 10px var(--dark);
+    background: var(--dark);
+    z-index: 10;
+}
+
+div#main {
+    margin-left: 300px;
+    color: var(--dark);
+}
+
+div#left>h3 {
+    color: var(--light);
+}
+
+.info {
+    font-size: x-small;
+    filter: opacity(0.5);
+}
+
+.popupWeb {
+    position: fixed;
+    top: 0;
+    left: -100vw;
+    background: var(--light);
+    animation: slideFromRight 1s forwards;
+    margin-left: 300px;
+    color: var(--dark);
+    padding: 20px;
+    box-sizing: border-box;
+    overflow: scroll;
+    min-height: 100vh;
+    min-width: 70vw;
+}
+
+@keyframes slideFromRight {
+    0% {
+        left: 100vw;
+    }
+
+    100% {
+        left: 0;
+    }
+}
+
+.slideBack {
+    animation: slideFromRight 1s reverse;
+}
+
+#menu{
+    display: none;
+}
+
+@media all and (max-width:600px) {
+    div#left {
+        left: -100vw;
+        transition: .5s;
+        padding-top: 30px;
+    }
+
+    div#left.active {
+        left: 0;
+    }
+
+    div#main {
+        margin-left: 40px;
+    }
+    #menu{
+        display: block;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 20;
+    }
+    #menu::after {
+        content: '≡';
+        left: 0;
+        position: absolute;
+        top: 0;
+        display: block;
+        background: var(--dark);
+        width: 50px;
+        height: 50px;
+        text-align: center;
+        line-height: 50px;
+        font-size: 2em;
+    }
+
+}
+
+
+img.cover {
+    width: 300px;
+    border-radius: 30px;
+}
+
+.content{
+    height: 80vh;
+}
+
+
+
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+    transition: .3s;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+    height: 7px;
+    transition: .3s;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark);
+    border-radius: 3px;
+}
+
+
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+    transition: .3s;
+}
+
+::-webkit-scrollbar {
+    width: 5px;
+    height: 7px;
+    transition: .3s;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--dark);
+    border-radius: 3px;
+}
+
+.editable::after{
+    content: "✏️";
+}
+
+#chartdiv{
+    width: 100%;
+    height: 500px;
+    max-width: 100%;
+    background-color: white;
+}
+
+
+[data-kids="true"]::before {
+    content: 'для детей';
+}
+
+.editWindow {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 30px;
+    z-index: 1000;
+}
+
+table.wide{
+    min-width: 100%;
+}

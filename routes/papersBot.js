@@ -64,18 +64,18 @@ let gcp = initializeApp({
 let fb = getFirestore(gcp);
 
 
-let token = process.env.papersToken
-let paymentToken = process.env.papersPaymentToken
+let token =         process.env.papersToken
+let paymentToken =  process.env.papersPaymentToken
 
 let ngrok = process.env.ngrok
 
 let sheet = process.env.papersSheet
 
-setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
-        console.log(`papers hook set on ${ngrok}`)
-    }).catch(handleError)   
-},1500)
+// setTimeout(function(){
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
+//         console.log(`papers hook set on ${ngrok}`)
+//     }).catch(handleError)   
+// },1500)
 
 
 
@@ -120,6 +120,8 @@ let coffee =            fb.collection(`coffee`);
 let promos =            fb.collection(`promos`);
 let invites =           fb.collection(`invites`);
 let plansRequests =     fb.collection(`plansRequests`);
+let classesOffers =     fb.collection(`classesOffers`);
+
 
 coworkingRules.get().then(col => {
     col.docs.forEach(l => {
@@ -181,7 +183,6 @@ router.get('/oauth', (req, res) => {
 
 router.post(`/oauth`, (req, res) => {
     console.log(req.body);
-
     res.json(req.body)
 })
 
@@ -192,7 +193,7 @@ router.get(`/web`,(req,res)=>{
         .limit(100)
         .get()
         .then(col=>{
-            res.cookie('adminToken', `zOgpSBtoVWIsc23qdBDB`, {
+            res.cookie('adminToken', process.env.adminToken, {
                 maxAge: 24 * 60 * 60 * 1000,
                 signed: true,
                 httpOnly: true,
@@ -1257,6 +1258,23 @@ router.get('/qr', async (req, res) => {
     }
 })
 
+
+function alertNewClassesOffers(){
+    axios.get(`https://api.trello.com/1/lists/6551e8f31844b130a4db500a/cards?key=${process.env.kahaTrelloKey}&token=${process.env.kahaTrelloToken}`).then(data=>{
+        data.data.forEach(card=>{
+            classesOffers.doc(card.id).get().then(d=>{
+                if(!d.exists){
+                    m.sendMessage2({
+                        chat_id: 487598913,
+                        text: `Увага! Новая лекция предложена, но не рассмотрена по существу:\n${card.name}: ${card.desc}\n${card.shortUrl}`
+                    },false,token)
+                }
+            })
+        })
+    })
+}
+
+
 if(!process.env.develop){
     cron.schedule(`55,25 9-23 * * *`, () => {
         // :55, :25 каждый час с 9 до 23
@@ -1304,7 +1322,8 @@ if(!process.env.develop){
 
 if(process.env.develop){
     router.get('/test', (req, res) => {
-        feedBackRequest(req.query.class);
+        alertNewClassesOffers()
+        // feedBackRequest(req.query.class);
 //         coworking
 //             .where(`active`,'==',true)
 //             .get()
@@ -5219,6 +5238,19 @@ router.post('/slack', (req, res) => {
         default:
             return res.sendStatus(404)
     }
+})
+
+router.all(`/trello`,(req,res)=>{
+    devlog(JSON.stringify(req.body))
+    if(req.body.action.type == `createCard`){
+        let card = req.body.action.data.card;
+
+        m.sendMessage2({
+            chat_id: 487598913,
+            text: `Увага! Новая лекция предложена, но не рассмотрена по существу:\n${card.name}: ${card.desc}\n${card.shortUrl}`
+        },false,token)
+    }
+    res.sendStatus(200)
 })
 
 router.post('/hook', (req, res) => {

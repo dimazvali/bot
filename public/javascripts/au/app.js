@@ -363,7 +363,7 @@ axios.get(`/auditoria/api/profile?user=${userid}`)
 
             let s = ce('table')
             p.append(s)
-            data.schedule.sort((a, b) => b.date > a.date ? -1 : 1).filter(t => new Date(t.date) > new Date()).forEach(l => {
+            data.schedule.sort((a, b) => b.date._seconds > a.date._seconds ? -1 : 1).filter(t => new Date(t.date._seconds*1000) > new Date()).forEach(l => {
                 s.append(drawClassLine(l))
             })
         } else {
@@ -528,7 +528,7 @@ function showProfile() {
 
                 let s = ce('table')
                 p.append(s)
-                data.schedule.sort((a, b) => b.date > a.date ? -1 : 1).filter(t => new Date(t.date) > new Date()).forEach(l => {
+                data.schedule.sort((a, b) => b.date._seconds > a.date._seconds ? -1 : 1).filter(t => new Date(t.date._seconds*1000) > new Date()).forEach(l => {
                     s.append(drawClassLine(l))
                 })
             } else {
@@ -1252,7 +1252,7 @@ function drawClassPopup(c, id) {
 
     p.append(ce('h1', false, false, c.name))
 
-    p.append(ce('p', false, 'timing', `<span class="date">${drawDate(c.date)}</span> <span class="time">${new Date(c.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'Asia/Tbilisi'})}</span>`))
+    p.append(ce('p', false, 'timing', `<span class="date">${drawDate(c.date._seconds*1000)}</span> <span class="time">${new Date(c.date._seconds*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'Asia/Tbilisi'})}</span>`))
 
     if (c.author) {
         if (c.authorId) {
@@ -1500,7 +1500,7 @@ function drawClassLine(c) {
     let cl = ce('tr', false, 'class')
 
 
-    cl.append(ce('td', false, 'timing', `<span data-month="${new Date(c.date).getMonth()}" class="date">${new Date(c.date).getDate({timeZone: 'Asia/Tbilisi'})}</span><span class="time">${new Date(c.time).toLocaleTimeString([], {timeZone: 'Asia/Tbilisi',hour: '2-digit', minute:'2-digit'})}</span>`))
+    cl.append(ce('td', false, 'timing', `<span data-month="${new Date(c.date._seconds*1000).getMonth()}" class="date">${new Date(c.date._seconds*1000).getDate({timeZone: 'Asia/Tbilisi'})}</span><span class="time">${new Date(c.date._seconds*1000).toLocaleTimeString([], {timeZone: 'Asia/Tbilisi',hour: '2-digit', minute:'2-digit'})}</span>`))
 
     let desc = ce('td')
 
