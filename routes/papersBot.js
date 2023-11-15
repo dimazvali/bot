@@ -1282,17 +1282,17 @@ if(!process.env.develop){
     })
     
     
-    cron.schedule(`0 9 * * *`, () => {
+    cron.schedule(`0 5 * * *`, () => {
         alertSoonCoworking()
         alertAdminsCoworking()
     })
     
-    cron.schedule(`0 15 * * *`, () => {
+    cron.schedule(`0 11 * * *`, () => {
         alertSoonClasses()
     })
     
     
-    cron.schedule(`0 10 * * *`, () => {
+    cron.schedule(`0 5 * * *`, () => {
         common.getNewUsers(udb,1).then(newcomers=>{
             log({
                 text: `Новых пользователей за сутки: ${newcomers}`
@@ -1300,7 +1300,7 @@ if(!process.env.develop){
         })
     })
     
-    cron.schedule(`0 11 * * 1`, () => {
+    cron.schedule(`0 5 * * 1`, () => {
         common.getNewUsers(udb,7).then(newcomers=>{
             log({
                 text: `Новых пользователей за неделю: ${newcomers}`
@@ -1308,7 +1308,7 @@ if(!process.env.develop){
         })
     })
     
-    cron.schedule(`0 11 1 * *`, () => {
+    cron.schedule(`0 5 1 * *`, () => {
         common.getNewUsers(udb,30).then(newcomers=>{
             log({
                 text: `Новых пользователей за месяц: ${newcomers}`

@@ -566,8 +566,8 @@ router.all(`/admin/:method`, (req, res) => {
                                     age:        req.body.age || null,
                                     pic:        req.body.pic || null,
                                     price:      req.body.price || null,
-                                    price1:     req.body.price1 || null,
                                     price2:     req.body.price2 || null,
+                                    price3:     req.body.price3 || null,
                                     date:       new Date(req.body.date)
                                 }).then(s=>{
                                     res.json({success:true})
@@ -1192,6 +1192,13 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                     if(!cl.exists) return res.sendStatus(404)
                     cl = common.handleDoc(cl)
                     switch(req.method){
+                        case `POST`:{
+                            cl.date = new Date(req.body.date);
+                            delete cl.id
+                            return classes.add(cl).then(s=>{
+                                ref.json({success:true})
+                            })
+                        }
                         case `GET`:{
                             let data = []
                             data.push(userClasses.where(`class`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))

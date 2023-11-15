@@ -172,3 +172,13 @@ img.cover {
 table.wide{
     min-width: 100%;
 }
+
+.flex {
+    display: flex;
+}
+
+.date {
+    border-right: 1px solid;
+    padding: 0px 20px;
+    border-left: 1px solid;
+}

@@ -31,6 +31,25 @@ function showCourses(){
         })
 }
 
+function drawSchedule(events, start){
+    let c = ce('div',false,`flex`)
+    let i = 0
+    while (i<7){
+        let day = ce(`div`,false,`date`)
+
+        let date = new Date(+new Date()+i*24*60*60*1000)
+        let isoDate = date.toISOString().split('T')[0]
+        day.append(ce(`h3`,false,false,drawDate(date)))
+        events.filter(e=>new Date(e.date._seconds*1000).toISOString().split('T')[0] == isoDate).forEach(e=>{
+            day.append(ce('p',false,false,`${new Date(e.date._seconds*1000).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}: ${e.name}`))
+        })
+        c.append(day)
+        i++
+    }
+    return c
+
+}
+
 function showCourseLine(course){
     // console.log(c)
     let c = ce(`div`,false,`divied`,false,{
@@ -108,6 +127,33 @@ function load(collection,id){
     })
 }
 
+function deleteEntity(col,id){
+    return axios.delete(`/${host}/api/${col}/${id}`)
+        .then(handleSave)
+        .catch(handleError)
+}
+
+function replicate(id){
+    let edit = ce('div',false,`editWindow`)
+    edit.append(ce('h2',false,false,`Выберите дату`))
+
+    let f = ce('input'); 
+    f.type = `datetime-local`
+    edit.append(f)
+
+    edit.append(ce('button',false,false,`Сохранить`,{
+        onclick:function(){
+            if(f.value){
+                axios.post(`/${host}/admin/classes/${id}`,{
+                    date: new Date(f.value)
+                }).then(handleSave)
+                .catch(handleError)
+            }
+        }
+    }))
+
+    document.body.append(edit)
+}
 
 function edit(entity,id,attr,type, value){
 
@@ -243,21 +289,21 @@ function newClass(courseId,authorId){
             placeholder: `цена по записи`
         })
 
-        let price1 = ce(`input`,false,false,false,{
+        let price2 = ce(`input`,false,false,false,{
             type: `number`,
             min: 0,
             placeholder: `цена на месте`
         })
 
-        let price2 = ce(`input`,false,false,false,{
+        let price3 = ce(`input`,false,false,false,{
             type: `number`,
             min: 0,
             placeholder: `цена трансляции`
         })
 
         p.append(price)
-        p.append(price1)
         p.append(price2)
+        p.append(price3)
 
         let author = ce('select')
 
@@ -296,8 +342,8 @@ function newClass(courseId,authorId){
                         age:            age.value,
                         pic:            pic.value,
                         price:          price.value,
-                        price1:         price1.value,
                         price2:         price2.value,
+                        price3:         price3.value,
                         date:           date.value
                         
                     }).then(handleSave)
@@ -475,8 +521,11 @@ function showSchedule(){
             console.log(data.data)
             mc.innerHTML = '';
             mc.append(ce('h1',false,`header2`,`Расписание`))
+            mc.append(drawSchedule(data.data))
             let c = ce('div')
+            
             data.data.forEach(cl => {
+
                 c.append(showClassLine(cl))
             });
             c.append(addClass())
@@ -543,7 +592,7 @@ function showClassLine(cl){
         }
     })
     c.append(ce('h2',false,false,cl.name))
-    c.append(ce('p',false,false,`${Date(cl.date._seconds*1000)}`))
+    c.append(ce('p',false,false,`${drawDate(cl.date._seconds*1000)}`))
     return c
 }
 
@@ -653,7 +702,8 @@ function showClass(cl,id){
         onclick:()=>edit(`classes`,cl.id,`name`,`text`,cl.name)
     }))
         
-        if(cl.kids) p.append(ce(`button`,false,`accent`,`для детей ${cl.age  || `без возрастных оганичений`}`))
+    if(cl.kids) p.append(ce(`button`,false,`accent`,`для детей ${cl.age  || `без возрастных оганичений`}`))
+        
         let alertsContainer = ce('div',false,'flexible')
             // if(!cl.capacity)        alertsContainer.append(ce(`button`,false,`accent`,`вместимость не указана`))
             if(!cl.pic)             alertsContainer.append(ce(`button`,false,`accent`,`задать картинку`,{
@@ -664,6 +714,10 @@ function showClass(cl,id){
             }))
             if(!cl.course)          alertsContainer.append(ce(`button`,false,`accent`,`выбрать курс`,{
                 onclick:()=>edit(`classes`,cl.id,`courseId`,`courseId`,null)
+            }))
+
+            if(!cl.paymentDesc)     alertsContainer.append(ce(`button`,false,`accent`,`выбрать счет`,{
+                onclick:()=>edit(`classes`,cl.id,`text`,`paymentDesc`,null)
             }))
         p.append(alertsContainer)
 
@@ -804,8 +858,31 @@ function showClass(cl,id){
                     })
             }
         }))
+
+        let rep = ce('div')
+        p.append(rep)
+
+        rep.append(ce(`button`,false,false,`Дублировать`,{
+            onclick: replicate(cl.id)
+        }))
+
+        p.append(delButton(`classes`,cl.id))
+
     })
     
+}
+
+function delButton(col,id){
+    let cd = ce('div')
+        cd.append(ce('button',false,false,`Отменить/Архивировать`,{
+            onclick:()=>{
+                let shure = confirm(`Вы уверены?`)
+                if(shure){
+                    deleteEntity(col,id)
+                }
+            }
+        }))
+    return cd
 }
 
 function showLogs(){
