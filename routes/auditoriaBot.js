@@ -66,6 +66,10 @@ let gcp = initializeApp({
 }, 'auditoria');
 let fb = getFirestore(gcp);
 
+let channelLink = 'https://t.me/+yDUeXnlR2r4yMzUy'
+let channel_id = -1002067678991
+
+let appLink = `https://t.me/AuditoraBot/app`
 
 let token = process.env.auditoriaToken
 let paymentToken = process.env.auPaymentToken
@@ -120,6 +124,7 @@ let plansRequests =             fb.collection(`plansRequests`);
 let plansUsers =                fb.collection(`plansUsers`)
 let adminTokens =               fb.collection(`adminTokens`)
 let banks =                     fb.collection(`banks`)
+let channelStats =              fb.collection(`channelStats`)
 
 if (!process.env.develop) {
 
@@ -133,6 +138,8 @@ if (!process.env.develop) {
                 })
             }
         })
+        checkChannel()
+
     })
 
     cron.schedule(`0 11 * * 1`, () => {
@@ -198,6 +205,23 @@ function interprete(field, value) {
     }
 }
 
+function checkChannel(){
+    let today = new Date().toISOString().split('T')[0]
+    let yesterday = new Date(+new Date()-24*60*60*1000).toISOString().split('T')[0]
+    axios.get(`https://api.telegram.org/bot${token}/getChatMemberCount?chat_id=@auditoria_tbilisi`).then(data=>{
+        channelStats.doc(today).set({
+            views: data.data.result
+        })
+        getDoc(channelStats,yesterday).then(b=>{
+            if(!b) b = {views:0}
+            log({
+                text: `Количество подписчиков у канала: ${data.data.result}; Прирост к прошлому дню: ${data.data.result-b.views}`
+            })
+        })
+
+    })
+}
+
 router.get(`/web`,(req,res)=>{
     if(process.env.develop == `true`) return logs
         .orderBy(`createdAt`,'desc')
@@ -214,7 +238,7 @@ router.get(`/web`,(req,res)=>{
             })
         }) 
 
-    if(!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/paper/auth`)
+    if(!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/auditoria/auth`)
     
     adminTokens
         .doc(req.signedCookies.adminToken)
@@ -318,6 +342,43 @@ router.all(`/admin/:method`, (req, res) => {
                 user = common.handleDoc(user);
                 if (!user.admin) return res.status(403).send(`Вам сюда нельзя`)
                 switch (req.params.method) {
+                    case `plans`:{
+                        return plans.get().then(col=>res.json(common.handleQuery(col)))
+                    }
+                    case `channel`:{
+                        return classes.doc(req.query.class).get().then(c=>{
+                            if(!c.exists) return res.sendStatus(404)
+                            let lang = `ru`
+                            let h = c.data();
+                            let kbd = [
+                                [{
+                                    text: `Подробнее`,
+                                    url: `${appLink}?startapp=class_${req.query.class}`
+                                    // web_app:{
+                                    //     url: `${ngrok}/${host}/app2?start=class_${req.query.class}`
+                                    // }
+                                }],[{
+                                    text: translations.book[lang] || translations.book.en,
+                                    callback_data: 'class_' + req.query.class
+                                }]
+                            ]
+                            let message = {
+                                chat_id: channel_id,
+                                text: classDescription(h,'ru'),
+                                parse_mode: 'HTML',
+                                reply_markup: {
+                                    inline_keyboard: kbd
+                                }
+                            }
+                            if (h.pic) {
+                                message.caption = message.text.slice(0, 1000)
+                                message.photo = h.pic
+                                // delete message.text
+                            }
+                            m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
+                            res.json({success:true})
+                        })
+                    }
                     case `issue`:{
                         if(!req.body.name || !req.body.lecture) return res.status(400).send(`name or class is missing`)
 
@@ -1196,7 +1257,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                             cl.date = new Date(req.body.date);
                             delete cl.id
                             return classes.add(cl).then(s=>{
-                                ref.json({success:true})
+                                res.json({success:true})
                             })
                         }
                         case `GET`:{
@@ -1221,23 +1282,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                             })
                         }
                         case `PUT`:{
-                            return updateEntity(req,res,ref,doc.user).then(s=>{
-                                if(req.body.attr == `authorId`){
-                                    getDoc(authors,req.body.value).then(a=>{
-                                        classes.doc(req.params.id).update({
-                                            author: a.name
-                                        })
-                                    })
-                                }
-
-                                if(req.body.attr == `courseId`){
-                                    getDoc(courses,req.body.value).then(a=>{
-                                        classes.doc(req.params.id).update({
-                                            course: a.name
-                                        })
-                                    })
-                                }
-                            })
+                            return updateEntity(req,res,ref,doc.user)
                         }
                     }
                 })
@@ -1260,6 +1305,28 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                     }
                 })   
             }
+            case `plans`:{
+                let ref = plans.doc(req.params.id);
+                return ref.get().then(cl=>{
+                    if(!cl.exists) return res.sendStatus(404)
+                    let plan = common.handleDoc(cl)
+                    switch(req.method){
+                        case `GET`:{
+                            return plansUsers.where(`plan`,'==',plan.id).get().then(col=>{
+                                plan.subscriptions = common.handleQuery(col)||[]
+                                devlog(plan.subscriptions)
+                                res.json(plan)
+                            })
+                        }
+                        case `PUT`:{
+                            return updateEntity(req,res,ref,doc.user)
+                        }
+                        case  `DELETE`:{
+                            return deleteEntity(req,res,ref,doc.user)
+                        }
+                    }
+                })   
+            }
             default: return res.sendStatus(404)
         }
     })
@@ -1272,6 +1339,32 @@ function updateEntity(req,res,ref,adminId){
         [req.body.attr]: req.body.attr == `date` ? new Date(req.body.value) : req.body.value
     }).then(s=>{
         res.json({success:true})
+
+        if(req.body.attr == `authorId`){
+            getDoc(authors,req.body.value).then(a=>{
+                ref.update({
+                    author: a.name
+                })
+            })
+        }
+
+        if(req.body.attr == `courseId`){
+            getDoc(courses,req.body.value).then(a=>{
+                ref.update({
+                    course: a.name
+                })
+            })
+        }
+
+        if(req.body.attr == `bankId`){
+            getDoc(banks,req.body.value).then(a=>{
+                ref.update({
+                    bankName:   a.name,
+                    bankCreds:      a.creds
+                })
+            })
+        }
+
     }).catch(err=>{
         res.status(500).send(err.message)
     })
@@ -1282,6 +1375,7 @@ function blockUser(){
 }
 
 function deleteEntity(req,res,ref,admin, attr){
+    devlog(`удаляем нечто`)
     entities = {
         courses:{
             log: (name) => `курс ${name} был архивирован`
@@ -1346,7 +1440,8 @@ router.get('/qr', async (req, res) => {
 
 
 router.get('/test', (req, res) => {
-    stopClasses()
+    // stopClasses()
+    checkChannel()
     // alertSoonCoworking();
     // alertSoonClasses();
     res.sendStatus(200)
@@ -2423,9 +2518,9 @@ function randomPic() {
 
 
 function classDescription(h, lang) {
-    return `${common.drawDate(h.date,lang)} ${new Date(h.time).toLocaleTimeString()}.\n
-    <b>${h.name}</b>\n
-    ${h.author ? `<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n` : ''}${h.hallName ? `<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n` : ''}${h.descShort ? `${h.descShort}\n`:''}${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}\n<a href="https://t.me/AuditoraBot?start=quick_class_${h.id}">${translations.tellMeMore[lang] || translations.tellMeMore.en}</a>`
+    return `${common.drawDate(h.date._seconds*1000,lang)} ${new Date(h.date._seconds*1000).toLocaleTimeString()}.\n
+<b>${h.name}</b>\n
+${h.author ? `<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n` : ''}${h.hallName ? `<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n` : ''}${h.descShort ? `${h.descShort}\n`:''}${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}\n<a href="https://t.me/AuditoraBot?start=quick_class_${h.id}">${translations.tellMeMore[lang] || translations.tellMeMore.en}</a>`
 }
 
 

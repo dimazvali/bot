@@ -181,4 +181,10 @@ table.wide{
     border-right: 1px solid;
     padding: 0px 20px;
     border-left: 1px solid;
+    min-width: 200px;
+}
+
+.scroll {
+    width: calc(100vw - 300px);
+    overflow: scroll;
 }

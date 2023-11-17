@@ -7,6 +7,133 @@ function closeLeft(){
     document.querySelector(`#left`).classList.remove('active')
 }
 
+
+function drawSchedule(events, start) {
+    let cc = ce('div',false,`scroll`)
+    let c = ce('div', false, `flex`)
+    cc.append(c)
+    let i = 0
+    while (i < 30) {
+        let day = ce(`div`, false, `date`)
+        console.log(events.map(e=>e.date))
+        let date = new Date(+new Date() + i * 24 * 60 * 60 * 1000)
+        let isoDate = date.toISOString().split('T')[0]
+        day.append(ce(`h3`, false, false, drawDate(date)))
+        events.filter(e => typeof e.date == `string` && new Date(e.date).toISOString().split('T')[0] == isoDate).forEach(e => {
+            day.append(ce('p', false, false, `${new Date(e.date).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}: ${e.name}`,{
+                onclick:()=>showClass(e,e.id)
+            }))
+        })
+        c.append(day)
+        i++
+    }
+    return cc
+
+}
+
+
+function edit(entity, id, attr, type, value) {
+
+    let attrTypes = {
+        description: `описание`,
+        name: `название`,
+        authorId: `автор`,
+        courseId: `курс`,
+        descShort: `краткое описание`,
+        descLong: `развернутое пописание`
+    }
+
+    let entities = {
+        authors: `автора`,
+        courses: `курса`,
+        classes: `мероприятия`,
+        banks: `рекивзитов`,
+    }
+
+    let edit = ce('div', false, `editWindow`)
+    edit.append(ce('h2', false, false, `Правим поле ${attrTypes[attr]||attr} для ${entities[entity]||entity}#${id}`))
+    let f = ce('input');
+    if (type == `date`) {
+        f.type = `datetime-local`
+        edit.append(f)
+    } else if (type == `bankId`) {
+        load(`banks`).then(authors => {
+            f = ce('select')
+            f.append(ce('option', false, false, `Выберите реквизиты`, {
+                value: ''
+            }))
+            authors
+                .filter(a => a.active)
+                .sort((a, b) => a.name < b.name ? -1 : 1)
+                .forEach(a => f.append(ce('option', false, false, a.name, {
+                    value: a.id
+                })))
+            edit.append(f)
+        })
+    } else if (type == `authorId`) {
+        load(`authors`).then(authors => {
+            f = ce('select')
+            f.append(ce('option', false, false, `Выберите автора`, {
+                value: ''
+            }))
+            authors
+                .filter(a => a.active)
+                .sort((a, b) => a.name < b.name ? -1 : 1)
+                .forEach(a => f.append(ce('option', false, false, a.name, {
+                    value: a.id
+                })))
+            edit.append(f)
+        })
+    } else if (type == `courseId`) {
+        load(`courses`).then(authors => {
+            f = ce('select')
+            f.append(ce('option', false, false, `Выберите курс`, {
+                value: ''
+            }))
+            authors
+                .filter(a => a.active)
+                .sort((a, b) => a.name < b.name ? -1 : 1)
+                .forEach(a => f.append(ce('option', false, false, a.name, {
+                    value: a.id
+                })))
+            edit.append(f)
+        })
+    } else {
+        f = ce('input', false, false, false, {
+            value: value,
+            type: type,
+            placeholder: `Новое значение`
+        })
+        edit.append(f)
+    }
+
+    edit.append(ce('button', false, false, `Сохранить`, {
+        onclick: function () {
+            if (f.value) {
+                axios.put(`/${host}/admin/${entity}/${id}`, {
+                        attr: attr,
+                        value: type == `date` ? new Date(f.value) : f.value
+                    }).then(handleSave)
+                    .catch(handleError)
+            }
+        }
+    }))
+    document.body.append(edit)
+}
+
+
+window.addEventListener('keydown', (e) => {
+    if (e.key == 'Escape') {
+        try {
+            document.querySelector('.editWindow').remove();
+            document.querySelector('#hover').remove();
+        } catch (err) {
+            console.warn(err)
+        }
+    }
+})
+
+
 function showSchedule(){
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
@@ -15,20 +142,22 @@ function showSchedule(){
             console.log(data.data)
             mc.innerHTML = '';
             mc.append(ce('h1',false,`header2`,`Расписание`))
+            mc.append(drawSchedule(data.data))
             let c = ce('div')
             data.data.forEach(cl => {
-                c.append(drawClassLine(cl))
+                c.append(showClassLine(cl))
             });
             mc.append(c)
 
 
         })
         .catch(err=>{
+            console.log(err)
             alert(err.message)
         })
 }
 
-function drawClassLine(cl){
+function showClassLine(cl){
     let c = ce('div',false,'divided',false,{
         dataset:{
             active: cl.active
@@ -227,7 +356,7 @@ function showLogs(){
     window.location.reload()
 }
 
-function drawUsersChart(userData){
+function showUsersChart(userData){
 
     console.log(userData)
 
@@ -370,7 +499,7 @@ function showUsers(){
                 let d =new Date(cl.createdAt._seconds*1000).toISOString().split('T')[0]
                 if(!udata[d]) udata[d] =0
                 udata[d] ++ 
-                c.append(drawUserLine(cl))
+                c.append(showUserLine(cl))
             });
 
             let d = Object.keys(udata).map(date=>{
@@ -410,7 +539,7 @@ function showUsers(){
                     onclick: function(){
                         c.innerHTML = ''
                         data.data.users.sort((a,b)=>(b[type]||0)-(a[type]||0)).forEach(cl => {
-                            c.append(drawUserLine(cl,(cl[type]||0)))
+                            c.append(showUserLine(cl,(cl[type]||0)))
                         });
                     }
                 }))
@@ -418,12 +547,12 @@ function showUsers(){
 
             mc.append(c)
 
-            drawUsersChart(d)
+            showUsersChart(d)
 
             // data.data.users.forEach(cl => {
             //     if(!udata[new Date(cl.createdAt).toISOString()]) udata[new Date(cl.createdAt).toISOString()] =0
             //     udata[new Date(cl.createdAt).toISOString()] ++ 
-            //     // c.append(drawUserLine(cl))
+            //     // c.append(showUserLine(cl))
             // });
         })
         .catch(err=>{
@@ -432,7 +561,7 @@ function showUsers(){
 }
 
 
-function drawUserLine(u,cnt){
+function showUserLine(u,cnt){
     let c = ce(`div`,false,`userLine`,false,{
         dataset:{
             active:     u.active,

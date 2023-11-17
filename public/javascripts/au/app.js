@@ -1338,8 +1338,8 @@ function drawClassPopup(c, id) {
                 if (c.payed || c.isPayed) {
                     p.append(ce('p', false, 'bold', `Ваш билет оплачен.`))
                 } else {
-                    p.append(ce('p', false, 'bold', `Ваш билет еще не оплачен. Напоминаем, что в день мероприятия стоимость составит ${cur(c.price2 || c.price1 ,`GEL`)}.`))
-                    p.append(ce(`p`, false, `bold`, `Чтобы оплатить билет заранее, переведите ${cur(c.price1 ,`GEL`)} на ${c.paymentDesc || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
+                    p.append(ce('p', false, 'bold', `Ваш билет еще не оплачен. Напоминаем, что в день мероприятия стоимость составит ${cur(c.price2 || c.price ,`GEL`)}.`))
+                    p.append(ce(`p`, false, `bold`, `Чтобы оплатить билет заранее, переведите ${cur(c.price ,`GEL`)} на ${c.paymentDesc || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
                 }
             }
 
