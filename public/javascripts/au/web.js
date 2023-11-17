@@ -659,30 +659,7 @@ function showAuthor(a) {
 
 }
 
-function showSchedule() {
-    closeLeft()
-    mc.innerHTML = '<h1>Загружаем...</h1>'
-    axios.get(`/${host}/admin/classes`)
-        .then(data => {
-            console.log(data.data)
-            mc.innerHTML = '';
-            mc.append(ce('h1', false, `header2`, `Расписание`))
-            mc.append(drawSchedule(data.data))
-            let c = ce('div')
 
-            data.data.forEach(cl => {
-
-                c.append(showClassLine(cl))
-            });
-            c.append(addClass())
-            mc.append(c)
-
-
-        })
-        .catch(err => {
-            alert(err.message)
-        })
-}
 
 function showBanks() {
     closeLeft()

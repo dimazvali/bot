@@ -1,0 +1,20 @@
+doctype html
+html
+  head
+    title!=title||`Auditoria`
+    meta(type='description' content='Попробуйте — вам понравится.')    
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    script(src='https://cdnjs.cloudflare.c  om/ajax/libs/axios/0.20.0/axios.js')
+    script(src='/javascripts/common.js')
+    script(src='/javascripts/au/common.js')
+    script(src='/javascripts/au/inst.js')
+    script(src="https://cdn.jsdelivr.net/jsbarcode/3.3.20/JsBarcode.all.min.js") 
+    link(rel='stylesheet', href='/stylesheets/au/style.css')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&family=Rubik+80s+Fade&display=swap")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;900&display=swap")
+  include header
+  body
+    block content
+  //- include footer 

@@ -355,6 +355,8 @@ function devlog(v) {
 }
 
 function cur(v,cur) {
+    devlog(v)
+    devlog(cur)
     return new Intl.NumberFormat('ru-RU', {
         style: 'currency',
         minimumFractionDigits: 0,

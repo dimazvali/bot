@@ -504,13 +504,6 @@ function showCoworking(el) {
         .finally(hideLoader)
 }
 
-function showLoader() {
-    document.body.append(ce('div', 'loader'))
-}
-
-function hideLoader() {
-    document.querySelector('#loader').remove()
-}
 
 function showProfile() {
     showLoader();
@@ -558,53 +551,6 @@ function showProfile() {
         })
 }
 
-function drawMenuSection(section,sections,dishes,h){
-    let c = ce('div')
-    let t = ce((h||'h2'),false,false,section.category_name)
-    console.log(section)
-    c.append(t)
-    let content = ce('div',false,[`hidden`,`inner`])
-    c.append(content)
-    t.onclick = ()=> content.classList.toggle('hidden')
-    // +section.parent_category
-
-    let dc = ce('div');
-        dishes.filter(d=>(d.menu_category_id == section.category_id) && d.spots[0].visible == "1").forEach(d=>{
-            let line = ce('tr',false,'dish')
-                line.append(ce('td',false,'timing',`<span class="date">${cur(+d.price['1']/100,`GEL`)}</span>`))
-                line.append(ce('td',false,false,d.product_name))
-            dc.append(line)
-            if(d.group_modifications && d.group_modifications[0] && d.group_modifications[0].modifications){
-                let mods = d.group_modifications && d.group_modifications[0] && d.group_modifications[0].modifications;
-                mods.forEach(m=>{
-                    let line = ce('tr',false,['dish','mod'])
-                        line.append(ce('td',false,'timing',`<span class="date">+${cur(+m.price,`GEL`)}</span>`))
-                        line.append(ce('td',false,false,m.name))
-                    dc.append(line)
-                })
-            }
-        })
-        content.append(dc)
-
-    if(sections.filter(s=>s.parent_category == section.category_id).length){        
-        sections.filter(s=>s.parent_category == section.category_id).forEach(s=>{
-            content.append(drawMenuSection(s,sections,dishes,`h3`))
-        })
-        
-    }
-    //  else {
-    //     let dc = ce('div');
-    //     dishes.filter(d=>(d.menu_category_id == section.category_id) && d.spots[0].visible == "1").forEach(d=>{
-    //         let line = ce('tr',false,'dish')
-    //             line.append(ce('td',false,'timing',`<span class="date">${cur(+d.price['1']/100,`GEL`)}</span>`))
-    //             line.append(ce('td',false,false,d.product_name))
-    //         dc.append(line)
-    //     })
-    //     content.append(dc)
-    // }
-
-    return c
-}
 
 function drawMerchItem(item){
     let c = ce('div',false,[`item`,`merch`])
@@ -617,80 +563,7 @@ function drawMerchItem(item){
 
 }
 
-function showMerch(){
-    showLoader()
 
-    axios.get(`/${host}/api/menu?user=${userid}`)
-        .then(data=>{
-            let menu = data.data;
-            let p = preparePopup(`schedule`);
-
-            p.append(ce('h2', false, 'header', `Мерч`))
-
-            menu.dishes.filter(d=>d.menu_category_id == '18').forEach(item=>{
-                p.append(drawMerchItem(item))
-            })
-
-        }).catch(err=>{
-            tg.showAlert(err.message)
-        }).finally(hideLoader)
-}
-
-function showMenu(){
-    showLoader()
-
-    axios.get(`/${host}/api/menu?user=${userid}`)
-        .then(data=>{
-            let menu = data.data;
-            let p = preparePopup(`schedule`);
-
-            p.append(ce('h2', false, 'header', `Меню`))
-
-            // p.append(ce('p', false, false, `Эти данные и правда берутся из poster, но пока что из моей тестовой учетной записи. Нам надо будет подружить существующую учетку с приложением (запрос в почте).`))
-
-            let tt = ce('table')
-
-            p.append(tt)
-
-            let stopList = [
-                `Coworking`,
-                `Staff only`,
-                'Events',
-                `Bag shop (Max Sharoff)`,
-                'Exhibition '
-            ]
-
-            menu.categories.forEach(cat=>{
-
-                if(stopList.indexOf(cat.category_name) == -1 && !+cat.parent_category){
-                   p.append(drawMenuSection(cat,menu.categories,menu.dishes))
-                }
-
-                // if(stopList.indexOf(cat.category_name) == -1){
-                //     let h = ce('tr')
-                // let title = ce('td',false,'catname',`<h3>${cat.category_name}</h3>`,{
-                //     colspan: '2'
-                // })
-
-                // title.setAttribute('colspan','2')
-                //     h.append(title)
-                // tt.append(h)
-
-                // menu.dishes.filter(d=>d.category_name == cat.category_name).forEach(d=>{
-                //     console.log(d)
-                //     let line = ce('tr',false,'dish')
-                //         line.append(ce('td',false,'timing',`<span class="date">${cur(+d.price['1']/100,`GEL`)}</span>`))
-                //         line.append(ce('td',false,false,d.product_name))
-                //         tt.append(line)
-                // })
-                // }
-                
-            })
-        }).catch(err=>{
-            tg.showAlert(err.message)
-        }).finally(hideLoader)
-    
-}
 
 function showConcerts(){
     let p = preparePopup(`schedule`);
@@ -1419,19 +1292,6 @@ function bookOnline(s, p) {
 }
 
 
-
-function randomPic() {
-    let images = [
-        '3b.png',
-        'b1.png',
-        'b2.png',
-        'w1.png',
-        'w2.png'
-    ]
-
-    return `/images/auditoria/${images[Math.floor(Math.random()*images.length)]}`
-}
-
 function cur(v, cur) {
     return new Intl.NumberFormat('ru-RU', {
         style: 'currency',
@@ -1496,31 +1356,3 @@ function drawPlanLine(p){
 
 }
 
-function drawClassLine(c) {
-    let cl = ce('tr', false, 'class')
-
-
-    cl.append(ce('td', false, 'timing', `<span data-month="${new Date(c.date._seconds*1000).getMonth()}" class="date">${new Date(c.date._seconds*1000).getDate({timeZone: 'Asia/Tbilisi'})}</span><span class="time">${new Date(c.date._seconds*1000).toLocaleTimeString([], {timeZone: 'Asia/Tbilisi',hour: '2-digit', minute:'2-digit'})}</span>`))
-
-    let desc = ce('td')
-
-    cl.append(desc)
-
-    desc.append(ce('h4', false, false, `${c.name}`))
-
-    if (c.author) {
-        desc.append(ce('h5', false, false, `${c.author}`))
-    } else if (c.descShort){
-        desc.append(ce('h5', false, false, `${c.descShort}`))
-    }
-
-
-
-    cl.onclick = () => {
-        drawClassPopup(c, c.id)
-    }
-
-
-    return cl
-
-}

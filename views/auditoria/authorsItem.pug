@@ -1,0 +1,11 @@
+extends site
+
+block content
+    img.cover(src!=data.pic||randomPic() alt!=data.name)
+    h1!=data.name
+    p.bold!=data.description
+    if (data.classes)
+        console.log(1)
+        table
+            for c in data.classes
+                include classLine 

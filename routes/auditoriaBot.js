@@ -86,17 +86,31 @@ let getDoc = common.getDoc;
 
 
 
-axios.post(`${sheet}?intention=getCategories`).then(s=>{
-    common.devlog(`categories initiated`)
-    
-}).catch(err=>{
-    common.devlog(err)
+// axios.post(`${sheet}?intention=getCategories`).then(s=>{
+//     common.devlog(`categories initiated`)
+// }).catch(err=>{
+//     common.devlog(err)
+// })
+
+// axios.post(`${sheet}?intention=getDishes`).then(s=>{
+//     common.devlog(`dishes initiated`)
+// }).catch(err=>{
+//     common.devlog(err)
+// })
+
+let menuCategories = []
+let menuDishes = [];
+
+
+
+axios.get(`https://joinposter.com/api/menu.getCategories?token=658416:0542557d20b40805925cc4a52c0cfe49`).then(d=>{
+    menuCategories = d.data.response.filter(c=>c.visible && c.visible[0].visible)
+    devlog(menuCategories)
 })
 
-axios.post(`${sheet}?intention=getDishes`).then(s=>{
-    common.devlog(`dishes initiated`)
-}).catch(err=>{
-    common.devlog(err)
+axios.get(`https://joinposter.com/api/menu.getProducts?token=658416:0542557d20b40805925cc4a52c0cfe49`).then(d=>{
+    menuDishes = d.data.response.response
+    devlog(menuDishes)
 })
 
 
@@ -181,6 +195,91 @@ router.get('/app2', (req, res) => {
         start: req.query.start,
         translations: translations
     })
+})
+
+const sections ={
+    classes: classes,
+    authors: authors,
+    courses: courses,
+}
+
+router.get(`/site`,(req,res)=>{
+    classes
+        .where(`active`,'==',true)
+        .where(`date`,'>=',new Date())
+        .limit(10)
+        .get()
+        .then(col=>{
+            res.render(`auditoria/inst`,{
+                classes: common.handleQuery(col)
+            })
+        })
+})
+
+router.get(`/site/:section`,(req,res)=>{
+    if(sections[req.params.section]){
+        sections[req.params.section].where(`active`,'==',true).get().then(col=>{
+            res.render(`auditoria/${req.params.section}`,{
+                section: req.params.section,
+                data: common.handleQuery(col),
+                randomPic: ()=> randomPic()
+            })
+        })
+    } else if(req.params.section == `bar`){
+        
+        res.render(`auditoria/${req.params.section}`,{
+            section: req.params.section,
+            data: {
+                categories: menuCategories,
+                dishes: menuDishes
+            },
+            stopList: [
+                `Coworking`,
+                `Staff only`,
+                'Events',
+                `Bag shop (Max Sharoff)`,
+                'Exhibition '
+            ],
+            randomPic: ()=> randomPic(),
+            cur: (v,c)=>common.cur(v,c),
+            drawDate:(d)=>   common.drawDate(d)
+        })
+        
+    }
+})
+
+router.get(`/site/:section/:id`,(req,res)=>{
+    if(sections[req.params.section]){
+        getDoc(sections[req.params.section],req.params.id).then(d=>{
+            if(req.params.section == `authors`){
+                return classes
+                    .where(`active`,'==',true)
+                    .where(`authorId`,'==',req.params.id)
+                    .where(`date`,'>=',new Date())
+                    .get()
+                    .then(classes=>{
+                        d.classes = common.handleQuery(classes)
+                        devlog(d)
+
+                        res.render(`auditoria/${req.params.section}Item`,{
+                            section: req.params.section,
+                            data: d,
+                            randomPic: ()=> randomPic(),
+                            cur: (v,c)=>common.cur(v,c),
+                            drawDate:(d)=>   common.drawDate(d)
+                        })
+                    })
+            }
+            devlog(d)
+            res.render(`auditoria/${req.params.section}Item`,{
+                section: req.params.section,
+                data: d,
+                randomPic: ()=> randomPic(),
+                cur: (v,c)=>common.cur(v,c),
+                drawDate:(d)=>   common.drawDate(d)
+            })
+        })
+    }
 })
 
 router.get('/admin', (req, res) => {
@@ -2829,8 +2928,6 @@ function sendCourse(user, course) {
         })
 }
 
-let menuCategories = []
-let menuDishes = [];
 
 router.all(`/poster`,(req,res)=>{
     

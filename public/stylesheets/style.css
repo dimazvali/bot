@@ -346,6 +346,7 @@ tr.loading {
   transition: 1s;
   border-left: 15px solid green;
 }
+
 div#rdiv>div>button {
   display: inline-block;
   width: initial;
@@ -371,16 +372,16 @@ div#reviewsC {
   margin-top: 20px;
 }
 
-.b{
+.b {
   cursor: pointer;
   font-weight: bold;
 }
 
-.b:hover{
+.b:hover {
   text-decoration: underline;
 }
 
-.s{
+.s {
   position: sticky;
   top: 0;
   background: white;
@@ -452,7 +453,7 @@ div#hover {
 
 body.mobile {
   background: #f9f9f9;
-  
+
 }
 
 img.logo {
@@ -480,7 +481,7 @@ div.mobile {
 #list>textarea, 
 form>input */
 input,
-textarea{
+textarea {
   width: 100%;
   display: block;
   margin-bottom: 10px;
@@ -513,7 +514,7 @@ div#list {
 
 .gb,
 .rb,
-.bb{
+.bb {
   line-height: 20px;
 }
 
@@ -665,15 +666,18 @@ a.hb {
   display: block;
 }
 
-.info{
+.info {
   font-size: smaller;
   color: grey;
 }
 
 
-p.separator {border-top: 1px solid #c9c5c5;margin-top: 20px;}
+p.separator {
+  border-top: 1px solid #c9c5c5;
+  margin-top: 20px;
+}
 
-#wiki_extentions_footer{
+#wiki_extentions_footer {
   display: none;
 }
 
@@ -717,6 +721,7 @@ a.navButton {
 .user[data-active]>.rb {
   display: block;
 }
+
 input[type="checkbox"] {
   display: inline;
   width: initial;
@@ -739,6 +744,7 @@ input[type="checkbox"] {
 div#programs {
   margin-bottom: 20px;
 }
+
 select {
   width: 100%;
 }
@@ -751,6 +757,7 @@ input.ci[type="checkbox"]:checked::after {
   line-height: 10px;
 }
 
-.h5.mtop20{
+.h5.mtop20 {
   margin-top: 20px;
 }
+

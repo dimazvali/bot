@@ -1,0 +1,11 @@
+extends site 
+
+block content 
+  #tonight
+    h1 Ближайшие события:
+    table
+      for c in classes
+        include classLine
+  #links
+    h1(onclick!=`window.location.pathname='/auditoria/site/classes/'`) Расписание
+    h1(onclick!=`window.location.pathname='/auditoria/site/bar/'`) Бар

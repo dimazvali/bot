@@ -14,6 +14,8 @@ body {
     /* font-family: 'Roboto'; */
     background-color: var(--light);
     font-family: 'Playfair Display';
+    max-width: 600px;
+    margin: 50px auto;
 }
 
 #loader {
@@ -374,4 +376,29 @@ h1.admin {
 
 tr.dish.mod {
     transform: scale(0.8);
+}
+
+div#footer {
+    background: var(--dark);
+    color: var(--light);
+  }
+
+  div#header {
+    background: var(--dark);
+    height: 40px;
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    width: 100%;
+    left: 0;
+    line-height: 35px;
+    vertical-align: -webkit-baseline-middle;
+    text-align: center;
+}
+
+
+#header>img.logo {
+    height: 80%;
+    vertical-align: middle;
+    border-radius: 50%;
 }
