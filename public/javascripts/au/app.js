@@ -874,7 +874,7 @@ function drawDate(d, l, o) {
 
 function drawCoursePopup(data, id) {
 
-    axios.post(`/${host}/views/course/${id}`, {
+    axios.post(`/${host}/views/courses/${id}`, {
         user: userid
     })
 
@@ -968,7 +968,7 @@ function drawCoursePopup(data, id) {
 
 function drawAuthorPopup(data, id) {
 
-    axios.post(`/${host}/views/author/${id}`, {
+    axios.post(`/${host}/views/authors/${id}`, {
         user: userid
     })
 
@@ -1076,7 +1076,7 @@ function drawPlanPopup(plan,load){
 
 function drawClassPopup(c, id) {
 
-    axios.post(`/${host}/views/class/${id}`, {
+    axios.post(`/${host}/views/classes/${id}`, {
         user: userid
     })
 

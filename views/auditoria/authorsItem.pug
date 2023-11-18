@@ -2,10 +2,12 @@ extends site
 
 block content
     img.cover(src!=data.pic||randomPic() alt!=data.name)
+    a(href!=`/auditoria/site/authors`) Вернуться к списку авторов
     h1!=data.name
     p.bold!=data.description
     if (data.classes)
         console.log(1)
         table
             for c in data.classes
-                include classLine 
+                include classLine
+    p!=`Подписаться на обновления и забронировать место можно в нашем <a href="https://t.me/AuditoraBot/app?startapp=author_${data.id}">приложении</a>.`

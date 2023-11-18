@@ -388,6 +388,11 @@ tr.dish.mod {
 div#footer {
     background: var(--dark);
     color: var(--light);
+    position: absolute;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
   }
 
   div#header {
@@ -408,4 +413,20 @@ div#footer {
     height: 80%;
     vertical-align: middle;
     border-radius: 50%;
+}
+
+.ava {
+    width: 60px;
+    display: block;
+    margin: 0 auto;
+}
+
+div#footer>* {
+    display: inline-block;
+    color: white !important;
+    margin: 10px 20px;
+}
+
+div#footer>*>a{
+    color: white;
 }

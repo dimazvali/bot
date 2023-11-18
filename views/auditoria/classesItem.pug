@@ -2,6 +2,7 @@ extends site
 
 block content
     img.cover(src!=data.pic||randomPic() alt!=data.name)
+    a(href!=`/auditoria/site/classes`) Вернуться к расписанию
     h1!=data.name
     p.timing
         span.date!=drawDate(data.date._seconds*1000,'ru')
@@ -15,3 +16,4 @@ block content
         p!=data.descLong
     if (data.price)
         p.bold!=`Стоимость билетов: ${cur(data.price,`GEL`)}`
+    p!=`Подписаться на обновления и забронировать место можно в нашем <a href="https://t.me/AuditoraBot/app?startapp=course_${data.id}">приложении</a>.`

@@ -203,27 +203,70 @@ const sections ={
     courses: courses,
 }
 
+const sectionsMeta = {
+    mp:{
+        title: `Auditoria Books&Bar`,
+        description: `Креативное пространство на Симона Джанашиа, 26`
+    },
+    classes:{
+        title: `Лекции`,
+        description: `Мероприятия на любой вкус и цвет.`
+    },
+    authors: {
+        title: `Авторы`,
+        description: `Вы нас даже не представляете.`
+    },
+    courses: {
+        title: `Курсы`,
+        description: `Давайте встречаться чаще`
+    },
+    bar:{
+        title: `Меню и счет`,
+        description: `Съесть вопрос...`
+    }
+}
+
 router.get(`/site`,(req,res)=>{
     classes
         .where(`active`,'==',true)
         .where(`date`,'>=',new Date())
-        .limit(3)
+        .limit(5)
         .get()
         .then(col=>{
             res.render(`auditoria/inst`,{
-                classes: common.handleQuery(col)
+                title: sectionsMeta.mp.title,
+                description: sectionsMeta.mp.description,
+                classes: common.handleQuery(col),
+                randomPic: ()=> randomPic(),
+            })
+            views.add({
+                createdAt:  new Date(),
+                user:       `web`,
+                entity:     `mp`
             })
         })
 })
 
 router.get(`/site/:section`,(req,res)=>{
     if(sections[req.params.section]){
-        sections[req.params.section].where(`active`,'==',true).get().then(col=>{
-            res.render(`auditoria/${req.params.section}`,{
-                section: req.params.section,
-                data: common.handleQuery(col),
-                randomPic: ()=> randomPic()
-            })
+        sections[req.params.section]
+            .where(`active`,'==',true)
+            .get()
+            .then(col=>{
+                let d = common.handleQuery(col)
+                if(req.params.section == `classes`){
+                    d = d.sort((a,b)=>a.date._seconds-b.date._seconds)
+                } else {
+                    d = d.sort((a,b)=>(b.views||0)-(a.views||0))
+                }
+                res.render(`auditoria/${req.params.section}`,{
+                    section: req.params.section,
+                    data: d,
+                    title: sectionsMeta[req.params.section].title+ ' | Auditoria Books&Bar',
+                    description: sectionsMeta[req.params.section].description,
+                    randomPic: ()=> randomPic(),
+                    randomStyle:()=>randomStyle()
+                })
         })
     } else if(req.params.section == `bar`){
         
@@ -240,18 +283,49 @@ router.get(`/site/:section`,(req,res)=>{
                 `Bag shop (Max Sharoff)`,
                 'Exhibition '
             ],
+            title: sectionsMeta[req.params.section].title + ' | Auditoria Books&Bar',
+            description: sectionsMeta[req.params.section].description,
             randomPic: ()=> randomPic(),
             cur: (v,c)=>common.cur(v,c),
-            drawDate:(d)=>   common.drawDate(d)
-        })
-        
+            drawDate:(d)=>   common.drawDate(d),
+            randomStyle:()=>randomStyle()
+        })   
+    } else {
+        res.sendStatus(404)
     }
 })
+
+
+function randomStyle(){
+    let random = Math.floor(Math.random()*100)
+    let bl = 100-random;
+    let br = Math.floor(Math.random()*100)
+    let tr = 100-br
+    return `border-top-left-radius: ${random}%;border-bottom-left-radius: ${bl}%;border-top-right-radius: ${tr}%;border-bottom-right-radius: ${br}%;`
+    
+}
+
 
 router.get(`/site/:section/:id`,(req,res)=>{
     if(sections[req.params.section]){
         getDoc(sections[req.params.section],req.params.id).then(d=>{
             if(req.params.section == `authors`){
+                
+                views.add({
+                    createdAt: new Date(),
+                    entity: req.params.section,
+                    id:     req.params.id,
+                    user:   `web`
+                })
+
+                try {
+                    sections[req.params.section].doc(req.params.id).update({
+                        views: FieldValue.increment(+1)
+                    })
+                } catch (error) {
+                    
+                }
+
                 return classes
                     .where(`active`,'==',true)
                     .where(`authorId`,'==',req.params.id)
@@ -262,6 +336,8 @@ router.get(`/site/:section/:id`,(req,res)=>{
                         devlog(d)
 
                         res.render(`auditoria/${req.params.section}Item`,{
+                            title: (d.name +' | '+sectionsMeta[req.params.section].title + '| Auditoria Books&Bar'),
+                            description: d.description,
                             section: req.params.section,
                             data: d,
                             randomPic: ()=> randomPic(),
@@ -274,11 +350,15 @@ router.get(`/site/:section/:id`,(req,res)=>{
             res.render(`auditoria/${req.params.section}Item`,{
                 section: req.params.section,
                 data: d,
+                title: (d.name +' | '+sectionsMeta[req.params.section].title + '| Auditoria Books&Bar'),
+                description: d.description,
                 randomPic: ()=> randomPic(),
                 cur: (v,c)=>common.cur(v,c),
                 drawDate:(d)=>   common.drawDate(d)
             })
         })
+    } else {
+        res.sendStatus(404)
     }
 })
 
@@ -4519,7 +4599,16 @@ router.post(`/views/:type/:id`,(req,res)=>{
         user:       +req.body.user,
         entity:     req.params.type,
         id:         req.params.id
-    }).then(rec=>res.send(rec.id))
+    }).then(rec=>{
+        res.send(rec.id)
+        try {
+            sections[req.params.type].doc(req.params.id).update({
+                views: FieldValue.increment(+1)
+            })
+        } catch (error) {
+            
+        }
+    })
     .catch(err=>{
         console.log(err)
     })
