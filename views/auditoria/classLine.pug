@@ -1,5 +1,5 @@
 if (c.date._seconds*1000>+new Date())
-    tr.class(onclick!=`window.location.pathname='/auditoria/site/classes/${c.id}'`)
+    tr.class(onclick!=`window.location.pathname='/auditoria/site/${city}/classes/${c.id}'`)
         td.timing 
             span.date(data-month!=new Date(c.date._seconds*1000).getMonth())!=new Date(c.date._seconds*1000).getDate({timeZone: 'Asia/Tbilisi'})
             span.time(new Date(c.date._seconds*1000).toLocaleTimeString([], {timeZone: 'Asia/Tbilisi',hour: '2-digit', minute:'2-digit'}))

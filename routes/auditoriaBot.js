@@ -205,7 +205,7 @@ const sections ={
 
 const sectionsMeta = {
     mp:{
-        title: `Auditoria Books&Bar`,
+        title: `Auditoria Books&Bar Tbilisi`,
         description: `Креативное пространство на Симона Джанашиа, 26`
     },
     classes:{
@@ -226,7 +226,8 @@ const sectionsMeta = {
     }
 }
 
-router.get(`/site`,(req,res)=>{
+router.get(`/site/:city`,(req,res)=>{
+    if(req.params.city !== `tbi`) return res.sendStatus(404)
     classes
         .where(`active`,'==',true)
         .where(`date`,'>=',new Date())
@@ -238,6 +239,7 @@ router.get(`/site`,(req,res)=>{
                 description: sectionsMeta.mp.description,
                 classes: common.handleQuery(col),
                 randomPic: ()=> randomPic(),
+                city: req.params.city
             })
             views.add({
                 createdAt:  new Date(),
@@ -247,7 +249,8 @@ router.get(`/site`,(req,res)=>{
         })
 })
 
-router.get(`/site/:section`,(req,res)=>{
+router.get(`/site/:city/:section`,(req,res)=>{
+    if(req.params.city !== `tbi`) return res.sendStatus(404)
     if(sections[req.params.section]){
         sections[req.params.section]
             .where(`active`,'==',true)
@@ -262,10 +265,11 @@ router.get(`/site/:section`,(req,res)=>{
                 res.render(`auditoria/${req.params.section}`,{
                     section: req.params.section,
                     data: d,
-                    title: sectionsMeta[req.params.section].title+ ' | Auditoria Books&Bar',
+                    title: sectionsMeta[req.params.section].title+ ' | Auditoria Books&Bar Tbilisi',
                     description: sectionsMeta[req.params.section].description,
                     randomPic: ()=> randomPic(),
-                    randomStyle:()=>randomStyle()
+                    randomStyle:()=>randomStyle(),
+                    city: req.params.city
                 })
         })
     } else if(req.params.section == `bar`){
@@ -283,12 +287,13 @@ router.get(`/site/:section`,(req,res)=>{
                 `Bag shop (Max Sharoff)`,
                 'Exhibition '
             ],
-            title: sectionsMeta[req.params.section].title + ' | Auditoria Books&Bar',
+            title: sectionsMeta[req.params.section].title + ' | Auditoria Books&Bar Tbilisi',
             description: sectionsMeta[req.params.section].description,
             randomPic: ()=> randomPic(),
             cur: (v,c)=>common.cur(v,c),
             drawDate:(d)=>   common.drawDate(d),
-            randomStyle:()=>randomStyle()
+            randomStyle:()=>randomStyle(),
+            city: req.params.city
         })   
     } else {
         res.sendStatus(404)
@@ -306,25 +311,29 @@ function randomStyle(){
 }
 
 
-router.get(`/site/:section/:id`,(req,res)=>{
+router.get(`/site/:city/:section/:id`,(req,res)=>{
+    if(req.params.city !== `tbi`) return res.sendStatus(404)
     if(sections[req.params.section]){
         getDoc(sections[req.params.section],req.params.id).then(d=>{
+            
+            views.add({
+                createdAt: new Date(),
+                entity: req.params.section,
+                id:     req.params.id,
+                user:   `web`
+            })
+
+            try {
+                sections[req.params.section].doc(req.params.id).update({
+                    views: FieldValue.increment(+1)
+                })
+            } catch (error) {
+                
+            }
+
             if(req.params.section == `authors`){
                 
-                views.add({
-                    createdAt: new Date(),
-                    entity: req.params.section,
-                    id:     req.params.id,
-                    user:   `web`
-                })
-
-                try {
-                    sections[req.params.section].doc(req.params.id).update({
-                        views: FieldValue.increment(+1)
-                    })
-                } catch (error) {
-                    
-                }
+                
 
                 return classes
                     .where(`active`,'==',true)
@@ -342,7 +351,8 @@ router.get(`/site/:section/:id`,(req,res)=>{
                             data: d,
                             randomPic: ()=> randomPic(),
                             cur: (v,c)=>common.cur(v,c),
-                            drawDate:(d)=>   common.drawDate(d)
+                            drawDate:(d)=>   common.drawDate(d),
+                            city: req.params.city
                         })
                     })
             }
@@ -354,7 +364,8 @@ router.get(`/site/:section/:id`,(req,res)=>{
                 description: d.description,
                 randomPic: ()=> randomPic(),
                 cur: (v,c)=>common.cur(v,c),
-                drawDate:(d)=>   common.drawDate(d)
+                drawDate:(d)=>   common.drawDate(d),
+                city: req.params.city
             })
         })
     } else {

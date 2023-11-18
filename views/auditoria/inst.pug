@@ -7,7 +7,6 @@ block content
       for c in classes
         include classLine
   #links
-    h1(onclick!=`window.location.pathname='/auditoria/site/classes/'`) Расписание
-    h1(onclick!=`window.location.pathname='/auditoria/site/bar/'`) Бар
+    h1(onclick!=`window.location.pathname='/auditoria/site/${city}/classes/'`) Расписание
+    h1(onclick!=`window.location.pathname='/auditoria/site/${city}/bar/'`) Бар
     //- h3(onclick!=`window.open('https://maps.app.goo.gl/poF4xG67gumQTYNx5')`) 22-26, Simon Janashia St, Tbilisi 
-  include footer 

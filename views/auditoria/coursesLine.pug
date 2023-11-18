@@ -1,8 +1,8 @@
 h3!=c.name
 if(c.authorId)
-    a(href!=`/auditoria/site/authors/${c.authorId}`)!= c.author
+    a(href!=`/auditoria/site/${city}/authors/${c.authorId}`)!= c.author
 else if(c.author)
     p!=c.author
 if(c.description)
     p!=c.description
-a(href=`/auditoria/site/courses/${c.id}`) Подробнее
+a(href=`/auditoria/site/${city}/courses/${c.id}`) Подробнее

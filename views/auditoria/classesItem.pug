@@ -2,15 +2,15 @@ extends site
 
 block content
     img.cover(src!=data.pic||randomPic() alt!=data.name)
-    a(href!=`/auditoria/site/classes`) Вернуться к расписанию
+    a(href!=`/auditoria/site/${city}/classes`) Вернуться к расписанию
     h1!=data.name
     p.timing
         span.date!=drawDate(data.date._seconds*1000,'ru')
         span.time!=new Date(data.date._seconds*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'Asia/Tbilisi'})
     if (data.author)
-        a.clickable(href!=`/auditoria/site/authors/${data.authorId}`)!=data.author
+        a.clickable(href!=`/auditoria/site/${city}/authors/${data.authorId}`)!=data.author
     if (data.course)
-        a.clickable(href!=`/auditoria/site/courses/${data.courseId}`)!=data.course
+        a.clickable(href!=`/auditoria/site/${city}/courses/${data.courseId}`)!=data.course
     p.bold!=data.descShort
     if (data.descLong)
         p!=data.descLong

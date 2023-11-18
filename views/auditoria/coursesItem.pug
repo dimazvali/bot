@@ -2,7 +2,7 @@ extends site
 
 block content
     img.cover(src!=data.pic||randomPic() alt!=data.name)
-    a(href!=`/auditoria/site/courses`) Вернуться к списку курсов
+    a(href!=`/auditoria/site/${city}/courses`) Вернуться к списку курсов
     h1!=data.name
     p.bold!=data.description
     if (data.classes)
