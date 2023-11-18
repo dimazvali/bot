@@ -516,11 +516,16 @@ function showLogs(filter,description) {
         .finally(hideLoader)
 }
 
-function copyLink(link,app, text){
+function copyLink(link, app, text){
     return ce('button',false,`thin`,text||`ссылка`,{
         onclick:function(){
             navigator.clipboard.writeText(`${app||appLinkAdmin}?startapp=${link}`).then(s=>{
-                tg.showAlert(`Ссылка на раздел скопирована`)
+                try {
+                    tg.showAlert(`Ссылка на раздел скопирована`)    
+                } catch (error) {
+                    alert(`ссылка скопирована`)
+                }
+                
             }).catch(err=>{
                 console.warn(err)
             })

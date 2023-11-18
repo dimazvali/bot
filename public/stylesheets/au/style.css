@@ -14,6 +14,10 @@ body {
     /* font-family: 'Roboto'; */
     background-color: var(--light);
     font-family: 'Playfair Display';
+    
+}
+
+body.narrow{
     max-width: 600px;
     margin: 50px auto;
 }
@@ -149,6 +153,9 @@ a.clickable {
     text-decoration: underline;
     cursor: pointer;
     display: block;
+}
+.clickable {
+    cursor: pointer;
 }
 
 body.mobile {

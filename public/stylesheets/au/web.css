@@ -157,6 +157,11 @@ img.cover {
 
 [data-kids="true"]::before {
     content: 'для детей';
+    background: #FFC107;
+    padding: 3px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    float: left;
 }
 
 .editWindow {
@@ -187,4 +192,8 @@ table.wide{
 .scroll {
     width: calc(100vw - 300px);
     overflow: scroll;
+}
+
+[data-sold-out="true"] {
+    background: linear-gradient(135deg, #FF5722 60px, transparent 10px);
 }

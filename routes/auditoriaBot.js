@@ -207,7 +207,7 @@ router.get(`/site`,(req,res)=>{
     classes
         .where(`active`,'==',true)
         .where(`date`,'>=',new Date())
-        .limit(10)
+        .limit(3)
         .get()
         .then(col=>{
             res.render(`auditoria/inst`,{
@@ -442,7 +442,33 @@ router.all(`/admin/:method`, (req, res) => {
                 if (!user.admin) return res.status(403).send(`Вам сюда нельзя`)
                 switch (req.params.method) {
                     case `plans`:{
-                        return plans.get().then(col=>res.json(common.handleQuery(col)))
+                        switch(req.method){
+                            case 'GET':{
+                                return plans.get().then(col=>res.json(common.handleQuery(col)))
+                            }
+                            case 'POST':{
+                                if(req.body.name && req.body.price){
+                                    plans.add({
+                                        createdAt:  new Date(),
+                                        createdBy:  user.id,
+                                        name:       req.body.name,
+                                        description: req.body.description,
+                                        price:      req.body.price,
+                                        visits:     req.body.visits
+                                    }).then(s=>{
+                                        log({
+                                            silent: true,
+                                            text: `${uname(user,user.id)} создает новую подписку ${req.body.name}.`,
+                                            plan: s.id
+                                        })
+                                    })
+                                } else {
+                                    return res.sendStatus(400)
+                                }
+                                
+                            }
+                        }
+                        
                     }
                     case `channel`:{
                         return classes.doc(req.query.class).get().then(c=>{
@@ -1061,7 +1087,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 return res.sendStatus(400)
                             }
                             case 'GET':{
-                                return authors.get().then(col=>res.json(common.handleQuery(col)))
+                                return authors.get().then(col=>res.json(common.handleQuery(col).sort((a,b)=>b.name>a.name?-1:1)))
                             }
                         }
                     }
@@ -1118,9 +1144,9 @@ router.all(`/admin/:method`, (req, res) => {
                                             admin: user.id
                                         })
                                         if(req.body.authorId){
-                                            getDoc(`authors`,req.body.authorId).then(a=>{
+                                            getDoc(authors,req.body.authorId).then(a=>{
                                                 if(a){
-                                                    s.id.update({
+                                                    courses.doc(s.id).update({
                                                         author:     a.name,
                                                         authorId:   req.body.authorId
                                                     })
@@ -1195,11 +1221,13 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                             let data = []
                             data.push(classes.where(`authorId`,'==',req.params.id).get().then(col=>common.handleQuery(col))) 
                             data.push(subscriptions.where(`author`,'==',req.params.id).where(`active`,'==',true).get().then(col=>common.handleQuery(col)))
+                            data.push(courses.where(`authorId`,'==',req.params.id).where(`active`,'==',true).get().then(col=>common.handleQuery(col)))
                             return Promise.all(data).then(data=>{
                                 res.json({
                                     author:         common.handleDoc(author),
                                     classes:        data[0],
-                                    subscriptions:  data[1]
+                                    subscriptions:  data[1],
+                                    courses:        data[2]
                                 })
                             })
                         }

@@ -1,11 +1,11 @@
-
 let host = `auditoria`
+const appLink = `https://t.me/AuditoraBot/app`
 
 let mc = document.querySelector(`#main`)
 
 function closeLeft() {
     document.querySelector(`#left`).classList.remove('active')
-    document.querySelectorAll(`.popupWeb`).forEach(p=>p.remove())
+    document.querySelectorAll(`.popupWeb`).forEach(p => p.remove())
 }
 
 function showCourses() {
@@ -33,39 +33,39 @@ function showCourses() {
 }
 
 
-function showPlanLine(plan){
-    let c = ce('div',false,`divided`,false,{
+function showPlanLine(plan) {
+    let c = ce('div', false, `divided`, false, {
         onclick: () => showPlan(plan.id)
     })
-        c.append(ce('h2',false,false, plan.name))
-        c.append(ce('p',false,false,plan.description || `без описания`))
-        c.append(ce('p',false,false,`${cur(plan.price,`GEL`)}, ${plan.visits} посещений.`))
+    c.append(ce('h2', false, false, plan.name))
+    c.append(ce('p', false, false, plan.description || `без описания`))
+    c.append(ce('p', false, false, `${cur(plan.price,`GEL`)}, ${plan.visits} посещений.`))
     return c
 }
 
-function showPlan(id){
-    load(`plans`, id).then(plan=>{
-        let p = preparePopupWeb(`class_${plan.id}`)
+function showPlan(id) {
+    load(`plans`, id).then(plan => {
+        let p = preparePopupWeb(`plan_${plan.id}`)
 
-        p.append(ce('h1',false,false,plan.name || `Без названия`,{
-            onclick:()=> edit(`plans`,id,`name`,`text`,plan.name)
+        p.append(ce('h1', false, false, plan.name || `Без названия`, {
+            onclick: () => edit(`plans`, id, `name`, `text`, plan.name)
         }))
 
-        p.append(ce('p',false,false,plan.description || `Без описания`,{
-            onclick:()=> edit(`plans`,id,`description`,`text`,plan.description)
+        p.append(ce('p', false, false, plan.description || `Без описания`, {
+            onclick: () => edit(`plans`, id, `description`, `text`, plan.description)
         }))
 
-        p.append(ce('p',false,false,cur(plan.price,'GEL') || `Без стоимости`,{
-            onclick:()=> edit(`plans`,id,`price`,`number`,plan.price)
+        p.append(ce('p', false, false, cur(plan.price, 'GEL') || `Без стоимости`, {
+            onclick: () => edit(`plans`, id, `price`, `number`, plan.price)
         }))
 
-        p.append(ce('p',false,false,`Посещений: ${plan.visits}` || `Без посещений`,{
-            onclick:()=> edit(`plans`,id,`visits`,`number`,plan.visits)
+        p.append(ce('p', false, false, `Посещений: ${plan.visits}` || `Без посещений`, {
+            onclick: () => edit(`plans`, id, `visits`, `number`, plan.visits)
         }))
 
-        if(plan.subscriptions.length){
-            p.append(ce('h2',false,false,`Подписок: ${plan.subscriptions.length} (активных ${plan.subscriptions.filter(s=>s.active).length})`))
-            p.append(postSection(`plan`,plan.id,p))
+        if (plan.subscriptions.length) {
+            p.append(ce('h2', false, false, `Подписок: ${plan.subscriptions.length} (активных ${plan.subscriptions.filter(s=>s.active).length})`))
+            p.append(postSection(`plan`, plan.id, p))
         }
     })
 }
@@ -95,7 +95,7 @@ function showPlans() {
 }
 
 function drawSchedule(events, start) {
-    let cc = ce('div',false,`scroll`)
+    let cc = ce('div', false, `scroll`)
     let c = ce('div', false, `flex`)
     cc.append(c)
     let i = 0
@@ -105,9 +105,12 @@ function drawSchedule(events, start) {
         let date = new Date(+new Date() + i * 24 * 60 * 60 * 1000)
         let isoDate = date.toISOString().split('T')[0]
         day.append(ce(`h3`, false, false, drawDate(date)))
-        events.filter(e => new Date(e.date._seconds * 1000).toISOString().split('T')[0] == isoDate).forEach(e => {
-            day.append(ce('p', false, false, `${new Date(e.date._seconds*1000).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}: ${e.name}`,{
-                onclick:()=>showClass(e,e.id)
+        events.filter(e => new Date(e.date._seconds * 1000).toISOString().split('T')[0] == isoDate).sort((a, b) => a.date._seconds - b.date._seconds).forEach(e => {
+            day.append(ce('p', false, false, `<b>${new Date(e.date._seconds*1000).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}</b>: ${e.name}`, {
+                onclick: () => showClass(e, e.id),
+                dataset:{
+                    soldOut:  e.soldOut
+                }
             }))
         })
         c.append(day)
@@ -140,7 +143,7 @@ function showCourse(cl, id) {
         cl = load(`courses`, id)
     }
     Promise.resolve(cl).then(cl => {
-        let p = preparePopupWeb(`class_${cl.id}`)
+        let p = preparePopupWeb(`course_${cl.id}`,`course_${cl.id}`)
         if (cl.pic) {
             p.append(ce(`img`, false, `cover`, false, {
                 src: cl.pic,
@@ -151,11 +154,13 @@ function showCourse(cl, id) {
                 onclick: () => edit(`courses`, cl.id, `pic`, `text`, null)
             }))
         }
-        
-        
-        if (!cl.bankId) {p.append(ce(`button`, false, `accent`, `выбрать счет`, {
-            onclick: () => edit(`courses`, cl.id, `bankId`, `bankId`, null)
-        }))} else {
+
+
+        if (!cl.bankId) {
+            p.append(ce(`button`, false, `accent`, `выбрать счет`, {
+                onclick: () => edit(`courses`, cl.id, `bankId`, `bankId`, null)
+            }))
+        } else {
             p.append(ce(`button`, false, `accent`, cl.bankName, {
                 onclick: () => edit(`courses`, cl.id, `bankId`, `bankId`, null)
             }))
@@ -165,12 +170,34 @@ function showCourse(cl, id) {
             onclick: () => edit(`courses`, cl.id, `name`, `text`, null)
         }))
 
-        axios.get(`/${host}/admin/courses/${cl.id}`).then(course => {
-            course = course.data
-            p.append(ce('p', false, false, course.course.description, {
+        if (!cl.authorId) {
+            p.append(ce(`button`, false, `accent`, `выбрать автора`, {
+                onclick: () => edit(`courses`, cl.id, `authorId`, `authorId`, null)
+            }))
+        } else {
+            p.append(ce(`button`, false, `accent`, cl.author, {
+                onclick: () => edit(`courses`, cl.id, `authorId`, `authorId`, cl.authorId)
+            }))
+        }
+
+        if (cl.description) {
+            p.append(ce('p', false, false, cl.description, {
+                onclick: () => edit(`courses`, cl.id, `description`, `text`, cl.description)
+            }))
+        } else {
+            p.append(ce(`button`, false, `accent`, `Без описания`, {
                 onclick: () => edit(`courses`, cl.id, `description`, `text`, null)
             }))
+        }
+
+
+        axios.get(`/${host}/admin/courses/${cl.id}`).then(course => {
+            course = course.data
+
+
+
             p.append(ce(`h3`, false, false, 'Занятия'))
+
             course.classes.forEach(c => {
                 p.append(showClassLine(c))
             })
@@ -213,7 +240,7 @@ function load(collection, id) {
 }
 
 function deleteEntity(col, id) {
-    console.log(`удаляем`,col,id)
+    console.log(`удаляем`, col, id)
     return axios.delete(`/${host}/admin/${col}/${id}`)
         .then(handleSave)
         .catch(handleError)
@@ -341,6 +368,50 @@ window.addEventListener('keydown', (e) => {
         }
     }
 })
+
+function newPlan(){
+    let p = preparePopupWeb(`plans_new`)
+    
+    p.append(ce('h1', false, false, `Новый план`))
+
+    let name = ce('input', false, false, false, {
+        type: `text`,
+        placeholder: `Название`
+    })
+    p.append(name)
+
+    let description = ce('input', false, false, false, {
+        type: `text`,
+        placeholder: `описание`
+    })
+    p.append(description)
+
+    let price = ce('input', false, false, false, {
+        type: `number`,
+        placeholder: `стоимость`
+    })
+    p.append(price)
+
+    let visits = ce('input', false, false, false, {
+        type: `number`,
+        placeholder: `посещенйи`
+    })
+    p.append(visits)
+
+    p.append(ce('button', false, false, `Сохранить`, {
+        onclick: function () {
+            if (name.value && price.value && visits.value) {
+                axios.post(`/${host}/admin/plans`, {
+                        name:           name.value,
+                        description:    description.value,
+                        price:          price.value,
+                        visits:         visits.value
+                    }).then(handleSave)
+                    .catch(handleError)
+            }
+        }
+    }))
+}
 
 function newBank() {
     let p = preparePopupWeb(`class_new`)
@@ -612,27 +683,45 @@ function addBank() {
 }
 
 function showAuthor(a) {
-    let p = preparePopupWeb(`author_${a.id}`)
-
-    if (a.pic) p.append(ce(`img`, false, `cover`, false, {
-        src: a.pic
-    }))
+    let p = preparePopupWeb(`author_${a.id}`,`author_${a.id}`)
 
     p.append(ce('h1', false, false, a.name, {
         onclick: () => edit(`authors`, a.id, `name`, `text`, a.name)
     }))
 
+    if (a.pic) {
+        p.append(ce(`img`, false, `cover`, false, {
+            src: a.pic,
+            onclick: () => edit(`authors`, a.id, `pic`, `text`, a.pic)
+        }))
+    } else {
+        p.append(ce(`button`, false, `accent`, `задать картинку`,{
+            onclick: () => edit(`authors`, a.id, `pic`, `text`, null)
+        }))
+    }
+
     p.append(ce(`p`, false, false, a.description, {
         onclick: () => edit(`authors`, a.id, `description`, `text`, a.description)
     }))
 
+
+
     axios.get(`/${host}/admin/authors/${a.id}`).then(authorData => {
         authorData = authorData.data
+        
+        p.append(addClass(a.id))        
+        
         p.append(ce('h2', false, false, authorData.classes.length ? `Лекции` : `Лекций еще нет`))
         authorData.classes.forEach(cl => {
             p.append(showClassLine(cl))
         })
-        p.append(addClass(a.id))
+
+        p.append(ce('h2', false, false, authorData.courses.length ? `Курсы` : `Курсов нет`))
+        authorData.courses.forEach(cl => {
+            p.append(showCourseLine(cl))
+        })
+
+
 
         if (authorData.subscriptions.length) {
             p.append(ce('h2', false, false, `Подписок на автора: ${authorData.subscriptions.length}`))
@@ -707,15 +796,16 @@ function showBankLine(b) {
 function showClassLine(cl) {
     let c = ce('div', false, 'divided', false, {
         dataset: {
-            active: cl.active,
-            kids: cl.kids
+            active:     cl.active,
+            kids:       cl.kids,
+            soldOut:    cl.soldOut
         },
         onclick: () => {
             showClass(cl)
         }
     })
     c.append(ce('h2', false, false, cl.name))
-    c.append(ce('p', false, false, `${drawDate(cl.date._seconds*1000)}`))
+    c.append(ce('p', false, false, `${drawDate(cl.date._seconds*1000,false,{time:true})}`))
     return c
 }
 
@@ -732,6 +822,8 @@ function addComment(c, id) {
         alert(err.message)
     })
 }
+
+
 
 
 function showAuthors() {
@@ -768,9 +860,11 @@ function showAuthorLine(a) {
         }
     })
 
-    div.append(ce('h2', false, false, a.name, {
+    div.append(ce('h2', false, `clickable`, a.name, {
         onclick: () => showAuthor(a)
     }))
+
+    div.append(ce('p', false, false, a.description || `без описания`))
 
     return div
 }
@@ -795,7 +889,7 @@ function filterUsers(role, container, button) {
 }
 
 
-function postSection(postType,id,p){
+function postSection(postType, id, p) {
     return ce('button', false, `dateButton`, `Написать гостям`, {
         dataset: {
             booked: 1
@@ -808,7 +902,7 @@ function postSection(postType,id,p){
 
             let type = ce('select')
 
-            if (postType == `class`){
+            if (postType == `class`) {
                 type.append(ce('option', false, false, `Всем`, {
                     value: `all`
                 }))
@@ -820,7 +914,7 @@ function postSection(postType,id,p){
                 }))
             }
 
-            
+
 
             p.append(txt)
             p.append(type)
@@ -870,7 +964,7 @@ function showClass(cl, id) {
     }
 
     Promise.resolve(cl).then(cl => {
-        let p = preparePopupWeb(`class_${cl.id}`)
+        let p = preparePopupWeb(`class_${cl.id}`,`class_${cl.id}`)
 
         if (cl.pic) p.append(ce(`img`, false, `cover`, false, {
             src: cl.pic,
@@ -917,6 +1011,7 @@ function showClass(cl, id) {
         p.append(ce('p', false, `story`, cl.descShort, {
             onclick: () => edit(`classes`, cl.id, `descShort`, `text`, cl.descShort)
         }))
+
         p.append(ce('p', false, `story`, cl.descLong, {
             onclick: () => edit(`classes`, cl.id, `descLong`, `text`, cl.descLong)
         }))
@@ -957,7 +1052,7 @@ function showClass(cl, id) {
             }
         }))
 
-        p.append(postSection(`class`,cl.id,p))
+        p.append(postSection(`class`, cl.id, p))
 
         p.append(ce(`button`, false, `dateButton`, `Показать лист ожидания`, {
             dataset: {
@@ -1006,10 +1101,22 @@ function showClass(cl, id) {
         p.append(rep)
 
         rep.append(ce(`button`, false, false, `Дублировать`, {
-            onclick:()=> replicate(cl.id)
+            onclick: () => replicate(cl.id)
         }))
 
         p.append(delButton(`classes`, cl.id))
+        p.append(ce('button',false,false,cl.soldOut?`снять солдаут`:`солдаут`,{
+            onclick:()=>{
+                let shure = confirm(`Уверены?`)
+                if(shure) {
+                    axios.put(`/${host}/admin/classes/${cl.id}`,{
+                        attr: `soldOut`,
+                        value: !cl.soldOut
+                    }).then(handleSave)
+                    .catch(handleError)
+                }
+            }
+        }))
 
     })
 
@@ -1359,7 +1466,7 @@ function showUser(u, id) {
 }
 
 
-function preparePopupWeb(name) {
+function preparePopupWeb(name,link) {
     let c = ce('div', false, 'popupWeb')
     c.append(ce('span', false, `closeMe`, `✖`, {
         onclick: () => {
@@ -1369,8 +1476,37 @@ function preparePopupWeb(name) {
             }, 500)
         }
     }))
+
+    if(link)c.append(copyLink(link,appLink))
+
     document.body.append(c)
     let content = ce('div', false, `content`)
     c.append(content)
     return content;
+}
+
+
+function showSchedule() {
+    closeLeft()
+    mc.innerHTML = '<h1>Загружаем...</h1>'
+    axios.get(`/${host}/admin/classes`)
+        .then(data => {
+            console.log(data.data)
+            mc.innerHTML = '';
+            mc.append(ce('h1', false, `header2`, `Расписание`))
+            mc.append(drawSchedule(data.data))
+            mc.append(addClass())
+            let c = ce('div')
+
+            data.data.forEach(cl => {
+                c.append(showClassLine(cl))
+            });
+            
+            mc.append(c)
+
+
+        })
+        .catch(err => {
+            alert(err.message)
+        })
 }
