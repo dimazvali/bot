@@ -61,6 +61,7 @@ let gcp = initializeApp({
     }),
     databaseURL: "https://rrspecialsapi.firebaseio.com"
 }, 'paper');
+
 let fb = getFirestore(gcp);
 
 

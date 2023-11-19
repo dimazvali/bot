@@ -311,13 +311,33 @@ if(start){
             break;
         }
         default:{
-            if(!start.indexOf(`ticket`)){
-                let c = start.split('_')[1]
-                showLoader()
-                axios.get(`/${host}/api/tickets/${c}?user=${userid}`).then(c=>{
-                    drawClassPopup(c.data,c.data.id)
-                    hideLoader()
-                })
+            let c = start.split('_');
+            switch(c[0]){
+                case `classes`:{
+                    drawClassPopup(false,c[1])
+                }
+                case `class`:{
+                    drawClassPopup(false,c[1])
+                }
+                case `course`:{
+                    drawCoursePopup(false, c[1])
+                }
+                case `courses`:{
+                    drawCoursePopup(false, c[1])
+                }
+                case `author`:{
+                    drawAuthorPopup(false,c[1])
+                }
+                case `authors`:{
+                    drawAuthorPopup(false,c[1])
+                }
+                case `ticket`:{
+                    showLoader()
+                    axios.get(`/${host}/api/tickets/${c}?user=${userid}`).then(c=>{
+                        drawClassPopup(c.data,c.data.id)
+                        hideLoader()
+                    })
+                }
             }
         }
     }

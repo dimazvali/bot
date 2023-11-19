@@ -532,3 +532,20 @@ function copyLink(link, app, text){
         }    
     })
 }
+
+function copyWebLink(link, path, text){
+    return ce('button',false,`thin`,text||`ссылка на веб`,{
+        onclick:function(){
+            navigator.clipboard.writeText(`${link}/${path.join(`/`)}`).then(s=>{
+                try {
+                    tg.showAlert(`Ссылка на раздел скопирована`)    
+                } catch (error) {
+                    alert(`ссылка скопирована`)
+                }
+                
+            }).catch(err=>{
+                console.warn(err)
+            })
+        }    
+    })
+}

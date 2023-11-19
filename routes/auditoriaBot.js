@@ -74,7 +74,7 @@ let appLink = `https://t.me/AuditoraBot/app`
 let token = process.env.auditoriaToken
 let paymentToken = process.env.auPaymentToken
 
-let ngrok = process.env.ngrok
+const ngrok = process.env.ngrok
 
 let sheet = process.env.auditoriaSheet
 
@@ -109,7 +109,7 @@ axios.get(`https://joinposter.com/api/menu.getCategories?token=658416:0542557d20
 })
 
 axios.get(`https://joinposter.com/api/menu.getProducts?token=658416:0542557d20b40805925cc4a52c0cfe49`).then(d=>{
-    menuDishes = d.data.response.response
+    menuDishes = d.data.response
     devlog(menuDishes)
 })
 
@@ -428,7 +428,7 @@ router.get(`/web`,(req,res)=>{
             })
         }) 
 
-    if(!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/auditoria/auth`)
+    if(!req.signedCookies.adminToken) return res.redirect(`${ngrok}/auditoria/auth`)
     
     adminTokens
         .doc(req.signedCookies.adminToken)
@@ -560,6 +560,9 @@ router.all(`/admin/:method`, (req, res) => {
                             }
                         }
                         
+                    }
+                    case `views`:{
+                        return views.get().then(col=>res.json(col.docs.map(d=>d.data())))
                     }
                     case `channel`:{
                         return classes.doc(req.query.class).get().then(c=>{
@@ -735,8 +738,7 @@ router.all(`/admin/:method`, (req, res) => {
                                             updatedAt: new Date(),
                                             statusBy: req.query.id
                                         }).then(d => {
-                                            console.log(d.data())
-                                            res.json(d.data())
+                                            res.sendStatus(200)
                                         })
                                 }
                             }
@@ -776,7 +778,7 @@ router.all(`/admin/:method`, (req, res) => {
                                             [{
                                                 text: `Открыть`,
                                                 web_app: {
-                                                    url: process.env.ngrok + '/'+host+'/app2/start=class_'+req.body.class
+                                                    url: ngrok + '/'+host+'/app2/start=class_'+req.body.class
                                                 }
                                             }]
                                         ]
@@ -1036,7 +1038,7 @@ router.all(`/admin/:method`, (req, res) => {
                                             inline_keyboard:[[{
                                                 text: `Ваш билет`,
                                                 web_app:{
-                                                    url: `${process.env.ngrok}/auditoria/app2?start=ticket_${t.id}`
+                                                    url: `${ngrok}/auditoria/app2?start=ticket_${t.id}`
                                                 }
                                             }]]
                                         }
@@ -1289,7 +1291,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                                                 inline_keyboard:[[{
                                                     text: `Открыть автора`,
                                                     web_app:{
-                                                        url: `${process.env.ngrok}/${host}/app2?start=author_${req.params.id}`
+                                                        url: `${ngrok}/${host}/app2?start=author_${req.params.id}`
                                                     }
                                                 }]]
                                             }
@@ -1313,12 +1315,14 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                             data.push(classes.where(`authorId`,'==',req.params.id).get().then(col=>common.handleQuery(col))) 
                             data.push(subscriptions.where(`author`,'==',req.params.id).where(`active`,'==',true).get().then(col=>common.handleQuery(col)))
                             data.push(courses.where(`authorId`,'==',req.params.id).where(`active`,'==',true).get().then(col=>common.handleQuery(col)))
+                            // data.push(views.where(`entity`,'==','author').where(`id`,'==',req.params.id).get().then(common.handleQuery))
                             return Promise.all(data).then(data=>{
                                 res.json({
                                     author:         common.handleDoc(author),
                                     classes:        data[0],
                                     subscriptions:  data[1],
-                                    courses:        data[2]
+                                    courses:        data[2],
+                                    // views:          data[3]
                                 })
                             })
                         }
@@ -1373,7 +1377,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                                                 inline_keyboard:[[{
                                                     text: `Открыть курс`,
                                                     web_app:{
-                                                        url: `${process.env.ngrok}/${host}/app2?start=course_${req.params.id}`
+                                                        url: `${ngrok}/${host}/app2?start=course_${req.params.id}`
                                                     }
                                                 }]]
                                             }
@@ -1397,12 +1401,14 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                             let data = []
                             data.push(classes.where(`course`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
                             data.push(subscriptions.where(`course`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+                            // data.push(views.where(`entity`,'==','course').where(`id`,'==',req.params.id).get().then(common.handleQuery))
                             devlog(data)
                             return Promise.all(data).then(data=>{
                                 res.json({
                                     course:          course,
                                     classes:        data[0],
-                                    subscriptions:  data[1]
+                                    subscriptions:  data[1],
+                                    // views:          data[2]
                                 })
                             })
                             
@@ -1444,9 +1450,8 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                     switch(req.method){
                         case `GET`:{
                             let data = []
-                            data.push(classes.where(`user`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-                            data.push(subscriptions.where(`user`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-                            devlog(data)
+                            data.push(userClasses.where(`user`,'==',+req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+                            data.push(subscriptions.where(`user`,'==',+req.params.id).get().then(col=>common.handleQuery(col,`date`)))
                             return Promise.all(data).then(data=>{
                                 res.json({
                                     user:           user,
@@ -1481,6 +1486,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                         case `GET`:{
                             let data = []
                             data.push(userClasses.where(`class`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+                            // data.push(views.where(`entity`,'==','class').where(`id`,'==',req.params.id).get().then(common.handleQuery))
                             if(cl.authorId) data.push(getDoc(authors,cl.authorId)) 
                             if(cl.courseId) data.push(getDoc(courses,cl.courseId)) 
 
@@ -1488,6 +1494,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                                 res.json({
                                     class:          cl,
                                     tickets:        data[0],
+                                    // views:          data[1],
                                     author:         data[1],
                                     course:         data[2]
                                 })
@@ -1874,14 +1881,14 @@ function bookClass(user, classId, res, id) {
                                                                 
                                                                 m.sendMessage2({
                                                                     chat_id: user.id,
-                                                                    photo: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
+                                                                    photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
                                                                     caption: translations.lectureInvite(c.data(),true)[user.language_code] || translations.lectureInvite(c.data(),true).en,
                                                                     reply_markup: {
                                                                         inline_keyboard: [
                                                                             [{
                                                                                 text: `Подробнее`,
                                                                                 web_app:{
-                                                                                    url: `${process.env.ngrok}/auditoria/app2?start=ticket_${record.id}`
+                                                                                    url: `${ngrok}/auditoria/app2?start=ticket_${record.id}`
                                                                                 }
                                                                             }],
                                                                             [{
@@ -1900,7 +1907,7 @@ function bookClass(user, classId, res, id) {
                                                                         //     ,
                                                                         //     [{
                                                                         //         text: translations.yourCode[user.language_code] || translations.yourCode.en,
-                                                                        //         url: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
+                                                                        //         url: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
                                                                         //     }]
                                                                         // ]
                                                                     }
@@ -1913,14 +1920,14 @@ function bookClass(user, classId, res, id) {
                                                             } else { 
                                                                 m.sendMessage2({
                                                                     chat_id: user.id,
-                                                                    photo: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
+                                                                    photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
                                                                     caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
                                                                     reply_markup: {
                                                                         inline_keyboard: [
                                                                             [{
                                                                                 text: `Подробнее`,
                                                                                 web_app:{
-                                                                                    url: `${process.env.ngrok}/auditoria/app2?start=ticket_${record.id}`
+                                                                                    url: `${ngrok}/auditoria/app2?start=ticket_${record.id}`
                                                                                 }
                                                                             }],
                                                                             [{
@@ -1939,7 +1946,7 @@ function bookClass(user, classId, res, id) {
                                                                         //     ,
                                                                         //     [{
                                                                         //         text: translations.yourCode[user.language_code] || translations.yourCode.en,
-                                                                        //         url: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
+                                                                        //         url: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
                                                                         //     }]
                                                                         // ]
                                                                     }
@@ -1954,14 +1961,14 @@ function bookClass(user, classId, res, id) {
                                                         } else {
                                                             m.sendMessage2({
                                                                 chat_id: user.id,
-                                                                photo: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
+                                                                photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
                                                                 caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
                                                                 reply_markup: {
                                                                     inline_keyboard: [
                                                                         [{
                                                                             text: `Подробнее`,
                                                                             web_app:{
-                                                                                url: `${process.env.ngrok}/auditoria/app2?start=ticket_${record.id}`
+                                                                                url: `${ngrok}/auditoria/app2?start=ticket_${record.id}`
                                                                             }
                                                                         }],
                                                                         [{
@@ -1980,7 +1987,7 @@ function bookClass(user, classId, res, id) {
                                                                     //     ,
                                                                     //     [{
                                                                     //         text: translations.yourCode[user.language_code] || translations.yourCode.en,
-                                                                    //         url: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
+                                                                    //         url: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
                                                                     //     }]
                                                                     // ]
                                                                 }
@@ -1995,14 +2002,14 @@ function bookClass(user, classId, res, id) {
                                             } else {
                                                 m.sendMessage2({
                                                     chat_id: user.id,
-                                                    photo: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
+                                                    photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
                                                     caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
                                                     reply_markup: {
                                                         inline_keyboard: [
                                                             [{
                                                                 text: `Подробнее`,
                                                                 web_app:{
-                                                                    url: `${process.env.ngrok}/auditoria/app2?start=ticket_${record.id}`
+                                                                    url: `${ngrok}/auditoria/app2?start=ticket_${record.id}`
                                                                 }
                                                             }],
                                                             [{
@@ -2021,7 +2028,7 @@ function bookClass(user, classId, res, id) {
                                                         //     ,
                                                         //     [{
                                                         //         text: translations.yourCode[user.language_code] || translations.yourCode.en,
-                                                        //         url: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
+                                                        //         url: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
                                                         //     }]
                                                         // ]
                                                     }
@@ -2038,14 +2045,14 @@ function bookClass(user, classId, res, id) {
                                 } else {
                                     m.sendMessage2({
                                         chat_id: user.id,
-                                        photo: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
+                                        photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
                                         caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
                                         reply_markup: {
                                             inline_keyboard: [
                                                 [{
                                                     text: `Подробнее`,
                                                     web_app:{
-                                                        url: `${process.env.ngrok}/auditoria/app2?start=ticket_${record.id}`
+                                                        url: `${ngrok}/auditoria/app2?start=ticket_${record.id}`
                                                     }
                                                 }],
                                                 [{
@@ -2064,7 +2071,7 @@ function bookClass(user, classId, res, id) {
                                             //     ,
                                             //     [{
                                             //         text: translations.yourCode[user.language_code] || translations.yourCode.en,
-                                            //         url: process.env.ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
+                                            //         url: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
                                             //     }]
                                             // ]
                                         }
@@ -2224,7 +2231,7 @@ function registerUser(u) {
                     [{
                         text: translations.introButton[u.language_code] || translations.introButton.en,
                         web_app: {
-                            url: process.env.ngrok + '/auditoria/app?lang=' + u.language_code
+                            url: ngrok + '/auditoria/app?lang=' + u.language_code
                         }
                     }]
                 ]
@@ -2731,7 +2738,7 @@ function randomPic() {
         'w2.png'
     ]
 
-    return `${process.env.ngrok}/images/auditoria/${images[Math.floor(Math.random()*images.length)]}`
+    return `${ngrok}/images/auditoria/${images[Math.floor(Math.random()*images.length)]}`
 }
 
 
@@ -3210,7 +3217,7 @@ router.post('/hook', (req, res) => {
                                     [{
                                         text: `test`,
                                         web_app: {
-                                            url: `${process.env.ngrok}/auditoria/app2`
+                                            url: `${ngrok}/auditoria/app2`
                                         }
                                     }]
                                 ]
@@ -3221,13 +3228,13 @@ router.post('/hook', (req, res) => {
                     case '/pro':
                         m.sendMessage2({
                             chat_id: user.id,
-                            text: `приложение находится в режиме разработки`,
+                            text: `Админка с дева ${ngrok}:`,
                             reply_markup: {
                                 inline_keyboard: [
                                     [{
                                         text: `test`,
                                         web_app: {
-                                            url: `${process.env.ngrok}/auditoria/admin`
+                                            url: `${ngrok}/auditoria/admin`
                                         }
                                     }]
                                 ]
@@ -3236,13 +3243,13 @@ router.post('/hook', (req, res) => {
 
                         m.sendMessage2({
                             chat_id: user.id,
-                            text: `приложение находится в режиме разработки`,
+                            text: `Приложенька с дева ${ngrok}`,
                             reply_markup: {
                                 inline_keyboard: [
                                     [{
                                         text: `test`,
                                         web_app: {
-                                            url: `${process.env.ngrok}/auditoria/app2`
+                                            url: `${ngrok}/auditoria/app2`
                                         }
                                     }]
                                 ]
@@ -3952,7 +3959,7 @@ router.post('/hook', (req, res) => {
                                 }).then(rec => {
                                     m.sendMessage2({
                                         chat_id: user.id,
-                                        photo: process.env.ngrok + `/auditoria/qr?id=${rec.id}&entity=coworking`,
+                                        photo: ngrok + `/auditoria/qr?id=${rec.id}&entity=coworking`,
                                         caption: translations.coworkingBookingDetails(inc[2], user.language_code)[user.language_code] || translations.coworkingBookingDetails(inc[2], user.language_code).en,
                                         reply_markup: {
                                             inline_keyboard: [
@@ -5276,7 +5283,7 @@ router.all(`/api/:data/:id`, (req, res) => {
 
                                         m.sendMessage2({
                                             chat_id: req.query.user,
-                                            photo: process.env.ngrok + `/auditoria/qr?id=${rec.id}&entity=coworking`,
+                                            photo: ngrok + `/auditoria/qr?id=${rec.id}&entity=coworking`,
                                             caption: translations.coworkingBookingDetails(req.query.date,false,u.data().language_code)[u.data().language_code] || translations.coworkingBookingDetails(req.query.date,false,'en').en,
                                             reply_markup: {
                                                 inline_keyboard: [
@@ -5359,7 +5366,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                 m.sendMessage2({
                                     chat_id:    req.query.id,
                                     caption:    `Вы запросили абонемент ${p.name}. Пожалуйста, покажите этот код администратору площадки, чтобы подтвердить подписку.`,
-                                    photo:      process.env.ngrok + `/auditoria/qr?id=${rec.id}&entity=planRequests`,
+                                    photo:      ngrok + `/auditoria/qr?id=${rec.id}&entity=planRequests`,
                                 },'sendPhoto',token)
                             })
 

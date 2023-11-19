@@ -2,11 +2,10 @@ extends site
 
 block content
     img.cover(src!=data.pic||randomPic() alt!=data.name)
-    a(href!=`/auditoria/site/authors`) Вернуться к списку авторов
+    a(href!=`/auditoria/site/${city}/authors`) Вернуться к списку авторов
     h1!=data.name
     p.bold!=data.description
     if (data.classes)
-        console.log(1)
         table
             for c in data.classes
                 include classLine

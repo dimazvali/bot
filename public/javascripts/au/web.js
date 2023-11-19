@@ -1,6 +1,6 @@
 let host = `auditoria`
 const appLink = `https://t.me/AuditoraBot/app`
-
+const web = `https://dimazvali-a43369e5165f.herokuapp.com/auditoria/site/tbi`
 let mc = document.querySelector(`#main`)
 
 function closeLeft() {
@@ -20,7 +20,7 @@ function showCourses() {
             data.data.forEach(cl => {
                 c.append(showCourseLine(cl))
             });
-            c.append(ce(`button`, false, false, `Добавить`, {
+            c.append(ce(`button`, false, false, `Добавить курс`, {
                 onclick: () => newCourse()
             }))
             mc.append(c)
@@ -33,6 +33,8 @@ function showCourses() {
 }
 
 
+
+
 function showPlanLine(plan) {
     let c = ce('div', false, `divided`, false, {
         onclick: () => showPlan(plan.id)
@@ -41,6 +43,57 @@ function showPlanLine(plan) {
     c.append(ce('p', false, false, plan.description || `без описания`))
     c.append(ce('p', false, false, `${cur(plan.price,`GEL`)}, ${plan.visits} посещений.`))
     return c
+}
+
+function showViews(){
+    load(`views`).then(views=>{
+        let p = preparePopupWeb(`views`)
+            p.append(ce('h1',false,false,`Просмотры:`))
+        let entities = {
+            classes: {
+                name:`Занятия`,
+                node: `class`
+            },
+            courses: {
+                name: `Курсы`,
+                node: `course`
+            },
+            authors: {
+                name: `Авторы`,
+                node: `author`
+            }
+        }
+
+        p.append(ce('h2',false,false,`tapLink`))
+        let filtered = views.filter(r=>r.entity == `mp`)
+        let counter = {};
+        filtered.forEach(r=>{
+            let d = new Date(r.createdAt._seconds*1000).toISOString().split("T")[0]
+            if(!counter[d]) counter[d] = 0;
+            counter[d]++
+        })
+        Object.keys(counter).forEach(date=>{
+            p.append(ce('p',false,false,`${date}: ${counter[date]}`))
+        })
+
+        Object.keys(entities).forEach(type=>{
+            p.append(ce('h2',false,false,entities[type].name))
+            let filtered = views.filter(r=>r.entity == type)
+            let counter = {};
+            filtered.forEach(r=>{
+                if(!counter[r.id]) counter[r.id] = 0;
+                counter[r.id]++
+            })
+            Object.keys(counter).sort((a,b)=>counter[b]-counter[a]).forEach((id,num)=>{
+                let line = ce(`p`,false,false,`#${num+1}: ${id} (${counter[id]})`)
+                p.append(line)
+                load(type,id).then(data=>{
+                    line.innerHTML = `#${num+1}: ${data[entities[type].node].name} (${counter[id]})`
+                })
+            })
+        })
+         
+    })
 }
 
 function showPlan(id) {
@@ -82,7 +135,7 @@ function showPlans() {
             data.data.forEach(cl => {
                 c.append(showPlanLine(cl))
             });
-            c.append(ce(`button`, false, false, `Добавить`, {
+            c.append(ce(`button`, false, false, `Добавить подписку`, {
                 onclick: () => newPlan()
             }))
             mc.append(c)
@@ -143,7 +196,7 @@ function showCourse(cl, id) {
         cl = load(`courses`, id)
     }
     Promise.resolve(cl).then(cl => {
-        let p = preparePopupWeb(`course_${cl.id}`,`course_${cl.id}`)
+        let p = preparePopupWeb(`course_${cl.id}`,`course_${cl.id}`,[`courses`,cl.id])
         if (cl.pic) {
             p.append(ce(`img`, false, `cover`, false, {
                 src: cl.pic,
@@ -169,6 +222,8 @@ function showCourse(cl, id) {
         p.append(ce('h1', false, false, cl.name || `Без названия`, {
             onclick: () => edit(`courses`, cl.id, `name`, `text`, null)
         }))
+
+        p.append(ce('p',false,false,`Просмотров: ${cl.views || 0}`))
 
         if (!cl.authorId) {
             p.append(ce(`button`, false, `accent`, `выбрать автора`, {
@@ -671,80 +726,95 @@ function newAuthor() {
 }
 
 function addClass(a, c) {
-    return ce('button', false, false, `Добавить`, {
+    return ce('button', false, false, `Добавить меропориятие`, {
         onclick: () => newClass(c, a)
     })
 }
 
 function addBank() {
-    return ce('button', false, false, `Добавить`, {
+    return ce('button', false, false, `Добавить реквизиты`, {
         onclick: () => newBank()
     })
 }
 
-function showAuthor(a) {
-    let p = preparePopupWeb(`author_${a.id}`,`author_${a.id}`)
+function showAuthor(a,id) {
 
-    p.append(ce('h1', false, false, a.name, {
-        onclick: () => edit(`authors`, a.id, `name`, `text`, a.name)
-    }))
-
-    if (a.pic) {
-        p.append(ce(`img`, false, `cover`, false, {
-            src: a.pic,
-            onclick: () => edit(`authors`, a.id, `pic`, `text`, a.pic)
-        }))
-    } else {
-        p.append(ce(`button`, false, `accent`, `задать картинку`,{
-            onclick: () => edit(`authors`, a.id, `pic`, `text`, null)
-        }))
+    if(!a){
+        a = load(`authors`,id)
     }
 
-    p.append(ce(`p`, false, false, a.description, {
-        onclick: () => edit(`authors`, a.id, `description`, `text`, a.description)
-    }))
-
-
-
-    axios.get(`/${host}/admin/authors/${a.id}`).then(authorData => {
-        authorData = authorData.data
+    Promise.resolve(a).then(a=>{
         
-        p.append(addClass(a.id))        
-        
-        p.append(ce('h2', false, false, authorData.classes.length ? `Лекции` : `Лекций еще нет`))
-        authorData.classes.forEach(cl => {
-            p.append(showClassLine(cl))
-        })
+        if(a.author) a = a.author
 
-        p.append(ce('h2', false, false, authorData.courses.length ? `Курсы` : `Курсов нет`))
-        authorData.courses.forEach(cl => {
-            p.append(showCourseLine(cl))
-        })
+        let p = preparePopupWeb(`author_${a.id}`,`author_${a.id}`,[`authors`,a.id])
 
+        p.append(ce('h1', false, false, a.name, {
+            onclick: () => edit(`authors`, a.id, `name`, `text`, a.name)
+        }))
 
+        p.append(ce('p',false,false,`Просмотров: ${a.views || 0}`))
 
-        if (authorData.subscriptions.length) {
-            p.append(ce('h2', false, false, `Подписок на автора: ${authorData.subscriptions.length}`))
-            let txt = ce('textarea', false, false, false, {
-                placeholder: `Рассылка по всем подписанным на автора.`
-            })
-            p.append(txt)
-            p.append(ce('button', false, false, `Отправить`, {
-                onclick: function () {
-                    if (txt.value) {
-                        this.setAttribute(`disabled`, true)
-                        axios.post(`/${host}/admin/authors/${a.id}`, {
-                                intent: `subscriptions`,
-                                text: txt.value
-                            }).then(handleSave)
-                            .catch(handleError)
-                            .finally(() => this.removeAttribute(`disabled`))
-                    }
-
-                }
+        if (a.pic) {
+            p.append(ce(`img`, false, `cover`, false, {
+                src: a.pic,
+                onclick: () => edit(`authors`, a.id, `pic`, `text`, a.pic)
+            }))
+        } else {
+            p.append(ce(`button`, false, `accent`, `задать картинку`,{
+                onclick: () => edit(`authors`, a.id, `pic`, `text`, null)
             }))
         }
+
+        p.append(ce(`p`, false, false, a.description, {
+            onclick: () => edit(`authors`, a.id, `description`, `text`, a.description)
+        }))
+
+
+
+        // axios.get(`/${host}/admin/authors/${a.id}`)
+        load(`authors`,a.id).then(authorData => {
+            // authorData = authorData
+            
+            p.append(addClass(a.id))        
+            
+            p.append(ce('h2', false, false, authorData.classes.length ? `Лекции` : `Лекций еще нет`))
+            authorData.classes.forEach(cl => {
+                p.append(showClassLine(cl))
+            })
+
+            p.append(ce('h2', false, false, authorData.courses.length ? `Курсы` : `Курсов нет`))
+            authorData.courses.forEach(cl => {
+                p.append(showCourseLine(cl))
+            })
+
+
+
+            if (authorData.subscriptions.length) {
+                p.append(ce('h2', false, false, `Подписок на автора: ${authorData.subscriptions.length}`))
+                let txt = ce('textarea', false, false, false, {
+                    placeholder: `Рассылка по всем подписанным на автора.`
+                })
+                p.append(txt)
+                p.append(ce('button', false, false, `Отправить`, {
+                    onclick: function () {
+                        if (txt.value) {
+                            this.setAttribute(`disabled`, true)
+                            axios.post(`/${host}/admin/authors/${a.id}`, {
+                                    intent: `subscriptions`,
+                                    text: txt.value
+                                }).then(handleSave)
+                                .catch(handleError)
+                                .finally(() => this.removeAttribute(`disabled`))
+                        }
+
+                    }
+                }))
+            }
+        })
     })
+
+    
 
 }
 
@@ -753,23 +823,16 @@ function showAuthor(a) {
 function showBanks() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
-    axios.get(`/${host}/admin/banks`)
-        .then(data => {
-            console.log(data.data)
-            mc.innerHTML = '';
-            mc.append(ce('h1', false, `header2`, `Реквизиты`))
-            let c = ce('div')
-            data.data.forEach(cl => {
-                c.append(showBankLine(cl))
-            });
-            c.append(addBank())
-            mc.append(c)
-
-
-        })
-        .catch(err => {
-            alert(err.message)
-        })
+    load(`banks`).then(banks=>{
+        mc.innerHTML = '';
+        mc.append(ce('h1', false, `header2`, `Реквизиты`))
+        let c = ce('div')
+        banks.forEach(cl => {
+            c.append(showBankLine(cl))
+        });
+        c.append(addBank())
+        mc.append(c)
+    })
 }
 
 function showBankLine(b) {
@@ -877,6 +940,7 @@ function filterUsers(role, container, button) {
     c.querySelectorAll('button').forEach(b => b.classList.add('passive'))
     button.classList.add('active')
     button.classList.remove('passive')
+    
     container.querySelectorAll('.userLine').forEach(user => {
         if (!role) return user.classList.remove('hidden')
 
@@ -964,7 +1028,7 @@ function showClass(cl, id) {
     }
 
     Promise.resolve(cl).then(cl => {
-        let p = preparePopupWeb(`class_${cl.id}`,`class_${cl.id}`)
+        let p = preparePopupWeb(`class_${cl.id}`,`class_${cl.id}`,[`classes`,cl.id])
 
         if (cl.pic) p.append(ce(`img`, false, `cover`, false, {
             src: cl.pic,
@@ -978,6 +1042,8 @@ function showClass(cl, id) {
         p.append(ce('h1', false, false, cl.name, {
             onclick: () => edit(`classes`, cl.id, `name`, `text`, cl.name)
         }))
+
+        p.append(ce('p',false,false,`Просмотров: ${cl.views || 0}`))
 
         if (cl.kids) p.append(ce(`button`, false, `accent`, `для детей ${cl.age  || `без возрастных оганичений`}`))
 
@@ -1300,7 +1366,7 @@ function showTickets() {
             let table = ce('table', false, `wide`)
             let headers = ce('tr')
             // headers.append(ce('th',false,false,`id`))
-            headers.append(ce('th', false, false, `создан`))
+            headers.append(ce('th', false, false, `открыть`))
             headers.append(ce('th', false, false, `гость`))
             headers.append(ce('th', false, false, `мероприятие`))
             headers.append(ce('th', false, false, `оплата`))
@@ -1308,16 +1374,26 @@ function showTickets() {
             headers.append(ce('th', false, false, `примечания`))
             table.append(headers)
             tickets.forEach(t => {
-                let line = ce('tr', false, false, false, {
-                    onclick: () => showTicket(t)
-                })
+                let line = ce('tr', false, false, false)
                 // line.append(ce('td',false,false,t.id))
-                line.append(ce('td', false, false, drawDate(t.createdAt._seconds * 1000)))
-                line.append(ce('td', false, false, t.userName))
-                line.append(ce('td', false, false, t.className))
-                line.append(ce('td', false, false, t.isPayed ? '✔️' : '❌'))
-                line.append(ce('td', false, false, t.status ? '✔️' : '❌'))
-                line.append(ce('td', false, false, t.comment || `без примечаний`))
+                line.append(ce('td', false, false, drawDate(t.createdAt._seconds * 1000),{
+                    onclick: () => showTicket(t)
+                }))
+                line.append(ce('td', false, false, t.userName,{
+                    onclick: () => showUser(false, t.user)
+                }))
+                line.append(ce('td', false, false, t.className,{
+                    onclick: () => showClass(false, t.class)
+                }))
+                line.append(ce('td', false, false, t.isPayed ? '✔️' : '❌',{
+                    onclick:()=>edit(`userClasses`,t.id,`isPayed`,`boolean`,t.isPayed)
+                }))
+                line.append(ce('td', false, false, t.status ? '✔️' : '❌',{
+                    onclick:()=>edit(`userClasses`,t.id,`status`,`ticketStatus`,t.status)
+                }))
+                line.append(ce('td', false, false, t.comment || `без примечаний`,{
+                    onclick: function(){addComment(this,t.id)}
+                }))
                 table.append(line)
             })
             mc.append(table)
@@ -1357,15 +1433,10 @@ function showUsers() {
                 }
             })
 
-            console.log(d)
-
-
-
 
             let filterTypes = {
                 blocked: `Вышли из чата`,
                 admin: `админы`,
-                fellow: `fellows`,
             }
 
             Object.keys(filterTypes).forEach(type => {
@@ -1432,15 +1503,17 @@ function showUserLine(u, cnt) {
 function showUser(u, id) {
 
     if (!u) {
-        u = axios.get(`/${host}/admin/user?data=profile&user=${id}`)
-            .then(d => d.data)
-            .catch(err => {
-                return alert(err.message)
-            })
+        u = load(`users`,id)
     }
 
     Promise.resolve(u).then(u => {
+        
+        let classes = u.classes;
+        let subscriptions = u.subscriptions;
+        u = u.user
+
         let p = preparePopupWeb(`user${u.id}`)
+        
         p.append(ce('h1', false, false, `${uname(u,u.id)} (${u.language_code})`))
         p.append(ce('p', false, false, `регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
         p.append(ce('p', false, false, `email: ${u.email || `не указан`}`))
@@ -1448,25 +1521,32 @@ function showUser(u, id) {
         p.append(ce('p', false, false, `occupation: ${u.occupation || `о себе не рассказывал`}`))
 
         p.append(ce(`h2`, false, false, `Лекции`))
-        axios
-            .get(`/${host}/admin/user?user=${u.id}&data=lections`)
-            .then(data => {
-                data.data.forEach(c => {
-                    p.append(ce('p', false, false, `${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`, {
-                        dataset: {
-                            active: c.active
-                        }
-                    }))
-                })
-            })
+        
+        if(classes) classes.forEach(c=>{
+            p.append(ce('p', false, false, `${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`, {
+                dataset: {
+                    active: c.active
+                }
+            }))
+        })
+
+        p.append(ce(`h2`, false, false, `Подписки`))
+        
+        if(subscriptions) subscriptions.forEach(c=>{
+            p.append(showSubscriptionsLine(c))
+        })
+        
     })
-
-
-
 }
 
 
-function preparePopupWeb(name,link) {
+function showSubscriptionsLine(s){
+    return ce('p',false,false,`еще не готово`)
+}
+
+
+
+function preparePopupWeb(name,link,weblink) {
     let c = ce('div', false, 'popupWeb')
     c.append(ce('span', false, `closeMe`, `✖`, {
         onclick: () => {
@@ -1477,7 +1557,9 @@ function preparePopupWeb(name,link) {
         }
     }))
 
-    if(link)c.append(copyLink(link,appLink))
+    if(link)        c.append(copyLink(link,appLink))
+    if(weblink)     c.append(copyWebLink(web,weblink))
+    // if(weblink)c.append(copyLink(link,appLink))
 
     document.body.append(c)
     let content = ce('div', false, `content`)

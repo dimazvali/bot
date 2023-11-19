@@ -63,7 +63,8 @@ function checkQR(data){
                             axios.post(`/auditoria/admin/qr?id=${userid}&data=${data.data}`)
                                 .then(()=>{
                                     tg.showAlert(`OK!`)
-                                    this.remove()
+                                    tryQR()
+                                    // this.remove()
                                 })
                                 .catch(handleError)
                                 .finally(hideLoader)
@@ -101,7 +102,9 @@ function checkQR(data){
                             showLoader();
                             axios.post(`/${host}/admin/qr?id=${userid}&data=${data.data}`)
                                 .then(r=>{
+                                    
                                     tg.showAlert(r.data.alert)
+
                                     this.remove()
                                 })
                                 .catch(handleError)

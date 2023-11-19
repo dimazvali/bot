@@ -32,6 +32,7 @@ html
         h3(onclick="showAuthors()")     Авторы
         h3(onclick="showBanks()")       Реквизиты
         h3(onclick="showPlans()")       Планы
+        h3(onclick="showViews()")       Просмотры
         h3(onclick="showLogs()")        Логи
 
         
@@ -44,8 +45,14 @@ html
             .divided
                 p.info!=new Date(l.createdAt._seconds*1000).toLocaleString()
                 p!=l.text
+                if(l.ticket)
+                  button(onclick!="showTicket(false,'"+l.ticket+"')") открыть билет
                 if(l.course) 
                   button(onclick!="showCourse(false,'"+l.course+"')") открыть курс
                 if(l.class) 
                   button(onclick!="showClass(false,'"+l.class+"')") открыть ивент
+                if(l.user) 
+                  button(onclick!="showUser(false,'"+l.user+"')") открыть профиль
+                if(l.author) 
+                  button(onclick!="showAuthor(false,'"+l.author+"')") открыть автора
     script(src='/javascripts/au/web.js')
