@@ -197,3 +197,12 @@ table.wide{
 [data-sold-out="true"] {
     background: linear-gradient(135deg, #FF5722 60px, transparent 10px);
 }
+
+.messenger {
+    height: 300px;
+    overflow: auto;
+}
+
+[data-reply="true"] {
+    padding-left: 40px;
+}

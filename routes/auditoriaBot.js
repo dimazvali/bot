@@ -1581,6 +1581,15 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                     }
                 })   
             }
+            case `messages`:{
+                return messages
+                    .where(`user`,'==',+req.params.id)
+                    .orderBy(`createdAt`,'asc')
+                    .get()
+                    .then(col=>{
+                        res.json(common.handleQuery(col))
+                    })
+            }
             default: return res.sendStatus(404)
         }
     })

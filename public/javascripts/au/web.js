@@ -1,3 +1,5 @@
+// const { default: axios } = require("axios")
+
 let host = `auditoria`
 const appLink = `https://t.me/AuditoraBot/app`
 const web = `https://dimazvali-a43369e5165f.herokuapp.com/auditoria/site/tbi`
@@ -326,6 +328,58 @@ function replicate(id) {
 }
 
 
+function togglePayed(id,isPayed){
+    let edit = ce('div', false, `editWindow`)
+    edit.append(ce('h2',false,false,`Сменить статус оплаты билета.`))
+    edit.append(ce('p',false,false,`текущий статус: ${isPayed?`оплачен`:`НЕ оплачен`}`))
+    
+    edit.append(ce('button',false,false,`Оплачен`,{
+        onclick: function () {
+            axios.put(`/${host}/admin/tickets/${id}`, {
+                attr: `isPayed`,
+                value: true
+            }).then(handleSave)
+            .catch(handleError)
+        }
+    }))
+
+    edit.append(ce('button',false,false,`НЕ Оплачен`,{
+        onclick: function () {
+            axios.put(`/${host}/admin/tickets/${id}`, {
+                attr: `isPayed`,
+                value: false
+            }).then(handleSave)
+            .catch(handleError)
+        }
+    }))
+}
+
+function toggleStatus(id,status){
+    let edit = ce('div', false, `editWindow`)
+    edit.append(ce('h2',false,false,`Сменить статус билета.`))
+    edit.append(ce('p',false,false,`текущий статус: ${status == `used`?`гость пришел`:`гость НЕ пришел`}`))
+    
+    edit.append(ce('button',false,false,`Пришел`,{
+        onclick: function () {
+            axios.put(`/${host}/admin/tickets/${id}`, {
+                attr: `status`,
+                value: `used`
+            }).then(handleSave)
+            .catch(handleError)
+        }
+    }))
+
+    edit.append(ce('button',false,false,`НЕ пришел`,{
+        onclick: function () {
+            axios.put(`/${host}/admin/tickets/${id}`, {
+                attr: `status`,
+                value: null
+            }).then(handleSave)
+            .catch(handleError)
+        }
+    }))
+}
+
 function edit(entity, id, attr, type, value) {
 
     let attrTypes = {
@@ -347,9 +401,7 @@ function edit(entity, id, attr, type, value) {
     let edit = ce('div', false, `editWindow`)
     edit.append(ce('h2', false, false, `Правим поле ${attrTypes[attr]||attr} для ${entities[entity]||entity}#${id}`))
     let f = ce('input');
-    if(type == `isPayed`){
-
-    }
+    
     if (type == `date`) {
         f.type = `datetime-local`
         edit.append(f)
@@ -504,6 +556,12 @@ function newBank() {
 }
 
 function newClass(courseId, authorId) {
+
+    let courseData = courseId ? load(`courses`,courseId) : null
+    let authorData = authorId ? load(`courses`,authorId) : null
+    
+
+    
     let p = preparePopupWeb(`class_new`)
     p.append(ce('h1', false, false, `Новое мероприятие`))
 
@@ -521,11 +579,17 @@ function newClass(courseId, authorId) {
     let descShort = ce('textarea', false, false, false, {
         placeholder: `краткая подпись`
     })
+    
     p.append(descShort)
     let descLong = ce('textarea', false, false, false, {
         placeholder: `развернутое описание`
     })
     p.append(descLong)
+    
+    Promise.resolve(courseData).then(c=>{
+        if(c && c.description) descLong = c.description;
+    })
+
     let date = ce('input', false, false, false, {
         type: `datetime-local`
     })
@@ -534,6 +598,11 @@ function newClass(courseId, authorId) {
     let kids = ce('input', false, false, false, {
         type: 'checkbox'
     })
+
+    Promise.resolve(courseData).then(c=>{
+        if(c && c.kids) kids.checked = 1;
+    })
+    
 
     let kidsLabel = ce('label', false, false, 'Для детей')
 
@@ -545,6 +614,7 @@ function newClass(courseId, authorId) {
         type: `number`,
         placeholder: `возраст`
     })
+
     p.append(age)
 
     let price = ce(`input`, false, false, false, {
@@ -1392,10 +1462,10 @@ function showTickets() {
                     onclick: () => showClass(false, t.class)
                 }))
                 line.append(ce('td', false, false, t.isPayed ? '✔️' : '❌',{
-                    onclick:()=>edit(`userClasses`,t.id,`isPayed`,`boolean`,t.isPayed)
+                    onclick:()=>togglePayed(t.id,t.isPayed)
                 }))
                 line.append(ce('td', false, false, t.status ? '✔️' : '❌',{
-                    onclick:()=>edit(`userClasses`,t.id,`status`,`ticketStatus`,t.status)
+                    onclick:()=>toggleStatus(t.id,t.status)
                 }))
                 line.append(ce('td', false, false, t.comment || `без примечаний`,{
                     onclick: function(){addComment(this,t.id)}
@@ -1508,6 +1578,8 @@ function showUserLine(u, cnt) {
 
 function showUser(u, id) {
 
+    console.log(u,id)
+
     if (!u) {
         u = load(`users`,id)
     }
@@ -1516,7 +1588,7 @@ function showUser(u, id) {
         
         let classes = u.classes;
         let subscriptions = u.subscriptions;
-        u = u.user
+        if(u.user) u = u.user
 
         let p = preparePopupWeb(`user${u.id}`)
         
@@ -1525,6 +1597,72 @@ function showUser(u, id) {
         p.append(ce('p', false, false, `email: ${u.email || `не указан`}`))
         p.append(ce('p', false, false, `about: ${u.about || `о себе не рассказывал`}`))
         p.append(ce('p', false, false, `occupation: ${u.occupation || `о себе не рассказывал`}`))
+
+        let adminLinks = [{
+            attr: `admin`,
+            name: `сделать админом`,
+            disname: `снять админство`
+        },{
+            attr: `blocked`,
+            name: `заблокировать`,
+            disname: `разблокировать`
+        }]
+
+        let ac = ce(`div`)
+        p.append(ac)
+
+        adminLinks.forEach(type=>{
+            ac.append(ce('button',false,false, u[type.attr] ? type.disname : type.name,{
+                onclick:()=>{
+                    axios.put(`/${host}/admin/users/${u.id}`, {
+                        attr: type.attr,
+                        value: !u[type.attr]
+                    }).then(handleSave)
+                    .catch(handleError)
+                }
+            }))
+        })
+
+        let messenger = ce('div')
+        p.append(messenger)
+
+        messenger.append(ce(`button`,false,false,`Открыть переписку`,{
+            onclick:function(){
+                this.remove()
+                load(`messages`,u.id).then(messages=>{
+                    let mc = ce(`div`,false,`messenger`)
+                    messenger.append(mc)
+                    messages.forEach(m=>{
+                        let message = ce('div',false,false,false,{dataset:{reply:m.isReply}})
+                            message.append(ce(`span`,false,`info`,drawDate(m.createdAt._seconds*1000,false,{time:true})))
+                            message.append(ce(`p`,false,false,m.text))
+                        mc.prepend(message)
+                    })
+                    let txt = ce('textarea',false,false,false,`вам слово`)
+                    messenger.append(txt)
+                    messenger.append(ce(`button`,false,false,`Отправить`,{
+                        onclick:()=>{
+                            if(txt.value){
+                                axios.post(`/${host}/admin/message`,{
+                                    text: txt.value,
+                                    user: u.id
+                                }).then(s=>{
+                                    
+                                    alert(`ушло!`)
+                                    let message = ce('div',false,false,false,{dataset:{reply:true}})
+                                        message.append(ce(`span`,false,`info`,drawDate(new Date(),false,{time:true})))
+                                        message.append(ce(`p`,false,false,txt.value))
+                                        txt.value = null;
+                                    mc.prepend(message)
+                                }).catch(err=>{
+                                    alert(err.message)
+                                })
+                            }
+                        }
+                    }))
+                })
+            }
+        }))
 
         p.append(ce(`h2`, false, false, `Лекции`))
         
