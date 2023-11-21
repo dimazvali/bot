@@ -8,12 +8,25 @@ const m =       require('./methods.js');
 var QRCode =    require('qrcode')
 var cron =      require('node-cron');
 var FormData =  require('form-data');
-const host = `auditoria`
+const host =    `auditoria`
 
 let devlog =    common.devlog
 
-
 const { createHash,createHmac } = require('node:crypto');
+
+var mail =          require('nodemailer')
+
+let transporter = mail.createTransport({
+    service: 'Yandex', // no need to set host or port etc.
+    auth: {
+        // user: 'lena.zateeva@club-show.com',
+        user:       'vapeclub.show',
+        // pass: 'ujfjuqfwibzyeitj'
+        pass:       'bgvjkomhqmdcijks'
+        // 'A#jsIHR7'
+    }
+});
+
 
 
 router.use(cors())
@@ -139,6 +152,7 @@ let plansUsers =                fb.collection(`plansUsers`)
 let adminTokens =               fb.collection(`adminTokens`)
 let banks =                     fb.collection(`banks`)
 let channelStats =              fb.collection(`channelStats`)
+let subscriptionsEmail =        fb.collection(`subscriptionsEmail`)
 
 if (!process.env.develop) {
 
@@ -332,9 +346,6 @@ router.get(`/site/:city/:section/:id`,(req,res)=>{
             }
 
             if(req.params.section == `authors`){
-                
-                
-
                 return classes
                     .where(`active`,'==',true)
                     .where(`authorId`,'==',req.params.id)
@@ -356,7 +367,7 @@ router.get(`/site/:city/:section/:id`,(req,res)=>{
                         })
                     })
             }
-            devlog(d)
+
             res.render(`auditoria/${req.params.section}Item`,{
                 section: req.params.section,
                 data: d,
@@ -366,6 +377,21 @@ router.get(`/site/:city/:section/:id`,(req,res)=>{
                 cur: (v,c)=>common.cur(v,c),
                 drawDate:(d)=>   common.drawDate(d),
                 city: req.params.city
+            })
+        })
+    } else if(req.params.section == `tickets`){
+        devlog(`билетики`)
+        getDoc(userClasses,req.params.id).then(t=>{
+            if(!t) return res.sendStatus(404)
+            getDoc(classes,t.class).then(cl=>{
+                devlog(cl)
+                return res.render(`auditoria/ticket`,{
+                    ticket: t,
+                    cl:  cl,
+                    randomPic:()=>randomPic(),
+                    drawDate:(d)=>   common.drawDate(d),
+                    cur: (v,c)=>common.cur(v,c),
+                })
             })
         })
     } else {
@@ -522,8 +548,6 @@ router.all(`/admin/:method`, (req, res) => {
         if(!adminId) return res.sendStatus(403)
         
         req.query.id = adminId.toString()
-        
-        devlog(req.query.id)
 
         udb.doc(req.query.id).get().then(user => {
             if (!req.query.id) return res.status(401).send(`Вы кто вообще?`)
@@ -618,6 +642,8 @@ router.all(`/admin/:method`, (req, res) => {
                             }).catch(err=>{
                                 res.status(500).send(err.message)
                             })    
+                        }).catch(err=>{
+                            console.log(classes)
                         })
 
                         
@@ -822,9 +848,9 @@ router.all(`/admin/:method`, (req, res) => {
                     case 'classes': {
                         switch (req.method){
                             case `GET`:{
-                                return classes
-                                    .where('active', '==', true)
-                                    .orderBy('date', 'desc')
+                                let nclasses = classes.where('active', '==', true)
+                                if(req.query.filter == `future`) nclasses = nclasses.where(`date`,'>=',new Date(+new Date()-3*60*60*1000))
+                                return nclasses.orderBy('date', req.query.filter ? 'asc' : 'desc')
                                     .limit(50)
                                     .get()
                                     .then(col => {
@@ -1109,6 +1135,9 @@ router.all(`/admin/:method`, (req, res) => {
                     case `ticket`:{
                         common.devlog(`манипуляция с билетом`)
                         switch (req.method){
+                            case `GET`:{
+                                return userClasses.doc(req.query.ticket).get().then(t=>res.json(common.handleDoc(t)))
+                            }
                             case 'DELETE':{
                                 return userClasses.doc(req.query.ticket).get().then(t=>{
                                     
@@ -4299,9 +4328,68 @@ router.post('/hook', (req, res) => {
     }
 })
 
+router.post(`/api/:type`,(req,res)=>{
+    switch(req.params.type){
+        case `subscribe`:{
+            devlog('подписочка')
+            if(req.method == `POST`){
+                let subTypes = {
+                    authors: `автора`,
+                    courses: `курс` 
+                }
+                if(!req.body.mail) return res.status(400).send(`Укажите почту`)
+                if(!req.body.type) return res.status(400).send(`Укажите тип подписки`)
+                if(!subTypes[req.body.type]) return res.status(400).send(`Некорректный тип подписки`)
+                if(!req.body.id) return res.status(400).send(`Укажите, на кого подписаться`)
+                
 
+                return subscriptionsEmail
+                    .where(`mail`,'==',req.body.mail)
+                    .where(`active`,'==',true)
+                    .where(`type`,'==',req.body.type)
+                    .where(`id`,'==',req.body.id)
+                    .get()
+                    .then(col=>{
+                        if(col.docs.length) return res.status(400).send(`Вы уже подписаны`)
+                        
+                        fb.collection(req.body.type).doc(req.body.id).get().then(s=>{
+                            
+                            if(!s.exists) return res.status(404).send(`не найдено`)
+                            
+                            s = common.handleDoc(s)
+
+                            if(!s.active) return res.status(400).send(`Слишком старо...`)
+
+                            return subscriptionsEmail.add({
+                                active: false,
+                                type:   req.body.type,
+                                mail:  req.body.mail,
+                                id:     req.body.id
+                            }).then(rec=>{
+                                transporter.sendMail({
+                                    from:       'au <vapeclub.show@yandex.ru>',
+                                    to:         req.body.mail,
+                                    subject:    `Подписка на ${subTypes[req.body.type]} ${s.name}`,
+                                    text:       `Кто-то только что попросил подписать эту почту на обновления «${s.name}».\nЕсли это были вы, пройдите по ссылке ${ngrok}/${host}/site/subscriptions?subscription=${rec.id}.\nЕсли это были не вы, просто проигнорируйте это сообщение`
+                                })
+                                res.sendStatus(200)
+                            })
+
+                        })
+
+                        
+                    })
+                
+            }
+        }
+        default:{
+            return res.sendStatus(404)
+        }
+    }
+})
 
 router.get(`/api/:type`, (req, res) => {
+    devlog(req.method)
     switch (req.params.type) {
         case `menu`:{
             return res.json({
@@ -4352,6 +4440,7 @@ router.get(`/api/:type`, (req, res) => {
                     })
                 })
         }
+        
         case 'user': {
             if (!req.query.id) return res.sendStatus(400)
 

@@ -53,3 +53,34 @@ function clearPopUp() {
     //     mbbc = null
     // }
 }
+
+
+
+const validateEmail = (email) => {
+    return String(email)
+      .toLowerCase()
+      .match(
+        /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|.(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+      );
+  };
+
+  
+function submit(button,type,id){
+    let mail = button.parentNode.querySelector(`input`).value;
+    if(!mail) return alert(`укажите почту, пожалуйста`)
+    if(!validateEmail(mail)) return alert(`простите, благородный дон, это не почта`)
+    button.setAttribute(`disabled`,true)
+    axios.post(`/${host}/api/subscribe`,{
+        type: type,
+        mail: mail,
+        id: id
+    }).then(s=>{
+        alert(`Спасибо! Проверьте почту, пожалуйста.`)
+    })
+    .catch(err=>{
+        alert(err.data)
+    })
+    .finally(s=>{
+        button.removeAttribute(`disabled`)
+    })
+}

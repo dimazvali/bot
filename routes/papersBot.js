@@ -76,7 +76,7 @@ let sheet = process.env.papersSheet
 //     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
 //         console.log(`papers hook set on ${ngrok}`)
 //     }).catch(handleError)   
-// },1500)
+// },1000)
 
 
 
@@ -7927,7 +7927,7 @@ module.exports = router;
 // // 
 
 // axios.post(`https://api.telegram.org/bot${token}/setChatMenuButton`, {
-//         "chat_id":1075918604,
+//         "chat_id":212327111,
 //         "menu_button": {
 //             "type": "web_app",
 //             "text": translations.app.ru || translations.app.en,
@@ -7935,6 +7935,8 @@ module.exports = router;
 //                 "url": process.env.ngrok+"/paper/app"
 //             }
 //         }
+//     }).then(s=>{
+//         devlog(`button updated`)
 //     })
 
 // udb.get().then(col=>{

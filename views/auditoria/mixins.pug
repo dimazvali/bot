@@ -1,0 +1,7 @@
+mixin person(name)
+    p #{name}'s Pug source code!
+
+mixin subscription(type,id)
+    div
+        input.mw(type="email", placeholder="ваша почта")
+        button(onclick=`submit(this,'${type}','${id}')`) Подписаться на обновления

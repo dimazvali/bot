@@ -638,7 +638,7 @@ function showSchedule(el) {
 
             p.append(tt)
 
-            classes.data.sort((a,b)=>{
+            classes.data.filter(c=>!c.kids).sort((a,b)=>{
                 if(b.date > a.date){
                     return -1
                 } else if(b.date < a.date){
@@ -995,7 +995,7 @@ function drawAuthorPopup(data, id) {
     let p = preparePopup(`author`)
     let a = data.author;
 
-    p.append(ce('img', false, false, false, {
+    p.append(ce('img', false, 'cover', false, {
         alt: a.name,
         src: a.pic || randomPic()
     }))

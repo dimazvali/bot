@@ -470,7 +470,7 @@ function drawNewTicket(lecture){
     let p = preparePopup(`newTicket`)
         p.append(ce(`h2`,false,false,`Новый билет`))
         p.append(ce(`h3`,false,false,lecture.name))
-        p.append(ce('p',false,false,drawDate(lecture.date)))
+        p.append(ce('p',false,false,drawDate(lecture.date._seconds*1000,false,{time:true})))
         
         let name = ce('input',false,false,false,{
             placeholder: `Имя гостя`
@@ -498,11 +498,14 @@ function drawNewTicket(lecture){
                     name:       name.value,
                     isPayed:    payed.checked
                 }).then(s=>{
+
                     tg.showAlert(`Готово. Передайте гостю QR-код билета`)
+                    
                     p.append(ce('img', false, 'qrSub', false, {
                         alt: `ваш билет`,
                         src: `/${host}/qr?id=${s.data}&entity=userClasses`
                     }))
+
                 }).catch(err=>{
                     tg.showAlert(err.message)
                 }).finally(()=>{
@@ -517,7 +520,7 @@ function drawNewTicket(lecture){
 function drawClass(l){
     let c = ce('div',false,'divided')
     c.append(ce('h3',false,false,l.name))
-    c.append(ce('span',false,['info','block'], `дата: ${drawDate(l.date)}, ${new Date(l.time).getHours()}:${new Date(l.time).getMinutes()||'00'}` ))
+    c.append(ce('span',false,['info','block'], `дата: ${drawDate(l.date._seconds*1000,false,{time:true})}` ))
     let details = ce('div',false,'hidden')
     
     details.append(ce('p',false,false,l.descShort || 'без короткой подписи'))
@@ -639,7 +642,7 @@ function drawClass(l){
 
 function showTicket(id){
     showLoader();
-    axios.get(`/${host}/admin/qr?id=${userid}&data=${id}_userClasses`)
+    axios.get(`/${host}/admin/ticket?id=${userid}&ticket=${id}`)
         .then(data=>{
             let ticket = data.data;
             let p = preparePopup(`tictet`)
@@ -696,7 +699,7 @@ function showTicket(id){
 
 function showClasses(){
     showLoader()
-    axios.get(`/auditoria/admin/classes/?id=${userid}`)
+    axios.get(`/auditoria/admin/classes/?id=${userid}&filter=future`)
     .then(data=>{
         let p = preparePopup(`classes`)
         p.append(ce('h1',false,false,'Занятия'))

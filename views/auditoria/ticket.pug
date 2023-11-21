@@ -1,0 +1,21 @@
+extends site
+
+block content
+    div.pc
+        img.cover(src!=cl.pic||randomPic() alt!=cl.name)
+        if (ticket.active && ticket.status != `used`)
+            img(src!=`/qr?id=${ticket.id}&entity=usercles`)
+
+    h1!=ticket.clName
+    p.timing
+        span.date!=drawDate(cl.date._seconds*1000,'ru')
+        span.time!=new Date(cl.date._seconds*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'Asia/Tbilisi'})
+    if (cl.author)
+        a.clickable(href!=`/auditoria/site/${city}/authors/${cl.authorId}`)!=cl.author
+    p.bold!=cl.descShort
+    if (cl.descLong)
+        p!=data.descLong
+    if (!ticket.isPayed)
+        p.bold!=`К оплате: ${cur(cl.price2||cl.price,`GEL`)}`
+    
+    p!=`Подписаться на обновления и забронировать место можно в нашем <a href="https://t.me/AuditoraBot/app?startapp=ticket_${ticket.id}">приложении</a>.`

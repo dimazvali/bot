@@ -8,6 +8,8 @@ function closeLeft() {
     document.querySelectorAll(`.popupWeb`).forEach(p => p.remove())
 }
 
+
+
 function showCourses() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
@@ -323,6 +325,7 @@ function replicate(id) {
     document.body.append(edit)
 }
 
+
 function edit(entity, id, attr, type, value) {
 
     let attrTypes = {
@@ -344,6 +347,9 @@ function edit(entity, id, attr, type, value) {
     let edit = ce('div', false, `editWindow`)
     edit.append(ce('h2', false, false, `Правим поле ${attrTypes[attr]||attr} для ${entities[entity]||entity}#${id}`))
     let f = ce('input');
+    if(type == `isPayed`){
+
+    }
     if (type == `date`) {
         f.type = `datetime-local`
         edit.append(f)
