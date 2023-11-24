@@ -564,16 +564,17 @@ router.all(`/admin/:method`, (req, res) => {
                             case 'POST':{
                                 if(req.body.name && req.body.price){
                                     plans.add({
+                                        active:     true,
                                         createdAt:  new Date(),
                                         createdBy:  user.id,
                                         name:       req.body.name,
                                         description: req.body.description,
-                                        price:      req.body.price,
-                                        visits:     req.body.visits
+                                        price:      +req.body.price,
+                                        visits:     +req.body.visits
                                     }).then(s=>{
                                         log({
                                             silent: true,
-                                            text: `${uname(user,user.id)} создает новую подписку ${req.body.name}.`,
+                                            text: `${common.uname(user,user.id)} создает новую подписку ${req.body.name}.`,
                                             plan: s.id
                                         })
                                     })
@@ -904,6 +905,14 @@ router.all(`/admin/:method`, (req, res) => {
 
                                                     })
                                                 })
+                                            })
+                                        })
+                                    }
+                                    if(req.body.bankId){
+                                        getDoc(banks,bankId).then(b=>{
+                                            if(b) classes.doc(s.id).update({
+                                                bankId: b.id,
+                                                bankCreds: b.creds
                                             })
                                         })
                                     }
@@ -1245,7 +1254,7 @@ router.all(`/admin/:method`, (req, res) => {
                     case `courses`:{
                         switch(req.method){
                             case 'GET': {
-                                return courses.get().then(col=>res.json(common.handleQuery(col)))
+                                return courses.where(`active`,'==',true).get().then(col=>res.json(common.handleQuery(col)))
                             }
                             case 'POST':{
                                 if(req.body.name){
@@ -1622,8 +1631,16 @@ function updateEntity(req,res,ref,adminId){
         if(req.body.attr == `bankId`){
             getDoc(banks,req.body.value).then(a=>{
                 ref.update({
-                    bankName:   a.name,
+                    bankName:       a.name,
                     bankCreds:      a.creds
+                })
+            })
+        }
+
+        if(req.body.attr == `planId`){
+            getDoc(plans,req.body.value).then(a=>{
+                ref.update({
+                    plan:   a.name
                 })
             })
         }
@@ -2466,7 +2483,7 @@ function sendHalls(id, lang) {
 const translations = {
     planConfirmed:(plan)=>{
         return {
-            ru: `Поздравляем! Вы оформили подписку на план ${plan.name}. Он будет действовать в течение ${plan.days} дней.`,
+            ru: `Поздравляем! Вы оформили подписку на абонемент ${plan.name}. Он будет действовать в течение ${plan.days} дней.`,
             en: `Congratulations! You've bought a plan for ${plan.events} events. Feel free to use it in the next ${plan.days} days.`
         }
     },

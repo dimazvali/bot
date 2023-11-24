@@ -69,6 +69,7 @@ function showViews(){
         }
 
         p.append(ce('h2',false,false,`tapLink`))
+        
         let filtered = views.filter(r=>r.entity == `mp`)
         let counter = {};
         filtered.forEach(r=>{
@@ -76,7 +77,8 @@ function showViews(){
             if(!counter[d]) counter[d] = 0;
             counter[d]++
         })
-        Object.keys(counter).forEach(date=>{
+
+        Object.keys(counter).sort().forEach(date=>{
             p.append(ce('p',false,false,`${date}: ${counter[date]}`))
         })
 
@@ -166,7 +168,8 @@ function drawSchedule(events, start) {
             day.append(ce('p', false, false, `<b>${new Date(e.date._seconds*1000).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}</b>: ${e.name}`, {
                 onclick: () => showClass(e, e.id),
                 dataset:{
-                    soldOut:  e.soldOut
+                    soldOut:    e.soldOut,
+                    kids:       e.kids
                 }
             }))
         })
@@ -179,7 +182,7 @@ function drawSchedule(events, start) {
 
 function showCourseLine(course) {
     // console.log(c)
-    let c = ce(`div`, false, `divied`, false, {
+    let c = ce(`div`, false, `divided`, false, {
         dataset: {
             active: course.active,
             kids: course.kids
@@ -193,6 +196,17 @@ function showCourseLine(course) {
     c.append(ce('p', false, false, course.author || `без автора`))
 
     return c
+}
+
+function deleteButton(collection,id){
+    return ce('button',false,false,`Архивировать`,{
+        onclick:()=>{
+            let proof = confirm(`Вы уверены?`)
+            if(proof) axios.delete(`/${host}/admin/${collection}/${id}`)
+                .then(handleSave)
+                .catch(handleError)
+        }
+    })
 }
 
 function showCourse(cl, id) {
@@ -223,6 +237,18 @@ function showCourse(cl, id) {
             }))
         }
 
+        if (!cl.plan) {
+            p.append(ce(`button`, false, `accent`, `выбрать подписку`, {
+                onclick: () => edit(`courses`, cl.id, `planId`, `planId`, null)
+            }))
+        } else {
+            p.append(ce(`button`, false, `accent`, cl.plan, {
+                onclick: () => edit(`courses`, cl.id, `planId`, `planId`, cl.planId)
+            }))
+        }
+
+        
+
         p.append(ce('h1', false, false, cl.name || `Без названия`, {
             onclick: () => edit(`courses`, cl.id, `name`, `text`, null)
         }))
@@ -239,6 +265,16 @@ function showCourse(cl, id) {
             }))
         }
 
+        // if (!cl.authorId) {
+        //     p.append(ce(`button`, false, `accent`, `выбрать автора`, {
+        //         onclick: () => edit(`courses`, cl.id, `authorId`, `authorId`, null)
+        //     }))
+        // } else {
+        //     p.append(ce(`button`, false, `accent`, cl.author, {
+        //         onclick: () => edit(`courses`, cl.id, `authorId`, `authorId`, cl.authorId)
+        //     }))
+        // }
+
         if (cl.description) {
             p.append(ce('p', false, false, cl.description, {
                 onclick: () => edit(`courses`, cl.id, `description`, `text`, cl.description)
@@ -248,6 +284,8 @@ function showCourse(cl, id) {
                 onclick: () => edit(`courses`, cl.id, `description`, `text`, null)
             }))
         }
+
+        p.append(deleteButton(`courses`,cl.id))
 
 
         axios.get(`/${host}/admin/courses/${cl.id}`).then(course => {
@@ -260,7 +298,7 @@ function showCourse(cl, id) {
             course.classes.forEach(c => {
                 p.append(showClassLine(c))
             })
-            p.append(addClass(cl.authorId, cl.id))
+            p.append(addClass(cl.authorId, cl.id, cl.bankId))
 
             if (course.subscriptions.length) {
                 p.append(ce('h2', false, false, `Подписок на курс: ${course.subscriptions.length}`))
@@ -399,6 +437,13 @@ function edit(entity, id, attr, type, value) {
     }
 
     let edit = ce('div', false, `editWindow`)
+
+    edit.append(ce('span', false, `closeMe`, `✖`, {
+        onclick: () => {
+            edit.remove()
+        }
+    }))
+    
     edit.append(ce('h2', false, false, `Правим поле ${attrTypes[attr]||attr} для ${entities[entity]||entity}#${id}`))
     let f = ce('input');
     
@@ -447,6 +492,20 @@ function edit(entity, id, attr, type, value) {
                 })))
             edit.append(f)
         })
+    } else if (type == `planId`) {
+        load(`plans`).then(authors => {
+            f = ce('select')
+            f.append(ce('option', false, false, `Выберите подписку`, {
+                value: ''
+            }))
+            authors
+                .filter(a => a.active)
+                .sort((a, b) => a.name < b.name ? -1 : 1)
+                .forEach(a => f.append(ce('option', false, false, a.name, {
+                    value: a.id
+                })))
+            edit.append(f)
+        })
     } else {
         f = ce('input', false, false, false, {
             value: value,
@@ -485,7 +544,7 @@ window.addEventListener('keydown', (e) => {
 function newPlan(){
     let p = preparePopupWeb(`plans_new`)
     
-    p.append(ce('h1', false, false, `Новый план`))
+    p.append(ce('h1', false, false, `Новый абонемент`))
 
     let name = ce('input', false, false, false, {
         type: `text`,
@@ -555,7 +614,7 @@ function newBank() {
 
 }
 
-function newClass(courseId, authorId) {
+function newClass(courseId, authorId, bankId) {
 
     let courseData = courseId ? load(`courses`,courseId) : null
     let authorData = authorId ? load(`courses`,authorId) : null
@@ -671,6 +730,22 @@ function newClass(courseId, authorId) {
         p.append(course)
     })
 
+    let bank = ce(`select`)
+
+    if (!bankId) load(`banks`).then(banks => {
+
+        course.append(ce('option', false, false, `Выберите реквизиты`, {
+            value: ''
+        }))
+        banks
+            .filter(a => a.active)
+            .sort((a, b) => a.name < b.name ? -1 : 1)
+            .forEach(a => course.append(ce('option', false, false, a.name, {
+                value: a.id
+            })))
+        p.append(bank)
+    })
+
     p.append(ce('button', false, false, `Сохранить`, {
         onclick: function () {
             if (name.value && date.value) {
@@ -686,7 +761,8 @@ function newClass(courseId, authorId) {
                         price: price.value,
                         price2: price2.value,
                         price3: price3.value,
-                        date: date.value
+                        date: date.value,
+                        bankId: bankId || bank.value
 
                     }).then(handleSave)
                     .catch(handleError)
@@ -801,9 +877,9 @@ function newAuthor() {
 
 }
 
-function addClass(a, c) {
+function addClass(a, c, b) {
     return ce('button', false, false, `Добавить меропориятие`, {
-        onclick: () => newClass(c, a)
+        onclick: () => newClass(c, a, b)
     })
 }
 
@@ -1141,14 +1217,41 @@ function showClass(cl, id) {
         p.append(alertsContainer)
 
         p.append(ce('p', false, false, `ведет: ${cl.author||`неизвестно кто`}`, {
-            // onclick:()=>showAuthor(cl.authorId)
             onclick: () => edit(`classes`, cl.id, `author`, `authorId`, cl.authorId)
-
         }))
 
-        p.append(ce('p', false, false, `цена: ${cur(cl.price,`GEL`)} / ${cur(cl.price2,`GEL`)} / ${cur(cl.price3,`GEL`)}`))
+        if(cl.price){
+            p.append(ce(`p`,false,false,`Цена по записи: ${cur(cl.price,`GEL`)}`, {
+                onclick: () => edit(`classes`, cl.id, `price`, `number`, cl.price)
+            }))
+        } else {
+            p.append(ce(`button`, false, `accent`, `задать цену по записи`, {
+                onclick: () => edit(`classes`, cl.id, `price`, `number`, null)
+            }))
+        }
+
+        if(cl.price2){
+            p.append(ce(`p`,false,false,`Цена на месте: ${cur(cl.price2,`GEL`)}`, {
+                onclick: () => edit(`classes`, cl.id, `price2`, `number`, cl.price2)
+            }))
+        } else {
+            p.append(ce(`button`, false, `accent`, `задать цену на месте`, {
+                onclick: () => edit(`classes`, cl.id, `price2`, `number`, null)
+            }))
+        }
+
+        if(cl.price3){
+            p.append(ce(`p`,false,false,`Цена трансляции: ${cur(cl.price3,`GEL`)}`, {
+                onclick: () => edit(`classes`, cl.id, `price3`, `number`, cl.price3)
+            }))
+        } else {
+            p.append(ce(`button`, false, `accent`, `задать цену трансляции`, {
+                onclick: () => edit(`classes`, cl.id, `price3`, `number`, null)
+            }))
+        }
 
 
+        // p.append(ce('p', false, false, `цена: ${} / ${cur(cl.price2,`GEL`)} / ${cur(cl.price3,`GEL`)}`))
 
         p.append(ce('p', false, `story`, cl.descShort, {
             onclick: () => edit(`classes`, cl.id, `descShort`, `text`, cl.descShort)

@@ -72,14 +72,11 @@ let ngrok = process.env.ngrok
 
 let sheet = process.env.papersSheet
 
-// setTimeout(function(){
-//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
-//         console.log(`papers hook set on ${ngrok}`)
-//     }).catch(handleError)   
-// },1000)
-
-
-
+setTimeout(function(){
+    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
+        console.log(`papers hook set on ${ngrok}`)
+    }).catch(handleError)   
+},1000)
 
 
 let rules = {
@@ -1319,6 +1316,77 @@ if(!process.env.develop){
 }
 
 
+router.get(`/mini`,(req,res)=>{
+    
+    classes
+        .where(`active`,'==',true)
+        .where(`date`,'>',new Date().toISOString())
+        .get()
+        .then(col=>{
+
+            res.render(`papers/main`,{
+                classes:        common.handleQuery(col),
+                translations:   translations,
+                coworkingRules: coworkingRules,
+                drawDate:(d)=>  drawDate(d),
+                lang: req.language.split('-')[0]
+            })
+        })
+})
+
+let siteSectionsTypes = {
+    classes:{
+        title: `Афиша`,
+        data: classes,
+    }
+}
+
+router.get(`/mini/:section`,(req,res)=>{
+    if(req.params.section == `classes`){
+        return classes
+            .where(`active`,'==',true)
+            .where(`date`,'>',new Date().toISOString())
+            .get()
+            .then(col=>{
+                res.render(`papers/classes`,{
+                    classes:            common.handleQuery(col),
+                    translations:       translations,
+                    coworkingRules:     coworkingRules,
+                    drawDate:(d)=>      drawDate(d),
+                    lang:               req.language.split('-')[0],
+                    cur:(p)=>           common.cur(p)
+                })
+            })
+    }
+    res.sendStatus(404)
+})
+
+router.get(`/mini/:section/:id`,(req,res)=>{
+    if(req.params.section == `classes`){
+        
+        devlog(`classes`)
+
+        return common.getDoc(classes,req.params.id).then(c=>{
+            
+            devlog(c)
+
+            if(!c) return res.sendStatus(404)
+            
+            res.render(`papers/class`,{
+                cl:                 c,
+                translations:       translations,
+                coworkingRules:     coworkingRules,
+                drawDate:(d)=>      drawDate(d),
+                lang:               req.language.split('-')[0],
+                cur:(p)=>           common.cur(p)
+            })
+        })
+    }
+    
+    devlog(req.params.section)
+
+    res.sendStatus(404)
+})
 
 
 if(process.env.develop){
@@ -4387,26 +4455,27 @@ router.post('/slack', (req, res) => {
                                         console.log(err)
                                     })
                                 } else {
-                                    udb.doc(a.value).update({
+                                    return udb.doc(a.value).update({
                                         blocked: true,
                                         updatedBy: `slack_${data.user.userName}`
                                     }).then(() => {
                                         res.sendStatus(200)
+                                        axios.post(`https://slack.com/api/chat.postMessage`, {
+                                            channel: data.container.channel_id,
+                                            thread_ts: data.container.message_ts,
+                                            text: `Пользователь заблокирован`
+                                        }, {
+                                            headers: {
+                                                'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                                                'Content-Type': 'application/json'
+                                            }
+                                        })
+                                        log({
+                                            user: u.id,
+                                            text: `Админ ${data.user.username} блокирует пользователя ${uname(u.data(),u.id)}`
+                                        })
                                     })
-                                    axios.post(`https://slack.com/api/chat.postMessage`, {
-                                        channel: data.container.channel_id,
-                                        thread_ts: data.container.message_ts,
-                                        text: `Пользователь заблокирован`
-                                    }, {
-                                        headers: {
-                                            'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                                            'Content-Type': 'application/json'
-                                        }
-                                    })
-                                    log({
-                                        user: u.id,
-                                        text: `Админ ${data.user.username} блокирует пользователя ${uname(u.data(),u.id)}`
-                                    })
+                                    
                                 }
                             }
                             case 'admin': {

@@ -1,0 +1,6 @@
+extends site
+
+block content
+    h2!=translations.schedule[lang] 
+    for c in classes
+        include classLine

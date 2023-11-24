@@ -1,0 +1,10 @@
+extends site
+
+block content
+    h1!=cl.name
+    h3!=cl.author
+    p.timing 
+        //- span.date!=drawDate(class.date,false,{time:true})
+    p.story!=cl.description
+    if(cl.price)
+        p!=`Стоимость: ${cur(cl.price)}`

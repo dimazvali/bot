@@ -4,6 +4,7 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var bodyParser = require('body-parser')
+var requestLanguage = require('express-request-language');
 
 
 var wineRouter =  require('./routes/wineBot');
@@ -17,6 +18,9 @@ app.set('view engine', 'pug');
 app.use(logger('dev'));
 app.use(express.json({limit: '50mb'}));
 app.use(express.urlencoded({ extended: false }));
+app.use(requestLanguage({
+  languages: [`ru-RU`,'en-EN'],
+}));
 app.use(cookieParser(process.env.papersToken));
 app.use(express.json({limit:'10mb'}));
 app.use(bodyParser.json({limit: '50mb'}))

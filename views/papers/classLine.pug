@@ -1,0 +1,8 @@
+
+div.class(onclick!=`window.location.pathname='/paper/mini/classes/${c.id}'`)
+    p.timing 
+        span.date!=drawDate(c.date,false,{time:true})
+    p
+        h3!=c.name
+        if(c.author)
+            h5=c.author
