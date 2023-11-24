@@ -435,3 +435,11 @@ div#footer>*>a{
     width: -webkit-fill-available;
     line-height: 40px;
 }
+
+p.soldOut {
+    background: #FF5722;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    line-height: 40px;
+}

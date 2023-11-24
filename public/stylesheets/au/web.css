@@ -206,3 +206,7 @@ table.wide{
 [data-reply="true"] {
     padding-left: 40px;
 }
+
+textarea{
+    height: 120px;
+}

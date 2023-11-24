@@ -116,15 +116,27 @@ let menuDishes = [];
 
 
 
-axios.get(`https://joinposter.com/api/menu.getCategories?token=658416:0542557d20b40805925cc4a52c0cfe49`).then(d=>{
-    menuCategories = d.data.response.filter(c=>c.visible && c.visible[0].visible)
-    devlog(menuCategories)
-})
+function refreshMenu(){
+    let updates = []
 
-axios.get(`https://joinposter.com/api/menu.getProducts?token=658416:0542557d20b40805925cc4a52c0cfe49`).then(d=>{
-    menuDishes = d.data.response
-    devlog(menuDishes)
-})
+    updates.push(axios.get(`https://joinposter.com/api/menu.getCategories?token=658416:0542557d20b40805925cc4a52c0cfe49`).then(d=>{
+        menuCategories = d.data.response.filter(c=>c.visible && c.visible[0].visible)
+        return true
+    }))
+
+    updates.push(axios.get(`https://joinposter.com/api/menu.getProducts?token=658416:0542557d20b40805925cc4a52c0cfe49`).then(d=>{
+        menuDishes = d.data.response
+        return true
+    }))
+
+    Promise.all(updates).then(s=>{
+        return true;
+    }).catch(err=>{
+        return false;
+    })
+}
+
+
 
 
 let udb =                       fb.collection('users');
@@ -215,6 +227,7 @@ const sections ={
     classes: classes,
     authors: authors,
     courses: courses,
+    plans:      plans
 }
 
 const sectionsMeta = {
@@ -237,6 +250,10 @@ const sectionsMeta = {
     bar:{
         title: `Меню и счет`,
         description: `Съесть вопрос...`
+    },
+    plans:{
+        title: `Подписки`,
+        description: `Оптом — дешевле`
     }
 }
 
@@ -366,6 +383,27 @@ router.get(`/site/:city/:section/:id`,(req,res)=>{
                             city: req.params.city
                         })
                     })
+            }
+
+            if(req.params.section == `classes`){
+                let course = null;
+                if(d.courseId) course = getDoc(courses,d.courseId)
+                return Promise.resolve(course).then(course=>{
+                    d.planId = course ? course.planId : null;
+                    d.plan = course ? course.plan :null;
+                    res.render(`auditoria/${req.params.section}Item`,{
+                        section: req.params.section,
+                        data: d,
+                        title: (d.name +' | '+sectionsMeta[req.params.section].title + '| Auditoria Books&Bar'),
+                        description: d.description,
+                        randomPic: ()=> randomPic(),
+                        cur: (v,c)=>common.cur(v,c),
+                        drawDate:(d)=>   common.drawDate(d),
+                        city: req.params.city
+                    })
+
+                })
+                
             }
 
             res.render(`auditoria/${req.params.section}Item`,{
@@ -529,7 +567,6 @@ router.post(`/auth`,(req,res)=>{
     } else {
         res.sendStatus(403)
     }
-
 })
 
 
@@ -563,7 +600,7 @@ router.all(`/admin/:method`, (req, res) => {
                             }
                             case 'POST':{
                                 if(req.body.name && req.body.price){
-                                    plans.add({
+                                    return plans.add({
                                         active:     true,
                                         createdAt:  new Date(),
                                         createdBy:  user.id,
@@ -577,6 +614,7 @@ router.all(`/admin/:method`, (req, res) => {
                                             text: `${common.uname(user,user.id)} создает новую подписку ${req.body.name}.`,
                                             plan: s.id
                                         })
+                                        res.sendStatus(200)
                                     })
                                 } else {
                                     return res.sendStatus(400)

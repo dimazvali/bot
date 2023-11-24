@@ -1,0 +1,8 @@
+extends site
+
+block content
+    img.cover(src!=data.pic||randomPic() alt!=data.name)
+    a(href!=`/auditoria/site/${city}/plans`) Вернуться к списку Абонементов
+    h1!=data.name
+    p.bold!=data.description
+    p!=`Стоимость: ${cur(data.price,`GEL`)} за ${data.visits} занятий.`

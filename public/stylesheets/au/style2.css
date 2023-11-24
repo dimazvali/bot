@@ -56,4 +56,12 @@ div#logo>img {
     width: 100%;
 }
 
+p.soldOut {
+    background: #FF5722;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    line-height: 40px;
+}
+
 

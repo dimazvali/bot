@@ -5,6 +5,14 @@ block content
     a(href!=`/auditoria/site/${city}/courses`) Вернуться к списку курсов
     h1!=data.name
     p.bold!=data.description
+
+    if(data.author)
+        p!=`Автор: `
+            a(href!=`/auditoria/site/${city}/authors/${data.authorId}`)!=data.author
+    if(data.plan)
+        p Входит в подписку 
+            a(href!=`/auditoria/site/${city}/plans/${data.planId}`)!=data.plan
+
     if (data.classes)
         console.log(1)
         table

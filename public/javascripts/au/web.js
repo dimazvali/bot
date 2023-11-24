@@ -1,5 +1,7 @@
 // const { default: axios } = require("axios")
 
+// const { drawDate } = require("../../../routes/common")
+
 let host = `auditoria`
 const appLink = `https://t.me/AuditoraBot/app`
 const web = `https://dimazvali-a43369e5165f.herokuapp.com/auditoria/site/tbi`
@@ -264,6 +266,30 @@ function showCourse(cl, id) {
                 onclick: () => edit(`courses`, cl.id, `authorId`, `authorId`, cl.authorId)
             }))
         }
+
+        let kids = ce('input', false, false, false, {
+            type: 'checkbox',
+            checked: cl.kids,
+            onchange:function(){
+                axios.put(`/${host}/admin/courses`,{
+                    attr: `kids`,
+                    value: this.checked
+                })
+            }
+        })
+
+        
+
+        let kidsLabel = ce('label', false, false, 'Для детей')
+
+        kidsLabel.append(kids)
+
+        p.append(kidsLabel)
+
+        p.append(ce('p',false,false,cl.age?`Для детей от ${cl.age} лет.`:`возраст не указан`,{
+            onclick: () => edit(`courses`,cl.id,`age`,`number`,cl.age)
+        }))
+
 
         // if (!cl.authorId) {
         //     p.append(ce(`button`, false, `accent`, `выбрать автора`, {
@@ -532,6 +558,9 @@ function edit(entity, id, attr, type, value) {
 
 window.addEventListener('keydown', (e) => {
     if (e.key == 'Escape') {
+        if(document.querySelectorAll(`.popupWeb`).length){
+            document.querySelectorAll(`.popupWeb`)[document.querySelectorAll(`.popupWeb`).length-1].remove()
+        }
         try {
             document.querySelector('.editWindow').remove();
             document.querySelector('#hover').remove();
@@ -646,7 +675,7 @@ function newClass(courseId, authorId, bankId) {
     p.append(descLong)
     
     Promise.resolve(courseData).then(c=>{
-        if(c && c.description) descLong = c.description;
+        if(c && c.course.description) descLong.value = c.course.description;
     })
 
     let date = ce('input', false, false, false, {
@@ -659,7 +688,7 @@ function newClass(courseId, authorId, bankId) {
     })
 
     Promise.resolve(courseData).then(c=>{
-        if(c && c.kids) kids.checked = 1;
+        if(c && c.course.kids) kids.checked = 1;
     })
     
 
@@ -675,6 +704,10 @@ function newClass(courseId, authorId, bankId) {
     })
 
     p.append(age)
+
+    Promise.resolve(courseData).then(c=>{
+        if(c && c.course.age) age.value = c.course.age;
+    })
 
     let price = ce(`input`, false, false, false, {
         type: `number`,
@@ -921,6 +954,8 @@ function showAuthor(a,id) {
         p.append(ce(`p`, false, false, a.description, {
             onclick: () => edit(`authors`, a.id, `description`, `text`, a.description)
         }))
+
+        p.append(deleteButton(`authors`,a.id))
 
 
 
@@ -1512,10 +1547,15 @@ function showTicket(t, id) {
     }
     Promise.resolve(t).then(ticket => {
         let p = preparePopupWeb(`ticket${ticket.id}`)
+
+        p.append(ce(`p`,false,`info`,`Создан ${drawDate(ticket.createdAt._seconds*1000)}`))
+        
         if (!ticket.active) p.append(ce('h1', false, false, `Отменен`))
+        
         p.append(ce('h1', false, false, `Билет: ${ticket.className}`, {
             onclick: () => showClass(false, ticket.class)
         }))
+        
         p.append(ce('h2', false, false, `${ticket.userName}${ticket.outsider? ` (не через бот)` :''}`, {
             onclick: () => {
                 if (ticket.user) {
@@ -1523,10 +1563,14 @@ function showTicket(t, id) {
                 }
             }
         }))
+        
         if (ticket.alert) p.append(ce('p', false, false, `ВАЖНО: ${ticket.alert}`))
+        
         if (ticket.isPayed) p.append(ce(`p`, false, false, 'оплачен'))
 
         p.append(ce('p', false, false, ticket.used ? `использован` : `не использован`))
+
+
 
         if (ticket.rate) p.append(ce('p', false, false, `Оценка: ${ticket.rate}`))
         if (ticket.review) p.append(ce('p', false, false, `Отзыв: ${ticket.review}`))

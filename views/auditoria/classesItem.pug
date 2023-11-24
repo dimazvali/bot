@@ -3,6 +3,8 @@ extends site
 block content
     img.cover(src!=data.pic||randomPic() alt!=data.name)
     a(href!=`/auditoria/site/${city}/classes`) Вернуться к расписанию
+    if(data.soldOut)
+        p.soldOut!=`SOLDOUT`
     h1!=data.name
     p.timing
         span.date!=drawDate(data.date._seconds*1000,'ru')
