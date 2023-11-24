@@ -13,6 +13,39 @@ function closeLeft() {
 }
 
 
+function showStreams(){
+    closeLeft()
+    mc.innerHTML = '<h1>Загружаем...</h1>'
+    axios.get(`/${host}/admin/streams`)
+        .then(data => {
+            console.log(data.data)
+            mc.innerHTML = '';
+            mc.append(ce('h1', false, `header2`, `Трансляции`))
+            let c = ce('div')
+            data.data.forEach(cl => {
+                c.append(showStreamLine(cl))
+            });
+            mc.append(c)
+
+        })
+        .catch(err => {
+            console.log(err)
+            alert(err.message)
+        })
+}
+
+function showStreamLine(s){
+    let c = ce('div',false,false,false,{
+        dataset:{active:s.active}
+    })
+    c.append(ce(`span`,false,`info`,drawDate(s.createdAt._seconds*1000)))
+    c.append(ce('h3',false,false,`${s.className} (${s.payed?'✔️':'❌'})`,{
+        onclick:()=>showStream(s.id)
+    }))
+    return c;
+}
+
+
 
 function showCourses() {
     closeLeft()
@@ -922,6 +955,16 @@ function addBank() {
     })
 }
 
+function showStream(id){
+    load(`streams`,id).then(stream=>{
+        let p = preparePopupWeb(`stream_${a.id}`)
+            p.append(ce(`p`,false,false,drawDate(stream.createdAt._seconds*1000)))
+            if(!stream.active) p.append(ce('h1',false,false,`Запись отменена`))
+            p.append(ce(`h2`,false,false,`Трансляция ${stream.className}`))
+        
+    })
+}
+
 function showAuthor(a,id) {
 
     if(!a){
@@ -1247,8 +1290,9 @@ function showClass(cl, id) {
         }))
 
         if (!cl.paymentDesc) alertsContainer.append(ce(`button`, false, `accent`, `выбрать счет`, {
-            onclick: () => edit(`classes`, cl.id, `text`, `paymentDesc`, null)
+            onclick: () => edit(`classes`, cl.id, `bankId`, `bankId`, null)
         }))
+
         p.append(alertsContainer)
 
         p.append(ce('p', false, false, `ведет: ${cl.author||`неизвестно кто`}`, {
@@ -1285,7 +1329,6 @@ function showClass(cl, id) {
             }))
         }
 
-
         // p.append(ce('p', false, false, `цена: ${} / ${cur(cl.price2,`GEL`)} / ${cur(cl.price3,`GEL`)}`))
 
         p.append(ce('p', false, `story`, cl.descShort, {
@@ -1294,6 +1337,24 @@ function showClass(cl, id) {
 
         p.append(ce('p', false, `story`, cl.descLong, {
             onclick: () => edit(`classes`, cl.id, `descLong`, `text`, cl.descLong)
+        }))
+
+        p.append(ce(`p`,false,false,cl.stream ? cl.stream : `параметры трансляции не заданы`,{
+            onclick:()=>edit(`classes`, cl.id, `stream`, `text`, cl.stream)
+        }))
+
+        p.append(ce('button',false,false,`Отправить ссылку на трансляцию`,{
+            onclick:function(){
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/streamAlerts/${cl.id}`).then(s=>{
+                    if(s.data.success) return alert(`ok`)
+                    return alert(s.data.comment)
+                }).catch(err=>{
+                    alert(err.message)
+                }).finally(()=>{
+                    this.removeAttribute('disabled')
+                })
+            }
         }))
 
 

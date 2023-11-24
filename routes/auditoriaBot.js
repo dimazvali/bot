@@ -426,6 +426,7 @@ router.get(`/site/:city/:section/:id`,(req,res)=>{
                 return res.render(`auditoria/ticket`,{
                     ticket: t,
                     cl:  cl,
+                    city: req.params.city,
                     randomPic:()=>randomPic(),
                     drawDate:(d)=>   common.drawDate(d),
                     cur: (v,c)=>common.cur(v,c),
@@ -949,8 +950,9 @@ router.all(`/admin/:method`, (req, res) => {
                                     if(req.body.bankId){
                                         getDoc(banks,bankId).then(b=>{
                                             if(b) classes.doc(s.id).update({
-                                                bankId: b.id,
-                                                bankCreds: b.creds
+                                                bankId:         b.id,
+                                                bankCreds:      b.creds,
+                                                paymentDesc:    b.creds
                                             })
                                         })
                                     }
@@ -1332,6 +1334,15 @@ router.all(`/admin/:method`, (req, res) => {
                     case `tickets`:{
                         return userClasses.orderBy(`createdAt`,'desc').get().then(col=>res.json(common.handleQuery(col)))
                     }
+
+                    case `streams`:{
+                        return streams
+                            .orderBy(`createdAt`,'desc')
+                            .get()
+                            .then(col=>{
+                                res.json(common.handleQuery(col))
+                            })
+                    }
                     default:
                         res.sendStatus(404)
                 }
@@ -1636,6 +1647,50 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                     .then(col=>{
                         res.json(common.handleQuery(col))
                     })
+            }
+            case `streamAlerts`:{
+                return getDoc(classes,req.params.id).then(cl=>{
+                    if(cl.active && cl.stream){
+                        return streams
+                            .where(`class`,'==',req.params.id)
+                            .where(`active`,'==',true)
+                            .where(`payed`,'==',true)
+                            .get()
+                            .then(col=>{
+                                let line = common.handleQuery(col)
+                                res.json({
+                                    success:true,
+                                    comment: `отправляется на ${line.length} адресов`
+                                })
+                                line.forEach((r,count)=>{
+                                    if(!r.sent){
+                                        setTimeout(function(){
+                                            m.sendMessage2({
+                                                chat_id: r.user,
+                                                message: `Доступ к трансляции ${r.className}:\n${cl.stream}`
+                                            }).then(s=>{
+                                                messages.add({
+                                                    createdAt: new Date(),
+                                                    user: r.user,
+                                                    text: `Доступ к трансляции ${r.className}:\n${cl.stream}`,
+                                                    isReply: true
+                                                })
+                                                streams.doc(r.id).update({
+                                                    sent: new Date()
+                                                })
+                                            })
+                                        },count*200)
+                                    }
+                                })
+                            })
+                    } else {
+                        return res.json({
+                            success: false,
+                            comment: `Мероприятие отменено или не заданы данные трансляции.`
+                        })
+                    }
+                })
+                
             }
             default: return res.sendStatus(404)
         }
@@ -4850,13 +4905,15 @@ router.all(`/api/:data/:id`, (req, res) => {
                                     success: false,
                                     comment: `cancelled`
                                 })
+
                                 streams.add({
                                     status:     `new`,
                                     payed:      false,
                                     active:     true,
                                     createdAt:  new Date(),
                                     user:       +req.query.user,
-                                    class:      req.params.id
+                                    class:      req.params.id,
+                                    className:  c.name
                                 }).then(r=>{
                                     res.json({
                                         success:    true,
