@@ -157,6 +157,8 @@ function showPlan(id) {
             onclick: () => edit(`plans`, id, `visits`, `number`, plan.visits)
         }))
 
+        p.append(deleteButton(`plans`,id))
+
         if (plan.subscriptions.length) {
             p.append(ce('h2', false, false, `Подписок: ${plan.subscriptions.length} (активных ${plan.subscriptions.filter(s=>s.active).length})`))
             p.append(postSection(`plan`, plan.id, p))
@@ -714,6 +716,7 @@ function newClass(courseId, authorId, bankId) {
     let date = ce('input', false, false, false, {
         type: `datetime-local`
     })
+
     p.append(date)
 
     let kids = ce('input', false, false, false, {
@@ -827,7 +830,7 @@ function newClass(courseId, authorId, bankId) {
                         price: price.value,
                         price2: price2.value,
                         price3: price3.value,
-                        date: date.value,
+                        date: new Date(date.value),
                         bankId: bankId || bank.value
 
                     }).then(handleSave)
