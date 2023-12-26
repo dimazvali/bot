@@ -65,6 +65,7 @@ if(start){
                 axios
                     .get(`/${host}/api/classes/${start.split(`_`)[1]}?user=${userid}`)
                     .then(data=>{
+                        data.data.id = start.split(`_`)[1]
                         drawLecturePopup(data.data)
                     }).catch(err=>{
                         tg.showAlert(err.message)
@@ -1211,8 +1212,6 @@ function drawLecturePopup(c){
                 mbbc = delist
 
             } else {
-                
-                
                 tg.MainButton.setText(translations.book[userLang] || translations.book.en)
                 tg.MainButton.show()
                 
