@@ -2,10 +2,9 @@ var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-var bodyParser = require('body-parser')
+var logger =      require('morgan');
+var bodyParser =  require('body-parser')
 var requestLanguage = require('express-request-language');
-
 
 var wineRouter =  require('./routes/wineBot');
 
@@ -36,7 +35,7 @@ app.use('/sss',         require('./routes/sss'));
 app.use('/kaha',        require('./routes/kaha'));
 app.use('/wtg',         require('./routes/wtgBot'));
 app.use('/test',        require('./routes/test'));
-// app.use('/cyprus',      require('./routes/cyprus'));
+app.use('/cyprus',      require('./routes/cyprus'));
 
 
 // catch 404 and forward to error handler

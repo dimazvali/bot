@@ -143,6 +143,7 @@ function uname(u,id){
 
 function preparePopup(type) {
     tg.BackButton.show();
+
     tg.onEvent('backButtonClicked', clearPopUp)
 
     tg.HapticFeedback.notificationOccurred('success')
@@ -152,6 +153,7 @@ function preparePopup(type) {
     }
 
     mcb = clearPopUp
+    
     let popup = ce('div', false, 'popup', false, {
         dataset: {
             type: type
