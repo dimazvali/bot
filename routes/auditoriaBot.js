@@ -91,9 +91,9 @@ const ngrok = process.env.ngrok
 
 let sheet = process.env.auditoriaSheet
 
-axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s=>{
-    console.log(`auditoria hook set to ${ngrok}`)
-})
+// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s=>{
+//     console.log(`auditoria hook set to ${ngrok}`)
+// })
 
 let getDoc = common.getDoc;
 
@@ -167,9 +167,7 @@ let channelStats =              fb.collection(`channelStats`)
 let subscriptionsEmail =        fb.collection(`subscriptionsEmail`)
 
 if (!process.env.develop) {
-
-
-
+    
     cron.schedule(`0 10 * * *`, () => {
         common.getNewUsers(udb, 1).then(newcomers => {
             if(newcomers.length){
@@ -948,7 +946,7 @@ router.all(`/admin/:method`, (req, res) => {
                                         })
                                     }
                                     if(req.body.bankId){
-                                        getDoc(banks,bankId).then(b=>{
+                                        getDoc(banks,req.body.bankId).then(b=>{
                                             if(b) classes.doc(s.id).update({
                                                 bankId:         b.id,
                                                 bankCreds:      b.creds,
