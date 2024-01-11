@@ -3473,7 +3473,7 @@ router.post('/hook', (req, res) => {
 
                                 Promise.all(data).then(d=>{
                                     admins.forEach(a=>{
-                                        if(a.id == common.dimazvali) m.sendMessage2({
+                                        m.sendMessage2({
                                             chat_id:    a.id,
                                             text:       `Если это чек, то вот неоплаченные билеты:`,
                                             reply_markup:{
