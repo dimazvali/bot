@@ -795,7 +795,7 @@ router.all(`/admin/:method`, (req, res) => {
                                         })
                                 }
                                 case 'POST': {
-                                    fb.collection(inc[1])
+                                    return fb.collection(inc[1])
                                         .doc(inc[0])
                                         .update({
                                             status: 'used',
