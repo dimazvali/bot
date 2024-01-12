@@ -91,9 +91,9 @@ const ngrok = process.env.ngrok
 
 let sheet = process.env.auditoriaSheet
 
-// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s=>{
-//     console.log(`auditoria hook set to ${ngrok}`)
-// })
+axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s=>{
+    console.log(`auditoria hook set to ${ngrok}`)
+})
 
 let getDoc = common.getDoc;
 
@@ -136,6 +136,9 @@ function refreshMenu(){
     })
 }
 
+refreshMenu()
+
+
 
 
 
@@ -169,6 +172,7 @@ let subscriptionsEmail =        fb.collection(`subscriptionsEmail`)
 if (!process.env.develop) {
     
     cron.schedule(`0 10 * * *`, () => {
+        refreshMenu()
         common.getNewUsers(udb, 1).then(newcomers => {
             if(newcomers.length){
                 log({
@@ -222,9 +226,9 @@ router.get('/app2', (req, res) => {
 })
 
 const sections ={
-    classes: classes,
-    authors: authors,
-    courses: courses,
+    classes:    classes,
+    authors:    authors,
+    courses:    courses,
     plans:      plans
 }
 
@@ -1648,7 +1652,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
             }
             case `streamAlerts`:{
                 return getDoc(classes,req.params.id).then(cl=>{
-                    if(cl.active && cl.stream){
+                    if(cl.active && cl.streamDesc){
                         return streams
                             .where(`class`,'==',req.params.id)
                             .where(`active`,'==',true)
@@ -1665,13 +1669,13 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                                         setTimeout(function(){
                                             m.sendMessage2({
                                                 chat_id: r.user,
-                                                message: `Доступ к трансляции ${r.className}:\n${cl.stream}`
-                                            }).then(s=>{
+                                                text: `Доступ к трансляции ${r.className}:\n${cl.streamDesc}`
+                                            },false,token).then(s=>{
                                                 messages.add({
-                                                    createdAt: new Date(),
-                                                    user: r.user,
-                                                    text: `Доступ к трансляции ${r.className}:\n${cl.stream}`,
-                                                    isReply: true
+                                                    createdAt:  new Date(),
+                                                    user:       r.user,
+                                                    text:       `Доступ к трансляции ${r.className}:\n${cl.streamDesc}`,
+                                                    isReply:    true
                                                 })
                                                 streams.doc(r.id).update({
                                                     sent: new Date()
@@ -4635,10 +4639,10 @@ router.get(`/api/:type`, (req, res) => {
 
                         data[0].forEach(stream=>{
                             let t = d.filter(d=>d.id == stream.class)[0]
-                                t.booked = stream.id;
-                                t.status = stream.status;
+                                t.booked =  stream.id;
+                                t.status =  stream.status;
                                 t.payed =   stream.isPayed;
-                                t.stream = true;
+                                t.stream =  true;
                             streams.push(t)
                         })
 

@@ -15,6 +15,10 @@ var drawDate =  require('./common').drawDate;
 const { createHash,createHmac } = require('node:crypto');
 const devlog = require(`./common`).devlog
 
+const {
+    Parser
+} = require('json2csv');
+
 router.use(cors())
 
 const {
@@ -43,6 +47,7 @@ const {
 const {
     sendAt
 } = require('cron');
+const { ObjectStreamToJSON } = require('sitemap');
 
 
 
@@ -72,11 +77,11 @@ let ngrok = process.env.ngrok
 
 let sheet = process.env.papersSheet
 
-setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
-        console.log(`papers hook set on ${ngrok}`)
-    }).catch(handleError)   
-},1000)
+// setTimeout(function(){
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
+//         console.log(`papers hook set on ${ngrok}`)
+//     }).catch(handleError)   
+// },1000)
 
 
 let rules = {
@@ -301,6 +306,52 @@ router.post(`/auth`,(req,res)=>{
 
 
 
+// udb.get().then(col=>{
+//     common.handleQuery(col).filter(u=>u.insider || u.fellow).forEach((u,i)=>{
+//         setTimeout(function(){
+//             m.sendMessage2({
+//                 chat_id: u.id,
+//                 photo: `https://cdn1.intermedia.ru/img/news_x400/379053.jpg`,
+//                 parse_mode: `HTML`,
+//                 disable_notification:true,
+//                 caption: `Друзья! Завтра, в 20:00, ждем всех своих на показ «Сказки» Александра Сокурова. Место действия: <s>лимб</s> бар Papers. Вход свободный, бар — как всегда.`
+//             },`sendPhoto`,token)
+//             devlog(i)
+//         },i*200)
+//     })
+// })
+
+
+// classes.doc(`6IWjjV0bDcmr6E1nQTJw`).get().then(d=>console.log(JSON.stringify(d.data())))
+
+classes.add({
+    "date": "2023-12-25T16:00:00.000Z",
+    "author": "Станислав Елисеев, Дмитрий Шестаков",
+    "active": true,
+    "hall": "BrXsFWF4tE7K36SHQIS6",
+    "type": "event",
+    "duration": "120",
+    "noRegistration": false,
+    "createdAt": {
+        "_seconds": 1702916655,
+        "_nanoseconds": 208000000
+    },
+    "price": 0,
+    "name": "Показ «Сказки» Александра Сокурова",
+    "hallName": "Gamotsema bar",
+    "admins": false,
+    "capacity": 60,
+    "updatedBy": "slack_tyapin",
+    "description": "Собрались как-то Сталин, Гитлер, Муссолини и Черчилль...",
+    "pic": "https://firebasestorage.googleapis.com/v0/b/paperstuff-620fa.appspot.com/o/classes%2Fsokurov.webp?alt=media&token=98499b07-91e3-4a35-b05e-085863f2112f",
+    "updatedAt": {
+        "_seconds": 1703433292,
+        "_nanoseconds": 491000000
+    }
+}).then(s=>console.log(s.id))
+
+
+
 router.get('/app', (req, res) => {
     res.render('papers/app', {
         user:   req.query.id,
@@ -407,6 +458,64 @@ router.all(`/admin/:method`, (req, res) => {
             user = user.data();
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
+                case `stats`:{
+                    switch(req.query.type){
+                        case `cowork`:{
+                            let fields = [
+                                'date',
+                                'visits',
+                                'newcomers'
+                            ];
+
+                            let opts = {
+                                fields
+                            };
+                
+                            const parser = new Parser(opts);
+
+                            return coworking
+                            .where(`active`,'==',true)
+                            .get()
+                            .then(col=>{
+                                let data = common.handleQuery(col).sort((a,b)=>a.date>b.date?1:-1)
+                                devlog(data.map(r=>r.date))
+                                let result = {};
+                                let userIndex = [];
+                                data.forEach(record=>{
+                                    if(!result[record.date]) result[record.date] = {
+                                        visits: 0,
+                                        newcomers: 0
+                                    }
+                        
+                                    result[record.date].visits ++
+                        
+                                    if(userIndex.indexOf(record.user) == -1) {
+                                        result[record.date].newcomers ++
+                                        userIndex.push(record.user)
+                                    }
+                        
+                        
+                                })
+                                
+                                let csv = parser.parse(Object.keys(result).map(date=>{
+                                    return {
+                                        date: date,
+                                        visits: result[date].visits,
+                                        newcomers: result[date].newcomers
+                                    }
+                                }), opts);
+                        
+                                res.attachment('cowork_'+Number(new Date())+'.csv');
+                                res.status(200).send(csv);
+
+                            })
+                            
+                            
+
+                        }
+                    }
+                    
+                }
                 case `channel`:{
                     return classes.doc(req.query.class).get().then(c=>{
                         if(!c.exists) return res.sendStatus(404)
@@ -3497,9 +3606,6 @@ router.get('/alertClass/:class', (req, res) => {
                     // if(u.admin ) 
                     m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
                 }
-
-
-
             })
         })
     })
@@ -8031,3 +8137,24 @@ module.exports = router;
         
 //     })
 // })
+
+
+// coworking
+//     .where(`active`,'==',true)
+//     .get()
+//     .then(col=>{
+//         let res = {};
+//         common.handleQuery(col).forEach(line=>{
+//             if(!res[line.user]) res[line.user] = 0
+//             res[line.user] ++
+//         })
+
+//         let users = []
+//         Object.keys(res).filter(id=>res[id]>1).forEach(id=>{
+//             users.push(udb.doc(id).get().then(u=>u.data()))
+//         })
+
+//         Promise.all(users).then(users=>{
+//             console.log(JSON.stringify(users))
+//         })
+//     })

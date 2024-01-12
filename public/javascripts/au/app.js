@@ -333,7 +333,7 @@ if(start){
                 }
                 case `ticket`:{
                     showLoader()
-                    axios.get(`/${host}/api/tickets/${c}?user=${userid}`).then(c=>{
+                    axios.get(`/${host}/api/tickets/${c[1]}?user=${userid}`).then(c=>{
                         drawClassPopup(c.data,c.data.id)
                         hideLoader()
                     })
@@ -1095,6 +1095,8 @@ function drawPlanPopup(plan,load){
 }
 
 function drawClassPopup(c, id) {
+
+    console.log(c)
 
     axios.post(`/${host}/views/classes/${id}`, {
         user: userid

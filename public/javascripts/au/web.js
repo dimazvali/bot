@@ -803,13 +803,13 @@ function newClass(courseId, authorId, bankId) {
 
     if (!bankId) load(`banks`).then(banks => {
 
-        course.append(ce('option', false, false, `Выберите реквизиты`, {
+        bank.append(ce('option', false, false, `Выберите реквизиты`, {
             value: ''
         }))
         banks
             .filter(a => a.active)
             .sort((a, b) => a.name < b.name ? -1 : 1)
-            .forEach(a => course.append(ce('option', false, false, a.name, {
+            .forEach(a => bank.append(ce('option', false, false, a.name, {
                 value: a.id
             })))
         p.append(bank)
@@ -1342,8 +1342,8 @@ function showClass(cl, id) {
             onclick: () => edit(`classes`, cl.id, `descLong`, `text`, cl.descLong)
         }))
 
-        p.append(ce(`p`,false,false,cl.stream ? cl.stream : `параметры трансляции не заданы`,{
-            onclick:()=>edit(`classes`, cl.id, `stream`, `text`, cl.stream)
+        p.append(ce(`p`,false,false,cl.streamDesc ? cl.streamDesc : `параметры трансляции не заданы`,{
+            onclick:()=>edit(`classes`, cl.id, `streamDesc`, `text`, cl.streamDesc)
         }))
 
         p.append(ce('button',false,false,`Отправить ссылку на трансляцию`,{
@@ -1814,9 +1814,9 @@ function showUser(u, id) {
             name: `сделать админом`,
             disname: `снять админство`
         },{
-            attr: `blocked`,
-            name: `заблокировать`,
-            disname: `разблокировать`
+            attr:       `blocked`,
+            name:       `заблокировать`,
+            disname:    `разблокировать`
         }]
 
         let ac = ce(`div`)
