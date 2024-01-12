@@ -419,8 +419,8 @@ function delist() {
     // tg.showAlert(`not ready yet. you should use /myclasses command instead`)
     showLoader();
     axios
-        .delete(`/${host}/api/tickets/${curRecord}?user=${userid}`, {
-            type: curRecordStream ? true : false
+        .delete(`/${host}/api/tickets/${curRecord}?user=${userid}&type=${curRecordStream ? `stream` : false}`, {
+            type: curRecordStream ? `stream` : false
         })
         .then(res => {
             tg.showAlert(res.data.comment)

@@ -1436,7 +1436,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                                 updatedBy: doc.user
                             }).then(s=>{
                                 log({
-                                    text: `автор ${common.handleDoc(author).name} отправляется в архив`,
+                                    text: `автор ${common.handleDoc(author).name} был обновлен`,
                                     admin: doc.user,
                                     author: req.params.id
                                 })
@@ -1574,18 +1574,25 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                         }
                         case `GET`:{
                             let data = []
+                            
                             data.push(userClasses.where(`class`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-                            // data.push(views.where(`entity`,'==','class').where(`id`,'==',req.params.id).get().then(common.handleQuery))
-                            if(cl.authorId) data.push(getDoc(authors,cl.authorId)) 
-                            if(cl.courseId) data.push(getDoc(courses,cl.courseId)) 
+                            
+                            if(cl.authorId) {data.push(getDoc(authors,cl.authorId))} else {data.push([])} 
+                            if(cl.courseId) {data.push(getDoc(courses,cl.courseId))} else {data.push([])}
+                            
+                            data.push(streams.where(`class`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+
 
                             return Promise.all(data).then(data=>{
+
+                                devlog(data)
+                                
                                 res.json({
                                     class:          cl,
                                     tickets:        data[0],
-                                    // views:          data[1],
                                     author:         data[1],
-                                    course:         data[2]
+                                    course:         data[2],
+                                    streams:        data[3]
                                 })
                             })
                             
@@ -1694,6 +1701,35 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                 })
                 
             }
+            case `streams`:{
+                let ref = streams.doc(req.params.id)
+                return ref.get().then(s=>{
+                    if(!s.exists) return res.sendStatus(404)
+                    
+                    switch (req.method){
+                        case `PUT`:{
+                            return ref.get().then(s=>{
+                                updateEntity(req,res,ref,doc.user)
+                            })
+                        }
+                        case `GET`:{
+                            return ref.get().then(s=>{
+                                m.getUser(s.data().userBlocked,udb).then(u=>{
+                                    res.json({
+                                        stream: s.data(),
+                                        user: u
+                                    })
+                                })
+                            })
+                        }
+                        case `DELETE`:{
+                            return deleteEntity(req,res,ref,doc.user)
+                        }
+                    }
+                })
+                
+                
+            }
             default: return res.sendStatus(404)
         }
     })
@@ -1757,6 +1793,9 @@ function deleteEntity(req,res,ref,admin, attr){
         },
         users: {
             log: (name) => `пользователь ${name} был заблокирован`
+        },
+        streams: {
+            log: (name) => `подписка на трансляцию была аннулирована`
         }
     }
     return ref.get().then(e=>{
@@ -4822,6 +4861,8 @@ router.post(`/views/:type/:id`,(req,res)=>{
     
     if(!req.body.user) return res.status(400).send(`no user provided`)
 
+    if(req.body.id == `undefinded`) return res.status(400).send(`no id provided`)
+
     views.add({
         createdAt:  new Date(),
         user:       +req.body.user,
@@ -4915,7 +4956,8 @@ router.all(`/api/:data/:id`, (req, res) => {
                                     createdAt:  new Date(),
                                     user:       +req.query.user,
                                     class:      req.params.id,
-                                    className:  c.name
+                                    className:  c.name,
+                                    userName:   common.uname(u,u.id)
                                 }).then(r=>{
                                     res.json({
                                         success:    true,
@@ -5191,7 +5233,7 @@ router.all(`/api/:data/:id`, (req, res) => {
             // if(!req.body.type) return res.sendStatus(400)
             switch(req.method){
                 case `DELETE`:{
-                    let ref = req.body.type == `stream` ? streams : userClasses;
+                    let ref = req.query.type == `stream` ? streams : userClasses;
                         ref = ref.doc(req.params.id)
                         return ref.get().then(t=>{
                             if(!t.exists) return res.sendStatus(404)
@@ -5226,6 +5268,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                         t = t.data();
                         classes.doc(t.class).get().then(c=>{
                             c = c.data();
+                            c.id = t.class;
                             c.booked = t.active ? req.params.id : false
                             c.payed = t.isPayed
                             res.json(c)

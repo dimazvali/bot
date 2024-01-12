@@ -1,7 +1,3 @@
-// const { default: axios } = require("axios")
-
-// const { drawDate } = require("../../../routes/common")
-
 let host = `auditoria`
 const appLink = `https://t.me/AuditoraBot/app`
 const web = `https://dimazvali-a43369e5165f.herokuapp.com/auditoria/site/tbi`
@@ -39,7 +35,7 @@ function showStreamLine(s){
         dataset:{active:s.active}
     })
     c.append(ce(`span`,false,`info`,drawDate(s.createdAt._seconds*1000)))
-    c.append(ce('h3',false,false,`${s.className} (${s.payed?'✔️':'❌'})`,{
+    c.append(ce('h3',false,false,`${s.userName} @ ${s.className} (${s.payed?'✔️':'❌'})`,{
         onclick:()=>showStream(s.id)
     }))
     return c;
@@ -709,9 +705,7 @@ function newClass(courseId, authorId, bankId) {
     })
     p.append(descLong)
     
-    Promise.resolve(courseData).then(c=>{
-        if(c && c.course.description) descLong.value = c.course.description;
-    })
+    
 
     let date = ce('input', false, false, false, {
         type: `datetime-local`
@@ -721,10 +715,6 @@ function newClass(courseId, authorId, bankId) {
 
     let kids = ce('input', false, false, false, {
         type: 'checkbox'
-    })
-
-    Promise.resolve(courseData).then(c=>{
-        if(c && c.course.kids) kids.checked = 1;
     })
     
 
@@ -743,6 +733,9 @@ function newClass(courseId, authorId, bankId) {
 
     Promise.resolve(courseData).then(c=>{
         if(c && c.course.age) age.value = c.course.age;
+        if(c && c.course.kids) kids.checked = 1;
+        if(c && c.course.description) descLong.value = c.course.description;
+        if(c && c.course.name) name.value = c.course.name;
     })
 
     let price = ce(`input`, false, false, false, {
@@ -1000,6 +993,16 @@ function showAuthor(a,id) {
         p.append(ce(`p`, false, false, a.description, {
             onclick: () => edit(`authors`, a.id, `description`, `text`, a.description)
         }))
+
+        p.append(ce('p', false, false, `Доля автора: ${a.share ? `${a.share}%` : `не определена` }`, {
+            onclick: () => edit(`authors`, a.id, `share`, `number`, a.share)
+        }))
+
+        p.append(ce('p', false, false, `Минимальная ставка: ${a.minWage ? `${cur(a.minWage)}` : `не определена` }`, {
+            onclick: () => edit(`authors`, a.id, `minWage`, `number`, a.minWage)
+        }))
+
+
 
         p.append(deleteButton(`authors`,a.id))
 
@@ -1278,7 +1281,7 @@ function showClass(cl, id) {
 
         p.append(ce('p',false,false,`Просмотров: ${cl.views || 0}`))
 
-        if (cl.kids) p.append(ce(`button`, false, `accent`, `для детей ${cl.age  || `без возрастных оганичений`}`))
+        if (cl.kids) p.append(ce(`button`, false, `accent`, `для детей ${cl.age  || `без возрастных ограничений`}`))
 
         let alertsContainer = ce('div', false, 'flexible')
         // if(!cl.capacity)        alertsContainer.append(ce(`button`,false,`accent`,`вместимость не указана`))
@@ -1361,9 +1364,31 @@ function showClass(cl, id) {
         }))
 
 
+        let inc = ce('div')
+
+        p.append(inc)
+
+        if(cl.authorId) {
+            load(`authors`,cl.authorId).then(a=>{
+                inc.append(ce('p', false, `story`, cl.authorShare || a.share || `процент автора не указан`, {
+                    onclick: () => edit(`classes`, cl.id, `authorShare`, `number`, cl.authorShare)
+                }))
+
+                inc.append(ce('p', false, `story`, cl.minShare || a.minWage || `минимальная ставка не указана`, {
+                    onclick: () => edit(`classes`, cl.id, `authorShare`, `number`, cl.minShare)
+                }))
+            })
+        }
+
+        
+
+
+
         let guests = ce('div');
 
         p.append(guests)
+
+
 
         p.append(ce('button', false, `dateButton`, `Показать гостей`, {
             dataset: {
@@ -1371,9 +1396,9 @@ function showClass(cl, id) {
             },
             onclick: function () {
                 this.remove()
-                axios.get(`/${host}/admin/class?class=${cl.id}`)
+                load(`classes`,cl.id)
                     .then(data => {
-                        let rating = data.data.filter(t => t.rate).map(t => t.rate)
+                        let rating = data.tickets.filter(t => t.rate).map(t => t.rate)
 
                         if (rating.length) {
 
@@ -1383,15 +1408,26 @@ function showClass(cl, id) {
                         }
 
 
-                        guests.append(ce(`p`, false, false, `Гостей: ${data.data.length}${cl.price ? ` // оплачено ${data.data.filter(g=>g.isPayed).length}` : ''}${` // пришли ${data.data.filter(g=>g.status == 'used').length}`}`))
+                        guests.append(ce(`p`, false, false, `Гостей: ${data.tickets.length}${cl.price ? ` // оплачено ${data.tickets.filter(g=>g.isPayed).length}` : ''}${` // пришли ${data.tickets.filter(g=>g.status == 'used').length}`}`))
+                        
                         guests.innerHTML += `<table><tr><th>Имя</th><th>💲</th><th>📍</th><th>примечания админу</th></tr>
-                            ${data.data.map(u=>`<tr class="story">
+                            ${data.tickets.map(u=>`<tr class="story">
                                 <td onclick="showUser(false,${u.user})">${u.userName}</td>
                                 <td>${cl.price ? (u.isPayed?'✔️':'❌') : '🚫'}</td>
                                 <td>${(u.status == 'used'? '✔️' : '❌')}</td>
                                 <td class="editable" onclick=addComment(this,"${u.id}")>${u.comment || `без примечаний`}</td>
                                 <td onclick=showTicket(false,"${u.id}")>Открыть билет</td>
                             </tr>`).join('')}</table>`
+
+                        guests.append(ce(`h3`,false,false,`Трансляции`))
+                        
+                        if(data.streams.length){
+                            data.streams.forEach(s=>{
+                                guests.append(drawStreamLine(s))
+                            })
+                        } else {
+                            guests.append(ce(`p`,false,false,`Никто еще не записывался`))
+                        }
                     })
             }
         }))
@@ -1464,6 +1500,24 @@ function showClass(cl, id) {
 
     })
 
+}
+
+function drawStreamLine(s){
+    let c = ce(`div`,false,false,false,{
+        dataset:{active:s.active}
+    })
+    c.append(ce(`span`,false,`info`,drawDate(s.createdAt._seconds*1000)))
+    if(s.payed){
+        c.append(ce(`p`,false,false,`Оплачено`))
+    } else {
+        c.append(ce(`p`,false,false,`Еще не оплачено`))
+        c.append(ce(`button`,false,false,`Отметить как оплаченную`,{
+            onclick:()=>{
+                update(`streams`,s.id,{payed:true})
+            }
+        }))
+    }
+    return c
 }
 
 function delButton(col, id) {
@@ -1603,7 +1657,10 @@ function showUsersChart(userData) {
     }); // end am5.ready()
 }
 
-
+function update(col,doc,data,text){
+    let sure = confirm(text||`Уверены?`)
+    if (sure) return axios.put(`/${host}/admin/${col}/${doc}`,data)
+}
 
 function showTicket(t, id) {
     if (!t) {
