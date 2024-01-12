@@ -1234,7 +1234,7 @@ function drawClassPopup(c, id) {
                     p.append(ce('p', false, 'bold', `Ваш билет оплачен.`))
                 } else {
                     p.append(ce('p', false, 'bold', `Ваш билет еще не оплачен. Напоминаем, что в день мероприятия стоимость составит ${cur(c.price2 || c.price ,`GEL`)}.`))
-                    p.append(ce(`p`, false, `bold`, `Чтобы оплатить билет заранее, переведите ${cur(c.price ,`GEL`)} на ${c.paymentDesc || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
+                    p.append(ce(`p`, false, `bold`, `Чтобы оплатить билет заранее, переведите ${cur(c.price ,`GEL`)} на ${c.paymentDesc || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
                 }
             }
 
@@ -1245,7 +1245,7 @@ function drawClassPopup(c, id) {
         if (c.payed || c.isPayed) {
             p.append(ce('p', false, 'bold', `Ваша трансляция оплачена. Пароль и ссылку вы получите за полчаса до начала меропориятия`))
         } else if (c.price1) {
-            p.append(ce(`p`, false, `bold`, `Чтобы оплатить трансляцию, переведите ${cur(c.price1 ,`GEL`)} на ${c.paymentDesc || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
+            p.append(ce(`p`, false, `bold`, `Чтобы оплатить трансляцию, переведите ${cur(c.price1 ,`GEL`)} на ${c.paymentDesc || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
         }
     }
 
