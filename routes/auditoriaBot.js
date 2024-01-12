@@ -139,9 +139,6 @@ function refreshMenu(){
 refreshMenu()
 
 
-
-
-
 let udb =                       fb.collection('users');
 let messages =                  fb.collection('userMessages');
 let admins =                    fb.collection('admins');
@@ -2772,7 +2769,10 @@ const translations = {
     },
     lectureInvite: (l) => {
         return {
-            ru: `Отлично! Ждем вас на лекции «${l.name}»`,
+            ru: `Отлично! Ждем вас на лекции «${l.name}». 
+            
+            ${l.price? 
+                `Напоминаем, что в день мероприятия стоимость составит ${cur(l.price2 || c.price ,`GEL`)}. Чтобы оплатить билет заранее, переведите ${cur(l.price ,`GEL`)} на ${l.paymentDesc || l.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.` : ''}`,
             en: `Great! Looking forward to meet you`
         }
     },

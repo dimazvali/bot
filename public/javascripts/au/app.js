@@ -1221,7 +1221,7 @@ function drawClassPopup(c, id) {
                 if (c.price3) {
                     p.append(ce('button', false, `bold`, `Доступ к прямой трансляции: ${cur(c.price3,`GEL`)}`, {
                         onclick: () => {
-                            console.log(123)
+                            
                             tg.showConfirm(`Уверены?`, function (e) {
                                 bookOnline(e, p)
                             })
@@ -1239,13 +1239,17 @@ function drawClassPopup(c, id) {
             }
 
         } else {
-            p.append(ce('h3', false, false, `Вход бесплатный!`))
+            if (c.price2) {
+                p.append(ce('p', false, `bold`, `В день мероприятия: ${cur(c.price2,`GEL`)}`))
+            } else {
+                p.append(ce('h3', false, false, `Вход бесплатный!`))
+            }
         }
     } else {
         if (c.payed || c.isPayed) {
             p.append(ce('p', false, 'bold', `Ваша трансляция оплачена. Пароль и ссылку вы получите за полчаса до начала меропориятия`))
-        } else if (c.price1) {
-            p.append(ce(`p`, false, `bold`, `Чтобы оплатить трансляцию, переведите ${cur(c.price1 ,`GEL`)} на ${c.paymentDesc || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
+        } else if (c.price3) {
+            p.append(ce(`p`, false, `bold`, `Чтобы оплатить трансляцию, переведите ${cur(c.price3 ,`GEL`)} на ${c.paymentDesc || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
         }
     }
 
