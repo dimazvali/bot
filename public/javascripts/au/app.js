@@ -313,24 +313,32 @@ if (start) {
         }
         default: {
             let c = start.split('_');
+            console.log(c[0]);
+            
             switch (c[0]) {
                 case `classes`: {
-                    drawClassPopup(false, c[1])
+                     drawClassPopup(false, c[1])
+                     break;
                 }
                 case `class`: {
-                    drawClassPopup(false, c[1])
+                    drawClassPopup(false, c[1]);
+                    break;
                 }
                 case `course`: {
-                    drawCoursePopup(false, c[1])
+                     drawCoursePopup(false, c[1])
+                    break;
                 }
                 case `courses`: {
-                    drawCoursePopup(false, c[1])
+                     drawCoursePopup(false, c[1])
+                     break;
                 }
                 case `author`: {
-                    drawAuthorPopup(false, c[1])
+                     drawAuthorPopup(false, c[1])
+                     break;
                 }
                 case `authors`: {
-                    drawAuthorPopup(false, c[1])
+                     drawAuthorPopup(false, c[1])
+                     break;
                 }
                 case `ticket`: {
                     showLoader()
@@ -338,6 +346,7 @@ if (start) {
                         drawClassPopup(c.data, c.data.id)
                         hideLoader()
                     })
+                    break;
                 }
             }
         }
@@ -1120,7 +1129,7 @@ function drawClassPopup(c, id) {
 
     console.log(c)
 
-    if (!c) c = userLoad(`classes`, id)
+    if (!c) c = userLoad(`class`, id)
 
     Promise.resolve(c).then(c => {
 

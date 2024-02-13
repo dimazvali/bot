@@ -4607,7 +4607,7 @@ router.get(`/api/:type`, (req, res) => {
         }
         
         case 'user': {
-            if (!Number(req.query.user)) return res.sendStatus(400)
+            if (!Number(req.query.id)) return res.sendStatus(400)
 
             userEntries.add({
                 user: +req.query.id,
@@ -5386,7 +5386,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                     return classes.doc(req.params.id).update(data).then(() => res.sendStatus(200))
                 }
                 case 'GET': {
-                    classes
+                    return classes
                         .where(`active`, '==', true)
                         .where('date', '>=', new Date())
                         .orderBy('date')
