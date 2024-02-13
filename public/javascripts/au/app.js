@@ -1,4 +1,3 @@
-
 let tg = window.Telegram.WebApp;
 
 let coworkingHall, coworkindDate, coworkingRecord, curLecture, curRecord, curRecordStream = null
@@ -14,18 +13,18 @@ let appData = undefined;
 let mbbc = null;
 
 class auditoriaAppModel extends appModel {
-    constructor(v){
+    constructor(v) {
         super(v)
-        this.streams = ko.observableArray(v.streams.map(s=>new auLecture(s)))
-        this.lecture = ko.observableArray(v.schedule.map(l=>new auLecture(l)))
+        this.streams = ko.observableArray(v.streams.map(s => new auLecture(s)))
+        this.lecture = ko.observableArray(v.schedule.map(l => new auLecture(l)))
     }
 }
 
-class auLecture extends appLecture{
-    constructor(l){
+class auLecture extends appLecture {
+    constructor(l) {
         super(l)
         this.price2 = ko.observable(l.price2)
-        this.price3 = ko.observable(l.price3)   
+        this.price3 = ko.observable(l.price3)
 
     }
 }
@@ -298,8 +297,8 @@ const ready = [
 
 ]
 
-if(start){
-    switch(start){
+if (start) {
+    switch (start) {
         case 'classes': {
             showSchedule(classes.querySelector('h2'))
             break;
@@ -312,31 +311,31 @@ if(start){
             showMR(mr.querySelector('h2'))
             break;
         }
-        default:{
+        default: {
             let c = start.split('_');
-            switch(c[0]){
-                case `classes`:{
-                    drawClassPopup(false,c[1])
+            switch (c[0]) {
+                case `classes`: {
+                    drawClassPopup(false, c[1])
                 }
-                case `class`:{
-                    drawClassPopup(false,c[1])
+                case `class`: {
+                    drawClassPopup(false, c[1])
                 }
-                case `course`:{
+                case `course`: {
                     drawCoursePopup(false, c[1])
                 }
-                case `courses`:{
+                case `courses`: {
                     drawCoursePopup(false, c[1])
                 }
-                case `author`:{
-                    drawAuthorPopup(false,c[1])
+                case `author`: {
+                    drawAuthorPopup(false, c[1])
                 }
-                case `authors`:{
-                    drawAuthorPopup(false,c[1])
+                case `authors`: {
+                    drawAuthorPopup(false, c[1])
                 }
-                case `ticket`:{
+                case `ticket`: {
                     showLoader()
-                    axios.get(`/${host}/api/tickets/${c[1]}?user=${userid}`).then(c=>{
-                        drawClassPopup(c.data,c.data.id)
+                    axios.get(`/${host}/api/tickets/${c[1]}?user=${userid}`).then(c => {
+                        drawClassPopup(c.data, c.data.id)
                         hideLoader()
                     })
                 }
@@ -355,8 +354,8 @@ tg.MainButton.setParams({
 
 axios.get(`/auditoria/api/user?id=${userid}`).then(u => {
     console.log(u.data)
-    if(u.data.admin){
-        links.prepend(ce('h1',false,`admin`,`Админка`,{
+    if (u.data.admin) {
+        links.prepend(ce('h1', false, `admin`, `Админка`, {
             onclick: () => window.location.href = `/${host}/admin`
         }))
     }
@@ -372,20 +371,20 @@ axios.get(`/auditoria/api/profile?user=${userid}`)
 
         let p = document.querySelector('#schedule')
 
-        if(data.schedule.length || data.streams.length){
+        if (data.schedule.length || data.streams.length) {
             p.classList.add('open')
             p.append(ce('h1', false, false, `Ваши билеты:`))
         }
 
 
 
-        
+
 
         if (data.schedule.length) {
 
             let s = ce('table')
             p.append(s)
-            data.schedule.sort((a, b) => b.date._seconds > a.date._seconds ? -1 : 1).filter(t => new Date(t.date._seconds*1000) > new Date()).forEach(l => {
+            data.schedule.sort((a, b) => b.date._seconds > a.date._seconds ? -1 : 1).filter(t => new Date(t.date._seconds * 1000) > new Date()).forEach(l => {
                 s.append(drawClassLine(l))
             })
         } else {
@@ -480,46 +479,46 @@ function unBook() {
 function showCoworking(el) {
     showLoader();
     let p = preparePopup(`coworking`);
-        p.append(ce('h2', false, 'header', `Коворкинг`))
-        p.append(ce('p',false,false,`Коворкинг открыт с 10:00 до 20:00.`))
-        p.append(ce('p',false,false,`Стоимость: ${cur(20,`GEL`)} по будням и ${cur(15,`GEL`)} по выходным.`))
+    p.append(ce('h2', false, 'header', `Коворкинг`))
+    p.append(ce('p', false, false, `Коворкинг открыт с 10:00 до 20:00.`))
+    p.append(ce('p', false, false, `Стоимость: ${cur(20,`GEL`)} по будням и ${cur(15,`GEL`)} по выходным.`))
 
     axios.get(`/auditoria/api/coworking?user=${userid}`)
         .then(data => {
             data = data.data;
-            
+
             let dates = [];
             let shift = 0;
-            while (shift<7){
-                dates.push(new Date(+new Date()+shift*24*60*60*1000).toISOString().split('T')[0])
+            while (shift < 7) {
+                dates.push(new Date(+new Date() + shift * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
                 shift++;
             }
-            dates.forEach(date=>{
-                let booked = data.filter(d=>d.date == date);
-                let userBooked = booked.filter(r=>r.user == userid)[0]
-                let c = ce('div',false,'day',false,{
-                        onclick: ()=>{
-                            coworkindDate = date;
-                            coworkingRecord = userBooked ? userBooked.id : false;
-                            if(userBooked){
-                                tg.MainButton.setText('Снять бронь на ' + date)
-                                tg.MainButton.show()
-                                tg.MainButton.onClick(unBook)
-                                mbbc = unBook
-                            } else {
-                                tg.MainButton.setText('Забронировать на ' + date)
-                                tg.MainButton.show()
-                                tg.MainButton.onClick(book)
-                                mbbc = book
-                            }
-                        },
-                        dataset:{
-                            booked: userBooked ? true : false
+            dates.forEach(date => {
+                let booked = data.filter(d => d.date == date);
+                let userBooked = booked.filter(r => r.user == userid)[0]
+                let c = ce('div', false, 'day', false, {
+                    onclick: () => {
+                        coworkindDate = date;
+                        coworkingRecord = userBooked ? userBooked.id : false;
+                        if (userBooked) {
+                            tg.MainButton.setText('Снять бронь на ' + date)
+                            tg.MainButton.show()
+                            tg.MainButton.onClick(unBook)
+                            mbbc = unBook
+                        } else {
+                            tg.MainButton.setText('Забронировать на ' + date)
+                            tg.MainButton.show()
+                            tg.MainButton.onClick(book)
+                            mbbc = book
                         }
-                    })
+                    },
+                    dataset: {
+                        booked: userBooked ? true : false
+                    }
+                })
 
-                    c.append(ce('h3',false,false,drawDate(date)))
-                    c.append(ce('p',false,false,`Свободных мест: ${coworkingCapacity-booked.length}`))
+                c.append(ce('h3', false, false, drawDate(date)))
+                c.append(ce('p', false, false, `Свободных мест: ${coworkingCapacity-booked.length}`))
                 p.append(c)
             })
 
@@ -544,7 +543,7 @@ function showProfile() {
 
                 let s = ce('table')
                 p.append(s)
-                data.schedule.sort((a, b) => b.date._seconds > a.date._seconds ? -1 : 1).filter(t => new Date(t.date._seconds*1000) > new Date()).forEach(l => {
+                data.schedule.sort((a, b) => b.date._seconds > a.date._seconds ? -1 : 1).filter(t => new Date(t.date._seconds * 1000) > new Date()).forEach(l => {
                     s.append(drawClassLine(l))
                 })
             } else {
@@ -556,9 +555,9 @@ function showProfile() {
                 data.streams.forEach(s => p.append(drawClassLine(s)))
             }
 
-            if(data.plans.length){
+            if (data.plans.length) {
                 p.append(ce('h3', false, false, `Абонементы`))
-                data.plans.forEach(plan=>p.append(drawPlanLine(plan)))
+                data.plans.forEach(plan => p.append(drawPlanLine(plan)))
             }
         }).catch(err => handleError)
         .finally(hideLoader)
@@ -568,38 +567,38 @@ function showProfile() {
             if (subs.subs.length) {
                 p.append(ce('h3', false, false, `Подписки`))
                 subs.subs.forEach(s => {
-                    p.append(drawSubscriptionLine(s,subs))
+                    p.append(drawSubscriptionLine(s, subs))
                 })
             }
         })
 }
 
 
-function drawMerchItem(item){
-    let c = ce('div',false,[`item`,`merch`])
-        c.append(ce('img',false,'logo',false,{
-            src: `https://auditoria.joinposter.com/${item.photo}`
-        }))
-        c.append(ce('h2',false,false,`${item.product_name}, ${cur(+item.price['1']/100,'GEL')}`))
-        // c.append(ce('p',false,'price',cur(+item.price['1']/100,'GEL')))
+function drawMerchItem(item) {
+    let c = ce('div', false, [`item`, `merch`])
+    c.append(ce('img', false, 'logo', false, {
+        src: `https://auditoria.joinposter.com/${item.photo}`
+    }))
+    c.append(ce('h2', false, false, `${item.product_name}, ${cur(+item.price['1']/100,'GEL')}`))
+    // c.append(ce('p',false,'price',cur(+item.price['1']/100,'GEL')))
     return c
 
 }
 
 
 
-function showConcerts(){
+function showConcerts() {
     let p = preparePopup(`schedule`);
 
-        p.append(ce('h2', false, 'header', `Концерты`))
-        p.append(ce('p',false,false,`Это не рабочий раздел, а предложение сделать быстрые кнопки: Лекции / Концерты / Детям — чтобы можно было в один клик получить необходимое расписание.<br>К тому же каждый раздел может получить отдельное оформление: более академичное в первом случае — и с динозавриками в последнем...`))
+    p.append(ce('h2', false, 'header', `Концерты`))
+    p.append(ce('p', false, false, `Это не рабочий раздел, а предложение сделать быстрые кнопки: Лекции / Концерты / Детям — чтобы можно было в один клик получить необходимое расписание.<br>К тому же каждый раздел может получить отдельное оформление: более академичное в первом случае — и с динозавриками в последнем...`))
 }
 
-function showKids(){
+function showKids() {
     let p = preparePopup(`kids`);
-        p.append(ce('h2', false, 'header', `Детям`))
-        showLoader();
-        axios.get(`/auditoria/api/classes?kids=true&user=${userid}`)
+    p.append(ce('h2', false, 'header', `Детям`))
+    showLoader();
+    axios.get(`/auditoria/api/classes?kids=true&user=${userid}`)
         .then(classes => {
 
 
@@ -607,13 +606,13 @@ function showKids(){
 
             p.append(tt)
 
-            classes.data.filter(c=>c.kids).sort((a,b)=>{
-                if(b.date > a.date){
+            classes.data.filter(c => c.kids).sort((a, b) => {
+                if (b.date > a.date) {
                     return -1
-                } else if(b.date < a.date){
+                } else if (b.date < a.date) {
                     return 1
                 } else {
-                    if(b.time > a.time){
+                    if (b.time > a.time) {
                         return -1
                     }
                     return 1
@@ -641,13 +640,13 @@ function showSchedule(el) {
 
             p.append(tt)
 
-            classes.data.filter(c=>!c.kids).sort((a,b)=>{
-                if(b.date > a.date){
+            classes.data.filter(c => !c.kids).sort((a, b) => {
+                if (b.date > a.date) {
                     return -1
-                } else if(b.date < a.date){
+                } else if (b.date < a.date) {
                     return 1
                 } else {
-                    if(b.time > a.time){
+                    if (b.time > a.time) {
                         return -1
                     }
                     return 1
@@ -894,271 +893,315 @@ function drawDate(d, l, o) {
     return new Date(d).toLocaleDateString(`${l||'ru'}-RU`, options)
 }
 
+
+function userLoad(collection, id) {
+    return axios.get(`/${host}/api/${collection}${id?`/${id}`:''}${userid?`?id=${userid}`:''}`).then(data => {
+        return data.data
+    })
+}
+
 function drawCoursePopup(data, id) {
 
-    axios.post(`/${host}/views/courses/${id}`, {
-        user: userid
-    })
+    if (!data) data = userLoad(`courses`, id)
 
-    let p = preparePopup(`course`)
-    let a = data.course;
+    Promise.resolve(data).then(data => {
 
-    p.append(ce('img', false, 'cover', false, {
-        alt: a.name,
-        src: a.pic || randomPic()
-    }))
+        axios.post(`/${host}/views/courses/${id}`, {
+            user: userid
+        })
 
-    p.append(ce('h1', false, false, a.name))
 
-    if (a.description) p.append(ce('p', false, false, a.description))
 
-    if (a.author) {
-        if (a.authorId) {
-            p.append(ce('a', false, `clickable`, `Автор: ${a.author}`, {
-                onclick: () => {
-                    showLoader();
-                    axios.get(`/${host}/api/authors/${a.authorId}`)
-                        .then(a => {
-                            drawAuthorPopup(a.data, a.authorId)
-                        })
-                        .catch(err => {
+        let p = preparePopup(`course`)
+        let a = data.course;
+
+        p.append(ce('img', false, 'cover', false, {
+            alt: a.name,
+            src: a.pic || randomPic()
+        }))
+
+        p.append(ce('h1', false, false, a.name))
+
+        if (a.description) p.append(ce('p', false, false, a.description))
+
+        if (a.author) {
+            if (a.authorId) {
+                p.append(ce('a', false, `clickable`, `Автор: ${a.author}`, {
+                    onclick: () => {
+                        showLoader();
+                        axios.get(`/${host}/api/authors/${a.authorId}`)
+                            .then(a => {
+                                drawAuthorPopup(a.data, a.authorId)
+                            })
+                            .catch(err => {
+                                tg.showAlert(err.message)
+                            })
+                            .finally(hideLoader)
+                    }
+                }))
+            }
+        }
+
+        if (data.subscriptions) {
+            p.append(ce('p', false, false, `Следят за обновлениями: ${letterize(data.subscriptions,'человек')}`))
+        }
+
+        if (data.subscribed) {
+            p.append(ce(`button`, false, false, `Отписаться от обновлений`, {
+                onclick: function () {
+                    showLoader()
+                    axios.delete(`/${host}/api/subscriptions/${data.subscribed}?user=${userid}`)
+                        .then(() => {
+                            tg.showAlert(`Спасибо! Вы больше не будете получать уведомлений.`)
+                            this.remove()
+                        }).catch(err => {
                             tg.showAlert(err.message)
+                        }).finally(() => {
+                            hideLoader()
                         })
-                        .finally(hideLoader)
                 }
             }))
-        }
-    }
-
-    if (data.subscriptions) {
-        p.append(ce('p', false, false, `Следят за обновлениями: ${letterize(data.subscriptions,'человек')}`))
-    }
-
-    if (data.subscribed) {
-        p.append(ce(`button`, false, false, `Отписаться от обновлений`, {
-            onclick: function () {
-                showLoader()
-                axios.delete(`/${host}/api/subscriptions/${data.subscribed}?user=${userid}`)
-                    .then(() => {
-                        tg.showAlert(`Спасибо! Вы больше не будете получать уведомлений.`)
+        } else {
+            p.append(ce('button', false, false, `Подписаться на обновления курса`, {
+                onclick: function () {
+                    showLoader()
+                    axios.post(`/${host}/api/subscriptions/new`, {
+                        type: `course`,
+                        user: +userid,
+                        id: id
+                    }).then(() => {
                         this.remove()
+                        tg.showAlert(`Спасибо! Вы будете получать уведомления о новых событиях курса.`)
                     }).catch(err => {
                         tg.showAlert(err.message)
                     }).finally(() => {
                         hideLoader()
                     })
-            }
-        }))
-    } else {
-        p.append(ce('button', false, false, `Подписаться на обновления курса`, {
-            onclick: function () {
-                showLoader()
-                axios.post(`/${host}/api/subscriptions/new`, {
-                    type: `course`,
-                    user: +userid,
-                    id: id
-                }).then(() => {
-                    this.remove()
-                    tg.showAlert(`Спасибо! Вы будете получать уведомления о новых событиях курса.`)
-                }).catch(err => {
-                    tg.showAlert(err.message)
-                }).finally(() => {
-                    hideLoader()
-                })
-            }
-        }))
-    }
-
-    if(data.plans && data.plans.length){
-        p.append(ce('h3',false,false,`Курс входит в абонемент`))
-        data.plans.forEach(plan=>{
-            p.append(ce('a',false,'clickable',`«${plan.name}»`,{
-                onclick: () => {
-                    drawPlanPopup(plan)
                 }
             }))
-        })
-    }
+        }
 
-    if (data.classes.length) {
-        p.append(ce('h3', false, false, `Расписание`))
-        data.classes.forEach(c => {
-            p.append(drawClassLine(c))
-        })
-    }
+        if (data.plans && data.plans.length) {
+            p.append(ce('h3', false, false, `Курс входит в абонемент`))
+            data.plans.forEach(plan => {
+                p.append(ce('a', false, 'clickable', `«${plan.name}»`, {
+                    onclick: () => {
+                        drawPlanPopup(plan)
+                    }
+                }))
+            })
+        }
+
+        if (data.classes.length) {
+            p.append(ce('h3', false, false, `Расписание`))
+            data.classes.forEach(c => {
+                p.append(drawClassLine(c))
+            })
+        }
+    })
+
 }
 
 function drawAuthorPopup(data, id) {
 
-    axios.post(`/${host}/views/authors/${id}`, {
-        user: userid
-    })
+    if (!data) data = userLoad(`authors`, id)
 
-    let p = preparePopup(`author`)
-    let a = data.author;
+    Promise.resolve(data).then(data => {
 
-    p.append(ce('img', false, 'cover', false, {
-        alt: a.name,
-        src: a.pic || randomPic()
-    }))
+        axios.post(`/${host}/views/authors/${id}`, {
+            user: userid
+        })
 
-    p.append(ce('h1', false, false, a.name))
+        let p = preparePopup(`author`)
+        let a = data.author;
 
-    if (a.description) p.append(ce('p', false, false, a.description))
+        p.append(ce('img', false, 'cover', false, {
+            alt: a.name,
+            src: a.pic || randomPic()
+        }))
 
-    if (data.subscriptions) {
-        p.append(ce('p', false, false, `Следят за обновлениями: ${letterize(data.subscriptions,'человек')}`))
-    }
+        p.append(ce('h1', false, false, a.name))
 
-    if (data.subscribed) {
-        p.append(ce(`button`, false, false, `Отписаться от обновлений`, {
-            onclick: function () {
-                showLoader()
-                axios.delete(`/${host}/api/subscriptions/${data.subscribed}?user=${userid}`)
-                    .then(() => {
-                        tg.showAlert(`Спасибо! Вы больше не будете получать уведомлений.`)
+        if (a.description) p.append(ce('p', false, false, a.description))
+
+        if (data.subscriptions) {
+            p.append(ce('p', false, false, `Следят за обновлениями: ${letterize(data.subscriptions,'человек')}`))
+        }
+
+        if (data.subscribed) {
+            p.append(ce(`button`, false, false, `Отписаться от обновлений`, {
+                onclick: function () {
+                    showLoader()
+                    axios.delete(`/${host}/api/subscriptions/${data.subscribed}?user=${userid}`)
+                        .then(() => {
+                            tg.showAlert(`Спасибо! Вы больше не будете получать уведомлений.`)
+                            this.remove()
+                        }).catch(err => {
+                            tg.showAlert(err.message)
+                        }).finally(() => {
+                            hideLoader()
+                        })
+                }
+            }))
+        } else {
+            p.append(ce('button', false, false, `Подписаться на обновления`, {
+                onclick: function () {
+                    showLoader()
+                    axios.post(`/${host}/api/subscriptions/new`, {
+                        type: `author`,
+                        user: +userid,
+                        id: id
+                    }).then(() => {
                         this.remove()
+                        tg.showAlert(`Спасибо! Вы будете получать уведомления о новых событиях автора.`)
                     }).catch(err => {
                         tg.showAlert(err.message)
                     }).finally(() => {
                         hideLoader()
                     })
-            }
-        }))
-    } else {
-        p.append(ce('button', false, false, `Подписаться на обновления`, {
-            onclick: function () {
-                showLoader()
-                axios.post(`/${host}/api/subscriptions/new`, {
-                    type: `author`,
-                    user: +userid,
-                    id: id
-                }).then(() => {
-                    this.remove()
-                    tg.showAlert(`Спасибо! Вы будете получать уведомления о новых событиях автора.`)
-                }).catch(err => {
-                    tg.showAlert(err.message)
-                }).finally(() => {
-                    hideLoader()
-                })
-            }
-        }))
-    }
+                }
+            }))
+        }
 
-    if (data.classes.length) {
-        p.append(ce('h3', false, false, `Расписание`))
-        data.classes.forEach(c => {
-            p.append(drawClassLine(c))
-        })
-    }
+        if (data.classes.length) {
+            p.append(ce('h3', false, false, `Расписание`))
+            data.classes.forEach(c => {
+                p.append(drawClassLine(c))
+            })
+        }
+    })
+
 }
 
-function drawPlanDetailsPopup(plan){
+function drawPlanDetailsPopup(plan) {
     let p = preparePopup(`planDetails`)
-        p.append(ce('h1',false,false,plan.name))
-        p.append(ce('p',false,false,plan.description))
-        p.append(ce(`p`,false,false,`Оформлена ${drawDate(plan.createdAt._seconds*1000)}`))
-        p.append(ce(`p`,false,false,`Действует до  ${drawDate(plan.to._seconds*1000)}`))
-        p.append(ce('p',false,false,`Осталось посещений: ${plan.eventsLeft}.`))
+    p.append(ce('h1', false, false, plan.name))
+    p.append(ce('p', false, false, plan.description))
+    p.append(ce(`p`, false, false, `Оформлена ${drawDate(plan.createdAt._seconds*1000)}`))
+    p.append(ce(`p`, false, false, `Действует до  ${drawDate(plan.to._seconds*1000)}`))
+    p.append(ce('p', false, false, `Осталось посещений: ${plan.eventsLeft}.`))
 }
 
-function drawPlanPopup(plan,load){
+function drawPlanPopup(plan, load) {
 
     console.log(plan)
-    
-    if(load){
+
+    if (load) {
 
     }
 
     let p = preparePopup(`plan`)
-        p.append(ce('h1',false,false,plan.name))
-        p.append(ce('p',false,false,plan.description))
-        p.append(ce('p',false,false,`Продолжительность: ${plan.days} дней.`))
-        p.append(ce('p',false,false,`Занятий: ${plan.visits}.`))
-        p.append(ce('p',false,false,`Стоимость: ${cur(plan.price,'GEL')}.`))
+    p.append(ce('h1', false, false, plan.name))
+    p.append(ce('p', false, false, plan.description))
+    p.append(ce('p', false, false, `Продолжительность: ${plan.days} дней.`))
+    p.append(ce('p', false, false, `Занятий: ${plan.visits}.`))
+    p.append(ce('p', false, false, `Стоимость: ${cur(plan.price,'GEL')}.`))
 
     axios.get(`/${host}/api/planCheck/${plan.id}?user=${userid}`)
-    .then(sub=>{
-        p.append(ce('p',false,false,`Ваша подписка истекает через ${sub.data.daysLeft} дней.`))
-    }).catch(err=>{
-        p.append(ce('button',false,false,`Оформить подписку`,{
-            onclick:function(){
-                this.setAttribute(`disabled`,true)
-                axios.post(`/${host}/api/plan/${plan.id}?id=${userid}`).then(data=>{
-                    tg.showAlert(`Спасибо! Подробности — в сообщении от бота`)
-                    tg.close()
-                }).catch(err=>{
-                    tg.showAlert(err.message)
-                })
-            }
-        }))
-        // p.append(ce(`p`,false,false,`Оформить подписку вы можете на месте. `))
-    })
+        .then(sub => {
+            p.append(ce('p', false, false, `Ваша подписка истекает через ${sub.data.daysLeft} дней.`))
+        }).catch(err => {
+            p.append(ce('button', false, false, `Оформить подписку`, {
+                onclick: function () {
+                    this.setAttribute(`disabled`, true)
+                    axios.post(`/${host}/api/plan/${plan.id}?id=${userid}`).then(data => {
+                        tg.showAlert(`Спасибо! Подробности — в сообщении от бота`)
+                        tg.close()
+                    }).catch(err => {
+                        tg.showAlert(err.message)
+                    })
+                }
+            }))
+            // p.append(ce(`p`,false,false,`Оформить подписку вы можете на месте. `))
+        })
 }
 
 function drawClassPopup(c, id) {
 
     console.log(c)
 
-    axios.post(`/${host}/views/classes/${id}`, {
-        user: userid
-    })
+    if (!c) c = userLoad(`classes`, id)
 
-    let p = preparePopup(`class`)
+    Promise.resolve(c).then(c => {
 
-    curLecture = c.id
+        axios.post(`/${host}/views/classes/${id}`, {
+            user: userid
+        })
 
-    if (c.booked) {
-        curRecord = c.booked
-        if (c.stream) {
-            curRecordStream = true
+        let p = preparePopup(`class`)
+
+        curLecture = c.id
+
+        if (c.booked) {
+            curRecord = c.booked
+            if (c.stream) {
+                curRecordStream = true
+            } else {
+                curRecordStream = false
+            }
+            tg.MainButton.setText('Отменить запись')
+            tg.MainButton.show()
+            tg.MainButton.onClick(delist)
+            mbbc = delist
+
         } else {
-            curRecordStream = false
+
+
+            tg.MainButton.setText('Записаться')
+            tg.MainButton.show()
+
+            tg.MainButton.onClick(list)
+            mbbc = list
+
         }
-        tg.MainButton.setText('Отменить запись')
-        tg.MainButton.show()
-        tg.MainButton.onClick(delist)
-        mbbc = delist
-
-    } else {
 
 
-        tg.MainButton.setText('Записаться')
-        tg.MainButton.show()
-
-        tg.MainButton.onClick(list)
-        mbbc = list
-
-    }
+        p.append(ce('img', false, 'cover', false, {
+            alt: c.name,
+            src: c.pic || randomPic()
+        }))
 
 
-    p.append(ce('img', false, 'cover', false, {
-        alt: c.name,
-        src: c.pic || randomPic()
-    }))
 
-    
+        if (c.booked) {
 
-    if(c.booked){
-            
-        p.append(ce('img', false, 'qrSub', false, {
-            alt: `ваш билет`,
-            src: `/${host}/qr?id=${c.booked}&entity=userClasses`
-        })) 
-    }
+            p.append(ce('img', false, 'qrSub', false, {
+                alt: `ваш билет`,
+                src: `/${host}/qr?id=${c.booked}&entity=userClasses`
+            }))
+        }
 
-    p.append(ce('h1', false, false, c.name))
+        p.append(ce('h1', false, false, c.name))
 
-    p.append(ce('p', false, 'timing', `<span class="date">${drawDate(c.date._seconds*1000)}</span> <span class="time">${new Date(c.date._seconds*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'Asia/Tbilisi'})}</span>`))
+        p.append(ce('p', false, 'timing', `<span class="date">${drawDate(c.date._seconds*1000)}</span> <span class="time">${new Date(c.date._seconds*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'Asia/Tbilisi'})}</span>`))
 
-    if (c.author) {
-        if (c.authorId) {
-            p.append(ce('a', false, `clickable`, c.author, {
+        if (c.author) {
+            if (c.authorId) {
+                p.append(ce('a', false, `clickable`, c.author, {
+                    onclick: () => {
+                        showLoader();
+                        axios.get(`/${host}/api/authors/${c.authorId}`)
+                            .then(a => {
+                                drawAuthorPopup(a.data, c.authorId)
+                            })
+                            .catch(err => {
+                                tg.showAlert(err.message)
+                            })
+                            .finally(hideLoader)
+                    }
+                }))
+            } else {
+                p.append(ce('p', false, 'author', c.author))
+            }
+
+        }
+        if (c.course) {
+            p.append(ce('a', false, 'clickable', `Курс ${c.course}`, {
                 onclick: () => {
                     showLoader();
-                    axios.get(`/${host}/api/authors/${c.authorId}`)
+                    axios.get(`/${host}/api/courses/${c.courseId}`)
                         .then(a => {
-                            drawAuthorPopup(a.data, c.authorId)
+                            drawCoursePopup(a.data, c.courseId)
                         })
                         .catch(err => {
                             tg.showAlert(err.message)
@@ -1166,132 +1209,115 @@ function drawClassPopup(c, id) {
                         .finally(hideLoader)
                 }
             }))
-        } else {
-            p.append(ce('p', false, 'author', c.author))
         }
 
-    }
-    if (c.course) {
-        p.append(ce('a', false, 'clickable', `Курс ${c.course}`, {
-            onclick: () => {
-                showLoader();
-                axios.get(`/${host}/api/courses/${c.courseId}`)
-                    .then(a => {
-                        drawCoursePopup(a.data, c.courseId)
-                    })
-                    .catch(err => {
-                        tg.showAlert(err.message)
-                    })
-                    .finally(hideLoader)
-            }
-        }))
-    }
+        p.append(ce('p', false, 'bold', c.descShort))
 
-    p.append(ce('p', false, 'bold', c.descShort))
-
-    if(c.status == 'used') {
-        content.append(drawLectureQuestion(c))
-    }
+        if (c.status == 'used') {
+            content.append(drawLectureQuestion(c))
+        }
 
 
-    if (c.descLong) {
-        let long = ce('p', false, 'hidden', c.descLong)
-        p.append(long)
-        p.append(ce('a', false, 'clickable', `Подробнее`, {
-            onclick: function () {
-                this.remove();
-                long.classList.toggle('hidden')
-            }
-        }))
-    }
+        if (c.descLong) {
+            let long = ce('p', false, 'hidden', c.descLong)
+            p.append(long)
+            p.append(ce('a', false, 'clickable', `Подробнее`, {
+                onclick: function () {
+                    this.remove();
+                    long.classList.toggle('hidden')
+                }
+            }))
+        }
 
-    if(c.plans && c.plans.length){
-        c.plans.forEach(plan=>{
-            p.append(ce('p',false,false,`Входит в абонемент «${plan.name}»`))
-        })
-        
-    }
+        if (c.plans && c.plans.length) {
+            c.plans.forEach(plan => {
+                p.append(ce('p', false, false, `Входит в абонемент «${plan.name}»`))
+            })
 
-    if (!c.stream) {
-        if (c.price) {
+        }
 
-            if (!c.booked) {
-                p.append(ce('p', false, `bold`, `Стоимость билетов: ${cur(c.price,`GEL`)}`))
+        if (!c.stream) {
+            if (c.price) {
+
+                if (!c.booked) {
+                    p.append(ce('p', false, `bold`, `Стоимость билетов: ${cur(c.price,`GEL`)}`))
+                    if (c.price2) {
+                        p.append(ce('p', false, `bold`, `В день мероприятия: ${cur(c.price2,`GEL`)}`))
+                    }
+                    if (c.price3) {
+                        p.append(ce('button', false, `bold`, `Доступ к прямой трансляции: ${cur(c.price3,`GEL`)}`, {
+                            onclick: () => {
+
+                                tg.showConfirm(`Уверены?`, function (e) {
+                                    bookOnline(e, p)
+                                })
+                            }
+                        }))
+                        // p.append(ce())
+                    }
+                } else {
+                    if (c.payed || c.isPayed) {
+                        p.append(ce('p', false, 'bold', `Ваш билет оплачен.`))
+                    } else {
+                        p.append(ce('p', false, 'bold', `Ваш билет еще не оплачен. Напоминаем, что в день мероприятия стоимость составит ${cur(c.price2 || c.price ,`GEL`)}.`))
+                        p.append(ce(`p`, false, `bold`, `Чтобы оплатить билет заранее, переведите ${cur(c.price ,`GEL`)} на ${c.paymentDesc || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
+                    }
+                }
+
+            } else {
                 if (c.price2) {
                     p.append(ce('p', false, `bold`, `В день мероприятия: ${cur(c.price2,`GEL`)}`))
-                }
-                if (c.price3) {
-                    p.append(ce('button', false, `bold`, `Доступ к прямой трансляции: ${cur(c.price3,`GEL`)}`, {
-                        onclick: () => {
-                            
-                            tg.showConfirm(`Уверены?`, function (e) {
-                                bookOnline(e, p)
-                            })
-                        }
-                    }))
-                    // p.append(ce())
-                }
-            } else {
-                if (c.payed || c.isPayed) {
-                    p.append(ce('p', false, 'bold', `Ваш билет оплачен.`))
                 } else {
-                    p.append(ce('p', false, 'bold', `Ваш билет еще не оплачен. Напоминаем, что в день мероприятия стоимость составит ${cur(c.price2 || c.price ,`GEL`)}.`))
-                    p.append(ce(`p`, false, `bold`, `Чтобы оплатить билет заранее, переведите ${cur(c.price ,`GEL`)} на ${c.paymentDesc || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
+                    p.append(ce('h3', false, false, `Вход бесплатный!`))
                 }
             }
-
         } else {
-            if (c.price2) {
-                p.append(ce('p', false, `bold`, `В день мероприятия: ${cur(c.price2,`GEL`)}`))
-            } else {
-                p.append(ce('h3', false, false, `Вход бесплатный!`))
+            if (c.payed || c.isPayed) {
+                p.append(ce('p', false, 'bold', `Ваша трансляция оплачена. Пароль и ссылку вы получите за полчаса до начала меропориятия`))
+            } else if (c.price3) {
+                p.append(ce(`p`, false, `bold`, `Чтобы оплатить трансляцию, переведите ${cur(c.price3 ,`GEL`)} на ${c.paymentDesc || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
             }
         }
-    } else {
-        if (c.payed || c.isPayed) {
-            p.append(ce('p', false, 'bold', `Ваша трансляция оплачена. Пароль и ссылку вы получите за полчаса до начала меропориятия`))
-        } else if (c.price3) {
-            p.append(ce(`p`, false, `bold`, `Чтобы оплатить трансляцию, переведите ${cur(c.price3 ,`GEL`)} на ${c.paymentDesc || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.`))
-        }
-    }
+    })
+
 
 }
 
 
-function drawLectureQuestion(cl){
+function drawLectureQuestion(cl) {
     let c = ce('div')
 
-    c.append(ce('button',false,'dateButton',`Задать вопрос`,{
-        onclick:function(){
+    c.append(ce('button', false, 'dateButton', `Задать вопрос`, {
+        onclick: function () {
             this.innerHTML = `Загружаем`
-            this.setAttribute(`disabled`,true)
-            axios.get(`/${host}/api/q/?class=${cl.id}`).then(data=>{
-                if(data.data.length){
+            this.setAttribute(`disabled`, true)
+            axios.get(`/${host}/api/q/?class=${cl.id}`).then(data => {
+                if (data.data.length) {
                     let before = ce('ul')
-                        c.prepend(before);
-                        c.prepend(ce(`h4`,false,'light',`Что успели спросить?`))
-                    data.data.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds).forEach(q=>{
-                        before.prepend(ce(`li`,false,'story',q.text))
+                    c.prepend(before);
+                    c.prepend(ce(`h4`, false, 'light', `Что успели спросить?`))
+                    data.data.sort((a, b) => b.createdAt._seconds - a.createdAt._seconds).forEach(q => {
+                        before.prepend(ce(`li`, false, 'story', q.text))
                     })
                 } else {
-                    c.prepend(ce(`p`,false,'story',`Кажется, ваш вопрос будет первым`))
+                    c.prepend(ce(`p`, false, 'story', `Кажется, ваш вопрос будет первым`))
                 }
-                let txt = ce('textarea',false,false,false,{
+                let txt = ce('textarea', false, false, false, {
                     placeholder: `Вам слово`,
                     oninput: () => this.removeAttribute(`disabled`)
                 })
-                c.insertBefore(txt,this)
+                c.insertBefore(txt, this)
                 this.innerHTML = `Отправить`
-                this.onclick = ()=>{
-                    axios.post(`/${host}/api/q/new`,{
-                        class:  cl.id,
-                        user:   userid,
-                        text:   txt.value
-                    }).then(s=>{
+                this.onclick = () => {
+                    axios.post(`/${host}/api/q/new`, {
+                        class: cl.id,
+                        user: userid,
+                        text: txt.value
+                    }).then(s => {
                         txt.remove()
                         this.remove()
                         tg.showAlert(s.data.comment)
-                    }).catch(err=>{
+                    }).catch(err => {
                         tg.showAlert(err.message)
                     })
                 }
@@ -1329,58 +1355,57 @@ function cur(v, cur) {
     }).format(Number(v || 0));
 }
 
-function drawSubscriptionLine(s, subs){
+function drawSubscriptionLine(s, subs) {
     let cl = ce('tr', false, 'class')
-        cl.append(ce('td', false, 'timing', `<span class="date">${s.author ? `Автор` : `Курс`}</span>`))
+    cl.append(ce('td', false, 'timing', `<span class="date">${s.author ? `Автор` : `Курс`}</span>`))
 
-        let desc = ce('td')
+    let desc = ce('td')
 
-        cl.append(desc)
+    cl.append(desc)
 
-        if(s.author){
-            let a = subs.authors.filter(a=>a.id == s.author)[0]
-            desc.innerHTML = `<h4>${a.name}</h4>`
-            cl.onclick = () => {
-                showLoader();
-                axios.get(`/${host}/api/authors/${a.id}`)
-                    .then(a => {
-                        a.data.subscribed = s.id;
-                        drawAuthorPopup(a.data, s.author)
-                    })
-                    .catch(err => {
-                        tg.showAlert(err.message)
-                    })
-                    .finally(hideLoader)
-            }
-        } else {
-            let c = subs.courses.filter(a=>a.id == s.course)[0]
-            desc.innerHTML = `<h4>${c.name}</h4>`
-            cl.onclick = () => {
-                showLoader();
-                axios.get(`/${host}/api/courses/${c.id}`)
-                    .then(a => {
-                        a.data.subscribed = s.id;
-                        drawCoursePopup(a.data, s.course)
-                    })
-                    .catch(err => {
-                        tg.showAlert(err.message)
-                    })
-                    .finally(hideLoader)
-            }
+    if (s.author) {
+        let a = subs.authors.filter(a => a.id == s.author)[0]
+        desc.innerHTML = `<h4>${a.name}</h4>`
+        cl.onclick = () => {
+            showLoader();
+            axios.get(`/${host}/api/authors/${a.id}`)
+                .then(a => {
+                    a.data.subscribed = s.id;
+                    drawAuthorPopup(a.data, s.author)
+                })
+                .catch(err => {
+                    tg.showAlert(err.message)
+                })
+                .finally(hideLoader)
         }
+    } else {
+        let c = subs.courses.filter(a => a.id == s.course)[0]
+        desc.innerHTML = `<h4>${c.name}</h4>`
+        cl.onclick = () => {
+            showLoader();
+            axios.get(`/${host}/api/courses/${c.id}`)
+                .then(a => {
+                    a.data.subscribed = s.id;
+                    drawCoursePopup(a.data, s.course)
+                })
+                .catch(err => {
+                    tg.showAlert(err.message)
+                })
+                .finally(hideLoader)
+        }
+    }
 
-        return cl;
+    return cl;
 }
 
-function drawPlanLine(p){
+function drawPlanLine(p) {
     let cl = ce('tr', false, 'class')
-        cl.append(ce('td', false, 'timing', `<span data-month="${new Date(p.to._seconds*1000).getMonth()}" class="date">${new Date(p.to._seconds*1000).getDate({timeZone: 'Asia/Tbilisi'})}</span><span class="time">${p.eventsLeft} занятия</span>`))
+    cl.append(ce('td', false, 'timing', `<span data-month="${new Date(p.to._seconds*1000).getMonth()}" class="date">${new Date(p.to._seconds*1000).getDate({timeZone: 'Asia/Tbilisi'})}</span><span class="time">${p.eventsLeft} занятия</span>`))
     let desc = ce('td')
-        cl.append(desc)
-        desc.append(ce('h4',false,false,p.name))
-    cl.onclick=()=>drawPlanDetailsPopup(p)
-    
+    cl.append(desc)
+    desc.append(ce('h4', false, false, p.name))
+    cl.onclick = () => drawPlanDetailsPopup(p)
+
     return cl
 
 }
-
