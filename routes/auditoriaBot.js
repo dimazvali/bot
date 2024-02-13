@@ -4607,7 +4607,7 @@ router.get(`/api/:type`, (req, res) => {
         }
         
         case 'user': {
-            if (!req.query.id) return res.sendStatus(400)
+            if (!Number(req.query.user)) return res.sendStatus(400)
 
             userEntries.add({
                 user: +req.query.id,
@@ -4630,7 +4630,9 @@ router.get(`/api/:type`, (req, res) => {
             break;
         }
         case `profile`:{
-            if(!req.query.user) return res.sendStatus(400)
+            
+            if(!Number(req.query.user)) return res.sendStatus(400)
+
             let data = []
                 data.push(streams
                     .where('active','==',true)
