@@ -11,6 +11,8 @@ const coworkingCapacity = 15;
 
 let appData = undefined;
 
+let mbbc = null;
+
 class auditoriaAppModel extends appModel {
     constructor(v){
         super(v)
@@ -712,7 +714,6 @@ function clearPopUp() {
     }
 }
 
-let mbbc = null;
 
 
 function drawDay(d) {
