@@ -208,7 +208,7 @@ if (!process.env.develop) {
 router.get('/app', (req, res) => {
     res.render('auditoria/app', {
         user: req.query.id,
-        start: req.query.start,
+        start: req.query.start  || req.query.tgWebAppStartParam,
         translations: translations
     })
 })
@@ -216,7 +216,7 @@ router.get('/app', (req, res) => {
 router.get('/app2', (req, res) => {
     res.render('auditoria/app2', {
         user: req.query.id,
-        start: req.query.start,
+        start: req.query.start  || req.query.tgWebAppStartParam,
         translations: translations
     })
 })
