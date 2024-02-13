@@ -59,6 +59,7 @@ const {
 } = require('cron');
 const e = require('express');
 const { ChangeFreqInvalidError } = require('sitemap');
+const { setTimeout } = require('node:timers');
 
 
 
@@ -96,8 +97,6 @@ axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditori
 })
 
 let getDoc = common.getDoc;
-
-
 
 // axios.post(`${sheet}?intention=getCategories`).then(s=>{
 //     common.devlog(`categories initiated`)
@@ -2032,6 +2031,7 @@ function bookClass(user, classId, res, id) {
 
                                 if (res) {
                                     res.json({
+                                        id: record.id,
                                         success: true,
                                         text: `lectureConfirm`
                                     })
@@ -2274,6 +2274,7 @@ function bookClass(user, classId, res, id) {
 
                                 if (res) {
                                     res.json({
+                                        id: record.id,
                                         success: true,
                                         text: `lectureConfirm`
                                     })
@@ -2417,7 +2418,7 @@ function registerUser(u) {
                     [{
                         text: translations.introButton[u.language_code] || translations.introButton.en,
                         web_app: {
-                            url: ngrok + '/auditoria/app?lang=' + u.language_code
+                            url: ngrok + '/auditoria/app2?lang=' + u.language_code
                         }
                     }]
                 ]
@@ -3486,12 +3487,14 @@ router.post('/hook', (req, res) => {
             if (req.body.message.photo) {
                 udb.where('admin','==',true).get().then(col=>{
                     let admins = common.handleQuery(col)
-                    admins.forEach(a=>{
-                        if(a.id == common.dimazvali) m.sendMessage2({
-                            chat_id:    a.id,
-                            caption:    `фото от ${common.uname(u.data(),u.id)}`,
-                            photo:      req.body.message.photo[0].file_id
-                        }, 'sendPhoto', token)
+                    admins.forEach((a,i)=>{
+                        setTimeout(function(){
+                            m.sendMessage2({
+                                chat_id:    a.id,
+                                caption:    `фото от ${common.uname(u.data(),u.id)}`,
+                                photo:      req.body.message.photo[0].file_id
+                            }, 'sendPhoto', token)
+                        },i*100)
                     })
 
                     userClasses
@@ -3515,21 +3518,23 @@ router.post('/hook', (req, res) => {
                                 })
 
                                 Promise.all(data).then(d=>{
-                                    admins.forEach(a=>{
-                                        m.sendMessage2({
-                                            chat_id:    a.id,
-                                            text:       `Если это чек, то вот неоплаченные билеты:`,
-                                            reply_markup:{
-                                                inline_keyboard:
-                                                    d.map(t=>{
-                                                        return [{
-                                                            text: t.class.name,
-                                                            callback_data: `payClass_${t.record}`
-                                                        }]
-                                                    })
-                                                
-                                            }
-                                        }, false, token)
+                                    admins.forEach((a,i)=>{
+                                        setTimeout(function(){
+                                            m.sendMessage2({
+                                                chat_id:    a.id,
+                                                text:       `Если это чек, то вот неоплаченные билеты:`,
+                                                reply_markup:{
+                                                    inline_keyboard:
+                                                        d.map(t=>{
+                                                            return [{
+                                                                text: t.class.name,
+                                                                callback_data: `payClass_${t.record}`
+                                                            }]
+                                                        })
+                                                    
+                                                }
+                                            }, false, token)
+                                        },i*100)
                                     })
                                 })
                             }

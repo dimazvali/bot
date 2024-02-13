@@ -405,6 +405,7 @@ function list() {
         tg.showAlert(translations[d.data.text][tg.initDataUnsafe.user.language_code] || translations[d.data.text].en)
         if (d.data.success) {
             tg.MainButton.offClick(list)
+            curRecord = d.data.id;
             mbbc = delist
             tg.MainButton.setText(translations.coworkingBookingCancel[[tg.initDataUnsafe.user.language_code]] || translations.coworkingBookingCancel.en)
             tg.MainButton.onClick(delist)
