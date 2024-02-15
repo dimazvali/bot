@@ -38,6 +38,7 @@ div#left>h3 {
     box-sizing: border-box;
     overflow: scroll;
     min-height: 100vh;
+    min-width: calc(100vw - 300px);
 }
 
 @keyframes slideFromRight {
@@ -183,4 +184,8 @@ table.wide{
 .scroll {
     width: calc(100vw - 300px);
     overflow: scroll;
+}
+
+[data-answer="true"] {
+    margin-left: 40px;
 }

@@ -213,7 +213,7 @@ button.dateButton {
 [data-active="false"]{
     filter: opacity(.4);
 }
-
+button.dark,
 button.dateButton[data-booked="1"] {
     background: var(--dark);
     color: white;
@@ -445,4 +445,17 @@ button.num {
     width: 30px;
     height: 30px;
     font-weight: bold;
+}
+
+img.preview {
+    width: 150px;
+    display: block;
+    margin: 20px 0;
+    cursor: pointer;
+}
+
+div.scrollable {
+    max-height: 300px;
+    overflow: auto;
+    margin-bottom: 20px;
 }
