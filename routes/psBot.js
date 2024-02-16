@@ -661,7 +661,7 @@ router.get(`/web`, (req, res) => {
             })
         })
 
-    if (!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/paper/auth`)
+    if (!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/ps/auth`)
 
     adminTokens
         .doc(req.signedCookies.adminToken)
@@ -940,13 +940,23 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     t = common.handleDoc(t);
                     switch (req.method) {
                         case `GET`: {
-                            return userTasks
-                                .where(`task`, '==', req.params.id)
+                            return userTasksSubmits
+                                .where(`task`,'==',req.params.id)
+                                .orderBy(`createdAt`,'desc')
                                 .get()
-                                .then(col => {
-                                    t.users = common.handleQuery(col)
+                                .then(col=>{
+                                    t.submissions = common.handleQuery(col)
                                     res.json(t)
                                 })
+
+                            // Первая версия — группировка по пользователям
+                            // return userTasks
+                            //     .where(`task`, '==', req.params.id)
+                            //     .get()
+                            //     .then(col => {
+                            //         t.users = common.handleQuery(col)
+                            //         res.json(t)
+                            //     })
                         }
                         case `DELETE`: {
                             devlog(`удаляем задание`)

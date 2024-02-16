@@ -349,7 +349,7 @@ function showSchedule(){
 }
 
 function showClassLine(cl){
-    let c = ce('div',false,'divided',false,{
+    let c = ce('div',false,'sDivided',false,{
         dataset:{
             active: cl.active
         },
@@ -801,7 +801,7 @@ function showIncoming(){
         p.append(listing)
         inc.forEach((s,i)=>{
             setTimeout(()=>{
-                let c = ce(`div`,false,'divided')
+                let c = ce(`div`,false,'sDivided')
                 listing.append(c)    
                 c.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
                 c.append(ce('h3',false,false,s.name))
@@ -837,7 +837,7 @@ function showUnseen(){
         p.append(listing)
         inc.forEach((s,i)=>{
             setTimeout(()=>{
-                let c = ce(`div`,false,'divided')
+                let c = ce(`div`,false,'sDivided')
                 listing.append(c)    
                 c.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
                 // c.append(ce('h3',false,false,s.name))
@@ -879,7 +879,7 @@ function showSubmissions(userTaskId){
         p.append(ce(`p`,false,false,`Описание задания: ${task.taskData.description}`))
         p.append(ce('h3',false,false,`Материалы:`))
         task.submissions.forEach(s=>{
-            let c = ce('div',false,`divided`)
+            let c = ce('div',false,`sDivided`)
                 p.append(c)
                 c.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
                 c.append(ce(`p`,false,false,`Оценка: ${s.score}`))
@@ -1017,31 +1017,53 @@ function showTask(taskId){
 
         if(task.active) p.append(deleteButton(`tasks`,taskId))
 
-        let users = ce(`div`,false,false,`Пользователи (${task.users ? task.users.length : 0})`,{
-            onclick:function(){
-                task.users.sort((a,b)=>a.createdAt._seconds-b.createdAt._seconds).forEach((u,i)=>{
-                    let c = ce('div',false,`divided`)
-                    c.append(ce('span',false,`info`,drawDate(u.createdAt._seconds*1000)))
-                    setTimeout(()=>{
-                        load(`users`,u.user).then(user=>{
-                            c.append(ce(`p`,false,false,uname(user,u.user)))
-                            c.append(ce(`button`,false,[`dateButton`,`dark`],`Открыть материалы`,{
-                                onclick:()=>{
-                                    showSubmissions(u.id)
-                                }
-                            }))
-                            c.append(ce(`button`,false,[`dateButton`,`dark`],`Открыть пользователя`,{
-                                onclick:()=>{
-                                    showUser(false,u.id)
-                                }
-                            }))
-                        })
-                    },i*100)
-                    users.append(c)
+        let submissions = ce('div')
+        p.append(submissions)
+
+        if(!task.submissions.length) submissions.append(ce('p',false,false,`Материалов еще нет`))
+            task.submissions.forEach(s=>{
+                let c = ce('div',false,`sDivided`)
+                    p.append(c)
+                    c.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
+                    c.append(ce(`p`,false,false,`Оценка: ${s.score}`))
+                    submissions.append(c)
+                if(s.admin) load(`users`,s.admin).then(admin=>c.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
+                if(s.message) load(`messages`,s.message).then(m=>{
+                    if(m.file_id) load(`images`,m.file_id).then(img=>{
+                        c.append(ce(`img`,false,`preview`,false,{
+                            src: img.src,
+                            onclick: window.open(img.src)
+                        }))
+                    })
                 })
-            }
-        })
-        p.append(users)
+            })
+
+        // Первая версия — группировка по пользователям
+        // let users = ce(`div`,false,false,`Пользователи (${task.users ? task.users.length : 0})`,{
+        //     onclick:function(){
+        //         task.users.sort((a,b)=>a.createdAt._seconds-b.createdAt._seconds).forEach((u,i)=>{
+        //             let c = ce('div',false,`sDivided`)
+        //             c.append(ce('span',false,`info`,drawDate(u.createdAt._seconds*1000)))
+        //             setTimeout(()=>{
+        //                 load(`users`,u.user).then(user=>{
+        //                     c.append(ce(`p`,false,false,uname(user,u.user)))
+        //                     c.append(ce(`button`,false,[`dateButton`,`dark`],`Открыть материалы`,{
+        //                         onclick:()=>{
+        //                             showSubmissions(u.id)
+        //                         }
+        //                     }))
+        //                     c.append(ce(`button`,false,[`dateButton`,`dark`],`Открыть пользователя`,{
+        //                         onclick:()=>{
+        //                             showUser(false,u.id)
+        //                         }
+        //                     }))
+        //                 })
+        //             },i*100)
+        //             users.append(c)
+        //         })
+        //     }
+        // })
+        // p.append(users)
     })
 }
 
