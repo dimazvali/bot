@@ -25,10 +25,11 @@ html
     #left
         h3(onclick="showUsers()")       Пользователи
         h3(onclick="showTasks()")       Задания
+        h3(onclick="showNews()")    Рассылки
         h3(onclick="showIncoming()")    Входящие
         h3(onclick="showUnseen()")      Неразобранное
+        h3(onclick="showTags()")        Теги
         h3(onclick="showLogs()")        Логи
-        //- h3(onclick="showLogs()")      Логи
         
     
     #menu(onclick="left.classList.toggle('active')")
@@ -36,7 +37,12 @@ html
     #main
         h2 Логи
         for l in logs 
-            .divided
-                p.info!=new Date(l.createdAt._seconds*1000).toLocaleString()
+            .sDivided
+                p.info!=new Date(l.createdAt).toLocaleString()
+                //- p.info!=
                 p!=l.text
+                if(l.user)
+                    button.dateButton.dark(onclick=`showUser(false,${l.user})`) Открыть профиль
+                if(l.task)
+                    button.dateButton.dark(onclick=`showTask("${l.task}")`) Открыть задание
     script(src='/javascripts/ps/web.js')

@@ -284,73 +284,6 @@ router.post(`/auth`,(req,res)=>{
 
 })
 
-// udb.get().then(col=>{
-//     common.handleQuery(col).forEach((d,i)=>{
-//         setTimeout(()=>{
-//             d.intention = 'newUser'
-//             d.createdAt = new Date(d.createdAt._seconds*1000).toISOString()
-//             axios.post(sheet, Object.keys(d).map(k => `${k}=${d[k]}`).join('&'), {
-//                 headers: {
-//                     "Content-Type": "application/x-www-form-urlencoded"
-//                 }
-//             }).then(d => {
-//                 console.log(d.data)
-//             }).catch(err => {
-//                 console.log(err.message)
-//             })
-//         },i*1500)
-
-//     })
-// })
-
-
-
-
-// udb.get().then(col=>{
-//     common.handleQuery(col).filter(u=>u.insider || u.fellow).forEach((u,i)=>{
-//         setTimeout(function(){
-//             m.sendMessage2({
-//                 chat_id: u.id,
-//                 photo: `https://cdn1.intermedia.ru/img/news_x400/379053.jpg`,
-//                 parse_mode: `HTML`,
-//                 disable_notification:true,
-//                 caption: `Друзья! Завтра, в 20:00, ждем всех своих на показ «Сказки» Александра Сокурова. Место действия: <s>лимб</s> бар Papers. Вход свободный, бар — как всегда.`
-//             },`sendPhoto`,token)
-//             devlog(i)
-//         },i*200)
-//     })
-// })
-
-
-// classes.doc(`6IWjjV0bDcmr6E1nQTJw`).get().then(d=>console.log(JSON.stringify(d.data())))
-
-classes.add({
-    "date": "2023-12-25T16:00:00.000Z",
-    "author": "Станислав Елисеев, Дмитрий Шестаков",
-    "active": true,
-    "hall": "BrXsFWF4tE7K36SHQIS6",
-    "type": "event",
-    "duration": "120",
-    "noRegistration": false,
-    "createdAt": {
-        "_seconds": 1702916655,
-        "_nanoseconds": 208000000
-    },
-    "price": 0,
-    "name": "Показ «Сказки» Александра Сокурова",
-    "hallName": "Gamotsema bar",
-    "admins": false,
-    "capacity": 60,
-    "updatedBy": "slack_tyapin",
-    "description": "Собрались как-то Сталин, Гитлер, Муссолини и Черчилль...",
-    "pic": "https://firebasestorage.googleapis.com/v0/b/paperstuff-620fa.appspot.com/o/classes%2Fsokurov.webp?alt=media&token=98499b07-91e3-4a35-b05e-085863f2112f",
-    "updatedAt": {
-        "_seconds": 1703433292,
-        "_nanoseconds": 491000000
-    }
-}).then(s=>console.log(s.id))
-
-
 
 router.get('/app', (req, res) => {
     res.render('papers/app', {
@@ -2532,26 +2465,28 @@ function registerUser(u) {
             console.log(err.message)
         })
 
-        udb.get().then(col=>{
-
-            // if(col.docs.length != 1000){
-            //     m.sendMessage2({
-            //         chat_id: u.id,
-            //         text: `Вы ${col.docs.length}-й подписчик, поздравляем! Теперь вы в курсе всех новостей Papers.`
-            //     },false,token)
-            // } else {
-            //     m.sendMessage2({
-            //         chat_id: u.id,
-            //         text: `Вы 1000-й подписчик, поздравляем! В честь круглой цифры дарим вам абонемент в коворкинг на 6 дней и билет на любое мероприятие в Papers. Мы скоро свяжемся с вами и расскажем, как воспользоваться подарком.`
-            //     },false,token)
-            // }
-
-            alertAdmins({
-                type: 'newUser',
-                text: `Новый пользователь бота (№${col.docs.length}):\n${JSON.stringify(u,null,2)}`,
-                user_id: u.id
-            })
+        alertAdmins({
+            type: 'newUser',
+            text: `Новый пользователь бота (№${col.docs.length}):\n${JSON.stringify(u,null,2)}`,
+            user_id: u.id
         })
+
+        // udb.get().then(col=>{
+
+        //     // if(col.docs.length != 1000){
+        //     //     m.sendMessage2({
+        //     //         chat_id: u.id,
+        //     //         text: `Вы ${col.docs.length}-й подписчик, поздравляем! Теперь вы в курсе всех новостей Papers.`
+        //     //     },false,token)
+        //     // } else {
+        //     //     m.sendMessage2({
+        //     //         chat_id: u.id,
+        //     //         text: `Вы 1000-й подписчик, поздравляем! В честь круглой цифры дарим вам абонемент в коворкинг на 6 дней и билет на любое мероприятие в Papers. Мы скоро свяжемся с вами и расскажем, как воспользоваться подарком.`
+        //     //     },false,token)
+        //     // }
+
+            
+        // })
 
         
 

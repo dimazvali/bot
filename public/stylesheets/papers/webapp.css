@@ -459,3 +459,11 @@ div.scrollable {
     overflow: auto;
     margin-bottom: 20px;
 }
+
+button.dateButton.dark.slim {
+    color: var(--dark);
+    background: no-repeat;
+    padding: 10px 0;
+    margin-bottom: 0;
+    text-decoration: underline;
+}

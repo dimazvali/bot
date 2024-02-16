@@ -41,6 +41,40 @@ function getPicture(id){
 }
 
 
+function addTag(userId){
+    let edit = ce('div', false, `editWindow`)
+    edit.append(ce(`h2`,false,false,`Добавляем тег`))
+    let f;
+    load(`tags`).then(tags=>{
+        f = ce('select')
+        f.append(ce('option', false, false, `Выберите тег`, {
+            value: ''
+        }))
+        tags
+            .filter(a => a.active)
+            .sort((a, b) => a.name < b.name ? -1 : 1)
+            .forEach(a => f.append(ce('option', false, false, a.name, {
+                value: a.id
+            })))
+        edit.append(f)
+
+        edit.append(ce('button', false, false, `Сохранить`, {
+            onclick: function () {
+                if (f.value) {
+                    axios.post(`/${host}/admin/userTags/${userId}`, {
+                        tag: f.value
+                    }).then((d)=>{
+                        handleSave(d);
+                    })
+                    .catch(handleError)
+                }
+            }
+        }))
+        document.body.append(edit)
+
+    })
+}
+
 function edit(entity, id, attr, type, value, container) {
 
     let attrTypes = {
@@ -159,6 +193,107 @@ window.addEventListener('keydown', (e) => {
     }
 })
 
+
+function showNewTag(){
+    closeLeft()
+    let p = preparePopupWeb(`newTag`)
+    p.append(ce('h2',false,false,`Новый тег`))
+    let name = ce('input',false,`block`,false,{placeholder: `Название`})
+    let desc = ce('textarea',false,false,false,{placeholder: `Описание`})
+    let sb = ce('button',false,`dateButton`,`Отправить`,{
+        dataset:{booked:1},
+        onclick:function(){
+            if(name.value && desc.value){
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/tags`,{
+                    name:           name.value,
+                    description:    desc.value
+                }).then(r=>{
+                    alert(r.data.comment)
+                }).catch(err=>{
+                    alert(err.message)
+                }).finally(()=>{
+                    this.removeAttribute(`disabled`)
+                })
+            }
+        }
+    })
+    p.append(name)
+    p.append(desc)
+    p.append(sb)
+}
+
+function showNewNews(){
+    closeLeft()
+    let p = preparePopupWeb(`newNews`)
+    p.append(ce('h2',false,false,`Новая рассылка`))
+    
+    let name = ce('input',false,`block`,false,{placeholder: `Название`})
+    let desc = ce('textarea',false,false,false,{placeholder: `Текст`})
+    
+    let select = ce(`select`)
+        select.append(ce(`option`,false,false,`Кому отправлять?`,{
+            value: ''
+        }))
+        select.onchange = () =>{
+            if(select.value == `tagged`){
+                tag.classList.remove(`hidden`)
+            }
+        }
+
+    let sendOptions = {
+        admins: `Админам`,
+        ready:  `Оформленным`,
+        all:    `Всем`,
+        tagged: `По тегу`
+    }
+
+    Object.keys(sendOptions).forEach(o=>{
+        select.append(ce('option',false,false,sendOptions[o],{
+            value: o
+        }))
+    })
+
+    let tag = ce('select',false,`hidden`)
+        tag.append(ce(`option`,false,false,`Выберите тег`,{
+            value: ''
+        }))
+
+        load(`tags`).then(tags=>{
+            tags
+                .filter(a => a.active)
+                .sort((a, b) => a.name < b.name ? -1 : 1)
+                .forEach(a => tag.append(ce('option', false, false, a.name, {
+                    value: a.id
+                })))
+        })
+    
+    let sb = ce('button',false,`dateButton`,`Отправить`,{
+        dataset:{booked:1},
+        onclick:function(){
+            if(name.value && desc.value){
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/news`,{
+                    name:           name.value,
+                    description:    desc.value,
+                    tag:            tag.value,
+                    filter:         select.value
+                }).then(r=>{
+                    alert(r.data.comment)
+                }).catch(err=>{
+                    alert(err.message)
+                }).finally(()=>{
+                    this.removeAttribute(`disabled`)
+                })
+            }
+        }
+    })
+    p.append(name)
+    p.append(desc)
+    p.append(select)
+    p.append(tag)
+    p.append(sb)
+}
 
 function showNewTask(){
     closeLeft()
@@ -542,20 +677,24 @@ function showUsers(){
             mc.append(ce('h1',false,`header2`,`Пользователи`))
             let c = ce('div')
 
-            let chart = ce(`div`,`chartdiv`)
+            let chart = ce(`div`,`chartdiv`,`hidden`)
             
             mc.append(chart)
+
+            mc.append(ce(`div`,false,[`dateButton`,`dark`],`Показать/Скрыть график`,{
+                onclick:()=>chart.classList.toggle(`hidden`)
+            }))
 
             let udata = {}
 
 
             
             
-            data.data.users.forEach(cl => {
+            data.data.users.sort((a,b)=>(b.score||0)-(a.score||0)).forEach(cl => {
                 let d =new Date(cl.createdAt._seconds*1000).toISOString().split('T')[0]
                 if(!udata[d]) udata[d] =0
                 udata[d] ++ 
-                c.append(showUserLine(cl))
+                c.append(showUserLine(cl,cl.score||0))
             });
 
             let d = Object.keys(udata).map(date=>{
@@ -572,21 +711,24 @@ function showUsers(){
 
             let filterTypes = {
                 blocked:    `Вышли из чата`,
-                admin:      `админы`,
-                ready:      `актвированы`,
+                admin:      `Админы`,
+                ready:      `Активированы`,
             }
 
             Object.keys(filterTypes).forEach(type=>{
-                mc.append(ce('button',false,type,filterTypes[type],{
+                mc.append(ce('button',false,[type,'dateButton'],filterTypes[type],{
                     onclick: function(){
                         filterUsers(type,c,this)
+                    },
+                    dataset:{
+                        booked:1
                     }
                 }))
             })
 
             let sortTypes = {
-                appOpens: `По частоте использования`,
-                classes: `По количеству лекций`,
+                // appOpens: `По частоте использования`,
+                // classes: `По количеству лекций`,
                 // fellow: `fellows`,
             }
 
@@ -627,7 +769,7 @@ function showUserLine(u,cnt){
         }
     })
 
-    c.append(ce('h3',false,false,(cnt?`${cnt}: `:'')+uname(u,u.id),{
+    c.append(ce('h3',false,false,((cnt || typeof cnt =='number')?`${cnt}: `:'')+uname(u,u.id),{
         onclick:()=>{
             showUser(u)
         }
@@ -755,11 +897,112 @@ function showSubmissions(userTaskId){
     })
 }
 
+function editable(e){
+    return ce(e.tag||`p`,false,false,e.value||'добавьте буквы',{
+        onclick:function(){
+            edit(e.entity,e.id,e.attr,e.type||`text`,e.value||null,this)
+        }
+    })
+}
+
+function logButton(collection,id,credit){
+    return ce(`button`,false,[`dateButton`,`dark`,`slim`],credit||`Логи`,{
+        onclick:()=>{
+            let p = preparePopupWeb(`logs_${collection}_${id}`)
+                p.append(ce('h2',false,false,`Загружаем...`))
+                load(`logs`,`${collection}_${id}`).then(logs=>{
+                    p.innerHTML = null;
+                    p.append(ce('h1',false,false,credit||`Логи`))
+                    logs.forEach(l=>{
+                        p.append(logLine(l))
+                    })
+                })
+        }
+    })
+}
+
+function logLine(l){
+    let c = ce('div',false,`sDivided`)
+        c.append(ce(`span`,false,`info`,drawDate(l.createdAt._seconds*1000)))
+        c.append(ce('p',false,false,l.text))
+        
+        if(l.user){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть профиль`,{
+                onclick:()=>showUser(false,l.user)
+            }))
+        }
+
+        if(l.task){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть задание`,{
+                onclick:()=>showTask(l.task)
+            }))
+        }
+
+        if(l.tag){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть тег`,{
+                onclick:()=>showTag(l.tag)
+            }))
+        }
+
+        
+
+    return c;
+}
+
+function showTag(tagId){
+    let p = preparePopupWeb(`tags_${tagId}`)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`tags`,tagId).then(tag=>{
+        p.innerHTML = null;
+        
+        p.append(logButton(`tag`,tagId,`Лог по тегу`))
+
+        p.append(ce(`h1`,false,false,tag.name,{
+            onclick:function(){
+                edit(`tags`,tagId,`name`,`text`,tag.name,this)
+            }
+        }))
+        
+        p.append(editable({
+            entity: `tags`,
+            id:     tagId,
+            attr:   `description`,
+            value:  tag.description
+        }))
+        
+        if(tag.active) p.append(deleteButton(`tags`,tagId))
+
+        let users = ce('div',false,false,`загружаем пользователей`)
+        
+        p.append(users)
+
+        load(`tagsUsers`,tagId).then(tusers=>{
+            
+            users.innerHTML = tusers.length ? `${tusers.length} пользоваталей` : `юзеров нет`
+            
+            tusers.forEach(u=>{
+                load(`users`,u.user).then(u=>{
+                    users.append(showUserLine(u))
+                })
+                
+            })      
+        })
+
+    })
+}
+
+
+
+
 function showTask(taskId){
     let p = preparePopupWeb(`tasks`)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`tasks`,taskId).then(task=>{
+
         p.innerHTML = null;
+
+        p.append(logButton(`task`,taskId,`Логи по заданию ${task.name}`))
+        
         p.append(ce('h1',false,false,`Задание «${task.name}»`,{
             onclick:function(){
                 edit(`tasks`,taskId,`name`,`text`,task.name,this)
@@ -816,8 +1059,46 @@ function deleteButton(collection,id){
     })
 }
 
+function showTags(){
+    closeLeft()
+    let p = preparePopupWeb(`tags`)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`tags`).then(tasks=>{
+        p.innerHTML = `<h2>Теги</h2>`
+        p.append(ce('button',false,`dateButton`,`Добавить`,{
+            dataset:{booked:1},
+            onclick:()=>showNewTag()
+        }))
+        tasks.forEach(t=>{
+            p.append(tagLine(t))
+        })
+    })
+}
+
+
+function showNews(){
+    closeLeft()
+    let p = preparePopupWeb(`news`)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`news`).then(tasks=>{
+        p.innerHTML = `<h2>Рассылки</h2>`
+        p.append(ce('button',false,`dateButton`,`Добавить`,{
+            dataset:{booked:1},
+            onclick:()=>showNewNews()
+        }))
+        tasks.forEach(t=>{
+            p.append(newsLine(t))
+        })
+    })
+}
+
+
+
+
+
 
 function showTasks(){
+    closeLeft()
     let p = preparePopupWeb(`tasks`)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`tasks`).then(tasks=>{
@@ -833,8 +1114,19 @@ function showTasks(){
 }
 
 function taskLine(t){
-    let c = ce('div',false,'divided',false,{
+    let c = ce('div',false,'sDivided',false,{
         onclick:()=>showTask(t.id),
+        dataset:{active:t.active}
+    });
+    c.append(ce('span',false,`info`,drawDate(t.createdAt._seconds*1000)))
+    c.append(ce('h3',false,false,t.name))
+    c.append(ce('p',false,`info`,t.description))
+    return c;
+}
+
+function tagLine(t){
+    let c = ce('div',false,'sDivided',false,{
+        onclick:()=>showTag(t.id),
         dataset:{active:t.active}
     });
     c.append(ce('span',false,`info`,drawDate(t.createdAt._seconds*1000)))
@@ -845,28 +1137,52 @@ function taskLine(t){
 
 function showUser(u,id){
 
-    if(!u){
-        u = axios.get(`/${host}/admin/user?data=profile&user=${id}`)
-            .then(d=>d.data)
-            .catch(err=>{
-                return alert(err.message)
-            })
-    }
+    if(!u) u = load(`users`,id)
 
     Promise.resolve(u).then(u=>{
         let p = preparePopupWeb(`user${u.id}`)
+
+        p.append(logButton(`user`,u.id,`Логи ${uname(u,u.id)}`))
+
+        if(u.blocked) {
+            p.append(ce('h1',false,false,`Пользователь заблокирован`))
+        }
+
         p.append(ce('h1',false,false,`${uname(u,u.id)} (${u.language_code})`))
         p.append(ce('p',false,false,`регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
         
-        p.append(ce('p', false, `story`, u.phone || `добавьте телефон`, {
-            onclick: () => edit(`users`, u.id, `phone`, `text`, u.phone || null)
+        p.append(ce('p', false, `story`, `телефон ${u.phone}` || `добавьте телефон`, {
+            onclick: function(){edit(`users`, u.id, `phone`, `text`, u.phone || null, this)}
         }))
 
-        p.append(ce('p', false, `story`, u.inst || `добавьте профиль в instagram`, {
-            onclick: () => edit(`users`, u.id, `inst`, `text`, u.inst || null)
+        p.append(ce('p', false, `story`, `inst @${u.inst}` || `добавьте профиль в instagram`, {
+            onclick: function(){edit(`users`, u.id, `inst`, `text`, u.inst || null, this)}
         }))
 
-        let tasks = ce('div',false,false,`<h3>Задания</h3>`)     
+        p.append(ce('h2',false,false,`Общий счет: ${u.score||0}`))
+
+        let tags = ce('div')
+
+        tags.append(ce('h2',false,false,`Теги`))
+
+        p.append(tags)
+
+        load(`userTags`,u.id).then(tgs=>{
+            if(!tgs.length) tags.append(ce('p',false,false,`тегов еще нет`))
+            tgs.forEach(t=>{
+                tags.append(ce('button',false,[`dateButton`,`dark`],t.name,{
+                    onclick:function(){
+                        removeTag(t.id,u.id,this)
+                    }
+                }))
+            })
+        })
+        
+        p.append(ce(`button`,false,[`dateButton`,`dark`],`Добавить тег`,{
+            onclick:() => addTag(u.id)
+        }))
+
+        let tasks = ce('div',false,false,`<h2>Задания</h2>`)     
             p.append(tasks)   
         
         load(`usersTasks`,u.id).then(data=>{
@@ -876,14 +1192,15 @@ function showUser(u,id){
 
             if(!data.length) tasks.append(ce('p',false,false,`Заданий пока нет`)) 
         })
+        p.append(ce('h2',false,false,`Переписка`))
 
         let messages = ce('div',false,`scrollable`)
             p.append(messages)
-        load(`usersMessages`,u.id).then(data=>{
-            data.forEach(m=>{
-                messages.prepend(message(m))
+            load(`usersMessages`,u.id).then(data=>{
+                data.forEach(m=>{
+                    messages.prepend(message(m))
+                })
             })
-        })
 
         let mbox = ce('div')
             p.append(mbox)
@@ -907,15 +1224,17 @@ function showUser(u,id){
                 }
             })
             mbox.append(sb)
-
-
-        
-
-        
     })
+}
 
-    
-    
+function userTaskLine(userTask){
+    let c = ce('div',false,`sDivided`,false,{
+        dataset:{active:userTask.active?true:false}
+    })
+        c.append(ce('span',false,`info`,drawDate(userTask.createdAt._seconds*1000)))
+        c.append(ce('h4',false,false,userTask.name))
+        c.append(ce(`p`,false,false,userTask.completed ? `Оценка: ${userTask.score || 0}` : `еще не закрыто`))
+    return c
 }
 
 function load(collection, id) {

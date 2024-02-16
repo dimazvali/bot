@@ -24,7 +24,8 @@ const ngrok = process.env.ngrok;
 const {
     initializeApp,
     applicationDefault,
-    cert
+    cert,
+    refreshToken
 } = require('firebase-admin/app');
 
 const {
@@ -88,15 +89,17 @@ let fb = getFirestore(gcp);
 
 
 let token = process.env.psToken;
-let udb = fb.collection('users');
-let messages = fb.collection('userMessages');
-let logs = fb.collection('logs');
-let tokens = fb.collection('tokens');
-let adminTokens = fb.collection('adminTokens');
-let userTags = fb.collection('userTags');
-let userTasks = fb.collection('userTasks');
+let udb =           fb.collection('users');
+let messages =      fb.collection('userMessages');
+let logs =          fb.collection('logs');
+let tokens =        fb.collection('tokens');
+let adminTokens =   fb.collection('adminTokens');
+let tags =          fb.collection('tags');
+let userTags =      fb.collection('userTags');
+let userTasks =     fb.collection('userTasks');
 let userTasksSubmits = fb.collection('userTasksSubmits');
-let tasks = fb.collection(`tasks`)
+let tasks =         fb.collection(`tasks`);
+let news =          fb.collection(`news`);
 
 let admins = [];
 
@@ -161,6 +164,7 @@ function registerUser(u) {
     u.createdAt = new Date();
     u.active = true;
     u.blocked = false;
+    u.score = 0;
     udb.doc(u.id.toString()).set(u).then(() => {
         m.sendMessage2({
             chat_id: u.id,
@@ -454,7 +458,7 @@ router.post(`/hook`, (req, res) => {
                     score: +inc[3]
                 }).then(s => {
                     replyCallBack(qid, `Оценка выставлена!`)
-                    rescore(userTasksSubmits.doc(inc[1]))
+                    rescore(userTasksSubmits.doc(inc[1],+inc[3]))
                 })
             }
             case `pic`: {
@@ -681,6 +685,20 @@ router.get(`/web`, (req, res) => {
         })
 })
 
+function removeTags(id){
+    userTags
+        .where(`tag`,'==',id)
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            col.docs.forEach(d=>{
+                userTags.doc(d.id).update({
+                    active: false
+                })    
+            })
+        })
+}
+
 router.all(`/admin/:method/:id`, (req, res) => {
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
 
@@ -703,6 +721,126 @@ router.all(`/admin/:method/:id`, (req, res) => {
 
 
         switch (req.params.method) {
+
+            case `logs`:{
+                let q = req.params.id.split('_')
+                // devlog()
+                return logs
+                    .where(q[0],'==',Number(q[1])?+q[1]:q[1])
+                    .orderBy(`createdAt`,`desc`)
+                    .get()
+                    .then(col=>{
+                        res.json(common.handleQuery(col))
+                    })
+            }
+            case `tags`:{
+                let ref = tags.doc(req.params.id);
+                return ref.get().then(t => {
+                    if (!t.exists) return res.sendStatus(404)
+                    t = common.handleDoc(t);
+                    
+                    switch(req.method){
+                        case 'GET':{
+                            return res.json(t)
+                        }
+                        case `DELETE`:{
+                            deleteEntity(req,res,ref,admin,false,()=>removeTags(req.params.id))
+                        }
+                        case `PUT`:{
+                            updateEntity(req,res,ref,admin.id)
+                        }
+                    }
+
+                })
+                
+            }
+
+            case `tagsUsers`:{
+                switch(req.method){
+                    case `GET`:{
+                        return userTags
+                            .where(`tag`,'==',req.params.id)
+                            .get()
+                            .then(d => 
+                                res.json(common.handleQuery(d))
+                            )
+                    }
+                    case `PUT`:{
+
+                    }
+                }
+            }
+
+            case 'userTags':{
+                switch(req.method){
+                    case `GET`:{
+                        return userTags
+                            .where(`user`,'==',+req.params.id)
+                            .get()
+                            .then(col=>{
+                                res.json(common.handleQuery(col))
+                            })
+                    }
+                    case 'POST':{
+                        if(!req.body.tag) return res.sendStatus(404)
+                        return udb.doc(req.params.id).get().then(u=>{
+                            if(!u.exists) return res.status(400).send(`no such user`)
+                            tags.doc(req.body.tag).get().then(t=>{
+                                if(!t.exists) res.status(400).send(`no such tag`)
+                                    t = common.handleDoc(t)
+                                if(!t.active) res.status(400).send(`tag is not active`)
+                                
+                                userTags.add({
+                                    user:       +req.params.id,
+                                    active:     true,
+                                    createdAt:  new Date(),
+                                    createdBy:  +admin.id,
+                                    tag:        req.body.tag,
+                                    name:       t.name
+                                }).then(rec=>{
+                                    res.json({
+                                        comment: `Тег добавлен`,
+                                        id: rec.id
+                                    })
+                                    tags.doc(req.body.tag).update({
+                                        cnt: FieldValue.increment(1)
+                                    })
+                                    log({
+                                        text:   `${uname(admin,admin.id)} добавляет тег ${t.name} пользователю с id ${req.params.id}`,
+                                        admin:  +admin.id,
+                                        tag:    req.body.tag,
+                                        user:   +req.params.id
+                                    })
+                                })
+                            })
+                        })
+                    } 
+                    case `DELETE`:{
+                        let ref = userTags.doc(req.params.id)
+                        return ref.get().then(t=>{
+                            if(!t.exists) return res.sendStatus(404)
+                            t = common.handleDoc(t)
+                            if(!t.active) return res.status(400).send(`already deleted`)
+                            ref.update({
+                                active: false
+                            }).then(s=>{
+                                res.json({
+                                    comment: `Тег снят`
+                                })
+                                tags.doc(t.tag).update({
+                                    cnt: FieldValue.increment(-1)
+                                })
+                                log({
+                                    text:   `${uname(admin,admin.id)} снимает тег ${t.name} пользователю с id ${req.params.id}`,
+                                    admin:  +admin.id,
+                                    tag:    t.tag,
+                                    user:   +t.user
+                                })
+                            })
+                        })
+                    }
+                }
+            }
             case `messages`: {
                 switch(req.method){
                     case `GET`:{
@@ -901,6 +1039,100 @@ router.all(`/admin/:method`, (req, res) => {
 
         switch (req.params.method) {
 
+            case `news`:{
+                switch(req.method){
+                    case `GET`:{
+                        return news
+                            .orderBy(`createdAt`,'desc')
+                            .get().then(col=>{
+                                res.json(common.handleQuery(col))
+                            })
+                    }
+                    case `POST`:{
+                        if(!req.body.name || !req.body.text) return res.sendStatus(400)
+                        let q = udb.where(`active`,'==',true).where(`blocked`,'==',false)
+                        if(req.body.filter){
+                            switch (req.body.filter){
+                                case `admin`:{
+                                    q = q.where(`admin`,'==',true)
+                                    break;
+                                }
+                                case 'ready':{
+                                    q = q.where(`ready`,'==',true) 
+                                    break;
+                                }
+                                case `tagged`:{
+                                    q = userTags.where(`active`,'==',true).where(`tag`,'==',req.body.tag)
+                                }
+                            }
+                            
+                        }
+                        return q.get()
+                            .then(col=>{
+                                news.add({
+                                    createdAt:  new Date(),
+                                    createdBy:  +admin.id,
+                                    text:       req.body.text,
+                                    name:       req.body.name,
+                                    audiencs:   col.docs.length
+                                }).then(rec=>{
+                                    res.json({
+                                        id:         rec.id,
+                                        comment:    `Рассылка создана и расходится на ${col.docs.length} пользователей.`
+                                    })
+                                    log({
+                                        text:  `${uname(admin,admin.id)} стартует рассылку с названием ${req.body.name}`,
+                                        admin: +admin.id
+                                    })
+                                    common.handleQuery(col).forEach((u,i)=>{
+                                        setTimeout(()=>{
+                                            m.sendMessage2({
+                                                chat_id:    u.user || u.id,
+                                                text:       req.body.text
+                                            },false,token).then(res=>{
+                                                messages.add({
+                                                    user:       +u.id,
+                                                    text:       req.body.text,
+                                                    news:       rec.id,
+                                                    isReply:    true
+                                                })
+                                            })
+                                        },i*200)
+                                    })
+                                })
+                                
+                            })
+                    }
+                }
+            }
+
+            case `tags`:{
+                switch(req.method){
+                    case 'GET':{
+                        return tags.get().then(col=>res.json(common.handleQuery(col)))
+                    }
+                    case `POST`:{
+                        if(!req.body.name || !req.body.description) return res.sendStatus(400)
+                        return tags.add({
+                            createdAt:      new Date(),
+                            active:         true,
+                            name:           req.body.name,
+                            description:    req.body.description
+                        }).then(s=>{
+                            res.json({
+                                id: s.id,
+                                comment: `Тег создан. Обновите страницу`
+                            })
+                            log({
+                                text: `${uname(admin,admin.id)} создает тег ${req.body.name}`,
+                                admin: admin.id
+                            })
+                        })
+                    }
+                }
+            }
+
+
             case `unseen`:{
                 return messages
                     .orderBy(`createdAt`,`desc`)
@@ -1056,7 +1288,7 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
     })
 }
 
-function rescore(ref) {
+function rescore(ref,curScore) {
     ref.get().then(s => {
         submission = s.data()
         userTasksSubmits
@@ -1065,7 +1297,9 @@ function rescore(ref) {
             .get()
             .then(col => {
 
-                let max = Math.max(common.handleQuery(col).map(s => s.score));
+                let max = Math.max(...common.handleQuery(col).map(s => s.score||0));
+
+                devlog(`максимальный счет: ${max}`)
 
                 m.sendMessage2({
                     chat_id: submission.user,
@@ -1076,6 +1310,21 @@ function rescore(ref) {
                     completed: true,
                     score: max
                 })
+
+                userTasks
+                    .where(`user`,'==',submission.user)
+                    .get()
+                    .then(col=>{
+                        col = common.handleQuery(col).filter(s=>s.score)
+                        let avg = col.length ? +(col.reduce((a,b)=>a+b.score,0)/col.length).toFixed(1) : 0
+                        udb.doc(submission.user.toString()).update({
+                            avg:    avg,
+                            total:  col.length,
+                            score:  avg ? col.reduce((a,b)=>a+b.score,0) : 0 
+                        })
+                    })
+
+
 
             })
     })
