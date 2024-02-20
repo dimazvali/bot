@@ -188,6 +188,8 @@ h1.viv {
     font-family: 'StapelL';
 }
 
+
+.editWindow>button,
 button.dateButton {
     background: var(--light);
     border: none;
@@ -213,6 +215,8 @@ button.dateButton {
 [data-active="false"]{
     filter: opacity(.4);
 }
+
+.editWindow>button,
 button.dark,
 button.dateButton[data-booked="1"] {
     background: var(--dark);
@@ -466,4 +470,32 @@ button.dateButton.dark.slim {
     padding: 10px 0;
     margin-bottom: 0;
     text-decoration: underline;
+}
+
+.inline {
+    display: inline !important;
+}
+
+.inpC>textarea, .inpC>input {
+    display: block;
+    margin-bottom: 10px;
+    background: #ffffffb5;
+    border: none;
+    line-height: 40px;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Stapel';
+}
+
+.deleteAble:hover {
+    background: gray;
+}
+
+.deleteAble {
+    transition: .5s;
+}
+
+button {
+    cursor: pointer;
 }

@@ -32,7 +32,7 @@ div#left>h3 {
     left: -100vw;
     background: var(--light);
     animation: slideFromRight 1s forwards;
-    margin-left: 300px;
+    /* margin-left: 300px; */
     color: var(--dark);
     padding: 20px;
     box-sizing: border-box;
@@ -71,7 +71,8 @@ div#left>h3 {
     }
 
     div#main {
-        margin-left: 40px;
+        margin-left: 0px;
+        margin-top: 40px;
     }
     #menu{
         display: block;
@@ -93,7 +94,22 @@ div#left>h3 {
         line-height: 50px;
         font-size: 2em;
     }
+    span.closeMe {
+        right: 20px;
+        position: absolute;
+    }
+    
+    .popupWeb {
+        width: 100vw;
+        padding-top: 40px;
+    }
 
+}
+
+@media all and (min-width: 600px) {
+    .popupWeb{
+        margin-left: 300px; 
+    }
 }
 
 
@@ -161,9 +177,11 @@ img.cover {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: white;
+    background: #9eef27ba;
     padding: 30px;
     z-index: 1000;
+    backdrop-filter: blur(1px);
+    box-shadow: 5px 5px 12px var(--dark);
 }
 
 table.wide{

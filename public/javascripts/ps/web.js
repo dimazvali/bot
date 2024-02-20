@@ -184,14 +184,16 @@ function edit(entity, id, attr, type, value, container) {
 
 window.addEventListener('keydown', (e) => {
     if (e.key == 'Escape') {
-        try {
-            document.querySelector('.editWindow').remove();
-            document.querySelector('#hover').remove();
-        } catch (err) {
-            console.warn(err)
-        }
+
+        if(document.querySelector('.editWindow')){
+            document.querySelector('.editWindow').remove()
+        } else if(document.querySelector('#hover')){
+            document.querySelector('#hover').remove()
+        } else if (document.querySelector('.popupWeb')){
+            document.querySelectorAll('.popupWeb')[document.querySelectorAll('.popupWeb').length-1].remove()
+        }}
     }
-})
+)
 
 
 function showNewTag(){
@@ -218,8 +220,10 @@ function showNewTag(){
             }
         }
     })
-    p.append(name)
-    p.append(desc)
+    let inpC = ce('div',false,`inpC`)
+    p.append(inpC)
+    inpC.append(name)
+    inpC.append(desc)
     p.append(sb)
 }
 
@@ -275,7 +279,7 @@ function showNewNews(){
                 this.setAttribute(`disabled`,true)
                 axios.post(`/${host}/admin/news`,{
                     name:           name.value,
-                    description:    desc.value,
+                    text:           desc.value,
                     tag:            tag.value,
                     filter:         select.value
                 }).then(r=>{
@@ -288,10 +292,15 @@ function showNewNews(){
             }
         }
     })
-    p.append(name)
-    p.append(desc)
-    p.append(select)
-    p.append(tag)
+
+    let inpC = ce('div',false,`inpC`)
+    p.append(inpC)
+
+    inpC.append(name)
+    inpC.append(desc)
+    inpC.append(select)
+    inpC.append(tag)
+    
     p.append(sb)
 }
 
@@ -319,8 +328,10 @@ function showNewTask(){
             }
         }
     })
-    p.append(name)
-    p.append(desc)
+    let inpC = ce('div',false,`inpC`)
+    p.append(inpC)
+    inpC.append(name)
+    inpC.append(desc)
     p.append(sb)
 }
 
@@ -785,6 +796,9 @@ function message(m){
         }
     })
     c.append(ce('span',false,`info`,new Date(m.createdAt._seconds*1000).toLocaleString()))
+    if(m.news) c.append(ce('button',false,['dateButton','dark','slim'],`Открыть рассылку`,{
+        onclick:()=> showNewsNews(m.news)
+    }))
     c.append(ce('p',false,false, m.text || `картинка`))
     if(m.file_id) getPicture(m.file_id).then(img=>c.append(img))
     return c
@@ -1032,7 +1046,7 @@ function showTask(taskId){
                     if(m.file_id) load(`images`,m.file_id).then(img=>{
                         c.append(ce(`img`,false,`preview`,false,{
                             src: img.src,
-                            onclick: window.open(img.src)
+                            onclick:()=> window.open(img.src)
                         }))
                     })
                 })
@@ -1071,7 +1085,7 @@ function showTask(taskId){
 
 
 function deleteButton(collection,id){
-    return ce('button',false,false,`Архивировать`,{
+    return ce('button',false,[`dateButton`,`dark`,`deleteAble`],`Архивировать`,{
         onclick:()=>{
             let proof = confirm(`Вы уверены?`)
             if(proof) axios.delete(`/${host}/admin/${collection}/${id}`)
@@ -1116,7 +1130,70 @@ function showNews(){
 
 
 
+function newsLine(n){
+    let c = ce('div',false,`sDivided`,false,{
+        onclick:()=>showNewsNews(n.id)
+    });
+    c.append(ce('span',false,`info`,drawDate(n.createdAt._seconds*1000)))
+    c.append(ce('span',false,`info`,`Аудитория: ${n.audience||`нрзб.`}`))
+    c.append(ce(`h3`,false,false,n.name))
+    return c
+}
 
+function showNewsNews(id){
+    let p = preparePopupWeb(`news_${id}`)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`news`,id).then(n=>{
+        p.innerHTML = `<h2>${n.name}</h2>`
+        p.append(ce('span',false,`info`,`создана ${drawDate(n.createdAt._seconds*1000)}`))
+        p.append(ce('span',false,`info`,` получателей ${n.audience||`нрзб.`}`))
+        
+        p.append(ce('p',false,false,n.text))
+
+        let credits = ce('div')
+
+        p.append(credits)
+
+        load(`users`,n.createdBy).then(u=>{
+            credits.append(ce(`button`,false,['dateButton','dark'],uname(u,id),{
+                onclick:()=>showUser(u,u.id)
+            }))
+        })
+
+        let users = ce('div')
+        p.append(users)
+
+        users.append(ce('button',false,[`dateButton`,`dark`],`показать всех получаетей`,{
+            onclick:()=>{
+                load(`usersNews`,id).then(sends=>{
+                    sends.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds).forEach((s,i)=>{
+                        let c = ce('div',false,`sDivided`)
+                        users.append(c);
+
+                        c.append(ce(
+                            'span',
+                            false,
+                            `info`,
+                            drawDate(s.createdAt._seconds*1000,false,{time: true})
+                        ))
+
+                        c.append(ce(`p`,false,false,s.user))
+
+                        load(`users`,s.user).then(u=>{
+                            c.append(ce('a',false,false,uname(u,u.id),{
+                                href: '#',
+                                onclick:()=>showUser(false,u.id)
+                            }))
+                        })
+                        
+                    })
+                })
+            }
+        }))
+
+
+    })
+}
 
 
 function showTasks(){
@@ -1172,6 +1249,37 @@ function showUser(u,id){
 
         p.append(ce('h1',false,false,`${uname(u,u.id)} (${u.language_code})`))
         p.append(ce('p',false,false,`регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
+
+
+        let adminLinks = [{
+            attr:       `admin`,
+            name:       `сделать админом`,
+            disname:    `снять админство`
+        },{
+            attr:       `blocked`,
+            name:       `заблокировать`,
+            disname:    `разблокировать`
+        },{
+            attr:       `ready`,
+            name:       `Прошел подготовку`,
+            disname:    `Снять флаг подготовки`
+        }]
+
+        let ac = ce(`div`)
+        p.append(ac)
+
+        adminLinks.forEach(type=>{
+            ac.append(ce('button',false,[`dateButton`,'dark', `inline`], u[type.attr] ? type.disname : type.name,{
+                onclick:()=>{
+                    axios.put(`/${host}/admin/users/${u.id}`, {
+                        attr: type.attr,
+                        value: !u[type.attr]
+                    }).then(handleSave)
+                    .catch(handleError)
+                }
+            }))
+        })
+
         
         p.append(ce('p', false, `story`, `телефон ${u.phone}` || `добавьте телефон`, {
             onclick: function(){edit(`users`, u.id, `phone`, `text`, u.phone || null, this)}

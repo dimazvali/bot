@@ -233,7 +233,7 @@ function regstriationIncomplete(user, message) {
 
     } else if (!user.inst) {
         if (message.text) {
-            let login = message.text.split(`https://www.instagram.com/`)
+            let login = message.text.split(`instagram.com/`)
             if (login.length > 1) {
                 login = login[1]
             } else {
@@ -721,6 +721,24 @@ router.all(`/admin/:method/:id`, (req, res) => {
 
 
         switch (req.params.method) {
+            
+            case `usersNews`:{
+                return messages
+                    .where(`news`,'==',req.params.id)
+                    .get()
+                    .then(col=>{
+                        res.json(common.handleQuery(col))
+                    })
+            }
+
+            case `news`:{
+                return news.doc(req.params.id)
+                    .get()
+                    .then(n=>{
+                        if(!n.exists) return res.sendStatus(404)
+                        res.json(common.handleDoc(n))
+                    })
+            }
 
             case `logs`:{
                 let q = req.params.id.split('_')
@@ -985,7 +1003,23 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             return deleteEntity(req, res, ref, admin, `blocked`, () => clearUser(req.params.id));
                         }
                         case `PUT`: {
-                            return updateEntity(req, res, ref, admin.id);
+                            return updateEntity(req, res, ref, admin.id).then(s=>{
+                                switch (req.body.attr){
+                                    case `admin`:{
+                                        if(req.body.value){
+                                            m.sendMessage2({
+                                                chat_id: req.params.id,
+                                                text: `${common.sudden.fine()}! Вы стали администратором программы.\nВот ваша ссылка на админку: ${process.env.ngrok}/ps/web.`
+                                            },false,token)
+                                        } else {
+                                            m.sendMessage2({
+                                                chat_id: req.params.id,
+                                                text: `${common.sudden.sad()}, вы перестали числиться в администраторах проекта.`
+                                            },false,token)
+                                        }
+                                    }
+                                }
+                            });
                         }
                     }
                 })
@@ -1060,10 +1094,12 @@ router.all(`/admin/:method`, (req, res) => {
                     }
                     case `POST`:{
                         if(!req.body.name || !req.body.text) return res.sendStatus(400)
-                        let q = udb.where(`active`,'==',true).where(`blocked`,'==',false)
+                        let q = udb
+                            .where(`active`,'==',true)
+                            .where(`blocked`,'==',false)
                         if(req.body.filter){
                             switch (req.body.filter){
-                                case `admin`:{
+                                case `admins`:{
                                     q = q.where(`admin`,'==',true)
                                     break;
                                 }
@@ -1084,7 +1120,7 @@ router.all(`/admin/:method`, (req, res) => {
                                     createdBy:  +admin.id,
                                     text:       req.body.text,
                                     name:       req.body.name,
-                                    audiencs:   col.docs.length
+                                    audience:   col.docs.length
                                 }).then(rec=>{
                                     res.json({
                                         id:         rec.id,
@@ -1101,6 +1137,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                 text:       req.body.text
                                             },false,token).then(res=>{
                                                 messages.add({
+                                                    createdAt:  new Date(),
                                                     user:       +u.id,
                                                     text:       req.body.text,
                                                     news:       rec.id,
