@@ -10,6 +10,8 @@ var cron =      require('node-cron');
 var FormData =  require('form-data');
 const host =    `auditoria`
 
+uname =         common.uname
+
 let devlog =    common.devlog
 
 const { createHash,createHmac } = require('node:crypto');
@@ -140,11 +142,9 @@ refreshMenu()
 
 let udb =                       fb.collection('users');
 let messages =                  fb.collection('userMessages');
-let admins =                    fb.collection('admins');
 let halls =                     fb.collection(`halls`);
 let classes =                   fb.collection(`classes`);
 let userClasses =               fb.collection(`userClasses`);
-let bookings =                  fb.collection(`bookings`);
 let coworking =                 fb.collection(`coworking`);
 let mra =                       fb.collection(`meetingRoom`);
 let logs =                      fb.collection('logs');
@@ -164,6 +164,8 @@ let adminTokens =               fb.collection(`adminTokens`)
 let banks =                     fb.collection(`banks`)
 let channelStats =              fb.collection(`channelStats`)
 let subscriptionsEmail =        fb.collection(`subscriptionsEmail`)
+let tags =                      fb.collection(`tags`)
+let userTags =                  fb.collection(`usertags`)
 
 if (!process.env.develop) {
     
@@ -487,6 +489,7 @@ router.get(`/web`,(req,res)=>{
                 httpOnly: true,
             }).render(`${host}/web`,{
                 logs: common.handleQuery(col),
+                start: req.query.page
                 // token: req.signedCookies.adminToken
             })
         }) 
@@ -505,7 +508,8 @@ router.get(`/web`,(req,res)=>{
                     .get()
                     .then(col=>{
                         res.render(`${host}/web`,{
-                            logs: common.handleQuery(col),
+                            logs:   common.handleQuery(col),
+                            start:  req.query.page
                             // token: req.signedCookies.adminToken
                         })
                     })
@@ -590,6 +594,7 @@ router.all(`/admin/:method`, (req, res) => {
             udb.doc(req.query.id).get().then(user => {
                 if (!user.exists) return res.status(401).send(`Вы кто вообще?`)
                 user = common.handleDoc(user);
+                let admin = user;
                 if (!user.admin) return res.status(403).send(`Вам сюда нельзя`)
                 switch (req.params.method) {
                     case `plans`:{
@@ -688,11 +693,78 @@ router.all(`/admin/:method`, (req, res) => {
 
                     }
                     case `news`: {
-                        return news.orderBy('createdAt', 'DESC').get().then(col => {
-                            res.json(common.handleQuery(col))
-                        }).catch(err => {
-                            res.status(500).send(err.message)
-                        })
+
+                        switch (req.method){
+                            case `GET`:{
+                                return news
+                                    .orderBy('createdAt', 'DESC')
+                                    .get()
+                                    .then(col => {
+                                        res.json(common.handleQuery(col))
+                                    }).catch(err => {
+                                        res.status(500).send(err.message)
+                                    })
+                            }
+                            case `POST`:{
+                                if(!req.body.text || !req.body.name) return res.sendStatus(400)
+                                let q = udb
+                            .where(`active`,'==',true)
+                            .where(`blocked`,'==',false)
+                        if(req.body.filter){
+                            switch (req.body.filter){
+                                case `admins`:{
+                                    q = q.where(`admin`,'==',true)
+                                    break;
+                                }
+                                case 'ready':{
+                                    q = q.where(`ready`,'==',true) 
+                                    break;
+                                }
+                                case `tagged`:{
+                                    q = userTags.where(`active`,'==',true).where(`tag`,'==',req.body.tag)
+                                }
+                            }
+                        }
+                        return q.get()
+                            .then(col=>{
+                                news.add({
+                                    createdAt:  new Date(),
+                                    createdBy:  +user.id,
+                                    text:       req.body.text,
+                                    name:       req.body.name,
+                                    audience:   col.docs.length
+                                }).then(rec=>{
+                                    res.json({
+                                        id:         rec.id,
+                                        comment:    `Рассылка создана и расходится на ${col.docs.length} пользователей.`
+                                    })
+                                    log({
+                                        text:  `${uname(user,user.id)} стартует рассылку с названием ${req.body.name}`,
+                                        admin: +user.id
+                                    })
+                                    common.handleQuery(col).forEach((u,i)=>{
+                                        setTimeout(()=>{
+                                            m.sendMessage2({
+                                                chat_id:    u.user || u.id,
+                                                text:       req.body.text
+                                            },false,token).then(res=>{
+                                                messages.add({
+                                                    createdAt:  new Date(),
+                                                    user:       +u.id,
+                                                    text:       req.body.text,
+                                                    news:       rec.id,
+                                                    isReply:    true
+                                                })
+                                            })
+                                        },i*200)
+                                    })
+                                })
+                                
+                            })
+                            }
+                        }
+
+                        
                     }
                     case `qr`: {
                         if (!req.query.data) return res.sendStatus(404)
@@ -1292,7 +1364,10 @@ router.all(`/admin/:method`, (req, res) => {
                     case `courses`:{
                         switch(req.method){
                             case 'GET': {
-                                return courses.where(`active`,'==',true).get().then(col=>res.json(common.handleQuery(col)))
+                                return courses
+                                    // .where(`active`,'==',true)
+                                    .get()
+                                    .then(col=>res.json(common.handleQuery(col)))
                             }
                             case 'POST':{
                                 if(req.body.name){
@@ -1341,6 +1416,33 @@ router.all(`/admin/:method`, (req, res) => {
                                 res.json(common.handleQuery(col))
                             })
                     }
+
+                    case `tags`:{
+                        switch(req.method){
+                            case 'GET':{
+                                return tags.get().then(col=>res.json(common.handleQuery(col)))
+                            }
+                            case `POST`:{
+                                if(!req.body.name || !req.body.description) return res.sendStatus(400)
+                                return tags.add({
+                                    createdAt:      new Date(),
+                                    active:         true,
+                                    name:           req.body.name,
+                                    description:    req.body.description
+                                }).then(s=>{
+                                    res.json({
+                                        id: s.id,
+                                        comment: `Тег создан. Обновите страницу`
+                                    })
+                                    log({
+                                        text:   `${uname(admin,admin.id)} создает тег ${req.body.name}`,
+                                        admin:  admin.id,
+                                        tag:    s.id
+                                    })
+                                })
+                            }
+                        }
+                    }
                     default:
                         res.sendStatus(404)
                 }
@@ -1357,377 +1459,512 @@ router.all(`/admin/:data/:id`,(req,res)=>{
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc=>{
         if(!doc.exists) return res.sendStatus(403)
         doc = common.handleDoc(doc)
+
         if(!doc.active) return res.sendStatus(403)
-        switch(req.params.data){
-            case `authors`:{
-                let ref = authors.doc(req.params.id)
-                return ref.get().then(author=>{
-                    if(!author.exists) return res.sendStatus(404)
-                    switch (req.method){
-                        case `POST`:{
-                            return subscriptions.where(`author`,'==',req.params.id).where(`active`,'==',true).get().then(col=>{
-                                let line = common.handleQuery(col); 
-                                line.forEach((s,i)=>{
-                                    setTimeout(function(){
-                                        m.sendMessage2({
-                                            chat_id: s.user,
-                                            text: req.body.text,
-                                            reply_markup: {
-                                                inline_keyboard:[[{
-                                                    text: `Открыть автора`,
-                                                    web_app:{
-                                                        url: `${ngrok}/${host}/app2?start=author_${req.params.id}`
-                                                    }
-                                                }]]
-                                            }
-                                        },false,token).then(s=>{
-                                            if(s) messages.add({
-                                                isReply: true,
-                                                createdAt: new Date(),
-                                                text: req.body.text
-                                            })
-                                        })
-                                    },i*200)
-                                })
-                                res.json({
-                                    success: true,
-                                    comment: `Ваше сообщение расходится на ${line.length} адресатов.`
-                                })
-                            })
-                        }
-                        case 'GET':{
-                            let data = []
-                            data.push(classes.where(`authorId`,'==',req.params.id).get().then(col=>common.handleQuery(col))) 
-                            data.push(subscriptions.where(`author`,'==',req.params.id).where(`active`,'==',true).get().then(col=>common.handleQuery(col)))
-                            data.push(courses.where(`authorId`,'==',req.params.id).where(`active`,'==',true).get().then(col=>common.handleQuery(col)))
-                            // data.push(views.where(`entity`,'==','author').where(`id`,'==',req.params.id).get().then(common.handleQuery))
-                            return Promise.all(data).then(data=>{
-                                res.json({
-                                    author:         common.handleDoc(author),
-                                    classes:        data[0],
-                                    subscriptions:  data[1],
-                                    courses:        data[2],
-                                    // views:          data[3]
-                                })
-                            })
-                        }
-                        
-                        case 'DELETE':{
-                            return ref.update({
-                                active: false,
-                                updatedBy: doc.user
-                            }).then(s=>{
-                                res.json({success:true})
-                                log({
-                                    text: `автор ${common.handleDoc(author).name} отправляется в архив`,
-                                    admin: doc.user,
-                                    author: req.params.id
-                                })
-                            })
-                        }
 
-                        case 'PUT':{
-                            return ref.update({
-                                [req.body.attr]: req.body.value,
-                                updatedBy: doc.user
-                            }).then(s=>{
-                                log({
-                                    text: `автор ${common.handleDoc(author).name} был обновлен`,
-                                    admin: doc.user,
-                                    author: req.params.id
-                                })
-                                res.json({success:true})
-                            }).catch(err=>{
-                                res.json({success:false,comment:err.message})
-                            })
-                        }
-                    }
-                })
-            }
-            case `courses`:{
-                let ref = courses.doc(req.params.id)
-                return ref.get().then(course=>{
-                    if(!course.exists) return res.sendStatus(404)
-                    course = common.handleDoc(course)
-                    switch(req.method){
-                        case `POST`:{
-                            return subscriptions.where(`course`,'==',req.params.id).where(`active`,'==',true).get().then(col=>{
-                                let line = common.handleQuery(col); 
-                                line.forEach((s,i)=>{
-                                    setTimeout(function(){
-                                        m.sendMessage2({
-                                            chat_id:    s.user,
-                                            text:       req.body.text,
-                                            reply_markup: {
-                                                inline_keyboard:[[{
-                                                    text: `Открыть курс`,
-                                                    web_app:{
-                                                        url: `${ngrok}/${host}/app2?start=course_${req.params.id}`
-                                                    }
-                                                }]]
-                                            }
-                                        },false,token).then(s=>{
-                                            if(s) messages.add({
-                                                isReply: true,
-                                                createdAt: new Date(),
-                                                text: req.body.text
-                                            })
-                                        })
-                                    },i*200)
-                                })
-                                res.json({
-                                    success: true,
-                                    comment: `Ваше сообщение расходится на ${line.length} адресатов.`
-                                })
-                            })
-                        }
-
-                        case `GET`:{
-                            let data = []
-                            data.push(classes.where(`course`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-                            data.push(subscriptions.where(`course`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-                            // data.push(views.where(`entity`,'==','course').where(`id`,'==',req.params.id).get().then(common.handleQuery))
-                            devlog(data)
-                            return Promise.all(data).then(data=>{
-                                res.json({
-                                    course:          course,
-                                    classes:        data[0],
-                                    subscriptions:  data[1],
-                                    // views:          data[2]
-                                })
-                            })
-                            
-                        }
-                        case `DELETE`:{
-                            return deleteEntity(req,res,ref,doc.user)
-                        }
-                        case `PUT`:{
-                            return updateEntity(req,res,ref,doc.user)
-                        }
-                    }
-                })
-            }
-            case `tickets`:{
-                let ref = userClasses.doc(req.params.id);
-                return ref.get().then(ticket=>{
-                    if(!ticket.exists) return res.sendStatus(404)
-                    ticket = common.handleDoc(ticket)
-                    switch(req.method){
-                        case `GET`:{
-                            return res.json(ticket)                            
-                        }
-                        case `DELETE`:{
-                            return deleteEntity(req,res,ref,doc.user).then(s=>{
-                                // TBD alert tickets
-                            })
-                        }
-                        case `PUT`:{
-                            return updateEntity(req,res,ref,doc.user)
-                        }
-                    }
-                })
-            }
-            case `users`:{
-                let ref = udb.doc(req.params.id);
-                return ref.get().then(user=>{
-                    if(!user.exists) return res.sendStatus(404)
-                    user = common.handleDoc(user)
-                    switch(req.method){
-                        case `GET`:{
-                            let data = []
-                            data.push(userClasses.where(`user`,'==',+req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-                            data.push(subscriptions.where(`user`,'==',+req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-                            return Promise.all(data).then(data=>{
-                                res.json({
-                                    user:           user,
-                                    classes:        data[0],
-                                    subscriptions:  data[1]
-                                })
-                            })
-                            
-                        }
-                        case `DELETE`:{
-                            return blockUser(req,res,ref,doc.user)
-                        }
-                        case `PUT`:{
-                            return updateEntity(req,res,ref,doc.user)
-                        }
-                    }
-                })
-            }
-            case `classes`:{
-                let ref = classes.doc(req.params.id);
-                return ref.get().then(cl=>{
-                    if(!cl.exists) return res.sendStatus(404)
-                    cl = common.handleDoc(cl)
-                    switch(req.method){
-                        case `POST`:{
-                            cl.date = new Date(req.body.date);
-                            delete cl.id
-                            return classes.add(cl).then(s=>{
-                                res.json({success:true})
-                            })
-                        }
-                        case `GET`:{
-                            let data = []
-                            
-                            data.push(userClasses.where(`class`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-                            
-                            if(cl.authorId) {data.push(getDoc(authors,cl.authorId))} else {data.push([])} 
-                            if(cl.courseId) {data.push(getDoc(courses,cl.courseId))} else {data.push([])}
-                            
-                            data.push(streams.where(`class`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
-
-
-                            return Promise.all(data).then(data=>{
-
-                                devlog(data)
-                                
-                                res.json({
-                                    class:          cl,
-                                    tickets:        data[0],
-                                    author:         data[1],
-                                    course:         data[2],
-                                    streams:        data[3]
-                                })
-                            })
-                            
-                        }
-                        case `DELETE`:{
-                            return deleteEntity(req,res,ref,doc.user).then(s=>{
-                                // TBD alert tickets
-                            })
-                        }
-                        case `PUT`:{
-                            return updateEntity(req,res,ref,doc.user)
-                        }
-                    }
-                })
-            }
-            case `banks`:{
-                let ref = classes.doc(req.params.id);
-                return ref.get().then(cl=>{
-                    if(!cl.exists) return res.sendStatus(404)
-                    let creds = common.handleDoc(cl)
-                    switch(req.method){
-                        case `GET`:{
-                            return res.json(creds)
-                        }
-                        case `PUT`:{
-                            return updateEntity(req,res,ref,doc.user)
-                        }
-                        case  `DELETE`:{
-                            return deleteEntity(req,res,ref,doc.user)
-                        }
-                    }
-                })   
-            }
-            case `plans`:{
-                let ref = plans.doc(req.params.id);
-                return ref.get().then(cl=>{
-                    if(!cl.exists) return res.sendStatus(404)
-                    let plan = common.handleDoc(cl)
-                    switch(req.method){
-                        case `GET`:{
-                            return plansUsers.where(`plan`,'==',plan.id).get().then(col=>{
-                                plan.subscriptions = common.handleQuery(col)||[]
-                                devlog(plan.subscriptions)
-                                res.json(plan)
-                            })
-                        }
-                        case `PUT`:{
-                            return updateEntity(req,res,ref,doc.user)
-                        }
-                        case  `DELETE`:{
-                            return deleteEntity(req,res,ref,doc.user)
-                        }
-                    }
-                })   
-            }
-            case `messages`:{
-                return messages
-                    .where(`user`,'==',+req.params.id)
-                    .orderBy(`createdAt`,'asc')
-                    .get()
-                    .then(col=>{
-                        res.json(common.handleQuery(col))
-                    })
-            }
-            case `streamAlerts`:{
-                return getDoc(classes,req.params.id).then(cl=>{
-                    if(cl.active && cl.streamDesc){
-                        return streams
-                            .where(`class`,'==',req.params.id)
-                            .where(`active`,'==',true)
-                            .where(`payed`,'==',true)
-                            .get()
-                            .then(col=>{
-                                let line = common.handleQuery(col)
-                                res.json({
-                                    success:true,
-                                    comment: `отправляется на ${line.length} адресов`
-                                })
-                                line.forEach((r,count)=>{
-                                    if(!r.sent){
+        udb.doc(doc.user.toString()).get().then(admin=>{
+            switch(req.params.data){
+                case `authors`:{
+                    let ref = authors.doc(req.params.id)
+                    return ref.get().then(author=>{
+                        if(!author.exists) return res.sendStatus(404)
+                        switch (req.method){
+                            case `POST`:{
+                                return subscriptions.where(`author`,'==',req.params.id).where(`active`,'==',true).get().then(col=>{
+                                    let line = common.handleQuery(col); 
+                                    line.forEach((s,i)=>{
                                         setTimeout(function(){
                                             m.sendMessage2({
-                                                chat_id: r.user,
-                                                text: `Доступ к трансляции ${r.className}:\n${cl.streamDesc}`
+                                                chat_id: s.user,
+                                                text: req.body.text,
+                                                reply_markup: {
+                                                    inline_keyboard:[[{
+                                                        text: `Открыть автора`,
+                                                        web_app:{
+                                                            url: `${ngrok}/${host}/app2?start=author_${req.params.id}`
+                                                        }
+                                                    }]]
+                                                }
                                             },false,token).then(s=>{
-                                                messages.add({
-                                                    createdAt:  new Date(),
-                                                    user:       r.user,
-                                                    text:       `Доступ к трансляции ${r.className}:\n${cl.streamDesc}`,
-                                                    isReply:    true
-                                                })
-                                                streams.doc(r.id).update({
-                                                    sent: new Date()
+                                                if(s) messages.add({
+                                                    isReply: true,
+                                                    createdAt: new Date(),
+                                                    text: req.body.text
                                                 })
                                             })
-                                        },count*200)
-                                    }
+                                        },i*200)
+                                    })
+                                    res.json({
+                                        success: true,
+                                        comment: `Ваше сообщение расходится на ${line.length} адресатов.`
+                                    })
                                 })
-                            })
-                    } else {
-                        return res.json({
-                            success: false,
-                            comment: `Мероприятие отменено или не заданы данные трансляции.`
+                            }
+                            case 'GET':{
+                                let data = []
+                                data.push(classes.where(`authorId`,'==',req.params.id).get().then(col=>common.handleQuery(col))) 
+                                data.push(subscriptions.where(`author`,'==',req.params.id).where(`active`,'==',true).get().then(col=>common.handleQuery(col)))
+                                data.push(courses.where(`authorId`,'==',req.params.id).where(`active`,'==',true).get().then(col=>common.handleQuery(col)))
+                                // data.push(views.where(`entity`,'==','author').where(`id`,'==',req.params.id).get().then(common.handleQuery))
+                                return Promise.all(data).then(data=>{
+                                    res.json({
+                                        author:         common.handleDoc(author),
+                                        classes:        data[0],
+                                        subscriptions:  data[1],
+                                        courses:        data[2],
+                                        // views:          data[3]
+                                    })
+                                })
+                            }
+                            
+                            case 'DELETE':{
+                                return ref.update({
+                                    active: false,
+                                    updatedBy: doc.user
+                                }).then(s=>{
+                                    res.json({success:true})
+                                    log({
+                                        text: `автор ${common.handleDoc(author).name} отправляется в архив`,
+                                        admin: doc.user,
+                                        author: req.params.id
+                                    })
+                                })
+                            }
+    
+                            case 'PUT':{
+                                return ref.update({
+                                    [req.body.attr]: req.body.value,
+                                    updatedBy: doc.user
+                                }).then(s=>{
+                                    log({
+                                        text: `автор ${common.handleDoc(author).name} был обновлен`,
+                                        admin: doc.user,
+                                        author: req.params.id
+                                    })
+                                    res.json({success:true})
+                                }).catch(err=>{
+                                    res.json({success:false,comment:err.message})
+                                })
+                            }
+                        }
+                    })
+                }
+                case `courses`:{
+                    let ref = courses.doc(req.params.id)
+                    return ref.get().then(course=>{
+                        if(!course.exists) return res.sendStatus(404)
+                        course = common.handleDoc(course)
+                        switch(req.method){
+                            case `POST`:{
+                                return subscriptions.where(`course`,'==',req.params.id).where(`active`,'==',true).get().then(col=>{
+                                    let line = common.handleQuery(col); 
+                                    line.forEach((s,i)=>{
+                                        setTimeout(function(){
+                                            m.sendMessage2({
+                                                chat_id:    s.user,
+                                                text:       req.body.text,
+                                                reply_markup: {
+                                                    inline_keyboard:[[{
+                                                        text: `Открыть курс`,
+                                                        web_app:{
+                                                            url: `${ngrok}/${host}/app2?start=course_${req.params.id}`
+                                                        }
+                                                    }]]
+                                                }
+                                            },false,token).then(s=>{
+                                                if(s) messages.add({
+                                                    isReply: true,
+                                                    createdAt: new Date(),
+                                                    text: req.body.text
+                                                })
+                                            })
+                                        },i*200)
+                                    })
+                                    res.json({
+                                        success: true,
+                                        comment: `Ваше сообщение расходится на ${line.length} адресатов.`
+                                    })
+                                })
+                            }
+    
+                            case `GET`:{
+                                let data = []
+                                data.push(classes.where(`course`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+                                data.push(subscriptions.where(`course`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+                                // data.push(views.where(`entity`,'==','course').where(`id`,'==',req.params.id).get().then(common.handleQuery))
+                                devlog(data)
+                                return Promise.all(data).then(data=>{
+                                    res.json({
+                                        course:          course,
+                                        classes:        data[0],
+                                        subscriptions:  data[1],
+                                        // views:          data[2]
+                                    })
+                                })
+                                
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,doc.user)
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,doc.user)
+                            }
+                        }
+                    })
+                }
+                case `tickets`:{
+                    let ref = userClasses.doc(req.params.id);
+                    return ref.get().then(ticket=>{
+                        if(!ticket.exists) return res.sendStatus(404)
+                        ticket = common.handleDoc(ticket)
+                        switch(req.method){
+                            case `GET`:{
+                                return res.json(ticket)                            
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,doc.user).then(s=>{
+                                    // TBD alert tickets
+                                })
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,doc.user)
+                            }
+                        }
+                    })
+                }
+                case `users`:{
+                    let ref = udb.doc(req.params.id);
+                    return ref.get().then(user=>{
+                        if(!user.exists) return res.sendStatus(404)
+                        user = common.handleDoc(user)
+                        switch(req.method){
+                            case `GET`:{
+                                let data = []
+                                data.push(userClasses.where(`user`,'==',+req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+                                data.push(subscriptions.where(`user`,'==',+req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+                                return Promise.all(data).then(data=>{
+                                    res.json({
+                                        user:           user,
+                                        classes:        data[0],
+                                        subscriptions:  data[1]
+                                    })
+                                })
+                                
+                            }
+                            case `DELETE`:{
+                                return blockUser(req,res,ref,doc.user)
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,doc.user)
+                            }
+                        }
+                    })
+                }
+                case `classes`:{
+                    let ref = classes.doc(req.params.id);
+                    return ref.get().then(cl=>{
+                        if(!cl.exists) return res.sendStatus(404)
+                        cl = common.handleDoc(cl)
+                        switch(req.method){
+                            case `POST`:{
+                                cl.date = new Date(req.body.date);
+                                delete cl.id
+                                return classes.add(cl).then(s=>{
+                                    res.json({success:true})
+                                })
+                            }
+                            case `GET`:{
+                                let data = []
+                                
+                                data.push(userClasses.where(`class`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+                                
+                                if(cl.authorId) {data.push(getDoc(authors,cl.authorId))} else {data.push([])} 
+                                if(cl.courseId) {data.push(getDoc(courses,cl.courseId))} else {data.push([])}
+                                
+                                data.push(streams.where(`class`,'==',req.params.id).get().then(col=>common.handleQuery(col,`date`)))
+    
+    
+                                return Promise.all(data).then(data=>{
+    
+                                    devlog(data)
+                                    
+                                    res.json({
+                                        class:          cl,
+                                        tickets:        data[0],
+                                        author:         data[1],
+                                        course:         data[2],
+                                        streams:        data[3]
+                                    })
+                                })
+                                
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,doc.user).then(s=>{
+                                    // TBD alert tickets
+                                })
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,doc.user)
+                            }
+                        }
+                    })
+                }
+                case `banks`:{
+                    let ref = classes.doc(req.params.id);
+                    return ref.get().then(cl=>{
+                        if(!cl.exists) return res.sendStatus(404)
+                        let creds = common.handleDoc(cl)
+                        switch(req.method){
+                            case `GET`:{
+                                return res.json(creds)
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,doc.user)
+                            }
+                            case  `DELETE`:{
+                                return deleteEntity(req,res,ref,doc.user)
+                            }
+                        }
+                    })   
+                }
+                case `plans`:{
+                    let ref = plans.doc(req.params.id);
+                    return ref.get().then(cl=>{
+                        if(!cl.exists) return res.sendStatus(404)
+                        let plan = common.handleDoc(cl)
+                        switch(req.method){
+                            case `GET`:{
+                                return plansUsers.where(`plan`,'==',plan.id).get().then(col=>{
+                                    plan.subscriptions = common.handleQuery(col)||[]
+                                    devlog(plan.subscriptions)
+                                    res.json(plan)
+                                })
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,doc.user)
+                            }
+                            case  `DELETE`:{
+                                return deleteEntity(req,res,ref,doc.user)
+                            }
+                        }
+                    })   
+                }
+                case `messages`:{
+                    return messages
+                        .where(`user`,'==',+req.params.id)
+                        .orderBy(`createdAt`,'asc')
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col))
                         })
-                    }
-                })
-                
-            }
-            case `streams`:{
-                let ref = streams.doc(req.params.id)
-                return ref.get().then(s=>{
-                    if(!s.exists) return res.sendStatus(404)
-                    
-                    switch (req.method){
-                        case `PUT`:{
-                            return ref.get().then(s=>{
-                                updateEntity(req,res,ref,doc.user)
+                }
+                case `streamAlerts`:{
+                    return getDoc(classes,req.params.id).then(cl=>{
+                        if(cl.active && cl.streamDesc){
+                            return streams
+                                .where(`class`,'==',req.params.id)
+                                .where(`active`,'==',true)
+                                .where(`payed`,'==',true)
+                                .get()
+                                .then(col=>{
+                                    let line = common.handleQuery(col)
+                                    res.json({
+                                        success:true,
+                                        comment: `отправляется на ${line.length} адресов`
+                                    })
+                                    line.forEach((r,count)=>{
+                                        if(!r.sent){
+                                            setTimeout(function(){
+                                                m.sendMessage2({
+                                                    chat_id: r.user,
+                                                    text: `Доступ к трансляции ${r.className}:\n${cl.streamDesc}`
+                                                },false,token).then(s=>{
+                                                    messages.add({
+                                                        createdAt:  new Date(),
+                                                        user:       r.user,
+                                                        text:       `Доступ к трансляции ${r.className}:\n${cl.streamDesc}`,
+                                                        isReply:    true
+                                                    })
+                                                    streams.doc(r.id).update({
+                                                        sent: new Date()
+                                                    })
+                                                })
+                                            },count*200)
+                                        }
+                                    })
+                                })
+                        } else {
+                            return res.json({
+                                success: false,
+                                comment: `Мероприятие отменено или не заданы данные трансляции.`
                             })
                         }
+                    })
+                    
+                }
+                case `streams`:{
+                    let ref = streams.doc(req.params.id)
+                    return ref.get().then(s=>{
+                        if(!s.exists) return res.sendStatus(404)
+                        
+                        switch (req.method){
+                            case `PUT`:{
+                                return ref.get().then(s=>{
+                                    updateEntity(req,res,ref,doc.user)
+                                })
+                            }
+                            case `GET`:{
+                                return ref.get().then(s=>{
+                                    m.getUser(s.data().userBlocked,udb).then(u=>{
+                                        res.json({
+                                            stream: s.data(),
+                                            user: u
+                                        })
+                                    })
+                                })
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,doc.user)
+                            }
+                        }
+                    })
+                    
+                    
+                }
+    
+                case `usersNews`:{
+                    return messages
+                        .where(`news`,'==',req.params.id)
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col))
+                        })
+                }
+        
+                case `news`:{
+                    return news.doc(req.params.id)
+                        .get()
+                        .then(n=>{
+                            if(!n.exists) return res.sendStatus(404)
+                            res.json(common.handleDoc(n))
+                        })
+                }
+    
+                case `tags`:{
+                    let ref = tags.doc(req.params.id);
+                    return ref.get().then(t => {
+                        if (!t.exists) return res.sendStatus(404)
+                        t = common.handleDoc(t);
+                        
+                        switch(req.method){
+                            case 'GET':{
+                                return res.json(t)
+                            }
+                            case `DELETE`:{
+                                deleteEntity(req,res,ref,admin,false,()=>removeTags(req.params.id))
+                            }
+                            case `PUT`:{
+                                updateEntity(req,res,ref,admin.id)
+                            }
+                        }
+    
+                    })
+                    
+                }
+    
+                case `tagsUsers`:{
+                    switch(req.method){
                         case `GET`:{
-                            return ref.get().then(s=>{
-                                m.getUser(s.data().userBlocked,udb).then(u=>{
+                            return userTags
+                                .where(`tag`,'==',req.params.id)
+                                .get()
+                                .then(d => 
+                                    res.json(common.handleQuery(d))
+                                )
+                        }
+                        case `PUT`:{
+    
+                        }
+                    }
+                }
+    
+                case 'userTags':{
+                    switch(req.method){
+                        case `GET`:{
+                            return userTags
+                                .where(`user`,'==',+req.params.id)
+                                .get()
+                                .then(col=>{
+                                    res.json(common.handleQuery(col))
+                                })
+                        }
+                        case 'POST':{
+                            if(!req.body.tag) return res.sendStatus(404)
+                            return udb.doc(req.params.id).get().then(u=>{
+                                if(!u.exists) return res.status(400).send(`no such user`)
+                                tags.doc(req.body.tag).get().then(t=>{
+                                    if(!t.exists) res.status(400).send(`no such tag`)
+                                        t = common.handleDoc(t)
+                                    if(!t.active) res.status(400).send(`tag is not active`)
+                                    
+                                    userTags.add({
+                                        user:       +req.params.id,
+                                        active:     true,
+                                        createdAt:  new Date(),
+                                        createdBy:  +admin.id,
+                                        tag:        req.body.tag,
+                                        name:       t.name
+                                    }).then(rec=>{
+                                        res.json({
+                                            comment: `Тег добавлен`,
+                                            id: rec.id
+                                        })
+                                        tags.doc(req.body.tag).update({
+                                            cnt: FieldValue.increment(1)
+                                        })
+                                        log({
+                                            text:   `${uname(admin,admin.id)} добавляет тег ${t.name} пользователю с id ${req.params.id}`,
+                                            admin:  +admin.id,
+                                            tag:    req.body.tag,
+                                            user:   +req.params.id
+                                        })
+                                    })
+                                })
+                            })
+                        } 
+                        case `DELETE`:{
+                            let ref = userTags.doc(req.params.id)
+                            return ref.get().then(t=>{
+                                if(!t.exists) return res.sendStatus(404)
+                                t = common.handleDoc(t)
+                                if(!t.active) return res.status(400).send(`already deleted`)
+                                ref.update({
+                                    active: false
+                                }).then(s=>{
                                     res.json({
-                                        stream: s.data(),
-                                        user: u
+                                        comment: `Тег снят`
+                                    })
+                                    tags.doc(t.tag).update({
+                                        cnt: FieldValue.increment(-1)
+                                    })
+                                    log({
+                                        text:   `${uname(admin,admin.id)} снимает тег ${t.name} пользователю с id ${req.params.id}`,
+                                        admin:  +admin.id,
+                                        tag:    t.tag,
+                                        user:   +t.user
                                     })
                                 })
                             })
                         }
-                        case `DELETE`:{
-                            return deleteEntity(req,res,ref,doc.user)
-                        }
                     }
-                })
+                }
                 
-                
+    
+                default: return res.sendStatus(404)
             }
-            default: return res.sendStatus(404)
-        }
+        })
+
+        
     })
 })
 
@@ -1781,7 +2018,7 @@ function blockUser(){
     // TBD
 }
 
-function deleteEntity(req,res,ref,admin, attr){
+function deleteEntity(req,res,ref,admin, attr, callback){
     devlog(`удаляем нечто`)
     entities = {
         courses:{
@@ -1802,6 +2039,11 @@ function deleteEntity(req,res,ref,admin, attr){
                 text: entities[req.params.data].log(data.name)
             })
             res.json({success:true})
+            
+            if (typeof (callback) == 'function') {
+                console.log(`Запускаем коллбэк`)
+                callback()
+            }
         }).catch(err=>{
             res.json({success:false,comment: err.message})
         })
@@ -2909,12 +3151,6 @@ function log(o) {
         if(!o.silent) alertAdmins({
             text: o.text,
             type: 'logRecord'
-        })
-
-        axios.post(sheet, `text=${o.text}`, {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
         })
     })
 }
@@ -4850,11 +5086,11 @@ class apiPlan {
 
 class apiCourse {
     constructor(c) {
-        this.active = c[0] || false;
-        this.name = c[1] || null;
-        this.description = c[3] || null;
-        this.pic = c[4] || null;
-        this.kids = c[5] || null;
+        this.active =       c[0] || false;
+        this.name =         c[1] || null;
+        this.description =  c[3] || null;
+        this.pic =          c[4] || null;
+        this.kids =         c[5] || null;
         this.author = c[6] || null;
         this.authorId = c[7] || null;
     }
@@ -5642,6 +5878,8 @@ router.all(`/api/:data/:id`, (req, res) => {
             }
             
         }
+
+        
         default:
             res.status(404)
     }
@@ -5875,6 +6113,21 @@ function unbookMR(id, userid, callback, res) {
 
 
     })
+}
+
+
+function removeTags(id){
+    userTags
+        .where(`tag`,'==',id)
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            col.docs.forEach(d=>{
+                userTags.doc(d.id).update({
+                    active: false
+                })    
+            })
+        })
 }
 
 module.exports = router;

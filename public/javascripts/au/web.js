@@ -8,13 +8,226 @@ function closeLeft() {
     document.querySelectorAll(`.popupWeb`).forEach(p => p.remove())
 }
 
+if(start){
+    switch(start){
+        
+        case 'authors':{
+            showAuthors()
+            break;
+        }
+
+        case 'banks':{
+            showBanks()
+            break;
+        }
+
+        case 'tickets':{
+            showTickets()
+            break;
+        }
+        
+        
+        case 'schedule':{
+            showSchedule()
+            break;
+        }
+
+        case 'courses':{
+            showCourses()
+            break;
+        }
+
+        case 'streams':{
+            showStreams()
+            break;
+        }
+
+        case 'tickets':{
+            showTickets()
+            break;
+        }
+
+        case 'users':{
+            showUsers()
+            break;
+        }
+
+        case 'views':{
+            showViews()
+            break;
+        }
+
+    }
+}
+
+
+function showNews(){
+    closeLeft()
+    let p = preparePopupWeb(`news`)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`news`).then(tasks=>{
+        p.innerHTML = `<h2>Рассылки</h2>`
+        window.history.pushState({}, "", `web?page=news`);
+        p.append(ce('button',false,`dateButton`,`Добавить`,{
+            dataset:{booked:1},
+            onclick:()=>showNewNews()
+        }))
+        tasks.forEach(t=>{
+            p.append(newsLine(t))
+        })
+    })
+}
+
+function newsLine(n){
+    let c = ce('div',false,`sDivided`,false,{
+        onclick:()=>showNewsNews(n.id)
+    });
+    c.append(ce('span',false,`info`,drawDate(n.createdAt._seconds*1000)))
+    c.append(ce('span',false,`info`,`Аудитория: ${n.audience||`нрзб.`}`))
+    c.append(ce(`h3`,false,false,n.name))
+    return c
+}
+
+function showNewNews(){
+    closeLeft()
+    let p = preparePopupWeb(`newNews`)
+    p.append(ce('h2',false,false,`Новая рассылка`))
+    
+    let name = ce('input',false,`block`,false,{placeholder: `Название`})
+    let desc = ce('textarea',false,false,false,{placeholder: `Текст`})
+    
+    let select = ce(`select`)
+        select.append(ce(`option`,false,false,`Кому отправлять?`,{
+            value: ''
+        }))
+        select.onchange = () =>{
+            if(select.value == `tagged`){
+                tag.classList.remove(`hidden`)
+            }
+        }
+
+    let sendOptions = {
+        admins: `Админам`,
+        // ready:  `Оформленным`,
+        all:    `Всем`,
+        tagged: `По тегу`
+    }
+
+    Object.keys(sendOptions).forEach(o=>{
+        select.append(ce('option',false,false,sendOptions[o],{
+            value: o
+        }))
+    })
+
+    let tag = ce('select',false,`hidden`)
+        tag.append(ce(`option`,false,false,`Выберите тег`,{
+            value: ''
+        }))
+
+        load(`tags`).then(tags=>{
+            tags
+                .filter(a => a.active)
+                .sort((a, b) => a.name < b.name ? -1 : 1)
+                .forEach(a => tag.append(ce('option', false, false, a.name, {
+                    value: a.id
+                })))
+        })
+    
+    let sb = ce('button',false,`dateButton`,`Отправить`,{
+        dataset:{booked:1},
+        onclick:function(){
+            if(name.value && desc.value){
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/news`,{
+                    name:           name.value,
+                    text:           desc.value,
+                    tag:            tag.value,
+                    filter:         select.value
+                }).then(r=>{
+                    alert(r.data.comment)
+                }).catch(err=>{
+                    alert(err.message)
+                }).finally(()=>{
+                    this.removeAttribute(`disabled`)
+                })
+            }
+        }
+    })
+
+    let inpC = ce('div',false,`inpC`)
+    p.append(inpC)
+
+    inpC.append(name)
+    inpC.append(desc)
+    inpC.append(select)
+    inpC.append(tag)
+    
+    p.append(sb)
+}
+
+function showNewsNews(id){
+    let p = preparePopupWeb(`news_${id}`)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`news`,id).then(n=>{
+        p.innerHTML = `<h2>${n.name}</h2>`
+        p.append(ce('span',false,`info`,`создана ${drawDate(n.createdAt._seconds*1000)}`))
+        p.append(ce('span',false,`info`,` получателей ${n.audience||`нрзб.`}`))
+        
+        p.append(ce('p',false,false,n.text))
+
+        let credits = ce('div')
+
+        p.append(credits)
+
+        load(`users`,n.createdBy).then(u=>{
+            credits.append(ce(`button`,false,['dateButton','dark'],uname(u,id),{
+                onclick:()=>showUser(u,u.id)
+            }))
+        })
+
+        let users = ce('div')
+        p.append(users)
+
+        users.append(ce('button',false,[`dateButton`,`dark`],`показать всех получаетей`,{
+            onclick:()=>{
+                load(`usersNews`,id).then(sends=>{
+                    sends.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds).forEach((s,i)=>{
+                        let c = ce('div',false,`sDivided`)
+                        users.append(c);
+
+                        c.append(ce(
+                            'span',
+                            false,
+                            `info`,
+                            drawDate(s.createdAt._seconds*1000,false,{time: true})
+                        ))
+
+                        c.append(ce(`p`,false,false,s.user))
+
+                        load(`users`,s.user).then(u=>{
+                            c.append(ce('a',false,false,uname(u,u.id),{
+                                href: '#',
+                                onclick:()=>showUser(false,u.id)
+                            }))
+                        })
+                        
+                    })
+                })
+            }
+        }))
+
+
+    })
+}
+
+
 
 function showStreams(){
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
     axios.get(`/${host}/admin/streams`)
         .then(data => {
-            console.log(data.data)
+            window.history.pushState({}, "", `web?page=streams`);
             mc.innerHTML = '';
             mc.append(ce('h1', false, `header2`, `Трансляции`))
             let c = ce('div')
@@ -46,28 +259,93 @@ function showStreamLine(s){
 function showCourses() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
+    window.history.pushState({}, "", `web?page=courses`);
     axios.get(`/${host}/admin/courses`)
         .then(data => {
             console.log(data.data)
             mc.innerHTML = '';
             mc.append(ce('h1', false, `header2`, `Курсы`))
-            let c = ce('div')
-            data.data.forEach(cl => {
-                c.append(showCourseLine(cl))
-            });
-            c.append(ce(`button`, false, false, `Добавить курс`, {
+            
+            mc.append(ce(`button`, false, false, `Добавить курс`, {
                 onclick: () => newCourse()
             }))
+
+            
+            let c = ce('div')
+                data.data.forEach(cl => {
+                    c.append(showCourseLine(cl))
+                });
+            
+            
+            let cc = ce('div',false,`controls`)
+                cc.append(sortBlock([{
+                    attr: `name`,
+                    name: `По названию`
+                },{
+                    attr: `views`,
+                    name: `По просмотрам`
+                },{
+                    attr: `createdAt`,
+                    name: `По дате создания`
+                }],c,data.data))
+            
+            mc.append(cc)
             mc.append(c)
 
+            mc.append(archiveButton(c))
 
         })
         .catch(err => {
+            console.log(err)
             alert(err.message)
         })
 }
 
+function sortableText(t){
+    if(!t) t = '';
+    let txt = t.toString().replace(/\»/g,'').replace(/\«/g,'').toLowerCase().trim()
+    console.log(txt)
+    return txt
+}
 
+function sortBlock(sortTypes,container,array){
+    let c = ce('div',false,`controls`)
+    sortTypes.forEach(type=>{
+        c.append(ce('button',false,false,type.name,{
+            onclick:()=>{
+                container.innerHTML = null;
+                array.sort((a,b)=>{
+                    switch(type.attr){
+                        case `views`:{
+                            return (b.views||0) - (a.views||0)
+                        }
+                        case 'name':{
+                            return sortableText(b.name) > sortableText(a.name) ? -1 : 0
+                        }
+                        case 'createdAt':{
+                            return (a.createdAt||{})._seconds||0 - (b.createdAt||{})._seconds||0 
+                        }
+                    }
+                }).forEach(r=>{
+                    container.append(showCourseLine(r))
+                })
+            }
+        }))
+    })
+
+    return c;
+}
+
+function archiveButton(container){
+    return ce('button',false,false,`Показать архивные записи`,{
+        onclick:()=>{
+            container.querySelectorAll(`.hidden`).forEach(c=>{
+                c.classList.toggle(`hidden`)
+            })
+        }
+    })
+    
+}
 
 
 function showPlanLine(plan) {
@@ -84,6 +362,7 @@ function showViews(){
     load(`views`).then(views=>{
         let p = preparePopupWeb(`views`)
             p.append(ce('h1',false,false,`Просмотры:`))
+            window.history.pushState({}, "", `web?page=views`);
         let entities = {
             classes: {
                 name:`Занятия`,
@@ -142,7 +421,7 @@ function showPlan(id) {
         }))
 
         p.append(ce('p', false, false, plan.description || `Без описания`, {
-            onclick: () => edit(`plans`, id, `description`, `text`, plan.description)
+            onclick: () => edit(`plans`, id, `description`, `textarea`, plan.description)
         }))
 
         p.append(ce('p', false, false, cur(plan.price, 'GEL') || `Без стоимости`, {
@@ -165,6 +444,7 @@ function showPlan(id) {
 function showPlans() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
+    window.history.pushState({}, "", `web?page=plans`);
     axios.get(`/${host}/admin/plans`)
         .then(data => {
             console.log(data.data)
@@ -224,6 +504,15 @@ function showCourseLine(course) {
             showCourse(course)
         }
     })
+
+    if(!course.active) c.classList.add(`hidden`)
+
+    let creds = ce(`div`)
+
+        creds.append(ce('span', false, `info`, course.views ? `Просмотров: ${course.views}` : ``))
+        creds.append(ce('span', false, `info`, course.createdAt ? `Создан(-а): ${drawDate(course.createdAt._seconds*1000)}` : course.createdAt))
+
+    c.append(creds)
 
     c.append(ce('h2', false, false, course.name))
     c.append(ce('p', false, false, course.author || `без автора`))
@@ -334,11 +623,11 @@ function showCourse(cl, id) {
 
         if (cl.description) {
             p.append(ce('p', false, false, cl.description, {
-                onclick: () => edit(`courses`, cl.id, `description`, `text`, cl.description)
+                onclick: () => edit(`courses`, cl.id, `description`, `textarea`, cl.description)
             }))
         } else {
             p.append(ce(`button`, false, `accent`, `Без описания`, {
-                onclick: () => edit(`courses`, cl.id, `description`, `text`, null)
+                onclick: () => edit(`courses`, cl.id, `description`, `textarea`, null)
             }))
         }
 
@@ -502,6 +791,7 @@ function edit(entity, id, attr, type, value) {
     }))
     
     edit.append(ce('h2', false, false, `Правим поле ${attrTypes[attr]||attr} для ${entities[entity]||entity}#${id}`))
+
     let f = ce('input');
     
     if (type == `date`) {
@@ -563,7 +853,14 @@ function edit(entity, id, attr, type, value) {
                 })))
             edit.append(f)
         })
-    } else {
+    } else if (type == `textarea`) {
+        f = ce('textarea', false, false, false, {
+            value: value,
+            type: type,
+            placeholder: `Новое значение`
+        })
+        edit.append(f)
+    }else {
         f = ce('input', false, false, false, {
             value: value,
             type: type,
@@ -589,14 +886,12 @@ function edit(entity, id, attr, type, value) {
 
 window.addEventListener('keydown', (e) => {
     if (e.key == 'Escape') {
-        if(document.querySelectorAll(`.popupWeb`).length){
+        if(document.querySelector('.editWindow')){
+            document.querySelector('.editWindow').remove()
+        } else if(document.querySelectorAll(`.popupWeb`).length){
             document.querySelectorAll(`.popupWeb`)[document.querySelectorAll(`.popupWeb`).length-1].remove()
-        }
-        try {
-            document.querySelector('.editWindow').remove();
-            document.querySelector('#hover').remove();
-        } catch (err) {
-            console.warn(err)
+        } else if(document.querySelector('#hover')){
+            document.querySelector('#hover').remove()
         }
     }
 })
@@ -991,7 +1286,7 @@ function showAuthor(a,id) {
         }
 
         p.append(ce(`p`, false, false, a.description, {
-            onclick: () => edit(`authors`, a.id, `description`, `text`, a.description)
+            onclick: () => edit(`authors`, a.id, `description`, `textarea`, a.description)
         }))
 
         p.append(ce('p', false, false, `Доля автора: ${a.share ? `${a.share}%` : `не определена` }`, {
@@ -1015,7 +1310,8 @@ function showAuthor(a,id) {
             p.append(addClass(a.id))        
             
             p.append(ce('h2', false, false, authorData.classes.length ? `Лекции` : `Лекций еще нет`))
-            authorData.classes.forEach(cl => {
+            
+            authorData.classes.sort(byDate).forEach(cl => {
                 p.append(showClassLine(cl))
             })
 
@@ -1049,9 +1345,10 @@ function showAuthor(a,id) {
             }
         })
     })
+}
 
-    
-
+function byDate(a,b){
+    return b.date._seconds-a.date._seconds
 }
 
 
@@ -1059,6 +1356,7 @@ function showAuthor(a,id) {
 function showBanks() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
+    window.history.pushState({}, "", `web?page=banks`);
     load(`banks`).then(banks=>{
         mc.innerHTML = '';
         mc.append(ce('h1', false, `header2`, `Реквизиты`))
@@ -1072,7 +1370,7 @@ function showBanks() {
 }
 
 function showBankLine(b) {
-    let c = ce('div', false, 'divided', false, {
+    let c = ce('div', false, `sDivided`, false, {
         dataset: {
             active: b.active,
         },
@@ -1093,7 +1391,7 @@ function showBankLine(b) {
 }
 
 function showClassLine(cl) {
-    let c = ce('div', false, 'divided', false, {
+    let c = ce('div', false, `sDivided`, false, {
         dataset: {
             active:     cl.active,
             kids:       cl.kids,
@@ -1103,6 +1401,14 @@ function showClassLine(cl) {
             showClass(cl)
         }
     })
+
+    let creds = ce(`div`)
+
+    creds.append(ce('span', false, `info`, cl.views ? `Просмотров: ${cl.views}` : ``))
+    creds.append(ce('span', false, `info`, cl.createdAt ? `Создан(-а): ${drawDate(cl.createdAt._seconds*1000)}` : cl.createdAt))
+
+    c.append(creds)
+
     c.append(ce('h2', false, false, cl.name))
     c.append(ce('p', false, false, `${drawDate(cl.date._seconds*1000,false,{time:true})}`))
     return c
@@ -1128,42 +1434,53 @@ function addComment(c, id) {
 function showAuthors() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
-    axios.get(`/${host}/admin/authors`)
-        .then(data => {
-            console.log(data.data)
-            mc.innerHTML = '';
-            mc.append(ce('h1', false, `header2`, `Авторы`))
-            let c = ce('div')
-            data.data.forEach(cl => {
-                c.append(showAuthorLine(cl))
-            });
+    window.history.pushState({}, "", `web?page=authors`);
+    load(`authors`).then(authors=>{
+        mc.innerHTML = '';
+        mc.append(ce('h1', false, `header2`, `Авторы`))
+        mc.append(ce(`p`,false,false,`В этом разделе отображаются авторы. У каждого из них появляется собственная страница, а у пользователей — возможность подписаться на обновления.<br>По умолчанию отображаются только активные авторы. Если кто-то ушел, а потом вернулся, не стоит создавать новую запись, откройте архив и верните к жизни предыдущую запись.`))
 
-            c.append(ce('button', false, false, `Добавить автора`, {
-                onclick: () => newAuthor()
-            }))
 
-            mc.append(c)
-        })
-        .catch(err => {
-            alert(err.message)
-        })
+        let c = ce('div')
+        
+        authors.forEach(a => {
+            c.append(showAuthorLine(a))
+        });
+
+        c.append(ce('button', false, false, `Добавить автора`, {
+            onclick: () => newAuthor()
+        }))
+
+        mc.append(c)
+    })
 }
 
 
 
 function showAuthorLine(a) {
 
-    let div = ce('div', false, false, false, {
+    // console.log(a.name,a.createdAt)
+
+    let div = ce('div', false, `sDivided`, false, {
         dataset: {
             active: a.active
         }
     })
+
+    let creds = ce(`div`)
+
+    creds.append(ce('span', false, `info`, a.views ? `Просмотров: ${a.views}` : ``))
+    creds.append(ce('span', false, `info`, a.createdAt ? `Создан(-а): ${drawDate(a.createdAt._seconds*1000)}` : a.createdAt))
+
+    div.append(creds)
 
     div.append(ce('h2', false, `clickable`, a.name, {
         onclick: () => showAuthor(a)
     }))
 
     div.append(ce('p', false, false, a.description || `без описания`))
+
+    
 
     return div
 }
@@ -1703,6 +2020,7 @@ function showTicket(t, id) {
 function showTickets() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
+    window.history.pushState({}, "", `web?page=tickets`);
     load(`tickets`)
         .then(tickets => {
             mc.innerHTML = ''
@@ -1747,6 +2065,7 @@ function showTickets() {
 function showUsers() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
+    window.history.pushState({}, "", `web?page=users`);
     axios.get(`/${host}/admin/users`)
         .then(data => {
             console.log(data.data)
@@ -1891,6 +2210,28 @@ function showUser(u, id) {
             }))
         })
 
+        let tags = ce('div')
+
+        tags.append(ce('h2',false,false,`Теги`))
+
+        p.append(tags)
+
+        p.append(ce(`button`,false,[`dateButton`,`dark`],`Добавить тег`,{
+            onclick:() => addTag(u.id)
+        }))
+
+        load(`userTags`,u.id).then(tgs=>{
+            if(!tgs.length) tags.append(ce('p',false,false,`тегов еще нет`))
+            tgs.forEach(t=>{
+                tags.append(ce('button',false,[`dateButton`,`dark`],t.name,{
+                    onclick:function(){
+                        removeTag(t.id,u.id,this)
+                    }
+                }))
+            })
+        })
+
+
         let messenger = ce('div')
         p.append(messenger)
 
@@ -1983,6 +2324,7 @@ function preparePopupWeb(name,link,weblink) {
 function showSchedule() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
+    window.history.pushState({}, "", `web?page=schedule`);
     axios.get(`/${host}/admin/classes`)
         .then(data => {
             console.log(data.data)
@@ -2001,6 +2343,202 @@ function showSchedule() {
 
         })
         .catch(err => {
+            console.log(err)
             alert(err.message)
         })
+}
+
+
+// ТЕГИ
+
+function showTags(){
+    closeLeft()
+    let p = preparePopupWeb(`tags`)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`tags`).then(tasks=>{
+        p.innerHTML = `<h2>Теги</h2>`
+        p.append(ce('button',false,`dateButton`,`Добавить`,{
+            dataset:{booked:1},
+            onclick:()=>showNewTag()
+        }))
+        tasks.forEach(t=>{
+            p.append(tagLine(t))
+        })
+    })
+}
+
+function showTag(tagId){
+    let p = preparePopupWeb(`tags_${tagId}`)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`tags`,tagId).then(tag=>{
+        p.innerHTML = null;
+        
+        p.append(logButton(`tag`,tagId,`Лог по тегу`))
+
+        p.append(ce(`h1`,false,false,tag.name,{
+            onclick:function(){
+                edit(`tags`,tagId,`name`,`text`,tag.name,this)
+            }
+        }))
+        
+        p.append(editable({
+            entity: `tags`,
+            id:     tagId,
+            attr:   `description`,
+            value:  tag.description
+        }))
+        
+        if(tag.active) p.append(deleteButton(`tags`,tagId))
+
+        let users = ce('div',false,false,`загружаем пользователей`)
+        
+        p.append(users)
+
+        load(`tagsUsers`,tagId).then(tusers=>{
+            
+            users.innerHTML = tusers.length ? `${tusers.length} пользоваталей` : `юзеров нет`
+            
+            tusers.forEach(u=>{
+                load(`users`,u.user).then(u=>{
+                    users.append(showUserLine(u))
+                })
+                
+            })      
+        })
+
+    })
+}
+
+function addTag(userId){
+    let edit = ce('div', false, `editWindow`)
+    edit.append(ce(`h2`,false,false,`Добавляем тег`))
+    let f;
+    load(`tags`).then(tags=>{
+        f = ce('select')
+        f.append(ce('option', false, false, `Выберите тег`, {
+            value: ''
+        }))
+        tags
+            .filter(a => a.active)
+            .sort((a, b) => a.name < b.name ? -1 : 1)
+            .forEach(a => f.append(ce('option', false, false, a.name, {
+                value: a.id
+            })))
+        edit.append(f)
+
+        edit.append(ce('button', false, false, `Сохранить`, {
+            onclick: function () {
+                if (f.value) {
+                    axios.post(`/${host}/admin/userTags/${userId}`, {
+                        tag: f.value
+                    }).then((d)=>{
+                        handleSave(d);
+                    })
+                    .catch(handleError)
+                }
+            }
+        }))
+        document.body.append(edit)
+
+    })
+}
+
+function showNewTag(){
+    closeLeft()
+    let p = preparePopupWeb(`newTag`)
+    p.append(ce('h2',false,false,`Новый тег`))
+    let name = ce('input',false,`block`,false,{placeholder: `Название`})
+    let desc = ce('textarea',false,false,false,{placeholder: `Описание`})
+    let sb = ce('button',false,`dateButton`,`Отправить`,{
+        dataset:{booked:1},
+        onclick:function(){
+            if(name.value && desc.value){
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/tags`,{
+                    name:           name.value,
+                    description:    desc.value
+                }).then(r=>{
+                    alert(r.data.comment)
+                }).catch(err=>{
+                    alert(err.message)
+                }).finally(()=>{
+                    this.removeAttribute(`disabled`)
+                })
+            }
+        }
+    })
+    let inpC = ce('div',false,`inpC`)
+    p.append(inpC)
+    inpC.append(name)
+    inpC.append(desc)
+    p.append(sb)
+}
+
+function tagLine(t){
+    let c = ce('div',false,'sDivided',false,{
+        onclick:()=>showTag(t.id),
+        dataset:{active:t.active}
+    });
+    c.append(ce('span',false,`info`,drawDate(t.createdAt._seconds*1000)))
+    c.append(ce('h3',false,false,t.name))
+    c.append(ce('p',false,`info`,t.description))
+    return c;
+}
+
+// ЛОГИ
+
+
+function logButton(collection,id,credit){
+    return ce(`button`,false,[`dateButton`,`dark`,`slim`],credit||`Логи`,{
+        onclick:()=>{
+            let p = preparePopupWeb(`logs_${collection}_${id}`)
+                p.append(ce('h2',false,false,`Загружаем...`))
+                load(`logs`,`${collection}_${id}`).then(logs=>{
+                    p.innerHTML = null;
+                    p.append(ce('h1',false,false,credit||`Логи`))
+                    logs.forEach(l=>{
+                        p.append(logLine(l))
+                    })
+                })
+        }
+    })
+}
+
+function logLine(l){
+    let c = ce('div',false,`sDivided`)
+        c.append(ce(`span`,false,`info`,drawDate(l.createdAt._seconds*1000)))
+        c.append(ce('p',false,false,l.text))
+        
+        if(l.user){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть профиль`,{
+                onclick:()=>showUser(false,l.user)
+            }))
+        }
+
+        if(l.task){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть задание`,{
+                onclick:()=>showTask(l.task)
+            }))
+        }
+
+        if(l.tag){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть тег`,{
+                onclick:()=>showTag(l.tag)
+            }))
+        }
+
+        
+
+    return c;
+}
+
+
+// COMMON
+
+function editable(e){
+    return ce(e.tag||`p`,false,false,e.value||'добавьте буквы',{
+        onclick:function(){
+            edit(e.entity,e.id,e.attr,e.type||`text`,e.value||null,this)
+        }
+    })
 }

@@ -8,10 +8,10 @@ html
     meta(type='description' content='Попробуйте — вам понравится.')
     script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
     script(src='/javascripts/common.js')
-    
+    link(rel='icon', type="image/x-icon", href='/images/auditoria/favicon.ico')
+
     script!=`${start?`let start="${start}"`:'let start=null'}`
     script!=`let token="${token}"`
-    //- script(src="https://cdn.jsdelivr.net/jsbarcode/3.3.20/JsBarcode.all.min.js") 
     link(rel='stylesheet', href='/stylesheets/au/style.css')
     link(rel='stylesheet', href='/stylesheets/au/web.css')
     link(rel="preconnect", href="https://fonts.googleapis.com")
@@ -22,6 +22,7 @@ html
     script(src="https://cdn.amcharts.com/lib/5/index.js")
     script(src="https://cdn.amcharts.com/lib/5/xy.js")
     script(src="https://cdn.amcharts.com/lib/5/themes/Animated.js")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0")
   body.mobile
     
     #left
@@ -34,6 +35,8 @@ html
         h3(onclick="showBanks()")       Реквизиты
         h3(onclick="showPlans()")       Абонементы
         h3(onclick="showViews()")       Просмотры
+        h3(onclick="showNews()")        Рассылки
+        h3(onclick="showTags()")        Теги
         h3(onclick="showLogs()")        Логи
 
         

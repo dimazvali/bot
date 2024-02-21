@@ -3224,11 +3224,11 @@ router.post(`/news`, (req, res) => {
 
             if (req.body.text && req.body.name) {
                 news.add({
-                    text:       req.body.text,
-                    createdBy:  +req.query.id || req.body.by,
-                    createdAt: new Date(),
-                    name: req.body.name,
-                    inline_keyboard: req.body.inline_keyboard || null
+                    text:               req.body.text,
+                    createdBy:          +req.query.id || req.body.by,
+                    createdAt:          new Date(),
+                    name:               req.body.name,
+                    inline_keyboard:    req.body.inline_keyboard || null
                 }).then(ref => {
 
                     log({
@@ -3260,15 +3260,11 @@ router.post(`/news`, (req, res) => {
                             let pass = true;
 
                             if (req.body.filter) {
-
-
                                 let field = req.body.filter.split('_')[0]
                                 let value = req.body.filter.split('_')[1] == 'true' ? true : false;
                                 if (u.data()[field] != value) {
                                     pass = false
                                 }
-
-
                             }
                             // u.id == common.dimazvali &&  
                             if (pass) {

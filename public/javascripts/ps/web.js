@@ -1005,9 +1005,6 @@ function showTag(tagId){
     })
 }
 
-
-
-
 function showTask(taskId){
     let p = preparePopupWeb(`tasks`)
     p.append(ce('h2',false,false,`Загружаем...`))
@@ -1080,9 +1077,6 @@ function showTask(taskId){
         // p.append(users)
     })
 }
-
-
-
 
 function deleteButton(collection,id){
     return ce('button',false,[`dateButton`,`dark`,`deleteAble`],`Архивировать`,{

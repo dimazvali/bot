@@ -32,13 +32,13 @@ div#left>h3 {
     left: -100vw;
     background: var(--light);
     animation: slideFromRight 1s forwards;
-    margin-left: 300px;
+    /* margin-left: 300px; */
     color: var(--dark);
     padding: 20px;
     box-sizing: border-box;
     overflow: scroll;
     min-height: 100vh;
-    min-width: 70vw;
+    min-width: calc(100vw - 300px);
 }
 
 @keyframes slideFromRight {
@@ -71,7 +71,8 @@ div#left>h3 {
     }
 
     div#main {
-        margin-left: 40px;
+        margin-left: 0px;
+        margin-top: 40px;
     }
     #menu{
         display: block;
@@ -93,8 +94,24 @@ div#left>h3 {
         line-height: 50px;
         font-size: 2em;
     }
+    span.closeMe {
+        right: 20px;
+        position: absolute;
+    }
+    
+    .popupWeb {
+        width: 100vw;
+        padding-top: 40px;
+    }
 
 }
+
+@media all and (min-width: 600px) {
+    .popupWeb{
+        margin-left: 300px; 
+    }
+}
+
 
 
 img.cover {
@@ -161,7 +178,8 @@ img.cover {
     padding: 3px 10px;
     border-radius: 4px;
     display: inline-block;
-    float: left;
+    /* float: left; */
+    display: block;
 }
 
 .editWindow {
@@ -172,6 +190,8 @@ img.cover {
     background: white;
     padding: 30px;
     z-index: 1000;
+    max-width: 100vw;
+    box-sizing: border-box;
 }
 
 table.wide{
@@ -209,4 +229,48 @@ table.wide{
 
 textarea{
     height: 120px;
+}
+
+.sDivided {
+    margin-bottom: 30px;
+    border-bottom: 1px solid;
+    padding-bottom: 20px;
+    margin-left: 20px;
+}
+
+.info+.info {
+    margin-left: 10px;
+}
+
+[data-active="false"] {
+    filter: opacity(0.5);
+}
+
+
+.inline {
+    display: inline !important;
+}
+
+.inpC>textarea, .inpC>input {
+    display: block;
+    margin-bottom: 10px;
+    background: #ffffffb5;
+    border: none;
+    line-height: 40px;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Stapel';
+}
+
+.deleteAble:hover {
+    background: gray;
+}
+
+.deleteAble {
+    transition: .5s;
+}
+
+button {
+    cursor: pointer;
 }

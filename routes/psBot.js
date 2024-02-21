@@ -859,6 +859,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     }
                 }
             }
+            
             case `messages`: {
                 switch(req.method){
                     case `GET`:{
@@ -1111,7 +1112,6 @@ router.all(`/admin/:method`, (req, res) => {
                                     q = userTags.where(`active`,'==',true).where(`tag`,'==',req.body.tag)
                                 }
                             }
-                            
                         }
                         return q.get()
                             .then(col=>{
