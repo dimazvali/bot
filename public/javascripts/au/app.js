@@ -1086,7 +1086,7 @@ function drawPlanPopup(plan, load) {
     let p = preparePopup(`plan`)
     p.append(ce('h1', false, false, plan.name))
     p.append(ce('p', false, false, plan.description))
-    p.append(ce('p', false, false, `Продолжительность: ${plan.days} дней.`))
+    p.append(ce('p', false, false, `Продолжительность: ${plan.days || 30} дней.`))
     p.append(ce('p', false, false, `Занятий: ${plan.visits}.`))
     p.append(ce('p', false, false, `Стоимость: ${cur(plan.price,'GEL')}.`))
 

@@ -360,12 +360,16 @@ function archiveButton(container){
 
 function showPlanLine(plan) {
     let c = ce('div', false, `divided`, false, {
-        onclick: () => showPlan(plan.id)
+        onclick: () => showPlan(plan.id),
+        dataset:{active:plan.active}
     })
     if(!plan.active) c.classList.add(`hidden`)
     c.append(ce('h2', false, false, plan.name))
     c.append(ce('p', false, false, plan.description || `без описания`))
     c.append(ce('p', false, false, `${cur(plan.price,`GEL`)}, ${plan.visits} посещений.`))
+
+    
+
     return c
 }
 
@@ -445,13 +449,51 @@ function showPlan(id) {
             onclick: () => edit(`plans`, id, `visits`, `number`, plan.visits)
         }))
 
-        p.append(deleteButton(`plans`,id))
+        p.append(deleteButton(`plans`,id,!plan.active))
 
         if (plan.subscriptions.length) {
             p.append(ce('h2', false, false, `Подписок: ${plan.subscriptions.length} (активных ${plan.subscriptions.filter(s=>s.active).length})`))
             p.append(postSection(`plan`, plan.id, p))
+        } else {
+            p.append(ce('h3',false,`none`,`Пользователей нет`))
+        }
+
+        if (plan.requests.length) {
+            p.append(ce('h2', false, false, `Запросов: ${plan.requests.length}:`))
+            plan.requests.forEach(r=>{
+                p.append(showRequestLine(r))
+            })
+        } else {
+            p.append(ce('h3',false,`none`,`Пользователей нет`))
         }
     })
+}
+
+function showRequestLine(r){
+    let c = ce('div',false,`sDivided`)
+        c.append(ce('span',false,`info`,drawDate(r.createdAt._seconds*1000,false,{time:true})))
+        load(`users`,r.user).then(u=>{
+            console.log(r.user,u)
+            c.append(ce(`p`,false,false,uname(u.user,u.user.id)))
+            c.append(ce(`button`,false,false,`Активировать`,{
+                onclick:function(){
+                    let sure = confirm(`Уверены?`)
+                    if(sure){
+                        this.setAttribute(`disabled`,true)
+                        axios.post(`/${host}/admin/plansRequests/${r.id}`,{
+                            active: true
+                        }).then(handleSave)
+                        .catch(handleError)
+                        // .finally()
+                    }
+                }
+            }))
+
+            c.append(ce(`button`,false,false,`Отклонить`,{
+                
+            }))
+        })
+        return c
 }
 
 function showPlans() {
@@ -573,16 +615,7 @@ function removeConnectionButton(collection,id,upd,attr){
     
 }
 
-function deleteButton(collection,id){
-    return ce('button',false,false,`Архивировать`,{
-        onclick:()=>{
-            let proof = confirm(`Вы уверены?`)
-            if(proof) axios.delete(`/${host}/admin/${collection}/${id}`)
-                .then(handleSave)
-                .catch(handleError)
-        }
-    })
-}
+
 
 function showBank(id){
     let p = preparePopupWeb(`bank_${id}`,`bank_${id}`,[`banks`,id])
@@ -618,7 +651,7 @@ function showBank(id){
                 }
             })
 
-            p.append(deleteButton(`banks`,b.id))
+            p.append(deleteButton(`banks`,b.id,!b.active))
 
         })
 }
@@ -722,7 +755,7 @@ function showCourse(cl, id) {
             }))
         }
 
-        p.append(deleteButton(`courses`,cl.id))
+        p.append(deleteButton(`courses`,cl.id,!cl.active))
 
 
         load(`courses`,cl.id).then(course => {
@@ -1391,7 +1424,7 @@ function showAuthor(a,id) {
 
 
 
-        p.append(deleteButton(`authors`,a.id))
+        p.append(deleteButton(`authors`,a.id,!a.active))
 
 
 
@@ -1732,7 +1765,7 @@ function showClass(cl, id) {
         if (cl.kids) p.append(ce(`button`, false, `accent`, `для детей ${cl.age  || `без возрастных ограничений`}`))
 
         let alertsContainer = ce('div', false, 'flexible')
-        // if(!cl.capacity)        alertsContainer.append(ce(`button`,false,`accent`,`вместимость не указана`))
+
         if (!cl.pic) alertsContainer.append(ce(`button`, false, `accent`, `задать картинку`, {
             onclick: () => edit(`classes`, cl.id, `pic`, `text`, null)
         }))
@@ -1752,6 +1785,12 @@ function showClass(cl, id) {
         p.append(ce('p', false, false, `ведет: ${cl.author||`неизвестно кто`}`, {
             onclick: () => edit(`classes`, cl.id, `author`, `authorId`, cl.authorId)
         }))
+
+        p.append(ce('p', false, false, `курс: ${cl.course||`Не входит ни в один курс`}`, {
+            onclick: () => edit(`classes`, cl.id, `courseId`, `courseId`, null)
+        }))
+
+
 
         if(cl.price){
             p.append(ce(`p`,false,false,`Цена по записи: ${cur(cl.price,`GEL`)}`, {
@@ -2522,7 +2561,7 @@ function showTag(tagId){
             value:  tag.description
         }))
         
-        if(tag.active) p.append(deleteButton(`tags`,tagId))
+        p.append(deleteButton(`tags`,tagId,!tag.active))
 
         let users = ce('div',false,false,`загружаем пользователей`)
         

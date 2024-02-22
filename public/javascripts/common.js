@@ -598,3 +598,33 @@ function logLine(l){
 
     return c;
 }
+
+
+function s(el){
+   el.parentNode.childNodes.forEach(n=>{
+    n.classList.remove(`selected`)
+   }) 
+   el.classList.add(`selected`)
+}
+
+function deleteButton(collection,id,reverse){
+    return ce('button',false,false,reverse?`Активировать`:`Архивировать`,{
+        onclick:()=>{
+            let proof = confirm(`Вы уверены?`)
+            if(proof) {
+                if(reverse) {
+                    axios.put(`/${host}/admin/${collection}/${id}`,{
+                        attr: `active`,
+                        value: true
+                    })
+                        .then(handleSave)
+                        .catch(handleError)
+                } else {
+                    axios.delete(`/${host}/admin/${collection}/${id}`)
+                        .then(handleSave)
+                        .catch(handleError)
+                }
+            } 
+        }
+    })
+}

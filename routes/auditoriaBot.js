@@ -836,7 +836,7 @@ router.all(`/admin/:method`, (req, res) => {
                                             common.devlog({
                                                 user: r.user,
                                                 createdAt: new Date(),
-                                                to: new Date(+new Date() + p.days * 24 * 60 * 60 * 1000),
+                                                to: new Date(+new Date() + (p.days||30) * 24 * 60 * 60 * 1000),
                                                 visitsLeft: p.visits || 0,
                                                 eventsLeft: p.events || 0,
                                                 createdBy: +req.query.id,
@@ -848,7 +848,7 @@ router.all(`/admin/:method`, (req, res) => {
                                             plansUsers.add({
                                                 user: r.user,
                                                 createdAt: new Date(),
-                                                to: new Date(+new Date() + p.days * 24 * 60 * 60 * 1000),
+                                                to: new Date(+new Date() + (p.days||30) * 24 * 60 * 60 * 1000),
                                                 visitsLeft: p.visits || 0,
                                                 eventsLeft: p.events || 0,
                                                 createdBy: +req.query.id,
@@ -1558,6 +1558,53 @@ function updateBanks(req){
    }
 }
 
+
+
+function updatePlans(req){
+    if(req.body.attr == `name`){
+        devlog(`Обновляем связанные курсы`)
+        courses
+            .where(`planId`,'==',req.params.id)
+            .get()
+            .then(col=>{
+                common.handleQuery(col).forEach(c=>{
+                    courses.doc(c.id).update({
+                        plan: req.body.value
+                    }).then(s=>{
+                        log({
+                            silent: true,
+                            text:   `Название абонемента, привязанного к курсу ${c.name} (${c.id}) сменилось на ${req.body.value}`,
+                            course: c.id
+                        })
+                    })
+
+                })
+            })
+    }
+}
+
+function updateCourses(req){
+    if(req.body.attr == `name`){
+        classes
+            .where(`courseId`,'==',req.params.id)
+            .get()
+            .then(col=>{
+                common.handleQuery(col).forEach(c=>{
+                    classes.doc(c.id).update({
+                        course: req.body.value
+                    }).then(s=>{
+                        log({
+                            silent: true,
+                            text: `Название курса, привязанного к занятию ${c.name} (${c.id}) сменилось на ${req.body.value}`,
+                            class: c.id
+                        })
+                    })
+
+                })
+            })
+    }
+}
+
 router.all(`/admin/:data/:id`, (req, res) => {
 
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
@@ -1582,7 +1629,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                             res.json(common.handleQuery(col))
                         })
                 }
-                
+
                 case `authors`: {
                     let ref = authors.doc(req.params.id)
                     return ref.get().then(author => {
@@ -1737,7 +1784,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                                 return deleteEntity(req, res, ref, doc.user)
                             }
                             case `PUT`: {
-                                if(req.body.attr) return updateEntity(req, res, ref, doc.user)
+                                if(req.body.attr) return updateEntity(req, res, ref, doc.user,()=>updateCourses(req))
                             }
                             case `PATCH`:{
                                 req.body.updatedAt = new Date();
@@ -1900,6 +1947,74 @@ router.all(`/admin/:data/:id`, (req, res) => {
                         }
                     }
                 }
+                case `plansRequests`:{
+                    let ref = plansRequests.doc(req.params.id)
+                    return ref.get().then(plan=>{
+                        if(!plan.exists) return res.sendStatus(404)
+                        plan = common.handleDoc(plan)
+                        switch(req.method){
+                            case `POST`:{
+                                return plans.doc(plan.plan)
+                                    .get()
+                                    .then(p=>{
+                                        if(!p.exists) return res.sendStatus(400)
+                                        
+                                        p = common.handleDoc(p)
+                                        
+                                        if(!p.active) return res.json({
+                                            success: false,
+                                            comment: `Этот абонемент уже не активен`
+                                        })
+
+                                        m.getUser(plan.user,udb).then(user=>{
+                                            if(!user.blocked){
+                                                plansUsers.add({
+                                                    active:     true,
+                                                    createdAt:  new Date(),
+                                                    createdBy:  +admin.id,
+                                                    visitsLeft: p.visits,
+                                                    name:       p.name,
+                                                    user:       plan.user,
+                                                    plan:       p.id,
+                                                    to:         new Date(+new Date()+30*24*60*60*1000)
+                                                }).then(r=>{
+                                                    ref.update({
+                                                        active:     false,
+                                                        isPayed:    true
+                                                    })
+                                                    m.sendMessage2({
+                                                        chat_id: plan.user,
+                                                        text:   `поздравляем, подписка ${p.name} успешно активирована`
+                                                    },false,token)
+        
+        
+                                                    log({
+                                                        text:   `${uname(admin.data(),admin.id)} активирует подписку ${p.name} для пользоватля ${uname(user,user.id)}`,
+                                                        plan:   p.id,
+                                                        admin:  +admin.id,
+                                                        user:   +user.id
+                                                    })
+                                                    res.json({
+                                                        success: true,
+                                                        comment: `Подписка активирована!`
+                                                    })
+                                                })
+                                            } else {
+                                                res.json({
+                                                    success: false,
+                                                    comment: `Этот пользователь заблокирован...`
+                                                })
+                                            }
+                                        })
+
+                                        
+
+                                    })
+                            }
+                        }
+                    })
+                    
+                }
                 case `plans`: {
                     let ref = plans.doc(req.params.id);
                     return ref.get().then(cl => {
@@ -1907,13 +2022,30 @@ router.all(`/admin/:data/:id`, (req, res) => {
                         let plan = common.handleDoc(cl)
                         switch (req.method) {
                             case `GET`: {
-                                return plansUsers.where(`plan`, '==', plan.id).get().then(col => {
-                                    plan.subscriptions = common.handleQuery(col) || []
+                                
+                                let data = [];
+
+                                data.push(plansUsers
+                                    .where(`plan`, '==', plan.id)
+                                    .where(`active`,'==',true)
+                                    .get()
+                                    .then(col => common.handleQuery(col,true))
+                                )
+                                data.push(plansRequests
+                                    .where(`plan`, '==', plan.id)
+                                    .where(`active`,'==',true)
+                                    .get()
+                                    .then(col => common.handleQuery(col,true))
+                                )
+                                return Promise.all(data).then(data=>{
+                                    plan.subscriptions =    data[0]
+                                    plan.requests =         data[1]
+                                    
                                     res.json(plan)
                                 })
                             }
                             case `PUT`: {
-                                return updateEntity(req, res, ref, doc.user)
+                                return updateEntity(req, res, ref, doc.user, ()=>updatePlans(req))
                             }
                             case `DELETE`: {
                                 return deleteEntity(req, res, ref, doc.user,`active`,()=>clearPlans(req.params.id,ref))
@@ -2096,7 +2228,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                                             cnt: FieldValue.increment(1)
                                         })
                                         log({
-                                            text: `${uname(admin,admin.id)} добавляет тег ${t.name} пользователю с id ${req.params.id}`,
+                                            text: `${uname(admin.data(),admin.id)} добавляет тег ${t.name} пользователю ${uname(u.data(),u.id)}}`,
                                             admin: +admin.id,
                                             tag: req.body.tag,
                                             user: +req.params.id
@@ -2142,7 +2274,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
     })
 })
 
-function updateEntity(req, res, ref, adminId) {
+function updateEntity(req, res, ref, adminId,callback) {
     return ref.update({
         updatedAt: new Date(),
         updatedBy: adminId,
@@ -2151,6 +2283,10 @@ function updateEntity(req, res, ref, adminId) {
         res.json({
             success: true
         })
+
+        if(callback){
+            callback()
+        }
 
         if (req.body.attr == `authorId`) {
             getDoc(authors, req.body.value).then(a => {
@@ -3879,7 +4015,7 @@ router.post('/hook', (req, res) => {
                                     [{
                                         text: `test`,
                                         web_app: {
-                                            url: `${ngrok}/auditoria/app3`
+                                            url: `${ngrok}/auditoria/app2`
                                         }
                                     }]
                                 ]
@@ -5566,40 +5702,50 @@ router.all(`/api/:data/:id`, (req, res) => {
                 case `GET`: {
                     let data = [];
 
-                    data.push(courses.doc(req.params.id).get().then(a => a.data()))
+                    return courses.doc(req.params.id).get().then(a => {
+                        
+                        let course = common.handleDoc(a)
 
-                    data.push(classes
-                        .where(`active`, '==', true)
-                        .where(`courseId`, '==', req.params.id)
-                        .get()
-                        .then(col => {
-                            return common.handleQuery(col).sort((a, b) => b.date > a.date ? -1 : 1)
-                        })
-                    )
-                    data.push(subscriptions
-                        .where(`active`, '==', true)
-                        .where(`course`, '==', req.params.id)
-                        .get()
-                        .then(col => common.handleQuery(col))
-                    )
+                        data.push([])
 
-                    data.push(plans
-                        .where('active', '==', true)
-                        .where('courseId', '==', req.params.id)
-                        .get()
-                        .then(col => common.handleQuery(col))
-                    )
-                    return Promise.all(data)
-                        .then(data => res.json({
-                            course: data[0],
-                            classes: data[1],
-                            subscriptions: data[2].length,
-                            plans: data[3],
-                            subscribed: req.query.user ? (data[2].filter(s => s.user == +req.query.user).length ? data[2].filter(s => s.user == +req.query.user)[0].id : false) : false
-                        })).catch(err => {
-                            console.log(err)
+                        data.push(classes
+                            .where(`active`, '==', true)
+                            .where(`courseId`, '==', req.params.id)
+                            .get()
+                            .then(col => {
+                                return common.handleQuery(col).sort((a, b) => b.date > a.date ? -1 : 1)
+                            })
+                        )
+                        data.push(subscriptions
+                            .where(`active`, '==', true)
+                            .where(`course`, '==', req.params.id)
+                            .get()
+                            .then(col => common.handleQuery(col))
+                        )
+                        
+                        if(course.planId){
+                            data.push(plans.doc(course.planId).get().then(p=>common.handleDoc(p)))    
+                        } 
+                        // data.push(plans
+                        //     .where('active', '==', true)
+                        //     .where('courseId', '==', req.params.id)
+                        //     .get()
+                        //     .then(col => common.handleQuery(col))
+                        // )
+                        return Promise.all(data)
+                            .then(data => res.json({
+                                course:     course,
+                                classes:    data[1],
+                                subscriptions: data[2].length,
+                                plans:      data[3] ? [data[3]] : [],
+                                subscribed: req.query.user ? (data[2].filter(s => s.user == +req.query.user).length ? data[2].filter(s => s.user == +req.query.user)[0].id : false) : false
+                            })).catch(err => {
+                                console.log(err)
 
-                        })
+                            })
+                    })
+
+                    
                 }
 
             }

@@ -1035,16 +1035,6 @@ function showTask(taskId){
     })
 }
 
-function deleteButton(collection,id){
-    return ce('button',false,[`dateButton`,`dark`,`deleteAble`],`Архивировать`,{
-        onclick:()=>{
-            let proof = confirm(`Вы уверены?`)
-            if(proof) axios.delete(`/${host}/admin/${collection}/${id}`)
-                .then(handleSave)
-                .catch(handleError)
-        }
-    })
-}
 
 function showTags(){
     closeLeft()
