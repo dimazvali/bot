@@ -62,7 +62,7 @@ function letterize2(v,word){
     return options[r][v]+' '+r
 }
 
-function handleQuery(col,byDate){
+function handleQuery(col,byDate,byName){
     let res = col.docs.map(q => {
         let f = q.data();
         f.id = q.id
@@ -71,8 +71,18 @@ function handleQuery(col,byDate){
     if(byDate){
         res = res.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds)
     }
+    if(byName){
+        res = res.sort((a,b)=>sortableText(b.name) > sortableText(a.name) ? -1 : 0)
+    }
     devlog(res)
     return res
+}
+
+function sortableText(t){
+    if(!t) t = '';
+    let txt = t.toString().replace(/\»/g,'').replace(/\«/g,'').toLowerCase().trim()
+    console.log(txt)
+    return txt
 }
 
 function handleDoc(d){

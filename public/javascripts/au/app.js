@@ -12,23 +12,6 @@ let appData = undefined;
 
 let mbbc = null;
 
-class auditoriaAppModel extends appModel {
-    constructor(v) {
-        super(v)
-        this.streams = ko.observableArray(v.streams.map(s => new auLecture(s)))
-        this.lecture = ko.observableArray(v.schedule.map(l => new auLecture(l)))
-    }
-}
-
-class auLecture extends appLecture {
-    constructor(l) {
-        super(l)
-        this.price2 = ko.observable(l.price2)
-        this.price3 = ko.observable(l.price3)
-
-    }
-}
-
 function letterize(v, word) {
     switch (word) {
         case 'человек': {
@@ -385,10 +368,6 @@ axios.get(`/auditoria/api/profile?user=${userid}`)
             p.append(ce('h1', false, false, `Ваши билеты:`))
         }
 
-
-
-
-
         if (data.schedule.length) {
 
             let s = ce('table')
@@ -407,7 +386,12 @@ axios.get(`/auditoria/api/profile?user=${userid}`)
     })
 
 function handleError(err) {
-    tg.showAlert(err.message)
+    try{
+        tg.showAlert(err.message)
+    } catch(err){
+        alert(err.message)
+    }
+    console.warn(err)
 }
 
 function list() {

@@ -205,12 +205,9 @@ function drawClassLine(c) {
         desc.append(ce('h5', false, false, `${c.descShort}`))
     }
 
-
-
     cl.onclick = () => {
         drawClassPopup(c, c.id)
     }
-
 
     return cl
 

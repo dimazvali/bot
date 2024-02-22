@@ -919,49 +919,6 @@ function editable(e){
     })
 }
 
-function logButton(collection,id,credit){
-    return ce(`button`,false,[`dateButton`,`dark`,`slim`],credit||`Логи`,{
-        onclick:()=>{
-            let p = preparePopupWeb(`logs_${collection}_${id}`)
-                p.append(ce('h2',false,false,`Загружаем...`))
-                load(`logs`,`${collection}_${id}`).then(logs=>{
-                    p.innerHTML = null;
-                    p.append(ce('h1',false,false,credit||`Логи`))
-                    logs.forEach(l=>{
-                        p.append(logLine(l))
-                    })
-                })
-        }
-    })
-}
-
-function logLine(l){
-    let c = ce('div',false,`sDivided`)
-        c.append(ce(`span`,false,`info`,drawDate(l.createdAt._seconds*1000)))
-        c.append(ce('p',false,false,l.text))
-        
-        if(l.user){
-            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть профиль`,{
-                onclick:()=>showUser(false,l.user)
-            }))
-        }
-
-        if(l.task){
-            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть задание`,{
-                onclick:()=>showTask(l.task)
-            }))
-        }
-
-        if(l.tag){
-            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть тег`,{
-                onclick:()=>showTag(l.tag)
-            }))
-        }
-
-        
-
-    return c;
-}
 
 function showTag(tagId){
     let p = preparePopupWeb(`tags_${tagId}`)
@@ -992,7 +949,7 @@ function showTag(tagId){
 
         load(`tagsUsers`,tagId).then(tusers=>{
             
-            users.innerHTML = tusers.length ? `${tusers.length} пользоваталей` : `юзеров нет`
+            users.innerHTML = tusers.length ? `${tusers.length} пользователей` : `юзеров нет`
             
             tusers.forEach(u=>{
                 load(`users`,u.user).then(u=>{

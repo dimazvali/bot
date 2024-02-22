@@ -1,3 +1,4 @@
+
 let host = `auditoria`
 const appLink = `https://t.me/AuditoraBot/app`
 const web = `https://dimazvali-a43369e5165f.herokuapp.com/auditoria/site/tbi`
@@ -54,6 +55,11 @@ if(start){
 
         case 'views':{
             showViews()
+            break;
+        }
+        
+        case 'plans':{
+            showPlans()
             break;
         }
 
@@ -287,9 +293,10 @@ function showCourses() {
                 },{
                     attr: `createdAt`,
                     name: `По дате создания`
-                }],c,data.data))
+                }],c,data.data,showCourseLine))
             
             mc.append(cc)
+            
             mc.append(c)
 
             mc.append(archiveButton(c))
@@ -308,7 +315,7 @@ function sortableText(t){
     return txt
 }
 
-function sortBlock(sortTypes,container,array){
+function sortBlock(sortTypes,container,array,callback){
     let c = ce('div',false,`controls`)
     sortTypes.forEach(type=>{
         c.append(ce('button',false,false,type.name,{
@@ -325,9 +332,12 @@ function sortBlock(sortTypes,container,array){
                         case 'createdAt':{
                             return (a.createdAt||{})._seconds||0 - (b.createdAt||{})._seconds||0 
                         }
+                        case `price`:{
+                            return (+b.price||0) - (+a.price||0)
+                        }
                     }
                 }).forEach(r=>{
-                    container.append(showCourseLine(r))
+                    container.append(callback(r))
                 })
             }
         }))
@@ -352,6 +362,7 @@ function showPlanLine(plan) {
     let c = ce('div', false, `divided`, false, {
         onclick: () => showPlan(plan.id)
     })
+    if(!plan.active) c.classList.add(`hidden`)
     c.append(ce('h2', false, false, plan.name))
     c.append(ce('p', false, false, plan.description || `без описания`))
     c.append(ce('p', false, false, `${cur(plan.price,`GEL`)}, ${plan.visits} посещений.`))
@@ -416,6 +427,8 @@ function showPlan(id) {
     load(`plans`, id).then(plan => {
         let p = preparePopupWeb(`plan_${plan.id}`)
 
+        p.append(logButton(`plan`,plan.id,`Лог по абонементу ${plan.name}`))
+
         p.append(ce('h1', false, false, plan.name || `Без названия`, {
             onclick: () => edit(`plans`, id, `name`, `text`, plan.name)
         }))
@@ -445,23 +458,45 @@ function showPlans() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
     window.history.pushState({}, "", `web?page=plans`);
-    axios.get(`/${host}/admin/plans`)
-        .then(data => {
-            console.log(data.data)
+    load(`plans`)
+        .then(plans => {
             mc.innerHTML = '';
             mc.append(ce('h1', false, `header2`, `Подписки`))
             let c = ce('div')
-            data.data.forEach(cl => {
-                c.append(showPlanLine(cl))
+            
+            plans.forEach(plan => {
+                c.append(showPlanLine(plan))
             });
+
             c.append(ce(`button`, false, false, `Добавить подписку`, {
                 onclick: () => newPlan()
             }))
+
+            let cc = ce('div',false,`controls`)
+                cc.append(sortBlock([{
+                    attr: `name`,
+                    name: `По названию`
+                },{
+                    attr: `views`,
+                    name: `По просмотрам`
+                },{
+                    attr: `createdAt`,
+                    name: `По дате создания`
+                },{
+                    attr: `price`,
+                    name: `По стоимости`
+                }],c,plans,showPlanLine))
+            
+            mc.append(cc)
+
             mc.append(c)
+
+            mc.append(archiveButton(c))
 
 
         })
         .catch(err => {
+            console.log(err)
             alert(err.message)
         })
 }
@@ -520,6 +555,24 @@ function showCourseLine(course) {
     return c
 }
 
+function removeConnectionButton(collection,id,upd,attr){
+    return ce(`button`,false,false,`Удалить связь`,{
+        onclick:function(){
+            let sure = confirm(`Уверены?`)
+            if(sure){
+                this.setAttribute(`disabled`,true)
+                axios
+                    .patch(`/${host}/admin/${collection}/${id}${attr?`?attr=${attr}`:''}`,upd)
+                    .then(handleSave)
+                    .catch(handleError)
+                    .finally(this.parentNode.remove())
+            }
+            
+        }
+    })
+    
+}
+
 function deleteButton(collection,id){
     return ce('button',false,false,`Архивировать`,{
         onclick:()=>{
@@ -531,12 +584,60 @@ function deleteButton(collection,id){
     })
 }
 
+function showBank(id){
+    let p = preparePopupWeb(`bank_${id}`,`bank_${id}`,[`banks`,id])
+    load(`banks`,id)
+        .then(b=>{
+
+            p.append(logButton(`author`,b.id,`Лог реквизита`))
+
+            p.append(ce('h1',false,false,`Реквизиты ${b.name}`))
+            
+            p.append(ce('h2', false, false, b.name, {
+                onclick: () => edit(`banks`, b.id, `name`, `text`, b.name)
+            }))
+        
+            p.append(ce('p', false, false, b.creds, {
+                onclick: () => edit(`banks`, b.id, `creds`, `text`, b.creds)
+            }))
+
+            load(`banksCourses`,b.id).then(courses=>{
+                if(!courses.length){
+                    p.append(ce('h3',false,false,`не привязаны ни к одному курсу`))
+                } else {
+                    p.append(ce(`h3`,false,false,`Связанные курсы:`))
+                    courses.forEach(c=>{
+                        let container = ce('div',false,c.active?`sDivided`:`hidden`)
+                            container.append(showCourseLine(c))
+                            container.append(removeConnectionButton(`courses`,c.id,{
+                                bankId: null,
+                                bankCreds: null
+                            },`bankCourse`))
+                        p.append(container)
+                    })
+                }
+            })
+
+            p.append(deleteButton(`banks`,b.id))
+
+        })
+}
+
 function showCourse(cl, id) {
+    
     if (!cl) {
         cl = load(`courses`, id)
     }
+
     Promise.resolve(cl).then(cl => {
+
+        if(cl.course) cl = cl.course
+
+
         let p = preparePopupWeb(`course_${cl.id}`,`course_${cl.id}`,[`courses`,cl.id])
+
+        p.append(logButton(`course`,cl.id,`Лог по курсу ${cl.name}`))
+
         if (cl.pic) {
             p.append(ce(`img`, false, `cover`, false, {
                 src: cl.pic,
@@ -611,16 +712,6 @@ function showCourse(cl, id) {
         }))
 
 
-        // if (!cl.authorId) {
-        //     p.append(ce(`button`, false, `accent`, `выбрать автора`, {
-        //         onclick: () => edit(`courses`, cl.id, `authorId`, `authorId`, null)
-        //     }))
-        // } else {
-        //     p.append(ce(`button`, false, `accent`, cl.author, {
-        //         onclick: () => edit(`courses`, cl.id, `authorId`, `authorId`, cl.authorId)
-        //     }))
-        // }
-
         if (cl.description) {
             p.append(ce('p', false, false, cl.description, {
                 onclick: () => edit(`courses`, cl.id, `description`, `textarea`, cl.description)
@@ -634,16 +725,14 @@ function showCourse(cl, id) {
         p.append(deleteButton(`courses`,cl.id))
 
 
-        axios.get(`/${host}/admin/courses/${cl.id}`).then(course => {
-            course = course.data
-
-
+        load(`courses`,cl.id).then(course => {
 
             p.append(ce(`h3`, false, false, 'Занятия'))
 
             course.classes.forEach(c => {
                 p.append(showClassLine(c))
             })
+
             p.append(addClass(cl.authorId, cl.id, cl.bankId))
 
             if (course.subscriptions.length) {
@@ -673,7 +762,7 @@ function showCourse(cl, id) {
 }
 
 function handleSave(s) {
-    if (s.data.success) return alert(s.data.comment || `Ура! Пожалуй, стоит обновить страницу.`)
+    if (s.data.hasOwnProperty('success')) return alert(s.data.comment || `Ура! Пожалуй, стоит обновить страницу.`)
 }
 
 function load(collection, id) {
@@ -1268,6 +1357,9 @@ function showAuthor(a,id) {
 
         let p = preparePopupWeb(`author_${a.id}`,`author_${a.id}`,[`authors`,a.id])
 
+
+        p.append(logButton(`author`,a.id,`Лог по автору`))
+
         p.append(ce('h1', false, false, a.name, {
             onclick: () => edit(`authors`, a.id, `name`, `text`, a.name)
         }))
@@ -1365,7 +1457,24 @@ function showBanks() {
             c.append(showBankLine(cl))
         });
         c.append(addBank())
+        
+        let cc = ce('div',false,`controls`)
+            cc.append(sortBlock([{
+                attr: `name`,
+                name: `По названию`
+            },{
+                attr: `views`,
+                name: `По просмотрам`
+            },{
+                attr: `createdAt`,
+                name: `По дате создания`
+            }],c,banks,showBankLine))
+            
+        mc.append(cc)
+        
         mc.append(c)
+
+        mc.append(archiveButton(c))
     })
 }
 
@@ -1373,22 +1482,24 @@ function showBankLine(b) {
     let c = ce('div', false, `sDivided`, false, {
         dataset: {
             active: b.active,
-        },
-        // onclick:()=>{
-        //     showBank(cl)
-        // }
+        }
     })
 
-    c.append(ce('h2', false, false, b.name, {
-        onclick: () => edit(`banks`, b.id, `name`, `text`, b.name)
-    }))
+    c.append(ce(`h3`,false,false,b.name))
+    c.append(ce(`p`,false,false,b.creds))
 
-    c.append(ce('p', false, false, b.creds, {
-        onclick: () => edit(`banks`, b.id, `creds`, `text`, b.creds)
-    }))
+    if(!b.active) c.classList.add(`hidden`)
+
+    c.onclick=()=>{
+        showBank(b.id)
+    }
 
     return c
 }
+
+
+
+
 
 function showClassLine(cl) {
     let c = ce('div', false, `sDivided`, false, {
@@ -1447,11 +1558,27 @@ function showAuthors() {
             c.append(showAuthorLine(a))
         });
 
+        let cc = ce('div',false,`controls`)
+            cc.append(sortBlock([{
+                attr: `name`,
+                name: `По названию`
+            },{
+                attr: `views`,
+                name: `По просмотрам`
+            },{
+                attr: `createdAt`,
+                name: `По дате создания`
+            }],c,authors,showAuthorLine))
+        
+        mc.append(cc)
+
         c.append(ce('button', false, false, `Добавить автора`, {
             onclick: () => newAuthor()
         }))
 
         mc.append(c)
+
+        mc.append(archiveButton(c))
     })
 }
 
@@ -1466,6 +1593,8 @@ function showAuthorLine(a) {
             active: a.active
         }
     })
+
+    if(!a.active) div.classList.add(`hidden`)
 
     let creds = ce(`div`)
 
@@ -1583,9 +1712,11 @@ function showClass(cl, id) {
     Promise.resolve(cl).then(cl => {
         let p = preparePopupWeb(`class_${cl.id}`,`class_${cl.id}`,[`classes`,cl.id])
 
+        p.append(logButton(`class`,cl.id,`Лог занятия`))
+
         if (cl.pic) p.append(ce(`img`, false, `cover`, false, {
             src: cl.pic,
-            onclick: () => edit(`classes`, cl.id, `pic`, `text`, cl.descLong)
+            onclick: () => edit(`classes`, cl.id, `pic`, `textarea`, cl.descLong)
         }))
 
         p.append(ce('p', false, false, `${drawDate(cl.date._seconds*1000,'ru',{time:true})}`, {
@@ -1659,7 +1790,7 @@ function showClass(cl, id) {
         }))
 
         p.append(ce('p', false, `story`, cl.descLong, {
-            onclick: () => edit(`classes`, cl.id, `descLong`, `text`, cl.descLong)
+            onclick: () => edit(`classes`, cl.id, `descLong`, `textarea`, cl.descLong)
         }))
 
         p.append(ce(`p`,false,false,cl.streamDesc ? cl.streamDesc : `параметры трансляции не заданы`,{
@@ -1851,6 +1982,7 @@ function delButton(col, id) {
 }
 
 function showLogs() {
+    window.history.pushState({}, "", `web?page=logs`);
     window.location.reload()
 }
 
@@ -2178,6 +2310,8 @@ function showUser(u, id) {
         if(u.user) u = u.user
 
         let p = preparePopupWeb(`user${u.id}`)
+
+        p.append(logButton(`user`,u.id,`Лог по пользователю ${u.id}`))
         
         p.append(ce('h1', false, false, `${uname(u,u.id)} (${u.language_code})`))
         p.append(ce('p', false, false, `регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
@@ -2396,15 +2530,46 @@ function showTag(tagId){
 
         load(`tagsUsers`,tagId).then(tusers=>{
             
-            users.innerHTML = tusers.length ? `${tusers.length} пользоваталей` : `юзеров нет`
+            users.innerHTML = tusers.length ? `${tusers.length} пользователей` : `юзеров нет`
             
             tusers.forEach(u=>{
                 load(`users`,u.user).then(u=>{
-                    users.append(showUserLine(u))
+                    users.append(showUserLine(u.user))
                 })
-                
-            })      
+            })
         })
+
+        let msg = ce(`div`,false,`hidden`)
+            msg.append(ce(`h2`,false,false,`Рассылка по пользователям`))
+            let txt = ce(`textarea`,false,false,false,{
+                placeholder: `Вам слово`
+            })
+            msg.append(txt)
+            msg.append(ce(`button`,false,false,`Отправить`,{
+                onclick:function(){
+                    if(!txt.value) return alert(`Я не вижу ваших букв!`)
+                    this.setAttribute(`disabled`,true)
+                    axios.post(`/${host}/admin/news`,{
+                        text:       txt.value,
+                        name:       `Рассылка по тегу «${tag.name}»`,
+                        filter:     `tagged`,
+                        tag:        tag.id
+                    }).then(s=>{
+                        handleSave(s)
+                        txt.value = null;
+                    }).catch(handleError)
+                    .finally(()=>{
+                        this.removeAttribute(`disabled`)
+                    })
+                }
+            }))
+        p.append(msg)
+        p.append(ce(`button`,false,false,`Отправить рассылку`,{
+            onclick:function(){
+                this.remove()
+                msg.classList.remove(`hidden`)
+            }
+        }))
 
     })
 }

@@ -179,11 +179,14 @@ function preparePopup(type) {
 
 
 
-function handleError(err){
-    tg.showAlert(err.data || err.message)
+function handleError(err) {
+    try{
+        tg.showAlert(err.data || err.message)
+    } catch(err){
+        alert(err.data || err.message)
+    }
+    console.warn(err)
 }
-
-
 
 
 
@@ -550,4 +553,48 @@ function copyWebLink(link, path, text){
             })
         }    
     })
+}
+
+function logButton(collection,id,credit){
+    return ce(`button`,false,[`dateButton`,`dark`,`slim`],credit||`Логи`,{
+        onclick:()=>{
+            let p = preparePopupWeb(`logs_${collection}_${id}`)
+                p.append(ce('h2',false,false,`Загружаем...`))
+                load(`logs`,`${collection}_${id}`).then(logs=>{
+                    p.innerHTML = null;
+                    p.append(ce('h1',false,false,credit||`Логи`))
+                    logs.forEach(l=>{
+                        p.append(logLine(l))
+                    })
+                })
+        }
+    })
+}
+
+function logLine(l){
+    let c = ce('div',false,`sDivided`)
+        c.append(ce(`span`,false,`info`,drawDate(l.createdAt._seconds*1000)))
+        c.append(ce('p',false,false,l.text))
+        
+        if(l.user){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть профиль`,{
+                onclick:()=>showUser(false,l.user)
+            }))
+        }
+
+        if(l.task){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть задание`,{
+                onclick:()=>showTask(l.task)
+            }))
+        }
+
+        if(l.tag){
+            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть тег`,{
+                onclick:()=>showTag(l.tag)
+            }))
+        }
+
+        
+
+    return c;
 }
