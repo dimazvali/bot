@@ -10,9 +10,6 @@ var cron =      require('node-cron');
 var FormData =  require('form-data');
 const host =    `auditoria`
 
-var cookieParser = require('cookie-parser');
-
-router.use(cookieParser(process.env.papersToken));
 
 uname = common.uname
 
@@ -39,7 +36,6 @@ let transporter = mail.createTransport({
 
 
 router.use(cors())
-
 router.use(express.json({
     limit: '10mb'
 }));
@@ -101,12 +97,12 @@ let channel_id = -1002067678991
 
 let appLink = `https://t.me/AuditoraBot/app`
 
-let token =         process.env.auditoriaToken
-let paymentToken =  process.env.auPaymentToken
+let token = process.env.auditoriaToken
+let paymentToken = process.env.auPaymentToken
 
-const ngrok =       process.env.ngrok
+const ngrok = process.env.ngrok
 
-let sheet =         process.env.auditoriaSheet
+let sheet = process.env.auditoriaSheet
 
 axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s => {
     console.log(`auditoria hook set to ${ngrok}`)
@@ -154,32 +150,32 @@ function refreshMenu() {
 refreshMenu()
 
 
-let udb = fb.collection('users');
-let messages = fb.collection('userMessages');
-let halls = fb.collection(`halls`);
-let classes = fb.collection(`classes`);
-let userClasses = fb.collection(`userClasses`);
-let coworking = fb.collection(`coworking`);
-let mra = fb.collection(`meetingRoom`);
-let logs = fb.collection('logs');
-let userEntries = fb.collection('userEntries');
-let authors = fb.collection('authors');
-let courses = fb.collection('courses');
-let subscriptions = fb.collection(`subscriptions`);
-let news = fb.collection('news');
-let plans = fb.collection('plans')
-let views = fb.collection('views')
-let streams = fb.collection('streams')
-let classAlerts = fb.collection(`classAlerts`)
-let userClassesQ = fb.collection(`userClassesQ`)
-let plansRequests = fb.collection(`plansRequests`);
-let plansUsers = fb.collection(`plansUsers`)
-let adminTokens = fb.collection(`adminTokens`)
-let banks = fb.collection(`banks`)
-let channelStats = fb.collection(`channelStats`)
-let subscriptionsEmail = fb.collection(`subscriptionsEmail`)
-let tags = fb.collection(`tags`)
-let userTags = fb.collection(`usertags`)
+let udb =                   fb.collection('budva_users');
+let messages =              fb.collection('budva_userMessages');
+let halls =                 fb.collection(`budva_halls`);
+let classes =               fb.collection(`budva_classes`);
+let userClasses =           fb.collection(`budva_userClasses`);
+let coworking =             fb.collection(`budva_coworking`);
+let mra =                   fb.collection(`budva_meetingRoom`);
+let logs =                  fb.collection('budva_logs');
+let userEntries =           fb.collection('budva_userEntries');
+let authors =               fb.collection('budva_authors');
+let courses =               fb.collection('budva_courses');
+let subscriptions =         fb.collection(`budva_subscriptions`);
+let news =                  fb.collection('budva_news');
+let plans =                 fb.collection('budva_plans')
+let views =                 fb.collection('budva_views')
+let streams =               fb.collection('budva_streams')
+let classAlerts =           fb.collection(`budva_classAlerts`)
+let userClassesQ =          fb.collection(`budva_userClassesQ`)
+let plansRequests =         fb.collection(`budva_plansRequests`);
+let plansUsers =            fb.collection(`budva_plansUsers`)
+let adminTokens =           fb.collection(`budva_adminTokens`)
+let banks =                 fb.collection(`budva_banks`)
+let channelStats =          fb.collection(`budva_channelStats`)
+let subscriptionsEmail =    fb.collection(`budva_subscriptionsEmail`)
+let tags =                  fb.collection(`budva_tags`)
+let userTags =              fb.collection(`budva_usertags`)
 
 if (!process.env.develop) {
 
@@ -356,16 +352,6 @@ router.get(`/site/:city/:section`, (req, res) => {
 })
 
 
-function randomStyle() {
-    let random = Math.floor(Math.random() * 100)
-    let bl = 100 - random;
-    let br = Math.floor(Math.random() * 100)
-    let tr = 100 - br
-    return `border-top-left-radius: ${random}%;border-bottom-left-radius: ${bl}%;border-top-right-radius: ${tr}%;border-bottom-right-radius: ${br}%;`
-
-}
-
-
 router.get(`/site/:city/:section/:id`, (req, res) => {
     if (req.params.city !== `tbi`) return res.sendStatus(404)
     if (sections[req.params.section]) {
@@ -464,9 +450,9 @@ router.get(`/site/:city/:section/:id`, (req, res) => {
 
 router.get('/admin', (req, res) => {
     res.render('auditoria/admin', {
-        user:           req.query.id,
-        start:          req.query.start,
-        translations:   translations
+        user:       req.query.id,
+        start:      req.query.start,
+        translations: translations
     })
 })
 
@@ -485,8 +471,8 @@ function interprete(field, value) {
 }
 
 function checkChannel() {
-    let today = new Date().toISOString().split('T')[0]
-    let yesterday = new Date(+new Date() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    let today =         new Date().toISOString().split('T')[0]
+    let yesterday =     new Date(+new Date() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     axios.get(`https://api.telegram.org/bot${token}/getChatMemberCount?chat_id=@auditoria_tbilisi`).then(data => {
         channelStats.doc(today).set({
             views: data.data.result
@@ -509,13 +495,10 @@ router.get(`/web`, (req, res) => {
         .limit(100)
         .get()
         .then(col => {
-            
-            devlog(process.env.adminToken)
-
             res.cookie('adminToken', process.env.adminToken, {
-                maxAge:     24 * 60 * 60 * 1000,
-                signed:     true,
-                httpOnly:   true,
+                maxAge: 24 * 60 * 60 * 1000,
+                signed: true,
+                httpOnly: true,
             }).render(`${host}/web`, {
                 logs: common.handleQuery(col),
                 start: req.query.page
@@ -2565,6 +2548,11 @@ function bookClass(user, classId, res, id) {
     }
 
     Promise.resolve(user).then(user => {
+        common.devlog(+user.id)
+        common.devlog(classId)
+        // common.devlog(+user.id)
+
+
         userClasses
             .where('user', '==', +user.id)
             .where('active', '==', true)
@@ -2620,7 +2608,7 @@ function bookClass(user, classId, res, id) {
                                     })
                                 })
 
-                            if (c.data().price || c.data().price2) {
+                            if (c.data().price) {
 
                                 if (res) {
                                     res.json({
@@ -3205,292 +3193,6 @@ function sendHalls(id, lang) {
         })
 }
 
-const translations = {
-    planConfirmed: (plan) => {
-        return {
-            ru: `Поздравляем! Вы оформили подписку на абонемент ${plan.name}. Он будет действовать в течение ${plan.days} дней.`,
-            en: `Congratulations! You've bought a plan for ${plan.events} events. Feel free to use it in the next ${plan.days} days.`
-        }
-    },
-    thanks: {
-        ru: `Спасибо!`,
-        en: `Thank you!`
-    },
-    course: {
-        ru: `Курс`,
-        en: `Course`
-    },
-    allByCourse: (a) => {
-        return {
-            ru: `Новые события в курсе ${a}`,
-            en: `New events within course ${a}`
-        }
-    },
-    allByAuthor: (a) => {
-        return {
-            ru: `Новые события с участием ${a}`,
-            en: `New events with ${a}`
-        }
-    },
-    noContent: {
-        ru: `Извините, здесь пока пусто...`,
-        en: `Sorry, there's nothing to show yet...`
-    },
-    authorDetails: {
-        ru: `Подробнее об авторе`,
-        en: `More about the author`
-    },
-    addedSubscription: {
-        ru: `Подписка оформлена!`,
-        en: `Subscription was set`
-    },
-    deletedSubscription: {
-        ru: `Подписка отменена`,
-        en: `Subscription was cancelled`
-    },
-    subscribe: {
-        ru: `Подписаться на обновления`,
-        en: `Subscribe`
-    },
-    unsubscribe: {
-        ru: `Отписаться от обновлений`,
-        en: `Unsubscribe`
-    },
-    yourCode: {
-        ru: 'Ваш код (вместо билета, лучше него)',
-        en: `Ypur entrance code`
-    },
-    newLecture: (l) => {
-        return {
-            ru: `Отличные новости! Мы подготовили новую лекцию: «${l.name}». Ее проведет ${l.author}, ${new Date(l.date).toLocaleDateString()}.`,
-            en: `Hello there! We have a new lecture coming: ${l.name} by ${l.author} on ${new Date(l.date).toLocaleDateString()}.`
-        }
-    },
-    tellMeMore: {
-        ru: 'Подробнее',
-        en: 'More'
-    },
-    coworkingReminder: (hall) => {
-        return {
-            ru: `Доброе утро! Просто напоминаю, что сегодня вас ждут в коворкинге. Комната ${hall.name}, ${hall.floor} этаж.`,
-            en: `Good morning! Looking forward to meet you at our coworking. Room ${hall.name}, on the ${hall.floor}.`
-        }
-    },
-    mrReminder: (t) => {
-        return {
-            ru: `Напоминаем, что через пару минут (в ${t}) для вас забронирована переговорка.`,
-            en: `Just to remind you, that you have booked a meeting room on ${t}.`
-        }
-    },
-    schedule: {
-        ru: 'Расписание',
-        en: 'Schedule'
-    },
-    coworking: {
-        ru: 'Коворкинг',
-        en: 'Coworking'
-    },
-    mr: {
-        ru: 'Переговорка',
-        en: 'Meeting Room'
-    },
-    paymentTitleClass: (l) => {
-        return {
-            ru: `Оплата лекции ${l.name}`,
-            en: `Payment for the lecture ${l.name}`
-        }
-    },
-    nosais: {
-        ru: `Извините, я не знаю такой команды. Уведомлю админа; кажется, что-то пошло не так...`,
-        en: `Beg your pardon, I have no idea what to do about this task. I shall talk to my master...`
-    },
-    congrats: {
-        en: 'Welcome aboard! You are registered as coworker.',
-        ru: 'Поздравляем, вы зарегистрированы как сотрудник auditoria'
-    },
-    book: {
-        ru: 'Записаться',
-        en: 'Book a place'
-    },
-    noFee: {
-        ru: 'Вход бесплатный ',
-        en: 'Free admittance'
-    },
-    fee: {
-        ru: 'Вход: ',
-        en: 'Entry fee: '
-    },
-    hall: {
-        ru: 'Зал',
-        en: 'Hall'
-    },
-    author: {
-        ru: 'Автор',
-        en: 'Author'
-    },
-    minutes: {
-        ru: 'минут',
-        en: 'minutes'
-    },
-    bookHall: {
-        ru: 'Забронировать зал',
-        en: 'Book the space'
-    },
-    hallSchedule: {
-        ru: 'Посмотреть график',
-        en: 'Schedule'
-    },
-    intro: {
-        ru: `Здравствуй, друг. Прощай, трезвый день.\nТы можешь посмотреть расписание лекций, забронировать место в коворкинге или переговорке — или сразу пройти в бар. Там мы тебя ждем...\n`,
-        // Удобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка в нижнем левом углу...
-        en: `Hello there! Glad to meet you!`
-    },
-    introButton: {
-        ru: `Открыть приложение`,
-        en: `release the kraken!`
-    },
-    payOnSite: (v) => {
-        return {
-            ru: `Оплачу на месте (${common.cur(v,'GEL')}).`,
-            en: `I'll pay on premise (${common.cur(v,'GEL')}).`
-        }
-    },
-    pay: (v) => {
-        return {
-            ru: `Оплатить ${v}`,
-            en: `Pay ${v}`
-        }
-    },
-    lectureInvite: (l) => {
-        return {
-            ru: `Отлично! Ждем вас на лекции «${l.name}». 
-            
-            ${(l.price || l.price2)? 
-                `Напоминаем, что в день мероприятия стоимость составит ${cur(l.price2 || c.price ,`GEL`)}. Чтобы оплатить билет заранее, переведите ${cur(l.price ,`GEL`)} на ${l.paymentDesc || l.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.` : ''}`,
-            en: `Great! Looking forward to meet you`
-        }
-    },
-    lectureReminder: (l) => {
-        return {
-            ru: `Напоминаем, что сегодня в ${l.time} мы ждем вас на лекции ${l.name}.`,
-            en: `Great! Looking forward to meet you`
-        }
-    },
-    lectureConfirm: {
-        ru: `Отлично! Ждем вас на лекции. Подробнее в сообщениях.`,
-        en: `Great! Looking forward to meet you. You'll get a message with all necessary details.`
-    },
-    alreadyCancelled: {
-        ru: 'Эта запись уже отменена',
-        en: 'This record had already been cancelled'
-    },
-    hallNotAvailable: {
-        ru: 'Извиние, это помещение более недоступно',
-        en: `Sorry, this space is no available any more.`
-    },
-    letsTryAgain: {
-        en: `One more time?`,
-        ru: 'Попробуем еще разок?'
-    },
-    error: {
-        en: 'We\'re sorry. An unexpected error occured. Sheep happened',
-        ru: `Непредвиденная ошибка. Мы уже уведомили админа.`
-    },
-    bookingCancelled: {
-        en: 'Your booking was cancelled',
-        ru: `Запись отменена`
-    },
-    timeSelected: (d) => {
-        return {
-            ru: 'Время: ' + d,
-            en: `Time: ${d}`
-        }
-    },
-    dateSelected: (d) => {
-        return {
-            ru: 'Выбранная дата: ' + d,
-            en: `Date chosen: ${d}`
-        }
-    },
-    onIt: {
-        ru: 'Секундочку',
-        en: 'Just a sec...'
-    },
-    coworkingBookingCancel: {
-        ru: 'Отменить бронь',
-        en: 'Cancel booking'
-    },
-    coworkingBookingConfirmed: {
-        ru: 'Ваше место пусто не останется',
-        en: 'You are in!'
-    },
-    youArBanned: {
-        ru: 'Извините, вам будут не рады...',
-        en: 'Sorry, we can\'t let you in...'
-    },
-    noSeatsLeft: {
-        ru: 'Простите, но свободных мест не осталось.',
-        en: 'We are sorry — no seats lefts.'
-    },
-    alreadyBooked: {
-        ru: 'Это место уже захвачено, мон колонель!',
-        en: 'You have already booked a place.'
-    },
-    alreadyBookedClass: {
-        ru: 'Извините, но вы уже записывались на эту лекцию.',
-        en: 'You have already booked a place.'
-    },
-    coworkingBookingDetails: (date, name, lang) => {
-        return {
-            ru: `Вы записались в коворкинг на ${common.drawDate(date,lang)}.`,
-            en: `You booked a place at on ${common.drawDate(date,lang)}.`
-        }
-    },
-    seats: {
-        ru: `п/м`,
-        en: 'seats left'
-    },
-    chooseDate: {
-        ru: `Выберите день`,
-        en: `Choose a date`
-    },
-    chooseTime: {
-        ru: `Выберите время`,
-        en: `Choose time`
-    },
-    coworkingStart: {
-        ru: `В коворкинге 12 мест. Стоимость за день 20 GEL, в неделю — 90.`,
-        en: `We have room for 12 people. The price is 20 GEl per day (90 per week).`
-    },
-    noClasses: {
-        ru: 'Извините, дорогой друг. Вы еще не записывались. Или мы что-то забыли...\nНажмите /classes — мы покажем расписание на ближайшие дни',
-        en: `Ooops! Nothing to show yet. Press /classes to see upcoming events.`
-    },
-    noAppointment: {
-        ru: `Извините, такой записи в природе не существует`,
-        en: 'Sorry, we have no idea of the appointment. Where did you get it?..'
-    },
-    unAuthorized: {
-        ru: 'Терпеть не можем это говорить, но... у вас нет права на совершение этой операции.',
-        en: `Sorry, you are not authorized to perform the action.`
-    },
-    appointmentCancelled: {
-        ru: 'Культура отмены — тоже культура. Ваша запись снята',
-        en: 'Cancel culture marching. You\'re free to go'
-    },
-    alreadyPayed: {
-        ru: 'Вай мэ, дорогой товарищ, ваш билет уже оплачен.',
-        en: 'That\'s sweet, but you have already payed for the ticket'
-    },
-    paymentDesc: {
-        ru: `После покупки билета вы получите код — просто покажите его при входе.`,
-        en: `Once the payment is through you get a code. Just show it at the reception.`
-    },
-    userBlocked: {
-        ru: `Извините, но вам не рады.`,
-        en: `Sorry, but you're not welcome.`
-    }
-}
 
 function log(o) {
     o.createdAt = new Date()
@@ -3506,17 +3208,6 @@ function log(o) {
     })
 }
 
-function randomPic() {
-    let images = [
-        '3b.png',
-        'b1.png',
-        'b2.png',
-        'w1.png',
-        'w2.png'
-    ]
-
-    return `${ngrok}/images/auditoria/${images[Math.floor(Math.random()*images.length)]}`
-}
 
 
 function classDescription(h, lang) {
@@ -5281,11 +4972,7 @@ router.get(`/api/:type`, (req, res) => {
                         streams.push(t)
                     })
 
-                    devlog(data[1])
-
-                    data[1]
-                        // .filter(t=> +new Date()-2*60*60*1000 < +new Date(t.date._seconds*1000))
-                        .forEach(stream => {
+                    data[1].filter(t=> +new Date()-2*60*60*1000 < +new Date(t.date._seconds*1000)).forEach(stream => {
                         let t =     d.filter(d => d.id == stream.class)[0]
                         t.booked =  stream.id;
                         t.status =  stream.status;

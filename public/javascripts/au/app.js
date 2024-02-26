@@ -363,6 +363,8 @@ axios.get(`/auditoria/api/profile?user=${userid}`)
 
         let p = document.querySelector('#schedule')
 
+        data.schedule = data.schedule.sort((a, b) => b.date._seconds > a.date._seconds ? -1 : 1).filter(t => new Date(t.date._seconds * 1000) > new Date())
+
         if (data.schedule.length || data.streams.length) {
             p.classList.add('open')
             p.append(ce('h1', false, false, `Ваши билеты:`))
@@ -372,11 +374,11 @@ axios.get(`/auditoria/api/profile?user=${userid}`)
 
             let s = ce('table')
             p.append(s)
-            data.schedule.sort((a, b) => b.date._seconds > a.date._seconds ? -1 : 1).filter(t => new Date(t.date._seconds * 1000) > new Date()).forEach(l => {
+            data.schedule.forEach(l => {
                 s.append(drawClassLine(l))
             })
         } else {
-            p.append(ce('p', false, `bold`, `Тут (пока) пусто...`))
+            // p.append(ce('p', false, `bold`, `Тут (пока) пусто...`))
         }
 
         if (data.streams.length) {

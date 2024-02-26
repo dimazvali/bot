@@ -451,6 +451,15 @@ function showPlan(id) {
 
         p.append(deleteButton(`plans`,id,!plan.active))
 
+        if (plan.courses.length) {
+            p.append(ce('h2', false, false, `Курсы в подписке:`))
+            plan.courses.forEach(c=>{
+                p.append(showCourseLine(c))
+            })
+        } else {
+            p.append(ce('h3',false,`none`,`Заявок нет`))
+        }
+
         if (plan.subscriptions.length) {
             p.append(ce('h2', false, false, `Подписок: ${plan.subscriptions.length} (активных ${plan.subscriptions.filter(s=>s.active).length})`))
             p.append(postSection(`plan`, plan.id, p))
@@ -464,7 +473,7 @@ function showPlan(id) {
                 p.append(showRequestLine(r))
             })
         } else {
-            p.append(ce('h3',false,`none`,`Пользователей нет`))
+            p.append(ce('h3',false,`none`,`Заявок нет`))
         }
     })
 }

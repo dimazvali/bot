@@ -10,7 +10,6 @@ router.use(cors())
 const dimazvali = 144489840;
 const testChannel = -1001875160171;
 
-require('dotenv').config()
 
 const {
     initializeApp,

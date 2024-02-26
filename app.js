@@ -6,9 +6,14 @@ var logger =      require('morgan');
 var bodyParser =  require('body-parser')
 var requestLanguage = require('express-request-language');
 
-var wineRouter =  require('./routes/wineBot');
+require('dotenv').config()
+
 
 var app = express();
+
+console.log(process.env.papersToken)
+
+app.use(cookieParser(process.env.papersToken));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -20,14 +25,15 @@ app.use(express.urlencoded({ extended: false }));
 app.use(requestLanguage({
   languages: [`ru-RU`,'en-EN'],
 }));
-app.use(cookieParser(process.env.papersToken));
+
+
 app.use(express.json({limit:'10mb'}));
 app.use(bodyParser.json({limit: '50mb'}))
 bodyParser.json({limit: '50mb'})
 app.use(express.static(path.join(__dirname, 'public')));
 
 
-app.use('/wine/',       wineRouter);
+app.use('/wine/',       require('./routes/wineBot'));
 app.use('/igrik',       require('./routes/igrikBot'));
 app.use('/paper',       require('./routes/papersBot'));
 app.use('/auditoria',   require('./routes/auditoriaBot'));
@@ -36,7 +42,7 @@ app.use('/kaha',        require('./routes/kaha'));
 app.use('/wtg',         require('./routes/wtgBot'));
 app.use('/test',        require('./routes/test'));
 app.use('/cyprus',      require('./routes/cyprus'));
-app.use('/ps',           require('./routes/psBot'));
+app.use('/ps',          require('./routes/psBot'));
 
 
 // catch 404 and forward to error handler
