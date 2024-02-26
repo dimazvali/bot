@@ -1405,22 +1405,18 @@ router.get(`/mini/:section`,(req,res)=>{
 
 router.get(`/mini/:section/:id`,(req,res)=>{
     if(req.params.section == `classes`){
-        
-        devlog(`classes`)
 
         return common.getDoc(classes,req.params.id).then(c=>{
             
-            devlog(c)
-
             if(!c) return res.sendStatus(404)
             
             res.render(`papers/class`,{
                 cl:                 c,
                 translations:       translations,
                 coworkingRules:     coworkingRules,
-                drawDate:(d)=>      drawDate(d),
+                drawDate:(d,l,t)=>      drawDate(d,false,t),
                 lang:               req.language.split('-')[0],
-                cur:(p)=>           common.cur(p)
+                cur:(p,cur)=>           common.cur(p,cur)
             })
         })
     }

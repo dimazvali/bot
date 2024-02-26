@@ -1,0 +1,37 @@
+p.story {
+    color: var(--dark);
+}
+
+h1 {
+    color: var(--dark);
+}
+
+img.cover {
+    /* max-width: 100%; */
+}
+
+
+body {
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+.headerA,
+img.cover,
+p.footer {
+    display: block;
+    background: var(--dark);
+    margin: 0;
+    padding: 20px;
+    margin-left: -10px;
+    width: calc(100% + 20px);
+    box-sizing: border-box;
+}
+
+.headerA{
+    color: white;
+}
+.story>a{
+    color: var(--dark) !important;
+    font-weight: bold;
+}

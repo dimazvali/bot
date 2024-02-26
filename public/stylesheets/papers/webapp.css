@@ -38,11 +38,11 @@
 
 
 body {
-    margin: 0;
+    margin: 0 auto;
     background: var(--light);
     font-family: 'Stapel';
     color: white;
-    
+    max-width: 600px;
 }
 
 body.mobile{

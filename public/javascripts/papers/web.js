@@ -124,15 +124,15 @@ function edit(entity, id, attr, type, value) {
 
 window.addEventListener('keydown', (e) => {
     if (e.key == 'Escape') {
-        try {
-            document.querySelector('.editWindow').remove();
-            document.querySelector('#hover').remove();
-        } catch (err) {
-            console.warn(err)
+        if(document.querySelector('.editWindow')){
+            document.querySelector('.editWindow').remove()
+        } else if(document.querySelectorAll(`.popupWeb`).length){
+            document.querySelectorAll(`.popupWeb`)[document.querySelectorAll(`.popupWeb`).length-1].remove()
+        } else if(document.querySelector('#hover')){
+            document.querySelector('#hover').remove()
         }
     }
 })
-
 
 function showSchedule(){
     closeLeft()
@@ -268,6 +268,7 @@ function showClass(cl){
             dataset:{booked:1},
             onclick:function(){
                 this.remove;
+                
                 let txt = ce('textarea',false,false,false,{
                     placeholder: `Вам слово`
                 })
@@ -277,10 +278,12 @@ function showClass(cl){
                     type.append(ce('option',false,false,`Всем`,{
                         value: `all`
                     }))
+                    
                     type.append(ce('option',false,false,`Пришедшим`,{
                         value: `inside`
                     }))
-                    type.append(ce('option',false,false,`Опаздантам`,{
+                    
+                    type.append(ce('option',false,false,`Опоздантам`,{
                         value: `outside`
                     }))
 
