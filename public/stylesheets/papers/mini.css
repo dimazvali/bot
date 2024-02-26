@@ -35,3 +35,17 @@ p.footer {
     color: var(--dark) !important;
     font-weight: bold;
 }
+
+span.visitors {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.class {
+    position: relative;
+}
+
+span.visitors::before {
+    content: '🧻';
+}

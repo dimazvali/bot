@@ -1801,6 +1801,10 @@ function bookClass(user, classId, res, id) {
                                                 seatsData = `осталось мест: ${capacity-(line+1)} из ${capacity}`
                                                 userClasses.add(d).then(record => {
 
+                                                    classes.doc(classId).update({
+                                                        visitors: FieldValue.increment(1)
+                                                    })
+
                                                     d.id = record.id;
                         
                                                     d.intention = 'newClassRecord';
@@ -1947,6 +1951,10 @@ function bookClass(user, classId, res, id) {
                                             seatsData = `всего забронировано мест: ${line}`
 
                                             userClasses.add(d).then(record => {
+
+                                                classes.doc(classId).update({
+                                                    visitors: FieldValue.increment(1)
+                                                })
 
                                                 d.id = record.id;
                     
@@ -7803,6 +7811,10 @@ function unClassUser(ref, user, res, id) {
                     userClasses.doc(ref).update({
                         active: false
                     }).then(() => {
+
+                        classes.doc(classId).update({
+                            visitors: FieldValue.increment(-1)
+                        })
 
                         if (res) {
                             res.json({
