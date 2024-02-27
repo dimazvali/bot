@@ -2,9 +2,13 @@
 doctype html
 html
   head
-    title PressPapers
+    title!=title || `Papers Kartuli`
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    meta(type='description' content='Попробуйте — вам понравится.')
+    meta(type='description' content!=(description || 'Попробуйте — вам понравится.'))
+    meta(property='og:title' content!=(title || `Papers Kartuli`))
+    meta(property='og:description' content!=(description || 'Попробуйте — вам понравится.'))
+    if (image)
+      meta(property='og:image' content!=image)
     script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
     script!=`translations = ${JSON.stringify(translations)}`
     script!=`coworkingRules=${JSON.stringify(rules)}`
@@ -15,5 +19,7 @@ html
     link(rel="preconnect", href="https://fonts.gstatic.com")
     link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap")
   body
-    block content 
+    block back
+    #content
+      block content 
   include footer 

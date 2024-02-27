@@ -1,7 +1,9 @@
 extends site
 
+block back
+    a.headerA(href="/paper/mini/classes")!=`❰ Расписание`
 block content
-    a.headerA(href="/paper/mini/classes")!=`❰ classes`
+    
     h1.hA!=cl.name
     if(cl.pic)
         img.cover(src!=cl.pic)

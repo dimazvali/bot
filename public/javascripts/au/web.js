@@ -315,47 +315,8 @@ function sortableText(t){
     return txt
 }
 
-function sortBlock(sortTypes,container,array,callback){
-    let c = ce('div',false,`controls`)
-    sortTypes.forEach(type=>{
-        c.append(ce('button',false,false,type.name,{
-            onclick:()=>{
-                container.innerHTML = null;
-                array.sort((a,b)=>{
-                    switch(type.attr){
-                        case `views`:{
-                            return (b.views||0) - (a.views||0)
-                        }
-                        case 'name':{
-                            return sortableText(b.name) > sortableText(a.name) ? -1 : 0
-                        }
-                        case 'createdAt':{
-                            return (a.createdAt||{})._seconds||0 - (b.createdAt||{})._seconds||0 
-                        }
-                        case `price`:{
-                            return (+b.price||0) - (+a.price||0)
-                        }
-                    }
-                }).forEach(r=>{
-                    container.append(callback(r))
-                })
-            }
-        }))
-    })
 
-    return c;
-}
 
-function archiveButton(container){
-    return ce('button',false,false,`Показать архивные записи`,{
-        onclick:()=>{
-            container.querySelectorAll(`.hidden`).forEach(c=>{
-                c.classList.toggle(`hidden`)
-            })
-        }
-    })
-    
-}
 
 
 function showPlanLine(plan) {
@@ -803,15 +764,8 @@ function showCourse(cl, id) {
 
 }
 
-function handleSave(s) {
-    if (s.data.hasOwnProperty('success')) return alert(s.data.comment || `Ура! Пожалуй, стоит обновить страницу.`)
-}
 
-function load(collection, id) {
-    return axios.get(`/${host}/admin/${collection}${id?`/${id}`:''}`).then(data => {
-        return data.data
-    })
-}
+
 
 function deleteEntity(col, id) {
     console.log(`удаляем`, col, id)
@@ -1327,43 +1281,7 @@ function newCourse() {
 
 }
 
-function newAuthor() {
-    let p = preparePopupWeb(`author_new`)
 
-    let name = ce('input', false, false, false, {
-        placeholder: `Имя`,
-        type: `text`
-    })
-    let description = ce('textarea', false, false, false, {
-        placeholder: `description`
-    })
-    let pic = ce('input', false, false, false, {
-        placeholder: `ссылка на картинку`,
-        type: `text`
-    })
-    p.append(name)
-    p.append(pic)
-    p.append(description)
-    p.append(ce('button', false, false, `Сохранить`, {
-        onclick: function () {
-            if (name.value) {
-                this.setAttribute(`disabled`, true)
-                axios.post(`/${host}/admin/authors`, {
-                        name: name.value,
-                        description: description.value,
-                        pic: pic.value
-                    }).then(handleSave)
-                    .catch(handleError)
-                    .finally(s => {
-                        this.removeAttribute(`disabled`)
-                    })
-
-            }
-
-        }
-    }))
-
-}
 
 function addClass(a, c, b) {
     return ce('button', false, false, `Добавить меропориятие`, {
@@ -1481,9 +1399,7 @@ function showAuthor(a,id) {
     })
 }
 
-function byDate(a,b){
-    return b.date._seconds-a.date._seconds
-}
+
 
 
 
@@ -1627,8 +1543,6 @@ function showAuthors() {
 
 
 function showAuthorLine(a) {
-
-    // console.log(a.name,a.createdAt)
 
     let div = ce('div', false, `sDivided`, false, {
         dataset: {
@@ -2698,52 +2612,7 @@ function tagLine(t){
     return c;
 }
 
-// ЛОГИ
 
-
-function logButton(collection,id,credit){
-    return ce(`button`,false,[`dateButton`,`dark`,`slim`],credit||`Логи`,{
-        onclick:()=>{
-            let p = preparePopupWeb(`logs_${collection}_${id}`)
-                p.append(ce('h2',false,false,`Загружаем...`))
-                load(`logs`,`${collection}_${id}`).then(logs=>{
-                    p.innerHTML = null;
-                    p.append(ce('h1',false,false,credit||`Логи`))
-                    logs.forEach(l=>{
-                        p.append(logLine(l))
-                    })
-                })
-        }
-    })
-}
-
-function logLine(l){
-    let c = ce('div',false,`sDivided`)
-        c.append(ce(`span`,false,`info`,drawDate(l.createdAt._seconds*1000)))
-        c.append(ce('p',false,false,l.text))
-        
-        if(l.user){
-            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть профиль`,{
-                onclick:()=>showUser(false,l.user)
-            }))
-        }
-
-        if(l.task){
-            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть задание`,{
-                onclick:()=>showTask(l.task)
-            }))
-        }
-
-        if(l.tag){
-            c.append(ce('button',false,[`dateButton`,`dark`,`inline`],`Открыть тег`,{
-                onclick:()=>showTag(l.tag)
-            }))
-        }
-
-        
-
-    return c;
-}
 
 
 // COMMON

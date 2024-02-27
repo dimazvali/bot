@@ -10,10 +10,14 @@ var cron =      require('node-cron');
 var FormData =  require('form-data');
 var modals =    require('./modals.js').modals
 const qs =      require('qs');
-var uname =     require('./common').uname;
-var drawDate =  require('./common').drawDate;
 const { createHash,createHmac } = require('node:crypto');
-const devlog = require(`./common`).devlog
+
+const {
+    getDoc,
+    uname,
+    drawDate,
+    devlog
+} = require ('./common.js')
 
 const {
     Parser
@@ -124,6 +128,9 @@ let promos =            fb.collection(`promos`);
 let invites =           fb.collection(`invites`);
 let plansRequests =     fb.collection(`plansRequests`);
 let classesOffers =     fb.collection(`classesOffers`);
+let views =             fb.collection(`views`);
+let subscriptions =     fb.collection(`subscriptions`);
+let courses =           fb.collection(`courses`);
 
 
 coworkingRules.get().then(col => {
@@ -555,19 +562,19 @@ router.all(`/admin/:method`, (req, res) => {
                     switch (req.method){
                         case `GET`:{
                             return authors
-                                .where(`active`,'==',true)
                                 .get().then(col=>{
-                                    res.json(common.handleQuery(col))
+                                    res.json(common.handleQuery(col,false,true))
                                 })
                         }
                         case 'POST':{
                             
                             if(!req.body.name) return res.json({success: false, comment: `no name provided`})
-                            if(!req.body.txt) return res.json({success: false, comment: `no description provided`})
+                            if(!req.body.description) return res.json({success: false, comment: `no description provided`})
                             
                             return authors.add({
+                                active:         true,
                                 createdAt:      new Date(),
-                                createdBy:      +req.query.id,
+                                createdBy:      +user.id,
                                 name:           req.body.name,
                                 description:    req.body.description,
                                 pic:            req.body.pic || null
@@ -1259,6 +1266,191 @@ router.all(`/admin/:method`, (req, res) => {
 
 })
 
+
+
+function updateEntity(req, res, ref, adminId,callback) {
+    return ref.update({
+        updatedAt: new Date(),
+        updatedBy: adminId,
+        [req.body.attr]: req.body.attr == `date` ? new Date(req.body.value) : req.body.value
+    }).then(s => {
+        
+
+        if(callback){
+            callback()
+        }
+
+        if (req.body.attr == `authorId`) {
+            getDoc(authors, req.body.value).then(a => {
+                ref.update({
+                    authorName: a.name
+                })
+            })
+        }
+
+        if (req.body.attr == `courseId`) {
+            getDoc(courses, req.body.value).then(a => {
+                ref.update({
+                    course: a.name
+                })
+            })
+        }
+
+        if (req.body.attr == `bankId`) {
+            getDoc(banks, req.body.value).then(a => {
+                ref.update({
+                    bankName: a.name,
+                    bankCreds: a.creds
+                })
+            })
+        }
+
+        if (req.body.attr == `planId`) {
+            getDoc(plans, req.body.value).then(a => {
+                ref.update({
+                    plan: a.name
+                })
+            })
+        }
+
+        res.json({
+            success: true
+        })
+
+    }).catch(err => {
+        res.status(500).send(err.message)
+    })
+}
+
+
+
+router.all(`/admin/:method/:id`,(req,res)=>{
+    if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
+    adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
+        if (!doc.exists) return res.sendStatus(403)
+        doc = common.handleDoc(doc)
+
+        if (!doc.active) return res.sendStatus(403)
+
+        udb.doc(doc.user.toString()).get().then(admin => {
+            admin = common.handleDoc(admin);
+
+            switch(req.params.method){
+
+                
+
+                case `authors`:{
+                    let ref = authors.doc(req.params.id)
+                    return ref.get().then(author => {
+                        if (!author.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case 'GET': {
+                                let data = []
+                                data.push(classes.where(`authorId`, '==', req.params.id).get().then(col => common.handleQuery(col)))
+                                data.push(subscriptions.where(`author`, '==', req.params.id).where(`active`, '==', true).get().then(col => common.handleQuery(col)))
+                                data.push(courses.where(`authorId`, '==', req.params.id).where(`active`, '==', true).get().then(col => common.handleQuery(col)))
+                                // data.push(views.where(`entity`,'==','author').where(`id`,'==',req.params.id).get().then(common.handleQuery))
+                                return Promise.all(data).then(data => {
+                                    res.json({
+                                        author:         common.handleDoc(author),
+                                        classes:        data[0],
+                                        subscriptions:  data[1],
+                                        courses:        data[2],
+                                        // views:          data[3]
+                                    })
+                                })
+                            }
+                            case 'PUT': {
+                                return ref.update({
+                                    [req.body.attr]: req.body.value,
+                                    updatedBy: doc.user
+                                }).then(s => {
+                                    log({
+                                        silent: true,
+                                        text: `автор ${common.handleDoc(author).name} был обновлен`,
+                                        admin: +admin.id,
+                                        author: req.params.id
+                                    })
+                                    res.json({
+                                        success: true,
+                                        comment: `Автор обновлен`
+                                    })
+                                }).catch(err => {
+                                    res.json({
+                                        success: false,
+                                        comment: err.message
+                                    })
+                                })
+                            }
+
+                            case 'DELETE': {
+                                return ref.update({
+                                    active:     false,
+                                    updatedBy:  +admin.id
+                                }).then(s => {
+                                    res.json({
+                                        success: true,
+                                        comment: `Автор отправлен в архив.`
+                                    })
+                                    log({
+                                        text:   `автор ${common.handleDoc(author).name} отправляется в архив`,
+                                        admin:  +admin.id,
+                                        author: req.params.id
+                                    })
+                                })
+                            }
+                        }
+                    })
+                }
+
+                case `classes`:{
+                    
+                    let ref = classes.doc(req.params.id);
+
+                    return ref.get().then(cl => {
+                        if (!cl.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `PUT`:{
+                                updateEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
+                }
+
+                case `logs`:{
+                    
+                    let q = req.params.id.split('_')
+                    
+                    return logs
+                        .where(q[0],'==',Number(q[1])?+q[1]:q[1])
+                        .orderBy(`createdAt`,`desc`)
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col))
+                        })
+                }
+
+                case `users`:{
+                    let ref = udb.doc(req.params.id);
+
+                    return ref.get().then(cl => {
+                        if (!cl.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `PUT`:{
+                                updateEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
+                }
+
+                default:{
+                    return res.sendStatus(404)
+                }
+            }
+        })
+    })
+})
+
 router.get('/qr', async (req, res) => {
     if (req.query.class) {
         let n = +new Date()
@@ -1384,46 +1576,151 @@ let siteSectionsTypes = {
 }
 
 router.get(`/mini/:section`,(req,res)=>{
-    if(req.params.section == `classes`){
-        return classes
-            .where(`active`,'==',true)
-            .where(`date`,'>',new Date().toISOString())
-            .get()
-            .then(col=>{
-                res.render(`papers/classes`,{
-                    classes:            common.handleQuery(col),
-                    translations:       translations,
-                    coworkingRules:     coworkingRules,
-                    drawDate:(d)=>      drawDate(d),
-                    lang:               req.language.split('-')[0],
-                    cur:(p)=>           common.cur(p)
+    switch(req.params.section){
+        case  `staff`:{
+            return udb
+                .where(`active`,'==',true)
+                .where(`insider`,'==',true)
+                .where(`public`,'==',true)
+                .get()
+                .then(col=>{
+                    res.render(`papers/staff`,{
+                        title:              `Редакция Papers Kartuli`,
+                        description:        `На связи 24/7!`,
+                        staff:              common.handleQuery(col,false,true),
+                        translations:       translations,
+                        coworkingRules:     coworkingRules,
+                        drawDate:(d)=>      drawDate(d),
+                        lang:               req.language.split('-')[0],
+                        cur:(p)=>           common.cur(p),
+                        uname:(u,id)=>      uname(u,id)
+                    })
                 })
-            })
+        }
+
+        case  `classes`:{
+            return classes
+                .where(`active`,'==',true)
+                .where(`date`,'>',new Date().toISOString())
+                .get()
+                .then(col=>{
+                    res.render(`papers/classes`,{
+                        title:              `Лекции, концерты, мастер-классы Papers Kartuli`,
+                        description:        `Ждем вас в гости!`,
+                        classes:            common.handleQuery(col),
+                        translations:       translations,
+                        coworkingRules:     coworkingRules,
+                        drawDate:(d)=>      drawDate(d),
+                        lang:               req.language.split('-')[0],
+                        cur:(p)=>           common.cur(p)
+                    })
+                })
+        }
+        case `authors`:{
+            return authors
+                .where(`active`,'==',true)
+                // .where(`date`,'>',new Date().toISOString())
+                .get()
+                .then(col=>{
+                    res.render(`papers/authors`,{
+                        title:              `Авторы и ведущие Papers Kartuli`,
+                        description:        `Ждем вас в гости!`,
+                        authors:            common.handleQuery(col,false,true),
+                        translations:       translations,
+                        coworkingRules:     coworkingRules,
+                        drawDate:(d)=>      drawDate(d),
+                        lang:               req.language.split('-')[0],
+                        cur:(p)=>           common.cur(p)
+                    })
+                })
+        }
+        default:{
+            return res.sendStatus(404)
+        }
     }
-    res.sendStatus(404)
 })
 
 router.get(`/mini/:section/:id`,(req,res)=>{
-    if(req.params.section == `classes`){
+    
+    let response = {
+        translations:       translations,
+        coworkingRules:     coworkingRules,
+        uname:(u,id)=>      uname(u,id),
+        drawDate:(d,l,t)=>  drawDate(d,false,t),
+        lang:               req.language.split('-')[0],
+        cur:(p,cur)=>       common.cur(p,cur)
+    }
 
-        return common.getDoc(classes,req.params.id).then(c=>{
-            
-            if(!c) return res.sendStatus(404)
-            
-            res.render(`papers/class`,{
-                cl:                 c,
-                translations:       translations,
-                coworkingRules:     coworkingRules,
-                drawDate:(d,l,t)=>      drawDate(d,false,t),
-                lang:               req.language.split('-')[0],
-                cur:(p,cur)=>           common.cur(p,cur)
+    switch (req.params.section){
+        case `authors`:{
+            return getDoc(authors,req.params.id).then(a=>{
+                if(!a) return res.sendStatus(404)
+                
+                views.add({
+                    entity:     `authors`,
+                    date:       new Date(),
+                    id:         req.params.id
+                })
+    
+                authors.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+
+                classes
+                    .where(`authorId`,'==',req.params.id)
+                    .where(`active`,'==',true)
+                    .get()
+                    .then(col=>{
+                        let o = {
+                            title:              `${a.name} | ведущие Papers Kartuli`,
+                            description:        a.description,
+                            image:              a.pic,
+                            classes:            common.handleQuery(col,true).filter(a=>new Date()<new Date(a.date)),
+                            archive:            common.handleQuery(col,true).filter(a=>new Date()>new Date(a.date)),
+                            author:             a  
+                        }
+
+                        Object.keys(response).forEach(k=>o[k] = response[k])
+                        
+                        res.render(`papers/author`,o)
+                    })
+                
+                
             })
-        })
+        }
+        case `classes`:{
+            return getDoc(classes,req.params.id).then(c=>{
+            
+                if(!c) return res.sendStatus(404)
+    
+                views.add({
+                    entity:     `classes`,
+                    date:       new Date(),
+                    id:         req.params.id
+                })
+    
+                classes.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+                
+                res.render(`papers/class`,{
+                    title:              `${c.name} | Лекции, концерты, мастер-классы Papers Kartuli`,
+                    description:        c.description,
+                    image:              c.pic,
+                    cl:                 c,
+                    translations:       translations,
+                    coworkingRules:     coworkingRules,
+                    drawDate:(d,l,t)=>  drawDate(d,false,t),
+                    lang:               req.language.split('-')[0],
+                    cur:(p,cur)=>       common.cur(p,cur)
+                })
+            })
+        }
+        default: {
+            return res.sendStatus(404)
+        }
     }
     
-    devlog(req.params.section)
-
-    res.sendStatus(404)
 })
 
 
@@ -2099,6 +2396,7 @@ function alertAdmins(mess) {
     }
 
     let slack = []
+    
 
     if (mess.type == 'incoming') {
         slack.push({
@@ -2577,6 +2875,14 @@ function sendHalls(id, lang) {
 
 
 const translations = {
+    staff:{
+        ru: `Дорогая редакция`,
+        en: `Come and work with us`
+    },
+    authors:{
+        ru: `Постоянные резиденты Papers Kartuli.`,
+        en: `Our beloved residents.`
+    },
     openClass:{
         ru: `открыть событие`,
         en: `open app`
@@ -3073,33 +3379,21 @@ const translations = {
 }
 
 function log(o) {
+
     o.createdAt = new Date()
 
     logs.add(o).then(r => {
 
-        alertAdmins({
-            text:   o.text,
-            type:   (o.class && o.user) ? 'class' : 'logRecord',
-            id:     o.class,
-            user:   o.user || o.user_id || null,
-            ticket: o.ticket
-        })
-
-        // if(process.env.develop != 'true'){
-        //     if(!o.silent){
-        //         alertAdmins({
-        //             text:   o.text,
-        //             type:   o.class? 'class' : 'logRecord',
-        //             id:     o.class
-        //         })
-        //     }
-        // }
-
-        axios.post(sheet, `text=${o.text}`, {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-        })
+        if(!o.silent){
+            alertAdmins({
+                text:   o.text,
+                type:   (o.class && o.user) ? 'class' : 'logRecord',
+                id:     o.class,
+                user:   o.user || o.user_id || null,
+                ticket: o.ticket
+            })
+        }
+        
     })
 }
 

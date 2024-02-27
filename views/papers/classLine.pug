@@ -1,5 +1,5 @@
 
-div.class(onclick!=`window.location.pathname='/paper/mini/classes/${c.id}'`)
+div.class(onclick!=`window.location.pathname='/paper/mini/classes/${c.id}'` data-active!=(new Date(c.date)>new Date()?'true':'false'))
     p.timing 
         span.date!=drawDate(c.date,false,{time:true})
     p

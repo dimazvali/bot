@@ -1,0 +1,27 @@
+extends site
+
+block back
+    a.headerA(href="/paper/mini/authors")!=`❰ Все авторы`
+block content
+    h1.hA!=author.name
+    p.story!=author.description
+    if(author.pic)
+        img.cover(src!=author.pic)
+    
+    if(classes.length)
+        h2 Мероприятия:
+        for c in classes
+            include classLine
+    else
+        h2 Будущее туманно
+        p В ближайшее время мероприятий с этим ведущим не запланировано. Напишите нам, если вам не терпится. 
+    br
+    if(archive.length)
+        div.hidden
+            h2 Архив:
+            for c in archive
+                include classLine
+        button.dateButton.dark(onclick="this.previousElementSibling.classList.remove('hidden'),this.remove()") Показать архив
+    
+    p.story!=`Регистрация и билеты — в нашем <a href="https://t.me/paperstuffbot/app?startapp=author_${author.id}">телеграм-боте</a>.`
+    

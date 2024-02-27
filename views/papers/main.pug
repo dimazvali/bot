@@ -1,6 +1,10 @@
 extends site
 
 block content
-    h2!=translations.schedule[lang] 
-    for c in classes
-        include classLine
+    h1 Что это тут у нас?..
+    .sDivided
+        h2(onclick='window.open("/paper/mini/classes")') Лекторий 
+    .sDivided
+        h2(onclick='window.open("/paper/mini/authors")') Резиденты
+    .sDivided
+        h2(onclick='window.open("/paper/mini/staff")') Редакция

@@ -3,10 +3,10 @@ let host = `paper`
 
 let mc = document.querySelector(`#main`)
 
-function closeLeft(){
+function closeLeft() {
     document.querySelector(`#left`).classList.remove('active')
+    document.querySelectorAll(`.popupWeb`).forEach(p => p.remove())
 }
-
 
 function drawSchedule(events, start) {
     let cc = ce('div',false,`scroll`)
@@ -207,6 +207,11 @@ function filterUsers(role,container,button){
 }
 
 
+
+
+
+
+
 function showClass(cl){
     let p = preparePopupWeb(`class_${cl.id}`)
     
@@ -222,7 +227,22 @@ function showClass(cl){
         if(!cl.pic)             alertsContainer.append(ce(`button`,false,`accent`,`картинка не указана`))
         p.append(alertsContainer)
 
-        p.append(ce('p',false,false,`ведет: ${cl.author}`))
+        if (!cl.authorId) alertsContainer.append(ce(`button`, false, `accent`, `выбрать автора`, {
+            onclick: () => edit(`classes`, cl.id, `authorId`, `authorId`, null)
+        }))
+
+        if(cl.author){
+            p.append(ce('p',false,false,`автор (строкой): ${cl.author}`))
+        }
+
+        if(cl.authorId){
+            p.append(ce(`button`, false, `accent`, `автор ${cl.authorName}`, {
+                onclick: () => edit(`classes`, cl.id, `authorId`, `authorId`, cl.authorId)
+            }))
+        }
+
+
+
         p.append(ce('p',false,false,`цена: ${cur(cl.price,`GEL`)}`))
         p.append(ce('p',false,false,`${drawDate(cl.date,'ru',{time:true})}, продолжительность ${cl.duration} мин.`))
 
@@ -598,11 +618,71 @@ function showUser(u,id){
         let p = preparePopupWeb(`user${u.id}`)
         p.append(ce('h1',false,false,`${uname(u,u.id)} (${u.language_code})`))
         p.append(ce('p',false,false,`регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
-        p.append(ce('p',false,false,`email: ${u.email || `не указан`}`))
-        p.append(ce('p',false,false,`about: ${u.about || `о себе не рассказывал`}`))
+        
+        p.append(ce('p',false,false,`${u.first_name || `имя не указано`}`,{
+            onclick:function(){
+                edit(`users`,u.id,`first_name`,`text`,u.first_name,this)
+            }
+        }))
+        p.append(ce('p',false,false,`last_name: ${u.last_name || `фамилия не указана`}`,{
+            onclick:function(){
+                edit(`users`,u.id,`last_name`,`text`,u.last_name,this)
+            }
+        }))
+
+        p.append(ce('p',false,false,`email: ${u.email || `не указан`}`,{
+            onclick:function(){
+                edit(`users`,u.id,`email`,`text`,u.email,this)
+            }
+        }))
+        p.append(ce('p',false,false,`about: ${u.about || `о себе не рассказывал`}`,{
+            onclick:function(){
+                edit(`users`,u.id,`about`,`textarea`,u.about,this)
+            }
+        }))
         p.append(ce('p',false,false,`occupation: ${u.occupation || `о себе не рассказывал`}`))
 
+
+        let adminLinks = [{
+            attr: `admin`,
+            name: `сделать админом`,
+            disname: `снять админство`
+        },{
+            attr: `fellow`,
+            name: `отметить как fellow`,
+            disname: `убрать из fellows`
+        },{
+            attr: `insider`,
+            name: `сделать сотрудником`,
+            disname: `убрать из сотрудников`
+        },{
+            attr: `public`,
+            name: `сделать публичным сотрудником`,
+            disname: `убрать из публичных сотрудников`
+        },{
+            attr:       `blocked`,
+            name:       `заблокировать`,
+            disname:    `разблокировать`
+        }]
+
+        let ac = ce(`div`)
+        p.append(ac)
+
+        adminLinks.forEach(type=>{
+            ac.append(ce('button',false,false, u[type.attr] ? type.disname : type.name,{
+                onclick:()=>{
+                    axios.put(`/${host}/admin/users/${u.id}`, {
+                        attr: type.attr,
+                        value: !u[type.attr]
+                    }).then(handleSave)
+                    .catch(handleError)
+                }
+            }))
+        })
+
+
         p.append(ce(`h2`,false,false,`Лекции`))
+
         axios
             .get(`/${host}/admin/user?user=${u.id}&data=lections`)
             .then(data=>{
@@ -635,4 +715,164 @@ function preparePopupWeb(name){
     let content = ce('div',false,`content`)
     c.append(content)
     return content;
+}
+
+
+
+// Авторы
+
+
+function showAuthors() {
+    closeLeft()
+    mc.innerHTML = '<h1>Загружаем...</h1>'
+    window.history.pushState({}, "", `web?page=authors`);
+    load(`authors`).then(authors=>{
+        mc.innerHTML = '';
+        mc.append(ce('h1', false, `header2`, `Авторы`))
+        mc.append(ce(`p`,false,false,`В этом разделе отображаются авторы. У каждого из них появляется собственная страница, а у пользователей — возможность подписаться на обновления.<br>По умолчанию отображаются только активные авторы. Если кто-то ушел, а потом вернулся, не стоит создавать новую запись, откройте архив и верните к жизни предыдущую запись.`))
+
+
+        let c = ce('div')
+        
+        authors.forEach(a => {
+            c.append(showAuthorLine(a))
+        });
+
+        let cc = ce('div',false,`controls`)
+            cc.append(sortBlock([{
+                attr: `name`,
+                name: `По названию`
+            },{
+                attr: `views`,
+                name: `По просмотрам`
+            },{
+                attr: `createdAt`,
+                name: `По дате создания`
+            }],c,authors,showAuthorLine))
+        
+        mc.append(cc)
+
+        c.append(ce('button', false, false, `Добавить автора`, {
+            onclick: () => newAuthor()
+        }))
+
+        mc.append(c)
+
+        mc.append(archiveButton(c))
+    })
+}
+
+function showAuthorLine(a) {
+
+    let div = ce('div', false, `sDivided`, false, {
+        dataset: {
+            active: a.active
+        }
+    })
+
+    if(!a.active) div.classList.add(`hidden`)
+
+    let creds = ce(`div`)
+
+    creds.append(ce('span', false, `info`, a.views ? `Просмотров: ${a.views}` : ``))
+    creds.append(ce('span', false, `info`, a.createdAt ? `Создан(-а): ${drawDate(a.createdAt._seconds*1000)}` : a.createdAt))
+
+    div.append(creds)
+
+    div.append(ce('h2', false, `clickable`, a.name, {
+        onclick: () => showAuthor(a)
+    }))
+
+    div.append(ce('p', false, false, a.description || `без описания`))
+
+    
+
+    return div
+}
+
+
+function showAuthor(a,id) {
+
+    if(!a){
+        a = load(`authors`,id)
+    }
+
+    Promise.resolve(a).then(a=>{
+        
+        if(a.author) a = a.author
+
+        let p = preparePopupWeb(`author_${a.id}`,`author_${a.id}`,[`authors`,a.id])
+
+
+        p.append(logButton(`author`,a.id,`Лог по автору`))
+
+        p.append(ce('h1', false, false, a.name, {
+            onclick: () => edit(`authors`, a.id, `name`, `text`, a.name)
+        }))
+
+        p.append(ce('p',false,false,`Просмотров: ${a.views || 0}`))
+
+        if (a.pic) {
+            p.append(ce(`img`, false, `cover`, false, {
+                src: a.pic,
+                onclick: () => edit(`authors`, a.id, `pic`, `text`, a.pic)
+            }))
+        } else {
+            p.append(ce(`button`, false, `accent`, `задать картинку`,{
+                onclick: () => edit(`authors`, a.id, `pic`, `text`, null)
+            }))
+        }
+
+        p.append(ce(`p`, false, false, a.description, {
+            onclick: () => edit(`authors`, a.id, `description`, `textarea`, a.description)
+        }))
+
+
+
+        p.append(deleteButton(`authors`,a.id,!a.active))
+
+
+
+        // axios.get(`/${host}/admin/authors/${a.id}`)
+        load(`authors`,a.id).then(authorData => {
+            // authorData = authorData
+            
+            // p.append(addClass(a.id))        
+            
+            p.append(ce('h2', false, false, authorData.classes.length ? `Лекции` : `Лекций еще нет`))
+            
+            authorData.classes.sort(byDate).forEach(cl => {
+                p.append(showClassLine(cl))
+            })
+
+            p.append(ce('h2', false, false, authorData.courses.length ? `Курсы` : `Курсов нет`))
+            authorData.courses.forEach(cl => {
+                p.append(showCourseLine(cl))
+            })
+
+
+
+            if (authorData.subscriptions.length) {
+                p.append(ce('h2', false, false, `Подписок на автора: ${authorData.subscriptions.length}`))
+                let txt = ce('textarea', false, false, false, {
+                    placeholder: `Рассылка по всем подписанным на автора.`
+                })
+                p.append(txt)
+                p.append(ce('button', false, false, `Отправить`, {
+                    onclick: function () {
+                        if (txt.value) {
+                            this.setAttribute(`disabled`, true)
+                            axios.post(`/${host}/admin/authors/${a.id}`, {
+                                    intent: `subscriptions`,
+                                    text: txt.value
+                                }).then(handleSave)
+                                .catch(handleError)
+                                .finally(() => this.removeAttribute(`disabled`))
+                        }
+
+                    }
+                }))
+            }
+        })
+    })
 }

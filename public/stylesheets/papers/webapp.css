@@ -42,7 +42,6 @@ body {
     background: var(--light);
     font-family: 'Stapel';
     color: white;
-    max-width: 600px;
 }
 
 body.mobile{

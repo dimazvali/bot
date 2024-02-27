@@ -1,0 +1,6 @@
+extends site
+
+block content
+    h2!=translations.authors[lang] 
+    for a in authors
+        include authorLine
