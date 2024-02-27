@@ -686,6 +686,66 @@ function load(collection, id) {
     })
 }
 
+function deleteEntity(req, res, ref, admin, attr, callback) {
+    devlog(`удаляем нечто`)
+    entities = {
+        courses: {
+            log: (name) => `курс ${name} (${ref.id}) был архивирован`,
+            attr: `course`
+        },
+        users: {
+            log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
+            attr: `user`
+        },
+        streams: {
+            log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
+            attr: `stream`
+        },
+        plans: {
+            log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
+            attr: `plan`
+        }
+    }
+    return ref.get().then(e => {
+        
+        let data = common.handleDoc(e)
+
+        devlog(data)
+
+        if (!data[attr || 'active']) return res.json({
+            success: false,
+            comment: `Вы опоздали. Запись уже удалена.`
+        })
+        ref.update({
+            [attr || 'active']: false,
+            updatedBy: admin
+        }).then(s => {
+            
+            let logObject ={
+                text: entities[req.params.data].log(data.name),
+                [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
+            } 
+
+
+            log(logObject)
+
+            res.json({
+                success: true
+            })
+
+            if (typeof (callback) == 'function') {
+                console.log(`Запускаем коллбэк`)
+                callback()
+            }
+        }).catch(err => {
+            res.json({
+                success: false,
+                comment: err.message
+            })
+        })
+    })
+}
+
 function sortBlock(sortTypes,container,array,callback){
     let c = ce('div',false,`controls`)
     sortTypes.forEach(type=>{
@@ -727,6 +787,35 @@ function archiveButton(container){
     })
     
 }
+
+function sortableText(t){
+    if(!t) t = '';
+    let txt = t.toString().replace(/\»/g,'').replace(/\«/g,'').toLowerCase().trim()
+    console.log(txt)
+    return txt
+}
+
+function preparePopupWeb(name,link,weblink) {
+    let c = ce('div', false, 'popupWeb')
+    c.append(ce('span', false, `closeMe`, `✖`, {
+        onclick: () => {
+            c.classList.add(`slideBack`)
+            setTimeout(function () {
+                c.remove()
+            }, 500)
+        }
+    }))
+
+    if(link)        c.append(copyLink(link,appLink))
+    if(weblink)     c.append(copyWebLink(web,weblink))
+    // if(weblink)c.append(copyLink(link,appLink))
+
+    document.body.append(c)
+    let content = ce('div', false, `content`)
+    c.append(content)
+    return content;
+}
+
 
 
 function newAuthor() {

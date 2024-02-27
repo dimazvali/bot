@@ -10,6 +10,10 @@ var cron =      require('node-cron');
 var FormData =  require('form-data');
 const host =    `auditoria`
 
+const {
+    cur
+} = require('./common.js')
+
 var cookieParser = require('cookie-parser');
 
 router.use(cookieParser(process.env.papersToken));
@@ -2347,65 +2351,7 @@ function blockUser() {
     // TBD
 }
 
-function deleteEntity(req, res, ref, admin, attr, callback) {
-    devlog(`удаляем нечто`)
-    entities = {
-        courses: {
-            log: (name) => `курс ${name} (${ref.id}) был архивирован`,
-            attr: `course`
-        },
-        users: {
-            log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
-            attr: `user`
-        },
-        streams: {
-            log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
-            attr: `stream`
-        },
-        plans: {
-            log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
-            attr: `plan`
-        }
-    }
-    return ref.get().then(e => {
-        
-        let data = common.handleDoc(e)
 
-        devlog(data)
-
-        if (!data[attr || 'active']) return res.json({
-            success: false,
-            comment: `Вы опоздали. Запись уже удалена.`
-        })
-        ref.update({
-            [attr || 'active']: false,
-            updatedBy: admin
-        }).then(s => {
-            
-            let logObject ={
-                text: entities[req.params.data].log(data.name),
-                [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
-            } 
-
-
-            log(logObject)
-
-            res.json({
-                success: true
-            })
-
-            if (typeof (callback) == 'function') {
-                console.log(`Запускаем коллбэк`)
-                callback()
-            }
-        }).catch(err => {
-            res.json({
-                success: false,
-                comment: err.message
-            })
-        })
-    })
-}
 
 router.get('/qr', async (req, res) => {
     if (req.query.class) {
@@ -2883,18 +2829,6 @@ function bookClass(user, classId, res, id) {
                                 })
                             }
 
-
-
-
-                            let t = Object.keys(d).map(k => `${k}=${d[k]}`).join('&')
-
-
-                            axios.post(sheet, t, {
-                                headers: {
-                                    "Content-Type": "application/x-www-form-urlencoded"
-                                }
-                            })
-
                         }).catch(err => {
                             console.log(err)
                         })
@@ -3366,7 +3300,7 @@ const translations = {
             ru: `Отлично! Ждем вас на лекции «${l.name}». 
             
             ${(l.price || l.price2)? 
-                `Напоминаем, что в день мероприятия стоимость составит ${cur(l.price2 || c.price ,`GEL`)}. Чтобы оплатить билет заранее, переведите ${cur(l.price ,`GEL`)} на ${l.paymentDesc || l.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.` : ''}`,
+                `Напоминаем, что в день мероприятия стоимость составит ${cur(l.price2 || c.price ,`GEL`)}. Чтобы оплатить билет заранее, переведите ${cur(l.price ,`GEL`)} на ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.` : ''}`,
             en: `Great! Looking forward to meet you`
         }
     },

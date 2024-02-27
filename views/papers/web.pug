@@ -25,8 +25,8 @@ html
     #left
         h3(onclick="showUsers()")     Пользователи
         h3(onclick="showSchedule()")  Расписание
-        h3(onclick="showSchedule()")  Коворкинг
-        h3(onclick="showAuthors()")  Авторы
+        h3(onclick="showHalls()")  Залы
+        h3(onclick="showAuthors()")   Авторы
         h3(onclick="showLogs()")      Логи
     
     #menu(onclick="left.classList.toggle('active')")
@@ -37,4 +37,12 @@ html
             .divided
                 p.info!=new Date(l.createdAt._seconds*1000).toLocaleString()
                 p!=l.text
+                if(l.ticket)
+                  button.dark.dateButton(onclick!="showTicket(false,'"+l.ticket+"')") открыть билет
+                if(l.class) 
+                  button.dark.dateButton(onclick!="showClass(false,'"+l.class+"')") открыть ивент
+                if(l.user) 
+                  button.dark.dateButton(onclick!="showUser(false,'"+l.user+"')") открыть профиль
+                if(l.author) 
+                  button.dark.dateButton(onclick!="showAuthor(false,'"+l.author+"')") открыть автора
     script(src='/javascripts/papers/web.js')

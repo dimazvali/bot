@@ -220,3 +220,7 @@ table.wide{
 .sDivided>h4 {
     margin-top: 10px;
 }
+
+.thin{
+    color: var(--accent) !important;
+}

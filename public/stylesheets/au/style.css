@@ -443,3 +443,12 @@ p.soldOut {
     text-align: center;
     line-height: 40px;
 }
+
+.timing+td {
+    padding-top: 30px;
+}
+
+td.timing {
+    vertical-align: baseline;
+    padding-top: 51px;
+}

@@ -398,6 +398,15 @@ router.all(`/admin/:method`, (req, res) => {
             user = user.data();
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
+                case `halls`:{
+                    switch(req.method){
+                        case 'GET':{
+                            return halls.get().then(col=>{
+                                res.json(common.handleQuery(col,false,true))
+                            })
+                        }
+                    }
+                }
                 case `stats`:{
                     switch(req.query.type){
                         case `cowork`:{
@@ -1417,6 +1426,46 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                     })
                 }
 
+                case `classReviews`:{
+
+                    let ref = classes.doc(req.params.id);
+
+                    return ref.get().then(cl => {
+                        if (!cl.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `POST`:{
+                                return feedBackRequest(req.params.id).then(s=>{
+                                    res.json({
+                                        success: true,
+                                        comment: `Количество рассылаемых запросов: ${s}.`
+                                    })
+                                })
+                            }
+                        }
+                    })
+                }
+
+                case `halls`:{
+                    
+                    let ref = halls.doc(req.params.id);
+
+                    return ref.get().then(cl => {
+                        if (!cl.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `GET`:{
+                                return res.json(common.handleDoc(cl))
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,+admin.id)
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
+                }
+                
+
                 case `logs`:{
                     
                     let q = req.params.id.split('_')
@@ -1839,7 +1888,7 @@ if(process.env.develop){
 
 
 function feedBackRequest(c){
-    classes.doc(c).get().then(l=>{
+    return classes.doc(c).get().then(l=>{
         userClasses
             .where(`class`,'==',c)
             .where('active','==',true)
@@ -1895,6 +1944,8 @@ function feedBackRequest(c){
                 classes.doc(c).update({
                     feedBackSent: new Date()
                 })
+
+                return common.handleQuery(col).length
             })
     })
 }
@@ -5731,7 +5782,8 @@ router.post('/hook', (req, res) => {
                     stopped: null
                 }).then(s=>{
                     log({
-                        text: `Пользователь id ${user.id} возвращается`
+                        text: `Пользователь id ${user.id} возвращается`,
+                        user: +user.id
                     })  
                 })
             }

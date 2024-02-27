@@ -308,12 +308,7 @@ function showCourses() {
         })
 }
 
-function sortableText(t){
-    if(!t) t = '';
-    let txt = t.toString().replace(/\»/g,'').replace(/\«/g,'').toLowerCase().trim()
-    console.log(txt)
-    return txt
-}
+
 
 
 
@@ -2395,26 +2390,6 @@ function showSubscriptionsLine(s){
 
 
 
-function preparePopupWeb(name,link,weblink) {
-    let c = ce('div', false, 'popupWeb')
-    c.append(ce('span', false, `closeMe`, `✖`, {
-        onclick: () => {
-            c.classList.add(`slideBack`)
-            setTimeout(function () {
-                c.remove()
-            }, 500)
-        }
-    }))
-
-    if(link)        c.append(copyLink(link,appLink))
-    if(weblink)     c.append(copyWebLink(web,weblink))
-    // if(weblink)c.append(copyLink(link,appLink))
-
-    document.body.append(c)
-    let content = ce('div', false, `content`)
-    c.append(content)
-    return content;
-}
 
 
 function showSchedule() {
