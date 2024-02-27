@@ -1552,6 +1552,8 @@ if(!process.env.develop){
 
 router.get(`/mini`,(req,res)=>{
     
+    devlog(coworkingRules)
+
     classes
         .where(`active`,'==',true)
         .where(`date`,'>',new Date().toISOString())
@@ -1576,7 +1578,29 @@ let siteSectionsTypes = {
 }
 
 router.get(`/mini/:section`,(req,res)=>{
+
+    devlog(rules)
+
     switch(req.params.section){
+        case `coworking`:{
+            return halls
+                .where(`active`,'==',true)
+                .where(`isCoworking`,'==',true)
+                .get()
+                .then(col=>{
+                    res.render(`papers/coworking`,{
+                        title:              `Коворкинг Papers Kartuli`,
+                        description:        `Выберите зал на свой вкус (цвет почти одтин и тот же).`,
+                        halls:              common.handleQuery(col,true),
+                        translations:       translations,
+                        coworkingRules:     rules,
+                        drawDate:(d)=>      drawDate(d),
+                        lang:               req.language.split('-')[0],
+                        cur:(p)=>           common.cur(p),
+                        uname:(u,id)=>      uname(u,id)
+                    })
+                })
+        }
         case  `staff`:{
             return udb
                 .where(`active`,'==',true)
@@ -1644,7 +1668,7 @@ router.get(`/mini/:section/:id`,(req,res)=>{
     
     let response = {
         translations:       translations,
-        coworkingRules:     coworkingRules,
+        coworkingRules:     rules,
         uname:(u,id)=>      uname(u,id),
         drawDate:(d,l,t)=>  drawDate(d,false,t),
         lang:               req.language.split('-')[0],
@@ -1652,6 +1676,33 @@ router.get(`/mini/:section/:id`,(req,res)=>{
     }
 
     switch (req.params.section){
+        case `coworking`:{
+            return getDoc(halls,req.params.id).then(hall=>{
+                
+                views.add({
+                    entity:     `halls`,
+                    date:       new Date(),
+                    id:         req.params.id
+                })
+
+                halls.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+
+                let o = {
+                    title:              `${hall.name} | коворкинг Papers Kartuli`,
+                    description:        hall.description,
+                    image:              hall.pics,
+                    hall:               hall
+                }
+
+                Object.keys(response).forEach(k=>o[k] = response[k])
+                
+                res.render(`papers/hall`,o)
+
+
+            })
+        }
         case `authors`:{
             return getDoc(authors,req.params.id).then(a=>{
                 if(!a) return res.sendStatus(404)
