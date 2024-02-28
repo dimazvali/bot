@@ -1054,15 +1054,6 @@ function drawRoom(r){
     return c;
 }
 
-function drawDate(d,l){
-    return new Date(d).toLocaleDateString(`${l||'ru'}-RU`,{
-        weekday: 'short',
-        month: 'short',
-        day:'2-digit'
-    })
-}
-
-
 function uname(u,id){
     return `${u.username ? `@${u.username}` : `id ${id}` } (${u.first_name||''} ${u.last_name||''})`
 }

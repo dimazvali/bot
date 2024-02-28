@@ -1,6 +1,7 @@
 extends site
 
 block content
-    h2!=translations.authors[lang] 
+    h2!=translations.authors[lang]
+    a.whiteLink(href="/paper/mini") На главную
     for a in authors
         include authorLine

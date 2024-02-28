@@ -224,3 +224,20 @@ table.wide{
 .thin{
     color: var(--accent) !important;
 }
+
+
+.inline {
+    display: inline !important;
+}
+
+.inpC>textarea, .inpC>input {
+    display: block;
+    margin-bottom: 10px;
+    background: #ffffffb5;
+    border: none;
+    line-height: 40px;
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Stapel';
+}

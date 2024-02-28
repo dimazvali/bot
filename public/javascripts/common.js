@@ -13,6 +13,19 @@ function line(tag, values,cb) {
     return l
 }
 
+function selector(col,placeholder){
+    let s = ce('select')
+        s.append(ce('option',false,false,placeholder||`выберите`))
+    load(col).then(options=>{
+        options.filter(o=>o.active).forEach(o=>{
+            s.append(ce(`option`,false,false,o.name,{
+                value: o.id
+            }))
+        })
+    })
+    return s
+}
+
 
 function onTelegramAuth(user,host) {
     console.log(user)
@@ -38,12 +51,16 @@ function drawDate(d,l,o){
         day:'2-digit',
         timeZone: 'Asia/Tbilisi'
     }
+    
     if(!o) o = {}
+
     if(o.time){
         options.hour= '2-digit',
         options.minute= '2-digit'
     }
-    if(o.year) options.year = '2-digit'
+
+
+    if(o.year || (+new Date() - +new Date(d) > 300*24*60*60*1000)) options.year = '2-digit'
     
     return new Date(d).toLocaleDateString(`${l||'ru'}-RU`,options)
 }
@@ -686,65 +703,7 @@ function load(collection, id) {
     })
 }
 
-function deleteEntity(req, res, ref, admin, attr, callback) {
-    devlog(`удаляем нечто`)
-    entities = {
-        courses: {
-            log: (name) => `курс ${name} (${ref.id}) был архивирован`,
-            attr: `course`
-        },
-        users: {
-            log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
-            attr: `user`
-        },
-        streams: {
-            log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
-            attr: `stream`
-        },
-        plans: {
-            log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
-            attr: `plan`
-        }
-    }
-    return ref.get().then(e => {
-        
-        let data = common.handleDoc(e)
 
-        devlog(data)
-
-        if (!data[attr || 'active']) return res.json({
-            success: false,
-            comment: `Вы опоздали. Запись уже удалена.`
-        })
-        ref.update({
-            [attr || 'active']: false,
-            updatedBy: admin
-        }).then(s => {
-            
-            let logObject ={
-                text: entities[req.params.data].log(data.name),
-                [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
-            } 
-
-
-            log(logObject)
-
-            res.json({
-                success: true
-            })
-
-            if (typeof (callback) == 'function') {
-                console.log(`Запускаем коллбэк`)
-                callback()
-            }
-        }).catch(err => {
-            res.json({
-                success: false,
-                comment: err.message
-            })
-        })
-    })
-}
 
 function sortBlock(sortTypes,container,array,callback){
     let c = ce('div',false,`controls`)

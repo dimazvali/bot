@@ -1945,7 +1945,6 @@ function showLogs() {
 
 function showUsersChart(userData) {
 
-    console.log(userData)
 
     am5.ready(function () {
 

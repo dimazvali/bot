@@ -58,8 +58,9 @@ body {
 
 div#content {
     background: var(--light);
-    border-radius: 30px;
+    border-radius: 20px;
     padding: 10px 20px;
+    overflow: hidden;
 }
 
 .class:last-child {
@@ -73,4 +74,47 @@ img.cover{
 
 p.timing {
     margin-bottom: -10px;
+}
+
+.whiteLink{
+    color: white;
+}
+
+img.cover.up {
+    margin-top: -10px;
+}
+
+.redirectTab {
+    position: fixed;
+    bottom: 0;
+    background: var(--accent);
+    margin-left: -20px;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    padding: 0 20px 20px;
+    animation: slideUp 1s;
+    color: white !important;
+}
+
+
+@keyframes slideUp{
+    0%{
+        bottom: -100vh;
+    }
+    100%{
+        bottom: 0;
+    }
+}
+
+
+span.closeMe {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    background: var(--dark);
+    border-radius: 50px;
+    width: 30px;
+    height: 30px;
+    text-align: center;
+    line-height: 30px;
 }

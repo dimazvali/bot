@@ -398,6 +398,7 @@ router.all(`/admin/:method`, (req, res) => {
             user = user.data();
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
+                // case `roomsBlocked`
                 case `halls`:{
                     switch(req.method){
                         case 'GET':{
@@ -1091,13 +1092,72 @@ router.all(`/admin/:method`, (req, res) => {
                 }
     
                 case 'classes': {
-                    return classes
-                        .where('active', '==', true)
-                        .orderBy('date', 'desc')
-                        .get()
-                        .then(col => {
-                            res.json(common.handleQuery(col))
-                        })
+                    switch(req.method){
+                        case 'GET':{
+                            return classes
+                                .where('active', '==', true)
+                                .orderBy('date', 'desc')
+                                .get()
+                                .then(col => {
+                                    res.json(common.handleQuery(col))
+                                })
+                        }
+                        case 'POST':{
+                            if(!req.body.hall) req.body.hall = `BrXsFWF4tE7K36SHQIS6`
+                            return classes.add({
+                                createdAt: new Date(),
+                                createdBy: +user.id,
+                                name: req.body.name || `Без названия`,
+                                description: req.body.description || `Без описания`,
+                                date: req.body.date || new Date().toISOString(),
+                                duration: req.body.duration || 60,
+                                hall: req.body.hall,
+                                capacity: +req.body.capacity || 30,
+                                authorName: req.body.authorName || null,
+                                author: req.body.author || null,
+                            }).then(r=>{
+                                
+                                res.json({
+                                    success: true,
+                                    comment: `Мероприятие создано`,
+                                    id:     r.id
+                                })
+
+                                log({
+                                    class: r.id,
+                                    admin: +user.id,
+                                    text: `${uname(user,user.id)} создает мероприятие ${req.body.name}`
+                                })
+
+                                if(req.body.author){
+                                    getDoc(authors,req.body.author).then(a=>{
+                                        if(!a || !a.active) classes.doc(r.id).update({
+                                            author: null
+                                        })
+                                    })
+                                }
+
+                                if(req.body.hall){
+                                    getDoc(halls,req.body.hall).then(a=>{
+                                        if(!a || !a.active) {
+                                            classes.doc(r.id).update({
+                                                hall: null
+                                            }) 
+                                        } else {
+                                            classes.doc(r.id).update({
+                                                hallName: a.name
+                                            })
+                                        }
+
+                                    })
+                                }
+                            }).catch(err=>{
+                                console.log(err)
+                                res.status(500).send(err.message)
+                            })
+                        }
+                    }
+                    
                 }
     
                 case 'class': {
@@ -1346,6 +1406,138 @@ router.all(`/admin/:method/:id`,(req,res)=>{
 
             switch(req.params.method){
 
+                case `roomsBlockedAdd`:{
+                    return halls
+                        .doc(req.params.id)
+                        .get()
+                        .then(h=>{
+                            if(!h.exists) return res.sendStatus(404)
+                            h = common.handleDoc(h)
+                            let d = req.body.date || new Date().toISOString().split('T')[0]
+
+                            roomsBlocked
+                                .where(`active`,'==',true)
+                                .where(`date`,`==`,d)
+                                .where(`room`,'==',req.params.id)
+                                .get()
+                                .then(col=>{
+                                    if(col.docs.length) return res.json({
+                                        success: false,
+                                        comment: `Дата уже закрыта`
+                                    })
+
+                                    roomsBlocked.add({
+                                        createdAt:  new Date(),
+                                        createdBy:  +admin.id,
+                                        active:     true,
+                                        date:       d,
+                                        room:       req.params.id
+                                    }).then(rec=>{
+                                        
+                                        res.json({
+                                            success: true,
+                                            comment: `Дата закрыта`,
+                                            id:     rec.id
+                                        })
+
+                                        coworking
+                                            .where(`active`,'==',true)
+                                            .where(`date`,`==`,d)
+                                            .where(`hall`,'==',req.params.id)
+                                            .get()
+                                            .then(col=>{
+                                                log({
+                                                    text: `${uname(admin,admin.id)} закрывает зал ${h.name} на ${d}. ${col.docs.length ? `Количество затронутых пользователей: ${col.docs.length}`: ''}`,
+                                                    admin: +admin.id,
+                                                    hall: req.params.id
+                                                })
+                                                col.docs.forEach((cwr,i)=>{
+                                                    setTimeout(()=>{
+                                                        coworking.doc(cwr.id).update({
+                                                            active:false
+                                                        }).then(()=>{
+                                                            let txt = `Простите, вашу запись в коворкинг на ${d} пришлось отменить по непредвиденным причинам. Пожалуйста, выберите другое время. Приносим извинения за неудобства.`
+                                                            m.sendMessage2({
+                                                                chat_id: cwr.data().user,
+                                                                text: txt
+                                                            },false,token).then(s=>{
+                                                                messages.add({
+                                                                    user: +cwr.data().user,
+                                                                    createdAt:  new Date(),
+                                                                    text:       txt,
+                                                                    isReply:    true
+                                                                })
+                                                            })
+                                                        })
+                                                    },i+200)
+                                                })
+                                            })
+                                    })
+                                })
+
+                            
+                        })
+                }
+                case `roomsBlockedByHall`:{
+                    return roomsBlocked
+                        .where(`room`,'==',req.params.id)
+                        .where(`active`,'==',true)
+                        .where(`date`,'>',new Date().toISOString().split(`T`)[0])
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col,true))
+                        })
+                }
+
+                case `roomsBlocked`:{
+                    let ref = roomsBlocked.doc(req.params.id)
+                    return ref.get().then(author => {
+                        if (!author.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `DELETE`:{
+                                deleteEntity(req,res,ref,admin.id)
+                            }
+                        }
+                    })
+                }
+
+                case `coworkingHalls`:{
+                    let days = []
+                    let shift = 0;
+                    
+                    while (shift<7){
+                        let date = new Date(+new Date()+shift*24*60*60*1000).toISOString().split('T')[0]
+                        let hall = req.params.id
+                        days.push(coworking.where(`hall`,'==',hall).where(`date`,'==',date).get().then(col=>{
+                            return {
+                                date: date,
+                                records: common.handleQuery(col)
+                            }
+                        }))
+                        shift++
+                    }
+                    return Promise.all(days).then(days=>{
+                        res.json(days)
+                    })
+                }
+
+                case `coworkingDays`:{
+                    let days = []
+                    let shift = 0;
+                    while (shift<7){
+                        let date = new Date(+new Date(req.params.id)+shift*24*60*60*1000).toISOString().split('T')[0]
+                        days.push(coworking.where(`date`,'==',date).get().then(col=>{
+                            return {
+                                date: date,
+                                records: common.handleQuery(col)
+                            }
+                        }))
+                        shift++
+                    }
+                    return Promise.all(days).then(days=>{
+                        res.json(days)
+                    })
+                }
                 
 
                 case `authors`:{
@@ -1488,6 +1680,9 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                             case `PUT`:{
                                 updateEntity(req,res,ref,+admin.id)
                             }
+                            case `GET`:{
+                                res.json(common.handleDoc(cl))
+                            }
                         }
                     })
                 }
@@ -1499,6 +1694,70 @@ router.all(`/admin/:method/:id`,(req,res)=>{
         })
     })
 })
+
+function deleteEntity(req, res, ref, admin, attr, callback) {
+    devlog(`удаляем нечто`)
+    entities = {
+        courses: {
+            log: (name) => `курс ${name} (${ref.id}) был архивирован`,
+            attr: `course`
+        },
+        users: {
+            log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
+            attr: `user`
+        },
+        streams: {
+            log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
+            attr: `stream`
+        },
+        plans: {
+            log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
+            attr: `plan`
+        }
+    }
+    return ref.get().then(e => {
+        
+        let data = common.handleDoc(e)
+
+        devlog(data)
+
+        if (!data[attr || 'active']) return res.json({
+            success: false,
+            comment: `Вы опоздали. Запись уже удалена.`
+        })
+        ref.update({
+            [attr || 'active']: false,
+            updatedBy: admin
+        }).then(s => {
+
+            if(entities[req.params.data]){
+                let logObject ={
+                    text: entities[req.params.data].log(data.name),
+                    [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
+                } 
+    
+    
+                log(logObject)
+            }
+            
+            
+
+            res.json({
+                success: true
+            })
+
+            if (typeof (callback) == 'function') {
+                console.log(`Запускаем коллбэк`)
+                callback()
+            }
+        }).catch(err => {
+            res.json({
+                success: false,
+                comment: err.message
+            })
+        })
+    })
+}
 
 router.get('/qr', async (req, res) => {
     if (req.query.class) {
@@ -1570,6 +1829,7 @@ if(!process.env.develop){
     
     cron.schedule(`0 11 * * *`, () => {
         alertSoonClasses()
+        alertMiniStats()
     })
     
     
@@ -1599,6 +1859,61 @@ if(!process.env.develop){
 }
 
 
+function alertMiniStats(days){
+    let ndate = new Date(+new Date() - days*24*60*60*1000)
+    devlog(ndate)
+    devlog(Timestamp.fromDate(ndate))
+    // 
+    views
+        .where('date','>=',ndate)
+        .get()
+        .then(col=>{
+            devlog(col)
+            let data = col.docs.map(d=>d.data())
+            if(data.length){
+                
+                let sections = {};
+                
+                data.forEach(rec=>{
+                    if(!sections[rec.entity])           sections[rec.entity] = []
+                    if(!sections[rec.entity][rec.id])   sections[rec.entity][rec.id] = 0
+                    sections[rec.entity][rec.id] ++
+                })
+
+                
+
+                Object.keys(sections).filter(type=>siteSectionsTypes[type]).forEach(type=>{
+                    
+                    devlog(type)
+
+                    let data = [];
+                    Object.keys(sections[type]).forEach(id=>{
+                        
+                        devlog(id)
+
+                        data.push(siteSectionsTypes[type].data.doc(id).get().then(d=>common.handleDoc(d)))
+                    })
+                    Promise.all(data).then(data=>{
+                        
+                        devlog(data)
+
+                        m.sendMessage2({
+                            chat_id: common.dimazvali,
+                            parse_mode: 'HTML',
+                            text: `<b>${siteSectionsTypes[type].title}</b>:\n\n${
+                                Object.keys(sections[type])
+                                    .sort((a,b)=>sections[type][b]-sections[type][a])
+                                    .map(id=>`${data.filter(r=>r.id == id)[0] ? data.filter(r=>r.id == id)[0].name : id}: ${sections[type][id]}`)
+                                    .join('\n')
+                            }`
+                        },false,token)
+                    })
+                })
+            }
+            
+        })
+}
+
 router.get(`/mini`,(req,res)=>{
     
     devlog(coworkingRules)
@@ -1623,6 +1938,14 @@ let siteSectionsTypes = {
     classes:{
         title: `Афиша`,
         data: classes,
+    },
+    authors:{
+        title: `Резиденты`,
+        data: authors
+    },
+    halls:{
+        title: `Коворкинг`,
+        data: halls
     }
 }
 
@@ -1826,7 +2149,8 @@ router.get(`/mini/:section/:id`,(req,res)=>{
 
 if(process.env.develop){
     router.get('/test', (req, res) => {
-        alertNewClassesOffers()
+        // alertNewClassesOffers()
+        alertMiniStats(1)
         // feedBackRequest(req.query.class);
 //         coworking
 //             .where(`active`,'==',true)

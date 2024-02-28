@@ -7,7 +7,7 @@ function closeLeft() {
     document.querySelectorAll(`.popupWeb`).forEach(p => p.remove())
 }
 
-const appLink = `https://t.me/paperstuff/app`
+const appLink = `https://t.me/paperstuffbot/app`
 const web = `https://dimazvali-a43369e5165f.herokuapp.com/paper/mini`
 
 function drawSchedule(events, start) {
@@ -33,6 +33,73 @@ function drawSchedule(events, start) {
 
 }
 
+
+function newClass(){
+    closeLeft()
+    let p = preparePopupWeb(`newClass`)
+    p.classList.add('inpC')
+    p.append(ce(`h1`,false,false,`Новое мероприятие`))
+    let name = ce('input',false,false,false,{
+        placeholder: `Название`
+    })
+    p.append(name)
+    let description = ce('textarea',false,false,false,{
+        placeholder: `Описание`
+    })
+    p.append(description)
+    let date = ce('input',false,false,false,{
+        type: `datetime-local`
+    })
+    p.append(date)
+    let capacity = ce('input',false,false,false,{
+        placeholder: `Вместимость`
+    })
+    p.append(capacity)
+    let authorName = ce('input',false,false,false,{
+        placeholder: `Название`
+    })
+    p.append(authorName)
+    
+    let author = selector(`authors`,`выберите ведущего`)
+    p.append(author)
+
+    let hall = selector(`halls`,`выберите зал`)
+    p.append(hall)
+
+    let duration = ce('input',false,false,false,{
+        placeholder: `продолжительность`,
+        type: `number`,
+        min: 0
+    })
+    p.append(duration)
+
+    let sb = ce('button',false,[`dateButton`,`dark`],`Сохранить`,{
+        onclick:function(){
+            if(
+                name.value && 
+                description.value &&
+                date.value
+            ) {
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/classes`,{
+                    name: name.value,
+                    description: description.value,
+                    date: date.value,
+                    duration: duration.value,
+                    hall: hall.value,
+                    capacity: capacity.value,
+                    authorName: authorName.value,
+                    author: author.value,
+                }).then(handleSave)
+                .catch(handleError)
+                .finally(()=>{
+                    this.removeAttribute(`disabled`)
+                })
+            }
+        }
+    })
+    p.append(sb)
+}
 
 function edit(entity, id, attr, type, value, container) {
 
@@ -146,6 +213,141 @@ window.addEventListener('keydown', (e) => {
     }
 })
 
+function showCoworking(){
+    closeLeft()
+    let p = preparePopupWeb(`coworking`)
+    p.append(ce('h1',false,false,`Коворкинг`))
+    
+    let c = ce('div')
+        p.append(c)
+    load(`coworkingDays`,new Date().toISOString().split('T')[0]).then(days=>{
+        days.forEach(d=>{
+            let day = ce('div')
+                day.append(ce(`h2`,false,false,d.date))
+                d.records.forEach(r=>{
+                    day.append(showCoworkingLine(r))
+                })
+            c.append(day)
+        })
+    })
+}
+
+function closeHallButton(id){
+
+    return ce(`button`,false,[`dark`,`dateButton`],`Закрыть зал`,{
+        onclick:()=>{
+            let edit = ce('div', false, `editWindow`)
+            document.body.append(edit)
+            edit.append(ce('h2', false, false, `Закрываем зал`))
+                let f = ce('input',false,false,false,{type:`date`});
+            edit.append(f)
+            edit.append(ce(`button`,false,false,`Сохранить`,{
+                onclick:function(){
+                    if(f.value){
+                        this.setAttribute(`disabled`,true)
+                        axios.post(`/${host}/admin/roomsBlockedAdd/${id}`,{
+                            date: f.value
+                        }).then(handleSave)
+                        .catch(handleError)
+                        .finally(()=>{
+                            f.value = null;
+                            this.removeAttribute(`disabled`)
+                        })
+                    }
+                }
+            }))
+        }
+    })
+    
+}
+
+function showHall(h,id){
+
+    let p = preparePopupWeb(`hall_${id}`)
+    
+    if(!h) h = load(`halls`,id)
+
+    Promise.resolve(h).then(h=>{
+
+        console.log(h)
+
+        p.append(ce('h1',false,false,h.name))
+
+        p.append(ce('p',false,`editable`,`Название: ${h.name}`,{
+            onclick:function(){
+                edit(`halls`,id,`name`,`text`,h.name,this)
+            }
+        }))
+
+        p.append(ce('p',false,`editable`,`${h.description}`,{
+            onclick:function(){
+                edit(`halls`,id,`description`,`textarea`,h.description,this)
+            }
+        }))
+
+        p.append(deleteButton(`halls`,id,!h.active))
+
+        let closures = ce(`div`)
+
+        closures.append(closeHallButton(id))
+
+        p.append(closures)
+
+        load(`roomsBlockedByHall`,id)
+            .then(dates=>{
+                dates.sort((a,b)=>a.date<b.date?-1:1).forEach(d=>{
+                    let c = ce('div',false,`sDivided`)
+                    c.append(ce('span',false,`info`,drawDate(d.date)))
+                    c.append(ce('button',false,[`dateButton`,`dark`],`снять блокировку`,{
+                        onclick:()=>{
+                            axios
+                                .delete(`/${host}/admin/roomsBlocked/${d.id}`)
+                                .then(s=>{
+                                    handleSave(s)
+                                    if(s.data.succes) c.remove()
+                                })
+                                .catch(handleError)
+                        }
+                    }))
+                closures.append(c)
+            })
+        })
+
+        load(`coworkingHalls`,id).then(days=>{
+            days.forEach(d=>{
+                let day = ce('div')
+                    day.append(ce(`h2`,false,false,d.date))
+                    d.records.forEach(r=>{
+                        day.append(showCoworkingLine(r,true))
+                    })
+                p.append(day)
+            })
+        })
+
+    })
+}
+
+function showCoworkingLine(r,butHall){
+    let c = ce(`div`,false,`sDivided`,false,{
+        dataset:{active:r.active}
+    })
+
+    c.append(ce(`span`,false,`info`,`бронь от ${drawDate(r.createdAt._seconds*1000)}`))
+    c.append(ce('p',false,false,r.payed?`оплачено`:(r.paymentNeeded?'не оплачено':'оплаты не требует')))
+    if(!butHall) load(`halls`, r.hall).then(h=>{
+        c.append(ce('button',false,[`dateButton`,`dark`],h.name,{
+            onclick:()=>showHall(false,h.id)
+        }))
+    })
+    load(`users`,r.user).then(u=>{
+        c.append(ce('button',false,[`dateButton`,`dark`],uname(u,u.id),{
+            onclick:()=>showUser(false,u.id)
+        }))
+    })
+
+    return c
+}
+
 function showSchedule() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
@@ -156,6 +358,11 @@ function showSchedule() {
             mc.append(ce('h1', false, `header2`, `Расписание`))
             mc.append(drawSchedule(data.data))
             let c = ce('div')
+
+            c.append(ce('button',false,[`dark`,`dateButton`],`Добавить`,{
+                onclick:()=>newClass()
+            }))
+
             data.data.forEach(cl => {
                 c.append(showClassLine(cl))
             });
@@ -437,7 +644,6 @@ function showLogs() {
 
 function showUsersChart(userData) {
 
-    console.log(userData)
 
     am5.ready(function () {
 
@@ -565,7 +771,15 @@ function showUsers() {
             mc.append(ce('h1', false, `header2`, `Пользователи`))
             let c = ce('div')
 
-            let chart = ce(`div`, `chartdiv`)
+            let chart = ce(`div`, `chartdiv`,`hidden`)
+
+            mc.append(ce(`button`,false,[`dateButton`,'dark'],`Показать график`,{
+                onclick:function(){
+                    chart.classList.remove(`hidden`)
+                    showUsersChart(d)
+                    this.remove();
+                }
+            }))
 
             mc.append(chart)
 
@@ -596,6 +810,7 @@ function showUsers() {
             let filterTypes = {
                 blocked: `Вышли из чата`,
                 admin: `админы`,
+                insider: `редакция`,
                 fellow: `fellows`,
             }
 
@@ -626,7 +841,7 @@ function showUsers() {
 
             mc.append(c)
 
-            showUsersChart(d)
+            
 
             // data.data.users.forEach(cl => {
             //     if(!udata[new Date(cl.createdAt).toISOString()]) udata[new Date(cl.createdAt).toISOString()] =0
@@ -647,6 +862,7 @@ function showUserLine(u, cnt) {
             blocked: !u.active,
             admin: u.admin,
             fellow: u.fellow,
+            insider: u.insider
         }
     })
 
@@ -829,7 +1045,7 @@ function showHallLine(a){
     div.append(creds)
 
     div.append(ce('h2', false, `clickable`, a.name, {
-        onclick: () => showHall(a)
+        onclick: () => showHall(false,a.id)
     }))
 
     div.append(ce('p', false, false, a.description || `без описания`))

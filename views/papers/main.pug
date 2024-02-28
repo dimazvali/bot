@@ -1,7 +1,15 @@
 extends site
 
 block content
-    h1 Что это тут у нас?..
+    
+    for c in classes.slice(0,1)
+        //- include classLine
+        if(c.pic)
+            
+            img.cover.up(src!=c.pic onclick="window.location.pathname='/paper/mini/classes/"+c.id+"'")
+        else
+            include classLine
+    h1 А дальше?..
     .sDivided
         h2(onclick='window.open("/paper/mini/classes")') Лекторий 
     .sDivided
