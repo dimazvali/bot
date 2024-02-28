@@ -208,6 +208,7 @@ router.get(`/web`,(req,res)=>{
                 signed: true,
                 httpOnly: true,
             }).render(`papers/web`,{
+                start: req.query.page,
                 logs: common.handleQuery(col),
                 // token: req.signedCookies.adminToken
             })
@@ -1405,7 +1406,29 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+                case `coworking`:{
+                    let ref = coworking.doc(req.params.id);
 
+                    return ref.get().then(cl => {
+                        if (!cl.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,+admin.id)
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
+                }
+                case `coworkingByUser`:{
+                    return coworking
+                        .where(`user`,'==',+req.params.id)
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col).sort((a,b)=>a.date<b.date?-1:1))
+                        })
+                }
                 case `roomsBlockedAdd`:{
                     return halls
                         .doc(req.params.id)
@@ -1612,7 +1635,10 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         if (!cl.exists) return res.sendStatus(404)
                         switch (req.method) {
                             case `PUT`:{
-                                updateEntity(req,res,ref,+admin.id)
+                                return updateEntity(req,res,ref,+admin.id)
+                            }
+                            case `GET`:{
+                                return res.json(common.handleDoc(cl))
                             }
                         }
                     })
@@ -1751,6 +1777,9 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
                 callback()
             }
         }).catch(err => {
+            
+            console.log(err)
+
             res.json({
                 success: false,
                 comment: err.message
@@ -2496,7 +2525,8 @@ function bookClass(user, classId, res, id) {
                             active:     true,
                             createdAt:  new Date(),
                             className:  c.data().name,
-                            class:      classId
+                            class:      classId,
+                            date:       c.data().date,
                         }
 
                         plansUsers
@@ -2514,6 +2544,7 @@ function bookClass(user, classId, res, id) {
                                     .where('active','==',true)
                                     .get()
                                     .then(col=>{
+
                                         let line = col.docs.length;
                                         let capacity = c.data().capacity
                                         let seatsData = '';
@@ -8818,3 +8849,27 @@ module.exports = router;
 //             console.log(JSON.stringify(users))
 //         })
 //     })
+
+classes.get().then(col=>{
+    let classes = {};
+    common.handleQuery(col).forEach(c=>{
+        classes[c.id] = c
+    })
+    devlog(`загрузили классы`)
+
+    userClasses.get().then(col=>{
+        common.handleQuery(col).forEach((ticket,i)=>{
+            setTimeout(()=>{
+                if(classes[ticket.class] && classes[ticket.class].date){
+                    userClasses.doc(ticket.id).update({
+                        date: classes[ticket.class].date
+                    }).then(()=>{
+                        console.log(ticket.id,i)
+                    })
+                }
+            },i*50)
+            
+        })
+    })
+})
+

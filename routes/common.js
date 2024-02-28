@@ -489,65 +489,7 @@ async function getDoc(col,id){
     return col.doc(id).get().then(doc=>handleDoc(doc)) 
 }
 
-function deleteEntity(req, res, ref, admin, attr, callback) {
-    devlog(`удаляем нечто`)
-    entities = {
-        courses: {
-            log: (name) => `курс ${name} (${ref.id}) был архивирован`,
-            attr: `course`
-        },
-        users: {
-            log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
-            attr: `user`
-        },
-        streams: {
-            log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
-            attr: `stream`
-        },
-        plans: {
-            log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
-            attr: `plan`
-        }
-    }
-    return ref.get().then(e => {
-        
-        let data = common.handleDoc(e)
 
-        devlog(data)
-
-        if (!data[attr || 'active']) return res.json({
-            success: false,
-            comment: `Вы опоздали. Запись уже удалена.`
-        })
-        ref.update({
-            [attr || 'active']: false,
-            updatedBy: admin
-        }).then(s => {
-            
-            let logObject ={
-                text: entities[req.params.data].log(data.name),
-                [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
-            } 
-
-
-            log(logObject)
-
-            res.json({
-                success: true
-            })
-
-            if (typeof (callback) == 'function') {
-                console.log(`Запускаем коллбэк`)
-                callback()
-            }
-        }).catch(err => {
-            res.json({
-                success: false,
-                comment: err.message
-            })
-        })
-    })
-}
 
 
 module.exports = {

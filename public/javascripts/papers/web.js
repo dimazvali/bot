@@ -10,6 +10,53 @@ function closeLeft() {
 const appLink = `https://t.me/paperstuffbot/app`
 const web = `https://dimazvali-a43369e5165f.herokuapp.com/paper/mini`
 
+
+if(start){
+    start = start.split('_')
+    switch(start[0]){
+        case 'users':{
+            if(start[1]) {
+                showUser(false,start[1])
+            } else {
+                showUsers()
+            }
+            break;
+        }
+        case 'classes':{
+            if(start[1]) {
+                showClass(false,start[1])
+            } else {
+                showSchedule()
+            }
+            break;
+        }
+        case 'halls':{
+            if(start[1]) {
+                showHall(false,start[1])
+            } else {
+                showHalls()
+            }
+            break;
+        }
+        case 'coworking':{
+            showCoworking()
+            break;
+        }
+        case 'authors':{
+            if(start[1]){
+                showAuthor(false,start[1])
+            } else {
+                showAuthors()
+            }
+            break;
+        }
+        default:
+            break;
+        
+    }
+}
+
+
 function drawSchedule(events, start) {
     let cc = ce('div', false, `scroll`)
     let c = ce('div', false, `flex`)
@@ -216,6 +263,7 @@ window.addEventListener('keydown', (e) => {
 function showCoworking(){
     closeLeft()
     let p = preparePopupWeb(`coworking`)
+    window.history.pushState({}, "", `web?page=coworking`);
     p.append(ce('h1',false,false,`Коворкинг`))
     
     let c = ce('div')
@@ -264,6 +312,7 @@ function closeHallButton(id){
 function showHall(h,id){
 
     let p = preparePopupWeb(`hall_${id}`)
+    window.history.pushState({}, "", `web?page=halls_${id}`);
     
     if(!h) h = load(`halls`,id)
 
@@ -327,23 +376,40 @@ function showHall(h,id){
     })
 }
 
-function showCoworkingLine(r,butHall){
+function showCoworkingLine(r,butHall,butUser){
     let c = ce(`div`,false,`sDivided`,false,{
         dataset:{active:r.active}
     })
 
-    c.append(ce(`span`,false,`info`,`бронь от ${drawDate(r.createdAt._seconds*1000)}`))
+    c.append(ce(`span`,false,`info`,`бронь от ${drawDate(r.createdAt? r.createdAt._seconds*1000 : 0)} на ${r.date}`))
+
     c.append(ce('p',false,false,r.payed?`оплачено`:(r.paymentNeeded?'не оплачено':'оплаты не требует')))
+    
     if(!butHall) load(`halls`, r.hall).then(h=>{
         c.append(ce('button',false,[`dateButton`,`dark`],h.name,{
             onclick:()=>showHall(false,h.id)
         }))
     })
-    load(`users`,r.user).then(u=>{
+    
+    if(!butUser) load(`users`,r.user).then(u=>{
         c.append(ce('button',false,[`dateButton`,`dark`],uname(u,u.id),{
             onclick:()=>showUser(false,u.id)
         }))
     })
+
+    if(r.status != `used`) c.append(deleteButton(`coworking`,r.id,!r.active))
+
+    if(r.status != `used` && r.active) c.append(ce(`button`,false,[`dateButton`,`dark`],`гость пришел`,{
+        onclick:function(){
+            axios.put(`/${host}/admin/coworking/${r.id}`,{
+                attr: `status`,
+                value: `used`
+            }).then(s=>{
+                handleSave(s)
+                if(s.data.succes) this.remove()
+            }).catch(handleError)
+        }
+    }))
 
     return c
 }
@@ -351,6 +417,7 @@ function showCoworkingLine(r,butHall){
 function showSchedule() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
+    window.history.pushState({}, "", `web?page=classes`);
     axios.get(`/${host}/admin/classes`)
         .then(data => {
             console.log(data.data)
@@ -433,11 +500,13 @@ function filterUsers(role, container, button) {
 
 function showClass(cl, id) {
     let p = preparePopupWeb(`class_${cl.id}`, false, [`classes`, cl.id])
-
+    
     if (!cl) {
         cl = load(`classes`, id)
     }
     Promise.resolve(cl).then(cl => {
+        
+        window.history.pushState({}, "", `web?page=classes_${cl.id}`);
 
         if (cl.pic) p.append(ce(`img`, false, `cover`, false, {
             src: cl.pic
@@ -764,6 +833,9 @@ function showUsersChart(userData) {
 function showUsers() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
+    
+    window.history.pushState({}, "", `web?page=users`);
+
     axios.get(`/${host}/admin/users`)
         .then(data => {
             console.log(data.data)
@@ -888,6 +960,9 @@ function showUser(u, id) {
 
     Promise.resolve(u).then(u => {
         let p = preparePopupWeb(`user${u.id}`)
+        
+        window.history.pushState({}, "", `web?page=users_${u.id}`);
+
         p.append(ce('h1', false, false, `${uname(u,u.id)} (${u.language_code})`))
         p.append(ce('p', false, false, `регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
 
@@ -952,20 +1027,41 @@ function showUser(u, id) {
             }))
         })
 
-
-        p.append(ce(`h2`, false, false, `Лекции`))
+        let lecs = ce('div')
+        p.append(lecs)
+        
 
         axios
             .get(`/${host}/admin/user?user=${u.id}&data=lections`)
             .then(data => {
+                lecs.append(ce(`h2`, false, false, `Лекции (${data.data.length})`))
                 data.data.forEach(c => {
-                    p.append(ce('p', false, false, `${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`, {
+                    lecs.append(ce('p', false, false, `${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`, {
                         dataset: {
                             active: c.active
                         }
-                    }))
+                    })) 
                 })
             })
+
+        let cw = ce('div')
+        p.append(cw)
+        load(`coworkingByUser`,u.id).then(records=>{
+            if(records.length) cw.append(ce(`h2`,false,false,`Коворкинг (${records.length} дней)`))
+            
+            records.filter(rec=>rec.date>=new Date().toISOString().split('T')[0]).forEach(rec=>{
+                cw.append(showCoworkingLine(rec,false,true))
+            })
+            
+            cw.append(ce('button',false,false,`Показать архив`,{
+                onclick:function(){
+                    this.remove()
+                    records.filter(rec=>rec.date<new Date().toISOString().split('T')[0]).reverse().forEach(rec=>{
+                        cw.append(showCoworkingLine(rec,false,true))
+                    })
+                }
+            }))
+        })
     })
 
 
@@ -1138,7 +1234,7 @@ function showAuthor(a, id) {
         if (a.author) a = a.author
 
         let p = preparePopupWeb(`author_${a.id}`, `author_${a.id}`, [`authors`, a.id])
-
+        window.history.pushState({}, "", `web?page=authors_${a.id}`);
 
         p.append(logButton(`author`, a.id, `Лог по автору`))
 
