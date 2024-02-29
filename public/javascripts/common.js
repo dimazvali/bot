@@ -626,8 +626,8 @@ function s(el){
    el.classList.add(`selected`)
 }
 
-function deleteButton(collection,id,reverse){
-    return ce('button',false,false,reverse?`Активировать`:`Архивировать`,{
+function deleteButton(collection,id,reverse,cl){
+    return ce('button',false,(cl||false),reverse?`Активировать`:`Архивировать`,{
         onclick:()=>{
             let proof = confirm(`Вы уверены?`)
             if(proof) {

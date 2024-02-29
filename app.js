@@ -61,4 +61,16 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
+
+// setInterval(() => {
+//   const memoryUsage = process.memoryUsage();
+//   console.log(`Memory Usage:
+// - RSS: ${memoryUsage.rss} bytes
+// - Heap Total: ${memoryUsage.heapTotal} bytes
+// - Heap Used: ${memoryUsage.heapUsed} bytes
+// - External: ${memoryUsage.external} bytes
+// - Array Buffers: ${memoryUsage.arrayBuffers} bytes`);
+// }, 10000);
+
+
 module.exports = app;

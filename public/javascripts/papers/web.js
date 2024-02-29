@@ -1,3 +1,4 @@
+
 let host = `paper`
 
 let mc = document.querySelector(`#main`)
@@ -478,21 +479,25 @@ function addComment(c, id) {
 
 
 
-function filterUsers(role, container, button) {
+function filterUsers(role, container, button,counter) {
     let c = button.parentNode;
     c.querySelectorAll('button').forEach(b => b.classList.remove('active'))
     c.querySelectorAll('button').forEach(b => b.classList.add('passive'))
     button.classList.add('active')
     button.classList.remove('passive')
+    let cnt = 0
     container.querySelectorAll('.userLine').forEach(user => {
         if (!role) return user.classList.remove('hidden')
 
         if (user.dataset[role] == 'true') {
             user.classList.remove('hidden')
+            cnt++
         } else {
             user.classList.add('hidden')
         }
     })
+
+    counter.innerHTML = `Всего: ${cnt}`
 
 
 }
@@ -712,8 +717,70 @@ function showClass(cl, id) {
 
 }
 
+
+function showTicket(t,id){
+    let p = preparePopupWeb(`ticket_${id}`,false, [`tickets`, id])
+    load(`userClasses`,id).then(ticket=>{
+        
+        p.append(ce(`img`,false,false,false,{
+            src: `/paper/qr?id=${id}&entity=userClasses`,
+            dataset:{active:ticket.active}
+        }))
+
+        p.append(ce('h1',false,false,`Билет ${id}`))
+        let det = ce('div',false,[`details`,`mb`])
+            det.append(ce('span',false,`info`,`${drawDate(ticket.createdAt._seconds*1000,false,{time:true})} => ${drawDate(ticket.date,false,{time:true})}`))
+            // det.append(ce('span',false,`info`,`мероприятие: `))
+        
+        p.append(det)
+
+        let cont = ce(`div`,false,`flex`)
+
+        p.append(cont)
+        cont.append(ce('button',false,[`dateButton`,`dark`],ticket.className,{
+            onclick:()=>showClass(false,ticket.class)
+        }))
+
+        let user = ce('div')
+        
+        cont.append(user)
+
+
+        let contr = ce('div',false,`flex`)
+        p.append(contr)
+
+        
+
+        contr.append(deleteButton(`userClasses`,id,!ticket.active,[`dateButton`,`dark`]))
+
+        if(!ticket.status){
+            contr.append(ce(`button`,false,[`dateButton`,`dark`],`Отметить как использованный`,{
+                onclick:function(){
+                    this.remove();
+                    axios.put(`/${host}/admin/userClasses/${id}`,{
+                        attr: `status`,
+                        value: `used`
+                    }).then(handleSave)
+                    .catch(handleError)
+                }
+            }))
+        }
+
+        load(`users`,ticket.user).then(u=>{
+            user.append(ce('button',false,[`dateButton`,`dark`],uname(u,u.id),{
+                onclick:()=>showUser(u,u.id)
+            }))
+        })
+
+    })
+}
+
 function showLogs() {
-    window.location.reload()
+    window.history.pushState({}, "", `web?page=users`);
+    setTimeout(()=>{
+        window.location.reload()
+    },100)
+    
 }
 
 function showUsersChart(userData) {
@@ -846,7 +913,10 @@ function showUsers() {
             console.log(data.data)
             mc.innerHTML = '';
             mc.append(ce('h1', false, `header2`, `Пользователи`))
+            
             let c = ce('div')
+
+            let counter = ce('h4',false,`mtop`)
 
             let chart = ce(`div`, `chartdiv`,`hidden`)
 
@@ -864,6 +934,7 @@ function showUsers() {
 
 
 
+            counter.innerHTML = `Всего: ${data.data.users.length}`
 
             data.data.users.forEach(cl => {
                 let d = new Date(cl.createdAt._seconds * 1000).toISOString().split('T')[0]
@@ -879,30 +950,50 @@ function showUsers() {
                 }
             })
 
-            console.log(d)
-
-
-
 
             let filterTypes = {
-                blocked: `Вышли из чата`,
-                admin: `админы`,
-                insider: `редакция`,
-                fellow: `fellows`,
+                blocked:    `Вышли из чата`,
+                admin:      `админы`,
+                insider:    `редакция`,
+                fellow:     `fellows`,
             }
 
+            let fc = ce('div',false,`flex`)
+            mc.append(fc)
             Object.keys(filterTypes).forEach(type => {
-                mc.append(ce('button', false, type, filterTypes[type], {
+                fc.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
                     onclick: function () {
-                        filterUsers(type, c, this)
+                        filterUsers(type, c, this,counter)
                     }
                 }))
             })
 
+            let occup = ce('div',false,`flex`)
+
+            mc.append(occup)
+
+            {
+                let filterTypes = {
+                    it:         `IT`,
+                    media:      `Журналисты`,
+                    advertisement: `реклама и PR`,
+                    other:      `разное`,
+                    lawyer:     `Юриспруденция`
+                }
+    
+                Object.keys(filterTypes).forEach(type => {
+                    occup.append(ce('button', false, type, filterTypes[type], {
+                        onclick: function () {
+                            filterUsers(type, c, this,counter)
+                        }
+                    }))
+                })
+            }
+
             let sortTypes = {
                 appOpens: `По частоте использования`,
                 classes: `По количеству лекций`,
-                // fellow: `fellows`,
+                coworkingVisits: `По использованию коворкинга`,
             }
 
             Object.keys(sortTypes).forEach(type => {
@@ -916,6 +1007,7 @@ function showUsers() {
                 }))
             })
 
+            mc.append(counter)
             mc.append(c)
 
             
@@ -935,11 +1027,16 @@ function showUsers() {
 function showUserLine(u, cnt) {
     let c = ce(`div`, false, `userLine`, false, {
         dataset: {
-            active: u.active,
-            blocked: !u.active,
-            admin: u.admin,
-            fellow: u.fellow,
-            insider: u.insider
+            active:     u.active,
+            blocked:    !u.active,
+            admin:      u.admin,
+            fellow:     u.fellow,
+            insider:    u.insider,
+            it:         u.occupation ? (u.occupation == 'it' ? true : false) : null,
+            media:      u.occupation ? (u.occupation == 'media' ? true : false) : null,
+            advertisement: u.occupation ? (u.occupation == 'advertisement' ? true : false) : null,
+            other:      u.occupation ? (u.occupation == 'other' ? true : false) : null,
+            lawyer:     u.occupation ? (u.occupation == 'lawyer' ? true : false) : null,
         }
     })
 
@@ -1017,11 +1114,11 @@ function showUser(u, id) {
             disname: `разблокировать`
         }]
 
-        let ac = ce(`div`)
+        let ac = ce(`div`,false,`flex`)
         p.append(ac)
 
         adminLinks.forEach(type => {
-            ac.append(ce('button', false, false, u[type.attr] ? type.disname : type.name, {
+            ac.append(ce('button', false, [`dateButton`,`dark`], u[type.attr] ? type.disname : type.name, {
                 onclick: () => {
                     axios.put(`/${host}/admin/users/${u.id}`, {
                             attr: type.attr,
@@ -1044,7 +1141,8 @@ function showUser(u, id) {
                     lecs.append(ce('p', false, false, `${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`, {
                         dataset: {
                             active: c.active
-                        }
+                        },
+                        onclick:()=>showTicket(false,c.id)
                     })) 
                 })
             })

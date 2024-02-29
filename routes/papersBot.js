@@ -81,11 +81,11 @@ let ngrok = process.env.ngrok
 
 let sheet = process.env.papersSheet
 
-setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
-        console.log(`papers hook set on ${ngrok}`)
-    }).catch(handleError)   
-},1000)
+// setTimeout(function(){
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
+//         console.log(`papers hook set on ${ngrok}`)
+//     }).catch(handleError)   
+// },1000)
 
 
 let rules = {
@@ -749,6 +749,10 @@ router.all(`/admin/:method`, (req, res) => {
                                             payed: d.paymentNeeded ? true : false,
                                             status: 'used'
                                         })
+
+                                        udb.doc(user.id.toString()).update({
+                                            coworkingVisits: FieldValue.increment(1)
+                                        })
                                         
     
                                         common.devlog(user.id)
@@ -1022,9 +1026,6 @@ router.all(`/admin/:method`, (req, res) => {
                                         statusBy: req.query.id
                                     }).then(() => {
                                         res.sendStatus(200)
-    
-    
-    
                                     }).catch(err => {
                                         res.status(500).send(err.message)
                                     })
@@ -1050,8 +1051,10 @@ router.all(`/admin/:method`, (req, res) => {
     
                                             m.getUser(userid, udb).then(user => {
                                                 
-                                                devlog(appLink + '?startapp=class_'+t.data().class)
-                                                
+                                                udb.doc(userid.toString()).update({
+                                                    classesVisits: FieldValue.increment(1)
+                                                })
+
                                                 m.sendMessage2({
                                                     chat_id: user.id,
                                                     text: translations.welcomeOnPremise[user.language_code] || translations.welcomeOnPremise.en,
@@ -1409,6 +1412,25 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+
+                case `userClasses`:{
+                    let ref = userClasses.doc(req.params.id);
+
+                    return ref.get().then(cl => {
+                        if (!cl.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `GET`:{
+                                return res.json(common.handleDoc(cl))
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,+admin.id)
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
+                }
                 case `coworking`:{
                     let ref = coworking.doc(req.params.id);
 
@@ -4718,7 +4740,8 @@ router.post('/slack', (req, res) => {
                                     let user = doc.data().user;
 
                                     udb.doc(user.toString()).update({
-                                        classes: FieldValue.increment(1)
+                                        classes: FieldValue.increment(1),
+                                        classesVisits: FieldValue.increment(1)
                                     })
 
                                     plansUsers
@@ -7561,6 +7584,8 @@ function alertClassClosed(cl) {
 router.all(`/api/:data/:id`, (req, res) => {
 
     switch (req.params.data) {
+
+
         case `invite`:{
             return invites.doc(req.params.id).get().then(i=>{
                 if(!req.query.user) return res.sendStatus(400)
@@ -8123,7 +8148,7 @@ router.all(`/api/:data/:id`, (req, res) => {
 
                                 c.booked = c.appointmentId = ticket ? ticket.id : null
                                 c.used = ticket ? ticket.status : null
-                                
+
                                 res.json(c)
                             }).catch(err=>{
                                 res.status(500).send(err.message)
@@ -8910,5 +8935,23 @@ module.exports = router;
 //                         })
 //                     }
 //                 })
+//         })
+//     })
+
+
+// userClasses
+//     .where(`status`,'==','used')
+//     .get()
+//     .then(col=>{
+//         common.handleQuery(col).forEach((cr,i)=>{
+//             setTimeout(()=>{
+//                 udb.doc(cr.user.toString())
+//                     .update({
+//                         classesVisits: FieldValue.increment(1)
+//                     }).then(()=>{
+//                         devlog(cr.user)
+//                     })
+//             },i*20)
+            
 //         })
 //     })
