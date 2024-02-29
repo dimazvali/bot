@@ -112,9 +112,9 @@ const ngrok =       process.env.ngrok
 
 let sheet =         process.env.auditoriaSheet
 
-axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s => {
-    console.log(`auditoria hook set to ${ngrok}`)
-})
+// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s => {
+//     console.log(`auditoria hook set to ${ngrok}`)
+// })
 
 let getDoc = common.getDoc;
 

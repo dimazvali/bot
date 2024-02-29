@@ -1192,11 +1192,8 @@ function drawLecturePopup(c){
         
         mcb = clearPopUp
 
-        if(!c.noRegistration){
+        if(!c.noRegistration && !c.used){
             if(c.booked){
-
-                
-
                 tg.MainButton.setText(translations.coworkingBookingCancel[userLang] || translations.coworkingBookingCancel.en)
                 tg.MainButton.show()
                 tg.MainButton.onClick(delist)

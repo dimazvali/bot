@@ -11,7 +11,7 @@ var FormData =  require('form-data');
 var modals =    require('./modals.js').modals
 const qs =      require('qs');
 const { createHash,createHmac } = require('node:crypto');
-
+const appLink = `https://t.me/paperstuffbot/app`
 const {
     getDoc,
     uname,
@@ -81,11 +81,11 @@ let ngrok = process.env.ngrok
 
 let sheet = process.env.papersSheet
 
-// setTimeout(function(){
-//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
-//         console.log(`papers hook set on ${ngrok}`)
-//     }).catch(handleError)   
-// },1000)
+setTimeout(function(){
+    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
+        console.log(`papers hook set on ${ngrok}`)
+    }).catch(handleError)   
+},1000)
 
 
 let rules = {
@@ -1049,6 +1049,9 @@ router.all(`/admin/:method`, (req, res) => {
                                                 })
     
                                             m.getUser(userid, udb).then(user => {
+                                                
+                                                devlog(appLink + '?startapp=class_'+t.data().class)
+                                                
                                                 m.sendMessage2({
                                                     chat_id: user.id,
                                                     text: translations.welcomeOnPremise[user.language_code] || translations.welcomeOnPremise.en,
@@ -1057,7 +1060,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                             [{
                                                                 text: translations.openClass[user.language_code] || translations.openClass.en,
                                                                 web_app: {
-                                                                    url: process.env.ngrok + '/paper/app/start=class_'+req.body.class
+                                                                    url: ngrok + '/paper/app?start=class_'+t.data().class
                                                                 }
                                                             }]
                                                         ]
@@ -5580,7 +5583,7 @@ router.post('/slack', (req, res) => {
                                                     [{
                                                         text: translations.openClass.en,
                                                         web_app: {
-                                                            url: process.env.ngrok + '/paper/app/start=classes'
+                                                            url: appLink + '?startapp=classes'
                                                         }
                                                     }]
                                                 ]
@@ -8085,6 +8088,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                     if(!req.query.user) return res.sendStatus(400)
 
                     return classes.doc(req.params.id).get().then(c=>{
+                        
                         if(!c.exists) return res.sendStatus(404)
                         
                         common.devlog(`лекция есть`)
@@ -8095,15 +8099,31 @@ router.all(`/api/:data/:id`, (req, res) => {
 
 
                         if(!c.active) return res.sendStatus(404)
+
+                        views.add({
+                            entity: `classes`,
+                            id:     req.params.id,
+                            user:   +req.query.user
+                        }).then(s=>{
+                            classes.doc(req.params.id).update({
+                                views: FieldValue.increment(1)
+                            })
+                        })
                         
                         
                         userClasses
                             .where(`active`,'==',true)
-                            .where(`user`,'==',req.query.user)
+                            .where(`user`,'==',+req.query.user)
+                            .where(`class`,'==',req.params.id)
                             .get()
                             .then(col=>{
-                                common.devlog(col.docs)
-                                c.booked == (col.docs.length ? col.docs[0].id : false)
+                                let ticket = col.docs[0] ? col.docs[0].data() : null;
+
+                                if(ticket) ticket.id = col.docs[0].id
+
+                                c.booked = c.appointmentId = ticket ? ticket.id : null
+                                c.used = ticket ? ticket.status : null
+                                
                                 res.json(c)
                             }).catch(err=>{
                                 res.status(500).send(err.message)
@@ -8564,7 +8584,7 @@ function unClassUser(ref, user, res, id) {
                         active: false
                     }).then(() => {
 
-                        classes.doc(classId).update({
+                        classes.doc(appointment.data().class).update({
                             visitors: FieldValue.increment(-1)
                         })
 
@@ -8850,26 +8870,45 @@ module.exports = router;
 //         })
 //     })
 
-classes.get().then(col=>{
-    let classes = {};
-    common.handleQuery(col).forEach(c=>{
-        classes[c.id] = c
-    })
-    devlog(`загрузили классы`)
+// classes.get().then(col=>{
+//     let classes = {};
+//     common.handleQuery(col).forEach(c=>{
+//         classes[c.id] = c
+//     })
+//     devlog(`загрузили классы`)
 
-    userClasses.get().then(col=>{
-        common.handleQuery(col).forEach((ticket,i)=>{
-            setTimeout(()=>{
-                if(classes[ticket.class] && classes[ticket.class].date){
-                    userClasses.doc(ticket.id).update({
-                        date: classes[ticket.class].date
-                    }).then(()=>{
-                        console.log(ticket.id,i)
-                    })
-                }
-            },i*50)
+//     userClasses.get().then(col=>{
+//         common.handleQuery(col).forEach((ticket,i)=>{
+//             setTimeout(()=>{
+//                 if(classes[ticket.class] && classes[ticket.class].date){
+//                     userClasses.doc(ticket.id).update({
+//                         date: classes[ticket.class].date
+//                     }).then(()=>{
+//                         console.log(ticket.id,i)
+//                     })
+//                 }
+//             },i*50)
             
-        })
-    })
-})
+//         })
+//     })
+// })
 
+
+
+// classes
+//     .where(`name`,'==','Показ «Сказки» Александра Сокурова')
+//     .get()
+//     .then(col=>{
+//         common.handleQuery(col).forEach(c=>{
+//             userClasses
+//                 .where(`class`,'==',c.id)
+//                 .get()
+//                 .then(tickets=>{
+//                     if(!tickets.docs.length){
+//                         classes.doc(c.id).delete().then(()=>{
+//                             devlog(`${c.id} deleted`)
+//                         })
+//                     }
+//                 })
+//         })
+//     })

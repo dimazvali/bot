@@ -452,6 +452,11 @@ function showClassLine(cl) {
             showClass(cl)
         }
     })
+    let details = ce('div',false,`details`)
+        c.append(details)
+    details.append(ce(`span`,false,`info`,drawDate(cl.createdAt._seconds*1000)))
+    if(cl.visitors) details.append(ce(`span`,false,`info`,cl.visitors?`гостей: ${cl.visitors}`:''))
+    if(cl.views) details.append(ce(`span`,false,`info`,cl.views?`просмотров: ${cl.views}`:''))
     c.append(ce('h2', false, false, cl.name))
     c.append(ce('p', false, false, `${drawDate(cl.date)} @ ${cl.hallName}`))
     return c

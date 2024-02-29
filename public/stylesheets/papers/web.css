@@ -241,3 +241,13 @@ table.wide{
     box-sizing: border-box;
     font-family: 'Stapel';
 }
+
+.details>.info {
+    margin-right: 10px;
+    border-right: 1px solid;
+    padding-right: 10px;
+}
+
+.details>.info:last-child {
+    border-right: none;
+}
