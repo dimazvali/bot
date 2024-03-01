@@ -61,6 +61,7 @@ div#content {
     border-radius: 20px;
     padding: 10px 20px;
     overflow: hidden;
+    position: relative;
 }
 
 .class:last-child {
@@ -117,4 +118,10 @@ span.closeMe {
     height: 30px;
     text-align: center;
     line-height: 30px;
+}
+
+img.ticket {
+    position: absolute;
+    margin-top: 40px;
+    right: 40px;
 }

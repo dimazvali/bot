@@ -395,15 +395,20 @@ function filterUsers(role,container,button){
         c.querySelectorAll('button').forEach(b=>b.classList.add('passive'))
     button.classList.add('active')
     button.classList.remove('passive')
+
+    let cnt = 0
     container.querySelectorAll('.userLine').forEach(user=>{
         if(!role) return user.classList.remove('hidden')
         
         if(user.dataset[role] == 'true') {
             user.classList.remove('hidden')
+            cnt++
         } else {
             user.classList.add('hidden')
         }
     })
+
+    alert(`итого: ${cnt}`)
 
     
 }
@@ -724,6 +729,8 @@ function showUsers(){
                 blocked:    `Вышли из чата`,
                 admin:      `Админы`,
                 ready:      `Активированы`,
+                concent:     `Заполнили профиль`,
+                notYet:      `На рассмотрении`
             }
 
             Object.keys(filterTypes).forEach(type=>{
@@ -777,6 +784,8 @@ function showUserLine(u,cnt){
             blocked:    !u.active,
             admin:      u.admin,
             ready:      u.ready,
+            concent:    u.concent,
+            notYet:     u.concent && !u.ready
         }
     })
 
