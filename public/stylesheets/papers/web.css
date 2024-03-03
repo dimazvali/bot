@@ -259,3 +259,12 @@ h4.mtop {
 .mb{
     margin-bottom: 10px;
 }
+
+
+.whiteLink{
+    color: white;
+}
+
+.block{
+    display: block;
+}

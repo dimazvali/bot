@@ -991,9 +991,9 @@ function showUsers() {
             }
 
             let sortTypes = {
-                appOpens: `По частоте использования`,
-                classes: `По количеству лекций`,
-                coworkingVisits: `По использованию коворкинга`,
+                appOpens:           `По частоте использования`,
+                classes:            `По количеству лекций`,
+                coworkingVisits:    `По использованию коворкинга`,
             }
 
             Object.keys(sortTypes).forEach(type => {

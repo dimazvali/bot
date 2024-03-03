@@ -2102,6 +2102,26 @@ router.get(`/mini/:section/:id`,(req,res)=>{
     }
 
     switch (req.params.section){
+        case `tickets`:{
+            return userClasses.doc(req.params.id).get().then(t=>{
+                if(!t.exists) return res.sendStatus(404)
+                t = common.handleDoc(t)
+                if(!t.active) return res.sendStatus(404)
+                classes.doc(t.class).get().then(cl=>{
+                    
+                    devlog(common.handleDoc(cl))
+
+                    res.render(`papers/ticket`,{
+                        cl: common.handleDoc(cl),
+                        ticket: t,
+                        uname:(u,id)=>      uname(u,id),
+                        drawDate:(d,l,t)=>  drawDate(d,false,t),
+                        lang:               req.language.split('-')[0],
+                        cur:(p,cur)=>       common.cur(p,cur)
+                    })
+                })
+            })
+        }
         case `coworking`:{
             return getDoc(halls,req.params.id).then(hall=>{
                 

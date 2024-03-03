@@ -1,3 +1,9 @@
+// TODO
+// 1. сортировка пользователей по дате регистрации // по дате согласия
+// 2. ссылки на инсту
+// 3. починить отображение выполненных заданий на экране пользователя
+
+
 const host = 'ps';
 var express = require('express');
 var router = express.Router();
@@ -416,10 +422,6 @@ router.post(`/hook`, (req, res) => {
                     .where('file_id', '==', req.body.message.document.file_id)
                     .get()
                     .then(col => {
-
-
-
-
                         if (!col.docs.length) {
 
                             tasks
@@ -439,7 +441,8 @@ router.post(`/hook`, (req, res) => {
                                                 file: true,
                                                 createdAt: new Date(),
                                                 user: +user.id,
-                                                file_id: req.body.message.document.file_id
+                                                file_id: req.body.message.document.file_id,
+                                                thumb: req.body.message.document.thumbnail.file_id
                                             }).then(message => {
                                                 m.sendMessage2({
                                                     chat_id: user.id,
@@ -842,10 +845,10 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             return res.json(t)
                         }
                         case `DELETE`:{
-                            deleteEntity(req,res,ref,admin,false,()=>removeTags(req.params.id))
+                            return deleteEntity(req,res,ref,admin,false,()=>removeTags(req.params.id))
                         }
                         case `PUT`:{
-                            updateEntity(req,res,ref,admin.id)
+                            return  updateEntity(req,res,ref,admin.id)
                         }
                     }
 
@@ -1282,7 +1285,7 @@ router.all(`/admin/:method`, (req, res) => {
             case 'users': {
                 return udb.get().then(col => {
                     res.json({
-                        users: common.handleQuery(col)
+                        users: common.handleQuery(col,true)
                     })
                 })
             }
@@ -1354,8 +1357,7 @@ router.all(`/admin/:method`, (req, res) => {
 function updateEntity(req, res, ref, adminId) {
     return ref.update({
         updatedAt: new Date(),
-        updatedBy: adminId,
-        [req.body.attr]: req.body.attr == `date` ? new Date(req.body.value) : req.body.value
+        updatedBy: adminId || null,
     }).then(s => {
         res.json({
             success: true

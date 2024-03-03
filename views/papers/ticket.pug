@@ -1,0 +1,18 @@
+extends site
+
+block back
+    a.headerA(href="/paper/mini")!=`❰ на главную`
+block content
+    
+    h1.hA!=`Ваш билет на ${cl.name}`
+    if(cl.pic)
+        img.ticket(src=`/paper/qr?id=${ticket.id}&entity=userClasses`)
+        img.cover(src!=cl.pic)
+    h3!=cl.author
+    p.timing 
+        span.date!=drawDate(cl['date'],false,{time:true})
+    if(cl.price)
+        p!=`Стоимость: ${cur(cl.price,'GEL')}`
+    p.story!=cl.description
+    //- p.story!=`Регистрация и билеты — в нашем <a href="https://t.me/paperstuffbot/app?startapp=class_${cl.id}">телеграм-боте</a>.`
+    

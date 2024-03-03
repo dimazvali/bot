@@ -389,7 +389,7 @@ function addComment(c,id){
 
 
 
-function filterUsers(role,container,button){
+function filterUsers(role,container,button, counter){
     let c = button.parentNode;
         c.querySelectorAll('button').forEach(b=>b.classList.remove('active'))
         c.querySelectorAll('button').forEach(b=>b.classList.add('passive'))
@@ -408,8 +408,7 @@ function filterUsers(role,container,button){
         }
     })
 
-    alert(`итого: ${cnt}`)
-
+    counter.innerHTML = `Итого: ${cnt}`
     
 }
 
@@ -693,6 +692,8 @@ function showUsers(){
             mc.append(ce('h1',false,`header2`,`Пользователи`))
             let c = ce('div')
 
+            let counter = ce('h4',false,`mtop`)
+
             let chart = ce(`div`,`chartdiv`,`hidden`)
             
             mc.append(chart)
@@ -703,11 +704,10 @@ function showUsers(){
 
             let udata = {}
 
-
-            
+            counter.innerHTML = `Всего: ${data.data.users.length}`
             
             data.data.users.sort((a,b)=>(b.score||0)-(a.score||0)).forEach(cl => {
-                let d =new Date(cl.createdAt._seconds*1000).toISOString().split('T')[0]
+                let d = new Date(cl.createdAt._seconds*1000).toISOString().split('T')[0]
                 if(!udata[d]) udata[d] =0
                 udata[d] ++ 
                 c.append(showUserLine(cl,cl.score||0))
@@ -720,11 +720,6 @@ function showUsers(){
                 }
             })
 
-            console.log(d)
-
-            
-            
-
             let filterTypes = {
                 blocked:    `Вышли из чата`,
                 admin:      `Админы`,
@@ -733,10 +728,13 @@ function showUsers(){
                 notYet:      `На рассмотрении`
             }
 
+            let fc = ce(`div`,false,`flex`)
+            mc.append(fc)
+
             Object.keys(filterTypes).forEach(type=>{
-                mc.append(ce('button',false,[type,'dateButton'],filterTypes[type],{
+                fc.append(ce('button',false,[type,'dateButton'],filterTypes[type],{
                     onclick: function(){
-                        filterUsers(type,c,this)
+                        filterUsers(type,c,this,counter)
                     },
                     dataset:{
                         booked:1
@@ -760,6 +758,8 @@ function showUsers(){
                     }
                 }))
             })
+
+            mc.append(counter)
 
             mc.append(c)
 
@@ -809,7 +809,7 @@ function message(m){
         onclick:()=> showNewsNews(m.news)
     }))
     c.append(ce('p',false,false, m.text || `картинка`))
-    if(m.file_id) getPicture(m.file_id).then(img=>c.append(img))
+    if(m.thumb || m.file_id) getPicture(m.thumb || m.file_id).then(img=>c.append(img))
     return c
 }
 
@@ -842,7 +842,7 @@ function showIncoming(){
                     // TBC: сделать оценку
                 }
                 if(s.message) load(`messages`,s.message).then(m=>{
-                    if(m.file_id) getPicture(m.file_id).then(img=>c.append(img)) 
+                    if(m.thumb || m.file_id) getPicture(m.thumb || m.file_id).then(img=>c.append(img)) 
                 })
             },i*100)
         })
@@ -884,7 +884,7 @@ function showUnseen(){
                 } else {
                     // TBC: сделать оценку
                 }
-                if(s.file_id) getPicture(s.file_id).then(img=>c.append(img))
+                if(s.thumb || s.file_id) getPicture(s.thumb || s.file_id).then(img=>c.append(img))
                 // if(m.file_id) getPicture(m.file_id).then(img=>c.append(img))
             },i*100)
         })
@@ -909,7 +909,7 @@ function showSubmissions(userTaskId){
             p.append(c)
             if(s.admin) load(`users`,s.admin).then(admin=>c.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
             if(s.message) load(`messages`,s.message).then(m=>{
-                if(m.file_id) load(`images`,m.file_id).then(img=>{
+                if(m.thumb || m.file_id) load(`images`,(m.thumb || m.file_id)).then(img=>{
                     c.append(ce(`img`,false,`preview`,false,{
                         src: img.src,
                         onclick: window.open(img.src)
@@ -1006,13 +1006,18 @@ function showTask(taskId){
                     submissions.append(c)
                 if(s.admin) load(`users`,s.admin).then(admin=>c.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
                 if(s.message) load(`messages`,s.message).then(m=>{
-                    if(m.file_id) load(`images`,m.file_id).then(img=>{
+                    if(m.thumb || m.file_id) load(`images`,m.thumb || m.file_id).then(img=>{
                         c.append(ce(`img`,false,`preview`,false,{
                             src: img.src,
                             onclick:()=> window.open(img.src)
                         }))
                     })
                 })
+                if(s.user){
+                    load(`users`,s.user).then(u=>{
+                        c.append(showUserLine(u))
+                    })
+                }
             })
 
         // Первая версия — группировка по пользователям
@@ -1211,8 +1216,8 @@ function showUser(u,id){
             disname:    `разблокировать`
         },{
             attr:       `ready`,
-            name:       `Прошел подготовку`,
-            disname:    `Снять флаг подготовки`
+            name:       `Подтвердить аккаунт`,
+            disname:    `Снять подтверждение`
         }]
 
         let ac = ce(`div`)
@@ -1238,6 +1243,12 @@ function showUser(u,id){
         p.append(ce('p', false, `story`, `inst @${u.inst}` || `добавьте профиль в instagram`, {
             onclick: function(){edit(`users`, u.id, `inst`, `text`, u.inst || null, this)}
         }))
+
+        if(u.inst){
+            p.append(ce(`a`, false, [`whiteLink`,`block`], `Открыть профиль`,{
+                href: `https://www.instagram.com/${u.inst}`
+            }))
+        }
 
         p.append(ce('h2',false,false,`Общий счет: ${u.score||0}`))
 
@@ -1266,6 +1277,7 @@ function showUser(u,id){
             p.append(tasks)   
         
         load(`usersTasks`,u.id).then(data=>{
+            
             data.forEach(ut=>{
                 tasks.append(userTaskLine(ut))
             })
@@ -1283,7 +1295,7 @@ function showUser(u,id){
             })
 
         let mbox = ce('div')
-            p.append(mbox)
+            if(u.active) p.append(mbox)
             let txt = ce('textarea',false,false,false,{placeholder:`Написать пользователю`})
             mbox.append(txt)
             let sb = ce('button',false,'dateButton',`Отправить`,{
