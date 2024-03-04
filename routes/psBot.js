@@ -877,6 +877,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     case `GET`:{
                         return userTags
                             .where(`user`,'==',+req.params.id)
+                            .where(`active`,'==',true)
                             .get()
                             .then(col=>{
                                 res.json(common.handleQuery(col))
@@ -1210,7 +1211,7 @@ router.all(`/admin/:method`, (req, res) => {
                                         comment:    `Рассылка создана и расходится на ${col.docs.length} пользователей.`
                                     })
                                     log({
-                                        text:  `${uname(admin,admin.id)} стартует рассылку с названием ${req.body.name}`,
+                                        text:  `${uname(admin,admin.id)} стартует рассылку с названием «${req.body.name}».`,
                                         admin: +admin.id
                                     })
                                     common.handleQuery(col).forEach((u,i)=>{
@@ -1356,8 +1357,9 @@ router.all(`/admin/:method`, (req, res) => {
 
 function updateEntity(req, res, ref, adminId) {
     return ref.update({
-        updatedAt: new Date(),
-        updatedBy: adminId || null,
+        updatedAt:          new Date(),
+        updatedBy:          adminId || null,
+        [req.body.attr]:    req.body.attr == `date` ? new Date(req.body.value) : req.body.value
     }).then(s => {
         res.json({
             success: true

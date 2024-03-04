@@ -706,7 +706,10 @@ function showUsers(){
 
             counter.innerHTML = `Всего: ${data.data.users.length}`
             
-            data.data.users.sort((a,b)=>(b.score||0)-(a.score||0)).forEach(cl => {
+            data.data.users
+            // .reverse()
+                // .sort((a,b)=>(b.score||0)-(a.score||0))
+            .forEach(cl => {
                 let d = new Date(cl.createdAt._seconds*1000).toISOString().split('T')[0]
                 if(!udata[d]) udata[d] =0
                 udata[d] ++ 
@@ -725,7 +728,8 @@ function showUsers(){
                 admin:      `Админы`,
                 ready:      `Активированы`,
                 concent:     `Заполнили профиль`,
-                notYet:      `На рассмотрении`
+                notYet:      `На рассмотрении`,
+                viewed:      `Отсмотрены`
             }
 
             let fc = ce(`div`,false,`flex`)
@@ -785,7 +789,8 @@ function showUserLine(u,cnt){
             admin:      u.admin,
             ready:      u.ready,
             concent:    u.concent,
-            notYet:     u.concent && !u.ready
+            notYet:     u.concent && !u.ready,
+            viewed:     u.viewed
         }
     })
 
@@ -963,10 +968,43 @@ function showTag(tagId){
             tusers.forEach(u=>{
                 load(`users`,u.user).then(u=>{
                     users.append(showUserLine(u))
+                })        
+            })    
+            
+            if(tusers.length){
+                let mb = ce(`div`,false,`inpC`)
+                mb.append(ce('h3',false,false,`Отправить сообщение`))
+
+                let name = ce('input',false,`block`,false,{placeholder: `Название`})
+                let desc = ce('textarea',false,false,false,{placeholder: `Текст`})
+                let sb = ce('button',false,`dateButton`,`Отправить`,{
+                    dataset:{booked:1},
+                    onclick:function(){
+                        if(name.value && desc.value){
+                            this.setAttribute(`disabled`,true)
+                            axios.post(`/${host}/admin/news`,{
+                                name:           name.value,
+                                text:           desc.value,
+                                tag:            tagId,
+                                filter:         `tagged`
+                            }).then(r=>{
+                                alert(r.data.comment)
+                            }).catch(err=>{
+                                alert(err.message)
+                            }).finally(()=>{
+                                this.removeAttribute(`disabled`)
+                            })
+                        }
+                    }
                 })
-                
-            })      
+                mb.append(name)
+                mb.append(desc)
+                mb.append(sb)
+                p.append(mb)
+            }
         })
+
+        
 
     })
 }
@@ -1184,9 +1222,17 @@ function tagLine(t){
         dataset:{active:t.active}
     });
     c.append(ce('span',false,`info`,drawDate(t.createdAt._seconds*1000)))
-    c.append(ce('h3',false,false,t.name))
+    c.append(ce('h3',false,false,`${t.name} (${t.cnt?t.cnt:`пусто`})`))
     c.append(ce('p',false,`info`,t.description))
     return c;
+}
+
+function removeTag(refId,userId,container){
+    axios.delete(`/${host}/admin/userTags/${refId}`)
+        .then(s=>{
+            handleSave(s)
+            container.remove()
+        }).catch(handleError)
 }
 
 function showUser(u,id){
@@ -1218,6 +1264,10 @@ function showUser(u,id){
             attr:       `ready`,
             name:       `Подтвердить аккаунт`,
             disname:    `Снять подтверждение`
+        },{
+            attr:       `viewed`,
+            name:       `Отсмотрен`,
+            disname:    `Не отсмотрен`
         }]
 
         let ac = ce(`div`)
@@ -1246,7 +1296,8 @@ function showUser(u,id){
 
         if(u.inst){
             p.append(ce(`a`, false, [`whiteLink`,`block`], `Открыть профиль`,{
-                href: `https://www.instagram.com/${u.inst}`
+                href: `https://www.instagram.com/${u.inst}`,
+                target: `_inst`
             }))
         }
 
