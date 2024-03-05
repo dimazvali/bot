@@ -268,3 +268,7 @@ h4.mtop {
 .block{
     display: block;
 }
+
+button.dateButton.active {
+    background: var(--accent);
+}

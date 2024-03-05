@@ -861,6 +861,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     case `GET`:{
                         return userTags
                             .where(`tag`,'==',req.params.id)
+                            .where(`active`,'==',true)
                             .get()
                             .then(d => 
                                 res.json(common.handleQuery(d))
@@ -891,29 +892,39 @@ router.all(`/admin/:method/:id`, (req, res) => {
                                 if(!t.exists) res.status(400).send(`no such tag`)
                                     t = common.handleDoc(t)
                                 if(!t.active) res.status(400).send(`tag is not active`)
-                                
-                                userTags.add({
-                                    user:       +req.params.id,
-                                    active:     true,
-                                    createdAt:  new Date(),
-                                    createdBy:  +admin.id,
-                                    tag:        req.body.tag,
-                                    name:       t.name
-                                }).then(rec=>{
-                                    res.json({
-                                        comment: `Тег добавлен`,
-                                        id: rec.id
+
+                                userTags
+                                    .where(`user`,'==',+req.params.id)
+                                    .where(`tag`,'==',req.body.tag)
+                                    .where(`active`,'==',true)
+                                    .get()
+                                    .then(already=>{
+                                        
+                                        if(common.handleQuery(already).length) return res.status(400).send(`tag is already set`)
+                                        
+                                        userTags.add({
+                                            user:       +req.params.id,
+                                            active:     true,
+                                            createdAt:  new Date(),
+                                            createdBy:  +admin.id,
+                                            tag:        req.body.tag,
+                                            name:       t.name
+                                        }).then(rec=>{
+                                            res.json({
+                                                comment: `Тег добавлен`,
+                                                id: rec.id
+                                            })
+                                            tags.doc(req.body.tag).update({
+                                                cnt: FieldValue.increment(1)
+                                            })
+                                            log({
+                                                text:   `${uname(admin,admin.id)} добавляет тег ${t.name} пользователю с id ${req.params.id}`,
+                                                admin:  +admin.id,
+                                                tag:    req.body.tag,
+                                                user:   +req.params.id
+                                            })
+                                        })
                                     })
-                                    tags.doc(req.body.tag).update({
-                                        cnt: FieldValue.increment(1)
-                                    })
-                                    log({
-                                        text:   `${uname(admin,admin.id)} добавляет тег ${t.name} пользователю с id ${req.params.id}`,
-                                        admin:  +admin.id,
-                                        tag:    req.body.tag,
-                                        user:   +req.params.id
-                                    })
-                                })
                             })
                         })
                     } 
@@ -933,7 +944,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                                     cnt: FieldValue.increment(-1)
                                 })
                                 log({
-                                    text:   `${uname(admin,admin.id)} снимает тег ${t.name} пользователю с id ${req.params.id}`,
+                                    text:   `${uname(admin,admin.id)} снимает тег ${t.name} пользователю с id ${t.user}`,
                                     admin:  +admin.id,
                                     tag:    t.tag,
                                     user:   +t.user
@@ -1240,7 +1251,7 @@ router.all(`/admin/:method`, (req, res) => {
             case `tags`:{
                 switch(req.method){
                     case 'GET':{
-                        return tags.get().then(col=>res.json(common.handleQuery(col)))
+                        return tags.get().then(col=>res.json(common.handleQuery(col,false,true)))
                     }
                     case `POST`:{
                         if(!req.body.name || !req.body.description) return res.sendStatus(400)
@@ -1351,6 +1362,12 @@ router.all(`/admin/:method`, (req, res) => {
             }
         }
     })
+})
+
+router.all(`/test`,(req,res)=>{
+    res.sendStatus(200)
+    devlog(req.query)
+    devlog(req.body)
 })
 
 

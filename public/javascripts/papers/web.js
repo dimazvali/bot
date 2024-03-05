@@ -386,21 +386,29 @@ function showCoworkingLine(r,butHall,butUser){
 
     c.append(ce('p',false,false,r.payed?`оплачено`:(r.paymentNeeded?'не оплачено':'оплаты не требует')))
     
-    if(!butHall) load(`halls`, r.hall).then(h=>{
-        c.append(ce('button',false,[`dateButton`,`dark`],h.name,{
-            onclick:()=>showHall(false,h.id)
-        }))
-    })
     
+
     if(!butUser) load(`users`,r.user).then(u=>{
         c.append(ce('button',false,[`dateButton`,`dark`],uname(u,u.id),{
             onclick:()=>showUser(false,u.id)
         }))
     })
 
-    if(r.status != `used`) c.append(deleteButton(`coworking`,r.id,!r.active))
+    let controls = ce('div',false,`flex`)
 
-    if(r.status != `used` && r.active) c.append(ce(`button`,false,[`dateButton`,`dark`],`гость пришел`,{
+    c.append(controls)
+
+    if(!butHall) load(`halls`, r.hall).then(h=>{
+        controls.append(ce('button',false,[`dateButton`,`dark`],h.name,{
+            onclick:()=>showHall(false,h.id)
+        }))
+    })
+    
+    
+
+    if(r.status != `used`) controls.append(deleteButton(`coworking`,r.id,!r.active,[`dark`,`dateButton`]))
+
+    if(r.status != `used` && r.active) controls.append(ce(`button`,false,[`dateButton`,`dark`],`гость пришел`,{
         onclick:function(){
             axios.put(`/${host}/admin/coworking/${r.id}`,{
                 attr: `status`,

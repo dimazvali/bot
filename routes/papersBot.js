@@ -8229,6 +8229,8 @@ router.all(`/api/:data/:id`, (req, res) => {
                         })
                 }
                 case 'POST': {
+                    if(!req.query.user) return res.sendStatus(400)
+
                     return halls.doc(req.params.id).get().then(hall => {
                         hall = hall.data()
                         if (!hall.active) {
@@ -8238,148 +8240,155 @@ router.all(`/api/:data/:id`, (req, res) => {
                             })
                         } else {
 
-                            roomsBlocked
-                                .where('active', '==', true)
-                                .where('room', '==', req.params.id)
-                                .where('date', '==', req.query.date)
+                            udb
+                                .doc(req.query.user)
                                 .get()
-                                .then(col => {
+                                .then(user=>{
+                                    user = common.handleDoc(user)
+                                    roomsBlocked
+                                    .where('active', '==', true)
+                                    .where('room', '==', req.params.id)
+                                    .where('date', '==', req.query.date)
+                                    .get()
+                                    .then(col => {
 
-                                    console.log(common.handleQuery(col))
 
-                                    if (col.docs.length) {
-                                        res.json({
-                                            success: false,
-                                            text: 'roomBlocked'
-                                        })
-                                    } else {
-                                        coworking
-                                            .where('hall', '==', req.params.id)
-                                            .where('date', '==', req.query.date)
-                                            .where('active', '==', true)
-                                            .get()
-                                            .then(col => {
+                                        if (col.docs.length && !user.insider) {
+                                            res.json({
+                                                success: false,
+                                                text: 'roomBlocked'
+                                            })
+                                        } else {
+                                            coworking
+                                                .where('hall', '==', req.params.id)
+                                                .where('date', '==', req.query.date)
+                                                .where('active', '==', true)
+                                                .get()
+                                                .then(col => {
 
-                                                let users = common.handleQuery(col).map(r => r.user)
+                                                    let users = common.handleQuery(col).map(r => r.user)
 
-                                                if (users.indexOf(req.query.user) > -1) {
+                                                    if (users.indexOf(req.query.user) > -1) {
 
-                                                    // return res.status(400).send('alreadyBooked')
-                                                    return res.json({
-                                                        success: false,
-                                                        text: 'alreadyBooked'
-                                                    })
-
-                                                } else if (users.length == hall.capacity) {
-
-                                                    return res.json({
-                                                        success: false,
-                                                        text: 'noSeatsLeft'
-                                                    })
-                                                    return res.status(400).send('noSeatsLeft')
-
-                                                } else {
-                                                    udb.doc(req.query.user.toString()).get().then(u => {
-
-                                                        if (u.data().blocked) {
-                                                            return res.json({
-                                                                success: false,
-                                                                text: 'youArBanned'
-                                                            })
-                                                            return res.status(400).send('youArBanned')
-                                                            // noSeatsLeft
-                                                        }
-
-                                                        if (!u.data().occupation) return res.json({
+                                                        // return res.status(400).send('alreadyBooked')
+                                                        return res.json({
                                                             success: false,
-                                                            text: 'noOccupationProvided'
+                                                            text: 'alreadyBooked'
                                                         })
-                                                        // return res.status(400).send('noOccupationProvided')
-                                                        if (!u.data().email) return res.json({
+
+                                                    } else if (users.length == hall.capacity) {
+
+                                                        return res.json({
                                                             success: false,
-                                                            text: 'noEmailProvided'
+                                                            text: 'noSeatsLeft'
                                                         })
-                                                        // return res.status(400).send('noEmailProvided')
+                                                        return res.status(400).send('noSeatsLeft')
 
-                                                        coworking.add({
-                                                            user: +req.query.user,
-                                                            hall: req.params.id,
-                                                            date: req.query.date,
-                                                            createdAt: new Date(),
-                                                            active: true,
-                                                            paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
-                                                            payed: false
-                                                        }).then(rec => {
+                                                    } else {
+                                                        udb.doc(req.query.user.toString()).get().then(u => {
 
-                                                            let bonusText = false;
-
-                                                            if (u.data().bonus) {
-
-                                                                bonusText = true
-
-                                                                udb.doc(u.id).update({
-                                                                    bonus: false
+                                                            if (u.data().blocked) {
+                                                                return res.json({
+                                                                    success: false,
+                                                                    text: 'youArBanned'
                                                                 })
+                                                                return res.status(400).send('youArBanned')
+                                                                // noSeatsLeft
                                                             }
 
-                                                            log({
-                                                                text: `${uname(u.data(), u.id)} бронирует место в коворкинге ${hall.name} на ${req.query.date}`,
-                                                                user: req.query.user,
-                                                                hall: req.params.id
+                                                            if (!u.data().occupation) return res.json({
+                                                                success: false,
+                                                                text: 'noOccupationProvided'
                                                             })
+                                                            // return res.status(400).send('noOccupationProvided')
+                                                            if (!u.data().email) return res.json({
+                                                                success: false,
+                                                                text: 'noEmailProvided'
+                                                            })
+                                                            // return res.status(400).send('noEmailProvided')
 
-                                                            let pl = {
-                                                                active: true,
-                                                                id: rec.id,
-                                                                intention: 'bookCoworking',
+                                                            coworking.add({
+                                                                user: +req.query.user,
                                                                 hall: req.params.id,
                                                                 date: req.query.date,
-                                                                user: req.query.user,
-                                                                userName: (u.data().first_name + ' ' + u.data().last_name),
+                                                                createdAt: new Date(),
+                                                                active: true,
                                                                 paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
                                                                 payed: false
-                                                            }
+                                                            }).then(rec => {
 
-                                                            axios.post(sheet, Object.keys(pl).map(k => `${k}=${pl[k]}`).join('&'), {
-                                                                headers: {
-                                                                    "Content-Type": "application/x-www-form-urlencoded"
+                                                                let bonusText = false;
+
+                                                                if (u.data().bonus) {
+
+                                                                    bonusText = true
+
+                                                                    udb.doc(u.id).update({
+                                                                        bonus: false
+                                                                    })
                                                                 }
-                                                            })
 
+                                                                log({
+                                                                    text: `${uname(u.data(), u.id)} бронирует место в коворкинге ${hall.name} на ${req.query.date}`,
+                                                                    user: req.query.user,
+                                                                    hall: req.params.id
+                                                                })
 
-                                                            res.json({
-                                                                success: true,
-                                                                text: bonusText ? 'coworkingBookingConfirmedBonus' : 'coworkingBookingConfirmed',
-                                                                record: rec.id
-                                                            })
-
-
-                                                            m.sendMessage2({
-                                                                chat_id: req.query.user,
-                                                                caption: translations.coworkingBookingDetails(req.query.date, hall.name, u.data().language_code)[u.data().language_code] || translations.coworkingBookingDetails(req.query.date, hall.name, u.data().language_code).en,
-                                                                photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=coworking`,
-                                                                reply_markup: {
-                                                                    inline_keyboard: [
-                                                                        [{
-                                                                            text: translations.coworkingBookingCancel[u.data().language_code] || translations.coworkingBookingCancel.en,
-                                                                            callback_data: `ca_cancel_${rec.id}`
-                                                                        }]
-                                                                    ]
+                                                                let pl = {
+                                                                    active: true,
+                                                                    id: rec.id,
+                                                                    intention: 'bookCoworking',
+                                                                    hall: req.params.id,
+                                                                    date: req.query.date,
+                                                                    user: req.query.user,
+                                                                    userName: (u.data().first_name + ' ' + u.data().last_name),
+                                                                    paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
+                                                                    payed: false
                                                                 }
-                                                            }, 'sendPhoto', token)
 
-                                                            if (bonusText) {
+                                                                axios.post(sheet, Object.keys(pl).map(k => `${k}=${pl[k]}`).join('&'), {
+                                                                    headers: {
+                                                                        "Content-Type": "application/x-www-form-urlencoded"
+                                                                    }
+                                                                })
+
+
+                                                                res.json({
+                                                                    success: true,
+                                                                    text: bonusText ? 'coworkingBookingConfirmedBonus' : 'coworkingBookingConfirmed',
+                                                                    record: rec.id
+                                                                })
+
+
                                                                 m.sendMessage2({
                                                                     chat_id: req.query.user,
-                                                                    text: translations.coworkingBookingConfirmedBonus[u.data().language_code] || translations.coworkingBookingConfirmedBonus.en
-                                                                }, false, token)
-                                                            }
+                                                                    caption: translations.coworkingBookingDetails(req.query.date, hall.name, u.data().language_code)[u.data().language_code] || translations.coworkingBookingDetails(req.query.date, hall.name, u.data().language_code).en,
+                                                                    photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=coworking`,
+                                                                    reply_markup: {
+                                                                        inline_keyboard: [
+                                                                            [{
+                                                                                text: translations.coworkingBookingCancel[u.data().language_code] || translations.coworkingBookingCancel.en,
+                                                                                callback_data: `ca_cancel_${rec.id}`
+                                                                            }]
+                                                                        ]
+                                                                    }
+                                                                }, 'sendPhoto', token)
+
+                                                                if (bonusText) {
+                                                                    m.sendMessage2({
+                                                                        chat_id: req.query.user,
+                                                                        text: translations.coworkingBookingConfirmedBonus[u.data().language_code] || translations.coworkingBookingConfirmedBonus.en
+                                                                    }, false, token)
+                                                                }
+                                                            })
                                                         })
-                                                    })
-                                                }
-                                            })
-                                    }
+                                                    }
+                                                })
+                                        }
+                                    })
                                 })
+
+                            
 
 
                         }
