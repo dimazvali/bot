@@ -1227,18 +1227,55 @@ router.all(`/admin/:method`, (req, res) => {
                                     })
                                     common.handleQuery(col).forEach((u,i)=>{
                                         setTimeout(()=>{
-                                            m.sendMessage2({
-                                                chat_id:    u.user || u.id,
-                                                text:       req.body.text
-                                            },false,token).then(res=>{
-                                                messages.add({
-                                                    createdAt:  new Date(),
-                                                    user:       +u.id,
-                                                    text:       req.body.text,
-                                                    news:       rec.id,
-                                                    isReply:    true
+                                            if(!req.body.media || !req.body.media.length){
+                                                m.sendMessage2({
+                                                    chat_id:    u.user || u.id,
+                                                    text:       req.body.text
+                                                },false,token).then(res=>{
+                                                    messages.add({
+                                                        createdAt:  new Date(),
+                                                        user:       +u.id,
+                                                        text:       req.body.text,
+                                                        news:       rec.id,
+                                                        isReply:    true
+                                                    })
                                                 })
-                                            })
+                                            } else if(req.body.media && req.body.media.length == 1) {
+                                                m.sendMessage2({
+                                                    chat_id:    u.user || u.id,
+                                                    caption:       req.body.text,
+                                                    photo: req.body.media[0]
+                                                },`sendPhoto`,token).then(res=>{
+                                                    messages.add({
+                                                        createdAt:  new Date(),
+                                                        user:       +u.id,
+                                                        text:       req.body.text,
+                                                        news:       rec.id,
+                                                        isReply:    true
+                                                    })
+                                                })
+                                            } else if(req.body.media){
+                                                m.sendMessage2({
+                                                    chat_id:        u.user || u.id,
+                                                    caption:        req.body.text,
+                                                    media:          req.body.media.map(p=>{
+                                                        return {
+                                                            type: `photo`,
+                                                            media: p
+                                                        }
+                                                    }),
+                                                    protect_content: true
+                                                },`sendMediaGroup`,token).then(res=>{
+                                                    messages.add({
+                                                        createdAt:  new Date(),
+                                                        user:       +u.id,
+                                                        text:       req.body.text,
+                                                        news:       rec.id,
+                                                        isReply:    true
+                                                    })
+                                                })
+                                            }
+                                            
                                         },i*200)
                                     })
                                 })

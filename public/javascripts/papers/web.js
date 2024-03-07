@@ -58,6 +58,69 @@ if(start){
 }
 
 
+function drawCoworkingShedule(records,start){
+    
+    let cc = ce('div', false, `scroll`)
+    let c = ce('div', false, `flex`)
+    
+    load(`coworking`).then(data=>{
+        let fc = ce('div',false,`flex`)
+        data.halls
+        .sort((a,b)=>b.name<a.name?1:-1)
+        .forEach(h=>{
+            fc.append(ce(`button`,false,[`dark`,`dateButton`],h.name,{
+                onclick:function(){
+                    this.parentNode.querySelectorAll(`.active`).forEach(b=>b.classList.remove(`active`))
+                    this.classList.add(`active`)
+                    c.querySelectorAll(`.date`).forEach(day=>{
+                        day.querySelectorAll(`.recordLine`).forEach(rec=>{
+                            if(rec.dataset.hall != h.id){
+                                rec.classList.add(`hidden`)
+                            } else {
+                                rec.classList.remove(`hidden`)
+                            }
+                        })
+                    })
+                }
+            }))
+        })
+        cc.append(fc)
+        cc.append(c)
+        let i = 0
+
+        
+        while (i < 30) {
+            let day = ce(`div`, false, `date`)
+            
+            let date = new Date(+new Date() + i * 24 * 60 * 60 * 1000)
+            let isoDate = date.toISOString().split('T')[0]
+            
+            day.append(ce(`h3`, false, false, drawDate(date)))
+            
+            data.records
+                .filter(e => typeof e.date == `string` && new Date(e.date).toISOString().split('T')[0] == isoDate)
+                .sort((a,b)=>b.hallName<a.hallName?1:-1)
+                .forEach(e => {
+                let rec = ce('div',false,`recordLine`,false,{
+                    dataset:{hall:e.hall}
+                })
+                    rec.append(ce(`span`,false,`info`,e.hallName))
+                load(`users`,e.user).then(u=>rec.append(ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg')],unameShort(u,u.id),{
+                    onclick:()=> showUser(u,u.id)
+                })))
+                day.append(rec)
+            })
+            c.append(day)
+            i++
+        }    
+    })
+
+    
+    return cc
+}
+
+
+
 function drawSchedule(events, start) {
     let cc = ce('div', false, `scroll`)
     let c = ce('div', false, `flex`)
@@ -78,7 +141,6 @@ function drawSchedule(events, start) {
         i++
     }
     return cc
-
 }
 
 
@@ -236,7 +298,7 @@ function edit(entity, id, attr, type, value, container) {
             if (f.value) {
                 axios.put(`/${host}/admin/${entity}/${id}`, {
                         attr: attr,
-                        value: type == `date` ? new Date(f.value) : f.value
+                        value: type == `date` ? new Date(f.value) : (type == `number` ? +f.value : f.value)
                     }).then((s) => {
                         handleSave(s)
                         if (container) container.innerHTML = f.value
@@ -267,6 +329,9 @@ function showCoworking(){
     window.history.pushState({}, "", `web?page=coworking`);
     p.append(ce('h1',false,false,`Коворкинг`))
     
+    p.append(drawCoworkingShedule())
+
+
     let c = ce('div')
         p.append(c)
     load(`coworkingDays`,new Date().toISOString().split('T')[0]).then(days=>{
@@ -323,9 +388,24 @@ function showHall(h,id){
 
         p.append(ce('h1',false,false,h.name))
 
+        p.append(toggleButton(`halls`,h.id,`isCoworking`,h.isCoworking,`это коворкинг`,`это не коворкинг`,[`dateButton`,`dark`]))
+        p.append(toggleButton(`halls`,h.id,`isMeetingRoom`,h.isMeetingRoom,`это переговорка`,`это не переговорка`,[`dateButton`,`dark`]))
+
         p.append(ce('p',false,`editable`,`Название: ${h.name}`,{
             onclick:function(){
                 edit(`halls`,id,`name`,`text`,h.name,this)
+            }
+        }))
+
+        p.append(ce('p',false,`editable`,`Этаж: ${h.floor}`,{
+            onclick:function(){
+                edit(`halls`,id,`floor`,`number`,h.floor,this)
+            }
+        }))
+
+        p.append(ce('p',false,`editable`,`Вместимость: ${h.capacity}`,{
+            onclick:function(){
+                edit(`halls`,id,`floor`,`number`,h.capacity,this)
             }
         }))
 
@@ -335,7 +415,7 @@ function showHall(h,id){
             }
         }))
 
-        p.append(deleteButton(`halls`,id,!h.active))
+        p.append(deleteButton(`halls`,id,!h.active,[`dark`,`dateButton`]))
 
         let closures = ce(`div`)
 
@@ -453,7 +533,7 @@ function showSchedule() {
 }
 
 function showClassLine(cl) {
-    let c = ce('div', false, 'divided', false, {
+    let c = ce('div', false, 'sDivided', false, {
         dataset: {
             active: cl.active
         },
@@ -990,7 +1070,7 @@ function showUsers() {
                 }
     
                 Object.keys(filterTypes).forEach(type => {
-                    occup.append(ce('button', false, type, filterTypes[type], {
+                    occup.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
                         onclick: function () {
                             filterUsers(type, c, this,counter)
                         }
@@ -1004,8 +1084,12 @@ function showUsers() {
                 coworkingVisits:    `По использованию коворкинга`,
             }
 
+            let sortBlock = ce(`div`,false,`flex`)
+            
+            mc.append(sortBlock)
+
             Object.keys(sortTypes).forEach(type => {
-                mc.append(ce('button', false, type, sortTypes[type], {
+                sortBlock.append(ce('button', false, [type,`dateButton`,`dark`], sortTypes[type], {
                     onclick: function () {
                         c.innerHTML = ''
                         data.data.users.sort((a, b) => (b[type] || 0) - (a[type] || 0)).forEach(cl => {
@@ -1157,6 +1241,7 @@ function showUser(u, id) {
 
         let cw = ce('div')
         p.append(cw)
+        
         load(`coworkingByUser`,u.id).then(records=>{
             if(records.length) cw.append(ce(`h2`,false,false,`Коворкинг (${records.length} дней)`))
             
@@ -1164,7 +1249,7 @@ function showUser(u, id) {
                 cw.append(showCoworkingLine(rec,false,true))
             })
             
-            cw.append(ce('button',false,false,`Показать архив`,{
+            cw.append(ce('button',false,[`dark`,`dateButton`],`Показать архив`,{
                 onclick:function(){
                     this.remove()
                     records.filter(rec=>rec.date<new Date().toISOString().split('T')[0]).reverse().forEach(rec=>{
@@ -1173,10 +1258,67 @@ function showUser(u, id) {
                 }
             }))
         })
+
+        load(`wineByUser`,u.id).then(wineList=>{
+            p.append(ce(`h3`,false,false,`Вино`))
+            let wc = ce(`div`) 
+            wineList.forEach(r=>{
+                wc.append(wineLine(r))
+            })
+            p.append(wc)
+            p.append(wineButton(u.id))
+        })
+    })
+}
+
+function wineButton(userId){
+
+    return ce(`button`,false,[`dark`,`dateButton`],`Налить вина`,{
+        onclick:()=>{
+            let edit = ce('div', false, `editWindow`)
+                edit.append(ce(`h2`,false,false,`Привет, гертруда!`))
+                edit.append(ce(`p`,false,false,`Выберите, сколько бокалов налить`))
+            let volume = ce('input',false,false,false,{
+                placeholder:    `сколько лить в бокалах`,
+                min:            1,
+                type:           `number`
+            })
+            edit.append(volume)
+            edit.append(ce(`button`,false,[`dateButton`,`dark`],`Налить`,{
+                onclick:function(){
+                    if(volume.value){
+                        
+                        this.setAttribute(`disabled`,true)
+                        
+                        axios.post(`/${host}/admin/wine`,{
+                            user: userId,
+                            left: volume.value
+                        }).then(s=>{
+                            handleSave(s)
+                            edit.remove()
+                        }).catch(handleError)
+                    }
+                }
+            }))
+            document.body.append(edit)
+        }
     })
 
+    
+}
 
+function wineLine(w){
+    let c = ce(`div`,false,`sDivided`,false,{
+        dataset:{active:true}
+    })
+    let details = ce(`div`,false,`details`)
+    details.append(ce(`span`,false,`info`,`налито: ${drawDate(w.createdAt._seconds*1000)}`))
+    if(w.createBy) load(`users`,w.createBy).then(u=>details.append(ce(`span`,false,`info`,uname(u,u.id))))
+    c.append(details)
 
+    c.append(ce('h5',false,false,`Остаток: ${w.left}`))
+    
+    return c
 }
 
 
@@ -1224,17 +1366,17 @@ function showHalls(){
         }, {
             attr: `createdAt`,
             name: `По дате создания`
-        }], c, halls, showHallLine))
+        }], c, halls, showHallLine, [`dark`,`dateButton`]))
 
         mc.append(cc)
 
-        c.append(ce('button', false, false, `Добавить зал`, {
+        c.append(ce('button', false, [`dark`,`dateButton`], `Добавить зал`, {
             onclick: () => newHall()
         }))
 
         mc.append(c)
 
-        mc.append(archiveButton(c))
+        mc.append(archiveButton(c,[`dark`,`dateButton`]))
     })
 }
 
@@ -1244,7 +1386,7 @@ function showHallLine(a){
     })
     if (!a.active) div.classList.add(`hidden`)
     
-    let creds = ce(`div`)
+    let creds = ce(`div`,false,`details`)
 
     creds.append(ce('span', false, `info`, a.views ? `Просмотров: ${a.views}` : ``))
     creds.append(ce('span', false, `info`, a.createdAt ? `Создан(-а): ${drawDate(a.createdAt._seconds*1000)}` : a.createdAt))
@@ -1291,17 +1433,17 @@ function showAuthors() {
         }, {
             attr: `createdAt`,
             name: `По дате создания`
-        }], c, authors, showAuthorLine))
+        }], c, authors, showAuthorLine,[`dark`,`dateButton`]))
 
         mc.append(cc)
 
-        c.append(ce('button', false, false, `Добавить автора`, {
+        c.append(ce('button', false, [`dark`,`dateButton`], `Добавить автора`, {
             onclick: () => newAuthor()
         }))
 
         mc.append(c)
 
-        mc.append(archiveButton(c))
+        mc.append(archiveButton(c,[`dark`,`dateButton`]))
     })
 }
 
@@ -1315,7 +1457,7 @@ function showAuthorLine(a) {
 
     if (!a.active) div.classList.add(`hidden`)
 
-    let creds = ce(`div`)
+    let creds = ce(`div`,false,`details`)
 
     creds.append(ce('span', false, `info`, a.views ? `Просмотров: ${a.views}` : ``))
     creds.append(ce('span', false, `info`, a.createdAt ? `Создан(-а): ${drawDate(a.createdAt._seconds*1000)}` : a.createdAt))
@@ -1372,7 +1514,7 @@ function showAuthor(a, id) {
 
 
 
-        p.append(deleteButton(`authors`, a.id, !a.active))
+        p.append(deleteButton(`authors`, a.id, !a.active,[`dark`,`dateButton`]))
 
 
 
@@ -1384,7 +1526,7 @@ function showAuthor(a, id) {
 
             p.append(ce('h2', false, false, authorData.classes.length ? `Лекции` : `Лекций еще нет`))
 
-            authorData.classes.sort(byDate).forEach(cl => {
+            authorData.classes.sort(byDate).reverse().forEach(cl => {
                 p.append(showClassLine(cl))
             })
 

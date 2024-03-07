@@ -35,7 +35,7 @@ html
     #main
         h2 Логи
         for l in logs 
-            .divided
+            .sDivided
                 p.info!=new Date(l.createdAt._seconds*1000).toLocaleString()
                 p!=l.text
                 if(l.ticket)

@@ -590,6 +590,22 @@ function logButton(collection,id,credit){
     })
 }
 
+function toggleButton(collection, id, attr, value, ifYes,ifNo, cl){
+    let b = ce('button',false,cl||false,value?ifYes:ifNo,{
+        dataset:{on:value?1:0},
+        onclick:function(){
+            axios.put(`/${host}/admin/${collection}/${id}`,{
+                attr: attr,
+                value: !(Number(this.dataset.on))
+            }).then(s=>{
+                this.dataset.on = !(Number(this.dataset.on))?1:0
+                handleSave(s)
+            }).catch(handleError)
+        }
+    })
+    return b;
+}
+
 function logLine(l){
     let c = ce('div',false,`sDivided`)
         c.append(ce(`span`,false,`info`,drawDate(l.createdAt._seconds*1000)))
@@ -705,11 +721,13 @@ function load(collection, id) {
 
 
 
-function sortBlock(sortTypes,container,array,callback){
-    let c = ce('div',false,`controls`)
+function sortBlock(sortTypes,container,array,callback,style){
+    let c = ce('div',false,[`controls`,`flex`])
     sortTypes.forEach(type=>{
-        c.append(ce('button',false,false,type.name,{
-            onclick:()=>{
+        c.append(ce('button',false,style||false,type.name,{
+            onclick:function(){
+                c.querySelectorAll(`.active`).forEach(b=>b.classList.remove(`active`))
+                this.classList.add(`active`)
                 container.innerHTML = null;
                 array.sort((a,b)=>{
                     switch(type.attr){
@@ -736,8 +754,8 @@ function sortBlock(sortTypes,container,array,callback){
     return c;
 }
 
-function archiveButton(container){
-    return ce('button',false,false,`Показать архивные записи`,{
+function archiveButton(container,cl){
+    return ce('button',false,cl||false,`Показать архивные записи`,{
         onclick:()=>{
             container.querySelectorAll(`.hidden`).forEach(c=>{
                 c.classList.toggle(`hidden`)
@@ -814,16 +832,28 @@ function newAuthor() {
     }))
 }
 
+function showHelp(text){
+    let container = ce('div',false,`editWindow`)
+    document.body.append(container)
+    text.forEach(p=>{
+        container.append(ce(`p`,false,[`story`,`dark`],p))
+    })
+}
+
 function handleSave(s) {
+
     let ctx = `Ура! Пожалуй, стоит обновить страницу.`
 
     if (s.data.hasOwnProperty('success')){
-        return alert(`${s.data.success ? sudden.fine() : sudden.sad()} ${s.data.comment}` || ctx)
+        return alert(`${s.data.success ? sudden.fine() : sudden.sad()} ${s.data.comment || ''}` || ctx)
     } else {
         alert(ctx)
     }
 }
 
+function unameShort(user){
+    return `${user.username ? `@${user.username}` : (user.first_name+' '+user.last_name).trim() }`
+}
 
 var sudden = {
     good: [

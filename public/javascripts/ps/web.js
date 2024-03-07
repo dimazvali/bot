@@ -31,11 +31,11 @@ function drawSchedule(events, start) {
     return cc
 }
 
-function getPicture(id){
-    return  load(`images`,id).then(img=>{
+function getPicture(thumb, file){
+    return  load(`images`,thumb||file).then(img=>{
         return ce(`img`,false,`preview`,false,{
             src:    img.src,
-            onclick: ()=>window.open(img.src)
+            onclick: ()=>thumb ? load(`images`,file).then(img=>window.open(img.src)) : window.open(img.src)
         })
     })
 }
@@ -227,12 +227,41 @@ function showNewTag(){
     p.append(sb)
 }
 
+
+function mediaLine(){
+    let mc = ce('div',false,`relative`)
+    let media = ce('input',false,[`block`,`media`],false,{placeholder: `фото или видео`,onchange:function(){
+        mc.querySelectorAll(`img`).forEach(img=>img.remove())
+        if(this.value) mc.prepend(ce(`img`,false,`micro`,false,{src:this.value}))
+    }
+})
+    let db = ce('div',false,`delete`,`❌`,{
+        onclick:function(){
+            this.parentNode.remove()
+        }
+    })
+    
+    mc.append(media)
+    mc.append(db)
+    return mc
+}
+
 function showNewNews(){
     closeLeft()
     let p = preparePopupWeb(`newNews`)
-    p.append(ce('h2',false,false,`Новая рассылка`))
+    p.append(ce('h2',false,`infoBubble`,`Новая рассылка`,{
+        onclick:()=>showHelp([
+            `Здесь вы можете составлять рассылки (текстовые и не только) как по всем активным пользователям, так и по ролям или тегам.`,
+            `Обратите внимание, что пользователи, заблокировавшие бот, не получат вашего сообщения.`,
+            `Фотографии для публикаций вставляются ссылками. Загрузить картинки можно <a href="https://console.firebase.google.com/u/0/project/psbot-7faf5/storage/psbot-7faf5.appspot.com/files" targtet="_firebase">здесь</a>.`
+        ])
+    }))
     
     let name = ce('input',false,`block`,false,{placeholder: `Название`})
+
+    
+    
+
     let desc = ce('textarea',false,false,false,{placeholder: `Текст`})
     
     let select = ce(`select`)
@@ -277,11 +306,16 @@ function showNewNews(){
         onclick:function(){
             if(name.value && desc.value){
                 this.setAttribute(`disabled`,true)
+                let media = []
+                p.querySelectorAll('.media').forEach(inp=>{
+                    if(inp.value) media.push(inp.value)
+                })
                 axios.post(`/${host}/admin/news`,{
                     name:           name.value,
                     text:           desc.value,
                     tag:            tag.value,
-                    filter:         select.value
+                    filter:         select.value,
+                    media:          media
                 }).then(r=>{
                     alert(r.data.comment)
                 }).catch(err=>{
@@ -297,6 +331,15 @@ function showNewNews(){
     p.append(inpC)
 
     inpC.append(name)
+    inpC.append(mediaLine())
+    inpC.append(ce(`button`,false,`thin`,`Добавить фото`,{
+        onclick:function(){
+            // console.log(this)
+            let copy = mediaLine()
+            // copy.value = null;
+            this.parentNode.insertBefore(copy,this)
+        }
+    }))
     inpC.append(desc)
     inpC.append(select)
     inpC.append(tag)
@@ -317,7 +360,7 @@ function showNewTask(){
                 this.setAttribute(`disabled`,true)
                 axios.post(`/${host}/admin/tasks`,{
                     name:           name.value,
-                    description:    desc.value
+                    description:    desc.value,
                 }).then(r=>{
                     alert(r.data.comment)
                 }).catch(err=>{
@@ -790,7 +833,7 @@ function showUserLine(u,cnt){
             ready:      u.ready,
             concent:    u.concent,
             notYet:     u.concent && !u.ready,
-            viewed:     u.viewed
+            viewed:     u.vi
         }
     })
 
@@ -814,7 +857,7 @@ function message(m){
         onclick:()=> showNewsNews(m.news)
     }))
     c.append(ce('p',false,false, m.text || `картинка`))
-    if(m.thumb || m.file_id) getPicture(m.thumb || m.file_id).then(img=>c.append(img))
+    if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>c.append(img))
     return c
 }
 
@@ -847,7 +890,7 @@ function showIncoming(){
                     // TBC: сделать оценку
                 }
                 if(s.message) load(`messages`,s.message).then(m=>{
-                    if(m.thumb || m.file_id) getPicture(m.thumb || m.file_id).then(img=>c.append(img)) 
+                    if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>c.append(img))
                 })
             },i*100)
         })
@@ -914,12 +957,8 @@ function showSubmissions(userTaskId){
             p.append(c)
             if(s.admin) load(`users`,s.admin).then(admin=>c.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
             if(s.message) load(`messages`,s.message).then(m=>{
-                if(m.thumb || m.file_id) load(`images`,(m.thumb || m.file_id)).then(img=>{
-                    c.append(ce(`img`,false,`preview`,false,{
-                        src: img.src,
-                        onclick: window.open(img.src)
-                    }))
-                })
+                if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>c.append(img))
+                
             })
         })
     })
@@ -1044,12 +1083,7 @@ function showTask(taskId){
                     submissions.append(c)
                 if(s.admin) load(`users`,s.admin).then(admin=>c.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
                 if(s.message) load(`messages`,s.message).then(m=>{
-                    if(m.thumb || m.file_id) load(`images`,m.thumb || m.file_id).then(img=>{
-                        c.append(ce(`img`,false,`preview`,false,{
-                            src: img.src,
-                            onclick:()=> window.open(img.src)
-                        }))
-                    })
+                    if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>c.append(img))
                 })
                 if(s.user){
                     load(`users`,s.user).then(u=>{

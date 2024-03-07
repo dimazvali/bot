@@ -16,7 +16,9 @@ const {
     getDoc,
     uname,
     drawDate,
-    devlog
+    devlog,
+    letterize,
+    letterize2
 } = require ('./common.js')
 
 const {
@@ -131,6 +133,8 @@ let classesOffers =     fb.collection(`classesOffers`);
 let views =             fb.collection(`views`);
 let subscriptions =     fb.collection(`subscriptions`);
 let courses =           fb.collection(`courses`);
+let wineList =          fb.collection('wineList') 
+
 
 
 coworkingRules.get().then(col => {
@@ -396,10 +400,36 @@ router.all(`/admin/:method`, (req, res) => {
 
         udb.doc(req.query.id).get().then(user => {
             if (!user.exists) return res.status(401).send(`Вы кто вообще?`)
+            let admin = common.handleDoc(user)
+
             user = user.data();
+            
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
-                // case `roomsBlocked`
+                case `coworking`:{
+                    return coworking
+                        .where(`date`,'>=',req.query.start||new Date().toISOString().split('T')[0])
+                        .where(`active`,'==',true)
+                        .get()
+                        .then(col=>{
+                            let records = common.handleQuery(col)
+                            let hallsList = [...new Set(records.map(r=>r.hall))]
+                            let hallsData = [];
+                            hallsList.forEach(id=>{
+                                hallsData.push(halls.doc(id).get().then(h=>common.handleDoc(h)))
+                            })
+                            Promise.all(hallsData).then(hd=>{
+                                res.json({
+                                    records: records.map(r=>{
+                                        let t = r;
+                                        t.hallName = hd.filter(h=>h.id == r.hall)[0].name
+                                        return t
+                                    }),
+                                    halls: hd
+                                })
+                            })
+                        })
+                }
                 case `halls`:{
                     switch(req.method){
                         case 'GET':{
@@ -510,35 +540,33 @@ router.all(`/admin/:method`, (req, res) => {
                     })
                 }
                 case `announce`:{
-                    devlog(req.body)
+                    
                     let list = userClasses.where(`class`,`==`,req.body.class);
                     if(req.body.type == `all`) list = list.where('active', '==', true)
                     if(req.body.type == `inside`) list = list.where('status', '==', `used`)
                     if(req.body.type == `outside`) list = list.where('status', '!=', `used`)
                     
                     return list.get()
-                    .then(tickets=>{
-                        common.handleQuery(tickets).forEach(t=>{
-                            
-                            devlog(t);
-
-                            m.sendMessage2({
-                                chat_id: t.user,
-                                text: req.body.text,
-                                reply_markup: {
-                                    inline_keyboard: [
-                                        [{
-                                            text: translations.openClass.en,
-                                            web_app: {
-                                                url: process.env.ngrok + '/paper/app/start=class_'+req.body.class
-                                            }
-                                        }]
-                                    ]
-                                }
-                            }, false, token)
+                        .then(tickets=>{
+                            common.handleQuery(tickets).forEach(t=>{
+                                
+                                m.sendMessage2({
+                                    chat_id: t.user,
+                                    text: req.body.text,
+                                    reply_markup: {
+                                        inline_keyboard: [
+                                            [{
+                                                text: translations.openClass.en,
+                                                web_app: {
+                                                    url: process.env.ngrok + '/paper/app?start=class_'+req.body.class
+                                                }
+                                            }]
+                                        ]
+                                    }
+                                }, false, token)
+                            })
+                            res.sendStatus(200)
                         })
-                        res.sendStatus(200)
-                    })
                     .catch(handleError)
                 }
                 case 'feedBack':{
@@ -1330,6 +1358,37 @@ router.all(`/admin/:method`, (req, res) => {
                             res.json(common.handleQuery(col))
                         })
                 }
+
+                case `wine`:{
+                    if(!req.body.user) return res.sendStatus(400)
+                    return udb.doc(req.body.user.toString()).get().then(u=>{
+                        if(!u.exists) return res.sendStatus(404)
+                        u = common.handleDoc(u)
+                        if(!req.body.left) req.body.left = 5;
+                        wineList.add({
+                            createdAt:  new Date(),
+                            createdBy:  +admin.id,
+                            user:       +req.body.user,
+                            left:       +req.body.left
+                        }).then(s=>{
+                            res.json({
+                                id: s.id,
+                                success: true,
+                                comment: `Налито ${req.body.left}.`
+                            })
+                            log({
+                                text: `${uname(admin,admin.id)} наливает гостю ${uname(u, u.id)} ${req.body.left} бокалов вина`,
+                                user: req.body.user,
+                                admin: +admin.id
+                            })
+                            m.sendMessage2({
+                                chat_id: u.id,
+                                caption: `Поздравяем! Вы оформили абонемент на вино в Гамоцеме.\n${common.letterize(req.body.left,'ходка')} в вашем распоряжении.\nuse it wisely`,
+                                photo: process.env.ngrok + `/paper/qr?id=${s.id}&entity=wineList`
+                            }, 'sendPhoto', token)
+                        })
+                    })
+                }
                 default:
                     res.sendStatus(404)
             }
@@ -1738,6 +1797,17 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                     })
                 }
 
+                
+
+                case `wineByUser`:{
+                    return wineList
+                        .where(`user`,'==',+req.params.id)
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col,true))
+                        })
+                }
+
                 default:{
                     return res.sendStatus(404)
                 }
@@ -1879,7 +1949,10 @@ if(!process.env.develop){
     cron.schedule(`0 5 * * *`, () => {
         alertSoonCoworking()
         alertAdminsCoworking()
+        countUserEntries(1)
     })
+
+    
     
     cron.schedule(`0 11 * * *`, () => {
         alertSoonClasses()
@@ -2223,44 +2296,7 @@ router.get(`/mini/:section/:id`,(req,res)=>{
 
 if(process.env.develop){
     router.get('/test', (req, res) => {
-        // alertNewClassesOffers()
-        alertMiniStats(1)
-        // feedBackRequest(req.query.class);
-//         coworking
-//             .where(`active`,'==',true)
-//             .get()
-//             .then(col=>{
-//                 let users = [... new Set(common.handleQuery(col).map(r=>+r.user))] 
-//                 common.devlog(users)
-//                 common.devlog(users.length)
-//                 let toSend = []
-//                 users.forEach(u=>{
-//                     toSend.push(m.getUser(u,udb))
-//                 })
-//                 Promise.all(toSend).then(users=>{
-//                     let clear = users.map(u=>{
-//                         return {
-//                             id: u.id,
-//                             lang: u.language_code,
-//                             name: u.first_name
-//                         }
-//                     })
-
-//                     clear.forEach((u,i)=>{
-//                         setTimeout(()=>{
-//                             m.sendMessage2({
-//                                 chat_id: u.id,
-//                                 caption:`Хей-хо, ${u.name}!
-
-// Настоящее сообщение создано и/или распространено баром Gamotsema, который по-прежнему работает в пространстве Papers, но с завтрашнего дня открывается с 14 часов во все будни кроме понедельника. Теперь у нас снова есть кофе, к которому добавились домашние лимонады — оранжад и зеленый чай с тоником. До конца августа по билету в коворкинг вы сможете в любой день выпить белое вино за 6 лари вместо 8, а кофе, как и в пространстве наверху, вам полагается бесплатно. Домашние лимонады мы отдаем за 5 лари. Так что рабочий перерыв в саду с бокалом холодного ркацители или стаканом лимонада на наших собственных сиропах и фрешах теперь не мечта, а реальность!
-                                
-// Ну и не забывайте, что по вечерам у нас всегда можно взять коктейльную классику или специалитеты, вина и пиво, чтобы слегка прийти в себя по дороге домой. Гаихаре!`,
-//                                 photo: `https://firebasestorage.googleapis.com/v0/b/paperstuff-620fa.appspot.com/o/gamotsema%2FIMG_0309%20(2).JPG?alt=media&token=b0c8a2c4-481b-467b-81e6-34b286162c5a`
-//                             },'sendPhoto',token)
-//                         },i*100)
-//                     })
-//                 })
-//             })
+        countUserEntries(1);
         res.sendStatus(200)
     })
 }
@@ -2346,6 +2382,18 @@ function feedBackRequest(c){
                 return common.handleQuery(col).length
             })
     })
+}
+
+function countUserEntries(days){
+    userEntries
+        .where(`createdAt`,'>=',new Date(new Date()-days*24*60*60*1000))
+        .get()
+        .then(col=>{
+            col = common.handleQuery(col)
+            log({
+                text: `За последние сутки ${letterize([... new Set(col.map(r=>r.user))].length,`гость`)} ${letterize(col.length,`раз`)} открывали приложение.`
+            })
+        })
 }
 
 function alertAdminsCoworking() {
@@ -3377,6 +3425,10 @@ function sendHalls(id, lang) {
 
 
 const translations = {
+    tooLate:{
+        ru: `Извините, нельзя отменить прошлое. И прошедшее.`,
+        en: `We're sorry: too late to reconsider`
+    },
     staff:{
         ru: `Дорогая редакция`,
         en: `Come and work with us`
@@ -6173,8 +6225,7 @@ router.post('/hook', (req, res) => {
         user = req.body.message.from
 
         udb.doc(user.id.toString()).get().then(u => {
-            
-            
+
             if (!u.exists) registerUser(user)
 
             if(!u.data().active){
@@ -6183,7 +6234,7 @@ router.post('/hook', (req, res) => {
                     stopped: null
                 }).then(s=>{
                     log({
-                        text: `Пользователь id ${user.id} возвращается`,
+                        text: `${uname(user.data(),user.id)} возвращается`,
                         user: +user.id
                     })  
                 })
@@ -7134,7 +7185,7 @@ router.post('/hook', (req, res) => {
                 message_id: req.body.callback_query.message.message_id
             }, 'unpinChatMessage', token)
 
-            unClassUser(inc[1], user)
+            unClassUser(inc[1], user,false,false,req.body.callback_query.id)
             
             
         }
@@ -8603,7 +8654,7 @@ function handleError(err) {
     }
 }
 
-function unClassUser(ref, user, res, id) {
+function unClassUser(ref, user, res, id, callback_query) {
     if (!user) {
         user = udb.doc(id).get().then(u => {
             let t = u.data();
@@ -8632,89 +8683,98 @@ function unClassUser(ref, user, res, id) {
                     })
                 }
             } else {
-                if (appointment.data().user == +user.id) {
 
-                    userClasses.doc(ref).update({
-                        active: false
-                    }).then(() => {
+                appointment = common.handleDoc(appointment)
 
-                        classes.doc(appointment.data().class).update({
-                            visitors: FieldValue.increment(-1)
-                        })
+                if (appointment.user == +user.id) {
 
-                        if (res) {
-                            res.json({
-                                success: true,
-                                text: `bookingCancelled`
+                    if(appointment.active){
+
+                        if(new Date(appointment.date) < new Date()){
+                            if(res) res.json({
+                                success: false,
+                                text: `tooLate`
                             })
+                            
+                            if (callback_query) m.sendMessage2({
+                                callback_query_id: callback_query,
+                                show_alert: true,
+                                text: translations.tooLate[user.language_code] || translations.tooLate.en
+                            }, 'answerCallbackQuery', token)
+
+                        } else {
+                            userClasses.doc(ref).update({
+                                active: false
+                            }).then(() => {
+        
+                                classes.doc(appointment.class).update({
+                                    visitors: FieldValue.increment(-1)
+                                })
+        
+                                if (res) {
+                                    res.json({
+                                        success: true,
+                                        text: `bookingCancelled`
+                                    })
+                                }
+    
+                                if (callback_query) m.sendMessage2({
+                                    callback_query_id: callback_query,
+                                    show_alert: true,
+                                    text: translations.bookingCancelled[user.language_code] || translations.bookingCancelled.en
+                                }, 'answerCallbackQuery', token)
+        
+                                userClasses.doc(ref).get().then(d => {
+                                    classes.doc(d.data().class).get().then(c => {
+                                        log({
+                                            text: `${uname(user, user.id)} отказывается от места на лекции  ${c.data().name}`,
+                                            user: user.id,
+                                            class: d.data().class
+                                        })
+                                    })
+        
+        
+        
+                                    userClassesWL
+                                        .where(`active`,'==',true)
+                                        .where('class','==',d.data().class)
+                                        .get()
+                                        .then(col=>{
+                                            let line = common.handleQuery(col)
+                                            if(line.length){
+                                                let next = line.sort((a,b)=>a.createdAt._seconds - b.createdAt._seconds)[0]
+                                                bookClass(false,d.data().class,false,next.user)
+                                            }
+                                        })
+                                })
+        
+                                
+        
+        
+        
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    text: translations.appointmentCancelled[user.language_code] || translations.appointmentCancelled.en
+                                }, false, token)
+        
+    
+        
+                            }).catch(handleError)
                         }
 
-                        userClasses.doc(ref).get().then(d => {
-                            classes.doc(d.data().class).get().then(c => {
-                                log({
-                                    text: `${uname(user, user.id)} отказывается от места на лекции  ${c.data().name}`,
-                                    user: user.id,
-                                    class: d.data().class
-                                })
-                            })
-
-
-
-                            userClassesWL
-                                .where(`active`,'==',true)
-                                .where('class','==',d.data().class)
-                                .get()
-                                .then(col=>{
-                                    let line = common.handleQuery(col)
-                                    if(line.length){
-                                        let next = line.sort((a,b)=>a.createdAt._seconds - b.createdAt._seconds)[0]
-                                        bookClass(false,d.data().class,false,next.user)
-                                    }
-                                    // common.handleQuery(col).forEach(wl=>{
-                                    //     udb.doc(wl.user.toString()).get().then(u=>{
-                                    //         u = u.data();
-                                    //         if(!u.blocked){
-                                    //             m.sendMessage2({
-                                    //                 chat_id:    wl.user,
-                                    //                 text:       translations.spareTicket(wl.className)[u.language_code] || translations.spareTicket(wl.className).en,
-                                    //                 reply_markup:{
-                                    //                     inline_keyboard:[[{
-                                    //                         text: translations.book[u.language_code] || translations.book.en,
-                                    //                         callback_data: 'class_' + wl.class
-                                    //                     }]]
-                                    //                 }
-                                    //             },false,token).then(s=>{
-                                    //                 userClassesWL.doc(wl.id).update({
-                                    //                     active: false,
-                                    //                     sent: new Date()
-                                    //                 })
-                                    //             }).catch(err=>{
-                                    //                 console.log(err)
-                                    //             })
-                                    //         }
-                                    //     })
-                                        
-                                    // })
-                                })
-                        })
-
                         
-
-
-
-                        m.sendMessage2({
-                            chat_id: user.id,
-                            text: translations.appointmentCancelled[user.language_code] || translations.appointmentCancelled.en
-                        }, false, token)
-
-
-                        axios.post(sheet, `intention=unClass&appointment=${ref}`, {
-                            headers: {
-                                "Content-Type": "application/x-www-form-urlencoded"
-                            }
+                    } else {
+                        if(res) res.json({
+                            success: false,
+                            text: `alreadyCancelled`
                         })
-
-                    }).catch(handleError)
+                        if (callback_query) m.sendMessage2({
+                            callback_query_id: callback_query,
+                            show_alert: true,
+                            text: translations.alreadyCancelled[user.language_code] || translations.alreadyCancelled.en
+                        }, 'answerCallbackQuery', token)
+                    }
+                    
                 } else {
 
                     if (res) {

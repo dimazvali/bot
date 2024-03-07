@@ -230,7 +230,7 @@ table.wide{
     display: inline !important;
 }
 
-.inpC>textarea, .inpC>input {
+.inpC>textarea, .inpC>input,.inpC>*>input {
     display: block;
     margin-bottom: 10px;
     background: #ffffffb5;
@@ -271,4 +271,62 @@ h4.mtop {
 
 button.dateButton.active {
     background: var(--accent);
+}
+
+
+.fineButton::before {
+    content: '';
+    background: linear-gradient(135deg, var(--accent),var(--accent) 50%, transparent 50%);
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    left: 0;
+}
+
+.fineButton {
+    position: relative;
+    overflow: hidden;
+}
+
+.fineButton::after {
+    content: '✔';
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+    height: 15px;
+    width: 10px;
+    line-height: 10px;
+    text-align: center;
+    font-size: 10px;
+}
+
+.delete {
+    cursor: pointer;
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translate(0, -50%);
+}
+
+.relative {position: relative;}
+
+img.micro {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 60px;
+}
+
+img.micro+.media {
+    padding-left: 50px;
+}
+
+.media{
+    padding-left: 0;
+    transition: .5;
+}
+
+.story.dark{
+    color: var(--dark);
 }
