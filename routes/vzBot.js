@@ -71,7 +71,7 @@ let gcp = initializeApp({
         "type": "service_account",
         "project_id": "vmestezdoroveeru",
         "private_key_id": process.env.vzKeyId,
-        "private_key": process.env.vzKey,
+        "private_key": process.env.vzKey.replace(/\\n/g, '\n'),
         "client_email": "firebase-adminsdk-nczte@vmestezdoroveeru.iam.gserviceaccount.com",
         "client_id": "110699901835472042312",
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
