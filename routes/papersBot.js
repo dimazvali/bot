@@ -3446,19 +3446,9 @@ function registerUser(u) {
         d.id = u.id
         d.createdAt = new Date().toISOString()
 
-        axios.post(sheet, Object.keys(d).map(k => `${k}=${d[k]}`).join('&'), {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-        }).then(d => {
-            // console.log(d.data)
-        }).catch(err => {
-            console.log(err.message)
-        })
-
         alertAdmins({
             type: 'newUser',
-            text: `Новый пользователь бота (№${col.docs.length}):\n${JSON.stringify(u,null,2)}`,
+            text: `Новый пользователь бота:\n${JSON.stringify(u,null,2)}`,
             user_id: u.id
         })
 
