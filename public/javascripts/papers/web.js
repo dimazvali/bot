@@ -105,7 +105,9 @@ function drawCoworkingShedule(records,start){
                     dataset:{hall:e.hall}
                 })
                     rec.append(ce(`span`,false,`info`,e.hallName))
-                load(`users`,e.user).then(u=>rec.append(ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg')],unameShort(u,u.id),{
+                load(`users`,e.user).then(u=>rec.append(ce(`button`,false,
+                    [`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg']
+                    ,unameShort(u,u.id),{
                     onclick:()=> showUser(u,u.id)
                 })))
                 day.append(rec)
@@ -990,6 +992,59 @@ function showUsersChart(userData) {
     }); // end am5.ready()
 }
 
+function showRC(){
+    closeLeft()
+    mc.innerHTML = '<h1>Random coffee</h1>'
+    
+    window.history.pushState({}, "", `web?page=rc`);
+    let usersC = ce('div')
+    let listing = ce('div')
+    
+    mc.append(ce('button',false,[`dark`,`dateButton`],`Запустить`,{
+        onclick:function(){
+            let sure = confirm(`Уверены?`)
+            if(sure) {
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/rc`)
+                .then(handleSave)
+                .catch(handleError)
+            }
+        }
+    }))
+
+    mc.append(usersC)
+    mc.append(listing)
+
+    load(`rcParticipants`).then(users=>{
+        usersC.append(ce('h3',false,false,`Участников: ${users.length}`))
+    })
+    
+    load(`rc`).then(coffees=>{
+        listing.append(ce(`h3`,false,false,`Встречи`))
+        coffees.forEach(couple=>{
+            listing.append(rcLine(couple))
+        })
+    })
+}
+
+function rcLine(couple){
+    let c = ce('div',false,[`sDivided`,`flex`])
+        c.append(ce(`span`,false,`info`,drawDate(couple.createdAt._seconds*1000)))
+        let users = ce(`div`,false,`flex`)
+        c.append(users)
+    load(`users`,couple.first).then(f=>{
+        users.append(ce('button',false,[`dark`,`dateButton`],uname(f,f.id),{
+            onclick:()=>showUser(f,f.id)
+        }))
+        load(`users`,couple.second).then(s=>{
+            users.append(ce('button',false,[`dark`,`dateButton`],uname(s,s.id),{
+                onclick:()=>showUser(s,s.id)
+            }))    
+        })
+    })
+    return c;
+}
+
 function showUsers() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
@@ -1066,7 +1121,8 @@ function showUsers() {
                     media:      `Журналисты`,
                     advertisement: `реклама и PR`,
                     other:      `разное`,
-                    lawyer:     `Юриспруденция`
+                    lawyer:     `Юриспруденция`,
+                    randomCoffee: `random coffee members`
                 }
     
                 Object.keys(filterTypes).forEach(type => {
@@ -1119,6 +1175,7 @@ function showUsers() {
 function showUserLine(u, cnt) {
     let c = ce(`div`, false, `userLine`, false, {
         dataset: {
+            randomCoffee: u.randomCoffee,
             active:     u.active,
             blocked:    !u.active,
             admin:      u.admin,
@@ -1220,6 +1277,8 @@ function showUser(u, id) {
                 }
             }))
         })
+
+        p.append(toggleButton(`users`,u.id,`randomCoffee`,u.randomCoffee||false,`Убрать из randomCoffee`,`Добавить в randomCoffee`,[`dateButton`,`dark`]))
 
         let lecs = ce('div')
         p.append(lecs)

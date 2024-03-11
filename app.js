@@ -43,6 +43,7 @@ app.use('/wtg',         require('./routes/wtgBot'));
 app.use('/test',        require('./routes/test'));
 app.use('/cyprus',      require('./routes/cyprus'));
 app.use('/ps',          require('./routes/psBot'));
+app.use('/vz',          require('./routes/vzBot'));
 
 
 // catch 404 and forward to error handler

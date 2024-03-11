@@ -531,7 +531,7 @@ router.post('/hook', (req, res) => {
 
                     log({
                         text: `${uname(u,u.id)} блочит бот`,
-                        user: u.id
+                        user: +u.id
                     })
                 })
                 

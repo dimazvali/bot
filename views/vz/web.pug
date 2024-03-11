@@ -1,0 +1,45 @@
+
+doctype html
+html
+  head
+    title Вместе здоровее
+    //- script(src='https://telegram.org/js/telegram-web-app.js')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(type='description' content='Попробуйте — вам понравится.')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script(src='/javascripts/common.js')
+    
+    script!=`${start?`let start="${start}"`:'let start=null'}`
+    script!=`let token="${token}"`
+    link(rel='stylesheet', href='/stylesheets/vz/webapp.css')
+    link(rel='stylesheet', href='/stylesheets/vz/web.css')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap")
+    script(src="https://cdn.amcharts.com/lib/5/index.js")
+    script(src="https://cdn.amcharts.com/lib/5/xy.js")
+    script(src="https://cdn.amcharts.com/lib/5/themes/Animated.js")
+  body.mobile
+    
+    #left
+        h3(onclick="showUsers()")       Пользователи
+        h3(onclick="showCourses()")     Курсы
+        h3(onclick="showStreams()")     Потоки
+        h3(onclick="showPromo()")       Промо
+        h3(onclick="showRecipies()")    Рецепты
+        h3(onclick="showLogs()")        Логи
+        
+    
+    #menu(onclick="left.classList.toggle('active')")
+
+    #main
+        h2 Логи
+        for l in logs 
+            .sDivided
+                p.info!=new Date(l.createdAt).toLocaleString()
+                //- p.info!=
+                p!=l.text
+                if(l.user)
+                    button.dateButton.dark(onclick=`showUser(false,${l.user})`) Открыть профиль
+                
+    script(src='/javascripts/vz/web.js')

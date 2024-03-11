@@ -32,6 +32,9 @@ function drawSchedule(events, start) {
 }
 
 function getPicture(thumb, file){
+    
+    console.log(thumb, file)
+
     return  load(`images`,thumb||file).then(img=>{
         return ce(`img`,false,`preview`,false,{
             src:    img.src,
@@ -872,12 +875,20 @@ function showIncoming(){
         p.append(listing)
         inc.forEach((s,i)=>{
             setTimeout(()=>{
-                let c = ce(`div`,false,'sDivided')
-                listing.append(c)    
-                c.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
-                c.append(ce('h3',false,false,s.name))
+                let c = ce(`div`,false,['sDivided',`flex`])
+                listing.append(c)
+
+                let left = ce(`div`,false,`previewContainer`)
+                let right = ce(`div`)
+
+                c.append(left)
+                c.append(right)
+                
+
+                right.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
+                right.append(ce('h3',false,false,s.name))
                 let udata = ce('div')
-                c.append(udata)
+                right.append(udata)
                 load(`users`,s.user).then(u=>{
                     udata.append(ce('p',false,false,uname(u,u.id)))
                     udata.append(ce('button',false,[`dateButton`,`dark`],`Открыть профиль`,{
@@ -885,12 +896,12 @@ function showIncoming(){
                     }))
                 })
                 if(s.score){
-                    c.append(ce('p',false,false,`Оценка: ${s.score}.`))
+                    right.append(ce('p',false,false,`Оценка: ${s.score}.`))
                 } else {
                     // TBC: сделать оценку
                 }
                 if(s.message) load(`messages`,s.message).then(m=>{
-                    if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>c.append(img))
+                    if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>left.append(img))
                 })
             },i*100)
         })
@@ -908,12 +919,18 @@ function showUnseen(){
         p.append(listing)
         inc.forEach((s,i)=>{
             setTimeout(()=>{
-                let c = ce(`div`,false,'sDivided')
-                listing.append(c)    
-                c.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
-                // c.append(ce('h3',false,false,s.name))
+                let c = ce(`div`,false,['sDivided',`flex`])
+                listing.append(c)
+
+                let left = ce(`div`,false,`previewContainer`)
+                let right = ce(`div`)
+
+                c.append(left)
+                c.append(right)
+
+                right.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
                 let udata = ce('div')
-                c.append(udata)
+                right.append(udata)
                 load(`users`,s.user).then(u=>{
                     udata.append(ce('p',false,false,uname(u,u.id)))
                     udata.append(ce('button',false,[`dateButton`,`dark`],`Открыть профиль`,{
@@ -921,18 +938,18 @@ function showUnseen(){
                     }))
                 })
 
-                c.append(ce('p',false,false,`Выберите задание`,{
+                right.append(ce('p',false,false,`Выберите задание`,{
                     onclick:function(){
                         edit(`messages`,s.id, `task`,`task`)
                     }
                 }))
 
                 if(s.score){
-                    c.append(ce('p',false,false,`Оценка: ${s.score}.`))
+                    right.append(ce('p',false,false,`Оценка: ${s.score}.`))
                 } else {
                     // TBC: сделать оценку
                 }
-                if(s.thumb || s.file_id) getPicture(s.thumb || s.file_id).then(img=>c.append(img))
+                if(s.thumb || s.file_id) getPicture(s.thumb, s.file_id).then(img=>left.append(img))
                 // if(m.file_id) getPicture(m.file_id).then(img=>c.append(img))
             },i*100)
         })
@@ -950,14 +967,20 @@ function showSubmissions(userTaskId){
         p.append(ce(`p`,false,false,`Описание задания: ${task.taskData.description}`))
         p.append(ce('h3',false,false,`Материалы:`))
         task.submissions.forEach(s=>{
-            let c = ce('div',false,`sDivided`)
-                p.append(c)
-                c.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
-                c.append(ce(`p`,false,false,`Оценка: ${s.score}`))
+            let c = ce('div',false,[`sDivided`,`flex`])
+                
+                let left = ce(`div`,false,`previewContainer`)
+                let right = ce(`div`)
+
+                c.append(left)
+                c.append(right)
+
+                right.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
+                right.append(ce(`p`,false,false,`Оценка: ${s.score}`))
             p.append(c)
-            if(s.admin) load(`users`,s.admin).then(admin=>c.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
+            if(s.admin) load(`users`,s.admin).then(admin=>right.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
             if(s.message) load(`messages`,s.message).then(m=>{
-                if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>c.append(img))
+                if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>left.append(img))
                 
             })
         })
@@ -1069,7 +1092,7 @@ function showTask(taskId){
             }
         }))
 
-        if(task.active) p.append(deleteButton(`tasks`,taskId))
+        p.append(deleteButton(`tasks`,taskId,!task.active,[`dark`,`dateButton`]))
 
         let submissions = ce('div')
         p.append(submissions)
@@ -1228,7 +1251,14 @@ function showTasks(){
     let p = preparePopupWeb(`tasks`)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`tasks`).then(tasks=>{
-        p.innerHTML = `<h2>Задания</h2>`
+        p.innerHTML = null;
+        p.append(ce('h2',false,`infoBubble`,`Задания`,{
+            
+            onclick:()=>showHelp([
+                `Здесь вы можете создавать новые задания, к которым в дальнейшем будут привязываться присланные пользователями материалы.`,
+                `При добавлении нового задания пользователи с меткой "готовы" получат сообщения с названием и описанием задания.`
+            ])
+        }))
         p.append(ce('button',false,`dateButton`,`Добавить`,{
             dataset:{booked:1},
             onclick:()=>showNewTask()
@@ -1418,20 +1448,4 @@ function load(collection, id) {
     return axios.get(`/${host}/admin/${collection}${id?`/${id}`:''}`).then(data => {
         return data.data
     })
-}
-
-function preparePopupWeb(name){
-    let c = ce('div',false,'popupWeb')
-    c.append(ce('span',false,`closeMe`,`✖`,{
-        onclick:()=>{
-            c.classList.add(`slideBack`)
-            setTimeout(function(){
-                c.remove()
-            },500)
-        }
-    }))
-    document.body.append(c)
-    let content = ce('div',false,`content`)
-    c.append(content)
-    return content;
 }

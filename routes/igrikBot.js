@@ -733,7 +733,7 @@ function classJoin(id, utoken, appointment_id, res, appointment){
                 }).then(price=>{    
                     let pd = {
                         "chat_id": id,
-                        "title": `Прдеоплата занятия ${timeanddate}`,
+                        "title": `Предоплата занятия ${timeanddate}`,
                         "description": `Если ты передумаешь — мы вернем оплату (но только если до занятия останется больше 5 часов).`,
                         "payload": `${appointment_id}`,
                         need_phone_number: true,
@@ -749,7 +749,6 @@ function classJoin(id, utoken, appointment_id, res, appointment){
                                     quantity: "1.00",
                                     amount:{
                                         value: 500.0,
-                                        // (+price.data.data[0].price).toFixed(1),
                                         currency: 'RUB'
                                     },
                                     vat_code: 1
@@ -761,12 +760,8 @@ function classJoin(id, utoken, appointment_id, res, appointment){
                         "prices": [{
                             "label": d.data.data.service.title,
                             "amount":  50000
-                            // +price.data.data[0].price*100
                         }]
-        
                     }
-
-                    console.log(JSON.stringify(pd)) 
 
                     m.sendMessage2(pd, 'sendInvoice', token)
                 }).catch(err=>{

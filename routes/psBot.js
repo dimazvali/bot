@@ -110,7 +110,7 @@ const locals = {
     provideInstLogin:   `Чтобы завершить заявку, пожалуйста, пришлите ссылку на свой инстаграм.`,
     justNotYet:         `Ваша учетная запись еще не подтверждена, нам нужно еще немного времени. Это произойдет до 10 марта.`,
     fileNeeded:         `Пожалуйста, отправьте фотографию как файл (через иконку скрепки рядом с полем ввода).`,
-    congrats:           `Ваша учетная запись подтверждена и активирована! Скоро вы получите первое задание.`,
+    congrats:           `Ваша учетн+я запись подтверждена и активирована! Скоро вы получите первое задание.`,
     notWelcome:         `Простите, но мы вам больше не рады...`,
     archive: (name) =>  `Внимание! Задание «${name}» переносится в архив.`,
     reviewed: (name, score) => {
@@ -140,7 +140,7 @@ let gcp = initializeApp({
 let fb = getFirestore(gcp);
 
 
-let token = process.env.psToken;
+let token =         process.env.psToken;
 let udb =           fb.collection('users');
 let messages =      fb.collection('userMessages');
 let logs =          fb.collection('logs');
@@ -360,7 +360,7 @@ router.post(`/hook`, (req, res) => {
 
                     log({
                         text: `${uname(u,u.id)} блочит бот`,
-                        user: u.id
+                        user: +u.id
                     })
                 })
 
@@ -541,6 +541,10 @@ router.post(`/hook`, (req, res) => {
                     score: +inc[3]
                 }).then(s => {
                     replyCallBack(qid, `Оценка выставлена!`)
+                    m.sendMessage2({
+                        chat_id: user.id,
+                        message_id: req.body.callback_query.message.message_id,
+                    },`deleteMessage`,token)
                     rescore(userTasksSubmits.doc(inc[1],+inc[3]))
                 })
             }
@@ -671,7 +675,6 @@ router.post(`/hook`, (req, res) => {
             }
         }
     }
-
 })
 
 
@@ -825,7 +828,6 @@ router.all(`/admin/:method/:id`, (req, res) => {
 
             case `logs`:{
                 let q = req.params.id.split('_')
-                // devlog()
                 return logs
                     .where(q[0],'==',Number(q[1])?+q[1]:q[1])
                     .orderBy(`createdAt`,`desc`)
@@ -1164,7 +1166,6 @@ router.all(`/admin/:method`, (req, res) => {
         if (!doc.exists) return false
         doc = common.handleDoc(doc)
         if (!doc.active) return false
-        // if(!doc.admin) return false
 
         devlog(doc);
 
@@ -1172,8 +1173,6 @@ router.all(`/admin/:method`, (req, res) => {
     })
 
     Promise.resolve(access).then(admin => {
-
-        devlog(admin)
 
         if (!admin || !admin.admin) return res.sendStatus(403)
 

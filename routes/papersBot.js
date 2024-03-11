@@ -18,7 +18,8 @@ const {
     drawDate,
     devlog,
     letterize,
-    letterize2
+    letterize2,
+    shuffle,
 } = require ('./common.js')
 
 const {
@@ -133,7 +134,8 @@ let classesOffers =     fb.collection(`classesOffers`);
 let views =             fb.collection(`views`);
 let subscriptions =     fb.collection(`subscriptions`);
 let courses =           fb.collection(`courses`);
-let wineList =          fb.collection('wineList') 
+let wineList =          fb.collection('wineList');
+let randomCoffees =     fb.collection('randomCoffees');
 
 
 
@@ -406,6 +408,35 @@ router.all(`/admin/:method`, (req, res) => {
             
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
+                case `rcParticipants`:{
+                    return udb
+                        .where(`randomCoffee`,'==',true)
+                        .where(`active`,'==',true)
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col))
+                        })
+                }
+                case `rc`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return randomCoffees
+                                .where(`active`,'==',true)
+                                .get()
+                                .then(col=>{
+                                    res.json(common.handleQuery(col,true))
+                                })
+                        }
+                        case `POST`:{
+                            randomCoffee()
+                            return res.json({
+                                success: true,
+                                comment: `Рулетка запущена!`
+                            })
+                        }
+                    }
+                    
+                }
                 case `coworking`:{
                     return coworking
                         .where(`date`,'>=',req.query.start||new Date().toISOString().split('T')[0])
@@ -1395,13 +1426,87 @@ router.all(`/admin/:method`, (req, res) => {
     
         })
     })
-
-    
-
-
 })
 
 
+function randomCoffee(){
+    randomCoffees.get().then(col=>{
+        
+        before = common.handleQuery(col)
+
+        udb
+            .where(`randomCoffee`,'==',true)
+            .where(`active`,'==',true)
+            .get()
+            .then(col=>{
+                
+                let users2meet = common.handleQuery(col).filter(u=>u.occupation && u.about)
+                
+                devlog(`Количество участников: ${users2meet.length}`)
+
+                while(users2meet.length > 1){
+                    let first = users2meet.splice(0,1)[0]
+                    let exs = before.filter(couple => couple.first == +first.id || couple.second == +first.id).map(couple=>couple.first == +first.id ? couple.second : couple.first)
+                    devlog(exs)
+                    console.log(+first.id)
+                    let news = users2meet.slice().filter(u=>exs.indexOf(+u.id) == -1)
+                    if(news.length){
+                        devlog(`остается ${news.length} новых вариантов`)
+                        
+                        let randomIndex = Math.floor(Math.random()*news.length)
+                        let secondId = news[randomIndex].id
+                        let spliceIndex = users2meet.map(u=>u.id).indexOf(secondId)
+                        let second = users2meet.splice(spliceIndex,1)[0]
+                        
+                        devlog(`${uname(first,first.id)} встретится с ${uname(second,second.id)}`)
+                        
+                        randomCoffees.add({
+                            active:     true,
+                            createdAt:  new Date(),
+                            first:      +first.id,
+                            second:     +second.id
+                        }).then(r=>{
+                            m.sendMessage2({
+                                chat_id:    first.id,
+                                text:       translations.rcInvite[first.language_code](first,second) || translations.rcInvite.en(first,second)
+                            },false,token)
+                            m.sendMessage2({
+                                chat_id:    second.id,
+                                text:       translations.rcInvite[first.language_code](second,first) || translations.rcInvite.en(second,first)
+                            },false,token)
+                        })
+                    } else {
+                        devlog(`${uname(first,first.id)} перевстречался со всеми`)
+                    }
+                }
+            
+        })
+    })
+    
+}
+
+function welcome2RC(id){
+    m.getUser(id,udb).then(u=>{
+        m.sendMessage2({
+            chat_id: id,
+            text: translations.welcome2RC[u.language_code] || translations.welcome2RC.en
+        },false,token)
+        if(!u.about || !u.occupation){
+            m.sendMessage2({
+                chat_id: id,
+                text: translations.rcMissingDetails[u.language_code] || translations.rcMissingDetails.en,
+                reply_markup:{
+                    inline_keyboard:[[{
+                        text: translations.profile[u.language_code] || translations.profile.en,
+                        web_app:{
+                            url: process.env.ngrok+'/paper/app?start=profile'
+                        }
+                    }]]
+                }
+            },false,token)  
+        }
+    })
+}
 
 function updateEntity(req, res, ref, adminId,callback) {
     return ref.update({
@@ -1414,6 +1519,17 @@ function updateEntity(req, res, ref, adminId,callback) {
         if(callback){
             callback()
         }
+
+        if(req.body.attr == `randomCoffee`){
+            if(req.body.value) {
+                welcome2RC(ref.id)
+                // log({
+                //     silent: true,
+                //     text: ``
+                // })
+            }
+        }
+
 
         if (req.body.attr == `authorId`) {
             getDoc(authors, req.body.value).then(a => {
@@ -1453,6 +1569,7 @@ function updateEntity(req, res, ref, adminId,callback) {
         })
 
     }).catch(err => {
+        console.log(err)
         res.status(500).send(err.message)
     })
 }
@@ -1787,11 +1904,13 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                     return ref.get().then(cl => {
                         if (!cl.exists) return res.sendStatus(404)
                         switch (req.method) {
+                            
                             case `PUT`:{
-                                updateEntity(req,res,ref,+admin.id)
+                                return updateEntity(req,res,ref,+admin.id)
                             }
+
                             case `GET`:{
-                                res.json(common.handleDoc(cl))
+                                return res.json(common.handleDoc(cl))
                             }
                         }
                     })
@@ -1922,6 +2041,23 @@ router.get('/qr', async (req, res) => {
     }
 })
 
+function nowShow(){
+    userClasses
+        .where(`active`,'==',true)
+        // .where(`date`,'<',new Date().toISOString())
+        .where(`status`,'!=',`used`)
+        .get()
+        .then(col=>{
+            common.handleQuery(col)
+                .filter(t=>t.date<new Date().toISOString())
+                .filter(t=>!t.status)
+                .forEach(ticket=>{
+                    userClasses.doc(ticket.id).update({
+                        status: `noShow`
+                    })
+                })
+        })
+}
 
 function alertNewClassesOffers(){
     axios.get(`https://api.trello.com/1/lists/6551e8f31844b130a4db500a/cards?key=${process.env.kahaTrelloKey}&token=${process.env.kahaTrelloToken}`).then(data=>{
@@ -1950,6 +2086,7 @@ if(!process.env.develop){
         alertSoonCoworking()
         alertAdminsCoworking()
         countUserEntries(1)
+        nowShow()
     })
 
     
@@ -2296,7 +2433,9 @@ router.get(`/mini/:section/:id`,(req,res)=>{
 
 if(process.env.develop){
     router.get('/test', (req, res) => {
-        countUserEntries(1);
+        // countUserEntries(1);
+        // randomCoffee()
+        nowShow()
         res.sendStatus(200)
     })
 }
@@ -3422,9 +3561,76 @@ function sendHalls(id, lang) {
 }
 
 
-
+function rcQuestions(f,s){
+    let q = {
+        media: {
+            ru: [
+                `Господь, уродило вас с умом и талантом родиться в России.`,
+                `Говорят, в журналистику берут всех, кроме выпускников журфаков. Правду говорят?..`,
+                `О чем была ваша первая публикация? А где?..`
+            ],
+            en: [
+                
+            ]
+        },
+        lawyer: {
+            ru: [
+                `А что, вы тоже работали с ФБК?..`,
+                `Вы занимаетесь международным правом — или консультируете на удаленке?`,
+                `А вы знаете приличного бухгалтера в Тбилиси? Очень нужно.`
+            ],
+            en: [
+                
+            ]
+        },
+        advertisement: {
+            ru: [
+                `А правду говорят, что золотой век российской рекламы закончился на Бекмамбетове?`,
+                `Говорят, каждый журналист в душе романист, а пиарщик — политтехнолог. Really?`,
+                `Какой у вас был самый стыдный проект?`
+            ],
+            en: [
+                
+            ]
+        },
+        it: {
+            ru: [
+                `Консоль — это PlayStation. И что, у каждого браузера такая есть?..`,
+                `Почему один плюс один может быть два, а может — одинадцать. `,
+                `Как часто вас просят починить принтер?..`,
+                `Парадокс Монти Холла — это же про Пайтон?..`
+            ],
+            en: [
+                
+            ]
+        },
+        other: {
+            ru: [
+                `Сколько видов харчо успели попробовать?`,
+                `Когда вы в первый раз побывали в Грузии?`,
+                `Где вы были эти 8 лет? Шучу-шучу!`
+            ],
+            en: [
+                
+            ]
+        }
+    } 
+    return shuffle(q[s.occupation] ? q[s.occupation].ru : q.other.ru).slice(0,3).join('\n')
+}
 
 const translations = {
+    rcInvite:{
+        ru:(f,s)=>`Ваш рандомный кофе готов!\nВстречайте @${s.username}. ${f.occupation == s.occupation ? `Как и вы, э`: `Э`}тот человек работает в области ${s.occupation}.\nА вот, что он пишет о себе сам: ${s.about}.\nДело за малым: договориться о месте и времени встречи. А если стесняетесь, вот вам пара тем для начала беседы: \n${rcQuestions(f,s)}`,
+        en:(f,s)=>`Your random coffee is ready!\nGreet @${s.username}. ${f.occupation == s.occupation ? `Just like you t`: `T `}his person occupation is in ${s.occupation}.\nAnd that's how he/she describes him/herself: ${s.about}.\nDon't feel shy to write and set a place and time for a cup of coffee. You are? Well, here are some topics to start a conversation:\n${rcQuestions(f,s)}`
+    },
+    rcMissingDetails:{
+        ru: `Чтобы все сработало, пожалуйста, заполните профиль.`,
+        en: `Looks like something's missing in your profile. Please, fill it in.`
+    },
+    welcome2RC: {
+        ru: `Добро пожаловать в рандомный кофе. Раз в неделю мы будем знакомить вас с новыми людьми в Тбилиси. Enjoy and stay safe.`,
+        en: `Welcome to random. We'll send you your options next friday. Stay safe and funny.`
+    },
     tooLate:{
         ru: `Извините, нельзя отменить прошлое. И прошедшее.`,
         en: `We're sorry: too late to reconsider`
@@ -7300,7 +7506,7 @@ router.post('/hook', (req, res) => {
 
                     log({
                         text: `${uname(u,u.id)} блочит бот`,
-                        user: u.id
+                        user: +u.id
                     })
                 })
                 

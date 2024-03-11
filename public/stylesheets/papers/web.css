@@ -217,6 +217,10 @@ table.wide{
     margin-left: 20px;
 }
 
+.sDivided:last-child{
+    border-bottom: none;
+}
+
 .sDivided>h4 {
     margin-top: 10px;
 }
@@ -329,4 +333,35 @@ img.micro+.media {
 
 .story.dark{
     color: var(--dark);
+}
+
+.infoBubble {
+    text-decoration: underline double var(--accent);
+}
+
+.previewContainer {
+    margin-right: 30px;
+}
+
+.previewContainer>img {
+    border-radius: 10px;
+    box-shadow: 1px 1px 7px -3px var(--dark);
+}
+
+.previewContainer>img {
+    border-radius: 10px;
+    box-shadow: 1px 1px 7px -3px var(--dark);
+}
+
+img.preview {
+    transition: .2s;
+}
+
+img.preview:hover {
+    width: 170px;
+    margin-right: -20px;
+}
+
+.sDivided.flex {
+    align-items: baseline;
 }

@@ -199,11 +199,14 @@ function preparePopup(type) {
 
 
 function handleError(err) {
+    let teleAlert = false
     try{
         tg.showAlert(err.data || err.message)
+        teleAlert = true
     } catch(err){
-        alert(err.data || err.message)
+        // alert(err.data || err.message)
     }
+    if(!teleAlert) alert(err.response && err.response.data ? err.response.data : (err.data || err.message))
     console.warn(err)
 }
 
@@ -590,6 +593,21 @@ function logButton(collection,id,credit){
     })
 }
 
+function shuffle(array) {
+    let currentIndex = array.length,  randomIndex;
+    // While there remain elements to shuffle.
+    while (currentIndex > 0) {
+      // Pick a remaining element.
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      // And swap it with the current element.
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+    return array;
+  }
+  
+
 function toggleButton(collection, id, attr, value, ifYes,ifNo, cl){
     let b = ce('button',false,cl||false,value?ifYes:ifNo,{
         dataset:{on:value?1:0},
@@ -642,7 +660,7 @@ function s(el){
    el.classList.add(`selected`)
 }
 
-function deleteButton(collection,id,reverse,cl){
+function deleteButton(collection,id,reverse,cl,callback){
     return ce('button',false,(cl||false),reverse?`Активировать`:`Архивировать`,{
         onclick:()=>{
             let proof = confirm(`Вы уверены?`)
@@ -652,11 +670,17 @@ function deleteButton(collection,id,reverse,cl){
                         attr: `active`,
                         value: true
                     })
-                        .then(handleSave)
+                        .then(s=>{
+                            handleSave(s)
+                            if(callback) callback()
+                        })
                         .catch(handleError)
                 } else {
                     axios.delete(`/${host}/admin/${collection}/${id}`)
-                        .then(handleSave)
+                        .then(s=>{
+                            handleSave(s)
+                            if(callback) callback()
+                        })
                         .catch(handleError)
                 }
             } 
@@ -754,6 +778,10 @@ function sortBlock(sortTypes,container,array,callback,style){
     return c;
 }
 
+function listContainer(e){
+    return ce('div',false,[`sDivided`,e.active?`reg`:`hidden`],false,{dataset:{active:e.active}})
+}
+
 function archiveButton(container,cl){
     return ce('button',false,cl||false,`Показать архивные записи`,{
         onclick:()=>{
@@ -772,7 +800,7 @@ function sortableText(t){
     return txt
 }
 
-function preparePopupWeb(name,link,weblink) {
+function preparePopupWeb(name,link,weblink,state) {
     let c = ce('div', false, 'popupWeb')
     c.append(ce('span', false, `closeMe`, `✖`, {
         onclick: () => {
@@ -785,6 +813,7 @@ function preparePopupWeb(name,link,weblink) {
 
     if(link)        c.append(copyLink(link,appLink))
     if(weblink)     c.append(copyWebLink(web,weblink))
+    if(state)       window.history.pushState({}, "", `web?page=${name}`);
     // if(weblink)c.append(copyLink(link,appLink))
 
     document.body.append(c)
@@ -833,11 +862,23 @@ function newAuthor() {
 }
 
 function showHelp(text){
-    let container = ce('div',false,`editWindow`)
-    document.body.append(container)
-    text.forEach(p=>{
-        container.append(ce(`p`,false,[`story`,`dark`],p))
-    })
+
+    if(document.querySelector(`.editWindow`)) {
+        document.querySelector(`.editWindow`).remove()
+    } else {
+        let container = ce('div',false,`editWindow`)
+        document.body.append(container)
+        if(!text || !text.length){
+            container.append(ce(`p`,false,[`story`,`dark`],`Тут может быть ваша подсказка`))
+        } else {
+            text.forEach(p=>{
+                container.append(ce(`p`,false,[`story`,`dark`],p))
+            })
+        }
+        
+    }
+
+    
 }
 
 function handleSave(s) {
