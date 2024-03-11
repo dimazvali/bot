@@ -756,9 +756,6 @@ router.post(`/auth`, (req, res) => {
         .update(data_check_string)
         .digest('hex');
 
-    devlog(req.body.hash)
-    devlog(hmac)
-
     if (req.body.hash == hmac) {
 
         isAdmin(req.body.id.toString())
@@ -785,6 +782,17 @@ router.post(`/auth`, (req, res) => {
     }
 
 })
+
+
+function isAdmin(id) {
+    return udb.doc(id || 'noWay').get().then(a => {
+        if (!a.exists) return false
+        if (a.data().admin) return true
+        return false
+    }).catch(err => {
+        return false
+    })
+}
 
 
 function replyCallBack(id, text) {
