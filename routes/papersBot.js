@@ -6430,7 +6430,7 @@ router.post('/hook', (req, res) => {
                     stopped: null
                 }).then(s=>{
                     log({
-                        text: `${uname(user.data(),user.id)} возвращается`,
+                        text: `${uname(u.data(),user.id)} возвращается`,
                         user: +user.id
                     })  
                 })
