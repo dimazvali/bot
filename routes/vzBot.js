@@ -811,7 +811,7 @@ router.get(`/web`, (req, res) => {
             })
         })
 
-    if (!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/ps/auth`)
+    if (!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/vz/auth`)
 
     adminTokens
         .doc(req.signedCookies.adminToken)

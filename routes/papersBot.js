@@ -6424,7 +6424,7 @@ router.post('/hook', (req, res) => {
 
             if (!u.exists) registerUser(user)
 
-            if(!u.data().active){
+            if( u.data() && !u.data().active){
                 udb.doc(user.id.toString()).update({
                     active: true,
                     stopped: null
