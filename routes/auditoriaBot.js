@@ -5139,7 +5139,7 @@ router.get(`/api/:type`, (req, res) => {
                 })
 
                 udb.doc(req.query.id).get().then(u => {
-                    if (u.data().admin) {
+                    if (u.data() && u.data().admin) {
                         return res.json({
                             admin: true
                         })
