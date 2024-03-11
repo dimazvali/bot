@@ -817,7 +817,7 @@ router.get(`/web`, (req, res) => {
         .doc(req.signedCookies.adminToken)
         .get()
         .then(data => {
-            if (!data.exists) res.sendStatus(403)
+            if (!data.exists) return res.sendStatus(403)
             if (data.data().active) {
                 logs
                     .orderBy(`createdAt`, 'desc')
