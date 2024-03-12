@@ -10,7 +10,7 @@ body {
     margin: 0 auto;
     background: var(--light);
     font-family: 'Oswald';
-    color: white;
+    color: var(--dark);
 }
 
 body.mobile{
@@ -256,6 +256,7 @@ img.bpc {
 
   label,
   input[type="text"],
+  input[type="number"],
   textarea,
   select     {
     display: block;

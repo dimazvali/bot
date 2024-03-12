@@ -3666,7 +3666,7 @@ const translations = {
     planConfirmed:(plan)=>{
         return {
             ru: `Поздравляем! Вы оформили подписку на план ${plan.name}. Он будет действовать в течение ${plan.days} дней.`,
-            en: `Congratulations! You've bought a plan for ${plan.visits} visits and ${plan.events}. Feel free to use it in the next ${plan.days} days.`
+            en: `Congratulations! You've bought a plan for ${plan.visits} visits and ${plan.events} lectures. Feel free to use it in the next ${plan.days} days.`
         }
     },
     feedBackRequest:(ticket)=>{

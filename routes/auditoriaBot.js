@@ -112,11 +112,13 @@ const ngrok =       process.env.ngrok
 
 let sheet =         process.env.auditoriaSheet
 
-// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s => {
-//     console.log(`auditoria hook set to ${ngrok}`)
-// })
+axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditoria/hook`).then(s => {
+    console.log(`auditoria hook set to ${ngrok}`)
+})
 
 let getDoc = common.getDoc;
+
+
 
 // axios.post(`${sheet}?intention=getCategories`).then(s=>{
 //     common.devlog(`categories initiated`)
@@ -2820,8 +2822,9 @@ function bookClass(user, classId, res, id) {
                                 }
                                 m.sendMessage2({
                                     chat_id: user.id,
-                                    text: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
-                                }, false, token).then(data => {
+                                    photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
+                                    caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
+                                }, `sendPhoto`, token).then(data => {
                                     m.sendMessage2({
                                         chat_id: user.id,
                                         message_id: data.result.message_id
@@ -3301,7 +3304,9 @@ const translations = {
             
             ${(l.price || l.price2)? 
                 `Напоминаем, что в день мероприятия стоимость составит ${cur(l.price2 || c.price ,`GEL`)}. Чтобы оплатить билет заранее, переведите ${cur(l.price ,`GEL`)} на ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.` : ''}`,
-            en: `Great! Looking forward to meet you`
+            en: `Great! Looking forward to meet you
+            ${(l.price || l.price2)? 
+                `Let us remind you that on the day of event the price will be ${cur(l.price2 || c.price ,`GEL`)}. To pay in advance please transfer ${cur(l.price ,`GEL`)} on ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — and send me a picture of payment confirmation.` : ''}`
         }
     },
     lectureReminder: (l) => {

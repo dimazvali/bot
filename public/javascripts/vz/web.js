@@ -32,6 +32,12 @@ if(start){
             break;
         }
 
+        case `promos`:{
+            if(!start[1]) showPromos()
+            if(start[1]) showPromo(start[1])
+            break;
+        }
+
         case `recipies`:{
             if(!start[1]) showRecipies()
             if(start[1]) showRecipie(start[1])
@@ -682,12 +688,41 @@ function showStreams(){
     })
 }
 
-function showPromo(){
-    closeLeft()
-    let p = preparePopupWeb(`promo`,false,false,true)
-        p.append(ce(`h1`,false,false,`Промо`))
-    load(`promo`).then(promos=>{
+function showPromo(id){
+    let p = preparePopupWeb(`promos_${id}`,false,false,true)
+        load(`promos`,id).then(promo=>{
+            p.append(ce(`h1`,false,`editable`,promo.name,{
+                onclick:function(){
+                    edit(`promos`,id,`name`,`text`,promo.name,this)
+                }
+            }))
+            p.append(ce(`p`,false,`editable`,`Скидка: ${promo.discount}%`,{
+                onclick:function(){
+                    edit(`promos`,id,`discount`,`number`,promo.discount,this)
+                }
+            }))
 
+            p.append(ce(`p`,false,`editable`,`Приветствие: ${promo.greeting}`,{
+                onclick:function(){
+                    edit(`promos`,id,`greeting`,`textarea`,promo.greeting,this)
+                }
+            }))
+
+            p.append(ce(`p`,false,false,`ссылка на скидку: https://t.me/vmestezdoroveeru_bot?start=promo_${promo.id}`))
+
+            p.append(deleteButton(`promos`,id,!promo.active))
+
+        })
+}
+
+function showPromos(){
+    closeLeft()
+    let p = preparePopupWeb(`promos`,false,false,true)
+        p.append(ce(`h1`,false,false,`Промо`))
+        p.append(ce(`button`,false,`addButton`,`Добавить`,{
+            onclick:()=>addNewPromo()
+        }))
+    load(`promos`).then(promos=>{
         let c = ce('div')
 
         let cc = ce('div',false,`controls`)
@@ -713,10 +748,16 @@ function showPromo(){
 
 function promoLine(p){
     let c = listContainer(p)
+        c.onclick = ()=>{
+            showPromo(p.id)
+        }
     let details = ce('div',false,[`details`,`flex`])
         details.append(ce('span',false,`info`,drawDate(p.createdAt._seconds*1000))) 
         c.append(details)
-    c.append(ce(`h3`,false,false,`${p.amount}%`))
+    c.append(ce(`h3`,false,false,`${p.name} (${p.discount}%)`))
+    c.append(ce(`p`,false,false,`${p.greeting}`))
+
+    return c;
 }
 
 
@@ -756,6 +797,43 @@ function showRecipies(){
     })
 }
 
+function showArticles(){
+    closeLeft()
+    let p = preparePopupWeb(`articles`,false,false,true)
+    p.append(ce(`h1`,false,false,`Рецепты`,{
+        onclick:()=>showHelp()
+    }))
+    p.append(ce('button',false,false,`Добавить рецепт`,{
+        onclick:()=>addNewArticle()
+    }))
+    
+    load(`articles`).then(recs=>{
+
+        let c = ce('div')
+
+        let cc = ce('div',false,`controls`)
+            cc.append(sortBlock([{
+                attr: `name`,
+                name: `По названию`
+            },{
+                attr: `views`,
+                name: `По просмотрам`
+            },{
+                attr: `createdAt`,
+                name: `По дате создания`
+            }],c,recs,showArticleLine))
+        
+        p.append(cc)
+
+        
+        recs.forEach(rec=>c.append(showArticleLine(rec)))
+        p.append(c)
+
+        p.append(archiveButton(c))
+    })
+}
+
+
 function showRecipieLine(r){
     let c = listContainer(r);
 
@@ -766,6 +844,21 @@ function showRecipieLine(r){
         c.append(ce(`h3`,false,false,r.name,{
             onclick:()=>showRecipie(r.id)
         }))
+        c.append(ce('p',false,false,r.text.slice(0,100)+'...'))
+    return c
+}
+
+function showArticleLine(r){
+    let c = listContainer(r);
+
+    let details = ce(`div`,false,`details`)
+    c.append(details)
+        details.append(ce(`span`,false,`info`,`создан ${drawDate(r.createdAt._seconds*1000)}`))
+
+        c.append(ce(`h3`,false,false,r.name,{
+            onclick:()=>showArticle(r.id)
+        }))
+        c.append(ce('p',false,false,r.text.slice(0,100)+'...'))
     return c
 }
 
@@ -787,6 +880,28 @@ function showRecipie(id){
         }))
 
         p.append(deleteButton(`recipies`,id,!r.active,false,showRecipies))
+
+    })
+}
+
+function showArticle(id){
+    closeLeft()
+    let p = preparePopupWeb(`articles_${id}`,false,false,true)
+    load(`articles`,id).then(r=>{
+        
+        p.append(ce(`h1`,false,`editable`,r.name,{
+            onclick:function(){
+                edit(`articles`,id,`name`,`text`,r.name,this)
+            }
+        }))
+
+        p.append(ce(`div`,false,`editable`,r.text,{
+            onclick:function(){
+                edit(`articles`,id,`text`,`textarea`,r.text,this)
+            }
+        }))
+
+        p.append(deleteButton(`articles`,id,!r.active,false,showArticles))
 
     })
 }
@@ -867,7 +982,7 @@ function showCourse(id){
             }
         }))
 
-        p.append(ce('p',false,`editable`,`${course.descriptionLong.replace(/\\n/g,'<br>') || `Добавьте полное описание`}`,{
+        p.append(ce('p',false,`editable`,`${(course.descriptionLong ? course.descriptionLong.replace(/\\n/g,'<br>') :'') || `Добавьте полное описание`}`,{
             onclick:function(){
                 edit(`courses`,id,`descriptionLong`,`textarea`,course.descriptionLong,this)
             }
@@ -986,6 +1101,20 @@ function addStep(dayId){
         })
         edit.append(time)
         edit.append(desc)
+
+        let recipie = ce(`select`)
+            recipie.append(ce(`option`,false,false,`Рецепт не выбран`))
+        
+        load(`recipies`).then(r=>{
+            r.filter(r=>r.active).forEach(r=>{
+                recipie.append(ce(`option`,false,false,r.name,{
+                    value: r.id
+                }))
+            })
+        })
+
+        edit.append(recipie)
+
         edit.append(ce(`button`,false,`saveButton`,`Сохранить`,{
             onclick:function(){
                 if(!time.value) return alert(`Укажите время отправки`)
@@ -993,7 +1122,8 @@ function addStep(dayId){
                 this.setAttribute(`disabled`,true)
                 axios.post(`/${host}/admin/daySteps/${dayId}`,{
                     time: time.value,
-                    text: desc.value
+                    text: desc.value,
+                    recipie: recipie.value
                 }).then(s=>{
                     handleSave(s)
                     edit.remove()
@@ -1050,7 +1180,7 @@ function addNewStream(course){
 function addNewRecipie(){
     let p = preparePopupWeb(`newRecipie`,false,false,true)
         p.append(ce(`h1`,false,false,`Создаем новый рецепт`))
-    let name = ce(`input`,false,false,false,{placeholder: `Название`})
+    let name = ce(`input`,false,false,false,{placeholder: `Название`,type:'text'})
     let txt = ce(`textarea`,false,false,false,{placeholder: `Описание`})
     p.append(name)
     p.append(txt)
@@ -1068,6 +1198,84 @@ function addNewRecipie(){
             }).catch(handleError)
         }
     }))
+}
+
+
+function addNewArticle(){
+    let p = preparePopupWeb(`newArticle`,false,false,true)
+        p.append(ce(`h1`,false,false,`Создаем новую заметку`))
+    let name = ce(`input`,false,false,false,{placeholder: `Название`,type:'text'})
+    let txt = ce(`textarea`,false,false,false,{placeholder: `Описание`})
+    p.append(name)
+    p.append(txt)
+    p.append(ce('button',false,`saveButton`,`Сохранить`,{
+        onclick:function(){
+            if(!name.value) return alert(`Пропущено название`)
+            if(!txt.value) return alert(`Пропущено описание`)
+            this.setAttribute(`disabled`,true)
+            axios.post(`/${host}/admin/articles`,{
+                name: name.value,
+                text: txt.value
+            }).then(s=>{
+                handleSave(s)
+                showArticles()
+            }).catch(handleError)
+        }
+    }))
+}
+
+function addNewPromo(){
+    let p = preparePopupWeb(`newCourse`,false,false,true)
+        p.append(ce(`h1`,false,false,`Новое промо`))
+        
+        let name = ce('input',false,false,false,{
+            type: `text`,
+            name: `name`,
+            placeholder: `Название`
+        })
+
+        let discount = ce('input',false,false,false,{
+            type:       `number`,
+            min:        0,
+            step:       1,
+            max:        100,
+            name:       `discount`,
+            placeholder: `Скида в процентрах`
+        })
+
+        let greeting = ce('textarea',false,false,false,{
+            type: `text`,
+            name: `greeting`,
+            placeholder: `Текст приветствия`
+        })
+
+        p.append(name)
+        p.append(discount)
+        p.append(greeting)
+
+        p.append(ce(`button`,false,`saveButton`,`Сохранить`,{
+            onclick:function(){
+                if(!name.value) return alert(`Укажите название`)
+                if(!discount.value) return alert(`Внесите скидку`)
+                if(!greeting.value) return alert(`Внесите текст приветствия`)
+
+                let sure = confirm(`Уверены?`)
+
+                if(sure) {
+                    this.setAttribute(`disabled`,true)
+                    axios.post(`/${host}/admin/promos`,{
+                        name:           name.value,
+                        discount:       discount.value,
+                        greeting:       greeting.value
+                    }).then(s=>{
+                        handleSave(s)
+                        closeLeft()
+                        showPromo(s.data.id)
+                    }).catch(handleError)
+                }
+            }
+        }))
+
 }
 
 function addNewCourse(){
@@ -1108,6 +1316,7 @@ function addNewCourse(){
 
         c.append(name)
         c.append(price)
+        c.append(days)
         c.append(description)
 
         p.append(c)

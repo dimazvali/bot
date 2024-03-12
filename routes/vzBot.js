@@ -20,8 +20,8 @@ const {
     subtle
 } = require('node:crypto');
 
-const ngrok = process.env.ngrok
-// 'https://a751-109-172-156-240.ngrok-free.app'
+const ngrok = 'https://a751-109-172-156-240.ngrok-free.app'
+
 // process.env.ngrok;
 
 const {
@@ -63,7 +63,11 @@ const {
 
 router.get(`/test`,(req,res)=>{
     res.sendStatus(200)
-    tick()
+    // tick()
+    daySteps.doc(req.query.step).get().then(d=>{
+        sendStep(d.data(),req.query.user||common.dimazvali)
+    })
+    
 })
 
 let gcp = initializeApp({
@@ -100,7 +104,8 @@ let courseDays =    fb.collection(`courseDays`);
 let daySteps =      fb.collection(`daySteps`);
 let streamUsers =   fb.collection(`streamUsers`);
 let recipies =      fb.collection(`recipies`);
-
+let promos =        fb.collection(`promos`);
+let promoUsers =    fb.collection(`promoUsers`);
 
 
 const locals = {
@@ -123,6 +128,78 @@ const locals = {
     }
 }
 
+
+function sendStep(step,userId){
+    
+    devlog(step)
+    
+    let m = {
+        chat_id: userId,
+        text: step.text,
+    }
+
+    if(step.recipie || step.article){
+        m.reply_markup={
+            inline_keyboard:[]
+        }
+        if(step.recipie){
+            m.reply_markup.inline_keyboard.push([{
+                text: `Открыть рецепт`,
+                web_app:{
+                    url: `${ngrok}/${host}/app?start=recipies_${step.recipie}`
+                }
+            }])
+        }
+        if(step.article){
+            m.reply_markup.inline_keyboard.push([{
+                text: `Открыть заметку`,
+                web_app:{
+                    url: `${ngrok}/${host}/app?start=articles_${step.recipie}`
+                }
+            }])
+        }
+    }
+    return sendMessage2(m,false,token)
+
+}
+
+function sendCourses(uid){
+    courses
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            sendMessage2({
+                chat_id:    uid,
+                text:       `В данный момент у нас действуют следующие курсы:`,
+                reply_markup:{
+                    inline_keyboard:handleQuery(col).map(c=>{
+                        return [{
+                            text: c.name,
+                            callback_data: `course_${c.id}` 
+                        }]
+                    })
+                }
+            },false,token)
+        })
+}
+
+function checkAndAddPromo(uid,pid){
+    promoUsers
+        .where(`user`,'==',uid)
+        .where(`active`,'==',true)
+        .where(`promo`,'==',pid)
+        .get()
+        .then(col=>{
+            if(!col.docs.length){
+                promoUsers.add({
+                    active:     true,
+                    createdAt:  new Date(),
+                    user:       uid,
+                    promo:      pid
+                })
+            }
+        })
+}
 
 function tick(){
     
@@ -177,10 +254,11 @@ function tick(){
                                                                     devlog(stepDate)
 
                                                                     if(userTime>=stepDate){
-                                                                        sendMessage2({
-                                                                            chat_id: u.id,
-                                                                            text: step.text
-                                                                        },false,token).then(()=>{
+
+
+                                                                        
+
+                                                                        sendStep(step,u.id).then(()=>{
                                                                             messages.add({
                                                                                 step:       step.id,
                                                                                 isReply:    true,
@@ -205,6 +283,8 @@ function tick(){
             })
         })
 }
+
+
 
 
 let admins = [];
@@ -257,11 +337,11 @@ function alertAdmins(o) {
 }
 
 
-function registerUser(u) {
-    u.createdAt = new Date();
-    u.active = true;
-    u.blocked = false;
-    u.gmtOffset = 0;
+function registerUser(u,text) {
+    u.createdAt =   new Date();
+    u.active =      true;
+    u.blocked =     false;
+    u.gmtOffset =   0;
     udb.doc(u.id.toString()).set(u).then(() => {
         
         log({
@@ -272,34 +352,28 @@ function registerUser(u) {
         m.sendMessage2({
             chat_id: u.id,
             text: locals.greetings,
-            reply_markup: {
-                resize_keyboard: true,
-                one_time_keyboard: true,
-                // keyboard: [
-                //     [{
-                //         text: locals.sendPhone,
-                //         request_contact: true
-                //     }]
-                // ]
-            }
         }, false, token).then(()=>{
-            courses
-                .where(`active`,'==',true)
-                .get()
-                .then(col=>{
-                    sendMessage2({
-                        chat_id:    u.id,
-                        text:       `В данный момент у нас действуют следующие курсы:`,
-                        reply_markup:{
-                            inline_keyboard:handleQuery(col).map(c=>{
-                                return [{
-                                    text: c.name,
-                                    callback_data: `course_${c.id}` 
-                                }]
-                            })
+            let promoAchieved = null;
+            
+            if(text) if(!text.indexOf(`/start promo`)){
+                let promoKey = text.split('_')[1];
+                promoAchieved = promos.doc(promoKey).get().then(promo=>{
+                    if(promo.exists && promo.data().active){
+                        if(promo.data().greeting){
+                            sendMessage2({
+                                chat_id: u.id,
+                                text: promo.data().greeting
+                            },false,token)
                         }
-                    },false,token)
+                        checkAndAddPromo(+u.id,promoKey)
+                    }
+                    return true
                 })
+            }
+            
+            Promise.resolve(promoAchieved).then(promoProceeded=>{
+                sendCourses(+u.id)  
+            })
         })
 
     })
@@ -347,12 +421,13 @@ router.post(`/hook`, (req, res) => {
 
     if (req.body.message && req.body.message.from) {
         user = req.body.message.from;
+        
         m.getUser(user.id, udb).then(u => {
 
-            if (!u) return registerUser(user)
+            if (!u) return registerUser(user,req.body.message.text)
             if (u.blocked) return sorry(user)
             // if (!u.ready) return regstriationIncomplete(u, req.body.message)
-            if (!u.active) return udb.doc(user.id.toString()).update({
+            if (!u.active) udb.doc(user.id.toString()).update({
                 active: true,
                 stopped: null
             }).then(s => {
@@ -373,117 +448,64 @@ router.post(`/hook`, (req, res) => {
                     isReply: false
                 })
 
-                switch (req.body.message.text) {
-                    // TBC: команды
-                    case `/courses`:{
-                        return courses
-                            .where(`active`,'==',true)
-                            .get()
-                            .then(col=>{
+                if(!req.body.message.text.indexOf(`/start promo`)){
+                    let promoKey = req.body.message.text.split('_')[1];
+                    
+                    devlog(promoKey)
+
+                    return promos.doc(promoKey).get().then(promo=>{
+                        if(promo.exists && promo.data().active){
+                            if(promo.data().greeting){
                                 sendMessage2({
-                                    chat_id:    user.id,
-                                    text:       `В данный момент у нас действуют следующие курсы:`,
-                                    reply_markup:{
-                                        inline_keyboard:handleQuery(col).map(c=>{
-                                            return [{
-                                                text: c.name,
-                                                callback_data: `course_${c.id}` 
-                                            }]
-                                        })
-                                    }
-                                },false,token)
+                                    chat_id: user.id,
+                                    text: promo.data().greeting
+                                },false,token).then(()=>{
+                                    sendCourses(user.id)
+                                })
+                            }
+                            checkAndAddPromo(+user.id,promoKey)
+                            
+                        }
+                        return true
+                    })
+                } else {
+                    switch (req.body.message.text) {
+                        // TBC: команды
+                        case `/courses`:{
+                            return courses
+                                .where(`active`,'==',true)
+                                .get()
+                                .then(col=>{
+                                    sendMessage2({
+                                        chat_id:    user.id,
+                                        text:       `В данный момент у нас действуют следующие курсы:`,
+                                        reply_markup:{
+                                            inline_keyboard:handleQuery(col).map(c=>{
+                                                return [{
+                                                    text: c.name,
+                                                    callback_data: `course_${c.id}` 
+                                                }]
+                                            })
+                                        }
+                                    },false,token)
+                                })
+                        }
+                        default:
+                            return alertAdmins({
+                                text: `${uname(u,u.id)} пишет: ${req.body.message.text}`,
+                                user: user.id
                             })
                     }
-                    default:
-                        return alertAdmins({
-                            text: `${uname(u,u.id)} пишет: ${req.body.message.text}`,
-                            user: user.id
-                        })
                 }
+
+                
             }
 
             if (req.body.message.photo) {
-                m.sendMessage2({
-                    chat_id: user.id,
-                    text: locals.fileNeeded
-                }, false, token)
-            }
-
-
-
-            if (req.body.message.document) {
-
-                return messages
-                    .where('file_id', '==', req.body.message.document.file_id)
-                    .get()
-                    .then(col => {
-                        if (!col.docs.length) {
-
-                            tasks
-                                .where(`active`, '==', true)
-                                .get()
-                                .then(col => {
-                                    let tasks = common.handleQuery(col).map(t => t.id)
-                                    userTasks
-                                        .where(`user`, '==', +user.id)
-                                        .get()
-                                        .then(col => {
-                                            let uTasks = common.handleQuery(col).filter(t => tasks.indexOf(t.task) > -1)
-
-
-                                            messages.add({
-                                                taskSubmission: null,
-                                                file: true,
-                                                createdAt: new Date(),
-                                                user: +user.id,
-                                                file_id: req.body.message.document.file_id,
-                                                thumb: req.body.message.document.thumbnail.file_id
-                                            }).then(message => {
-                                                m.sendMessage2({
-                                                    chat_id: user.id,
-                                                    text: `${common.sudden.fine()}! Ваш материал принят.`
-                                                }, false, token)
-
-                                                admins.forEach(a => {
-                                                    m.sendMessage2({
-                                                        chat_id: a.id,
-                                                        from_chat_id: user.id,
-                                                        message_id: req.body.message.message_id
-                                                    }, 'forwardMessage', token).then(s => {
-                                                        m.sendMessage2({
-                                                            chat_id: a.id,
-                                                            text: `Выберите, к какому заданию относится это фото, а потом поставьте оценку.`,
-                                                            reply_markup: {
-                                                                inline_keyboard: uTasks.map(t => {
-                                                                    return [{
-                                                                        text: `${uTasks.map(t=>t.task).indexOf(t.id) == -1 ? '(new) ' : ''} ${t.name}`,
-                                                                        callback_data: `pic_${message.id}_task_${t.id}`
-                                                                    }]
-                                                                })
-                                                            }
-                                                        }, false, token)
-                                                    })
-
-                                                })
-                                            })
-
-
-
-
-                                        })
-
-                                })
-
-
-                        } else {
-                            m.sendMessage2({
-                                chat_id: user.id,
-                                text: `${common.sudden.sad()} Такой файл у нас уже есть.`
-                            }, false, token)
-                        }
-                    })
-
-
+                // m.sendMessage2({
+                //     chat_id: user.id,
+                //     text: locals.fileNeeded
+                // }, false, token)
             }
 
             if(req.body.message.location){
@@ -520,7 +542,6 @@ router.post(`/hook`, (req, res) => {
 
         switch (inc[0]) {
             case `stream`:{
-                // replyCallBack(qid, common.sudden.fine())
                 return streams.doc(inc[1])
                     .get()
                     .then(s=>{
@@ -572,6 +593,7 @@ router.post(`/hook`, (req, res) => {
                                     },'sendInvoice', token)
                                 } else {
                                     courses.doc(s.course).get().then(c=>{
+                                        
                                         c = c.data();
             
                                         if(!c.price) {
@@ -580,50 +602,84 @@ router.post(`/hook`, (req, res) => {
                                                 text: `АЛЯРМ! У нас курс без цены, пользователь не может зарегистрироваться.`
                                             })
                                         }
+
+                                        promoUsers
+                                            .where(`user`,'==',+user.id)
+                                            .where(`active`,'==',true)
+                                            .get()
+                                            .then(col2=>{
+                                                
+                                                let discount = 1
+                                                
+                                                let foundPromo = handleQuery(col2)[0]
+                                                
+                                                devlog(foundPromo)
+
+                                                if(foundPromo) discount = promos.doc(foundPromo.promo).get().then(p=>{
+                                                    if(p.data().active) return p.data().discount/100
+                                                    return 1
+                                                })
+                                                
+                                                Promise.resolve(discount).then(discount=>{
+                                                    devlog(discount)
+
+                                                let price = +c.price*discount
+
+                                                streamUsers.add({
+                                                    active:     true,
+                                                    payed:      false,
+                                                    createdAt:  new Date(),
+                                                    stream:     inc[1],
+                                                    course:     s.course,
+                                                    courseName: c.name,
+                                                    price:      Math.floor(price),
+                                                    user:       user.id
+                                                }).then(record=>{
+                                                    
+                                                    if(foundPromo) promoUsers.doc(foundPromo.id).update({
+                                                        active: false,
+                                                        used: record.id
+                                                    })
+
+                                                    sendMessage2({
+                                                        "chat_id": user.id,
+                                                        "title": `Оплата курса ${c.name}`,
+                                                        "description": `Если ты передумаешь — мы вернем оплату (но только если до начала курса останется больше 5 часов).`,
+                                                        "payload": `booking_${record.id}`,
+                                                        need_phone_number: true,
+                                                        send_phone_number_to_provider: true,
+                                                        provider_data: {
+                                                            receipt: {
+                                                                customer: {
+                                                                    full_name: u.first_name+' '+u.last_name,
+                                                                    phone: +u.phone
+                                                                },
+                                                                items: [{
+                                                                    description: `Курс ${c.name}, начало: ${s.date}`,
+                                                                    quantity: "1.00",
+                                                                    amount:{
+                                                                        value: Math.floor(price),
+                                                                        currency: 'RUB'
+                                                                    },
+                                                                    vat_code: 1
+                                                                }]
+                                                            }
+                                                        },
+                                                        "provider_token": process.env.vzPaymentToken,
+                                                        "currency": "RUB",
+                                                        "prices": [{
+                                                            "label": c.name,
+                                                            "amount":  Math.floor(price)*100
+                                                        }]
+                                                    },'sendInvoice', token)
+                                                })
+                                                })
+
+                                                
+                                            })
                                         
             
-                                        streamUsers.add({
-                                            active:     true,
-                                            payed:      false,
-                                            createdAt:  new Date(),
-                                            stream:     inc[1],
-                                            course:     s.course,
-                                            courseName: c.name,
-                                            price:      c.price,
-                                            user:       user.id
-                                        }).then(record=>{
-                                            sendMessage2({
-                                                "chat_id": user.id,
-                                                "title": `Оплата курса ${c.name}`,
-                                                "description": `Если ты передумаешь — мы вернем оплату (но только если до начала курса останется больше 5 часов).`,
-                                                "payload": `booking_${record.id}`,
-                                                need_phone_number: true,
-                                                send_phone_number_to_provider: true,
-                                                provider_data: {
-                                                    receipt: {
-                                                        customer: {
-                                                            full_name: u.first_name+' '+u.last_name,
-                                                            phone: +u.phone
-                                                        },
-                                                        items: [{
-                                                            description: `Курс ${c.name}, начало: ${s.date}`,
-                                                            quantity: "1.00",
-                                                            amount:{
-                                                                value: c.price,
-                                                                currency: 'RUB'
-                                                            },
-                                                            vat_code: 1
-                                                        }]
-                                                    }
-                                                },
-                                                "provider_token": process.env.vzPaymentToken,
-                                                "currency": "RUB",
-                                                "prices": [{
-                                                    "label": c.name,
-                                                    "amount":  c.price*100
-                                                }]
-                                            },'sendInvoice', token)
-                                        })
+                                        
                                     })
                                 }
                             }) 
@@ -736,6 +792,31 @@ router.post(`/hook`, (req, res) => {
 
 router.get(`/auth`, (req, res) => {
     res.render(`${host}/auth`)
+})
+
+router.get(`/app`, (req, res) => {
+    if(req.query.start){
+        let inc =req.query.start.split(`_`) 
+        switch(inc[0]){
+            case `recipies`:{
+                let ref = recipies.doc(inc[1])
+                return ref.get().then(r=>{
+                    if(r.exists){
+                        ref.update({
+                            views: FieldValue.increment(1)
+                        })
+                        return res.render(`${host}/recipie`,{
+                            recipie: handleDoc(r)
+                        })
+                    } else {
+                        return res.sendStatus(404)
+                    }
+                    
+                }) 
+                
+            }
+        }
+    }
 })
 
 router.post(`/auth`, (req, res) => {
@@ -857,9 +938,24 @@ function getTZ(lat,lng){
 
 function consistencу(type,data){
     let r = {
-        passed: true
+        passed: true,
+        comment: null
     }
     switch(type){
+        case `promos`:{
+
+            if(!data.name){
+                r.passed = false
+                r.comment = `Название пропущено`
+            }
+
+            if(!data.discount || !Number(data.discount)){
+                r.passed = false
+                r.comment = `Некорректная скидка`
+            }
+            break;
+
+        }
         case `recipie`:{
             if(!data.name) {
                 r.passed = false
@@ -870,6 +966,19 @@ function consistencу(type,data){
                 r.passed = false
                 r.comment = `Пропущен текст`
             }
+            break;
+        }
+        case `article`:{
+            if(!data.name) {
+                r.passed = false
+                r.comment = `Название пропущено`
+            }
+
+            if(!data.text) {
+                r.passed = false
+                r.comment = `Пропущен текст`
+            }
+            break;
         }
         default:{
             break;
@@ -901,6 +1010,45 @@ router.all(`/admin/:method`, (req, res) => {
 
         switch (req.params.method) {
             
+            case `articles`:{
+                switch(req.method){
+                    case `GET`:{
+                        return articles.get().then(col=>{
+                            res.json(handleQuery(col,true))
+                        })
+                    }
+                    case `POST`:{
+                        
+                        let check = consistencу(`articles`,rqe.body)
+
+                        if(check.passed) {
+                            return articles.add({
+                                createdAt:  new Date(),
+                                createdBy:  +admin.id,
+                                active:     true,
+                                name:       req.body.name,
+                                text:       req.body.text,
+                                views:      0
+                            }).then(rec=>{
+                                res.json({
+                                    success: true,
+                                    comment: `Заметка создана`,
+                                    id: rec.id
+                                })
+                                log({
+                                    silent:     true,
+                                    admin:      +admin.id,
+                                    article:    rec.id,
+                                    text: `${uname(admin,admin.id)} создает заметку ${req.body.name}`
+                                })
+                            })
+                        } else {
+                            return res.status(400).send(check.comment)
+                        }
+                    }
+                }
+            }
+
             case `courses`:{
                 switch(req.method){
                     case `GET`:{
@@ -949,6 +1097,41 @@ router.all(`/admin/:method`, (req, res) => {
                 }
             }
 
+            case `promos`:{
+                switch(req.method){
+                    case `GET`:{
+                        return promos.get().then(col=>{
+                            res.json(handleQuery(col,true))
+                        })
+                    }
+                    case `POST`:{
+                        let check = consistencу(`promos`,req.body)
+                        if(check.passed){
+                            return promos.add({
+                                createdAt: new Date(),
+                                createdBy: +admin.id,
+                                active:     true,
+                                name:       req.body.name,
+                                discount:   +req.body.discount,
+                                greeting:   req.body.greeting || null
+                            }).then(rec=>{
+                                log({
+                                    text: `${uname(admin,admin.id)} создает скидку ${req.body.name}`,
+                                    admin: admin.id,
+                                    promo: rec.id
+                                })
+                                return res.json({
+                                    success:    true,
+                                    comment:    `Скидка добавлена, мон колонель!`,
+                                    id:         rec.id
+                                })
+                            })
+                        } else {
+                            return  res.status(400).send(check.comment)
+                        }
+                    }
+                }
+            }
             case `streams`:{
                 switch(req.method){
                     case `POST`:{
@@ -971,17 +1154,19 @@ router.all(`/admin/:method`, (req, res) => {
                                 courseName: c.name
                             }).then(record=>{
                                 
-                                res.json({
-                                    success:    true,
-                                    id:         record.id,
-                                    comment:    `Поток создан!`
-                                })
+                                
     
                                 log({
                                     text: `${uname(admin,admin.id)} добавляет новый поток к курсу ${с.name} на ${req.body.date}.`,
                                     admin: +admin.id,
                                     course: req.body.course,
                                     stream: record.id
+                                })
+
+                                res.json({
+                                    success:    true,
+                                    id:         record.id,
+                                    comment:    `Поток создан!`
                                 })
 
                             }).catch(err=>handleError(err,res))
@@ -1006,7 +1191,9 @@ router.all(`/admin/:method`, (req, res) => {
                         })
                     }
                     case `POST`:{
-                        let check = consistencу(req,res) 
+                        
+                        let check = consistencу(`recipies`,rqe.body)
+
                         if(check.passed) {
                             return recipies.add({
                                 createdAt:  new Date(),
@@ -1034,6 +1221,7 @@ router.all(`/admin/:method`, (req, res) => {
                     }
                 }
             }
+            
             case 'users': {
                 return udb.get().then(col => {
                     res.json({
@@ -1075,6 +1263,26 @@ router.all(`/admin/:method/:id`, (req, res) => {
         if (!admin || !admin.admin) return res.sendStatus(403)
 
         switch (req.params.method) {
+
+            case `articles`:{
+
+                let ref = articles.doc(req.params.id)
+                return ref.get().then(s=>{
+                    if(!s.exists) return res.sendStatus(404)
+                    switch(req.method){
+                        case `GET`:{
+                            return res.json(handleDoc(s))
+                        }
+                        case `DELETE`:{
+                            return deleteEntity(req,res,red,admin)
+                        }
+                        case `PUT`:{
+                            return updateEntity(req,res,ref,admin.id)
+                        }
+                    }
+                }) 
+            }
+
             case `courses`:{
                 let ref = courses.doc(req.params.id);
                 return ref.get().then(c=>{
@@ -1152,11 +1360,13 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     case `POST`:{
                         if(!req.body.time) return res.status(400).send(`Не указано время.`)
                         if(!req.body.text) return res.status(400).send(`Нет описания.`)
+                        
                         return daySteps.add({
                             createdAt:  new Date(),
                             createdBy:  +admin.id,
                             time:       req.body.time,
                             text:       req.body.text,
+                            recipie:    req.body.recipie || null,
                             active:     true,
                             day:        req.params.id
                         }).then(record=>{
@@ -1204,8 +1414,8 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     }
                 }
             }
-            case `users`: {
-                let ref = udb.doc(req.params.id);
+            case `promos`:{
+                let ref = promos.doc(req.params.id);
                 return ref.get().then(t => {
                     if (!t.exists) return res.sendStatus(404)
                     t = handleDoc(t);
@@ -1214,64 +1424,16 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             return res.json(t);
                         }
                         case `DELETE`: {
-                            return deleteEntity(req, res, ref, admin, `blocked`, () => clearUser(req.params.id));
+                            return deleteEntity(req, res, ref, admin, false);
                         }
-                        case `PUT`: {
-                            return updateEntity(req, res, ref, admin.id).then(s=>{
-                                switch (req.body.attr){
-                                    case `admin`:{
-                                        if(req.body.value){
-                                            m.sendMessage2({
-                                                chat_id: req.params.id,
-                                                text: `${common.sudden.fine()}! Вы стали администратором программы.\nВот ваша ссылка на админку: ${process.env.ngrok}/ps/web.`
-                                            },false,token)
-                                        } else {
-                                            m.sendMessage2({
-                                                chat_id: req.params.id,
-                                                text: `${common.sudden.sad()}, вы перестали числиться в администраторах проекта.`
-                                            },false,token)
-                                        }
-                                    }
-                                }
-                            });
+                        case `PUT`:{
+                            return updateEntity(req, res, ref, admin.id)   
                         }
                     }
                 })
+
             }
-            case `usersMessages`: {
-                switch (req.method) {
-                    case 'GET': {
-                        return messages
-                            .where(`user`, '==', +req.params.id)
-                            .orderBy(`createdAt`)
-                            .get()
-                            .then(col => {
-                                res.json(handleQuery(col))
-                            })
-                    }
-                    case 'POST': {
-                        return m.sendMessage2({
-                            chat_id: req.params.id,
-                            text: req.body.text,
-                        }, false, token).then(s => {
-                            messages.add({
-                                user: +req.params.id,
-                                createdAt: new Date(),
-                                text: req.body.text,
-                                isReply: true,
-                                admin: +admin.id
-                            })
-                            res.json({
-                                comment: `Сообщение отправлено!`
-                            })
-                        }).catch(err => {
-                            res.json({
-                                comment: `Сообщение не может быть отправлено.`
-                            })
-                        })
-                    }
-                }
-            }
+            
 
             case `recipies`:{
                 let ref = recipies.doc(req.params.id)
@@ -1347,6 +1509,74 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     }
                 }                
             }
+            case `users`: {
+                let ref = udb.doc(req.params.id);
+                return ref.get().then(t => {
+                    if (!t.exists) return res.sendStatus(404)
+                    t = handleDoc(t);
+                    switch (req.method) {
+                        case `GET`: {
+                            return res.json(t);
+                        }
+                        case `DELETE`: {
+                            return deleteEntity(req, res, ref, admin, `blocked`, () => clearUser(req.params.id));
+                        }
+                        case `PUT`: {
+                            return updateEntity(req, res, ref, admin.id).then(s=>{
+                                switch (req.body.attr){
+                                    case `admin`:{
+                                        if(req.body.value){
+                                            m.sendMessage2({
+                                                chat_id: req.params.id,
+                                                text: `${common.sudden.fine()}! Вы стали администратором программы.\nВот ваша ссылка на админку: ${process.env.ngrok}/ps/web.`
+                                            },false,token)
+                                        } else {
+                                            m.sendMessage2({
+                                                chat_id: req.params.id,
+                                                text: `${common.sudden.sad()}, вы перестали числиться в администраторах проекта.`
+                                            },false,token)
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                })
+            }
+            case `usersMessages`: {
+                switch (req.method) {
+                    case 'GET': {
+                        return messages
+                            .where(`user`, '==', +req.params.id)
+                            .orderBy(`createdAt`)
+                            .get()
+                            .then(col => {
+                                res.json(handleQuery(col))
+                            })
+                    }
+                    case 'POST': {
+                        return m.sendMessage2({
+                            chat_id: req.params.id,
+                            text: req.body.text,
+                        }, false, token).then(s => {
+                            messages.add({
+                                user: +req.params.id,
+                                createdAt: new Date(),
+                                text: req.body.text,
+                                isReply: true,
+                                admin: +admin.id
+                            })
+                            res.json({
+                                comment: `Сообщение отправлено!`
+                            })
+                        }).catch(err => {
+                            res.json({
+                                comment: `Сообщение не может быть отправлено.`
+                            })
+                        })
+                    }
+                }
+            }
         }
     })
 })
@@ -1363,6 +1593,18 @@ function updateEntity(req, res, ref, adminId) {
         courses:{
             log:(name)=> `курс ${name} был обновлен: ${req.body.attr} становится ${req.body.value}`,
             type: `course`
+        },
+        promos:{
+            log:(name)=> `скидка ${name} была обновлена: ${req.body.attr} становится ${req.body.value}`,
+            type: `promo`
+        },
+        articles:{
+            log:(name)=> `заметка ${name} была обновлена: ${req.body.attr} становится ${req.body.value}`,
+            type: `article`
+        },
+        recipies:{
+            log:(name)=> `рецепт ${name} был обновлен: ${req.body.attr} становится ${req.body.value}`,
+            type: `recipie`
         }
     }
 
@@ -1403,6 +1645,18 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
         courses:{
             log:(name)=> `${uname(admin)} архивирует курс ${name}`,
             type: `course`
+        },
+        promos:{
+            log:(name)=> `${uname(admin)} архивирует скидку ${name}`,
+            type: `promo`
+        },
+        recipies:{
+            log:(name)=> `${uname(admin)} архивирует рецепт ${name}`,
+            type: `recipie`
+        },
+        articles:{
+            log:(name)=> `${uname(admin)} архивирует заметку ${name}`,
+            type: `article`
         }
     }
 
