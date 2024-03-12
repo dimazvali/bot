@@ -1125,7 +1125,7 @@ function drawClassPopup(c, id) {
 
         let p = preparePopup(`class`)
 
-        curLecture = c.id
+        curLecture = id || c.id
 
         if (c.booked) {
             curRecord = c.booked
