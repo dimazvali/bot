@@ -374,9 +374,21 @@ router.post(`/hook`, (req, res) => {
         user = req.body.message.from;
         m.getUser(user.id, udb).then(u => {
 
+            if(req.body.message.text){
+                messages.add({
+                    user:       user.id,
+                    text:       req.body.message.text || null,
+                    createdAt: new Date(),
+                    isReply: false
+                })
+            }
+
             if (!u) return registerUser(user)
+            
             if (u.blocked) return sorry(user)
+            
             if (!u.ready) return regstriationIncomplete(u, req.body.message)
+            
             if (!u.active) return udb.doc(user.id.toString()).update({
                 active: true,
                 stopped: null
@@ -390,12 +402,7 @@ router.post(`/hook`, (req, res) => {
 
                 // пришло текстовое сообщение;
 
-                messages.add({
-                    user: user.id,
-                    text: req.body.message.text || null,
-                    createdAt: new Date(),
-                    isReply: false
-                })
+                
 
                 switch (req.body.message.text) {
                     // TBC: команды
@@ -1233,7 +1240,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                 },false,token).then(res=>{
                                                     messages.add({
                                                         createdAt:  new Date(),
-                                                        user:       +u.id,
+                                                        user:       +u.id || + u.user,
                                                         text:       req.body.text,
                                                         news:       rec.id,
                                                         isReply:    true
@@ -1247,7 +1254,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                 },`sendPhoto`,token).then(res=>{
                                                     messages.add({
                                                         createdAt:  new Date(),
-                                                        user:       +u.id,
+                                                        user:       +u.id || + u.user,
                                                         text:       req.body.text,
                                                         news:       rec.id,
                                                         isReply:    true
@@ -1267,7 +1274,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                 },`sendMediaGroup`,token).then(res=>{
                                                     messages.add({
                                                         createdAt:  new Date(),
-                                                        user:       +u.id,
+                                                        user:       +u.id || + u.user,
                                                         text:       req.body.text,
                                                         news:       rec.id,
                                                         isReply:    true
@@ -1532,5 +1539,7 @@ function replyCallBack(id, text) {
         show_alert: true,
     }, 'answerCallbackQuery', token)
 }
+
+
 
 module.exports = router;

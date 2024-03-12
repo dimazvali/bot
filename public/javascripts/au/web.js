@@ -1504,6 +1504,9 @@ function showAuthors() {
         mc.append(ce('h1', false, `header2`, `Авторы`))
         mc.append(ce(`p`,false,false,`В этом разделе отображаются авторы. У каждого из них появляется собственная страница, а у пользователей — возможность подписаться на обновления.<br>По умолчанию отображаются только активные авторы. Если кто-то ушел, а потом вернулся, не стоит создавать новую запись, откройте архив и верните к жизни предыдущую запись.`))
 
+        mc.append(ce('button', false, false, `Добавить автора`, {
+            onclick: () => newAuthor()
+        }))
 
         let c = ce('div')
         
@@ -1525,9 +1528,7 @@ function showAuthors() {
         
         mc.append(cc)
 
-        c.append(ce('button', false, false, `Добавить автора`, {
-            onclick: () => newAuthor()
-        }))
+        
 
         mc.append(c)
 
