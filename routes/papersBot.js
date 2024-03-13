@@ -80,15 +80,16 @@ let fb = getFirestore(gcp);
 let token =         process.env.papersToken
 let paymentToken =  process.env.papersPaymentToken
 
-let ngrok = process.env.ngrok
+// let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
+let ngrok = process.env.ngrok 
 
 let sheet = process.env.papersSheet
 
-// setTimeout(function(){
-//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
-//         console.log(`papers hook set on ${ngrok}`)
-//     }).catch(handleError)   
-// },1000)
+setTimeout(function(){
+    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
+        console.log(`papers hook set on ${ngrok}`)
+    }).catch(handleError)   
+},1000)
 
 
 let rules = {
@@ -7481,6 +7482,101 @@ router.post('/hook', (req, res) => {
                 }
             }
         }
+
+        if(inc[0] == `random`){
+            devlog(`это random`)
+            // devlog()
+            return udb.doc(user.id.toString()).get().then(u=>{
+                u = common.handleDoc(u);
+                switch(inc[1]){
+                    case `pass`:{
+                        return udb.doc(user.id.toString()).update({
+                            randomCoffeePass: true
+                        }).then(s=>{
+                            log({
+                                silent: true,
+                                user: user.id,
+                                text: `${uname(u,u.id)} пропускает randomCoffee`,
+                            })
+                            m.sendMessage2({
+                                callback_query_id: req.body.callback_query.id,
+                                show_alert: true,
+                                text: `До скорых встрех!`
+                            }, 'answerCallbackQuery', token)
+    
+                        })
+                    }
+                    case `subscribe`:{
+                        devlog(`это подключение`)
+                        return udb.doc(user.id.toString()).update({
+                            randomCoffee: true
+                        }).then(s=>{
+                            log({
+                                silent: true,
+                                user: user.id,
+                                text: `${uname(u,u.id)} включает randomCoffee`,
+                            })
+                            m.sendMessage2({
+                                callback_query_id: req.body.callback_query.id,
+                                show_alert: true,
+                                text: `Ждем четверг!`
+                            }, 'answerCallbackQuery', token).then(()=>{
+    
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    message_id: req.body.callback_query.message.message_id,
+                                    reply_markup: {
+                                        inline_keyboard: [
+                                            [{
+                                                text: `Отменить участие`,
+                                                callback_data: `random_unsubscribe`
+                                            }]
+                                        ]
+                                    }
+                                }, 'editMessageReplyMarkup', token)
+                            })
+    
+    
+                        })
+                    }
+                    case `unsubscribe`:{
+                        return udb.doc(user.id.toString()).update({
+                            randomCoffee: false
+                        }).then(s=>{
+                            log({
+                                silent: true,
+                                user: user.id,
+                                text: `${uname(u,u.id)} отключает randomCoffee`,
+                            })
+                            m.sendMessage2({
+                                callback_query_id: req.body.callback_query.id,
+                                show_alert: true,
+                                text: `Не прощаемся!`
+                            }, 'answerCallbackQuery', token).then(()=>{
+    
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    message_id: req.body.callback_query.message.message_id,
+                                    reply_markup: {
+                                        inline_keyboard: [
+                                            [{
+                                                text: `Включить random coffee`,
+                                                callback_data: `random_subscribe`
+                                            }]
+                                        ]
+                                    }
+                                }, 'editMessageReplyMarkup', token)
+                            })
+    
+    
+                        })
+                    }
+                }
+            }).catch(err=>{
+                console.log(err)
+            })
+            
+        }
     }
 
     if (req.body.my_chat_member) {
@@ -7506,6 +7602,8 @@ router.post('/hook', (req, res) => {
         }
     }
 })
+
+
 
 
 
@@ -8850,6 +8948,44 @@ function handleError(err) {
     }
 }
 
+function checkBeforeRC(){
+    udb
+        .where(`randomCoffee`,'==',true)
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            common.handleQuery(col).forEach((user,i)=>{
+                
+                if(user.randomCoffeePass){
+                    udb.doc(user.id).update({
+                        randomCoffeePass:null
+                    })
+                }
+                
+                let issues = []
+
+                if(!user.about) issues.push(`Не заполнено описание "О себе"`)
+                if(!user.occupation) issues.push(`Не заполнено поле "Сфера деятельности"`)
+
+                setTimeout(()=>{
+                    m.sendMessage2({
+                        chat_id: user.id,
+                        text: `Привет! Очередной случайный кофе начнется через пару часов. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите Пас. ${issues.length ? `И кстати, обратите внимание: мы не сможем допустить вас к участию по следующим причинам: ${issues.join('\n')}` : ``}`,
+                        reply_markup:{
+                            inline_keyboard:[[{
+                                text: `Пас`,
+                                callback_data: `random_pass`
+                            }],[{
+                                text: `Выйти из игры`,
+                                callback_data: `random_unsubscribe`
+                            }]]
+                        }
+                    },false,token)
+                },i*200)
+            })
+        })
+}
+
 function unClassUser(ref, user, res, id, callback_query) {
     if (!user) {
         user = udb.doc(id).get().then(u => {
@@ -9239,4 +9375,45 @@ module.exports = router;
 //             },i*20)
             
 //         })
+//     })
+
+
+// let randomInvite = {
+//     chat_id: common.dimazvali,
+//     parse_mode: `Markdown`,
+//     text: `Добрый вечер, камрад! Сегодня мне нужна твоя помощь. По счастью, это будет нетрудно.
+// Просто нажми кнопку «я в игре», чтобы завтра с утра мы могли отладить запуск random coffee среди бумажных подписчиков.
+// Ты получишь еще 2-3 сообщения (как и будущие "гражданские" участники) — реагируй на них максимально естественно.
+// Спасибо и до связи!
+
+// Твой консенсуальный бот.`,
+//     reply_markup:{
+//         inline_keyboard:[[{
+//             text: `Я в игре`,
+//             callback_data: `random_subscribe`
+//         }]]
+//     }
+// }
+
+// let randomInvite = {
+//     chat_id: common.dimazvali,
+//     parse_mode: `Markdown`,
+//     text: `Не бойся, друг! Эту рассылку получили только сотрудники papers. Дело в том, что мы хотим чуточку оживить приложение, добавив в него все то славное, дружелюбное (и горизонтальное), чем славен Тбилиси. Random Coffee — это популярный формат сервиса "случайных" знакомств среди неслучайных людей. Механики стандартные, но мы хотим добавить к ним немного волшебного порошка — именно его нам и нужно будет проверить (с твоим посильным участием).`
+// }
+
+// // m.sendMessage2(randomInvite,false,token)
+
+// udb
+//     .where(`insider`,'==',true)
+//     .where(`active`,'==',true)
+//     .get()
+//     .then(col=>{
+//         common.handleQuery(col)
+//             .filter(u=>!u.randomCoffee)
+//             .forEach((user,i)=>{
+//                 setTimeout(()=>{
+//                     randomInvite.chat_id = user.id
+//                     m.sendMessage2(randomInvite,false,token)
+//                 },i*200)
+//             })
 //     })

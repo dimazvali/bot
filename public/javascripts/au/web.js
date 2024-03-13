@@ -844,7 +844,7 @@ function toggleStatus(id,status){
     }))
 }
 
-function edit(entity, id, attr, type, value) {
+function edit(entity, id, attr, type, value, container) {
 
     let attrTypes = {
         description: `описание`,
@@ -955,7 +955,10 @@ function edit(entity, id, attr, type, value) {
                 axios.put(`/${host}/admin/${entity}/${id}`, {
                         attr: attr,
                         value: type == `date` ? new Date(f.value) : f.value
-                    }).then(handleSave)
+                    }).then(s=>{
+                        handleSave(s);
+                        if (container) container.innerHTML = f.value
+                    })
                     .catch(handleError)
             }
         }
@@ -2073,16 +2076,25 @@ function showTicket(t, id) {
         t = axios.get(`/${host}/admin/tickets/${id}`).then(d => d.data)
     }
     Promise.resolve(t).then(ticket => {
-        let p = preparePopupWeb(`ticket${ticket.id}`)
+
+        let p = preparePopupWeb(`tickets_${ticket.id}`,false,false,true)
 
         p.append(ce(`p`,false,`info`,`Создан ${drawDate(ticket.createdAt._seconds*1000)}`))
         
-        if (!ticket.active) p.append(ce('h1', false, false, `Отменен`))
+        p.append(deleteButton(`tickets`,ticket.id,!ticket.active,false,()=>showTicket(false,ticket.id)))
         
         p.append(ce('h1', false, false, `Билет: ${ticket.className}`, {
             onclick: () => showClass(false, ticket.class)
         }))
         
+        let t = ce(`div`)
+        
+        p.append(t)
+
+        load(`classes`,ticket.class).then(c=>{
+            t.append(ce(`h3`,false,false,drawDate(c.class.date._seconds*1000,false,{time:true})))
+        })
+
         p.append(ce('h2', false, false, `${ticket.userName}${ticket.outsider? ` (не через бот)` :''}`, {
             onclick: () => {
                 if (ticket.user) {
@@ -2091,10 +2103,14 @@ function showTicket(t, id) {
             }
         }))
         
-        if (ticket.alert) p.append(ce('p', false, false, `ВАЖНО: ${ticket.alert}`))
-        
-        if (ticket.isPayed) p.append(ce(`p`, false, false, 'оплачен'))
+        p.append(ce('p', false, false, ticket.alert ? `ВАЖНО: ${ticket.alert}` : `Добавить примечание`,{
+            onclick:function(){
+                edit(`tickets`,ticket.id,`alert`,`text`,ticket.alert||null,this)
+            }
+        }))
+    
 
+        p.append(ce('p', false, false, ticket.isPayed ? `оплачен` : `не оплачен`))
         p.append(ce('p', false, false, ticket.used ? `использован` : `не использован`))
 
 

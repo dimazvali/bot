@@ -477,7 +477,7 @@ function showUser(u,id){
     if(!u) u = load(`users`,id)
 
     Promise.resolve(u).then(u=>{
-        let p = preparePopupWeb(`user${u.id}`)
+        let p = preparePopupWeb(`users_${u.id}`,false,false,true)
 
         p.append(logButton(`user`,u.id,`Логи ${uname(u,u.id)}`))
 
@@ -522,23 +522,21 @@ function showUser(u,id){
             }))
         })
 
+        let invoices = ce(`div`);
+        invoices.append(ce('h3',false,false,`Счета`))
+        p.append(invoices)
         
-        p.append(ce('p', false, `story`, `телефон ${u.phone}` || `добавьте телефон`, {
-            onclick: function(){edit(`users`, u.id, `phone`, `text`, u.phone || null, this)}
+        invoices.append(ce(`button`,false,false,`Выставить счет`,{
+            onclick:()=>addInvoice(u.id)
         }))
 
-        p.append(ce('p', false, `story`, `inst @${u.inst}` || `добавьте профиль в instagram`, {
-            onclick: function(){edit(`users`, u.id, `inst`, `text`, u.inst || null, this)}
-        }))
+        load(`userInvoices`,u.id).then(inc=>{
+            inc.forEach(invoice=>{
+                invoices.append(invoiceLine(invoice))
+            })
+        })
 
-        if(u.inst){
-            p.append(ce(`a`, false, [`whiteLink`,`block`], `Открыть профиль`,{
-                href: `https://www.instagram.com/${u.inst}`,
-                target: `_inst`
-            }))
-        }
 
-        p.append(ce('h2',false,false,`Общий счет: ${u.score||0}`))
 
         let tags = ce('div')
 
@@ -561,17 +559,19 @@ function showUser(u,id){
             onclick:() => addTag(u.id)
         }))
 
-        let tasks = ce('div',false,false,`<h2>Задания</h2>`)     
-            p.append(tasks)   
-        
-        load(`usersTasks`,u.id).then(data=>{
-            
-            data.forEach(ut=>{
-                tasks.append(userTaskLine(ut))
+        let streams = ce(`div`)
+            streams.append(ce(`h3`,false,false,`Потоки`))
+            load(`userStreams`,u.id).then(col=>{
+                col.forEach(s=>{
+                    streams.append(showStreamUserLine(s))
+                })
+                streams.append(ce(`button`,false,false,`Добавить в поток`,{
+                    onclick:()=>addUser2Stream(u.id)
+                }))
             })
 
-            if(!data.length) tasks.append(ce('p',false,false,`Заданий пока нет`)) 
-        })
+        p.append(streams)
+
         p.append(ce('h2',false,false,`Переписка`))
 
         let messages = ce('div',false,`scrollable`)
@@ -604,7 +604,19 @@ function showUser(u,id){
                 }
             })
             mbox.append(sb)
+
+        
     })
+}
+
+function invoiceLine(i){
+    let c = listContainer(i)
+        
+        c.append(ce('h3',false,false,i.payed?`Оплачен`:`НЕ оплачен`))
+        c.append(ce('p',false,false,i.desc))
+        c.append(ce('h4',false,false,cur(i.price)))
+
+    return c
 }
 
 function showStream(id){
@@ -712,7 +724,50 @@ function showPromo(id){
 
             p.append(deleteButton(`promos`,id,!promo.active))
 
+            load(`promoUsers`,id).then(col=>{
+                if(!col.length){
+                    p.append(ce('h3',false,false,`Пользователей нет`))
+                } else {
+                    p.append(ce('h3',false,false,`Пользователи`))
+                    col.forEach(u=>{
+                        p.append(promoUserLine(u))
+                    })
+                }
+            })
+
         })
+}
+
+function promoUserLine(r){
+    let c = listContainer(r);
+        
+        if(r.used) c.classList.remove(`hidden`)
+
+        let useContainer = ce('div')
+        c.append(useContainer)
+        if(r.used) {
+            load(`streamUser`,r.used).then(stream=>{
+                useContainer.append(ce(`p`,false,`clickable`,`курс ${stream.courseName}`,{
+                    onclick:()=>showCourse(stream.course)
+                }))
+                
+                stream.payed 
+                    ? useContainer.append(ce(`p`,false,false,`оплачен`)) 
+                    : useContainer.append(ce(`p`,false,false,`еще не оплачен`))
+                load(`streams`,stream.stream).then(s=>{
+                    useContainer.append(ce('p',false,'clickable',`${s.courseName} ${drawDate(s.date)}`))
+                })
+            })
+        } else {
+            useContainer.innerHTML = `еще не использовано`
+        }
+        load(`users`,r.user).then(u=>{
+            c.append(ce('h4',false,false,uname(u,u.id),{
+                onclick:()=>showUser(u,u.id)
+            }))
+        })
+    return c;
+        
 }
 
 function showPromos(){
@@ -800,10 +855,10 @@ function showRecipies(){
 function showArticles(){
     closeLeft()
     let p = preparePopupWeb(`articles`,false,false,true)
-    p.append(ce(`h1`,false,false,`Рецепты`,{
+    p.append(ce(`h1`,false,false,`Заметки`,{
         onclick:()=>showHelp()
     }))
-    p.append(ce('button',false,false,`Добавить рецепт`,{
+    p.append(ce('button',false,false,`Добавить заметку`,{
         onclick:()=>addNewArticle()
     }))
     
@@ -1090,6 +1145,71 @@ function showStepLine(step){
     return c
 }
 
+function addUser2Stream(userId){
+    let edit = ce('div', false, `editWindow`)
+    document.body.append(edit)
+        edit.append(ce(`h2`,false,false,`Добавить в поток`))
+        load(`streams`).then(col=>{
+            col.filter(s=>s.active).sort((a,b)=>a.date<b.date?-1:1).forEach(s=>{
+                edit.append(ce(`button`,false,false,`${s.date}: ${s.courseName}`,{
+                    onclick:()=>{
+                        axios.post(`/${host}/admin/userStreams`,{
+                            user: +userId,
+                            stream: s.id
+                        }).then(s=>{
+                            handleSave(s);
+                            showUser(false,userId)
+                        }).catch(handleError)
+                    }
+                }))
+            })
+        })
+}
+
+function addInvoice(userId){
+    let edit = ce('div', false, `editWindow`)
+    document.body.append(edit)
+
+        edit.append(ce(`h2`,false,false,`Выставить счет`))
+    
+        let price = ce('input',false,false,false,{
+            type:   `number`,
+            min:    100,
+            value:  1000,
+            step:   1000,
+            placeholder: `сумма`
+        })
+
+        edit.append(price)
+
+        let desc = ce(`input`,false,false,false,{
+            placeholder: `назначение`,
+            type: `text`
+        })
+
+        edit.append(desc)
+
+        edit.append(ce('button',false,`saveButton`,`Отправить`,{
+            onclick:function(){
+                if(!price.value) return alert(`не указана сумма`)
+                if(!desc.value) return alert(`не указано назначение`)
+                if(!userId) return alert(`Ошибка определения пользователя`)
+
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/invoice`,{
+                    price: +price.value,
+                    desc: desc.value,
+                    user: userId
+                }).then(s=>{
+                    handleSave(s)
+                    this.parentNode.remove()
+                }).catch(handleError)
+            }
+        }))
+
+
+}
+
 function addStep(dayId){
     let edit = ce('div', false, `editWindow`)
         edit.append(ce(`h2`,false,false,`Добавляем шаг`))
@@ -1103,7 +1223,9 @@ function addStep(dayId){
         edit.append(desc)
 
         let recipie = ce(`select`)
-            recipie.append(ce(`option`,false,false,`Рецепт не выбран`))
+            recipie.append(ce(`option`,false,false,`Рецепт не выбран`,{
+                value: false
+            }))
         
         load(`recipies`).then(r=>{
             r.filter(r=>r.active).forEach(r=>{
@@ -1115,6 +1237,22 @@ function addStep(dayId){
 
         edit.append(recipie)
 
+
+        let article = ce(`select`)
+            article.append(ce(`option`,false,false,`заметка не выбрана`,{
+                value: false
+            }))
+        
+        load(`articles`).then(r=>{
+            r.filter(r=>r.active).forEach(r=>{
+                article.append(ce(`option`,false,false,r.name,{
+                    value: r.id
+                }))
+            })
+        })
+
+        edit.append(article)
+
         edit.append(ce(`button`,false,`saveButton`,`Сохранить`,{
             onclick:function(){
                 if(!time.value) return alert(`Укажите время отправки`)
@@ -1123,7 +1261,8 @@ function addStep(dayId){
                 axios.post(`/${host}/admin/daySteps/${dayId}`,{
                     time: time.value,
                     text: desc.value,
-                    recipie: recipie.value
+                    recipie: recipie.value || null,
+                    article: article.value || null
                 }).then(s=>{
                     handleSave(s)
                     edit.remove()

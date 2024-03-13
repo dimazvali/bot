@@ -46,10 +46,10 @@ function shimmer(light){
 
 function drawDate(d,l,o){
     let options = {
-        weekday: 'short',
-        month: 'short',
-        day:'2-digit',
-        timeZone: 'Asia/Tbilisi'
+        weekday:    'short',
+        month:      'short',
+        day:        '2-digit',
+        timeZone:   'Asia/Tbilisi'
     }
     
     if(!o) o = {}

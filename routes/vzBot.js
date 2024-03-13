@@ -20,9 +20,8 @@ const {
     subtle
 } = require('node:crypto');
 
-const ngrok = 'https://a751-109-172-156-240.ngrok-free.app'
-
-// process.env.ngrok;
+// const ngrok = 'https://a751-109-172-156-240.ngrok-free.app'
+const ngrok = process.env.ngrok;
 
 const {
     initializeApp,
@@ -63,12 +62,18 @@ const {
 
 router.get(`/test`,(req,res)=>{
     res.sendStatus(200)
-    // tick()
-    daySteps.doc(req.query.step).get().then(d=>{
-        sendStep(d.data(),req.query.user||common.dimazvali)
-    })
+    tick()
+    // daySteps.doc(req.query.step).get().then(d=>{
+    //     sendStep(d.data(),req.query.user||common.dimazvali)
+    // })
     
 })
+
+if (!process.env.develop) {
+    cron.schedule(`0,30 * * * *`, () => {
+        tick()
+    })
+}
 
 let gcp = initializeApp({
     credential: cert({
@@ -104,8 +109,11 @@ let courseDays =    fb.collection(`courseDays`);
 let daySteps =      fb.collection(`daySteps`);
 let streamUsers =   fb.collection(`streamUsers`);
 let recipies =      fb.collection(`recipies`);
+let articles =      fb.collection(`articles`);
 let promos =        fb.collection(`promos`);
 let promoUsers =    fb.collection(`promoUsers`);
+let invoices =      fb.collection(`invoices`);
+
 
 
 const locals = {
@@ -637,7 +645,7 @@ router.post(`/hook`, (req, res) => {
                                                 }).then(record=>{
                                                     
                                                     if(foundPromo) promoUsers.doc(foundPromo.id).update({
-                                                        active: false,
+                                                        // active: false,
                                                         used: record.id
                                                     })
 
@@ -942,6 +950,13 @@ function consistencу(type,data){
         comment: null
     }
     switch(type){
+        case `invoice`:{
+            if(!data.price || !Number(data.price)){
+                r.passed = false
+                r.comment = `Некорректная стоимость`
+            }
+            break;
+        }
         case `promos`:{
 
             if(!data.name){
@@ -1019,7 +1034,7 @@ router.all(`/admin/:method`, (req, res) => {
                     }
                     case `POST`:{
                         
-                        let check = consistencу(`articles`,rqe.body)
+                        let check = consistencу(`articles`,req.body)
 
                         if(check.passed) {
                             return articles.add({
@@ -1096,7 +1111,73 @@ router.all(`/admin/:method`, (req, res) => {
                     }
                 }
             }
+            case `invoice`:{
+                let check = consistencу(`invoice`,req.body)
 
+                if(check.passed){
+
+                    return m.getUser(req.body.user,udb).then(u=>{
+                        
+                        devlog(u)
+
+                        if(!u) return res.sendStatus(404)
+
+                        return invoices.add({
+                            active:     true,
+                            createdAt:  new Date(),
+                            createdBy:  +admin.id,
+                            price:      +req.body.price,
+                            desc:       req.body.desc,
+                            descLong:   req.body.descLong || null,
+                            user:       +req.body.user
+                        }).then(rec=>{
+                            sendMessage2({
+                                chat_id: req.body.user,
+                                title: `${req.body.desc}`,
+                                description: req.body.descLong || `Если ты передумаешь — мы вернем оплату (но только если до начала курса останется больше 5 часов).`,
+                                payload: `invoice_${rec.id}`,
+                                need_phone_number: true,
+                                send_phone_number_to_provider: true,
+                                provider_data: {
+                                    receipt: {
+                                        customer: {
+                                            full_name: u.first_name+' '+u.last_name,
+                                            phone: +u.phone
+                                        },
+                                        items: [{
+                                            description: req.body.desc,
+                                            quantity: "1.00",
+                                            amount:{
+                                                value: req.body.price,
+                                                currency: 'RUB'
+                                            },
+                                            vat_code: 1
+                                        }]
+                                    }
+                                },
+                                "provider_token": process.env.vzPaymentToken,
+                                "currency": "RUB",
+                                "prices": [{
+                                    "label": req.body.desc,
+                                    "amount":  req.body.price*100
+                                }]
+                            },'sendInvoice', token).then(m=>{
+                                devlog(m)
+                                invoices.doc(rec.id).update({
+                                    message: m.result.message_id
+                                })
+                                res.json({
+                                    success: true,
+                                    comment: `Ивойс отправлен`
+                                })
+                            })
+                        })
+                    })
+                    
+                } else {
+                    return res.status(400).send(check.comment)
+                }
+            }
             case `promos`:{
                 switch(req.method){
                     case `GET`:{
@@ -1192,7 +1273,7 @@ router.all(`/admin/:method`, (req, res) => {
                     }
                     case `POST`:{
                         
-                        let check = consistencу(`recipies`,rqe.body)
+                        let check = consistencу(`recipies`,req.body)
 
                         if(check.passed) {
                             return recipies.add({
@@ -1226,6 +1307,37 @@ router.all(`/admin/:method`, (req, res) => {
                 return udb.get().then(col => {
                     res.json({
                         users: handleQuery(col,true)
+                    })
+                })
+            }
+
+            case `userStreams`:{
+                if(!req.body.user) return res.status(400).send(`Пользователь не задан`)
+                if(!req.body.stream) return res.status(400).send(`Поток не задан`)
+                return udb.doc(req.body.user.toString()).get().then(u=>{
+                    if(!u.exists) return res.status(400).send(`Такого пользователя нет`)
+                    u = handleDoc(u)
+                    streams.doc(req.body.stream).get().then(s=>{
+                        if(!s.exists) return res.status(400).send(`Такого потока нет`)
+                        s = handleDoc(s)
+                        streamUsers.add({
+                            createdAt:  new Date(),
+                            createdBy:  +admin.id,
+                            active:     true,
+                            user:       +u.id,
+                            stream:     s.id,
+                            course:     s.course,
+                            courseName: s.courseName,
+                            payed:      new Date(),
+                            payedBy:    +admin.id,
+                            noPaymentNeeded: true
+                        }).then(s=>{
+                            res.json({
+                                success: true,
+                                id: s.id,
+                                comment: `Пользователь добавлен в поток`
+                            })
+                        }).catch(err=>handleError(err,res))
                     })
                 })
             }
@@ -1366,7 +1478,8 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             createdBy:  +admin.id,
                             time:       req.body.time,
                             text:       req.body.text,
-                            recipie:    req.body.recipie || null,
+                            recipie:    req.body.recipie == 'false' ? false : req.body.recipie || null,
+                            article:    req.body.article == 'false' ? false : req.body.article || null,
                             active:     true,
                             day:        req.params.id
                         }).then(record=>{
@@ -1431,7 +1544,19 @@ router.all(`/admin/:method/:id`, (req, res) => {
                         }
                     }
                 })
+            }
 
+            case `promoUsers`:{
+                switch(req.method){
+                    case `GET`:{
+                        return promoUsers
+                            .where(`promo`,'==',req.params.id)
+                            .get()
+                            .then(col=>{
+                                res.json(handleQuery(col))
+                            })
+                    }
+                }
             }
             
 
@@ -1471,6 +1596,17 @@ router.all(`/admin/:method/:id`, (req, res) => {
                 })
             }
 
+            case `streamUser`:{
+                switch(req.method){
+                    case `GET`:{
+                        return streamUsers.doc(req.params.id)
+                            .get()
+                            .then(d=>{
+                                res.json(handleDoc(d))
+                            })
+                    }
+                }
+            }
             case `streamUsers`:{
                 switch(req.method){
                     case `GET`:{
@@ -1543,6 +1679,19 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     }
                 })
             }
+
+            case `userInvoices`:{
+                switch (req.method) {
+                    case 'GET': {
+                        return invoices
+                            .where(`user`, '==', +req.params.id)
+                            .get()
+                            .then(col => {
+                                res.json(handleQuery(col,true))
+                            })
+                    }
+                }
+            }
             case `usersMessages`: {
                 switch (req.method) {
                     case 'GET': {
@@ -1576,6 +1725,18 @@ router.all(`/admin/:method/:id`, (req, res) => {
                         })
                     }
                 }
+            }
+
+            case `userStreams`:{
+                switch(req.method){
+                    case `GET`:{
+                        return streamUsers.where(`user`,'==',+req.params.id).get().then(col=>res.json(handleQuery(col,true)))
+                    }
+                    case `POST`:{
+
+                    }
+                }
+                
             }
         }
     })
