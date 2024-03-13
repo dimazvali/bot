@@ -1917,7 +1917,15 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                     })
                 }
 
-                
+                case `messages`: {
+                    return messages
+                        .where(`user`, '==', +req.params.id)
+                        .orderBy(`createdAt`, 'asc')
+                        .get()
+                        .then(col => {
+                            res.json(common.handleQuery(col))
+                        })
+                }
 
                 case `wineByUser`:{
                     return wineList

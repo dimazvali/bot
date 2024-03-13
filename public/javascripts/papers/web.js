@@ -1075,8 +1075,6 @@ function showUsers() {
 
             let udata = {}
 
-
-
             counter.innerHTML = `Всего: ${data.data.users.length}`
 
             data.data.users.forEach(cl => {
@@ -1158,13 +1156,6 @@ function showUsers() {
             mc.append(counter)
             mc.append(c)
 
-            
-
-            // data.data.users.forEach(cl => {
-            //     if(!udata[new Date(cl.createdAt).toISOString()]) udata[new Date(cl.createdAt).toISOString()] =0
-            //     udata[new Date(cl.createdAt).toISOString()] ++ 
-            //     // c.append(showUserLine(cl))
-            // });
         })
         .catch(err => {
             alert(err.message)
@@ -1327,6 +1318,47 @@ function showUser(u, id) {
             p.append(wc)
             p.append(wineButton(u.id))
         })
+
+        let messenger = ce('div')
+        p.append(messenger)
+
+        messenger.append(ce(`button`,false,false,`Открыть переписку`,{
+            onclick:function(){
+                this.remove()
+                load(`messages`,u.id).then(messages=>{
+                    let mc = ce(`div`,false,`messenger`)
+                    messenger.append(mc)
+                    messages.forEach(m=>{
+                        let message = ce('div',false,false,false,{dataset:{reply:m.isReply}})
+                            message.append(ce(`span`,false,`info`,drawDate(m.createdAt._seconds*1000,false,{time:true})))
+                            message.append(ce(`p`,false,false,m.text))
+                        mc.prepend(message)
+                    })
+                    let txt = ce('textarea',false,false,false,`вам слово`)
+                    messenger.append(txt)
+                    messenger.append(ce(`button`,false,false,`Отправить`,{
+                        onclick:()=>{
+                            if(txt.value){
+                                axios.post(`/${host}/admin/message`,{
+                                    text: txt.value,
+                                    user: u.id
+                                }).then(s=>{
+                                    
+                                    alert(`ушло!`)
+                                    let message = ce('div',false,false,false,{dataset:{reply:true}})
+                                        message.append(ce(`span`,false,`info`,drawDate(new Date(),false,{time:true})))
+                                        message.append(ce(`p`,false,false,txt.value))
+                                        txt.value = null;
+                                    mc.prepend(message)
+                                }).catch(err=>{
+                                    alert(err.message)
+                                })
+                            }
+                        }
+                    }))
+                })
+            }
+        }))
     })
 }
 
