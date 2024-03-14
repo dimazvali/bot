@@ -81,8 +81,8 @@ let fb = getFirestore(gcp);
 let token =         process.env.papersToken
 let paymentToken =  process.env.papersPaymentToken
 
-let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
-// let ngrok = process.env.ngrok 
+// let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
+let ngrok = process.env.ngrok 
 
 let sheet = process.env.papersSheet
 
