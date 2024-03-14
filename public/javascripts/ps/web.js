@@ -251,7 +251,7 @@ function mediaLine(){
 
 function showNewNews(){
     closeLeft()
-    let p = preparePopupWeb(`newNews`)
+    let p = preparePopupWeb(`news_add`,false,false,true)
     p.append(ce('h2',false,`infoBubble`,`Новая рассылка`,{
         onclick:()=>showHelp([
             `Здесь вы можете составлять рассылки (текстовые и не только) как по всем активным пользователям, так и по ролям или тегам.`,
@@ -290,6 +290,9 @@ function showNewNews(){
         }))
     })
 
+    let silent = labelButton(`бесшумная`, false)
+    let safe = labelButton(`защита от пересылки`, false)
+
     let tag = ce('select',false,`hidden`)
         tag.append(ce(`option`,false,false,`Выберите тег`,{
             value: ''
@@ -318,7 +321,9 @@ function showNewNews(){
                     text:           desc.value,
                     tag:            tag.value,
                     filter:         select.value,
-                    media:          media
+                    media:          media,
+                    silent:         silent.querySelector(`input`).checked ? true : false,
+                    safe:           safe.querySelector(`input`).checked ? true : false
                 }).then(r=>{
                     alert(r.data.comment)
                 }).catch(err=>{
@@ -337,15 +342,16 @@ function showNewNews(){
     inpC.append(mediaLine())
     inpC.append(ce(`button`,false,`thin`,`Добавить фото`,{
         onclick:function(){
-            // console.log(this)
             let copy = mediaLine()
-            // copy.value = null;
             this.parentNode.insertBefore(copy,this)
         }
     }))
     inpC.append(desc)
     inpC.append(select)
     inpC.append(tag)
+    
+    inpC.append(silent)
+    inpC.append(safe)
     
     p.append(sb)
 }

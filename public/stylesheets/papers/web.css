@@ -365,3 +365,7 @@ img.preview:hover {
 .sDivided.flex {
     align-items: baseline;
 }
+label>input {
+    display: inline !important;
+    width: 20px !important;
+}

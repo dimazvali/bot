@@ -96,7 +96,7 @@ function newsLine(n){
 
 function showNewNews(){
     closeLeft()
-    let p = preparePopupWeb(`newNews`)
+    let p = preparePopupWeb(`news_add`,false,false,true)
     p.append(ce('h2',false,false,`Новая рассылка`))
     
     let name = ce('input',false,`block`,false,{placeholder: `Название`})
@@ -139,6 +139,9 @@ function showNewNews(){
                 })))
         })
     
+
+    
+    
     let sb = ce('button',false,`dateButton`,`Отправить`,{
         dataset:{booked:1},
         onclick:function(){
@@ -147,8 +150,7 @@ function showNewNews(){
                 axios.post(`/${host}/admin/news`,{
                     name:           name.value,
                     text:           desc.value,
-                    tag:            tag.value,
-                    filter:         select.value
+                    tag:            tag.value
                 }).then(r=>{
                     alert(r.data.comment)
                 }).catch(err=>{
@@ -167,6 +169,9 @@ function showNewNews(){
     inpC.append(desc)
     inpC.append(select)
     inpC.append(tag)
+    inpC.append(silent)
+    inpC.append(safe)
+    
     
     p.append(sb)
 }
@@ -182,6 +187,8 @@ function showNewsNews(id){
         p.append(ce('p',false,false,n.text))
 
         let credits = ce('div')
+
+
 
         p.append(credits)
 

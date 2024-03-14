@@ -20,8 +20,8 @@ const {
     subtle
 } = require('node:crypto');
 
-// const ngrok = 'https://a751-109-172-156-240.ngrok-free.app'
-const ngrok = process.env.ngrok;
+const ngrok = 'https://a751-109-172-156-240.ngrok-free.app'
+// const ngrok = process.env.ngrok;
 
 const {
     initializeApp,
@@ -62,10 +62,10 @@ const {
 
 router.get(`/test`,(req,res)=>{
     res.sendStatus(200)
-    tick()
-    // daySteps.doc(req.query.step).get().then(d=>{
-    //     sendStep(d.data(),req.query.user||common.dimazvali)
-    // })
+    // tick()
+    daySteps.doc(req.query.step).get().then(d=>{
+        sendStep(d.data(),req.query.user||common.dimazvali)
+    })
     
 })
 
@@ -146,6 +146,12 @@ function sendStep(step,userId){
         text: step.text,
     }
 
+    if(step.media){
+        m.caption = step.text;
+        m.photo = step.media[0];
+        m.protect_content = true;
+    }
+
     if(step.recipie || step.article){
         m.reply_markup={
             inline_keyboard:[]
@@ -162,12 +168,12 @@ function sendStep(step,userId){
             m.reply_markup.inline_keyboard.push([{
                 text: `Открыть заметку`,
                 web_app:{
-                    url: `${ngrok}/${host}/app?start=articles_${step.recipie}`
+                    url: `${ngrok}/${host}/app?start=articles_${step.article}`
                 }
             }])
         }
     }
-    return sendMessage2(m,false,token)
+    return sendMessage2(m,step.media?`sendPhoto`:false,token)
 
 }
 
@@ -795,6 +801,18 @@ router.post(`/hook`, (req, res) => {
             }
         }
     }
+
+    if (req.body.pre_checkout_query){
+        console.log('это платеж')
+        sendMessage2({
+            ok: true,
+            pre_checkout_query_id: req.body.pre_checkout_query.id
+        },'answerPreCheckoutQuery',token).then(s=>{
+            console.log(s.data)
+        }).catch(err=>{
+            console.log(err)
+        })
+    }
 })
 
 
@@ -806,6 +824,22 @@ router.get(`/app`, (req, res) => {
     if(req.query.start){
         let inc =req.query.start.split(`_`) 
         switch(inc[0]){
+            case `articles`:{
+                let ref = articles.doc(inc[1])
+                return ref.get().then(r=>{
+                    if(r.exists){
+                        ref.update({
+                            views: FieldValue.increment(1)
+                        })
+                        return res.render(`${host}/recipie`,{
+                            recipie: handleDoc(r)
+                        })
+                    } else {
+                        return res.sendStatus(404)
+                    }
+                    
+                })
+            }
             case `recipies`:{
                 let ref = recipies.doc(inc[1])
                 return ref.get().then(r=>{
@@ -1476,6 +1510,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                         return daySteps.add({
                             createdAt:  new Date(),
                             createdBy:  +admin.id,
+                            media:      req.body.media || null,
                             time:       req.body.time,
                             text:       req.body.text,
                             recipie:    req.body.recipie == 'false' ? false : req.body.recipie || null,
@@ -1483,6 +1518,9 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             active:     true,
                             day:        req.params.id
                         }).then(record=>{
+                            courseDays.doc(req.params.id).update({
+                                steps: FieldValue.increment(1)
+                            })
                             res.json({
                                 success: true,
                                 comment: `Шаг сделан!`
@@ -1498,6 +1536,9 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             ref.update({
                                 active: false
                             }).then(s=>{
+                                courseDays.doc(s.day).update({
+                                    steps: FieldValue.increment(-1)
+                                })
                                 res.json({
                                     success: true,
                                     comment: `Шаг назад!`
@@ -1860,6 +1901,15 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
         })
     })
 }
+
+
+// daySteps.where(`active`,'==',true).get().then(col=>{
+//     handleQuery(col).forEach(s=>{
+//         courseDays.doc(s.day).update({
+//             steps: FieldValue.increment(1)
+//         })
+//     })
+// })
 
 
 module.exports = router;

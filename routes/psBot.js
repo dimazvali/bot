@@ -1184,7 +1184,6 @@ router.all(`/admin/:method`, (req, res) => {
         if (!admin || !admin.admin) return res.sendStatus(403)
 
         switch (req.params.method) {
-
             case `news`:{
                 switch(req.method){
                     case `GET`:{
@@ -1214,8 +1213,10 @@ router.all(`/admin/:method`, (req, res) => {
                                 }
                             }
                         }
+
                         return q.get()
                             .then(col=>{
+                                devlog(common.handleQuery(col).length)
                                 news.add({
                                     createdAt:  new Date(),
                                     createdBy:  +admin.id,
@@ -1227,16 +1228,19 @@ router.all(`/admin/:method`, (req, res) => {
                                         id:         rec.id,
                                         comment:    `Рассылка создана и расходится на ${col.docs.length} пользователей.`
                                     })
-                                    log({
-                                        text:  `${uname(admin,admin.id)} стартует рассылку с названием «${req.body.name}».`,
-                                        admin: +admin.id
-                                    })
+                                    // log({
+                                    //     text:  `${uname(admin,admin.id)} стартует рассылку с названием «${req.body.name}».`,
+                                    //     admin: +admin.id
+                                    // })
                                     common.handleQuery(col).forEach((u,i)=>{
                                         setTimeout(()=>{
                                             if(!req.body.media || !req.body.media.length){
                                                 m.sendMessage2({
                                                     chat_id:    u.user || u.id,
-                                                    text:       req.body.text
+                                                    text:       req.body.text,
+                                                    parse_mode: `HTML`,
+                                                    protect_content: req.body.safe?true:false,
+                                                    disable_notification: req.body.silent?true:false,
                                                 },false,token).then(res=>{
                                                     messages.add({
                                                         createdAt:  new Date(),
@@ -1250,7 +1254,10 @@ router.all(`/admin/:method`, (req, res) => {
                                                 m.sendMessage2({
                                                     chat_id:    u.user || u.id,
                                                     caption:       req.body.text,
-                                                    photo: req.body.media[0]
+                                                    parse_mode: `HTML`,
+                                                    photo: req.body.media[0],
+                                                    protect_content: req.body.safe?true:false,
+                                                    disable_notification: req.body.silent?true:false,
                                                 },`sendPhoto`,token).then(res=>{
                                                     messages.add({
                                                         createdAt:  new Date(),
@@ -1264,13 +1271,16 @@ router.all(`/admin/:method`, (req, res) => {
                                                 m.sendMessage2({
                                                     chat_id:        u.user || u.id,
                                                     caption:        req.body.text,
-                                                    media:          req.body.media.map(p=>{
+                                                    parse_mode:     `HTML`,
+                                                    media:          req.body.media.map((p,i)=>{
                                                         return {
                                                             type: `photo`,
-                                                            media: p
+                                                            media: p,
+                                                            caption: i?'':req.body.text
                                                         }
                                                     }),
-                                                    protect_content: true
+                                                    protect_content: req.body.safe?true:false,
+                                                    disable_notification: req.body.silent?true:false,
                                                 },`sendMediaGroup`,token).then(res=>{
                                                     messages.add({
                                                         createdAt:  new Date(),

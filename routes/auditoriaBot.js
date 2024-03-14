@@ -3354,13 +3354,12 @@ const translations = {
         en: 'Schedule'
     },
     intro: {
-        ru: `Здравствуй, друг. Прощай, трезвый день.\nТы можешь посмотреть расписание лекций, забронировать место в коворкинге или переговорке — или сразу пройти в бар. Там мы тебя ждем...\n`,
-        // Удобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка в нижнем левом углу...
-        en: `Hello there! Glad to meet you!`
+        ru: `Привет! В этом боте вы можете просмотреть расписание Аудитории и записаться на мероприятие - для этого нажмите кнопку «Приложение».`,
+        en: `Hello there! Glad to meet you! You can open the app by clicking the button in the bottom left corner.`
     },
     introButton: {
-        ru: `Открыть приложение`,
-        en: `release the kraken!`
+        ru: `Приложение`,
+        en: `App`
     },
     payOnSite: (v) => {
         return {

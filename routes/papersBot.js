@@ -55,6 +55,7 @@ const {
     sendAt
 } = require('cron');
 const { ObjectStreamToJSON } = require('sitemap');
+const { retail } = require('googleapis/build/src/apis/retail/index.js');
 
 
 
@@ -80,8 +81,8 @@ let fb = getFirestore(gcp);
 let token =         process.env.papersToken
 let paymentToken =  process.env.papersPaymentToken
 
-// let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
-let ngrok = process.env.ngrok 
+let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
+// let ngrok = process.env.ngrok 
 
 let sheet = process.env.papersSheet
 
@@ -137,7 +138,7 @@ let subscriptions =     fb.collection(`subscriptions`);
 let courses =           fb.collection(`courses`);
 let wineList =          fb.collection('wineList');
 let randomCoffees =     fb.collection('randomCoffees');
-
+let randomCoffeeIterations = fb.collection('randomCoffeeIterations');
 
 
 coworkingRules.get().then(col => {
@@ -430,6 +431,11 @@ router.all(`/admin/:method`, (req, res) => {
                         }
                         case `POST`:{
                             randomCoffee()
+                            log({
+                                silent: true,
+                                text: `${uname(admin,admin.id)} запускает random coffee`,
+                                admin: +admin.id
+                            })
                             return res.json({
                                 success: true,
                                 comment: `Рулетка запущена!`
@@ -659,11 +665,117 @@ router.all(`/admin/:method`, (req, res) => {
                     break;
                 }
                 case `news`: {
-                    return news.orderBy('createdAt', 'DESC').get().then(col => {
-                        res.json(common.handleQuery(col))
-                    }).catch(err => {
-                        res.status(500).send(err.message)
-                    })
+                    switch (req.method){
+                        case `GET`:{
+                            return news.orderBy('createdAt', 'DESC').get().then(col => {
+                                res.json(common.handleQuery(col))
+                            }).catch(err => {
+                                res.status(500).send(err.message)
+                            })
+                        }
+                        case `POST`:{
+                            if(!req.body.name || !req.body.text) return res.sendStatus(400)
+                            let q = udb
+                                .where(`active`,'==',true)
+                                .where(`blocked`,'==',false)
+                            if(req.body.filter && req.body.filter != 'all'){
+                                q = q.where(req.body.filter,'==',true)
+                            }
+    
+                            return q.get()
+                                .then(col=>{
+                                    devlog(common.handleQuery(col).length)
+                                    news.add({
+                                        createdAt:  new Date(),
+                                        createdBy:  +admin.id,
+                                        text:       req.body.text,
+                                        name:       req.body.name,
+                                        audience:   col.docs.length
+                                    }).then(rec=>{
+                                        
+                                        res.json({
+                                            id:         rec.id,
+                                            comment:    `Рассылка создана и расходится на ${col.docs.length} пользователей.`
+                                        })
+                                        
+                                        log({
+                                            silent: true,
+                                            text:  `${uname(admin,admin.id)} стартует рассылку с названием «${req.body.name}».`,
+                                            admin: +admin.id
+                                        })
+
+                                        common.handleQuery(col)
+                                            // .slice(0,1)
+                                            .forEach((u,i)=>{
+                                            // u.id = common.dimazvali // УБРАТЬ
+
+                                            setTimeout(()=>{
+                                                if(!req.body.media || !req.body.media.length){
+                                                    m.sendMessage2({
+                                                        chat_id:    u.user || u.id,
+                                                        text:       req.body.text,
+                                                        parse_mode: `HTML`,
+                                                        protect_content: req.body.safe?true:false,
+                                                        disable_notification: req.body.silent?true:false,
+                                                    },false,token).then(res=>{
+                                                        messages.add({
+                                                            createdAt:  new Date(),
+                                                            user:       +u.id || + u.user,
+                                                            text:       req.body.text,
+                                                            news:       rec.id,
+                                                            isReply:    true
+                                                        })
+                                                    })
+                                                } else if(req.body.media && req.body.media.length == 1) {
+                                                    m.sendMessage2({
+                                                        chat_id:    u.user || u.id,
+                                                        caption:       req.body.text,
+                                                        parse_mode: `HTML`,
+                                                        photo: req.body.media[0],
+                                                        protect_content: req.body.safe?true:false,
+                                                        disable_notification: req.body.silent?true:false,
+                                                    },`sendPhoto`,token).then(res=>{
+                                                        messages.add({
+                                                            createdAt:  new Date(),
+                                                            user:       +u.id || + u.user,
+                                                            text:       req.body.text,
+                                                            news:       rec.id,
+                                                            isReply:    true
+                                                        })
+                                                    })
+                                                } else if(req.body.media){
+                                                    m.sendMessage2({
+                                                        chat_id:        u.user || u.id,
+                                                        caption:        req.body.text,
+                                                        parse_mode:     `HTML`,
+                                                        media:          req.body.media.map((p,i)=>{
+                                                            return {
+                                                                type: `photo`,
+                                                                media: p,
+                                                                caption: i?'':req.body.text
+                                                            }
+                                                        }),
+                                                        protect_content: req.body.safe?true:false,
+                                                        disable_notification: req.body.silent?true:false,
+                                                    },`sendMediaGroup`,token).then(res=>{
+                                                        messages.add({
+                                                            createdAt:  new Date(),
+                                                            user:       +u.id || + u.user,
+                                                            text:       req.body.text,
+                                                            news:       rec.id,
+                                                            isReply:    true
+                                                        })
+                                                    })
+                                                }
+                                                
+                                            },i*200)
+                                        })
+                                    })
+                                    
+                                })
+                        }
+                    }
+                    
                 }
                 case `subscribe`:{
                     if(!req.body.plan || !req.body.user) {
@@ -1441,7 +1553,7 @@ function randomCoffee(){
             .get()
             .then(col=>{
                 
-                let users2meet = common.handleQuery(col).filter(u=>u.occupation && u.about)
+                let users2meet = common.handleQuery(col).filter(u=>u.occupation && u.about).filter(u => !u.randomCoffeePass)
                 
                 devlog(`Количество участников: ${users2meet.length}`)
 
@@ -1467,18 +1579,38 @@ function randomCoffee(){
                             first:      +first.id,
                             second:     +second.id
                         }).then(r=>{
+                            let txt1 = translations.rcInvite[first.language_code](first,second) || translations.rcInvite.en(first,second)
+                            let txt2 = translations.rcInvite[first.language_code](second,first) || translations.rcInvite.en(second,first)
                             m.sendMessage2({
                                 chat_id:    first.id,
-                                text:       translations.rcInvite[first.language_code](first,second) || translations.rcInvite.en(first,second)
-                            },false,token)
+                                text:       txt1
+                            },false,token).then(()=>{
+                                messages.add({
+                                    createdAt:  new Date(),
+                                    text:       txt1,
+                                    isReply:    true,
+                                    user:       +first.id
+                                })
+                            })
                             m.sendMessage2({
                                 chat_id:    second.id,
-                                text:       translations.rcInvite[first.language_code](second,first) || translations.rcInvite.en(second,first)
-                            },false,token)
+                                text:       txt2
+                            },false,token).then(()=>{
+                                messages.add({
+                                    createdAt:  new Date(),
+                                    text:       txt2,
+                                    isReply:    true,
+                                    user:       +second.id
+                                })
+                            })
                         })
                     } else {
                         devlog(`${uname(first,first.id)} перевстречался со всеми`)
                     }
+                }
+
+                if(users2meet.length){
+                    devlog(users2meet[0])
                 }
             
         })
@@ -2442,9 +2574,11 @@ router.get(`/mini/:section/:id`,(req,res)=>{
 
 if(process.env.develop){
     router.get('/test', (req, res) => {
-        // countUserEntries(1);
+        rcFollowUp(`GtpkkujNjhH1QyB0k01d`)
+        // count'UserEntries(1);
         // randomCoffee()
-        nowShow()
+        // nowShow()
+        // checkBeforeRC()
         res.sendStatus(200)
     })
 }
@@ -3564,9 +3698,10 @@ function rcQuestions(f,s){
     let q = {
         media: {
             ru: [
-                `Господь, уродило вас с умом и талантом родиться в России.`,
+                `Господь, угораздило вас с умом и талантом родиться в России.`,
                 `Говорят, в журналистику берут всех, кроме выпускников журфаков. Правду говорят?..`,
-                `О чем была ваша первая публикация? А где?..`
+                `О чем была ваша первая публикация? А где?..`,
+                `Как вы узнали о «Бумаге»?`
             ],
             en: [
                 
@@ -3606,8 +3741,8 @@ function rcQuestions(f,s){
         other: {
             ru: [
                 `Сколько видов харчо успели попробовать?`,
-                `Когда вы в первый раз побывали в Грузии?`,
-                `Где вы были эти 8 лет? Шучу-шучу!`
+                `Знаете ли вы, что такое скуф?..`
+
             ],
             en: [
                 
@@ -7497,6 +7632,90 @@ router.post('/hook', (req, res) => {
             return udb.doc(user.id.toString()).get().then(u=>{
                 u = common.handleDoc(u);
                 switch(inc[1]){
+                    case `rate`:{
+                        let ref = randomCoffees.doc(inc[2]); 
+                        
+                        return ref.get().then(couple=>{
+                            couple = common.handleDoc(couple)
+                            if((couple.rate||{}).hasOwnProperty(inc[3])){
+                                return m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: `Извините, вы уже поставили оценку.`
+                                }, 'answerCallbackQuery', token)
+                            } else {
+
+                                rcReScore(Number(inc[4]),couple[inc[3]])
+                            
+                                return ref.update({
+                                    [`rate.${inc[3]}`]: Number(inc[4])
+                                }).then(s=>{
+                                    
+                                    return m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        show_alert: true,
+                                        text: `Спасибо и до новых встреч!`
+                                    }, 'answerCallbackQuery', token)
+        
+                                }).catch(err=>{
+                                    handleError(err)
+                                })
+                            }
+                            
+                        })
+
+                        
+                    }
+                    case `confirm`:{
+                        let ref = randomCoffees.doc(inc[2]); 
+                        return ref.get().then(meeting=>{
+                            meeting = common.handleDoc(meeting)
+                            let rate = null;
+                            if(meeting.first == user.id){
+                                ref.update({
+                                    ['proof.first']:true
+                                })
+                                rate = `second`
+                            } else if(meeting.second == user.id){
+                                ref.update({
+                                    ['proof.second']:true
+                                })
+                                rate = `first`
+                            } else {
+                                return m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: `Но вас там не было!`
+                                }, 'answerCallbackQuery', token)
+                            }
+
+                            m.sendMessage2({
+                                callback_query_id: req.body.callback_query.id,
+                                show_alert: true,
+                                text: `Спасибо! Как вам понравилось?\n(это совершенно анонимно)`
+                            }, 'answerCallbackQuery', token)
+
+                            m.sendMessage2({
+                                chat_id: user.id,
+                                message_id: req.body.callback_query.message.message_id,
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{
+                                            text: `🤯`,
+                                            callback_data: `random_rate_${inc[2]}_${rate}_0`
+                                        },{
+                                            text: `🤔`,
+                                            callback_data: `random_rate_${inc[2]}_${rate}_0.5`
+                                        },{
+                                            text: `🤗`,
+                                            callback_data: `random_rate_${inc[2]}_${rate}_1`
+                                        }]
+                                    ]
+                                }
+                            }, 'editMessageReplyMarkup', token)
+
+                        })
+                    }
                     case `pass`:{
                         return udb.doc(user.id.toString()).update({
                             randomCoffeePass: true
@@ -8962,6 +9181,7 @@ function checkBeforeRC(){
         .where(`active`,'==',true)
         .get()
         .then(col=>{
+
             common.handleQuery(col).forEach((user,i)=>{
                 
                 if(user.randomCoffeePass){
@@ -8972,13 +9192,17 @@ function checkBeforeRC(){
                 
                 let issues = []
 
-                if(!user.about) issues.push(`Не заполнено описание "О себе"`)
-                if(!user.occupation) issues.push(`Не заполнено поле "Сфера деятельности"`)
+                if(!user.about) issues.push(`не заполнено описание "О себе"`)
+                if(!user.occupation) issues.push(`не заполнено поле "Сфера деятельности"`)
+
+                devlog(`${uname(user,user.id)}: ${issues.length? issues.join(', ') :`готов`}`)
 
                 setTimeout(()=>{
+                    let txt = `Привет! Очередной случайный кофе начнется через пару часов. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас». ${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
                     m.sendMessage2({
                         chat_id: user.id,
-                        text: `Привет! Очередной случайный кофе начнется через пару часов. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите Пас. ${issues.length ? `И кстати, обратите внимание: мы не сможем допустить вас к участию по следующим причинам: ${issues.join('\n')}` : ``}`,
+                        // chat_id: common.dimazvali,
+                        text: txt,
                         reply_markup:{
                             inline_keyboard:[[{
                                 text: `Пас`,
@@ -8988,7 +9212,14 @@ function checkBeforeRC(){
                                 callback_data: `random_unsubscribe`
                             }]]
                         }
-                    },false,token)
+                    },false,token).then(s=>{
+                        messages.add({
+                            createdAt: new Date(),
+                            text: txt,
+                            isReply: true,
+                            user: +user.id
+                        })
+                    })
                 },i*200)
             })
         })
@@ -9247,6 +9478,51 @@ function unbookMR(id, userid, callback, res) {
 }
 
 
+function rcReScore(score,id){
+    m.getUser(id,udb).then(u=>{
+        if(!u.coffeeScore) u.coffeeScore = 0
+        if(!u.coffees) u.coffees = 0
+        udb.doc(id.toString()).update({
+            coffees: FieldValue.increment(1),
+            coffeeScore: Number(((u.coffeeScore||0*u.coffees+score)/(u.coffees+1)).toFixed(2))
+        })
+    })
+}
+
+
+
+function rcFollowUp(id){
+    randomCoffees
+        .where(`iteration`,'==',id)
+        .get()
+        .then(col=>{
+            common.handleQuery(col)
+                // .filter(c=>c.id == `OqDGlmxbYCQ5nw8vIrPM`)
+                .forEach(couple=>{
+                m.sendMessage2({
+                    chat_id: couple.first,
+                    text: `Здравствуйте!\nКак вам кофе? Он вообще состоялся?..`,
+                    reply_markup:{
+                        inline_keyboard:[[{
+                            text: `Да`,
+                            callback_data: `random_confirm_${couple.id}`
+                        }]]
+                    }
+                },false,token)
+                m.sendMessage2({
+                    chat_id: couple.second,
+                    text: `Здравствуйте! Как вам кофе? Он вообще состоялся?..`,
+                    reply_markup:{
+                        inline_keyboard:[[{
+                            text: `Да`,
+                            callback_data: `random_confirm_${couple.id}`
+                        }]]
+                    }
+                },false,token)
+            })
+        })
+}
+
 // userClasses
 //     .get()
 //     .then(col=>{
@@ -9425,3 +9701,13 @@ module.exports = router;
 //                 },i*200)
 //             })
 //     })
+
+// randomCoffees.get().then(col=>{
+//     col.docs.forEach(r=>{
+//         randomCoffees.doc(r.id).update({
+//             iteration: `GtpkkujNjhH1QyB0k01d`
+//         })
+//     })
+// })
+
+

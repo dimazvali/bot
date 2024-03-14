@@ -653,6 +653,17 @@ function logLine(l){
 }
 
 
+function labelButton(text,checked){
+    let c = ce('label')
+    let inp = ce('input',false,false,false,{
+        checked: checked,
+        type: `radio`
+    })
+    c.append(inp)
+    c.innerHTML += text
+    return c
+}
+
 function s(el){
    el.parentNode.childNodes.forEach(n=>{
     n.classList.remove(`selected`)
@@ -778,8 +789,18 @@ function sortBlock(sortTypes,container,array,callback,style){
     return c;
 }
 
-function listContainer(e){
-    return ce('div',false,[`sDivided`,e.active?`reg`:`hidden`],false,{dataset:{active:e.active}})
+function listContainer(e,detailed){
+    let c =  ce('div',false,[`sDivided`,e.active?`reg`:`hidden`],false,{dataset:{active:e.active}})
+
+    if(detailed){
+        let details = ce('div',false,[`details`,`flex`])
+            details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000))) 
+            details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
+            if(e.createdBy) load(`users`,e.createdBy).then(author=>details.append(ce('span',false,`info`,uname(author, author.id))) )
+        c.append(details)
+    }
+
+    return c
 }
 
 function archiveButton(container,cl){

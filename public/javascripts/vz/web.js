@@ -376,11 +376,7 @@ function showUsers(){
 
             let filterTypes = {
                 blocked:    `Вышли из чата`,
-                admin:      `Админы`,
-                ready:      `Активированы`,
-                concent:     `Заполнили профиль`,
-                notYet:      `На рассмотрении`,
-                viewed:      `Отсмотрены`
+                admin:      `Админы`
             }
 
             let fc = ce(`div`,false,`flex`)
@@ -497,14 +493,6 @@ function showUser(u,id){
             attr:       `blocked`,
             name:       `заблокировать`,
             disname:    `разблокировать`
-        },{
-            attr:       `ready`,
-            name:       `Подтвердить аккаунт`,
-            disname:    `Снять подтверждение`
-        },{
-            attr:       `viewed`,
-            name:       `Отсмотрен`,
-            disname:    `Не отсмотрен`
         }]
 
         let ac = ce(`div`)
@@ -998,14 +986,11 @@ function showCourses(){
 }
 
 function showCourseLine(course){
-    let c = listContainer(course)
-    let details = ce('div',false,[`details`,`flex`])
-        details.append(ce('span',false,`info`,drawDate(course.createdAt._seconds*1000))) 
-        details.append(ce('span',false,[`info`,(course.views?`reg`:`hidden`)],c.views?`просмотров: ${c.views}`:''))
-    c.append(details)
+    let c = listContainer(course,true)
     c.append(ce('h3',false,false,course.name,{
         onclick:()=>showCourse(course.id)
     }))
+    c.append(ce(`p`,false,false,course.description))
     return c
 }
 
@@ -1025,7 +1010,7 @@ function showCourse(id){
             })
         p.append(details)
         
-        p.append(ce('p',false,`editable`,`${course.price}`,{
+        p.append(ce('p',false,`editable`,`стоимость: ${cur(course.price)}`,{
             onclick:function(){
                 edit(`courses`,id,`price`,`number`,course.price,this)
             }
@@ -1083,6 +1068,7 @@ function showCourse(id){
                             daysListing.append(showDayLine({
                                 course: id,
                                 id:     d.data.id,
+                                steps:  d.data.steps,
                                 active: true,
                                 index:  d.data.index
                             }))
@@ -1103,6 +1089,25 @@ function showCourse(id){
 }
 
 
+
+function mediaLine(){
+    let mc = ce('div',false,`relative`)
+    let media = ce('input',false,[`block`,`media`],false,{placeholder: `фото или видео`,onchange:function(){
+        mc.querySelectorAll(`img`).forEach(img=>img.remove())
+        if(this.value) mc.prepend(ce(`img`,false,`micro`,false,{src:this.value}))
+    }
+})
+    let db = ce('div',false,`delete`,`❌`,{
+        onclick:function(){
+            this.parentNode.remove()
+        }
+    })
+    
+    mc.append(media)
+    mc.append(db)
+    return mc
+}
+
 function showDayLine(d){
     let c = listContainer(d)
         c.append(ce('h4',false,false,`День ${d.index+1}`,{
@@ -1110,6 +1115,7 @@ function showDayLine(d){
                 showDay(d.id)
             }
         }))
+        c.append(ce(`p`,false,false,`Шагов: ${d.steps||`еще нет`}`))
     return c
 }
 
@@ -1211,7 +1217,7 @@ function addInvoice(userId){
 }
 
 function addStep(dayId){
-    let edit = ce('div', false, `editWindow`)
+    let edit = ce('div', false, [`editWindow`,`inpC`])
         edit.append(ce(`h2`,false,false,`Добавляем шаг`))
         let time = ce('input',false,false,false,{
             type: `time`
@@ -1221,6 +1227,14 @@ function addStep(dayId){
         })
         edit.append(time)
         edit.append(desc)
+
+        edit.append(mediaLine())
+        edit.append(ce(`button`,false,`thin`,`Добавить фото`,{
+            onclick:function(){
+                let copy = mediaLine()
+                this.parentNode.insertBefore(copy,this)
+            }
+        }))
 
         let recipie = ce(`select`)
             recipie.append(ce(`option`,false,false,`Рецепт не выбран`,{
@@ -1258,9 +1272,15 @@ function addStep(dayId){
                 if(!time.value) return alert(`Укажите время отправки`)
                 if(!desc.value) return alert(`Я не вижу ваших букв!\n(в описании)`)
                 this.setAttribute(`disabled`,true)
+                let media = []
+                
+                edit.querySelectorAll('.media').forEach(inp=>{
+                    if(inp.value) media.push(inp.value)
+                })
                 axios.post(`/${host}/admin/daySteps/${dayId}`,{
                     time: time.value,
                     text: desc.value,
+                    media:          media,
                     recipie: recipie.value || null,
                     article: article.value || null
                 }).then(s=>{

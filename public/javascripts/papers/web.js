@@ -1016,7 +1016,14 @@ function showRC(){
     mc.append(listing)
 
     load(`rcParticipants`).then(users=>{
-        usersC.append(ce('h3',false,false,`Участников: ${users.length}`))
+        usersC.append(ce('h3',false,false,`Участников: ${users.length}`,{
+            onclick:()=>{
+                users.forEach(u=>{
+                    usersC.append(showUserLine(u,u.randomCoffeePass?`пас`:`в игре`))
+                })
+            }
+        }))
+
     })
     
     load(`rc`).then(coffees=>{
@@ -1652,3 +1659,4 @@ function showAuthor(a, id) {
         })
     })
 }
+

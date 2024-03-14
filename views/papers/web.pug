@@ -28,6 +28,7 @@ html
         h3(onclick="showHalls()")     Залы
         h3(onclick="showCoworking()") Коворкинг
         h3(onclick="showAuthors()")   Авторы
+        h3(onclick="showNews()")      Рассылки
         h3(onclick="showRC()")        randomCoffee
         h3(onclick="showLogs()")      Логи
     
@@ -48,3 +49,4 @@ html
                 if(l.author) 
                   button.dark.dateButton(onclick!="showAuthor(false,'"+l.author+"')") открыть автора
     script(src='/javascripts/papers/web.js')
+    script(src='/javascripts/papersCommon.js')
