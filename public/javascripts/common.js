@@ -796,7 +796,8 @@ function listContainer(e,detailed){
         let details = ce('div',false,[`details`,`flex`])
             details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000))) 
             details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
-            if(e.createdBy) load(`users`,e.createdBy).then(author=>details.append(ce('span',false,`info`,uname(author, author.id))) )
+            if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy).then(author=>details.append(ce('span',false,`info`,uname(author, author.id))))
+            if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
         c.append(details)
     }
 

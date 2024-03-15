@@ -17,11 +17,11 @@ function showNews(){
 }
 
 function newsLine(n){
-    let c = ce('div',false,`sDivided`,false,{
-        onclick:()=>showNewsNews(n.id)
-    });
-    c.append(ce('span',false,`info`,drawDate(n.createdAt._seconds*1000)))
-    c.append(ce('span',false,`info`,`Аудитория: ${n.audience||`нрзб.`}`))
+    let c = listContainer(n,true)
+    c.classList.remove(`hidden`)
+    c.onclick=()=>showNewsNews(n.id)
+    // c.append(ce('span',false,`info`,drawDate(n.createdAt._seconds*1000)))
+    // c.append(ce('span',false,`info`,`Аудитория: ${n.audience||`нрзб.`}`))
     c.append(ce(`h3`,false,false,n.name))
     return c
 }

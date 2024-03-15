@@ -1354,7 +1354,7 @@ router.all(`/admin/:method`, (req, res) => {
                         .where('class', '==', req.query.class)
                         .get()
                         .then(col => {
-                            res.json(common.handleQuery(col))
+                            res.json(common.handleQuery(col,true))
                         })
                 }
 
@@ -2065,6 +2065,13 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         .then(col => {
                             res.json(common.handleQuery(col))
                         })
+                }
+
+                case `news`:{
+                    return news.doc(req.params.id).get().then(n=>{
+                        if(!n.exists) return res.sendStatus(404)
+                        return res.json(common.handleDoc(n))
+                    })
                 }
 
                 case `wineByUser`:{
@@ -3762,6 +3769,10 @@ function rcQuestions(f,s){
 }
 
 const translations = {
+    whatWasWrong:{
+        ru: `Если не сложно, расскажите, пожалуйста, что вам не понравилось — мы постараемся учесть и исправиться.`,
+        en: `Could you please tell us what we should improve?..`
+    },
     rcInvite:{
         ru:(f,s)=>`Ваш рандомный кофе готов!\nВстречайте @${s.username}. ${f.occupation == s.occupation ? `Как и вы, э`: `Э`}тот человек работает в области ${s.occupation}.\nА вот, что он пишет о себе сам: ${s.about}.\nДело за малым: договориться о месте и времени встречи. А если стесняетесь, вот вам пара тем для начала беседы: \n${rcQuestions(f,s)}`,
         en:(f,s)=>`Your random coffee is ready!\nGreet @${s.username}. ${f.occupation == s.occupation ? `Just like you t`: `T `}his person occupation is in ${s.occupation}.\nAnd that's how he/she describes him/herself: ${s.about}.\nDon't feel shy to write and set a place and time for a cup of coffee. You are? Well, here are some topics to start a conversation:\n${rcQuestions(f,s)}`
@@ -7608,14 +7619,24 @@ router.post('/hook', (req, res) => {
                                 userClasses.doc(inc[2]).update({
                                     rate: +inc[3]
                                 })
-                                // alertAdmins({
-                                //     text: `${ticket.userName} ставит мероприятию ${ticket.className} оценку ${inc[3]}`
-                                // })
+                                log({
+                                   text: `${uname(user,user.id)} ставит оценку ${inc[3]} меропориятию ${ticket.className}.`,
+                                   user: +user.id,
+                                   class: ticket.class 
+                                })
+
                                 m.sendMessage2({
                                     callback_query_id: req.body.callback_query.id,
                                     text: translations.thanks[user.language_code] || translations.thanks.en,
                                     show_alert: true,
                                 }, 'answerCallbackQuery', token)
+
+                                if(+inc[3]<4){
+                                    m.sendMessage2({
+                                        chat_id: user.id,
+                                        text: translations.whatWasWrong[user.language_code] || translations.whatWasWrong.en
+                                    },false,token)   
+                                }
                             } else {
                                 m.sendMessage2({
                                     callback_query_id: req.body.callback_query.id,

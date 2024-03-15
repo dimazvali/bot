@@ -15,6 +15,10 @@ const web = `https://dimazvali-a43369e5165f.herokuapp.com/paper/mini`
 if(start){
     start = start.split('_')
     switch(start[0]){
+        case `rc`:{
+            showRC()
+            break;
+        }
         case `newClass`:{
             newClass()
             break;
@@ -780,9 +784,10 @@ function showClass(cl, id) {
 
 
                         guests.append(ce(`p`, false, false, `Гостей: ${data.data.length}${cl.price ? ` // оплачено ${data.data.filter(g=>g.isPayed).length}` : ''}${` // пришли ${data.data.filter(g=>g.status == 'used').length}`}`))
-                        guests.innerHTML += `<table><tr><th>Имя</th><th>💲</th><th>📍</th><th>примечания админу</th></tr>
+                        guests.innerHTML += `<table><tr><th>Имя</th><th>оценка</th><th>💲</th><th>📍</th><th>примечания админу</th></tr>
                                 ${data.data.map(u=>`<tr class="story">
                                     <td onclick="showUser(false,${u.user})">${u.userName}</td>
+                                    <td>${u.rate ? u.rate : '-'}</td>
                                     <td>${cl.price ? (u.isPayed?'✔️':'❌') : '🚫'}</td>
                                     <td>${(u.status == 'used'? '✔️' : '❌')}</td>
                                     <td class="editable" onclick=addComment(this,"${u.id}")>${u.comment || `без примечаний`}</td>
@@ -1127,11 +1132,11 @@ function rcLine(couple){
         let users = ce(`div`,false,`flex`)
         c.append(users)
     load(`users`,couple.first).then(f=>{
-        users.append(ce('button',false,[`dark`,`dateButton`],uname(f,f.id),{
+        users.append(ce('button',false,[`dark`,`dateButton`,((couple.proof && couple.proof.first) ? `fineButton` : `reg`)],uname(f,f.id),{
             onclick:()=>showUser(f,f.id)
         }))
         load(`users`,couple.second).then(s=>{
-            users.append(ce('button',false,[`dark`,`dateButton`],uname(s,s.id),{
+            users.append(ce('button',false,[`dark`,`dateButton`,((couple.proof && couple.proof.second) ? `fineButton` : `reg`)],uname(s,s.id),{
                 onclick:()=>showUser(s,s.id)
             }))    
         })
