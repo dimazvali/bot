@@ -15,6 +15,10 @@ const web = `https://dimazvali-a43369e5165f.herokuapp.com/paper/mini`
 if(start){
     start = start.split('_')
     switch(start[0]){
+        case `newClass`:{
+            newClass()
+            break;
+        }
         case 'users':{
             if(start[1]) {
                 showUser(false,start[1])
@@ -148,13 +152,26 @@ function drawSchedule(events, start) {
 
 function newClass(){
     closeLeft()
-    let p = preparePopupWeb(`newClass`)
+    let p = preparePopupWeb(`newClass`,false,false,true)
     p.classList.add('inpC')
     p.append(ce(`h1`,false,false,`Новое мероприятие`))
+    
     let name = ce('input',false,false,false,{
         placeholder: `Название`
     })
     p.append(name)
+
+    let img = ce(`input`,false,false,false,{
+        type: `text`,
+        placeholder: `ссылка на картинку`
+    })
+    p.append(img)
+
+    p.append(ce(`a`,false,`whiteLink`,`грузим тут`,{
+        href: `https://console.firebase.google.com/u/0/project/paperstuff-620fa/storage/paperstuff-620fa.appspot.com/files/~2Flectures`,
+        target: `_blank`
+    }))
+
     let description = ce('textarea',false,false,false,{
         placeholder: `Описание`
     })
@@ -167,8 +184,9 @@ function newClass(){
         placeholder: `Вместимость`
     })
     p.append(capacity)
+    
     let authorName = ce('input',false,false,false,{
-        placeholder: `Название`
+        placeholder: `Имя автора строкой`
     })
     p.append(authorName)
     
@@ -178,12 +196,32 @@ function newClass(){
     let hall = selector(`halls`,`выберите зал`)
     p.append(hall)
 
+    
+
     let duration = ce('input',false,false,false,{
         placeholder: `продолжительность`,
         type: `number`,
         min: 0
     })
     p.append(duration)
+
+    let price = ce('input',false,false,false,{
+        placeholder:    `стоимость`,
+        type:           `number`,
+        min:            0
+    })
+
+    p.append(price)
+
+    let noRegistration = labelButton(`без регистрации`)
+    p.append(noRegistration)
+
+    let admins = labelButton(`только для админов`)
+    p.append(admins)
+
+    let fellows = labelButton(`только для fellows`)
+    p.append(fellows)
+
 
     let sb = ce('button',false,[`dateButton`,`dark`],`Сохранить`,{
         onclick:function(){
@@ -194,15 +232,23 @@ function newClass(){
             ) {
                 this.setAttribute(`disabled`,true)
                 axios.post(`/${host}/admin/classes`,{
-                    name: name.value,
-                    description: description.value,
-                    date: date.value,
-                    duration: duration.value,
-                    hall: hall.value,
-                    capacity: capacity.value,
-                    authorName: authorName.value,
-                    author: author.value,
-                }).then(handleSave)
+                    name:           name.value,
+                    pic:            img.value,
+                    description:    description.value,
+                    date:           date.value,
+                    duration:       duration.value,
+                    hall:           hall.value,
+                    capacity:       capacity.value,
+                    authorName:     authorName.value,
+                    author:         author.value,
+                    price:          price.value,
+                    noRegistration: noRegistration.querySelector(`input`).checked ? true : false,
+                    admins:         admins.querySelector(`input`).checked ? true : false,
+                    fellows:        fellows.querySelector(`input`).checked ? true : false
+                }).then(s=>{
+                    handleSave(s)
+                    showClass(false,s.data.id)
+                })
                 .catch(handleError)
                 .finally(()=>{
                     this.removeAttribute(`disabled`)
@@ -599,8 +645,10 @@ function filterUsers(role, container, button,counter) {
 
 
 function showClass(cl, id) {
-    let p = preparePopupWeb(`class_${cl.id}`, false, [`classes`, cl.id])
+    let p = preparePopupWeb(`class_${cl.id || id}`, `class_${cl.id|| id}`, [`classes`, cl.id || id])
     
+    p.append(logButton(`class`,cl.id||id,`логи`))
+
     if (!cl) {
         cl = load(`classes`, id)
     }
@@ -609,17 +657,24 @@ function showClass(cl, id) {
         window.history.pushState({}, "", `web?page=classes_${cl.id}`);
 
         if (cl.pic) p.append(ce(`img`, false, `cover`, false, {
-            src: cl.pic
+            src: cl.pic,
+            onclick: function () {
+                edit(`classes`, cl.id, `pic`, `text`, cl.pic || null)
+            }
         }))
 
-        p.append(ce('h1', false, false, cl.name))
+        p.append(ce('h1', false, false, cl.name,{
+            onclick: function () {
+                edit(`classes`, cl.id, `name`, `text`, cl.name || null, this)
+            }
+        }))
 
         let alertsContainer = ce('div', false, 'flexible')
-        if (cl.admin) alertsContainer.append(ce('button', false, `accent`, `только для админов`))
-        if (cl.fellows) alertsContainer.append(ce('button', false, `fellows`, `только для fellows`))
-        if (cl.noRegistration) alertsContainer.append(ce(`button`, false, `accent`, `регистрация закрыта`))
-        if (!cl.capacity) alertsContainer.append(ce(`button`, false, `accent`, `вместимость не указана`))
-        if (!cl.pic) alertsContainer.append(ce(`button`, false, `accent`, `картинка не указана`))
+            if (cl.admins) alertsContainer.append(ce('button', false, `accent`, `только для админов`))
+            if (cl.fellows) alertsContainer.append(ce('button', false, `fellows`, `только для fellows`))
+            if (cl.noRegistration) alertsContainer.append(ce(`button`, false, `accent`, `регистрация закрыта`))
+            if (!cl.capacity) alertsContainer.append(ce(`button`, false, `accent`, `вместимость не указана`))
+            if (!cl.pic) alertsContainer.append(ce(`button`, false, `accent`, `картинка не указана`))
         p.append(alertsContainer)
 
         if (!cl.authorId) alertsContainer.append(ce(`button`, false, `accent`, `выбрать автора`, {
@@ -634,7 +689,11 @@ function showClass(cl, id) {
         }))
 
         if (cl.author) {
-            p.append(ce('p', false, false, `автор (строкой): ${cl.author}`))
+            p.append(ce('p', false, false, `автор (строкой): ${cl.author}`,{
+                onclick:function(){
+                    edit(`classes`, cl.id, `author`, `text`, cl.author,this)
+                }
+            }))
         }
 
         if (cl.authorId) {
@@ -661,14 +720,42 @@ function showClass(cl, id) {
 
 
 
-        p.append(ce('p', false, false, `цена: ${cur(cl.price,`GEL`)}`))
+        p.append(ce('p', false, false, `цена: ${cur(cl.price,`GEL`)}`,{
+            onclick: function () {
+                edit(`classes`, cl.id, `price`, `number`, cl.price || null, this)
+            }
+        }))
+
+
         p.append(ce('p', false, false, `${drawDate(cl.date,'ru',{time:true})}, продолжительность ${cl.duration} мин.`))
+
+        p.append(ce(`button`,false,[`dateButton`,`dark`],`Изменить дату`,{
+            onclick: function () {
+                edit(`classes`, cl.id, `date`, `datetime-local`, cl.date || null)
+            }
+        }))
+
+        p.append(ce(`button`,false,[`dateButton`,`dark`],`Изменить продолжительность`,{
+            onclick: function () {
+                edit(`classes`, cl.id, `capaccity`, `number`, cl.duration || null)
+            }
+        }))
+
+        p.append(ce(`p`,false,false,`Вместимость: ${cl.capacity}`,{
+            onclick: function () {
+                edit(`classes`, cl.id, `capacity`, `number`, cl.capacity || null, this)
+            }
+        }))
 
         p.append(ce('p', false, `clickable`, `@${cl.hallName}`, {
             onclick: () => showHall(false, cl.hall)
         }))
 
-        p.append(ce('p', false, `story`, cl.description))
+        p.append(ce('p', false, `story`, cl.description,{
+            onclick: function () {
+                edit(`classes`, cl.id, `description`, `textarea`, cl.description || null, this)
+            }
+        }))
 
         let guests = ce('div');
 

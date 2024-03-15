@@ -525,28 +525,6 @@ function showUser(u,id){
         })
 
 
-
-        let tags = ce('div')
-
-        tags.append(ce('h2',false,false,`Теги`))
-
-        p.append(tags)
-
-        load(`userTags`,u.id).then(tgs=>{
-            if(!tgs.length) tags.append(ce('p',false,false,`тегов еще нет`))
-            tgs.forEach(t=>{
-                tags.append(ce('button',false,[`dateButton`,`dark`],t.name,{
-                    onclick:function(){
-                        removeTag(t.id,u.id,this)
-                    }
-                }))
-            })
-        })
-        
-        p.append(ce(`button`,false,[`dateButton`,`dark`],`Добавить тег`,{
-            onclick:() => addTag(u.id)
-        }))
-
         let streams = ce(`div`)
             streams.append(ce(`h3`,false,false,`Потоки`))
             load(`userStreams`,u.id).then(col=>{
@@ -654,6 +632,20 @@ function showStreamUserLine(u){
                 .catch(handleError)
             }
         }))
+
+        c.append(ce(`button`,false,false,`Снять с потока`,{
+            onclick:()=>{
+                let sure = confirm(`Вы уверены?`)
+                if(sure) axios.delete(`/${host}/admin/streamUsers/${u.id}`)
+                .then(s=>{
+                    handleSave(s)
+                    c.dataset.active = false;
+                })
+                .catch(handleError)
+            }
+        }))
+
+
     
     return c
 

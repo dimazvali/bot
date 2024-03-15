@@ -5,13 +5,14 @@ block content
     for c in classes.slice(0,1)
         //- include classLine
         if(c.pic)
-            
             img.cover.up(src!=c.pic onclick="window.location.pathname='/paper/mini/classes/"+c.id+"'")
         else
             include classLine
     h1 А дальше?..
+    for c in classes.slice(1,3)
+        include classLine
     .sDivided
-        h2(onclick='window.open("/paper/mini/classes")') Лекторий 
+        h3(onclick='window.open("/paper/mini/classes")') Расписание 
     .sDivided
         h2(onclick='window.open("/paper/mini/coworking")') Коворкинг
     .sDivided

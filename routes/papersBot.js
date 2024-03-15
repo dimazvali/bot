@@ -1286,16 +1286,22 @@ router.all(`/admin/:method`, (req, res) => {
                         case 'POST':{
                             if(!req.body.hall) req.body.hall = `BrXsFWF4tE7K36SHQIS6`
                             return classes.add({
-                                createdAt: new Date(),
-                                createdBy: +user.id,
-                                name: req.body.name || `Без названия`,
-                                description: req.body.description || `Без описания`,
-                                date: req.body.date || new Date().toISOString(),
-                                duration: req.body.duration || 60,
-                                hall: req.body.hall,
-                                capacity: +req.body.capacity || 30,
-                                authorName: req.body.authorName || null,
-                                author: req.body.author || null,
+                                active:         true,      
+                                createdAt:      new Date(),
+                                createdBy:      +user.id,
+                                name:           req.body.name || `Без названия`,
+                                description:    req.body.description || `Без описания`,
+                                date:           req.body.date || new Date().toISOString(),
+                                duration:       req.body.duration || 60,
+                                hall:           req.body.hall,
+                                capacity:       +req.body.capacity || 30,
+                                authorName:     req.body.authorName || null,
+                                author:         req.body.author || null,
+                                admins:         req.body.admins || null,
+                                fellows:        req.body.fellows || null,
+                                noRegistration: req.body.noRegistration || null,
+                                price:          req.body.price || null,
+                                pic:            req.body.pic || null
                             }).then(r=>{
                                 
                                 res.json({
@@ -2026,10 +2032,10 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                     
                     return logs
                         .where(q[0],'==',Number(q[1])?+q[1]:q[1])
-                        .orderBy(`createdAt`,`desc`)
+                        // .orderBy(`createdAt`,`desc`)
                         .get()
                         .then(col=>{
-                            res.json(common.handleQuery(col))
+                            res.json(common.handleQuery(col,true))
                         })
                 }
 

@@ -657,7 +657,7 @@ function labelButton(text,checked){
     let c = ce('label')
     let inp = ce('input',false,false,false,{
         checked: checked,
-        type: `radio`
+        type: `checkbox`
     })
     c.append(inp)
     c.innerHTML += text
