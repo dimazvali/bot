@@ -1128,6 +1128,11 @@ function showStepLine(step){
     let c = listContainer(step)
     c.classList.add(`flex`)
     c.append(ce(`span`,false,[`info`,`mright`],step.time))
+    c.append(ce(`button`,false,`round`,'✅',{
+        onclick:()=>axios.patch(`/${host}/admin/daySteps/${step.id}`)
+            .then(handleSave)
+            .catch(handleError)
+    }))
     c.append(ce(`button`,false,`round`,'❌',{
         onclick:()=>{
             let sure = confirm(`Уверены?`)

@@ -2338,7 +2338,7 @@ router.get(`/mini`,(req,res)=>{
         .then(col=>{
 
             res.render(`papers/main`,{
-                classes:        common.handleQuery(col),
+                classes:        common.handleQuery(col).filter(c=>!c.admins && !c.fellows),
                 translations:   translations,
                 coworkingRules: coworkingRules,
                 drawDate:(d)=>  drawDate(d),
@@ -2416,7 +2416,7 @@ router.get(`/mini/:section`,(req,res)=>{
                     res.render(`papers/classes`,{
                         title:              `Лекции, концерты, мастер-классы Papers Kartuli`,
                         description:        `Ждем вас в гости!`,
-                        classes:            common.handleQuery(col),
+                        classes:            common.handleQuery(col).filter(c=>!c.admins && !c.fellows),
                         translations:       translations,
                         coworkingRules:     coworkingRules,
                         drawDate:(d)=>      drawDate(d),

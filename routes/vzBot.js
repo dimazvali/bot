@@ -20,8 +20,8 @@ const {
     subtle
 } = require('node:crypto');
 
-const ngrok = 'https://a751-109-172-156-240.ngrok-free.app'
-// const ngrok = process.env.ngrok;
+// const ngrok = 'https://a751-109-172-156-240.ngrok-free.app'
+const ngrok = process.env.ngrok;
 
 const {
     initializeApp,
@@ -1519,6 +1519,15 @@ router.all(`/admin/:method/:id`, (req, res) => {
 
             case `daySteps`:{
                 switch(req.method){
+                    case `PATCH`:{
+                        return daySteps.doc(req.params.id).get().then(s=>{
+                            sendStep(s.data(),admin.id)
+                            res.json({
+                                success: true,
+                                comment: `Сообщение отправлено`
+                            })
+                        })
+                    }
                     case `GET`:{
                         return daySteps
                             .where(`day`,'==',req.params.id)
