@@ -950,6 +950,18 @@ function showUnseen(){
                     }
                 }))
 
+                right.append(ce(`button`,false,`deleteButton`,`Отклонить`,{
+                    onclick:function(){
+                        axios.put(`/${host}/admin/messages/${s.id}`,{
+                            attr: `taskSubmission`,
+                            value: false
+                        }).then(s=>{
+                            handleSave(s)
+                            c.remove()
+                        }).catch(handleError)
+                    }
+                }))
+
                 if(s.score){
                     right.append(ce('p',false,false,`Оценка: ${s.score}.`))
                 } else {

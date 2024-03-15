@@ -4,6 +4,9 @@
 // 3. починить отображение выполненных заданий на экране пользователя
 
 
+// const ngrok = process.env.ngrok;
+const ngrok = `https://a751-109-172-156-240.ngrok-free.app`;
+
 const host = 'ps';
 var express = require('express');
 var router = express.Router();
@@ -25,7 +28,6 @@ const {
     subtle
 } = require('node:crypto');
 const devlog = require(`./common`).devlog
-const ngrok = process.env.ngrok;
 
 const {
     initializeApp,
@@ -164,7 +166,7 @@ udb
     })
 
 
-axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${process.env.ngrok}/${host}/hook`).then(s => {
+axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(s => {
     console.log(`psBot hook set to ${ngrok}`)
 })
 
@@ -430,6 +432,12 @@ router.post(`/hook`, (req, res) => {
                     .get()
                     .then(col => {
                         if (!col.docs.length) {
+
+                            // if(!req.body.message.caption) return m.sendMessage2({
+                            //     chat_id: user.id,
+                            //     text: `Простите, но к картинке нужна подпись.`
+                            // }, false, token)
+
 
                             tasks
                                 .where(`active`, '==', true)
@@ -970,7 +978,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                         return messages.doc(req.params.id).get().then(d => res.json(common.handleDoc(d)))
                     }
                     case `PUT`:{
-
+                        return updateEntity(req,res,messages.doc(req.params.id),+admin.id)
                     }
                 }
                 
@@ -1331,7 +1339,6 @@ router.all(`/admin/:method`, (req, res) => {
             case `unseen`:{
                 return messages
                     .orderBy(`createdAt`,`desc`)
-                    // .where(`message`,'',1)
                     .where(`taskSubmission`,'==',null)
                     .where(`file`,'==',true)
                     .get()
@@ -1549,6 +1556,7 @@ function replyCallBack(id, text) {
         show_alert: true,
     }, 'answerCallbackQuery', token)
 }
+
 
 
 

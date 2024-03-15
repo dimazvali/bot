@@ -1,3 +1,6 @@
+// let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
+let ngrok = process.env.ngrok 
+
 var express =   require('express');
 var router =    express.Router();
 var axios =     require('axios');
@@ -81,8 +84,7 @@ let fb = getFirestore(gcp);
 let token =         process.env.papersToken
 let paymentToken =  process.env.papersPaymentToken
 
-// let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
-let ngrok = process.env.ngrok 
+
 
 let sheet = process.env.papersSheet
 
@@ -2574,7 +2576,8 @@ router.get(`/mini/:section/:id`,(req,res)=>{
 
 if(process.env.develop){
     router.get('/test', (req, res) => {
-        rcFollowUp(`GtpkkujNjhH1QyB0k01d`)
+        // rcResult(`GtpkkujNjhH1QyB0k01d`)
+        // rcFollowUp(`GtpkkujNjhH1QyB0k01d`)
         // count'UserEntries(1);
         // randomCoffee()
         // nowShow()
@@ -9489,7 +9492,26 @@ function rcReScore(score,id){
     })
 }
 
-
+function rcResult(id){
+    randomCoffees
+        .where(`iteration`,'==',id)
+        .get()
+        .then(col=>{
+            let couples = common.handleQuery(col)
+            let rates = [];
+            couples.filter(c=>c.rate).forEach(c=>{
+                if(c.rate.hasOwnProperty(`first`)) rates.push(c.rate.first)
+                if(c.rate.hasOwnProperty(`second`)) rates.push(c.rate.second)
+            })
+            alertAdmins({
+                text:`Завершился очередной раунд random coffee. Что мы имеем?
+Пар составлено: ${couples.length}.
+Состоялось встреч: ${couples.filter(c=>c.proof).length}.
+Индекс счастья: ${Math.round((rates.reduce((a,b)=>a+b,0)/rates.length)*100)}%
+`
+            })
+        })
+}
 
 function rcFollowUp(id){
     randomCoffees
@@ -9711,3 +9733,18 @@ module.exports = router;
 // })
 
 
+// udb.get().then(col=>{
+//     common.handleQuery(col).filter(u=>u.occupation).forEach(u=>{
+//         if(u.occupation == 'Другое'){
+//             udb.doc(u.id).update({
+//                 occupation: `other`
+//             })
+//         }
+//         if(u.occupation == 'Реклама и PR'){
+//             udb.doc(u.id).update({
+//                 occupation: `advertisement`
+//             })
+//         }
+//         devlog(u.id)
+//     })
+// })

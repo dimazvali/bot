@@ -363,7 +363,7 @@ img.preview:hover {
 }
 
 .sDivided.flex {
-    align-items: baseline;
+    align-items: center;
 }
 label>input {
     display: inline !important;
