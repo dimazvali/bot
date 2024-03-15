@@ -369,3 +369,7 @@ label>input {
     display: inline !important;
     width: 20px !important;
 }
+
+button.deleteButton {
+    background: var(--accent);
+}
