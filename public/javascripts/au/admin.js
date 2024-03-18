@@ -51,6 +51,8 @@ function checkQR(data){
                     p.append(ce('p',false,'error',`Билет не оплачен`))
                 }
 
+                p.append(ce('p',false,false,`Гостей: ${r.tickets}.`))
+
 
                 
 

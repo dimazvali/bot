@@ -397,19 +397,43 @@ function handleError(err) {
 }
 
 function list() {
-    axios.post(`/auditoria/api/classes/${curLecture}?&user=${userid}&intention=book`).then(d => {
-        tg.showAlert(translations[d.data.text][tg.initDataUnsafe.user.language_code] || translations[d.data.text].en)
-        if (d.data.success) {
-            tg.MainButton.offClick(list)
-            curRecord = d.data.id;
-            mbbc = delist
-            tg.MainButton.setText(translations.coworkingBookingCancel[[tg.initDataUnsafe.user.language_code]] || translations.coworkingBookingCancel.en)
-            tg.MainButton.onClick(delist)
-        } else {
-            tg.MainButton.offClick(list)
-            tg.MainButton.hide()
+
+    tg.showPopup({
+        title: `Сколько билетов?`,
+        message: `До трех в одни руки`,
+        buttons: [{
+            id:     '3',
+            text:   '3'
+        },{
+            id:     '2',
+            text:   '2'
+        },{
+            id:     '1',
+            text:   '1'
+        }]
+    },(e)=>{
+        console.log(e)
+
+        if(e){
+            axios.post(`/auditoria/api/classes/${curLecture}?&user=${userid}&intention=book`,{
+                tickets: +e
+            }).then(d => {
+                tg.showAlert(translations[d.data.text][tg.initDataUnsafe.user.language_code] || translations[d.data.text].en)
+                if (d.data.success) {
+                    tg.MainButton.offClick(list)
+                    curRecord = d.data.id;
+                    mbbc = delist
+                    tg.MainButton.setText(translations.coworkingBookingCancel[[tg.initDataUnsafe.user.language_code]] || translations.coworkingBookingCancel.en)
+                    tg.MainButton.onClick(delist)
+                } else {
+                    tg.MainButton.offClick(list)
+                    tg.MainButton.hide()
+                }
+            })
         }
+        
     })
+    
 }
 
 function delist() {

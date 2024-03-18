@@ -10,8 +10,19 @@ function closeLeft() {
 }
 
 if(start){
-    switch(start){
+    start = start.split('_')
+    switch(start[0]){
         
+        case `classes`:{
+            if(!start[1]) {
+                showSchedule()
+            } else {
+                showClass(false,start[1])
+            }
+
+            break
+        }
+
         case 'authors':{
             showAuthors()
             break;
@@ -780,15 +791,30 @@ function replicate(id) {
     let edit = ce('div', false, `editWindow`)
     edit.append(ce('h2', false, false, `Выберите дату`))
 
-    let f = ce('input');
-    f.type = `datetime-local`
+    let f = ce('input',false,`block`,false,{
+        type:`datetime-local`
+    });
     edit.append(f)
+
+
+    edit.append(ce(`button`,false,false,`Еще`,{
+        onclick:function(){
+            let f = ce('input',false,`block`,false,{
+                type:`datetime-local`
+            });
+            this.parentNode.insertBefore(f,this)
+        }
+    }))
 
     edit.append(ce('button', false, false, `Сохранить`, {
         onclick: function () {
+            let dates = [];
+            this.parentNode.querySelectorAll(`input`).forEach(i=>{
+                if(i.value) dates.push(new Date(i.value))
+            })
             if (f.value) {
                 axios.post(`/${host}/admin/classes/${id}`, {
-                        date: new Date(f.value)
+                        dates: dates
                     }).then(handleSave)
                     .catch(handleError)
             }
@@ -1672,7 +1698,7 @@ function showClass(cl, id) {
     }
 
     Promise.resolve(cl).then(cl => {
-        let p = preparePopupWeb(`class_${cl.id}`,`class_${cl.id}`,[`classes`,cl.id])
+        let p = preparePopupWeb(`classes_${cl.id}`,`class_${cl.id}`,[`classes`,cl.id],true)
 
         p.append(logButton(`class`,cl.id,`Лог занятия`))
 
@@ -1753,8 +1779,8 @@ function showClass(cl, id) {
 
         // p.append(ce('p', false, false, `цена: ${} / ${cur(cl.price2,`GEL`)} / ${cur(cl.price3,`GEL`)}`))
 
-        p.append(ce('p', false, `story`, cl.descShort, {
-            onclick: () => edit(`classes`, cl.id, `descShort`, `text`, cl.descShort)
+        p.append(ce('div', false, `story`, cl.descShort, {
+            onclick: () => edit(`classes`, cl.id, `descShort`, `textarea`, cl.descShort)
         }))
 
         p.append(ce('p', false, `story`, cl.descLong, {
@@ -1824,11 +1850,12 @@ function showClass(cl, id) {
                         }
 
 
-                        guests.append(ce(`p`, false, false, `Гостей: ${data.tickets.length}${cl.price ? ` // оплачено ${data.tickets.filter(g=>g.isPayed).length}` : ''}${` // пришли ${data.tickets.filter(g=>g.status == 'used').length}`}`))
+                        guests.append(ce(`p`, false, false, `Гостей: ${data.tickets.filter(t=>t.active).length}${cl.price ? ` // оплачено ${data.tickets.filter(g=>g.isPayed).length}` : ''}${` // пришли ${data.tickets.filter(g=>g.status == 'used').length}`}`))
                         
-                        guests.innerHTML += `<table><tr><th>Имя</th><th>💲</th><th>📍</th><th>примечания админу</th></tr>
-                            ${data.tickets.map(u=>`<tr class="story">
+                        guests.innerHTML += `<table><tr><th>Имя</th><th>👨‍👨‍👦‍👦</th><th>💲</th><th>📍</th><th>примечания админу</th></tr>
+                            ${data.tickets.filter(t=>t.active).map(u=>`<tr class="story">
                                 <td onclick="showUser(false,${u.user})">${u.userName}</td>
+                                <td>${u.tickets||1}</td>
                                 <td>${cl.price ? (u.isPayed?'✔️':'❌') : '🚫'}</td>
                                 <td>${(u.status == 'used'? '✔️' : '❌')}</td>
                                 <td class="editable" onclick=addComment(this,"${u.id}")>${u.comment || `без примечаний`}</td>
@@ -2093,6 +2120,8 @@ function showTicket(t, id) {
         p.append(ce('h1', false, false, `Билет: ${ticket.className}`, {
             onclick: () => showClass(false, ticket.class)
         }))
+
+        p.append(ce(`h2`,false,false,`Гостей: ${ticket.tickets}`))
         
         let t = ce(`div`)
         
@@ -2142,6 +2171,7 @@ function showTickets() {
             // headers.append(ce('th',false,false,`id`))
             headers.append(ce('th', false, false, `открыть`))
             headers.append(ce('th', false, false, `гость`))
+            headers.append(ce('th', false, false, `+`))
             headers.append(ce('th', false, false, `мероприятие`))
             headers.append(ce('th', false, false, `оплата`))
             headers.append(ce('th', false, false, `статус`))
@@ -2156,6 +2186,7 @@ function showTickets() {
                 line.append(ce('td', false, false, t.userName,{
                     onclick: () => showUser(false, t.user)
                 }))
+                line.append(ce('td', false, false, (t.tickets||1)-1))
                 line.append(ce('td', false, false, t.className,{
                     onclick: () => showClass(false, t.class)
                 }))
@@ -2418,7 +2449,7 @@ function showSubscriptionsLine(s){
 function showSchedule() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
-    window.history.pushState({}, "", `web?page=schedule`);
+    window.history.pushState({}, "", `web?page=classes`);
     axios.get(`/${host}/admin/classes`)
         .then(data => {
             console.log(data.data)

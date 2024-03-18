@@ -10,6 +10,14 @@ var cron =      require('node-cron');
 var FormData =  require('form-data');
 const host =    `auditoria`
 
+letterize = common.letterize
+
+
+
+// const ngrok =       'https://a751-109-172-156-240.ngrok-free.app'
+const ngrok =       process.env.ngrok
+// 
+
 function deleteEntity(req, res, ref, admin, attr, callback) {
     devlog(`удаляем нечто`)
     entities = {
@@ -175,9 +183,6 @@ let appLink = `https://t.me/AuditoraBot/app`
 let token =         process.env.auditoriaToken
 let paymentToken =  process.env.auPaymentToken
 
-// const ngrok =       'https://a751-109-172-156-240.ngrok-free.app'
-const ngrok =       process.env.ngrok
-// 
 
 let sheet =         process.env.auditoriaSheet
 
@@ -870,8 +875,6 @@ router.all(`/admin/:method`, (req, res) => {
                                     })
                             }
                         }
-
-
                     }
                     case `qr`: {
                         if (!req.query.data) return res.sendStatus(404)
@@ -1004,8 +1007,8 @@ router.all(`/admin/:method`, (req, res) => {
                     }
                     case `announce`: {
                         devlog(req.body)
-                        let list = userClasses.where(`class`, `==`, req.body.class);
-                        if (req.body.type == `all`) list = list.where('active', '==', true)
+                        let list = userClasses.where(`class`, `==`, req.body.class).where('active', '==', true);
+                        // if (req.body.type == `all`) list = list.where('active', '==', true)
                         if (req.body.type == `inside`) list = list.where('status', '==', `used`)
                         if (req.body.type == `outside`) list = list.where('status', '!=', `used`)
 
@@ -1032,7 +1035,10 @@ router.all(`/admin/:method`, (req, res) => {
                                 })
                                 res.sendStatus(200)
                             })
-                            .catch(handleError)
+                            .catch(err=>{
+                                console.log(err)
+                                res.sendStatus(500)
+                            })
                     }
                     case 'message': {
                         if (req.body.text && req.body.user) {
@@ -2093,10 +2099,10 @@ router.all(`/admin/:data/:id`, (req, res) => {
                     // devlog()
                     return logs
                         .where(q[0],'==',Number(q[1])?+q[1]:q[1])
-                        .orderBy(`createdAt`,`desc`)
+                        // .orderBy(`createdAt`,`desc`)
                         .get()
                         .then(col=>{
-                            res.json(common.handleQuery(col))
+                            res.json(common.handleQuery(col,true))
                         })
                 }
                 case `messages`: {
@@ -2573,7 +2579,11 @@ function remindOfCoworking(rec) {
 
 let users = {}
 
-function bookClass(user, classId, res, id) {
+function bookClass(user, classId, res, id, amount) {
+    amount = +amount;
+    if(!amount) amount = 1;
+    
+
     if (!user) {
         user = udb.doc(id).get().then(u => {
             let t = u.data();
@@ -2596,19 +2606,20 @@ function bookClass(user, classId, res, id) {
                         if (!c.exists) return res.sendStatus(404)
 
                         let d = {
-                            user: +user.id,
-                            userName: `${user.first_name} ${user.last_name} (${user.username})`,
-                            active: true,
-                            createdAt: new Date(),
-                            className: c.data().name,
-                            class: classId
+                            user:       +user.id,
+                            userName:   `${user.first_name} ${user.last_name} (${user.username})`,
+                            active:     true,
+                            createdAt:  new Date(),
+                            className:  c.data().name,
+                            class:      classId,
+                            tickets:    amount
                         }
+
                         userClasses.add(d).then(record => {
 
                             d.id = record.id;
 
                             d.intention = 'newClassRecord';
-
 
                             userClasses
                                 .where('class', '==', classId)
@@ -2616,8 +2627,8 @@ function bookClass(user, classId, res, id) {
                                 .get()
                                 .then(col => {
 
-                                    let line = col.docs.length;
-                                    let capacity = c.data().capacity
+                                    let line =      col.docs.length;
+                                    let capacity =  c.data().capacity
                                     let seatsData = '';
 
                                     if (capacity) {
@@ -2631,7 +2642,7 @@ function bookClass(user, classId, res, id) {
                                     }
 
                                     log({
-                                        text: `${user.first_name} ${user.last_name} (${user.username}) просит место на лекцию ${c.data().name}\n${seatsData}`,
+                                        text: `${user.first_name} ${user.last_name} (${user.username}) просит ${letterize(amount,`место`)} на лекцию ${c.data().name}\n${seatsData}`,
                                         user: user.id,
                                         class: c.id,
                                         ticket: record.id
@@ -2642,9 +2653,9 @@ function bookClass(user, classId, res, id) {
 
                                 if (res) {
                                     res.json({
-                                        id: record.id,
-                                        success: true,
-                                        text: `lectureConfirm`
+                                        id:         record.id,
+                                        success:    true,
+                                        text:       `lectureConfirm`
                                     })
                                 }
 
@@ -2679,7 +2690,7 @@ function bookClass(user, classId, res, id) {
                                                                 m.sendMessage2({
                                                                     chat_id: user.id,
                                                                     photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
-                                                                    caption: translations.lectureInvite(c.data(), true)[user.language_code] || translations.lectureInvite(c.data(), true).en,
+                                                                    caption: translations.lectureInvite(c.data(), amount)[user.language_code] || translations.lectureInvite(c.data(), amount).en,
                                                                     parse_mode: "Markdown",
                                                                     reply_markup: {
                                                                         inline_keyboard: [
@@ -2719,7 +2730,7 @@ function bookClass(user, classId, res, id) {
                                                                 m.sendMessage2({
                                                                     chat_id: user.id,
                                                                     photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
-                                                                    caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
+                                                                    caption: translations.lectureInvite(c.data(),amount)[user.language_code] || translations.lectureInvite(c.data(),amount).en,
                                                                     parse_mode: "Markdown",
                                                                     reply_markup: {
                                                                         inline_keyboard: [
@@ -2761,7 +2772,7 @@ function bookClass(user, classId, res, id) {
                                                             m.sendMessage2({
                                                                 chat_id: user.id,
                                                                 photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
-                                                                caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
+                                                                caption: translations.lectureInvite(c.data(),amount)[user.language_code] || translations.lectureInvite(c.data(),amount).en,
                                                                 parse_mode: "Markdown",
                                                                 reply_markup: {
                                                                     inline_keyboard: [
@@ -2775,21 +2786,7 @@ function bookClass(user, classId, res, id) {
                                                                             text: `Отменить`,
                                                                             callback_data: `unclass_${record.id}`
                                                                         }]
-                                                                        // [{
-                                                                        //     text: translations.pay(common.cur(c.data().price, 'GEL'))[user.language_code] || translations.pay(common.cur(c.data().price, 'GEL')).en,
-                                                                        //     callback_data: 'pay_' + d.id
-                                                                        // }],
-                                                                        // [{
-                                                                        //     text: translations.payOnSite(c.data().price2)[user.language_code] || translations.payOnSite(c.data().price2).en,
-                                                                        //     callback_data: 'payOnSite_' + d.id
-                                                                        // }]
                                                                     ]
-                                                                    //     ,
-                                                                    //     [{
-                                                                    //         text: translations.yourCode[user.language_code] || translations.yourCode.en,
-                                                                    //         url: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
-                                                                    //     }]
-                                                                    // ]
                                                                 }
                                                             }, 'sendPhoto', token).then(data => {
                                                                 m.sendMessage2({
@@ -2804,7 +2801,7 @@ function bookClass(user, classId, res, id) {
                                                     chat_id: user.id,
                                                     photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
                                                     parse_mode: "Markdown",
-                                                    caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
+                                                    caption: translations.lectureInvite(c.data(),amount)[user.language_code] || translations.lectureInvite(c.data(),amount).en,
                                                     reply_markup: {
                                                         inline_keyboard: [
                                                             [{
@@ -2817,21 +2814,7 @@ function bookClass(user, classId, res, id) {
                                                                 text: `Отменить`,
                                                                 callback_data: `unclass_${record.id}`
                                                             }]
-                                                            // [{
-                                                            //     text: translations.pay(common.cur(c.data().price, 'GEL'))[user.language_code] || translations.pay(common.cur(c.data().price, 'GEL')).en,
-                                                            //     callback_data: 'pay_' + d.id
-                                                            // }],
-                                                            // [{
-                                                            //     text: translations.payOnSite(c.data().price2)[user.language_code] || translations.payOnSite(c.data().price2).en,
-                                                            //     callback_data: 'payOnSite_' + d.id
-                                                            // }]
                                                         ]
-                                                        //     ,
-                                                        //     [{
-                                                        //         text: translations.yourCode[user.language_code] || translations.yourCode.en,
-                                                        //         url: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
-                                                        //     }]
-                                                        // ]
                                                     }
                                                 }, 'sendPhoto', token).then(data => {
                                                     m.sendMessage2({
@@ -2845,10 +2828,10 @@ function bookClass(user, classId, res, id) {
 
                                 } else {
                                     m.sendMessage2({
-                                        chat_id: user.id,
-                                        photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
+                                        chat_id:    user.id,
+                                        photo:      ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
                                         parse_mode: "Markdown",
-                                        caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
+                                        caption:    translations.lectureInvite(c.data(),amount)[user.language_code] || translations.lectureInvite(c.data(),amount).en,
                                         reply_markup: {
                                             inline_keyboard: [
                                                 [{
@@ -2861,26 +2844,12 @@ function bookClass(user, classId, res, id) {
                                                     text: `Отменить`,
                                                     callback_data: `unclass_${record.id}`
                                                 }]
-                                                // [{
-                                                //     text: translations.pay(common.cur(c.data().price, 'GEL'))[user.language_code] || translations.pay(common.cur(c.data().price, 'GEL')).en,
-                                                //     callback_data: 'pay_' + d.id
-                                                // }],
-                                                // [{
-                                                //     text: translations.payOnSite(c.data().price2)[user.language_code] || translations.payOnSite(c.data().price2).en,
-                                                //     callback_data: 'payOnSite_' + d.id
-                                                // }]
                                             ]
-                                            //     ,
-                                            //     [{
-                                            //         text: translations.yourCode[user.language_code] || translations.yourCode.en,
-                                            //         url: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`
-                                            //     }]
-                                            // ]
                                         }
                                     }, 'sendPhoto', token).then(data => {
                                         m.sendMessage2({
-                                            chat_id: user.id,
-                                            message_id: data.result.message_id
+                                            chat_id:        user.id,
+                                            message_id:     data.result.message_id
                                         }, 'pinChatMessage', token)
                                     })
                                 }
@@ -2899,7 +2868,7 @@ function bookClass(user, classId, res, id) {
                                     chat_id: user.id,
                                     photo: ngrok + `/auditoria/qr?id=${record.id}&entity=userClasses`,
                                     parse_mode: "Markdown",
-                                    caption: translations.lectureInvite(c.data())[user.language_code] || translations.lectureInvite(c.data()).en,
+                                    caption: translations.lectureInvite(c.data(),amount)[user.language_code] || translations.lectureInvite(c.data(),amount).en,
                                 }, `sendPhoto`, token).then(data => {
                                     m.sendMessage2({
                                         chat_id: user.id,
@@ -3373,16 +3342,21 @@ const translations = {
             en: `Pay ${v}`
         }
     },
-    lectureInvite: (l) => {
+    lectureInvite: (l,cnt) => {
+        let latePrice = l.price2 ? l.price2*cnt : 0;
+        let beforePrice = l.price ? l.price*cnt : 0;
+
         return {
-            ru: `Отлично! Ждем вас на лекции «${l.name}». 
-            
-            ${(l.price || l.price2)? 
-                `Напоминаем, что в день мероприятия стоимость составит ${cur(l.price2 || c.price ,`GEL`)}. Чтобы оплатить билет заранее, переведите ${cur(l.price ,`GEL`)} на ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.` : ''}`,
+            ru: `Отлично! Ждем вас${cnt>1?` (и ваших друзей)`:``} на лекции «${l.name}».
+            ${latePrice? 
+`Напоминаем, что в день мероприятия стоимость составит ${cur(latePrice ,`GEL`)}. Чтобы оплатить билет заранее, переведите ${cur(beforePrice ,`GEL`)} на ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.` : 
+(beforePrice ? `Чтобы оплатить билет заранее, переведите ${cur(beforePrice ,`GEL`)} на ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — и скиньте боту скриншот с подтверждением платежа.` : '')
+}`,
             en: `Great! Looking forward to meet you
-            ${(l.price || l.price2)? 
-                `Let us remind you that on the day of event the price will be ${cur(l.price2 || c.price ,`GEL`)}. To pay in advance please transfer ${cur(l.price ,`GEL`)} on ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — and send me a picture of payment confirmation.` : ''}`
-        }
+            ${(latePrice)? 
+                `Let us remind you that on the day of event the price will be ${cur(latePrice ,`GEL`)}. To pay in advance please transfer ${cur(beforePrice ,`GEL`)} on ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — and send me a picture of payment confirmation.` : 
+(beforePrice ? `To pay in advance please transfer ${cur(beforePrice ,`GEL`)} on ${l.paymentDesc|| l.bankCreds || `счет GE28TB7303145064400005`} — and send me a picture of payment confirmation.` : '')}`
+}
     },
     lectureReminder: (l) => {
         return {
@@ -5906,7 +5880,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                 case 'POST': {
                     if (req.query.intention == 'book') {
                         if (!req.query.user) return res.sendStatus(400)
-                        return bookClass(false, req.params.id, res, req.query.user)
+                        return bookClass(false, req.params.id, res, req.query.user, req.body.tickets)
 
                     } else {
 
