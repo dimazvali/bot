@@ -147,10 +147,11 @@ function sendStep(step,userId){
         protect_content: true
     }
     let v = false
-    if(step.media){
+    if(step.media && step.media.length){
         m.caption = step.text;
         m.photo = step.media[0];
-    } if(step.media[0].indexOf(`mp4`) > -1){
+    } 
+    if(step.media && step.media[0] && step.media[0].indexOf(`mp4`) > -1){
         m.video = step.media[0]
         v = true
         delete m.photo
