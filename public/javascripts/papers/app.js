@@ -470,10 +470,30 @@ function showProfile(el){
                     })
                 }
             })
+
+            let rclabel = ce('label',false,false,`Random Coffee`,{
+                dataset:{
+                    chekable: true,
+                    checked: !user.randomCoffee
+                },
+                onclick: function(){
+                    axios.put(`/paper/api/profile/${userid}`,{
+                        randomCoffee: !user.randomCoffee
+                    }).then(()=>{
+                        user.randomCoffee = !user.randomCoffee;
+                        this.dataset.checked = !user.randomCoffee;
+                        shimmer(true)
+                    }).catch(err=>{
+                        shimmer()
+                        tg.showAlert(err.message)
+                    })
+                }
+            })
             
             
 
             content.append(sublabel)
+            content.append(rclabel)
 
             content.append(ce('button',false,'dateButton',translations.save[userLang] || translations.save.en,{
                 onclick:()=>{

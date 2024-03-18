@@ -8467,7 +8467,8 @@ router.all(`/api/:data/:id`, (req, res) => {
                             'occupation',
                             'about',
                             'language_code',
-                            'noSpam'
+                            'noSpam',
+                            `randomCoffee`
                         ]
 
                         plausible.forEach(type => {
