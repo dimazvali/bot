@@ -20,6 +20,7 @@ html
     script(src="https://cdn.amcharts.com/lib/5/index.js")
     script(src="https://cdn.amcharts.com/lib/5/xy.js")
     script(src="https://cdn.amcharts.com/lib/5/themes/Animated.js")
+    script(src="https://cdn.tiny.cloud/1/"+wysykey+"/tinymce/6/tinymce.min.js" referrerpolicy="origin")
   body.mobile
     
     #left
@@ -30,6 +31,7 @@ html
         h3(onclick="showAuthors()")   Авторы
         h3(onclick="showNews()")      Рассылки
         h3(onclick="showRC()")        randomCoffee
+        h3(onclick="showStandAlone()") Отдельные страницы
         h3(onclick="showLogs()")      Логи
     
     #menu(onclick="left.classList.toggle('active')")

@@ -16,6 +16,10 @@ block content
     .sDivided
         h2(onclick='window.open("/paper/mini/coworking")') Коворкинг
     .sDivided
+        h2(onclick='window.open("/paper/mini/coworking/pKpZXjdqRX4UcFawHb9I")') Подкаст-студия
+    .sDivided
         h2(onclick='window.open("/paper/mini/authors")') Резиденты
     .sDivided
         h2(onclick='window.open("/paper/mini/staff")') Редакция
+    for p in pages
+        h2(onclick='window.open("/paper/mini/static/'+p.slug+'")')!=p.name

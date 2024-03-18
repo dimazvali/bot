@@ -590,8 +590,8 @@ router.post(`/hook`, (req, res) => {
                                         provider_data: {
                                             receipt: {
                                                 customer: {
-                                                    full_name: u.first_name+' '+u.last_name,
-                                                    phone: +u.phone
+                                                    full_name:  u.first_name+' '+u.last_name,
+                                                    phone:      +u.phone
                                                 },
                                                 items: [{
                                                     description: `Курс ${before[0].courseName}, начало: ${s.date}`,

@@ -1,6 +1,9 @@
 
 let host = `paper`
 
+let users = {};
+
+
 let mc = document.querySelector(`#main`)
 
 function closeLeft() {
@@ -64,6 +67,7 @@ if(start){
         
     }
 }
+
 
 
 function drawCoworkingShedule(records,start){
@@ -375,10 +379,128 @@ window.addEventListener('keydown', (e) => {
     }
 })
 
+function showStandAlone(){
+    closeLeft()
+    let p = preparePopupWeb(`standAlone`,false,false,true)
+        p.append(ce('h1',false,false,`Отдельные страницы`))
+        p.append(ce(`button`,false,[`dark`,`dateButton`],`Добавить`,{
+            onclick:()=>addStandAlone()
+        }))
+    load(`standAlone`).then(pages=>{
+        pages.forEach(page=>{
+            p.append(pageLine(page))
+        })
+    })
+}
+
+function pageLine(page){
+    let c = listContainer(page,true)
+    c.append(ce(`h3`,false,false,page.name,{
+        onclick:()=>showStandAlonePage(page.id)
+    }))
+    c.append(ce(`p`,false,false,page.description))
+    return c
+}
+
+
+function addStandAlone(){
+    let p = preparePopupWeb(`addStandAlone`,false,false,true)
+    
+    let name = ce('input',false,false,false,{placeholder:`название`,type:`text`})
+    let description = ce('textarea',false,false,false,{placeholder:`описание`})
+    let slug = ce('input',false,false,false,{placeholder:`slug`,type:`text`})
+    let html = ce('textarea',`html`,false,false,{placeholder:`описание`})
+    
+
+    p.append(name)
+    p.append(description)
+    p.append(html)
+    p.append(slug)
+
+    tinymce.init({
+        selector: '#html',
+        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed linkchecker permanentpen powerpaste advtable advcode editimage advtemplate mentions tinycomments tableofcontents footnotes mergetags autocorrect typography inlinecss',
+        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+        tinycomments_mode: 'embedded',
+        tinycomments_author: 'Author name',
+        mergetags_list: [
+          { value: 'First.Name', title: 'First Name' },
+          { value: 'Email', title: 'Email' },
+        ],
+        // ai_request: (request, respondWith) => respondWith.string(() => Promise.reject("See docs to implement AI Assistant")),
+      });
+
+      p.append(ce(`button`,false,[`dark`,`saveButton`],`Сохранить`,{
+        onclick:function(){
+            let html = tinymce.activeEditor.getContent("#html");
+           if(name.value && description.value && html){
+            axios.post(`/${host}/admin/standAlone`,{
+                html: html,
+                name: name.value,
+                description: description.value,
+                slug: slug.value
+            }).then(s=>{
+                handleSave(s)
+                showStandAlonePage(s.data.id)
+            }).catch(handleError)
+           }
+        }
+      }))
+
+      tinymce.activeEditor.getContent("#html");
+}
+
+function showStandAlonePage(pid){
+    let p = preparePopupWeb(`standAlone_${pid}`,false,[`static`,pid],true)
+        load(`standAlone`,pid).then(page=>{
+            p.append(ce('h1',false,`clickable`,page.name))
+            
+            p.append(ce(`img`, false, `cover`, false, {
+                src: page.pic,
+                onclick: function () {
+                    edit(`standAlone`, page.id, `pic`, `text`, page.pic || null)
+                }
+            }))
+
+            p.append(ce(`p`,false,false,`Описание (мета): ${page.description}`,{
+                onclick: function () {
+                    edit(`standAlone`, page.id, `description`, `textarea`, page.pic || null)
+                }
+            }))
+
+            p.append(ce('textarea',false,false,false,{
+                value: page.html
+            }))
+
+            tinymce.init({
+                selector: 'textarea',
+                plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed linkchecker a11ychecker tinymcespellchecker permanentpen powerpaste advtable advcode editimage advtemplate tableofcontents footnotes mergetags typography inlinecss',
+                toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+                tinycomments_mode: 'embedded',
+                tinycomments_author: 'Author name',
+                mergetags_list: [
+                  { value: 'First.Name', title: 'First Name' },
+                  { value: 'Email', title: 'Email' },
+                ],
+                ai_request: (request, respondWith) => respondWith.string(() => Promise.reject("See docs to implement AI Assistant")),
+              });
+
+            p.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить правки в HTML`,{
+                onclick:()=>{
+                    let html = tinymce.activeEditor.getContent("#html");
+                    axios.put(`/${host}/admin/standAlone/${page.id}`,{
+                        attr: `html`,
+                        value: html
+                    }).then(handleSave)
+                    .catch(handleError)
+                }
+            }))
+        })
+}
+
 function showCoworking(){
     closeLeft()
-    let p = preparePopupWeb(`coworking`)
-    window.history.pushState({}, "", `web?page=coworking`);
+    let p = preparePopupWeb(`coworking`,false,false,true)
     p.append(ce('h1',false,false,`Коворкинг`))
     
     p.append(drawCoworkingShedule())
@@ -594,11 +716,12 @@ function showClassLine(cl) {
         }
     })
     let details = ce('div',false,`details`)
-        c.append(details)
-    details.append(ce(`span`,false,`info`,drawDate(cl.createdAt._seconds*1000)))
-    if(cl.visitors) details.append(ce(`span`,false,`info`,cl.visitors?`гостей: ${cl.visitors}`:''))
-    if(cl.views) details.append(ce(`span`,false,`info`,cl.views?`просмотров: ${cl.views}`:''))
-    c.append(ce('h2', false, false, cl.name))
+    c.append(details)
+        details.append(ce(`span`,false,`info`,drawDate(cl.createdAt._seconds*1000)))
+        if(cl.visitors) details.append(ce(`span`,false,`info`,cl.visitors?`гостей: ${cl.visitors}`:''))
+        if(cl.views) details.append(ce(`span`,false,`info`,cl.views?`просмотров: ${cl.views}`:''))
+        if(cl.rate)  details.append(ce(`span`,false,`info`,`оценка: ${cl.rate}`))
+        c.append(ce('h2', false, false, cl.name))
     c.append(ce('p', false, false, `${drawDate(cl.date)} @ ${cl.hallName}`))
     return c
 }
@@ -642,12 +765,6 @@ function filterUsers(role, container, button,counter) {
 
 }
 
-
-
-
-
-
-
 function showClass(cl, id) {
     let p = preparePopupWeb(`class_${cl.id || id}`, `class_${cl.id|| id}`, [`classes`, cl.id || id])
     
@@ -673,6 +790,14 @@ function showClass(cl, id) {
             }
         }))
 
+        p.append(ce('h3', false, false, cl.subTitle || `Без подзаголовка`,{
+            onclick: function () {
+                edit(`classes`, cl.id, `subTitle`, `text`, cl.subTitle || null, this)
+            }
+        }))
+
+        if(cl.rate) p.append(ce('h3',false,false,`Оценка: ${cl.rate}`))
+
         let alertsContainer = ce('div', false, 'flexible')
             if (cl.admins) alertsContainer.append(ce('button', false, `accent`, `только для админов`))
             if (cl.fellows) alertsContainer.append(ce('button', false, `fellows`, `только для fellows`))
@@ -681,7 +806,7 @@ function showClass(cl, id) {
             if (!cl.pic) alertsContainer.append(ce(`button`, false, `accent`, `картинка не указана`))
         p.append(alertsContainer)
 
-        if (!cl.authorId) alertsContainer.append(ce(`button`, false, `accent`, `выбрать автора`, {
+        if (!cl.authorId) alertsContainer.append(ce(`button`, false, [`dark`,`dateButton`], `выбрать автора`, {
             onclick: () => edit(`classes`, cl.id, `authorId`, `authorId`, null)
         }))
 
@@ -707,8 +832,8 @@ function showClass(cl, id) {
         }
 
 
-        if (!cl.feedBackSent) {
-            p.append(ce(`button`, false, `accent`, `Отправить запрос на отзывы`, {
+        if (!cl.feedBackSent && new Date()>new Date(cl.date._seconds*1000)) {
+            p.append(ce(`button`, false, [`dark`,`dateButton`], `Отправить запрос на отзывы`, {
                 onclick: function () {
                     this.setAttribute(`disabled`, true)
                     axios

@@ -141,7 +141,7 @@ let courses =           fb.collection(`courses`);
 let wineList =          fb.collection('wineList');
 let randomCoffees =     fb.collection('randomCoffees');
 let randomCoffeeIterations = fb.collection('randomCoffeeIterations');
-
+let standAlone =        fb.collection('standAlone');
 
 coworkingRules.get().then(col => {
     col.docs.forEach(l => {
@@ -218,6 +218,7 @@ router.get(`/web`,(req,res)=>{
                 signed: true,
                 httpOnly: true,
             }).render(`papers/web`,{
+                wysykey: process.env.wysykey,
                 start: req.query.page,
                 logs: common.handleQuery(col),
                 // token: req.signedCookies.adminToken
@@ -238,6 +239,7 @@ router.get(`/web`,(req,res)=>{
                     .get()
                     .then(col=>{
                         res.render(`papers/web`,{
+                            wysykey: process.env.wysykey,
                             logs: common.handleQuery(col),
                             // token: req.signedCookies.adminToken
                         })
@@ -412,6 +414,56 @@ router.all(`/admin/:method`, (req, res) => {
             
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
+
+                case `standAlone`:{
+                    switch (req.method){
+                        case `POST`:{
+                            if(req.body.name){
+                                let free = true;
+                                if(req.body.slug) free = standAlone.doc(req.body.slug.toString()).get().then(d=>common.handleDoc(d))
+                                return Promise.resolve(free).then(p=>{
+                                    if(p) return res.status(400).send(`slug уже занят`)
+                                    let page = {
+                                        createdAt:      new Date(),
+                                        active:         true,
+                                        createdBy:      +admin.id,
+                                        name:           req.body.name,
+                                        description:    req.body.description || null,
+                                        html:           req.body.html || null,
+                                        views:          0,
+                                        slug:           req.body.slug || null
+                                    }
+                                    if(req.body.slug){
+                                        standAlone.doc(req.body.slug).set(page).then(s=>{
+                                            res.json({
+                                                success: true,
+                                                id: req.body.slug
+                                            })
+                                        })
+                                    } else {
+                                        standAlone.add(page).then(rec=>{
+                                            res.json({
+                                                success: true,
+                                                id: rec.id
+                                            })
+                                            standAlone.doc(rec.id).update({
+                                                slug: rec.id
+                                            })
+
+                                        })
+                                    }
+                                    
+                                })
+                            }
+                        }
+                        case `GET`:{
+                            return standAlone.get().then(col=>{
+                                res.json(common.handleQuery(col,true))
+                            })
+                        }
+                    }
+                }
+
                 case `rcParticipants`:{
                     return udb
                         .where(`randomCoffee`,'==',true)
@@ -1623,7 +1675,6 @@ function randomCoffee(){
             
         })
     })
-    
 }
 
 function welcome2RC(id){
@@ -1729,7 +1780,23 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
-
+                case `standAlone`:{
+                    let ref = standAlone.doc(req.params.id)
+                    return ref.get().then(doc=>{
+                        if(!doc.exists) return res.sendStatus(404)
+                        switch(req.method){
+                            case `GET`:{
+                                return res.json(common.handleDoc(doc))
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,admin)
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
+                }
                 case `userClasses`:{
                     let ref = userClasses.doc(req.params.id);
 
@@ -1977,7 +2044,21 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         if (!cl.exists) return res.sendStatus(404)
                         switch (req.method) {
                             case `PUT`:{
-                                return updateEntity(req,res,ref,+admin.id)
+
+                                if(req.body.attr != `date`){
+                                    return updateEntity(req,res,ref,+admin.id)
+                                } else {
+                                    return ref.update({
+                                        updatedBy: +admin.id,
+                                        updatedAt: new Date(),
+                                        date: req.body.value
+                                    }).then(s=>{
+                                        res.json({
+                                            success: true
+                                        })
+                                    })
+                                }
+                                
                             }
                             case `GET`:{
                                 return res.json(common.handleDoc(cl))
@@ -2344,13 +2425,19 @@ router.get(`/mini`,(req,res)=>{
         .get()
         .then(col=>{
 
-            res.render(`papers/main`,{
-                classes:        common.handleQuery(col).filter(c=>!c.admins && !c.fellows),
-                translations:   translations,
-                coworkingRules: coworkingRules,
-                drawDate:(d)=>  drawDate(d),
-                lang: req.language.split('-')[0]
-            })
+            standAlone
+                .where(`active`,'==',true)
+                .get()
+                .then(pages=>{
+                    res.render(`papers/main`,{
+                        classes:        common.handleQuery(col).filter(c=>!c.admins && !c.fellows),
+                        translations:   translations,
+                        pages:          common.handleQuery(pages),
+                        coworkingRules: coworkingRules,
+                        drawDate:(d)=>  drawDate(d),
+                        lang: req.language.split('-')[0]
+                    })
+                })
         })
 })
 
@@ -2468,6 +2555,24 @@ router.get(`/mini/:section/:id`,(req,res)=>{
     }
 
     switch (req.params.section){
+        case `static`:{
+            return standAlone.doc(req.params.id).get().then(page=>{
+                if(!page.exists) return res.sendStatus(404)
+                page = common.handleDoc(page)
+                if(!page.active) return res.sendStatus(404)
+                
+                standAlone.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+
+                return res.render(`papers/static`,{
+                    name:           page.name,
+                    description:    page.description,
+                    html:           page.html,
+                    pic:            page.pic
+                })
+            })
+        }
         case `tickets`:{
             return userClasses.doc(req.params.id).get().then(t=>{
                 if(!t.exists) return res.sendStatus(404)
@@ -4699,6 +4804,18 @@ router.post(`/slack/users`, (req, res) => {
 })
 
 
+
+function classReScore(classId){
+    userClasses.where(`class`,'==',classId).get().then(col=>{
+        let score = []
+        common.handleQuery(col).forEach(t=>{
+            if(t.rate) score.push(+t.rate) 
+        })
+        if(score.length) classes.doc(classId).update({
+            rate: +(score.reduce((a,b)=>a+b,0)/score.length).toFixed(1)
+        })
+    })
+}
 
 router.get('/alertClass/:class', (req, res) => {
     classes.doc(req.params.class).get().then(cl => {
@@ -7861,12 +7978,24 @@ router.post('/hook', (req, res) => {
 })
 
 
-
+function isoDate(){
+    return new Date().toISOString().split('T')[0]
+}
 
 
 router.get(`/api/:type`, (req, res) => {
     switch (req.params.type) {
         
+        case `podcasts`:{
+            return podcasts
+                .where(`active`,'==',true)
+                .where(`date`,'>=',isoDate())
+                .get()
+                .then(col=>{
+                    res.json(common.handleQuery(col).sort((a,b)=>a.date<b.date?-1:1))
+                })
+        }
+
         case 'menu':{
             return axios.get(`${process.env.menuHost}/test/8UxO0ziaGusAzxnztRsU?lang=ge&api=true`)
             .then(data=>{
@@ -8402,6 +8531,49 @@ router.all(`/api/:data/:id`, (req, res) => {
             break;
         }
 
+        case `podcasts`:{
+            switch(req.method){
+                case `POST`:{
+                    if(!req.body.user) return res.status(400).send(`no user no room`)
+                    if(!req.body.date) return res.status(400).send(`no date provided`)
+                    return m.getUser(req.body.user,udb).then(user=>{
+                        if(user.blocked) return res.status(400).send(`you are not welcome`)
+                        podcasts
+                            .where(`active`,'==',true)
+                            .where(`date`,'==',isoDate(req.body.date))
+                            .get()
+                            .then(col=>{
+                                if(!col.docs.length){
+                                    podcasts.add({
+                                        createdAt:  new Date(),
+                                        user:       +req.body.user,
+                                        active:     true,
+                                        date:       isoDate(req.body.date)
+                                    }).then(rec=>{
+                                        res.json({
+                                            success: true,
+                                            comment: `ok`,
+                                            id: rec.id
+                                        })
+                                        log({
+                                            text: `${uname(u,u.id)} бронирует подкастерскую на ${isoDate(req.body.date)}`
+                                        })
+                                    })
+                                } else {
+                                    
+                                    col = common.handleQuery(col)
+
+                                    if(+req.body.user == col[0].user){
+                                        return res.status(400).send(`вы уже забронировали эту дату`)
+                                    }
+                                    return res.status(400).send(`Извините, дата уже занята`)
+                                }
+                            })
+                    })
+                }
+            }
+        }
+
         case 'polls': {
             switch (req.method) {
                 case 'GET': {
@@ -8585,6 +8757,9 @@ router.all(`/api/:data/:id`, (req, res) => {
                                     class:  t.class,
                                     ticket: req.body.ticket
                                 })
+
+                                classReScore(req.body.ticket)
+
                                 res.send(`ok`)
                             }).catch(err=>{
                                 res.sendStatus(500)
@@ -9776,3 +9951,10 @@ module.exports = router;
 //         devlog(u.id)
 //     })
 // })
+
+
+classes.where(`active`,'==',true).get().then(col=>{
+    common.handleQuery(col).forEach(cl=>{
+        classReScore(cl.id)
+    })
+})

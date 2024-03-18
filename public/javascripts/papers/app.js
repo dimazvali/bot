@@ -1274,6 +1274,8 @@ function drawLecture(c){
         
         cl.append(ce('h4',false,(c.fellows?'fellows':null),`${c.name}`))
         
+        if(c.subTitle) cl.append(ce('h4',false,false,`${c.subTitle}`))
+        
         cl.append(ce('h5',false,false,`${c.author}`))
         
         cl.onclick = () => drawLecturePopup(c)

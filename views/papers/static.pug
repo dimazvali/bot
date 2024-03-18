@@ -1,0 +1,11 @@
+extends site
+
+block back
+    a.headerA(href="/paper/mini/")!=`❰ На главную`
+block content
+    
+    h1.hA!=name
+    if(pic)
+        img.cover(src!=pic)
+    //- h3!=cl.author
+    div!=html 
