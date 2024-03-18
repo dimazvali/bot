@@ -484,6 +484,14 @@ function showUser(u,id){
         p.append(ce('h1',false,false,`${uname(u,u.id)} (${u.language_code})`))
         p.append(ce('p',false,false,`регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
 
+        p.append(ce(`p`,false,false,`Страна: ${u.countryCode || `не указана`}`))
+        p.append(ce(`p`,false,false,`Город: ${u.cityName || `не указан`}`))
+        p.append(ce(`p`,false,false,`Поправка времени (секунды к гринвичу): ${u.gmtOffset || `не указана`}`,{
+            onclick:function(){
+                edit(`users`,u.id,gmtOffset,`number`,u.gmtOffset||0,this)
+            }
+        }))
+
 
         let adminLinks = [{
             attr:       `admin`,
@@ -1277,7 +1285,7 @@ function addStep(dayId){
                 axios.post(`/${host}/admin/daySteps/${dayId}`,{
                     time: time.value,
                     text: desc.value,
-                    media:          media,
+                    media:          media.length ? media : null,
                     recipie: recipie.value || null,
                     article: article.value || null
                 }).then(s=>{

@@ -5,11 +5,21 @@
     --accent: #CB97FF;
 }
 
+@font-face {
+    font-family: 'dinM';
+    src: url('/stylesheets/vz/DIN-PT_Medium.otf') format('opentype');
+}
+
+@font-face {
+    font-family: 'din';
+    src: url('/stylesheets/vz/DIN-PT_Regular.otf') format('opentype');
+}
+
 
 body {
     margin: 0 auto;
     background: var(--light);
-    font-family: 'Oswald';
+    font-family: 'din';
     color: var(--dark);
 }
 

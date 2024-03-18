@@ -144,12 +144,16 @@ function sendStep(step,userId){
     let m = {
         chat_id: userId,
         text: step.text,
+        protect_content: true
     }
-
+    let v = false
     if(step.media){
         m.caption = step.text;
         m.photo = step.media[0];
-        m.protect_content = true;
+    } if(step.media[0].indexOf(`mp4`) > -1){
+        m.video = step.media[0]
+        v = true
+        delete m.photo
     }
 
     if(step.recipie || step.article){
@@ -173,7 +177,7 @@ function sendStep(step,userId){
             }])
         }
     }
-    return sendMessage2(m,step.media?`sendPhoto`:false,token)
+    return sendMessage2(m,step.media?(v?`sendVideo`:`sendPhoto`):false,token)
 
 }
 
@@ -1639,6 +1643,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     }
                 })
             }
+
 
             case `promoUsers`:{
                 switch(req.method){
