@@ -1766,7 +1766,42 @@ function updateEntity(req, res, ref, adminId,callback) {
     })
 }
 
+function sendClass(h,u){
+    
+    let lang = u.language_code
 
+    let kbd = [
+        [{
+            text: translations.book[lang] || translations.book.en,
+            callback_data: 'class_' + h.id
+        }]
+    ]
+
+    if (h.noRegistration) {
+        kbd = []
+    }
+
+    kbd.push([{
+        text: translations.unsubscribe[lang] || translations.unsubscribe.en,
+        callback_data: `unsubscribe`
+    }])
+
+    let message = {
+        chat_id: u.id,
+        text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+        parse_mode: 'HTML',
+        reply_markup: {
+            inline_keyboard: kbd
+        }
+    }
+
+    if (h.pic) {
+        message.caption = message.text.slice(0, 1000)
+        message.photo = h.pic
+        // delete message.text
+    }
+    m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
+}
 
 router.all(`/admin/:method/:id`,(req,res)=>{
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
@@ -1780,6 +1815,64 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+
+                case `alertClass`:{
+                    return getDoc(classes,req.params.id).then(cl=>{
+                        
+                        if(!cl || !cl.active) return res.sendStatus(404)
+
+                        if(req.query.self){
+                            getDoc(udb,admin.id).then(u=>{
+                                sendClass(cl,u)
+                                res.json({
+                                    success: true,
+                                    comment: `Го в тележку`
+                                })
+                            })
+                        } else if(req.query.admins){
+                            udb
+                                .where(`admin`,'==',true)
+                                .where(`active`,'==',true)
+                                .get()
+                                .then(col=>{
+                                    common.handleQuery(col).forEach(u=>{
+                                        sendClass(cl,u)
+                                    })
+                                    res.json({
+                                        success: true,
+                                        comment: `Рассылка уходит на ${letterize(col.docs.length,'юзер')}.`
+                                    })
+                                })
+                        } else {
+                            users = udb.where(`active`,'==',true)
+                            if(cl.admins) users = users.where(`admin`,'==',true)
+                            if(cl.fellows) users = users.where(`fellow`,'==',true)
+                            
+                            users
+                                .get()
+                                .then(col=>{
+                                    let line = common.handleQuery(col).filter(u=>!u.noSpam)
+                                    line.forEach((u,i)=>{
+                                        setTimeout(()=>{
+                                            sendClass(cl,u)
+                                        },i*200)
+                                    })
+                                    res.json({
+                                        success: true,
+                                        comment: `Рассылка уходит на ${letterize(line.length,'юзер')}.`
+                                    })
+                                    log({
+                                        admin: +admin.id,
+                                        text: `${uname(admin,admin.id)} стартует рассылку по лекции ${cl.name}. Аудитория: ${line.length}.`,
+                                        class: cl.id
+                                    })
+                                })
+                        }
+
+                        
+                        
+                    })
+                }
                 case `standAlone`:{
                     let ref = standAlone.doc(req.params.id)
                     return ref.get().then(doc=>{

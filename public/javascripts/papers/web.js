@@ -495,6 +495,8 @@ function showStandAlonePage(pid){
                     .catch(handleError)
                 }
             }))
+
+            p.append(deleteButton(`standAlone`,page.id,!page.active,[`dark`,`dateButton`]))
         })
 }
 
@@ -777,6 +779,40 @@ function showClass(cl, id) {
         
         window.history.pushState({}, "", `web?page=classes_${cl.id}`);
 
+        if(new Date()<new Date(cl.date)){
+            let mBox = ce(`div`,false,`flex`)
+                p.append(mBox)
+            
+            mBox.append(ce(`button`,false,[`dark`,`dateButton`],`Отправить себе`,{
+                onclick:()=>{
+                    axios.get(`/${host}/admin/alertClass/${cl.id}?self=true`)
+                        .then(handleSave)
+                        .catch(handleError)
+                }
+            }))
+
+            mBox.append(ce(`button`,false,[`dark`,`dateButton`],`Рассылка по админам`,{
+                onclick:()=>{
+                    let sure = confirm(`Стартуем по админам. Точно?`)
+                    if(sure) axios.get(`/${host}/admin/alertClass/${cl.id}?admins=true`)
+                        .then(handleSave)
+                        .catch(handleError)
+                }
+            }))
+            mBox.append(ce(`button`,false,[`dark`,`dateButton`],`Рассылка по пользователям`,{
+                onclick:function(){
+                    let sure = confirm(`Стартуем по админам. Точно?`)
+                    if(sure) {
+                        this.remove();
+                        axios.get(`/${host}/admin/alertClass/${cl.id}`)
+                            .then(handleSave)
+                            .catch(handleError)
+                    }
+                }
+            }))
+        }
+        
+        
         if (cl.pic) p.append(ce(`img`, false, `cover`, false, {
             src: cl.pic,
             onclick: function () {

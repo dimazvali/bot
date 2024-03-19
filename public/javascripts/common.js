@@ -822,7 +822,7 @@ function sortableText(t){
     return txt
 }
 
-function preparePopupWeb(name,link,weblink,state) {
+function preparePopupWeb(name, link,weblink,state) {
     let c = ce('div', false, 'popupWeb')
     c.append(ce('span', false, `closeMe`, `✖`, {
         onclick: () => {
@@ -833,7 +833,7 @@ function preparePopupWeb(name,link,weblink,state) {
         }
     }))
 
-    if(link)        c.append(copyLink(link,appLink))
+    if(link)        c.append(copyLink(link,appLink, `ссылка на приложение`))
     if(weblink)     c.append(copyWebLink(web,weblink))
     if(state)       window.history.pushState({}, "", `web?page=${name}`);
     // if(weblink)c.append(copyLink(link,appLink))
