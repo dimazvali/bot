@@ -37,7 +37,11 @@ html
     #profile
       h2(onclick="showProfile(this)") Profile
         .data
+    #static
+      for s in static
+        h2(onclick="showStatic('"+s.id+"')")!=s.name
     #contacts
       h2(onclick="showContacts(this)") Contacts
         .data
+    
     script(src='/javascripts/papers/app.js')

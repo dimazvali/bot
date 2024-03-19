@@ -183,9 +183,6 @@ let user = {};
 
 axios.get(`/paper/api/user?id=${userid}`).then(u => {
     
-    console.log(u.data)
-
-
     user = u.data;
 
     if(u.data.warning){
@@ -722,6 +719,24 @@ function mainButton(init){
         tg.MainButton.hide()
         
     }
+}
+
+function showStatic(id){
+    let p = preparePopup(`static`)
+        userLoad(`static`,id).then(page=>{
+            p.append(ce('h1',false,false,page.name))
+            if(page.pic) p.append(ce('img',false,`cover`,false,{
+                src: page   .pic
+            }))
+            p.append(ce(`div`,false,false,page.description))
+        })
+}
+
+
+function userLoad(collection, id) {
+    return axios.get(`/${host}/api/${collection}${id?`/${id}`:''}${userid?`?id=${userid}`:''}`).then(data => {
+        return data.data
+    })
 }
 
 function showCoworking(el){

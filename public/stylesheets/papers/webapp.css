@@ -498,3 +498,8 @@ button.dateButton.dark.slim {
 button {
     cursor: pointer;
 }
+
+img.cover {
+    width: 100%;
+    border-radius: 20px;
+}

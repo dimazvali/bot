@@ -306,12 +306,21 @@ router.post(`/auth`,(req,res)=>{
 
 
 router.get('/app', (req, res) => {
-    res.render('papers/app', {
-        user:   req.query.id,
-        start:  req.query.start || req.query.tgWebAppStartParam,
-        translations: translations,
-        rules: rules
-    })
+
+    standAlone
+        .where(`active`,'==',true)
+        .get()
+        .then(static=>{
+            res.render('papers/app', {
+                user:   req.query.id,
+                start:  req.query.start || req.query.tgWebAppStartParam,
+                translations: translations,
+                rules: rules,
+                static: common.handleQuery(static,false,true)
+            })
+        })
+
+    
 })
 
 
@@ -6948,7 +6957,7 @@ router.post('/hook', (req, res) => {
                                     [{
                                         text: `test`,
                                         web_app: {
-                                            url: `${process.env.ngrok}/paper/app`
+                                            url: `${ngrok}/paper/app`
                                         }
                                     }]
                                 ]
@@ -6963,7 +6972,7 @@ router.post('/hook', (req, res) => {
                                     [{
                                         text: `test`,
                                         web_app: {
-                                            url: `${process.env.ngrok}/paper/admin`
+                                            url: `${ngrok}/paper/admin`
                                         }
                                     }]
                                 ]
@@ -8160,7 +8169,7 @@ router.get(`/api/:type`, (req, res) => {
 
             let warning = null;
 
-            userEntries.add({
+            return userEntries.add({
                 user: +req.query.id,
                 createdAt: new Date()
             }).then(() => {
@@ -8188,11 +8197,7 @@ router.get(`/api/:type`, (req, res) => {
                             mr: []
                         })
                     }
-                    // if(!u.occupation || !u.email){
-                    //     return res.json({
-                    //         warning: 'dataMissing'
-                    //     })
-                    // }
+                    
                     if (u.blocked) {
                         return res.json({
                             warning: 'userBlocked'
@@ -8236,8 +8241,10 @@ router.get(`/api/:type`, (req, res) => {
                             coworking: data[2],
                             mr: data[3],
                             questions: data[4] || null,
-                            answers: data[5] || null
+                            answers: data[5] || null,
+                            
                         })
+                        
                     })
 
 
@@ -8666,7 +8673,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                 }
             }
         }
-
+        
         case 'polls': {
             switch (req.method) {
                 case 'GET': {
@@ -8771,6 +8778,15 @@ router.all(`/api/:data/:id`, (req, res) => {
         case 'rules': {
             coworkingRules.doc(req.params.id).set({
                 rules: req.body
+            })
+        }
+        case `static`:{
+            return getDoc(standAlone,req.params.id).then(s=>{
+                if(!s || !s.active) return res.sendStatus(404)
+                standAlone.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                }) 
+                return res.json(s)
             })
         }
         case 'types': {

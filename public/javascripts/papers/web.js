@@ -18,6 +18,15 @@ const web = `https://dimazvali-a43369e5165f.herokuapp.com/paper/mini`
 if(start){
     start = start.split('_')
     switch(start[0]){
+        case `standAlone`:{
+            
+            if(start[1]) {
+                showStandAlonePage(start[1])
+            } else {
+                showStandAlone()     
+            }
+            break;
+        }
         case `rc`:{
             showRC()
             break;
@@ -395,6 +404,9 @@ function showStandAlone(){
 
 function pageLine(page){
     let c = listContainer(page,true)
+    if(!page.active){
+        c.classList.remove(`hidden`)
+    }
     c.append(ce(`h3`,false,false,page.name,{
         onclick:()=>showStandAlonePage(page.id)
     }))
@@ -453,7 +465,12 @@ function addStandAlone(){
 function showStandAlonePage(pid){
     let p = preparePopupWeb(`standAlone_${pid}`,false,[`static`,pid],true)
         load(`standAlone`,pid).then(page=>{
-            p.append(ce('h1',false,`clickable`,page.name))
+
+            p.append(ce('h1',false,`clickable`,page.name,{
+                onclick: function () {
+                    edit(`standAlone`, page.id, `name`, `text`, page.name)
+                }
+            }))
             
             p.append(ce(`img`, false, `cover`, false, {
                 src: page.pic,
