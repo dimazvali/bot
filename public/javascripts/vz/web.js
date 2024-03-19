@@ -1028,6 +1028,12 @@ function showCourse(id){
             }
         }))
 
+        p.append(ce('p',false,`editable`,`${(course.afterPayment ? course.afterPayment.replace(/\\n/g,'<br>') :'') || `Добавьте приветствие после оплаты`}`,{
+            onclick:function(){
+                edit(`courses`,id,`descriptionLong`,`textarea`,course.afterPayment,this)
+            }
+        }))
+
         p.append(deleteButton(`courses`,id,!course.active,false,showCourses))
 
         load(`courseStreams`,id).then(streams=>{
@@ -1230,8 +1236,15 @@ function addStep(dayId){
         let desc = ce(`textarea`,false,false,false,{
             placeholder: `Сообщение / примечание / ссылка`
         })
+
+        let counter = ce(`p`)
+
+        desc.onchange = ()=>{
+            counter.innerHTML = `Длина сообщения: ${desc.value.length}. \nМаксимальная длина сообщения при наличии фото/видео: 1000.`
+        }
         edit.append(time)
         edit.append(desc)
+        edit.append(counter)
 
         edit.append(mediaLine())
         edit.append(ce(`button`,false,`thin`,`Добавить фото`,{
@@ -1478,6 +1491,11 @@ function addNewCourse(){
                 placeholder: `Развернутое описание`
             })
 
+            let afterPayment = ce('textarea',false,false,false,{
+                name: `afterPayment`,
+                placeholder: `Приветствие после оплаты`
+            })
+
         c.append(name)
         c.append(price)
         c.append(days)
@@ -1501,7 +1519,8 @@ function addNewCourse(){
                         price:          price.value,
                         days:           days.value,
                         description:    description.value,
-                        descriptionLong:descriptionLong.value
+                        descriptionLong:descriptionLong.value,
+                        afterPayment:   afterPayment.value || null
                     }).then(s=>{
                         handleSave(s)
                         closeLeft()

@@ -25,6 +25,8 @@ body {
 
 body.mobile{
     padding: 20px;
+    background-size: cover;
+    background-image: url('https://firebasestorage.googleapis.com/v0/b/vmestezdoroveeru.appspot.com/o/style%2F19.png?alt=media&token=8d650eef-57d9-4fde-a0fe-1d19f207994c');
 }
 
 .fade{

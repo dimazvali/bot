@@ -73,6 +73,10 @@ if (!process.env.develop) {
     cron.schedule(`0,30 * * * *`, () => {
         tick()
     })
+
+    cron.schedule(`0 10 * * *`, () => {
+        closeTemp()
+    })
 }
 
 let gcp = initializeApp({
@@ -136,6 +140,30 @@ const locals = {
     }
 }
 
+
+
+function closeTemp(){
+    streamUsers
+        .where(`closure`,'<=',new Date())
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            handleQuery(col).forEach(r=>{
+                streamUsers.doc(r.id).update({
+                    active: false
+                }).then(s=>{
+                    sendMessage2({
+                        chat_id: r.user,
+                        text: `Ваша подписка на курс ${r.courseName} истекла.`
+                    })
+                    log({
+                        user: +r.user,
+                        text: `Подписка на курс ${r.courseName} пользователя id ${r.user} истекла.`
+                    })
+                })
+            })
+        })
+}
 
 function sendStep(step,userId){
     
@@ -605,6 +633,21 @@ router.post(`/hook`, (req, res) => {
                                         user: s.data().user
                                     })
                                 })
+
+                                common.getDoc(courses,s.data().course).then(c=>{
+                                    if(c && c.afterPayment){
+                                        sendMessage2({
+                                            chat_id:    +s.data().user,
+                                            text:       c.afterPayment
+                                        },false,token).then(()=>{
+                                            messages.add({
+                                                createdAt:  new Date(),
+                                                isReply:    true,
+                                                text:       c.afterPayment
+                                            })
+                                        })
+                                    }
+                                })
                             }).catch(err=>{
                                 handleError(err,res)
                             })
@@ -643,7 +686,7 @@ router.post(`/hook`, (req, res) => {
                                     sendMessage2({
                                         "chat_id": user.id,
                                         "title": `Оплата курса ${before[0].courseName}`,
-                                        "description": `Если ты передумаешь — мы вернем оплату (но только если до начала курса останется больше 5 часов).`,
+                                        "description": `После оплаты возврат средств не осуществляется.`,
                                         "payload": `booking_${before[0].id}`,
                                         need_phone_number: true,
                                         send_phone_number_to_provider: true,
@@ -724,7 +767,7 @@ router.post(`/hook`, (req, res) => {
                                                     sendMessage2({
                                                         "chat_id": user.id,
                                                         "title": `Оплата курса ${c.name}`,
-                                                        "description": `Если ты передумаешь — мы вернем оплату (но только если до начала курса останется больше 5 часов).`,
+                                                        "description": `После оплаты возврат средств не осуществляется.`,
                                                         "payload": `booking_${record.id}`,
                                                         need_phone_number: true,
                                                         send_phone_number_to_provider: true,
@@ -1220,6 +1263,7 @@ router.all(`/admin/:method`, (req, res) => {
                             name:       req.body.name,
                             price:      +req.body.price,
                             description: req.body.description,
+                            afterPayment: req.body.afterPayment || null
                         }).then(record=>{
                             res.json({
                                 success:    true,
@@ -1270,7 +1314,7 @@ router.all(`/admin/:method`, (req, res) => {
                             sendMessage2({
                                 chat_id: req.body.user,
                                 title: `${req.body.desc}`,
-                                description: req.body.descLong || `Если ты передумаешь — мы вернем оплату (но только если до начала курса останется больше 5 часов).`,
+                                description: req.body.descLong || `После оплаты возврат средств не осуществляется.`,
                                 payload: `invoice_${rec.id}`,
                                 need_phone_number: true,
                                 send_phone_number_to_provider: true,
@@ -1790,15 +1834,20 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             if(!t.active) return res.status(400).send(`Эта запись уже отменена`)
                             if(t.payed) return res.status(400).send(`Эта запись уже оплачена`)
                             
+                            let closure = new Date(+new Date()*4*30*24*60*60*1000)
+                            
                             ref.update({
-                                payed: new Date(),
-                                payedBy: +admin.id 
+                                payed:          new Date(),
+                                payedBy:        +admin.id,
+                                toBeClosed:     closure
                             }).then(()=>{
+                                
                                 log({
-                                    text:   `${uname(admin,admin.id)} отмечает оплаченной запись пользователя ${t.user} на курс ${t.courseName}`,
+                                    text:   `${uname(admin,admin.id)} отмечает оплаченной запись пользователя ${t.user} на курс ${t.courseName}. Доступ закончится ${drawDate(closure)}.`,
                                     ticket: req.params.id,
                                     admin:  +admin.id
                                 })
+
                                 sendMessage2({
                                     chat_id: t.user,
                                     text: `Ваша запись на курс ${t.courseName} оплачена. Ура!`
