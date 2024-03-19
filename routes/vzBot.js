@@ -552,6 +552,66 @@ router.post(`/hook`, (req, res) => {
                 })
             }
 
+            if(req.body.message.successful_payment){
+                let payment = req.body.message.successful_payment
+                let inc = payment.invoice_payload.split('_');
+                let sum = `${payment.total_amount/100}${payment.currency}`
+                switch(inc[0]){
+                    case `invoice`: {
+                        return invoices.doc(inc[1]).get().then(i=>{
+                            if(!i.exists) return alertAdmins({
+                                text: `Алярм! Только что пришел платеж в ${sum} в оплату инвойса, которого нет...`
+                            })
+
+                            i = handleDoc(i)
+                            
+                            invoices.doc(inc[1]).update({
+                                payed: new Date(),
+                                payedBy: +i.user,
+                                telegram_payment_charge_id: payment.telegram_payment_charge_id,
+                                provider_payment_charge_id: payment.provider_payment_charge_id
+                            })
+
+                            m.getUser(i.user,udb).then(u=>{
+                                log({
+                                    text: `${uname(u, u.id)} оплачивает ${sum} в оплату счета ${i.desc}`,
+                                    user: i.user
+                                })
+                            })
+                        }).catch(err=>{
+                            handleError(err,res)
+                        })
+                    }
+                    case `booking`:{
+                        return  streamUsers.doc(inc[1])
+                            .get()
+                            .then(s=>{
+                                if(!s.exists) {
+                                    alertAdmins({
+                                        text: `Алярм! Только что пришел платеж в ${sum} в оплату курса, которого нет...`
+                                    })
+                                }
+
+                                streamUsers.doc(inc[1]).update({
+                                    payed:      new Date(),
+                                    payedBy:    +s.data().user,
+                                    telegram_payment_charge_id: payment.telegram_payment_charge_id,
+                                    provider_payment_charge_id: payment.provider_payment_charge_id
+                                })
+
+                                m.getUser(s.data().user,udb).then(u=>{
+                                    log({
+                                        text: `${uname(u, u.id)} оплачивает ${sum} в оплату курса ${s.data().courseName}`,
+                                        user: s.data().user
+                                    })
+                                })
+                            }).catch(err=>{
+                                handleError(err,res)
+                            })
+                    }
+                }
+            }
+
         })
     }
 
@@ -636,7 +696,7 @@ router.post(`/hook`, (req, res) => {
                                                 devlog(foundPromo)
 
                                                 if(foundPromo) discount = promos.doc(foundPromo.promo).get().then(p=>{
-                                                    if(p.data().active) return p.data().discount/100
+                                                    if(p.data().active) return 1-(p.data().discount/100)
                                                     return 1
                                                 })
                                                 
@@ -853,6 +913,8 @@ router.post(`/hook`, (req, res) => {
             console.log(err)
         })
     }
+
+    
 })
 
 
