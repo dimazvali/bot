@@ -260,6 +260,7 @@ let channelStats = fb.collection(`channelStats`)
 let subscriptionsEmail = fb.collection(`subscriptionsEmail`)
 let tags = fb.collection(`tags`)
 let userTags = fb.collection(`usertags`)
+let standAlone =        fb.collection('standAlone');
 
 if (!process.env.develop) {
 
@@ -369,13 +370,20 @@ router.get(`/site/:city`, (req, res) => {
         .limit(5)
         .get()
         .then(col => {
-            res.render(`auditoria/inst`, {
-                title:          sectionsMeta.mp.title,
-                description:    sectionsMeta.mp.description,
-                classes: common.handleQuery(col),
-                randomPic: () => randomPic(),
-                city: req.params.city
-            })
+            standAlone
+                .where(`active`,'==',true)
+                .get()
+                .then(static=>{
+                    res.render(`auditoria/inst`, {
+                        title:          sectionsMeta.mp.title,
+                        description:    sectionsMeta.mp.description,
+                        classes:        common.handleQuery(col),
+                        static:         common.handleQuery(static,false,true),
+                        randomPic: () => randomPic(),
+                        city: req.params.city
+                    })
+                })
+            
             views.add({
                 createdAt: new Date(),
                 user: `web`,
@@ -537,7 +545,34 @@ router.get(`/site/:city/:section/:id`, (req, res) => {
                 })
             })
         })
-    } else {
+    } else if(req.params.section == `static`) {
+        devlog(`статика`)
+            standAlone.doc(req.params.id).get().then(page=>{
+                if(!page.exists) return res.sendStatus(404)
+                page = common.handleDoc(page)
+                if(!page.active) return res.sendStatus(404)
+                
+                standAlone.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+                
+                views.add({
+                    createdAt: new Date(),
+                    entity: `static`,
+                    id: req.params.id,
+                    user: `web`
+                })
+
+                return res.render(`${host}/static`,{
+                    name:           page.name,
+                    description:    page.description,
+                    randomPic: () => randomPic(),
+                    city:           req.params.city,
+                    html:           page.html,
+                    pic:            page.pic
+                })
+            })
+    }  else {
         res.sendStatus(404)
     }
 })
@@ -598,7 +633,8 @@ router.get(`/web`, (req, res) => {
                 httpOnly:   true,
             }).render(`${host}/web`, {
                 logs: common.handleQuery(col),
-                start: req.query.page
+                start: req.query.page,
+                wysykey: process.env.wysykey,
                 // token: req.signedCookies.adminToken
             })
         })
@@ -618,7 +654,8 @@ router.get(`/web`, (req, res) => {
                     .then(col => {
                         res.render(`${host}/web`, {
                             logs: common.handleQuery(col),
-                            start: req.query.page
+                            start: req.query.page,
+                            wysykey: process.env.wysykey,
                             // token: req.signedCookies.adminToken
                         })
                     })
@@ -706,6 +743,55 @@ router.all(`/admin/:method`, (req, res) => {
                 let admin = user;
                 if (!user.admin) return res.status(403).send(`Вам сюда нельзя`)
                 switch (req.params.method) {
+                    case `standAlone`:{
+                        switch (req.method){
+                            case `POST`:{
+                                if(req.body.name){
+                                    let free = true;
+                                    if(req.body.slug) free = standAlone.doc(req.body.slug.toString()).get().then(d=>common.handleDoc(d))
+                                    return Promise.resolve(free).then(p=>{
+                                        if(p) return res.status(400).send(`slug уже занят`)
+                                        let page = {
+                                            createdAt:      new Date(),
+                                            active:         true,
+                                            createdBy:      +admin.id,
+                                            name:           req.body.name,
+                                            description:    req.body.description || null,
+                                            html:           req.body.html || null,
+                                            views:          0,
+                                            slug:           req.body.slug || null
+                                        }
+                                        if(req.body.slug){
+                                            standAlone.doc(req.body.slug).set(page).then(s=>{
+                                                res.json({
+                                                    success: true,
+                                                    id: req.body.slug
+                                                })
+                                            })
+                                        } else {
+                                            standAlone.add(page).then(rec=>{
+                                                res.json({
+                                                    success: true,
+                                                    id: rec.id
+                                                })
+                                                standAlone.doc(rec.id).update({
+                                                    slug: rec.id
+                                                })
+    
+                                            })
+                                        }
+                                        
+                                    })
+                                }
+                            }
+                            case `GET`:{
+                                return standAlone.get().then(col=>{
+                                    res.json(common.handleQuery(col,true))
+                                })
+                            }
+                        }
+                    }
+                    
                     case `plans`: {
                         switch (req.method) {
                             case 'GET': {
@@ -2121,6 +2207,23 @@ router.all(`/admin/:data/:id`, (req, res) => {
                             if (!n.exists) return res.sendStatus(404)
                             res.json(common.handleDoc(n))
                         })
+                }
+                case `standAlone`:{
+                    let ref = standAlone.doc(req.params.id)
+                    return ref.get().then(doc=>{
+                        if(!doc.exists) return res.sendStatus(404)
+                        switch(req.method){
+                            case `GET`:{
+                                return res.json(common.handleDoc(doc))
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,admin)
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
                 }
                 case `streams`: {
                     let ref = streams.doc(req.params.id)

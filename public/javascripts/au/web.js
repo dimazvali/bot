@@ -12,7 +12,16 @@ function closeLeft() {
 if(start){
     start = start.split('_')
     switch(start[0]){
-        
+        case `standAlone`:{
+            
+            if(start[1]) {
+                showStandAlonePage(start[1])
+            } else {
+                showStandAlone()     
+            }
+            break;
+        }
+
         case `classes`:{
             if(!start[1]) {
                 showSchedule()
@@ -2652,4 +2661,134 @@ function editable(e){
             edit(e.entity,e.id,e.attr,e.type||`text`,e.value||null,this)
         }
     })
+}
+
+
+function showStandAlone(){
+    closeLeft()
+    let p = preparePopupWeb(`standAlone`,false,false,true)
+        p.append(ce('h1',false,false,`Отдельные страницы`))
+        p.append(ce(`button`,false,[`dark`,`dateButton`],`Добавить`,{
+            onclick:()=>addStandAlone()
+        }))
+    load(`standAlone`).then(pages=>{
+        pages.forEach(page=>{
+            p.append(pageLine(page))
+        })
+    })
+}
+
+function pageLine(page){
+    let c = listContainer(page,true)
+    if(!page.active){
+        c.classList.remove(`hidden`)
+    }
+    c.append(ce(`h3`,false,false,page.name,{
+        onclick:()=>showStandAlonePage(page.id)
+    }))
+    c.append(ce(`p`,false,false,page.description))
+    return c
+}
+
+
+function addStandAlone(){
+    let p = preparePopupWeb(`addStandAlone`,false,false,true)
+    
+    let name = ce('input',false,false,false,{placeholder:`название`,type:`text`})
+    let description = ce('textarea',false,false,false,{placeholder:`описание`})
+    let slug = ce('input',false,false,false,{placeholder:`slug`,type:`text`})
+    let html = ce('textarea',`html`,false,false,{placeholder:`описание`})
+    
+
+    p.append(name)
+    p.append(description)
+    p.append(html)
+    p.append(slug)
+
+    tinymce.init({
+        selector: '#html',
+        plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed linkchecker permanentpen powerpaste advtable advcode editimage advtemplate mentions tinycomments tableofcontents footnotes mergetags autocorrect typography inlinecss',
+        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+        tinycomments_mode: 'embedded',
+        tinycomments_author: 'Author name',
+        mergetags_list: [
+          { value: 'First.Name', title: 'First Name' },
+          { value: 'Email', title: 'Email' },
+        ],
+        // ai_request: (request, respondWith) => respondWith.string(() => Promise.reject("See docs to implement AI Assistant")),
+      });
+
+      p.append(ce(`button`,false,[`dark`,`saveButton`],`Сохранить`,{
+        onclick:function(){
+            let html = tinymce.activeEditor.getContent("#html");
+           if(name.value && description.value && html){
+            axios.post(`/${host}/admin/standAlone`,{
+                html: html,
+                name: name.value,
+                description: description.value,
+                slug: slug.value
+            }).then(s=>{
+                handleSave(s)
+                showStandAlonePage(s.data.id)
+            }).catch(handleError)
+           }
+        }
+      }))
+
+      tinymce.activeEditor.getContent("#html");
+}
+
+function showStandAlonePage(pid){
+    let p = preparePopupWeb(`standAlone_${pid}`,false,[`static`,pid],true)
+        load(`standAlone`,pid).then(page=>{
+
+            p.append(ce('h1',false,`clickable`,page.name,{
+                onclick: function () {
+                    edit(`standAlone`, page.id, `name`, `text`, page.name)
+                }
+            }))
+            
+            p.append(ce(`img`, false, `cover`, false, {
+                src: page.pic,
+                onclick: function () {
+                    edit(`standAlone`, page.id, `pic`, `text`, page.pic || null)
+                }
+            }))
+
+            p.append(ce(`p`,false,false,`Описание (мета): ${page.description}`,{
+                onclick: function () {
+                    edit(`standAlone`, page.id, `description`, `textarea`, page.pic || null)
+                }
+            }))
+
+            p.append(ce('textarea',false,false,false,{
+                value: page.html
+            }))
+
+            tinymce.init({
+                selector: 'textarea',
+                plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed linkchecker a11ychecker tinymcespellchecker permanentpen powerpaste advtable advcode editimage advtemplate tableofcontents footnotes mergetags typography inlinecss',
+                toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+                tinycomments_mode: 'embedded',
+                tinycomments_author: 'Author name',
+                mergetags_list: [
+                  { value: 'First.Name', title: 'First Name' },
+                  { value: 'Email', title: 'Email' },
+                ],
+                ai_request: (request, respondWith) => respondWith.string(() => Promise.reject("See docs to implement AI Assistant")),
+              });
+
+            p.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить правки в HTML`,{
+                onclick:()=>{
+                    let html = tinymce.activeEditor.getContent("#html");
+                    axios.put(`/${host}/admin/standAlone/${page.id}`,{
+                        attr: `html`,
+                        value: html
+                    }).then(handleSave)
+                    .catch(handleError)
+                }
+            }))
+
+            p.append(deleteButton(`standAlone`,page.id,!page.active,[`dark`,`dateButton`]))
+        })
 }

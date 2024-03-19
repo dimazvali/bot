@@ -9,4 +9,6 @@ block content
   #links
     h1(onclick!=`window.location.pathname='/auditoria/site/${city}/classes/'`) Расписание
     h1(onclick!=`window.location.pathname='/auditoria/site/${city}/bar/'`) Бар
+    for s in static
+      h1(onclick!=`window.location.pathname='/auditoria/site/${city}/static/${s.slug}'`)!=s.name
     //- h3(onclick!=`window.open('https://maps.app.goo.gl/poF4xG67gumQTYNx5')`) 22-26, Simon Janashia St, Tbilisi 
