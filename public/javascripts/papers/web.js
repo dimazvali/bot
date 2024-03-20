@@ -1859,19 +1859,111 @@ function showUser(u, id) {
         p.append(toggleButton(`users`,u.id,`randomCoffee`,u.randomCoffee||false,`Убрать из randomCoffee`,`Добавить в randomCoffee`,[`dateButton`,`dark`]))
 
 
-        let invoices = ce(`div`);
-        invoices.append(ce('h3',false,false,`Счета`))
-        p.append(invoices)
+
+        // let invoices = ce(`div`);
+        // invoices.append(ce('h3',false,false,`Счета`))
+        // p.append(invoices)
         
-        invoices.append(ce(`button`,false,false,`Выставить счет`,{
-            onclick:()=>addInvoice(u.id)
+        // invoices.append(ce(`button`,false,false,`Выставить счет`,{
+        //     onclick:()=>addInvoice(u.id)
+        // }))
+
+        // load(`userInvoices`,u.id).then(inc=>{
+        //     inc.forEach(invoice=>{
+        //         invoices.append(invoiceLine(invoice))
+        //     })
+        // })
+
+        let deposits = ce(`div`)
+        p.append(deposits)
+            deposits.append(ce(`h2`,false,false,`Депозит:`))
+            let dep = ce(`p`,false,false,(u.deposit ? cur(u.deposit,`GEL`) : `отсутствует`))
+            deposits.append(dep)
+
+        deposits.append(ce(`button`,false,[`dark`,`dateButton`],`Добавить депозит`,{
+            onclick:()=>{
+                let c = ce('div',false,[`editWindow`,`inpC`])
+                document.body.append(c)
+                    c.append(ce('h2',false,false,`Вносим денег`))
+                let amount = ce('input',false,false,false,{
+                    type: `number`,
+                    placeholder: `Сколько?`,
+                    min: 10,
+                    step: 10
+                })
+                let desc = ce(`input`,false,false,false,{
+                    type: `text`,
+                    placeholder: `Примечание (ДСП)`
+                })
+
+                c.append(amount)
+                c.append(desc)
+
+                c.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить`,{
+                    onclick:function(){
+                        if(amount.value){
+                            let sure = confirm(`Уверены?`)
+                            if(sure){
+                                this.setAttribute(`disabled`,true)
+                                axios.post(`/${host}/admin/deposit`,{
+                                    amount: +amount.value,
+                                    user: u.id,
+                                    description: desc.value || null 
+                                }).then(s=>{
+                                    handleSave(s)
+                                    dep.innerHTML = cur(s.data.total)
+                                    c.remove()
+                                }).catch(handleError)
+                            }
+                        }
+                    }
+                }))
+            }
         }))
 
-        load(`userInvoices`,u.id).then(inc=>{
-            inc.forEach(invoice=>{
-                invoices.append(invoiceLine(invoice))
-            })
-        })
+        deposits.append(ce(`button`,false,[`dark`,`dateButton`,`active`],`Списать депозит`,{
+            onclick:()=>{
+                
+                let c = ce('div',false,[`editWindow`,`inpC`])
+                document.body.append(c)
+                    c.append(ce('h2',false,false,`Списываем денег`))
+                let amount = ce('input',false,false,false,{
+                    type: `number`,
+                    placeholder: `Сколько?`,
+                    min: 10,
+                    step: 10
+                })
+                let desc = ce(`input`,false,false,false,{
+                    type: `text`,
+                    placeholder: `Примечание (ДСП)`
+                })
+
+                c.append(amount)
+                c.append(desc)
+
+                c.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить`,{
+                    onclick:function(){
+                        if(amount.value){
+                            let sure = confirm(`Уверены?`)
+                            if(sure){
+                                this.setAttribute(`disabled`,true)
+                                axios.post(`/${host}/admin/deposit`,{
+                                    user: u.id,
+                                    amount: -Number(amount.value),
+                                    description: desc.value || null 
+                                }).then(s=>{
+                                    handleSave(s)
+                                    dep.innerHTML = cur(s.data.total,`GEL`)
+                                    c.remove()
+                                }).catch(handleError)
+                            }
+                        }
+                    }
+                }))
+            }
+        }))
+
+
 
         let lecs = ce('div')
         p.append(lecs)
@@ -2032,8 +2124,31 @@ function wineLine(w){
 // }
 
 
+function depositLine(d){
+    let c = listContainer(d,true)
+        c.classList.remove(`hidden`)
+        
+        c.append(ce(`h3`,false,false,cur(d.amount,`GEL`)))
+        let uc =ce(`div`)
+        c.append(uc)
+        load(`users`,d.user).then(u=>{
+            uc.append(ce(`button`,false,[`dateButton`,`dark`],uname(u,u.id),{
+                onclick:()=>showUser(false,u.id)
+            }))
+        })
+        c.append(ce(`p`,false,false,d.description||`без комментариев`))
+    return c
+}
 
-// Залы
+function showDeposits(){
+    let p = preparePopupWeb(`deposits`,false,false,true)
+        p.append(ce(`h1`,false,false,`Движения по депозитам`))
+        load(`deposits`).then(list=>{
+            list.forEach(d=>{
+                p.append(depositLine(d))            
+            })
+        })
+}
 
 function showHalls(){
     closeLeft()

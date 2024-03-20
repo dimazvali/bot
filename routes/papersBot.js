@@ -143,6 +143,7 @@ let randomCoffees =     fb.collection('randomCoffees');
 let randomCoffeeIterations = fb.collection('randomCoffeeIterations');
 let standAlone =        fb.collection('standAlone');
 let invoices =          fb.collection('invoices');
+let deposits=           fb.collection('deposits');
 
 coworkingRules.get().then(col => {
     col.docs.forEach(l => {
@@ -424,7 +425,42 @@ router.all(`/admin/:method`, (req, res) => {
             
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
-
+                case `deposits`:{
+                    return deposits.get().then(col=>res.json(common.handleQuery(col,true)))
+                }
+                case `deposit`:{
+                    if(!req.body.amount) return res.status(400).send(`no money provided`)
+                    if(!req.body.user) return res.status(400).send(`no user provided`)
+                    return deposits.add({
+                        createdAt:  new Date(),
+                        createdBy:  +admin.id,
+                        amount:     Number(req.body.amount),
+                        user:       req.body.user,
+                        description: req.body.description
+                    }).then(rec=>{
+                        udb.doc(req.body.user.toString()).update({
+                            deposit: FieldValue.increment(Number(req.body.amount))
+                        }).then(s=>{
+                            m.getUser(req.body.user,udb).then(u=>{
+                                res.json({
+                                    success:    true,
+                                    comment:    `Баланс обновлен.`,
+                                    total:      u.deposit
+                                })
+                                log({
+                                    admin: +admin.id,
+                                    deposit: rec.id,
+                                    user: +req.body.user,
+                                    text: `${uname(admin,admin.id)} обновляет баланс пользователя ${uname(u,u.id)} на ${req.body.amount}\n(${req.body.description||'без лишних слов'})`
+                                })
+                                m.sendMessage2({
+                                    chat_id: u.id,
+                                    text: `Ваш депозит обновлен. Текущий остаток: ${u.deposit}.`
+                                },false,token)
+                            })
+                        })
+                    })
+                }
                 case `standAlone`:{
                     switch (req.method){
                         case `POST`:{
