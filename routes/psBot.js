@@ -565,7 +565,7 @@ router.post(`/hook`, (req, res) => {
                         chat_id: user.id,
                         message_id: req.body.callback_query.message.message_id,
                     },`deleteMessage`,token)
-                    rescore(userTasksSubmits.doc(inc[1],+inc[3]))
+                    rescore(userTasksSubmits.doc(inc[1]),+inc[3])
                 })
             }
             case `pic`: {
@@ -990,24 +990,37 @@ router.all(`/admin/:method/:id`, (req, res) => {
                                 common.getDoc(tasks,req.body.value).then(t=>{
                                     if(!t) return res.sendStatus(404)
                                     
-                                    return userTasksSubmits.add({
-                                        message:    req.params.id,
-                                        createdAt:  new Date(),
-                                        task:       req.body.value,
-                                        userTask:   null,
-                                        name:       t.name,
-                                        user:       +m.user,
-                                        admin:      +admin.id
-                                    }).then(rec=>{
-                                        messages.doc(req.params.id).update({
-                                            taskSubmission: rec.id
+                                    userTasks
+                                        .where(`user`,'==',+m.user)
+                                        .where(`task`,'==',req.body.value)
+                                        .get()
+                                        .then(ut=>{
+                                            ut = common.handleQuery(ut).filter(t=>t.active)[0]
+                                            if(ut){
+                                                return userTasksSubmits.add({
+                                                    message:    req.params.id,
+                                                    createdAt:  new Date(),
+                                                    task:       req.body.value,
+                                                    userTask:   ut.id,
+                                                    name:       t.name,
+                                                    user:       +m.user,
+                                                    admin:      +admin.id
+                                                }).then(rec=>{
+                                                    messages.doc(req.params.id).update({
+                                                        taskSubmission: rec.id
+                                                    })
+                                                    res.json({
+                                                        success:    true,
+                                                        id:         rec.id,
+                                                        comment: `Задание присвоено`
+                                                    })
+                                                })
+                                            } else {
+                                                return res.status(400).send(`пользователь такого задания не получал`)
+                                            }
                                         })
-                                        res.json({
-                                            success:    true,
-                                            id:         rec.id,
-                                            comment: `Задание присвоено`
-                                        })
-                                    })
+
+                                    
                                 })
                                 
                             })
@@ -1032,6 +1045,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                 switch(req.method){
                     case `PUT`:{
                         ref = userTasksSubmits.doc(req.params.id)
+                        // 
                         return updateEntity(req,res,ref,+admin.id)
                     }
                 }
@@ -1484,6 +1498,11 @@ function updateEntity(req, res, ref, adminId) {
         updatedBy:          adminId || null,
         [req.body.attr]:    req.body.attr == `date` ? new Date(req.body.value) : req.body.value
     }).then(s => {
+        
+        if(req.body.attr == `score`) {
+            rescore(ref,+req.body.value)
+        }
+
         res.json({
             success: true
         })
@@ -1577,9 +1596,6 @@ function rescore(ref,curScore) {
                             score:  avg ? col.reduce((a,b)=>a+b.score,0) : 0 
                         })
                     })
-
-
-
             })
     })
 }
