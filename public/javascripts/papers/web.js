@@ -18,8 +18,15 @@ const web = `https://dimazvali-a43369e5165f.herokuapp.com/paper/mini`
 if(start){
     start = start.split('_')
     switch(start[0]){
+        case `plans`:{
+            if(start[1]) {
+                showPlan(start[1])
+            } else {
+                showPlans()     
+            }
+            break;
+        }
         case `standAlone`:{
-            
             if(start[1]) {
                 showStandAlonePage(start[1])
             } else {
@@ -122,26 +129,297 @@ function drawCoworkingShedule(records,start){
                 .filter(e => typeof e.date == `string` && new Date(e.date).toISOString().split('T')[0] == isoDate)
                 .sort((a,b)=>b.hallName<a.hallName?1:-1)
                 .forEach(e => {
-                let rec = ce('div',false,`recordLine`,false,{
-                    dataset:{hall:e.hall}
+                    let rec = ce('div',false,`recordLine`,false,{
+                        dataset:{hall:e.hall}
+                    })
+                        rec.append(ce(`span`,false,`info`,e.hallName))
+                        
+                        load(`users`,e.user).then(u=>
+                            rec.append(ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
+                                // onclick:()=> showUser(u,u.id)
+                                onclick:function(){
+                                    showCoworkingOptions(rec,u,this)
+                                }
+                            }))
+                        )
+                    day.append(rec)
                 })
-                    rec.append(ce(`span`,false,`info`,e.hallName))
-                load(`users`,e.user).then(u=>rec.append(ce(`button`,false,
-                    [`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg']
-                    ,unameShort(u,u.id),{
-                    onclick:()=> showUser(u,u.id)
-                })))
-                day.append(rec)
-            })
             c.append(day)
             i++
         }    
     })
-
-    
     return cc
 }
 
+
+function showPlans(){
+    let p = preparePopupWeb(`plans`,false,false,true);
+        p.append(ce(`h1`,false,false,`Тарифы и подписки`))
+        load(`plans`).then(plans=>{
+
+            let c = ce('div')
+            
+            plans.forEach(plan=>{
+                c.append(showPlanLine(plan))
+            })
+
+            let cc = ce('div', false, `controls`)
+            
+            cc.append(sortBlock([{
+                attr: `name`,
+                name: `По названию`
+            }, {
+                attr: `views`,
+                name: `По просмотрам`
+            }, {
+                attr: `createdAt`,
+                name: `По дате создания`
+            }], c, plans, showPlanLine, [`dark`,`dateButton`]))
+
+            p.append(cc)
+
+            c.append(ce('button', false, [`dark`,`dateButton`], `Добавить тариф`, {
+                onclick: () => newPlan()
+            }))
+            
+            p.append(c)
+            p.append(archiveButton(c,[`dark`,`dateButton`]))
+            
+        })
+}
+
+function showPlanLine(plan){
+    let c = listContainer(plan,true,{
+        days: `дней`,
+        events: `событий`,
+        visits: `коворк`
+    })
+        c.append(ce('h3',false,false,plan.name,{
+            onclick:()=>showPlan(plan.id)
+        }));
+
+        c.append(ce(`p`,false,false,plan.description.slice(0,100)+'...'))
+    return c
+}
+
+function newPlan(){
+    let p = preparePopupWeb(`newPlan`,false,false,true)
+        p.append(ce(`h1`,false,false,`Добавляем тариф:`))
+        p.classList.add(`inpC`)
+        
+        let name = ce('input',false,false,false,{
+            placeholder: `Название`,
+            type: `text`
+        })
+
+        let desc = ce('textarea',false,false,false,{
+            placeholder: `Описание`,
+            type: `text`
+        })
+
+        let days = ce('input',false,false,false,{
+            placeholder: `Дней`,
+            type: `number`,
+            min: 1,
+            step: 1
+        })
+
+        let visits = ce('input',false,false,false,{
+            placeholder: `Коворк`,
+            type: `number`,
+            min: 1,
+            step: 1
+        })
+
+        let events = ce('input',false,false,false,{
+            placeholder: `Ивентов`,
+            type: `number`,
+            min: 1,
+            step: 1
+        })
+
+        let price = ce('input',false,false,false,{
+            placeholder: `Стоимость`,
+            type: `number`,
+            min: 10,
+            step: 10
+        })
+
+
+        p.append(name)
+        p.append(desc)
+        p.append(days)
+        p.append(visits)
+        p.append(events)
+        p.append(price)
+
+        p.append(ce(`button`,false,false,`Сохранить`,{
+            onclick:function(){
+                
+                    if(!name.value) return alert(`Пропущено поле name`)
+                    if(!desc.value) return alert(`Пропущено поле desc`)
+                    if(!days.value) return alert(`Пропущено поле days`)
+                    if(!visits.value) return alert(`Пропущено поле visits`)
+                    if(!events.value) return alert(`Пропущено поле events`)
+                    if(!price.value) return alert(`Пропущено поле price`)
+
+                    this.setAttribute(`disabled`,true)
+                    axios.post(`/${host}/admin/plans`,{
+                        name: name.value,
+                        desc: desc.value,
+                        days: days.value,
+                        visits: visits.value,
+                        events: events.value,
+                        price: price.value,
+                    }).then(s=>{
+                        handleSave(s)
+                        showPlan(s.data.id)
+                    }).catch(handleError)
+
+            }
+        }))
+
+}
+
+function showPlan(id){
+    let p = preparePopupWeb(`plans_${id}`,false,false,true)
+        load(`plans`,id).then(plan=>{
+            p.append(ce('h1', false, false, plan.name,{
+                onclick: function () {
+                    edit(`plans`, id, `name`, `text`, plan.name || null, this)
+                }
+            }))
+
+            p.append(ce('p', false, false, plan.description,{
+                onclick: function () {
+                    edit(`plans`, id, `description`, `textarea`, plan.description || null, this)
+                }
+            }))
+
+            p.append(ce(`p`,false,false,`Дней: ${plan.days}.`))
+            
+            p.append(ce(`p`,false,false,`Ивентов: ${plan.events}.`))
+            
+            p.append(ce(`p`,false,false,`Коворк: ${plan.visits}.`))
+
+            p.append(deleteButton(`plans`,id,!plan.active,[`dark`,`dateButton`]))
+
+
+            let requests = ce('div')
+                requests.append(ce(`h2`,false,false,`Заявки`))
+                p.append(requests)
+                load(`requestsByPlan`,id).then(reqs=>{
+                    reqs.filter(c=>c.active).forEach(r=>{
+                        let c = listContainer(r,true)
+                            c.classList.add(`flex`)
+                            load(`users`,r.user).then(u=>{
+                                c.append(ce(`button`,false,[`dateButton`,`dark`],uname(u,u.id),{
+                                    onclick:()=>showUser(false,u.id)
+                                }))
+
+                                c.append(ce(`button`,false,[`dateButton`,`dark`],`Подвтердить`,{
+                                    onclick:function(){
+                                        let sure = confirm(`Уверены?`)
+                                        if(sure){
+                                            axios.patch(`/${host}/admin/subscribe/`,{
+                                                plan: r.plan,
+                                                user: r.user,
+                                            })
+                                                .then(s=>{
+                                                    handleSave(s)
+                                                    this.remove()
+                                                })
+                                                .catch(handleError)
+                                        }
+                                    }
+                                }))
+
+                                c.append(ce(`button`,false,[`dateButton`,`dark`,`active`],`Отклонить`,{
+                                    onclick:function(){
+                                        let sure = confirm(`Уверены?`)
+                                        if(sure){
+                                            axios.delete(`/${host}/admin/plansRequests/${r.id}`)
+                                                .then(s=>{
+                                                    handleSave(s)
+                                                    this.parentNode.remove()
+                                                })
+                                                .catch(handleError)
+                                        }
+                                    }
+                                }))
+                            })
+                        requests.append(c)
+                    })
+                })
+            
+            let users = ce(`div`)
+                p.append(users)
+                users.append(ce(`h2`,false,false,`Подписки`))
+                load(`plansUses`,id).then(uses=>{
+                    uses.forEach(u=>{
+                        users.append(planUseLine(u))
+                    })
+                    
+                })
+
+        })
+}
+
+function planUseLine(line){
+    let c = listContainer(line,true,{
+        to: `до`,
+        visitsLeft: `посещений`,
+        eventsLeft: `мероприятий`
+    })
+    if(!line.active) c.classList.remove(`hidden`)
+    load(`users`,line.user).then(u=>{
+        c.append(ce(`button`,false,[`dateButton`,`dark`],uname(u,u.id),{
+            onclick:()=>showUser(false,u.id)
+        }))
+    })
+    return c
+}
+
+function showCoworkingOptions(record, user, container){
+    let c = ce('div',false,`editWindow`)
+        
+        c.append(ce(`button`,false,[`dateButton`,`dark`],uname(user,user.id),{onclick:()=>showUser(false,user.id)}))
+        
+        if(record.status != `used`) c.append(ce(`button`,false,[`dateButton`,`dark`],`гость пришел`,{
+            onclick:function(){
+                axios.put(`/${host}/admin/coworking/${record.id}`,{
+                    attr: `status`,
+                    value: `used`
+                }).then(s=>{
+                    handleSave(s)
+                    if(s.data.succes) this.remove()
+                }).catch(handleError)
+            }
+        }))
+
+        if(record.paymentNeeded && user.deposit){
+            c.append(`У пользователя есть депозит: ${cur(user.deposit)}`)
+        }
+
+        if(!user.admin && !user.fellow && !user.insider) {
+            let informer = ce(`p`,false,false,`Загружаю подписки...`)
+            c.append(informer)
+            load(`plansByUser`,user.id)
+                .then(plans=>{
+                    
+                    informer.remove();
+
+                    plans.filter(p=>p.active).forEach(p=>{
+                        c.append(ce(`p`,false,false,`Остаток: ${p.visitsLeft}.`))
+                    })
+
+                })
+        }
+
+
+    document.body.append(c)
+    
+}
 
 
 function drawSchedule(events, start) {
@@ -183,6 +461,12 @@ function newClass(){
         placeholder: `ссылка на картинку`
     })
     p.append(img)
+
+    let clearPic = ce(`input`,false,false,false,{
+        type: `text`,
+        placeholder: `ссылка на картинку без текста`
+    })
+    p.append(clearPic)
 
     p.append(ce(`a`,false,`whiteLink`,`грузим тут`,{
         href: `https://console.firebase.google.com/u/0/project/paperstuff-620fa/storage/paperstuff-620fa.appspot.com/files/~2Flectures`,
@@ -259,6 +543,7 @@ function newClass(){
                     authorName:     authorName.value,
                     author:         author.value,
                     price:          price.value,
+                    clearPic:       clearPic.value,
                     noRegistration: noRegistration.querySelector(`input`).checked ? true : false,
                     admins:         admins.querySelector(`input`).checked ? true : false,
                     fellows:        fellows.querySelector(`input`).checked ? true : false
@@ -785,16 +1070,21 @@ function filterUsers(role, container, button,counter) {
 }
 
 function showClass(cl, id) {
-    let p = preparePopupWeb(`class_${cl.id || id}`, `class_${cl.id|| id}`, [`classes`, cl.id || id])
+    let p = preparePopupWeb(
+        `classes_${cl.id || id}`,
+        `class_${cl.id|| id}`,
+        [`classes`, cl.id || id],
+        true,
+        logButton(`class`,cl.id||id,`логи`)
+        )
     
-    p.append(logButton(`class`,cl.id||id,`логи`))
+    // p.append()
 
     if (!cl) {
         cl = load(`classes`, id)
     }
     Promise.resolve(cl).then(cl => {
         
-        window.history.pushState({}, "", `web?page=classes_${cl.id}`);
 
         if(new Date()<new Date(cl.date)){
             let mBox = ce(`div`,false,`flex`)
@@ -829,11 +1119,20 @@ function showClass(cl, id) {
             }))
         }
         
-        
-        if (cl.pic) p.append(ce(`img`, false, `cover`, false, {
+        let picDiv= ce('div',false,`flex`)
+        p.append(picDiv)
+
+        picDiv.append(ce(`img`, false, `cover`, false, {
             src: cl.pic,
             onclick: function () {
                 edit(`classes`, cl.id, `pic`, `text`, cl.pic || null)
+            }
+        }))
+
+        picDiv.append(ce(`img`, false, `cover`, false, {
+            src: cl.clearPic,
+            onclick: function () {
+                edit(`classes`, cl.id, `clearPic`, `text`, cl.clearPic || null)
             }
         }))
 
@@ -911,6 +1210,7 @@ function showClass(cl, id) {
 
         p.append(ce('p', false, false, `${drawDate(cl.date,'ru',{time:true})}, продолжительность ${cl.duration} мин.`))
 
+
         p.append(ce(`button`,false,[`dateButton`,`dark`],`Изменить дату`,{
             onclick: function () {
                 edit(`classes`, cl.id, `date`, `datetime-local`, cl.date || null)
@@ -943,7 +1243,10 @@ function showClass(cl, id) {
 
         p.append(guests)
 
-        p.append(ce('button', false, `dateButton`, `Показать гостей`, {
+        let gbox = ce('div',false,`flex`)
+            p.append(gbox)
+
+        gbox.append(ce('button', false, `dateButton`, `Показать гостей`, {
             dataset: {
                 booked: 1
             },
@@ -974,7 +1277,8 @@ function showClass(cl, id) {
             }
         }))
 
-        p.append(ce('button', false, `dateButton`, `Написать гостям`, {
+         
+        gbox.append(ce('button', false, `dateButton`, `Написать гостям`, {
             dataset: {
                 booked: 1
             },
@@ -1031,19 +1335,23 @@ function showClass(cl, id) {
             }
         }))
 
-        p.append(ce(`button`, false, `dateButton`, `Показать лист ожидания`, {
+        gbox.append(ce(`button`, false, `dateButton`, `Показать лист ожидания`, {
             dataset: {
                 booked: 1
             },
             onclick: () => {
-                let wl = ce('div')
-                let t = ce('table')
-                let n = ce(`tr`)
-                n.append(ce(`th`, false, false, `гость`))
-                n.append(ce(`th`, false, false, `дата`))
-                n.append(ce(`th`, false, false, `статус`))
-                t.append(n)
+                
                 axios.get(`/${host}/admin/classWL?class=${cl.id}`).then(d => {
+                    let wl = ce('div')
+                    let t = ce('table')
+                    let n = ce(`tr`)
+                    n.append(ce(`th`, false, false, `гость`))
+                    n.append(ce(`th`, false, false, `дата`))
+                    n.append(ce(`th`, false, false, `статус`))
+                    t.append(n)
+                    
+                    if(!d.data.length) return alert(`Список пуст!`)
+
                     d.data.sort((a, b) => a.createdAt._seconds - b.createdAt._seconds).forEach(rec => {
                         let line = ce('tr')
                         line.append(ce(`td`, false, false, uname(rec.user, rec.user.id)))
@@ -1053,13 +1361,15 @@ function showClass(cl, id) {
                         line.append(ce(`td`, false, false, rec.active))
                         t.append(line)
                     })
+
+                    wl.append(t)
+                    p.append(wl)
                 })
-                wl.append(t)
-                p.append(wl)
+                
             }
         }))
 
-        p.append(ce(`button`, false, `dateButton`, `Запостить в канал`, {
+        gbox.append(ce(`button`, false, `dateButton`, `Запостить в канал`, {
             dataset: {
                 booked: 1
             },
@@ -1548,6 +1858,21 @@ function showUser(u, id) {
 
         p.append(toggleButton(`users`,u.id,`randomCoffee`,u.randomCoffee||false,`Убрать из randomCoffee`,`Добавить в randomCoffee`,[`dateButton`,`dark`]))
 
+
+        let invoices = ce(`div`);
+        invoices.append(ce('h3',false,false,`Счета`))
+        p.append(invoices)
+        
+        invoices.append(ce(`button`,false,false,`Выставить счет`,{
+            onclick:()=>addInvoice(u.id)
+        }))
+
+        load(`userInvoices`,u.id).then(inc=>{
+            inc.forEach(invoice=>{
+                invoices.append(invoiceLine(invoice))
+            })
+        })
+
         let lecs = ce('div')
         p.append(lecs)
         
@@ -1930,3 +2255,58 @@ function showAuthor(a, id) {
     })
 }
 
+
+function invoiceLine(i){
+    let c = listContainer(i)
+        
+        c.append(ce('h3',false,false,i.payed?`Оплачен`:`НЕ оплачен`))
+        c.append(ce('p',false,false,i.desc))
+        c.append(ce('h4',false,false,cur(i.price)))
+
+    return c
+}
+
+
+function addInvoice(userId){
+    let edit = ce('div', false, `editWindow`)
+    document.body.append(edit)
+
+        edit.append(ce(`h2`,false,false,`Выставить счет`))
+    
+        let price = ce('input',false,false,false,{
+            type:   `number`,
+            min:    100,
+            value:  1000,
+            step:   1000,
+            placeholder: `сумма`
+        })
+
+        edit.append(price)
+
+        let desc = ce(`input`,false,false,false,{
+            placeholder: `назначение`,
+            type: `text`
+        })
+
+        edit.append(desc)
+
+        edit.append(ce('button',false,`saveButton`,`Отправить`,{
+            onclick:function(){
+                if(!price.value) return alert(`не указана сумма`)
+                if(!desc.value) return alert(`не указано назначение`)
+                if(!userId) return alert(`Ошибка определения пользователя`)
+
+                this.setAttribute(`disabled`,true)
+                axios.post(`/${host}/admin/invoice`,{
+                    price: +price.value,
+                    desc: desc.value,
+                    user: userId
+                }).then(s=>{
+                    handleSave(s)
+                    this.parentNode.remove()
+                }).catch(handleError)
+            }
+        }))
+
+
+}

@@ -578,7 +578,10 @@ function copyWebLink(link, path, text){
 }
 
 function logButton(collection,id,credit){
-    return ce(`button`,false,[`dateButton`,`dark`,`slim`],credit||`Логи`,{
+    return ce(`button`,false,
+    // [`dateButton`,`dark`,`slim`]
+    `thin`,
+    credit||`Логи`,{
         onclick:()=>{
             let p = preparePopupWeb(`logs_${collection}_${id}`)
                 p.append(ce('h2',false,false,`Загружаем...`))
@@ -789,7 +792,7 @@ function sortBlock(sortTypes,container,array,callback,style){
     return c;
 }
 
-function listContainer(e,detailed){
+function listContainer(e,detailed,extra){
     let c =  ce('div',false,[`sDivided`,e.active?`reg`:`hidden`],false,{dataset:{active:e.active}})
 
     if(detailed){
@@ -798,6 +801,10 @@ function listContainer(e,detailed){
             details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
             if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy).then(author=>details.append(ce('span',false,`info`,uname(author, author.id))))
             if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
+
+            if(extra) Object.keys(extra).forEach(key=>{
+                if(e[key]) details.append(ce('span',false,`info`,`${extra[key]}: ${e[key]}`))
+            })
         c.append(details)
     }
 
@@ -822,8 +829,9 @@ function sortableText(t){
     return txt
 }
 
-function preparePopupWeb(name, link,weblink,state) {
+function preparePopupWeb(name, link,weblink,state,lb) {
     let c = ce('div', false, 'popupWeb')
+    
     c.append(ce('span', false, `closeMe`, `✖`, {
         onclick: () => {
             c.classList.add(`slideBack`)
@@ -836,6 +844,7 @@ function preparePopupWeb(name, link,weblink,state) {
     if(link)        c.append(copyLink(link,appLink, `ссылка на приложение`))
     if(weblink)     c.append(copyWebLink(web,weblink))
     if(state)       window.history.pushState({}, "", `web?page=${name}`);
+    if(lb)          c.append(lb)
     // if(weblink)c.append(copyLink(link,appLink))
 
     document.body.append(c)

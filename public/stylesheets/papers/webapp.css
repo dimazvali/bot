@@ -217,6 +217,7 @@ button.dateButton {
 
 .editWindow>button,
 button.dark,
+div.dateButton,
 button.dateButton[data-booked="1"] {
     background: var(--dark);
     color: white;
@@ -502,4 +503,8 @@ button {
 img.cover {
     width: 100%;
     border-radius: 20px;
+}
+
+div.dateButton{
+    padding: 10px 10px;
 }

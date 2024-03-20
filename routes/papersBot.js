@@ -142,6 +142,7 @@ let wineList =          fb.collection('wineList');
 let randomCoffees =     fb.collection('randomCoffees');
 let randomCoffeeIterations = fb.collection('randomCoffeeIterations');
 let standAlone =        fb.collection('standAlone');
+let invoices =          fb.collection('invoices');
 
 coworkingRules.get().then(col => {
     col.docs.forEach(l => {
@@ -471,6 +472,66 @@ router.all(`/admin/:method`, (req, res) => {
                             })
                         }
                     }
+                }
+
+                case `invoice`:{
+                    return m.getUser(req.body.user,udb).then(u=>{
+                            
+                        devlog(u)
+
+                        if(!u) return res.sendStatus(404)
+
+                        return invoices.add({
+                            active:     true,
+                            createdAt:  new Date(),
+                            createdBy:  +admin.id,
+                            price:      +req.body.price,
+                            desc:       req.body.desc,
+                            descLong:   req.body.descLong || null,
+                            user:       +req.body.user
+                        }).then(rec=>{
+                            m.sendMessage2({
+                                chat_id: req.body.user,
+                                title: `${req.body.desc}`,
+                                description: req.body.descLong || `После оплаты возврат средств не осуществляется.`,
+                                payload: `invoice_${rec.id}`,
+                                need_phone_number: true,
+                                send_phone_number_to_provider: true,
+                                provider_data: {
+                                    receipt: {
+                                        customer: {
+                                            full_name: u.first_name+' '+u.last_name,
+                                            phone: +u.phone
+                                        },
+                                        items: [{
+                                            description: req.body.desc,
+                                            quantity: "1.00",
+                                            amount:{
+                                                value: req.body.price,
+                                                currency: 'RUB'
+                                            },
+                                            vat_code: 1
+                                        }]
+                                    }
+                                },
+                                "provider_token": process.env.papersTranzzoToken,
+                                "currency": "RUB",
+                                "prices": [{
+                                    "label": req.body.desc,
+                                    "amount":  req.body.price*100
+                                }]
+                            },'sendInvoice', token).then(m=>{
+                                devlog(m)
+                                invoices.doc(rec.id).update({
+                                    message: m.result.message_id
+                                })
+                                res.json({
+                                    success: true,
+                                    comment: `Ивойс отправлен`
+                                })
+                            })
+                        })
+                    })
                 }
 
                 case `rcParticipants`:{
@@ -1362,7 +1423,8 @@ router.all(`/admin/:method`, (req, res) => {
                                 fellows:        req.body.fellows || null,
                                 noRegistration: req.body.noRegistration || null,
                                 price:          req.body.price || null,
-                                pic:            req.body.pic || null
+                                pic:            req.body.pic || null,
+                                clearPic:       req.body.clearPic || null
                             }).then(r=>{
                                 
                                 res.json({
@@ -1602,6 +1664,51 @@ router.all(`/admin/:method`, (req, res) => {
                         })
                     })
                 }
+
+                case `plans`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return plans.get().then(col=>{
+                                res.json(common.handleQuery(col,true))
+                            })
+                        }
+                        case `POST`:{
+
+                            if(!req.body.name) return res.status(400).send(`name is missing`)
+                            if(!req.body.desc) return res.status(400).send(`desc is missing`)
+                            if(!req.body.days) return res.status(400).send(`days is missing`)
+                            if(!req.body.visits) return res.status(400).send(`visits is missing`)
+                            if(!req.body.events) return res.status(400).send(`events is missing`)
+                            if(!req.body.price) return res.status(400).send(`price is missing`)
+
+                            return plans.add({
+                                active: true,
+                                createdAt:  new Date(),
+                                createdBy:  +admin.id,
+                                name:   req.body.name,
+                                description:   req.body.desc,
+                                days:   +req.body.days,
+                                visits: +req.body.visits,
+                                events: +req.body.events,
+                                price:  +req.body.price,
+                            }).then(rec=>{
+                                log({
+                                    text: `${uname(admin,admin.id)} создает тариф ${req.body.name}`,
+                                    admin: +admin.id,
+                                    plan:   rec.id
+                                })
+                                res.json({
+                                    success:    true,
+                                    comment:    `Тариф создан.`,
+                                    id:         rec.id
+                                })
+                            }).catch(err=>{
+                                handleError(err)
+                            })
+                        }
+                    }
+                    
+                }
                 default:
                     res.sendStatus(404)
             }
@@ -1824,6 +1931,72 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+                case `plansRequests`:{
+                    let ref = plansRequests.doc(req.params.id);
+
+                    return ref.get().then(cl => {
+                        if (!cl.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `DELETE`:{
+                                return ref.update({
+                                    active: false
+                                }).then(s=>{
+                                    res.json({
+                                        success: true,
+                                        comment: `Заявка архивирована.`
+                                    })
+                                }).catch(err=>{
+                                    handleError(err)
+                                })
+                            }                            
+                        }
+                    })
+                }
+                case `plansUses`:{
+                    return plansUsers
+                        .where(`plan`,'==',req.params.id)
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col,true))
+                        })
+                }
+                case `plansByUser`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return plansUsers
+                                .where(`user`,'==',+req.params.id)
+                                .get()
+                                .then(col=>{
+                                    res.json(common.handleQuery(col,true))
+                                })
+                        }
+                    }
+                }
+
+                case `requestsByPlan`:{
+                    return plansRequests.get().then(col=>{
+                        res.json(common.handleQuery(col,true))
+                    })
+                }
+
+                case `plans`:{
+                    let ref = plans.doc(req.params.id);
+
+                    return ref.get().then(cl => {
+                        if (!cl.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `GET`:{
+                                return res.json(common.handleDoc(cl))
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,admin)
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
+                }
 
                 case `alertClass`:{
                     return getDoc(classes,req.params.id).then(cl=>{
@@ -1916,6 +2089,18 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                             }
                         }
                     })
+                }
+                case `userInvoices`:{
+                    switch (req.method) {
+                        case 'GET': {
+                            return invoices
+                                .where(`user`, '==', +req.params.id)
+                                .get()
+                                .then(col => {
+                                    res.json(common.handleQuery(col,true))
+                                })
+                        }
+                    }
                 }
                 case `coworking`:{
                     let ref = coworking.doc(req.params.id);
@@ -2442,6 +2627,8 @@ if(!process.env.develop){
                 text: `Новых пользователей за сутки: ${newcomers}`
             })
         })
+
+        updatePlans()
     })
     
     cron.schedule(`0 5 * * 1`, () => {
@@ -10062,8 +10249,34 @@ module.exports = router;
 // })
 
 
-classes.where(`active`,'==',true).get().then(col=>{
-    common.handleQuery(col).forEach(cl=>{
-        classReScore(cl.id)
-    })
-})
+// classes.where(`active`,'==',true).get().then(col=>{
+//     common.handleQuery(col).forEach(cl=>{
+//         classReScore(cl.id)
+//     })
+// })
+
+
+// function updatePlans(){
+//     plansUsers
+//         .where(`to`,'<',new Date())
+//         .get()
+//         .then(col=>{
+//             common.handleQuery(col).forEach(plan=>{
+//                 if(plan.active){
+//                     plansUsers.doc(plan.id).update({
+//                         active: false
+//                     }).then(()=>{
+//                         m.getUser(plan.user,udb).then(u=>{
+//                             log({
+//                                 silent:     true,
+//                                 text:       `Архивируется подписка на план ${plan.name} для ${uname(u,u.id)}.`,
+//                                 user:       +plan.user,
+//                                 plan:       plan.plan || null,
+//                                 userPlan:   plan.id
+//                             })
+//                         })
+//                     })
+//                 }
+//             })
+//         })
+// }

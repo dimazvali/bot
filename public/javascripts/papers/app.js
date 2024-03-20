@@ -1257,7 +1257,7 @@ function drawLecturePopup(c){
 
                 if(c.pic){
                     h.append(ce('img',false,false,false,{
-                        src:c.pic 
+                        src: c.clearPic || c.pic 
                     }))
                 }
             content.append(h)
