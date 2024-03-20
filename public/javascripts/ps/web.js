@@ -185,7 +185,7 @@ function edit(entity, id, attr, type, value, container) {
                         value: type == `date` ? new Date(f.value) : f.value
                     }).then((d)=>{
                         if(type == `task` && score.value){
-                            axios.put(`/${host}/admin/${entity}/${id}`, {
+                            axios.put(`/${host}/admin/userTasksSubmits/${d.data.id}`, {
                                 attr: `score`,
                                 value: +score.value
                             }).then(s=>{

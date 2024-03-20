@@ -1003,7 +1003,8 @@ router.all(`/admin/:method/:id`, (req, res) => {
                                             taskSubmission: rec.id
                                         })
                                         res.json({
-                                            success: true,
+                                            success:    true,
+                                            id:         rec.id,
                                             comment: `Задание присвоено`
                                         })
                                     })
@@ -1027,6 +1028,14 @@ router.all(`/admin/:method/:id`, (req, res) => {
                     })
                 })
             }
+            case `userTasksSubmits`:{
+                switch(req.method){
+                    case `PUT`:{
+                        ref = userTasksSubmits.doc(req.params.id)
+                        return updateEntity(req,res,ref,+admin.id)
+                    }
+                }
+            }
             case `taskSubissions`: {
                 let ref = userTasks.doc(req.params.id);
                 return ref.get().then(t => {
@@ -1047,6 +1056,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                                 res.json(t)
                             })
                         }
+                        
                     }
                 })
 
