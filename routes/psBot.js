@@ -556,6 +556,7 @@ router.post(`/hook`, (req, res) => {
             }
             case `submission`: {
                 if (inc.length != 4) return replyCallBack(qid, `ошибка данных: ${inc.join('_')}`)
+                
                 return userTasksSubmits.doc(inc[1]).update({
                     score: +inc[3]
                 }).then(s => {
@@ -982,7 +983,37 @@ router.all(`/admin/:method/:id`, (req, res) => {
                         return messages.doc(req.params.id).get().then(d => res.json(common.handleDoc(d)))
                     }
                     case `PUT`:{
-                        return updateEntity(req,res,messages.doc(req.params.id),+admin.id)
+                        // 
+                        if(req.body.attr == `task`){
+                            return messages.doc(req.params.id).get().then(m => {
+                                m = common.handleDoc(m)
+                                common.getDoc(tasks,req.body.value).then(t=>{
+                                    if(!t) return res.sendStatus(404)
+                                    
+                                    return userTasksSubmits.add({
+                                        message:    req.params.id,
+                                        createdAt:  new Date(),
+                                        task:       req.body.value,
+                                        userTask:   null,
+                                        name:       t.name,
+                                        user:       +m.user,
+                                        admin:      +admin.id
+                                    }).then(rec=>{
+                                        messages.doc(req.params.id).update({
+                                            taskSubmission: rec.id
+                                        })
+                                        res.json({
+                                            success: true,
+                                            comment: `Задание присвоено`
+                                        })
+                                    })
+                                })
+                                
+                            })
+                        } else {
+                            return updateEntity(req,res,messages.doc(req.params.id),+admin.id)
+                        }
+
                     }
                 }
                 
@@ -1345,6 +1376,7 @@ router.all(`/admin/:method`, (req, res) => {
                     .orderBy(`createdAt`,`desc`)
                     .where(`taskSubmission`,'==',null)
                     .where(`file`,'==',true)
+                    .limit(50)
                     .get()
                     .then(col=>{
                         res.json(common.handleQuery(col))

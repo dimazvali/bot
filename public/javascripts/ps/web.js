@@ -99,6 +99,14 @@ function edit(entity, id, attr, type, value, container) {
     let edit = ce('div', false, `editWindow`)
     edit.append(ce('h2', false, false, `Правим поле ${attrTypes[attr]||attr} для ${entities[entity]||entity}#${id}`))
     let f = ce('input');
+    let score = ce(`select`)
+    let curScore = 1
+    while (curScore<6){
+        score.append(ce(`option`,false,false,curScore,{
+            value: curScore
+        }))
+        curScore++
+    }
     if (type == `date`) {
         f.type = `datetime-local`
         edit.append(f)
@@ -129,6 +137,8 @@ function edit(entity, id, attr, type, value, container) {
                     value: a.id
                 })))
             edit.append(f)
+            edit.append(score)
+             
         })
     } else if (type == `authorId`) {
         load(`authors`).then(authors => {
@@ -174,8 +184,22 @@ function edit(entity, id, attr, type, value, container) {
                         attr: attr,
                         value: type == `date` ? new Date(f.value) : f.value
                     }).then((d)=>{
-                        handleSave(d);
-                        if(container) container.innerHTML = f.value
+                        if(type == `task` && score.value){
+                            axios.put(`/${host}/admin/${entity}/${id}`, {
+                                attr: `score`,
+                                value: +score.value
+                            }).then(s=>{
+                                handleSave(d);
+                                edit.remove();
+                            })
+                        } else {
+                            handleSave(d);
+                            edit.remove();
+                            if(container) container.innerHTML = f.value
+                        }
+
+                        
+                        
                     })
                     .catch(handleError)
             }
