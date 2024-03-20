@@ -1399,7 +1399,8 @@ router.all(`/admin/:method`, (req, res) => {
                         if(!req.body.date || !new Date(req.body.date) || new Date(req.body.date) < new Date()) return res.status(400).send(`Некорректная дата`)
                         if(!req.body.course) return res.status(400).send(`no course provided`)
                         return courses.doc(req.body.course.toString()).get().then(c=>{
-                            if(!c.exists) res.sendStatus(404)
+                            
+                            if(!c.exists) return res.sendStatus(404)
                             
                             c = handleDoc(c)
                             
@@ -1418,7 +1419,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 
     
                                 log({
-                                    text: `${uname(admin,admin.id)} добавляет новый поток к курсу ${с.name} на ${req.body.date}.`,
+                                    text: `${uname(admin,admin.id)} добавляет новый поток к курсу ${c.name} на ${req.body.date}.`,
                                     admin: +admin.id,
                                     course: req.body.course,
                                     stream: record.id
@@ -1834,7 +1835,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             if(!t.active) return res.status(400).send(`Эта запись уже отменена`)
                             if(t.payed) return res.status(400).send(`Эта запись уже оплачена`)
                             
-                            let closure = new Date(+new Date()*4*30*24*60*60*1000)
+                            let closure = new Date(+new Date()+4*30*24*60*60*1000)
                             
                             ref.update({
                                 payed:          new Date(),
@@ -1852,6 +1853,11 @@ router.all(`/admin/:method/:id`, (req, res) => {
                                     chat_id: t.user,
                                     text: `Ваша запись на курс ${t.courseName} оплачена. Ура!`
                                 },false,token)
+
+                                res.json({
+                                    success: true,
+                                    comment: `Запись оплачена`
+                                })
                             })
                         })
                     }

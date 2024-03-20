@@ -419,7 +419,7 @@ function alertMe(m, ep) {
     if (!m.chat_id) {
         m.chat_id = dimazvali
     }
-    return axios.post('https://api.telegram.org/bot' + process.env.reportToken + '/' + (ep ? ep : 'sendMessage'),
+    return axios.post('https://api.telegram.org/bot' + process.env.papersToken + '/' + (ep ? ep : 'sendMessage'),
         m, {
             headers: {
                 'Content-Type': 'application/json'
