@@ -138,7 +138,7 @@ function drawCoworkingShedule(records,start){
                             rec.append(ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
                                 // onclick:()=> showUser(u,u.id)
                                 onclick:function(){
-                                    showCoworkingOptions(rec,u,this)
+                                    showCoworkingOptions(e,u,this)
                                 }
                             }))
                         )
@@ -384,7 +384,20 @@ function showCoworkingOptions(record, user, container){
     let c = ce('div',false,`editWindow`)
         
         c.append(ce(`button`,false,[`dateButton`,`dark`],uname(user,user.id),{onclick:()=>showUser(false,user.id)}))
-        
+
+        if(user.bonus && record.status != `used`) c.append(ce(`button`,false,[`dark`,`dateButton`],`Списать первое посещение`,{
+            onclick:function(){
+                axios.put(`/${host}/admin/coworking/${record.id}`,{
+                    attr:   `status`,
+                    value:  `used`,
+                    by:     `bonus`
+                }).then(s=>{
+                    handleSave(s)
+                    if(s.data.succes) this.remove()
+                }).catch(handleError)
+            }
+        })) 
+
         if(record.status != `used`) c.append(ce(`button`,false,[`dateButton`,`dark`],`гость пришел`,{
             onclick:function(){
                 axios.put(`/${host}/admin/coworking/${record.id}`,{
@@ -399,6 +412,18 @@ function showCoworkingOptions(record, user, container){
 
         if(record.paymentNeeded && user.deposit){
             c.append(`У пользователя есть депозит: ${cur(user.deposit)}`)
+            if(!record.status != `used`) c.append(ce(`button`,false,[`dark`,`dateButton`],`Списать с депозита`,{
+                onclick:function(){
+                    axios.put(`/${host}/admin/coworking/${record.id}`,{
+                        attr:   `status`,
+                        value:  `used`,
+                        by:     `deposit`
+                    }).then(s=>{
+                        handleSave(s)
+                        if(s.data.succes) this.remove()
+                    }).catch(handleError)
+                }
+            }))
         }
 
         if(!user.admin && !user.fellow && !user.insider) {
@@ -410,7 +435,19 @@ function showCoworkingOptions(record, user, container){
                     informer.remove();
 
                     plans.filter(p=>p.active).forEach(p=>{
-                        c.append(ce(`p`,false,false,`Остаток: ${p.visitsLeft}.`))
+                        c.append(ce(`p`,false,false,`Остаток посещений по плану: ${p.visitsLeft}.`))
+                        if(p.visitsLeft && record.status != `used`) c.append(ce(`button`,false,[`dark`,`dateButton`],`Списать с плана`,{
+                            onclick:function(){
+                                axios.put(`/${host}/admin/coworking/${record.id}`,{
+                                    attr:   `status`,
+                                    value:  `used`,
+                                    by:     `plan_${p.id}`
+                                }).then(s=>{
+                                    handleSave(s)
+                                    if(s.data.succes) this.remove()
+                                }).catch(handleError)
+                            }
+                        }))
                     })
 
                 })
@@ -2088,8 +2125,6 @@ function wineButton(userId){
             document.body.append(edit)
         }
     })
-
-    
 }
 
 function wineLine(w){

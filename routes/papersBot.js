@@ -375,10 +375,17 @@ function alertWithdrawal(user, id, sum, reason) {
     udb.doc(user.id || id).update({
         deposit: FieldValue.increment(sum)
     }).then(() => {
-        log({
-            user: user.id || id,
-            text: `Со счета пользователя ${uname(user,(user.id||id))} списывается ${common.cur(sum,'GEL')} по статье ${reason}`
+        deposits.add({
+            createdAt: new Date(),
+            amount: sum
+        }).then(rec=>{
+            log({
+                deposit: rec.id,
+                user: user.id || id,
+                text: `Со счета пользователя ${uname(user,(user.id||id))} списывается ${common.cur(sum,'GEL')} по статье ${reason}`
+            })
         })
+        
     })
 }
 
@@ -2145,7 +2152,9 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         if (!cl.exists) return res.sendStatus(404)
                         switch (req.method) {
                             case `PUT`:{
-                                return updateEntity(req,res,ref,+admin.id)
+                                return updateEntity(req,res,ref,+admin.id,()=>{
+                                    coworkingReason(cl.data(),req)
+                                })
                             }
                             case `DELETE`:{
                                 return deleteEntity(req,res,ref,+admin.id)
@@ -2495,6 +2504,29 @@ router.all(`/admin/:method/:id`,(req,res)=>{
     })
 })
 
+function coworkingReason(record,reason){
+    if(reason){
+        m.getUser(record.user).then(user=>{
+            if(reason == `deposit`){
+                alertWithdrawal(user,user.id,30,`посещение коворкинга`)
+            }
+            if(`bonus`) {
+                udb.doc(record.user.toString()).update({
+                    bonus: false
+                })
+            }
+            if(!reason.indexOf(`plan`)){
+                plansRequests.doc(reason.split('_')[1]).update({
+                    visitsLeft: FieldValue.increment(-1)
+                })
+            }
+        })
+        
+    }
+    
+}
+
+
 function deleteEntity(req, res, ref, admin, attr, callback) {
     devlog(`удаляем нечто`)
     entities = {
@@ -2673,6 +2705,10 @@ if(!process.env.develop){
                 text: `Новых пользователей за неделю: ${newcomers}`
             })
         })
+    })
+
+    cron.schedule(`0 15 * * *`, () => {
+        requestCoworkingFeedback()
     })
     
     cron.schedule(`0 5 1 * *`, () => {
@@ -3025,6 +3061,7 @@ if(process.env.develop){
         // randomCoffee()
         // nowShow()
         // checkBeforeRC()
+        requestCoworkingFeedback()
         res.sendStatus(200)
     })
 }
@@ -8046,11 +8083,7 @@ router.post('/hook', (req, res) => {
         }
 
         if(inc[0] == 'feedback'){
-            // m.sendMessage2({
-            //     callback_query_id: req.body.callback_query.id,
-            //     text: `on it`
-            // }, 'answerCallbackQuery', token)
-
+            
             switch(inc[1]){
                 case 'ticket':{
                     userClasses.doc(inc[2]).get().then(c=>{
@@ -8094,6 +8127,25 @@ router.post('/hook', (req, res) => {
                             }, 'answerCallbackQuery', token)
                         }
                     })
+                }
+                case `coworking`:{
+
+                    devlog(`Отзыв к коворку`)
+                    log({
+                        silent: +inc[2] <4 ? false : true,
+                        text:   `${uname(user,user.id)} ставит коворкингу оценку ${inc[2]}.`,
+                        user:   +user.id,
+                    })
+
+                    udb.doc(user.id.toString()).update({
+                        coworkingRate: +inc[2]
+                    })
+
+                    return m.sendMessage2({
+                        callback_query_id: req.body.callback_query.id,
+                        text: `Спасибо!`,
+                        show_alert: true,
+                    }, 'answerCallbackQuery', token)
                 }
             }
         }
@@ -10080,239 +10132,54 @@ function rcFollowUp(id){
         })
 }
 
-// userClasses
-//     .get()
-//     .then(col=>{
-//         common.handleQuery(col)
-//             .filter(r=>r.status == `used`)
-//             .forEach(cl=>{
-//                 udb.doc(cl.user.toString()).update({
-//                     classes: FieldValue.increment(1)
-//                 }).then(s=>{
-//                     console.log(`${cl.user} +1`)
-//                 })
-//             })
-//     })
+function requestCoworkingFeedback(){
+    coworking  
+        .where(`date`,'==',isoDate())
+        .get()
+        .then(col=>{
+            common.handleQuery(col)
+                .filter(rec=>rec.status == `used`)
+                .forEach((record,i)=>{
+
+                    coworking
+                        .where(`user`,'==',record.user)
+                        .where(`status`,'==','used')
+                        .get()
+                        .then(col=>{
+                            if(col.docs.length == 1) setTimeout(()=>{
+                                m.sendMessage2({
+                                    chat_id: record.user,
+                                    // chat_id: common.dimazvali,
+                                    text: `Добрый вечер!\nМы были рады видеть вас в коворкинге Papers.А вы?.. \nПожалуйста, поставьте нам честную оценку. Мы также будем рады любой обратной связи (просто напишите в бот, что вам понравилось — а что могло быть и лучше).`,
+                                    reply_markup:{
+                                        inline_keyboard:[
+                                            [{
+                                                text: `1`,
+                                                callback_data: `feedback_coworking_1`
+                                            },{
+                                                text: `2`,
+                                                callback_data: `feedback_coworking_2`
+                                            },{
+                                                text: `3`,
+                                                callback_data: `feedback_coworking_3`
+                                            },{
+                                                text: `4`,
+                                                callback_data: `feedback_coworking_4`
+                                            },{
+                                                text: `5`,
+                                                callback_data: `feedback_coworking_5`
+                                            }],
+                                        ]
+                                    }
+                                },false,token)
+                            },i*100)
+                        })
+
+                    
+                })
+        })
+}
 
 
 module.exports = router;
 
-// // 
-
-// axios.post(`https://api.telegram.org/bot${token}/setChatMenuButton`, {
-//         "chat_id":212327111,
-//         "menu_button": {
-//             "type": "web_app",
-//             "text": translations.app.ru || translations.app.en,
-//             "web_app": {
-//                 "url": process.env.ngrok+"/paper/app"
-//             }
-//         }
-//     }).then(s=>{
-//         devlog(`button updated`)
-//     })
-
-// udb.get().then(col=>{
-//     common.handleQuery(col).forEach((u,i)=>{
-//         setTimeout(function(){
-//             axios.post(`https://api.telegram.org/bot${token}/setChatMenuButton`, {
-//             "chat_id": u.id,
-//             "menu_button": {
-//                 "type": "web_app",
-//                 "text": translations.app[u.language_code] || translations.app.en,
-//                 "web_app": {
-//                     "url": process.env.ngrok+"/paper/app"
-//                 }
-//             }
-//         }).then(console.count(`set`))
-//         .catch(err=>{
-//             udb.doc(u.id.toString()).update({
-//                 active: false
-//             })
-//             console.count(`deactivated`)
-//         })
-//         },i*200)
-        
-//     })
-// })
-
-
-// coworking
-//     .where(`active`,'==',true)
-//     .get()
-//     .then(col=>{
-//         let res = {};
-//         common.handleQuery(col).forEach(line=>{
-//             if(!res[line.user]) res[line.user] = 0
-//             res[line.user] ++
-//         })
-
-//         let users = []
-//         Object.keys(res).filter(id=>res[id]>1).forEach(id=>{
-//             users.push(udb.doc(id).get().then(u=>u.data()))
-//         })
-
-//         Promise.all(users).then(users=>{
-//             console.log(JSON.stringify(users))
-//         })
-//     })
-
-// classes.get().then(col=>{
-//     let classes = {};
-//     common.handleQuery(col).forEach(c=>{
-//         classes[c.id] = c
-//     })
-//     devlog(`загрузили классы`)
-
-//     userClasses.get().then(col=>{
-//         common.handleQuery(col).forEach((ticket,i)=>{
-//             setTimeout(()=>{
-//                 if(classes[ticket.class] && classes[ticket.class].date){
-//                     userClasses.doc(ticket.id).update({
-//                         date: classes[ticket.class].date
-//                     }).then(()=>{
-//                         console.log(ticket.id,i)
-//                     })
-//                 }
-//             },i*50)
-            
-//         })
-//     })
-// })
-
-
-
-// classes
-//     .where(`name`,'==','Показ «Сказки» Александра Сокурова')
-//     .get()
-//     .then(col=>{
-//         common.handleQuery(col).forEach(c=>{
-//             userClasses
-//                 .where(`class`,'==',c.id)
-//                 .get()
-//                 .then(tickets=>{
-//                     if(!tickets.docs.length){
-//                         classes.doc(c.id).delete().then(()=>{
-//                             devlog(`${c.id} deleted`)
-//                         })
-//                     }
-//                 })
-//         })
-//     })
-
-
-// userClasses
-//     .where(`status`,'==','used')
-//     .get()
-//     .then(col=>{
-//         common.handleQuery(col).forEach((cr,i)=>{
-//             setTimeout(()=>{
-//                 udb.doc(cr.user.toString())
-//                     .update({
-//                         classesVisits: FieldValue.increment(1)
-//                     }).then(()=>{
-//                         devlog(cr.user)
-//                     })
-//             },i*20)
-            
-//         })
-//     })
-
-
-// let randomInvite = {
-//     chat_id: common.dimazvali,
-//     parse_mode: `Markdown`,
-//     text: `Добрый вечер, камрад! Сегодня мне нужна твоя помощь. По счастью, это будет нетрудно.
-// Просто нажми кнопку «я в игре», чтобы завтра с утра мы могли отладить запуск random coffee среди бумажных подписчиков.
-// Ты получишь еще 2-3 сообщения (как и будущие "гражданские" участники) — реагируй на них максимально естественно.
-// Спасибо и до связи!
-
-// Твой консенсуальный бот.`,
-//     reply_markup:{
-//         inline_keyboard:[[{
-//             text: `Я в игре`,
-//             callback_data: `random_subscribe`
-//         }]]
-//     }
-// }
-
-// let randomInvite = {
-//     chat_id: common.dimazvali,
-//     parse_mode: `Markdown`,
-//     text: `Не бойся, друг! Эту рассылку получили только сотрудники papers. Дело в том, что мы хотим чуточку оживить приложение, добавив в него все то славное, дружелюбное (и горизонтальное), чем славен Тбилиси. Random Coffee — это популярный формат сервиса "случайных" знакомств среди неслучайных людей. Механики стандартные, но мы хотим добавить к ним немного волшебного порошка — именно его нам и нужно будет проверить (с твоим посильным участием).`
-// }
-
-// // m.sendMessage2(randomInvite,false,token)
-
-// udb
-//     .where(`insider`,'==',true)
-//     .where(`active`,'==',true)
-//     .get()
-//     .then(col=>{
-//         common.handleQuery(col)
-//             .filter(u=>!u.randomCoffee)
-//             .forEach((user,i)=>{
-//                 setTimeout(()=>{
-//                     randomInvite.chat_id = user.id
-//                     m.sendMessage2(randomInvite,false,token)
-//                 },i*200)
-//             })
-//     })
-
-// randomCoffees.get().then(col=>{
-//     col.docs.forEach(r=>{
-//         randomCoffees.doc(r.id).update({
-//             iteration: `GtpkkujNjhH1QyB0k01d`
-//         })
-//     })
-// })
-
-
-// udb.get().then(col=>{
-//     common.handleQuery(col).filter(u=>u.occupation).forEach(u=>{
-//         if(u.occupation == 'Другое'){
-//             udb.doc(u.id).update({
-//                 occupation: `other`
-//             })
-//         }
-//         if(u.occupation == 'Реклама и PR'){
-//             udb.doc(u.id).update({
-//                 occupation: `advertisement`
-//             })
-//         }
-//         devlog(u.id)
-//     })
-// })
-
-
-// classes.where(`active`,'==',true).get().then(col=>{
-//     common.handleQuery(col).forEach(cl=>{
-//         classReScore(cl.id)
-//     })
-// })
-
-
-// function updatePlans(){
-//     plansUsers
-//         .where(`to`,'<',new Date())
-//         .get()
-//         .then(col=>{
-//             common.handleQuery(col).forEach(plan=>{
-//                 if(plan.active){
-//                     plansUsers.doc(plan.id).update({
-//                         active: false
-//                     }).then(()=>{
-//                         m.getUser(plan.user,udb).then(u=>{
-//                             log({
-//                                 silent:     true,
-//                                 text:       `Архивируется подписка на план ${plan.name} для ${uname(u,u.id)}.`,
-//                                 user:       +plan.user,
-//                                 plan:       plan.plan || null,
-//                                 userPlan:   plan.id
-//                             })
-//                         })
-//                     })
-//                 }
-//             })
-//         })
-// }
