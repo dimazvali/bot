@@ -432,6 +432,48 @@ router.all(`/admin/:method`, (req, res) => {
             
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
+                case `userClasses`:{
+                    return userClasses
+                        .orderBy(`createdAt`,'desc')
+                        .offset(req.query.offset?+req.query.offset:0)
+                        .limit(req.query.limit?+req.query.limit:100)
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col))
+                        })
+                }
+                case 'message': {
+                    if (req.body.text && req.body.user) {
+                        return m.sendMessage2({
+                                chat_id: req.body.user,
+                                text: req.body.text
+                            }, false, token)
+                            .then(r => {
+
+                                devlog(r)
+
+                                res.json({
+                                    success: true
+                                })
+
+                                messages.add({
+                                    user:       +req.body.user,
+                                    text:       req.body.text,
+                                    createdAt:  new Date(),
+                                    isReply:    true,
+                                    by:         +admin.id
+                                })
+
+                            }).catch(err => {
+                                res.json({
+                                    success: false,
+                                    comment: `Отправка не задалась.`
+                                })
+                            })
+                    } else {
+                        return res.sendStatus(400)
+                    }
+                }
                 case `deposits`:{
                     return deposits.get().then(col=>res.json(common.handleQuery(col,true)))
                 }
@@ -1962,6 +2004,34 @@ function sendClass(h,u){
     m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
 }
 
+function alertPlanDisposal(s){
+    m.sendMessage2({
+        chat_id: s.user,
+        text: `Ваша подписка на тарифный план ${s.name} была аннулирована.`
+    },false,token).then(m=>{
+        messages.add({
+            user:       +s.user,
+            text:       `Ваша подписка на тарифный план ${s.name} была аннулирована.`,
+            isReply:    true,
+            createdAt:  new Date()
+        })
+    })
+}
+
+function alertCoworkingCancel(rec){
+    m.sendMessage2({
+        chat_id: rec.user,
+        text: `Ваша запись в коворкинг на ${drawDate(rec.date)} была отменена.`
+    },false,token).then(m=>{
+        messages.add({
+            user:       +rec.user,
+            text:       `Ваша запись в коворкинг на ${drawDate(rec.date)} была отменена.`,
+            isReply:    true,
+            createdAt:  new Date()
+        })
+    })
+}
+
 router.all(`/admin/:method/:id`,(req,res)=>{
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
@@ -1971,9 +2041,28 @@ router.all(`/admin/:method/:id`,(req,res)=>{
         if (!doc.active) return res.sendStatus(403)
 
         udb.doc(doc.user.toString()).get().then(admin => {
+
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+
+                case `plansUsers`:{
+                    let ref = plansUsers.doc(req.params.id);
+                        return ref.get().then(p=>{
+                            if(!p.exists) return res.sendStatus(404)
+
+                            switch(req.method){
+                                case `DELETE`:{
+                                    return deleteEntity(req,res,ref,+admin.id,false,()=>alertPlanDisposal(common.handleDoc(p)),{
+                                        user: p.data().user,
+                                        plan: p.data().plan
+                                    })
+                                }
+                            }
+
+                        })
+                    
+                }
                 case `plansRequests`:{
                     let ref = plansRequests.doc(req.params.id);
 
@@ -2032,7 +2121,9 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                 return res.json(common.handleDoc(cl))
                             }
                             case `DELETE`:{
-                                return deleteEntity(req,res,ref,admin)
+                                return deleteEntity(req,res,ref,+admin.id,false,false,{
+                                    plan: req.params.id
+                                })
                             }
                             case `PUT`:{
                                 return updateEntity(req,res,ref,+admin.id)
@@ -2107,7 +2198,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                 return res.json(common.handleDoc(doc))
                             }
                             case `DELETE`:{
-                                return deleteEntity(req,res,ref,admin)
+                                return deleteEntity(req,res,ref,+admin.id)
                             }
                             case `PUT`:{
                                 return updateEntity(req,res,ref,+admin.id)
@@ -2153,11 +2244,11 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         switch (req.method) {
                             case `PUT`:{
                                 return updateEntity(req,res,ref,+admin.id,()=>{
-                                    coworkingReason(cl.data(),req)
+                                    coworkingReason(cl.data(),req.body.by)
                                 })
                             }
                             case `DELETE`:{
-                                return deleteEntity(req,res,ref,+admin.id)
+                                return deleteEntity(req,res,ref,+admin.id,false,()=>{alertCoworkingCancel(cl.data())})
                             }
                         }
                     })
@@ -2506,7 +2597,8 @@ router.all(`/admin/:method/:id`,(req,res)=>{
 
 function coworkingReason(record,reason){
     if(reason){
-        m.getUser(record.user).then(user=>{
+        devlog(record);
+        m.getUser(record.user,udb).then(user=>{
             if(reason == `deposit`){
                 alertWithdrawal(user,user.id,30,`посещение коворкинга`)
             }
@@ -2516,7 +2608,7 @@ function coworkingReason(record,reason){
                 })
             }
             if(!reason.indexOf(`plan`)){
-                plansRequests.doc(reason.split('_')[1]).update({
+                plansUsers.doc(reason.split('_')[1]).update({
                     visitsLeft: FieldValue.increment(-1)
                 })
             }
@@ -2527,9 +2619,13 @@ function coworkingReason(record,reason){
 }
 
 
-function deleteEntity(req, res, ref, admin, attr, callback) {
+function deleteEntity(req, res, ref, admin, attr, callback, extra) {
     devlog(`удаляем нечто`)
     entities = {
+        plansUsers:{
+            log:(name)=> `подписка на тариф ${name} (${ref.id}) была архивирован`,
+            attr: `plansUsers`
+        },
         courses: {
             log: (name) => `курс ${name} (${ref.id}) был архивирован`,
             attr: `course`
@@ -2564,10 +2660,16 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
 
             if(entities[req.params.data]){
                 let logObject ={
+                    admin: admin.id ? +admin.id : +id,
                     text: entities[req.params.data].log(data.name),
                     [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
-                } 
-    
+                }
+
+                if(extra){
+                    Object.keys(extra).forEach(key=>{
+                        logObject[key] = extra[key]
+                    })
+                }
     
                 log(logObject)
             }
@@ -8470,7 +8572,8 @@ router.get(`/api/:type`, (req, res) => {
             }).then(() => {
 
                 udb.doc(req.query.id).update({
-                    appOpens: FieldValue.increment(1)
+                    appOpens: FieldValue.increment(1),
+                    appLastOpened: new Date()
                 }).then(() => {
 
                 }).catch(err => {
@@ -8770,7 +8873,8 @@ router.all(`/api/:data/:id`, (req, res) => {
                                 })
                                 log({
                                     text: `${uname(u,u.id)} подает заявку на тариф ${p.name}.\nНадо связаться с человеком и объяснить правила и платеж.`,
-                                    plan: p.id
+                                    plan: p.id,
+                                    user: +u.id
                                 })
                             })
                         })

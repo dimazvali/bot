@@ -1,3 +1,6 @@
+let userFilters = {};
+
+
 
 let host = `paper`
 
@@ -18,6 +21,14 @@ const web = `https://dimazvali-a43369e5165f.herokuapp.com/paper/mini`
 if(start){
     start = start.split('_')
     switch(start[0]){
+        case `tickets`:{
+            if(start[1]) {
+                showTicket(false,start[1])
+            } else {
+                showTickets()     
+            }
+            break;
+        }
         case `plans`:{
             if(start[1]) {
                 showPlan(start[1])
@@ -121,9 +132,10 @@ function drawCoworkingShedule(records,start){
             let day = ce(`div`, false, `date`)
             
             let date = new Date(+new Date() + i * 24 * 60 * 60 * 1000)
+            
             let isoDate = date.toISOString().split('T')[0]
             
-            day.append(ce(`h3`, false, false, drawDate(date)))
+            day.append(ce(`h3`, false, (date.getDay() == 0 || date.getDay() == 6) ? `active` : false, drawDate(date)))
             
             data.records
                 .filter(e => typeof e.date == `string` && new Date(e.date).toISOString().split('T')[0] == isoDate)
@@ -365,18 +377,28 @@ function showPlan(id){
         })
 }
 
-function planUseLine(line){
+function planUseLine(line,butUser){
     let c = listContainer(line,true,{
         to: `до`,
         visitsLeft: `посещений`,
         eventsLeft: `мероприятий`
     })
     if(!line.active) c.classList.remove(`hidden`)
-    load(`users`,line.user).then(u=>{
-        c.append(ce(`button`,false,[`dateButton`,`dark`],uname(u,u.id),{
+    let bc = ce(`div`,false,`flex`)
+    c.append(bc)
+    if(!butUser) load(`users`,line.user).then(u=>{
+        bc.append(ce(`button`,false,[`dateButton`,`dark`],uname(u,u.id),{
             onclick:()=>showUser(false,u.id)
         }))
     })
+    
+    if(butUser) bc.append(ce(`button`,false,[`dateButton`,`dark`],line.name,{
+        onclick:()=>showPlan(line.plan)
+    }))
+
+    if(line.active){
+        bc.append(deleteButton(`plansUsers`,line.id,false,[`active`,`dateButton`],()=>{line.dataset.active = false}))
+    }
     return c
 }
 
@@ -398,17 +420,32 @@ function showCoworkingOptions(record, user, container){
             }
         })) 
 
-        if(record.status != `used`) c.append(ce(`button`,false,[`dateButton`,`dark`],`гость пришел`,{
-            onclick:function(){
-                axios.put(`/${host}/admin/coworking/${record.id}`,{
-                    attr: `status`,
-                    value: `used`
-                }).then(s=>{
-                    handleSave(s)
-                    if(s.data.succes) this.remove()
-                }).catch(handleError)
-            }
-        }))
+        if(record.status != `used`) {
+            let tv = ce(`div`,false,`flex`)
+            c.append(tv)
+            tv.append(ce(`button`,false,[`dateButton`,`dark`],`гость пришел`,{
+                onclick:function(){
+                    axios.put(`/${host}/admin/coworking/${record.id}`,{
+                        attr: `status`,
+                        value: `used`
+                    }).then(s=>{
+                        handleSave(s)
+                        if(s.data.succes) this.remove()
+                    }).catch(handleError)
+                }
+            }))
+            tv.append(ce(`button`,false,[`dateButton`,`dark`,`active`],`снять запись`,{
+                onclick:function(){
+                    axios.delete(`/${host}/admin/coworking/${record.id}`,{
+                        attr: `status`,
+                        value: `used`
+                    }).then(s=>{
+                        handleSave(s)
+                        if(s.data.succes) с.remove()
+                    }).catch(handleError)
+                }
+            }))
+        }
 
         if(record.paymentNeeded && user.deposit){
             c.append(`У пользователя есть депозит: ${cur(user.deposit)}`)
@@ -453,6 +490,24 @@ function showCoworkingOptions(record, user, container){
                 })
         }
 
+    let txt = ce(`textarea`,false,false,false,{placeholder: `Вам слово`})
+    c.append(txt)
+    c.append(ce(`button`,false,[`dark`,`dateButton`],`Написать`,{
+        onclick:function(){
+            if(!txt.value) return alert(`Я не вижу ваших букв`)
+            this.setAttribute(`disabled`,true)
+            axios.post(`/${host}/admin/message`,{
+                text: txt.value,
+                user: user.id
+            }).then(handleSave)
+            .catch(handleError)
+            .finally(()=>{
+                txt.value = null;
+                this.removeAttribute(`disabled`)
+            })
+        }
+    }))
+
 
     document.body.append(c)
     
@@ -469,9 +524,9 @@ function drawSchedule(events, start) {
         console.log(events.map(e => e.date))
         let date = new Date(+new Date() + i * 24 * 60 * 60 * 1000)
         let isoDate = date.toISOString().split('T')[0]
-        day.append(ce(`h3`, false, false, drawDate(date)))
+        day.append(ce(`h3`, false, (date.getDay() == 0 || date.getDay() == 6) ? `active` : false, drawDate(date)))
         events.filter(e => typeof e.date == `string` && new Date(e.date).toISOString().split('T')[0] == isoDate).forEach(e => {
-            day.append(ce('p', false, false, `${new Date(e.date).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}: ${e.name}`, {
+            day.append(ce('p', false, false, `${drawDate(e.date,false,{time:true})}: ${e.name}`, {
                 onclick: () => showClass(e, e.id)
             }))
         })
@@ -1085,15 +1140,31 @@ function addComment(c, id) {
 
 function filterUsers(role, container, button,counter) {
     let c = button.parentNode;
-    c.querySelectorAll('button').forEach(b => b.classList.remove('active'))
-    c.querySelectorAll('button').forEach(b => b.classList.add('passive'))
+        c.querySelectorAll('button').forEach(b => {
+            b.classList.remove('active')
+            b.classList.add('passive')
+            userFilters[b.dataset.filter] = false;
+        })
+
+        if(role) userFilters[role] = true
+        
     button.classList.add('active')
     button.classList.remove('passive')
     let cnt = 0
     container.querySelectorAll('.userLine').forEach(user => {
-        if (!role) return user.classList.remove('hidden')
+        // if (!role) return user.classList.remove('hidden')
+        
+        let passed = true;
 
-        if (user.dataset[role] == 'true') {
+        Object.keys(userFilters).filter(t=>userFilters[t]).forEach(t=>{
+            if (user.dataset[t] != 'true') {
+                passed = false;    
+            } else {
+                // 
+            }
+        })
+
+        if(passed){
             user.classList.remove('hidden')
             cnt++
         } else {
@@ -1424,12 +1495,84 @@ function showClass(cl, id) {
 
 }
 
+function showTickets(){
+    closeLeft();
+    let p = preparePopupWeb(`tickets`,false,false,true)
+    p.append(ce(`h1`,false,false,`Билеты`))
+    load(`userClasses`).then(plans=>{
+
+        let c = ce('div')
+        
+        plans.forEach(plan=>{
+            c.append(showTicketLine(plan))
+        })
+
+        let offset = 0;
+
+        
+
+        // let cc = ce('div', false, `controls`)
+        
+        // cc.append(sortBlock([{
+        //     attr: `name`,
+        //     name: `По названию`
+        // }, {
+        //     attr: `views`,
+        //     name: `По просмотрам`
+        // }, {
+        //     attr: `createdAt`,
+        //     name: `По дате создания`
+        // }], c, plans, showTicketLine, [`dark`,`dateButton`]))
+
+        // p.append(cc)
+
+        // c.append(ce('button', false, [`dark`,`dateButton`], `Добавить тариф`, {
+        //     onclick: () => newPlan()
+        // }))
+        
+        p.append(c)
+
+        p.append(ce(`button`,false,[`dark`,`dateButton`],`Еще`,{
+            onclick:function(){
+                offset = offset+100;
+                load(`userClasses`,false,{offset:offset})
+                    .then(tickets=>{
+                        if(tickets.length<100) this.remove()
+                        tickets.forEach(t=>{
+                            c.append(showTicketLine(t))
+                        })
+                        
+                    })
+            }
+        }))
+
+        p.append(archiveButton(c,[`dark`,`dateButton`]))
+        
+    })   
+}
+
+function showTicketLine(t){
+    let c = listContainer(t,true,{
+        date:       `Дата`,
+        comment:    `Примечание`
+    })
+
+    c.append(ce(`h3`,false,false,t.className,{
+        onclick:()=>showTicket(false,t.id)
+    }))
+    c.append(ce(`a`,false,`thin`,t.userName,{
+        onclick:()=>showUser(false,t.user)
+    }))
+    return c
+}
+
 
 function showTicket(t,id){
-    let p = preparePopupWeb(`ticket_${id}`,false, [`tickets`, id])
+    let p = preparePopupWeb(`tickets_${id}`,false, [`tickets`, id],true)
+    
     load(`userClasses`,id).then(ticket=>{
         
-        p.append(ce(`img`,false,false,false,{
+        p.append(ce(`img`,false,'ticketQR',false,{
             src: `/paper/qr?id=${id}&entity=userClasses`,
             dataset:{active:ticket.active}
         }))
@@ -1437,9 +1580,14 @@ function showTicket(t,id){
         p.append(ce('h1',false,false,`Билет ${id}`))
         let det = ce('div',false,[`details`,`mb`])
             det.append(ce('span',false,`info`,`${drawDate(ticket.createdAt._seconds*1000,false,{time:true})} => ${drawDate(ticket.date,false,{time:true})}`))
-            // det.append(ce('span',false,`info`,`мероприятие: `))
         
         p.append(det)
+
+        p.append(ce(`p`,false,false,`Примечание для контролера: ${ticket.comment || `отсутсвует`}`,{
+            onclick:function(){
+                edit(`tickets`,id,`comment`,`textarea`,ticket.comment,this)
+            }
+        }))
 
         let cont = ce(`div`,false,`flex`)
 
@@ -1669,7 +1817,12 @@ function rcLine(couple){
     return c;
 }
 
+
+
 function showUsers() {
+    
+    userFilters = {};
+
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
     
@@ -1725,30 +1878,61 @@ function showUsers() {
 
             let fc = ce('div',false,`flex`)
             mc.append(fc)
+            
             Object.keys(filterTypes).forEach(type => {
                 fc.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
+                    dataset:{filter:type},
                     onclick: function () {
-                        filterUsers(type, c, this,counter)
+                        filterUsers(type, c, this, counter)
                     }
                 }))
             })
 
-            let occup = ce('div',false,`flex`)
-
-            mc.append(occup)
+            
 
             {
+                let occup = ce('div',false,`flex`)
+
+                mc.append(occup)
+                
                 let filterTypes = {
-                    it:         `IT`,
-                    media:      `Журналисты`,
-                    advertisement: `реклама и PR`,
-                    other:      `разное`,
-                    lawyer:     `Юриспруденция`,
-                    randomCoffee: `random coffee members`
+                    it:             `IT`,
+                    media:          `Журналисты`,
+                    advertisement:  `реклама и PR`,
+                    other:          `разное`,
+                    lawyer:         `Юриспруденция`,
+                    // randomCoffee:   `random coffee members`,
+                    // noAbout:        `без описания`
                 }
     
                 Object.keys(filterTypes).forEach(type => {
                     occup.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
+                        dataset:{filter:type},
+                        onclick: function () {
+                            filterUsers(type, c, this,counter)
+                        }
+                    }))
+                })
+            }
+
+            {
+                let occup = ce('div',false,`flex`)
+
+                mc.append(occup)
+
+                let filterTypes = {
+                    // it:             `IT`,
+                    // media:          `Журналисты`,
+                    // advertisement:  `реклама и PR`,
+                    // other:          `разное`,
+                    // lawyer:         `Юриспруденция`,
+                    randomCoffee:   `random coffee members`,
+                    noAbout:        `без описания`
+                }
+    
+                Object.keys(filterTypes).forEach(type => {
+                    occup.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
+                        dataset:{filter:type},
                         onclick: function () {
                             filterUsers(type, c, this,counter)
                         }
@@ -1792,6 +1976,7 @@ function showUserLine(u, cnt) {
         dataset: {
             randomCoffee: u.randomCoffee,
             active:     u.active,
+            noAbout:    !u.about,
             blocked:    !u.active,
             admin:      u.admin,
             fellow:     u.fellow,
@@ -1831,13 +2016,14 @@ function showUser(u, id) {
 
         p.append(ce('h1', false, false, `${uname(u,u.id)} (${u.language_code})`))
         p.append(ce('p', false, false, `регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
-
-        p.append(ce('p', false, false, `${u.first_name || `имя не указано`}`, {
+        if(u.appLastOpened) p.append(ce('p', false, false, `последний раз в приложении: ${drawDate(u.appLastOpened._seconds*1000)}`))
+        
+        p.append(ce('p', false, false, `Имя: ${u.first_name || `имя не указано`}`, {
             onclick: function () {
                 edit(`users`, u.id, `first_name`, `text`, u.first_name, this)
             }
         }))
-        p.append(ce('p', false, false, `last_name: ${u.last_name || `фамилия не указана`}`, {
+        p.append(ce('p', false, false, `Фамилия: ${u.last_name || `фамилия не указана`}`, {
             onclick: function () {
                 edit(`users`, u.id, `last_name`, `text`, u.last_name, this)
             }
@@ -1885,15 +2071,19 @@ function showUser(u, id) {
             ac.append(ce('button', false, [`dateButton`,`dark`], u[type.attr] ? type.disname : type.name, {
                 onclick: () => {
                     axios.put(`/${host}/admin/users/${u.id}`, {
-                            attr: type.attr,
-                            value: !u[type.attr]
-                        }).then(handleSave)
-                        .catch(handleError)
+                        attr: type.attr,
+                        value: !u[type.attr]
+                    }).then(handleSave)
+                    .catch(handleError)
                 }
             }))
         })
 
-        p.append(toggleButton(`users`,u.id,`randomCoffee`,u.randomCoffee||false,`Убрать из randomCoffee`,`Добавить в randomCoffee`,[`dateButton`,`dark`]))
+        let line = ce(`div`,false,`flex`)
+        p.append(line)
+        line.append(toggleButton(`users`,u.id,`blocked`,u.blocked||false,`Разблокировать`,`Заблокировать`,[`dateButton`,`dark`]))
+            line.append(toggleButton(`users`,u.id,`randomCoffee`,u.randomCoffee||false,`Убрать из randomCoffee`,`Добавить в randomCoffee`,[`dateButton`,`dark`]))
+            line.append(toggleButton(`users`,u.id,`noSpam`,u.noSpam||false,`Выключить новости`,`Включить новости`,[`dateButton`,`dark`]))
 
 
 
@@ -1910,6 +2100,26 @@ function showUser(u, id) {
         //         invoices.append(invoiceLine(invoice))
         //     })
         // })
+
+        let plans = ce(`div`)
+            plans.append(ce(`h2`,false,false,`Подписки`))
+            load(`plansByUser`,u.id).then(plansq=>{
+                if(!plansq.length) plans.append(`подписок нет`)
+                plansq.filter(p=>p.active).forEach(p=>{
+                    plans.append(planUseLine(p))
+                })
+                plans.append(ce('a',false,[`thin`,`block`],`показать архив`,{
+                    onclick:function(){
+                        
+                        this.remove()
+
+                        plansq.filter(p=>!p.active).forEach(p=>{
+                            plans.append(planUseLine(p,true))
+                        })
+                    }
+                }))
+            }) 
+            p.append(plans)
 
         let deposits = ce(`div`)
         p.append(deposits)
@@ -2030,7 +2240,7 @@ function showUser(u, id) {
                 cw.append(showCoworkingLine(rec,false,true))
             })
             
-            cw.append(ce('button',false,[`dark`,`dateButton`],`Показать архив`,{
+            cw.append(ce('button',false,[`dark`,`dateButton`],`Показать архивные записи в коворкинг`,{
                 onclick:function(){
                     this.remove()
                     records.filter(rec=>rec.date<new Date().toISOString().split('T')[0]).reverse().forEach(rec=>{
@@ -2053,9 +2263,10 @@ function showUser(u, id) {
         let messenger = ce('div')
         p.append(messenger)
 
-        messenger.append(ce(`button`,false,false,`Открыть переписку`,{
+        messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Открыть переписку`,{
             onclick:function(){
                 this.remove()
+                messenger.append(ce(`h2`,false,false,`Переписка:`))
                 load(`messages`,u.id).then(messages=>{
                     let mc = ce(`div`,false,`messenger`)
                     messenger.append(mc)
@@ -2067,7 +2278,7 @@ function showUser(u, id) {
                     })
                     let txt = ce('textarea',false,false,false,`вам слово`)
                     messenger.append(txt)
-                    messenger.append(ce(`button`,false,false,`Отправить`,{
+                    messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Отправить`,{
                         onclick:()=>{
                             if(txt.value){
                                 axios.post(`/${host}/admin/message`,{

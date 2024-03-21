@@ -510,3 +510,38 @@ img.cover {
 div.dateButton{
     padding: 10px 10px;
 }
+
+h3.active {
+    color: var(--accent);
+}
+
+button:disabled {
+    opacity: .5;
+}
+
+div.headerSlider {
+    position: relative;
+}
+
+div.headerSlider>h2 {
+    position: sticky;
+    top: 0;
+    background: var(--light);
+    display: block;
+}
+
+.messenger {
+    max-height: 50vh;
+    overflow: scroll;
+    width: 60vw;
+    white-space: normal;
+}
+
+[data-reply="true"] {
+    margin-left: 40px;
+}
+
+.ticketQR{
+    float: left;
+    padding: 0px 20px 20px 0;
+}

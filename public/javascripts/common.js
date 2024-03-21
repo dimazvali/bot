@@ -751,8 +751,8 @@ function logLine(l){
 }
 
 
-function load(collection, id) {
-    return axios.get(`/${host}/admin/${collection}${id?`/${id}`:''}`).then(data => {
+function load(collection, id,extra) {
+    return axios.get(`/${host}/admin/${collection}${id?`/${id}`:''}${extra?`?${Object.keys(extra).map(k=>`${k}=${extra[k]}`).join(`&`)}`:''}`).then(data => {
         return data.data
     })
 }
