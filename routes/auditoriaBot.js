@@ -4180,7 +4180,7 @@ router.post('/hook', (req, res) => {
                         .where(`user`, '==', +u.id)
                         .get()
                         .then(col => {
-                            let tickets = common.handleQuery(col)
+                            let tickets = common.handleQuery(col).filter(t=>!t.isPayed && !t.status)
 
                             common.devlog(tickets)
 
