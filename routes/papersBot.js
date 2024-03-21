@@ -8642,7 +8642,7 @@ router.get(`/api/:type`, (req, res) => {
                         let dayrecords = records.filter(r => r.date == d)
 
 
-                        while (shift < 10) {
+                        while (shift < 12) {
 
                             let time = new Date(+start + shift * 60 * 60 * 1000).toTimeString().split(' ')[0].split(':').slice(0, 2).join(':');
                             let time2 = new Date(+start + shift * 60 * 60 * 1000 + 30 * 60 * 1000).toTimeString().split(' ')[0].split(':').slice(0, 2).join(':');
