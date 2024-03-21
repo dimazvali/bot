@@ -20,6 +20,7 @@ try{
             mr.querySelector('h2').innerHTML = translations.mr[lang]
             profile.querySelector('h2').innerHTML = translations.profile[lang]
             contacts.querySelector('h2').innerHTML = translations.contacts[lang] 
+            plans.querySelector('h2').innerHTML = translations.tariffs[lang] 
         
     }
 
@@ -42,6 +43,11 @@ translations.unbookOn = (d)=>{
 
 if(start){
     switch(start){
+
+        case `tariffs`:{
+            showTariffs()
+            break;
+        }
 
         case 'classes': {
             showSchedule(classes.querySelector('h2'))
@@ -291,7 +297,7 @@ function showContacts(el){
     
     mcb = clearPopUp
 
-    let popup = ce('div','popup')
+    let popup = ce('div',false,'popup')
         document.body.append(popup)
     let content = ce('div')
         popup.append(content)
@@ -333,7 +339,7 @@ function showProfile(el){
     
     mcb = clearPopUp
 
-    let popup = ce('div','popup')
+    let popup = ce('div',false,'popup')
         document.body.append(popup)
     let content = ce('div')
         popup.append(content)
@@ -624,7 +630,7 @@ function showQuestions(el,q,a){
     tg.onEvent('backButtonClicked',clearPopUp)
     mcb = clearPopUp
 
-    let popup = ce('div','popup')
+    let popup = ce('div',false,'popup')
     document.body.append(popup)
     let content = ce('div')
     popup.append(content)
@@ -721,6 +727,37 @@ function mainButton(init){
     }
 }
 
+function showTariffs(){
+    let p = preparePopup(`tariffs`)
+        p.append(ce(`h1`,false,false,translations.tariffs[userLang]||translations.tariffs.en))
+        userLoad(`tariffs`).then(list=>{
+            list.forEach(t=>{
+                p.append(ce(`h3`,false,`light`,t.name,{
+                    onclick:()=>{
+                        showTariff(t.id)     
+                    }
+                }))
+            })
+        })
+}
+
+
+function showTariff(id){
+    let c = preparePopup(`tariffs`)
+        userLoad(`tariffs`,id).then(p=>{
+            c.append(ce(`h1`,false,false,p.name))
+            c.append(ce(`div`,false,false,p.description.replace(/\\n/i,'<br>')))
+            c.append(ce(`p`,false,false,`Стоимость: ${cur(p.price,`GEL`)}.`))
+            if(p.inUse && p.inUse.to){
+                c.append(ce(`p`,false,false,`valid till: ${drawDate(p.inUse.to._seconds*1000,userLang)}`))
+            } else {
+                tg.MainButton.setText(translations.book[userLang] || translations.book.en)
+                tg.MainButton.show()
+                tg.MainButton.onClick(()=>requestPlan(p.id))
+            }
+        })
+}
+
 function showStatic(id){
     let p = preparePopup(`static`)
         userLoad(`static`,id).then(page=>{
@@ -800,9 +837,26 @@ function showSchedule(el){
     
 }
 
+function requestPlan(id){
+    tg.MainButton.showProgress()
+    axios.post(`/${host}/api/tariffs/${id}?id=${userid}`,{
+        user: userid
+    }).then(s=>{
+        if(s.data.success){
+            
+            mcb = clearPopUp;
+            tg.showAlert(s.data.comment)
+        }
+    }).catch(err=>{
+        tg.showAlert(err.message)
+    }).finally(()=>{
+        tg.MainButton.hideProgress()
+        tg.MainButton.hide()
+    })
+}
 
 function clearPopUp(){
-    let p = document.querySelector('#popup')
+    let p = document.querySelector('.popup')
     p.classList.add('sb')
     setTimeout(function(){
         p.remove()
@@ -873,16 +927,16 @@ function showBar(){
     })
 }
 
-function preparePopup(){
-    tg.BackButton.show();
-    tg.onEvent('backButtonClicked',clearPopUp)
-    mcb = clearPopUp
-    let popup = ce('div','popup')
-        document.body.append(popup)
-    let content = ce('div')
-        popup.append(content)
-    return content    
-}
+// function preparePopup(){
+//     tg.BackButton.show();
+//     tg.onEvent('backButtonClicked',clearPopUp)
+//     mcb = clearPopUp
+//     let popup = ce('div',false,'popup')
+//         document.body.append(popup)
+//     let content = ce('div')
+//         popup.append(content)
+//     return content    
+// }
 
 function drawDay(d){
     console.log(d)
@@ -899,7 +953,7 @@ function drawDay(d){
             tg.onEvent('backButtonClicked',clearPopUp)
             mcb = clearPopUp
 
-            let popup = ce('div','popup')
+            let popup = ce('div',false,'popup')
                 document.body.append(popup)
             let content = ce('div')
                 popup.append(content)
@@ -1021,7 +1075,7 @@ function drawRoom(r){
             tg.onEvent('backButtonClicked',clearPopUp)
             mcb = clearPopUp
 
-            let popup = ce('div','popup')
+            let popup = ce('div',false,'popup')
             document.body.append(popup)
             let content = ce('div')
             popup.append(content)
@@ -1223,7 +1277,7 @@ function drawLecturePopup(c){
         if(c.appointmentId) curLectureAppointment = c.appointmentId
         
         tg.BackButton.show();
-        tg.onEvent('backButtonClicked',clearPopUp)
+        tg.onEvent('backButtonClicked',clearPopUp);
         
         mcb = clearPopUp
 
@@ -1244,7 +1298,7 @@ function drawLecturePopup(c){
             }
         }
 
-        let popup = ce('div','popup')
+        let popup = ce('div',false,'popup')
             let content = ce('div')
             let h = ce('div',false,'header')
                 h.append(ce('h3',false,false,`${drawDate(c.date)}<br>${new Date(c.date).toLocaleTimeString('ru-RU', {timeZone: 'Asia/Tbilisi', hour: '2-digit', minute:'2-digit'})}`))

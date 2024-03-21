@@ -1,4 +1,4 @@
-// let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
+let ngrok2 = "https://a751-109-172-156-240.ngrok-free.app" 
 let ngrok = process.env.ngrok 
 
 var express =   require('express');
@@ -3061,7 +3061,21 @@ if(process.env.develop){
         // randomCoffee()
         // nowShow()
         // checkBeforeRC()
-        requestCoworkingFeedback()
+        // requestCoworkingFeedback()
+        m.sendMessage2({
+            chat_id: common.dimazvali,
+            text: `Приложенька с дева`,
+            reply_markup: {
+                inline_keyboard: [
+                    [{
+                        text: `test`,
+                        web_app: {
+                            url: `${ngrok2}/paper/app`
+                        }
+                    }]
+                ]
+            }
+        }, false, token)
         res.sendStatus(200)
     })
 }
@@ -4236,6 +4250,10 @@ function rcQuestions(f,s){
 }
 
 const translations = {
+    tariffs:{
+        en: `Tariffs`,
+        ru: `Тарифы`
+    },
     whatWasWrong:{
         ru: `Если не сложно, расскажите, пожалуйста, что вам не понравилось — мы постараемся учесть и исправиться.`,
         en: `Could you please tell us what we should improve?..`
@@ -8362,7 +8380,9 @@ function isoDate(){
 
 router.get(`/api/:type`, (req, res) => {
     switch (req.params.type) {
-        
+        case `tariffs`:{
+            return plans.where(`active`,'==',true).get().then(col=>res.json(common.handleQuery(col)))
+        }
         case `podcasts`:{
             return podcasts
                 .where(`active`,'==',true)
@@ -8711,7 +8731,54 @@ router.all(`/api/:data/:id`, (req, res) => {
 
     switch (req.params.data) {
 
+        case `tariffs`:{
+            if(!req.query.id) return res.sendStatus(400)
 
+            switch(req.method){
+                case `GET`:{
+                    return getDoc(plans,req.params.id).then(t=>{
+                        if(!t || !t.active) return res.sendStatus(404)
+                        plansUsers
+                            .where(`plan`,'==',req.params.id)
+                            .where(`active`,'==',true)
+                            .where(`user`,'==',+req.query.id)
+                            .get()
+                            .then(col=>{
+                                t.inUse = common.handleQuery(col)[0]
+                                res.json(t)
+                                plans.doc(req.params.id).update({
+                                    views: FieldValue.increment(1)
+                                })
+                            })
+                    })
+                }
+                case `POST`:{
+                    return getDoc(plans,req.params.id).then(p=>{
+                        if(!p || !p.active) return res.sendStatus(404)
+                        getDoc(udb,req.query.id).then(u=>{
+                            if(!u || u.blocked) return res.sendStatus(400)
+                            plansRequests.add({
+                                createdAt:  new Date(),
+                                user:       +req.query.id,
+                                plan:       req.params.id,
+                                active:     true
+                            }).then(record=>{
+                                res.json({
+                                    success: true,
+                                    id: record.id,
+                                    comment: `Заявка принята! Мы скоро свяжемся с вами.`
+                                })
+                                log({
+                                    text: `${uname(u,u.id)} подает заявку на тариф ${p.name}.\nНадо связаться с человеком и объяснить правила и платеж.`,
+                                    plan: p.id
+                                })
+                            })
+                        })
+                    })
+                }
+            }
+            
+        }
         case `invite`:{
             return invites.doc(req.params.id).get().then(i=>{
                 if(!req.query.user) return res.sendStatus(400)

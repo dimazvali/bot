@@ -101,7 +101,8 @@ h4,h5 {
     margin-top: -10px;
 }
 
-div#popup {
+div#popup,
+div.popup {
     position: fixed;
     top: 0;
     left: 0;
@@ -171,6 +172,7 @@ span.info {
     object-fit: cover;
 }
 
+.popup>div,
 #popup>div {
     padding: 20px;
 }
