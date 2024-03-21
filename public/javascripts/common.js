@@ -803,7 +803,7 @@ function listContainer(e,detailed,extra){
             if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
 
             if(extra) Object.keys(extra).forEach(key=>{
-                if(e[key]) details.append(ce('span',false,`info`,`${extra[key]}: ${e[key]}`))
+                if(e[key]) details.append(ce('span',false,`info`,`${extra[key]}: ${e[key]._seconds ? drawDate(e[key]._seconds*1000) : e[key]}`))
             })
         c.append(details)
     }
