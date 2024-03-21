@@ -172,6 +172,7 @@ function sendStep(step,userId){
     let m = {
         chat_id: userId,
         text: step.text,
+        parse_mode: `Markdown`,
         protect_content: true
     }
     let v = false
@@ -273,6 +274,7 @@ function tick(){
                         
                         
                         Promise.all(users).then(users=>{
+                            
                             devlog(`подгрузили пользователей`)
                             
                             courses.doc(stream.course).get().then(course=>{
@@ -1690,7 +1692,9 @@ router.all(`/admin/:method/:id`, (req, res) => {
                             s = handleDoc(s);
                             if(!s.active) return res.status(400).send(`Вы опоздали.\nЗапись уже отменена`);
                             ref.update({
-                                active: false
+                                active: false,
+                                deletedAt: new Date(),
+                                deletedBy: +admin.id
                             }).then(()=>{
                                 courseDays.doc(s.day).update({
                                     steps: FieldValue.increment(-1)
