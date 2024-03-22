@@ -121,7 +121,13 @@ let invoices =      fb.collection(`invoices`);
 
 
 const locals = {
-    greetings:          `От лица нашей семьи, рады вам представить наш авторский курс для естественного восстановления здоровья  💚🙏.\nА пока что отправь мне свои координаты (просто точку на карте), чтобы я смог выставить часовой пояс и в дальнейшем присылать сообщения по расписанию.`,
+    greetings:          `От лица нашей семьи, рады вам представить наш авторский курс для естественного восстановления здоровья  💚🙏.\nОтправьте свою геопозицию (просто точку на карте), чтобы бот смог выставить часовой пояс и в дальнейшем присылать сообщения по расписанию.
+
+    Для этого:
+    
+    Нажмите скрепочку в поле сообщений
+    Выберите пункт “геопозиция”
+    Дождитесь определения вашего местоположения и нажмите “отправить выбранную геопозицию”`,
     blocked:            `Упс, ваш аккаунт заблокирован.`,
     provideYpurPhone:   `Пожалйуста, отправьте свой номер телефона с помощью кнопки внизу экрана.`,
     sendPhone:          `Отправить номер`,
@@ -176,6 +182,7 @@ function sendStep(step,userId){
         protect_content: true
     }
     let v = false
+    let a = false;
     if(step.media && step.media.length){
         m.caption = step.text;
         m.photo = step.media[0];
@@ -186,29 +193,57 @@ function sendStep(step,userId){
         delete m.photo
     }
 
-    if(step.recipie || step.article){
-        m.reply_markup={
-            inline_keyboard:[]
-        }
-        if(step.recipie){
-            m.reply_markup.inline_keyboard.push([{
-                text: `Открыть рецепт`,
-                web_app:{
-                    url: `${ngrok}/${host}/app?start=recipies_${step.recipie}`
-                }
-            }])
-        }
-        if(step.article){
-            m.reply_markup.inline_keyboard.push([{
-                text: `Открыть заметку`,
-                web_app:{
-                    url: `${ngrok}/${host}/app?start=articles_${step.article}`
-                }
-            }])
-        }
+    if(step.media && step.media[0] && step.media[0].indexOf(`https`) == -1){
+        m.voice = step.media[0]
+        a = true
+        delete m.photo
     }
-    return sendMessage2(m,step.media?(v?`sendVideo`:`sendPhoto`):false,token)
 
+    let uploads = [];
+
+    if(step.recipie) {
+        uploads.push(common.getDoc(recipies,step.recipie))
+    } else {
+        uploads.push(false)
+    }
+
+    if(step.article) {
+        uploads.push(common.getDoc(articles,step.article))
+    } else {
+        uploads.push(false)
+    }
+
+    return Promise.all(uploads).then(uploads=>{
+
+        devlog(uploads)
+
+        if(step.recipie || step.article){
+            m.reply_markup={
+                inline_keyboard:[]
+            }
+            if(step.recipie){
+                m.reply_markup.inline_keyboard.push([{
+                    text: uploads[0].button || `Открыть рецепт`,
+                    web_app:{
+                        url: `${ngrok}/${host}/app?start=recipies_${step.recipie}`
+                    }
+                }])
+            }
+            if(step.article){
+                m.reply_markup.inline_keyboard.push([{
+                    text: uploads[1].button ||`Открыть заметку`,
+                    web_app:{
+                        url: `${ngrok}/${host}/app?start=articles_${step.article}`
+                    }
+                }])
+            }
+
+            
+        }
+        devlog(m)
+
+            return sendMessage2(m,step.media?(v?`sendVideo`:(a?`sendVoice`:`sendPhoto`)):false,token).then(d=>devlog(d))
+    })
 }
 
 function sendCourses(uid){
@@ -657,6 +692,15 @@ router.post(`/hook`, (req, res) => {
                 }
             }
 
+            if(req.body.message.voice && u.admin){
+                devlog(`Это голосовое`)
+                sendMessage2({
+                    chat_id: u.id,
+                    parse_mode: `Markdown`,
+                    text: '```'+req.body.message.voice.file_id+'```'
+                },false,token).then(d=>console.log(d))
+            }
+
         })
     }
 
@@ -958,8 +1002,6 @@ router.post(`/hook`, (req, res) => {
             console.log(err)
         })
     }
-
-    
 })
 
 
@@ -1224,6 +1266,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 active:     true,
                                 name:       req.body.name,
                                 text:       req.body.text,
+                                button:     req.body.button || null,
                                 views:      0
                             }).then(rec=>{
                                 res.json({
@@ -1465,6 +1508,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 active:     true,
                                 name:       req.body.name,
                                 text:       req.body.text,
+                                button:     req.body.button || null,
                                 views:      0
                             }).then(rec=>{
                                 res.json({
@@ -1636,7 +1680,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
                 switch(req.method){
                     case `PATCH`:{
                         return daySteps.doc(req.params.id).get().then(s=>{
-                            sendStep(s.data(),admin.id)
+                            sendStep(s.data(),admin.id).then(r=>console.log(r))
                             res.json({
                                 success: true,
                                 comment: `Сообщение отправлено`
@@ -2105,5 +2149,10 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
 //     })
 // })
 
-
 module.exports = router;
+
+sendMessage2({
+    chat_id: common.dimazvali,
+    caption: '123',
+    voice: `AwACAgIAAxkBAAIFtmX9jbkM2XK0b99D7C0NPw1RBYIQAAI4RQACXY3wS1LCwpEZnS8ONAQ`,
+},`sendVoice`,token)

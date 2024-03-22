@@ -922,6 +922,12 @@ function showRecipie(id){
             }
         }))
 
+        p.append(ce(`div`,false,`editable`,r.button||`введите текст на кнопке`,{
+            onclick:function(){
+                edit(`recipies`,id,`button`,`text`,r.button,this)
+            }
+        }))
+
         p.append(deleteButton(`recipies`,id,!r.active,false,showRecipies))
 
     })
@@ -941,6 +947,12 @@ function showArticle(id){
         p.append(ce(`div`,false,`editable`,r.text,{
             onclick:function(){
                 edit(`articles`,id,`text`,`textarea`,r.text,this)
+            }
+        }))
+
+        p.append(ce(`div`,false,`editable`,r.button||`введите текст на кнопке`,{
+            onclick:function(){
+                edit(`articles`,id,`button`,`text`,r.button,this)
             }
         }))
 
@@ -1358,6 +1370,7 @@ function addNewRecipie(){
     let p = preparePopupWeb(`newRecipie`,false,false,true)
         p.append(ce(`h1`,false,false,`Создаем новый рецепт`))
     let name = ce(`input`,false,false,false,{placeholder: `Название`,type:'text'})
+    let button = ce(`input`,false,false,false,{placeholder: `подпись для кнопки`,type:'text'})
     let txt = ce(`textarea`,false,false,false,{placeholder: `Описание`})
     p.append(name)
     p.append(txt)
@@ -1368,7 +1381,8 @@ function addNewRecipie(){
             this.setAttribute(`disabled`,true)
             axios.post(`/${host}/admin/recipies`,{
                 name: name.value,
-                text: txt.value
+                text: txt.value,
+                button: button.value
             }).then(s=>{
                 handleSave(s)
                 showRecipies()
@@ -1382,6 +1396,7 @@ function addNewArticle(){
     let p = preparePopupWeb(`newArticle`,false,false,true)
         p.append(ce(`h1`,false,false,`Создаем новую заметку`))
     let name = ce(`input`,false,false,false,{placeholder: `Название`,type:'text'})
+    let button = ce(`input`,false,false,false,{placeholder: `подпись для кнопки`,type:'text'})
     let txt = ce(`textarea`,false,false,false,{placeholder: `Описание`})
     p.append(name)
     p.append(txt)
@@ -1392,7 +1407,8 @@ function addNewArticle(){
             this.setAttribute(`disabled`,true)
             axios.post(`/${host}/admin/articles`,{
                 name: name.value,
-                text: txt.value
+                text: txt.value,
+                button: button.value
             }).then(s=>{
                 handleSave(s)
                 showArticles()
