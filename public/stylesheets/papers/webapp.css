@@ -545,3 +545,17 @@ div.headerSlider>h2 {
     float: left;
     padding: 0px 20px 20px 0;
 }
+
+.date{
+    position: relative;
+}
+.date>h3 {
+    position: sticky;
+    top: 0;
+    background: var(--light);
+    display: block;
+}
+
+.mTop20 {
+    margin-top: 20px;
+}

@@ -892,6 +892,15 @@ function newAuthor() {
     }))
 }
 
+function modal(){
+    if(document.querySelectorAll(`.editWindow`)) {
+        document.querySelectorAll(`.editWindow`).forEach(m=>m.remove())
+    }
+    let c = ce(`div`,false,[`editWindow`,`inpC`])
+    document.body.append(c)
+    return c
+}
+
 function showHelp(text){
 
     if(document.querySelector(`.editWindow`)) {
