@@ -1926,13 +1926,15 @@ router.all(`/admin/:data/:id`, (req, res) => {
                         cl = common.handleDoc(cl)
                         switch (req.method) {
                             case `POST`: {
-                                cl.date = new Date(req.body.date);
                                 delete cl.id
-                                return classes.add(cl).then(s => {
-                                    res.json({
-                                        success: true
-                                    })
+                                req.body.dates.forEach(d=>{
+                                    cl.date = new Date(d);
+                                    classes.add(cl)
                                 })
+                                
+                                return res.json({
+                                    success: true
+                                }) 
                             }
                             case `GET`: {
                                 let data = []
