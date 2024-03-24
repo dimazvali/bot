@@ -1668,7 +1668,7 @@ function clearBanks(ref){
     devlog(ref.id)
 
     ref.get().then(b=>{
-        b = common.handleDoc(d)
+        b = common.handleDoc(b)
         courses
             .where(`bankId`,'==',ref.id)
             .get()
