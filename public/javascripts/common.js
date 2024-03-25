@@ -196,8 +196,6 @@ function preparePopup(type) {
     return content
 }
 
-
-
 function handleError(err) {
     let teleAlert = false
     try{
@@ -209,8 +207,6 @@ function handleError(err) {
     if(!teleAlert) alert(err.response && err.response.data ? err.response.data : (err.data || err.message))
     console.warn(err)
 }
-
-
 
 function showLoader(){
     document.body.append(ce('div','loader'))

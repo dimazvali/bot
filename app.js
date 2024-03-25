@@ -5,6 +5,10 @@ var cookieParser = require('cookie-parser');
 var logger =      require('morgan');
 var bodyParser =  require('body-parser')
 var requestLanguage = require('express-request-language');
+var vhost = require('vhost');
+var subdomain = require('express-subdomain');
+
+const { devlog } = require('./routes/common');
 
 require('dotenv').config()
 
@@ -33,10 +37,21 @@ bodyParser.json({limit: '50mb'})
 app.use(express.static(path.join(__dirname, 'public')));
 
 
+let auRouter = require('./routes/auditoriaBot')
+
 app.use('/wine/',       require('./routes/wineBot'));
 app.use('/igrik',       require('./routes/igrikBot'));
+
 app.use('/paper',       require('./routes/papersBot'));
+app.use(vhost(`papers.*.*`,require('./routes/papersBot')));
+
+app.use('/',     require('./routes/dimazvali'));
+app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
+
+
 app.use('/auditoria',   require('./routes/auditoriaBot'));
+app.use(vhost(`auditoria.*.*`,require('./routes/auditoriaBot')))
+
 app.use('/sss',         require('./routes/sss'));
 app.use('/kaha',        require('./routes/kaha'));
 app.use('/wtg',         require('./routes/wtgBot'));

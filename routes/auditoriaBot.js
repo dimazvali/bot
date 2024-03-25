@@ -1834,6 +1834,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
 
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
         if (!doc.exists) return res.sendStatus(403)
+        
         doc = common.handleDoc(doc)
 
         if (!doc.active) return res.sendStatus(403)
