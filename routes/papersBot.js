@@ -366,7 +366,7 @@ router.post(`/pourMeWine`, (req, res) => {
 
             m.sendMessage2({
                 chat_id: req.body.user,
-                caption: `Поздравяем! Вы оформили абонемент на вино в Гамоцеме.\n${common.letterize(req.body.glasses,'ходка')} в вашем распоряжении.\nuse it wisely`,
+                caption: translations.winePoured[gifted.data().language_code](req.body.glasses) || translations.winePoured.en(req.body.glasses),
                 photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=wineList`
             }, 'sendPhoto', token)
         })
@@ -569,7 +569,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 })
                                 m.sendMessage2({
                                     chat_id: u.id,
-                                    text: `Ваш депозит обновлен. Текущий остаток: ${u.deposit}.`
+                                    text: translations.deposited(u.deposit)[u.language_code] || translations.deposited(u.deposit).en
                                 },false,token)
                             })
                         })
@@ -3496,7 +3496,7 @@ function bookClass(user, classId, res, id) {
 
     if (!user) {
         user = udb.doc(id.toString()).get().then(u => {
-            let t = u.data();
+            let t = u.data() || {};
             t.id = id
             return t
         })
@@ -4375,6 +4375,16 @@ function rcQuestions(f,s){
 }
 
 const translations = {
+    deposited:(left)=>{
+        return {
+            ru: `Ваш депозит обновлен. Текущий остаток: ${cur(left,`GEL`)}.`,
+            en: `You deposit was updated. Current balance: ${cur(left,`GEL`)}`
+        }
+    },
+    winePoured:{
+        ru:(glasses)=>`Поздравяем! Вы оформили абонемент на вино в Гамоцеме.\n${common.letterize(glasses,'ходка')} в вашем распоряжении.\nuse it wisely`,
+        en: ()=>`Сongratulations! You've got a certificate for ${glasses} glasses of wine at out bar. Use them wisely.`
+    },
     tariffs:{
         en: `Tariffs`,
         ru: `Тарифы`
