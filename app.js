@@ -44,7 +44,7 @@ app.use('/igrik',       require('./routes/igrikBot'));
 
 app.use('/paper',       require('./routes/papersBot'));
 app.use(vhost(`papers.*.*`,require('./routes/papersBot')));
-app.use(vhost(`papers.localhost`,require('./routes/papersBot')))
+// app.use(vhost(`papers.localhost`,require('./routes/papersBot')))
 
 app.use('/',     require('./routes/dimazvali'));
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
