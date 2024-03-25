@@ -1,5 +1,5 @@
-let ngrok2 = "https://a751-109-172-156-240.ngrok-free.app" 
-let ngrok = process.env.ngrok 
+let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
+let ngrok2 = process.env.ngrok 
 
 var express =   require('express');
 var router =    express.Router();
@@ -2985,284 +2985,7 @@ let siteSectionsTypes = {
     }
 }
 
-router.get(`/:section`,(req,res)=>{
 
-    devlog(rules)
-
-    switch(req.params.section){
-        case `coworking`:{
-            return halls
-                .where(`active`,'==',true)
-                .where(`isCoworking`,'==',true)
-                .get()
-                .then(col=>{
-                    res.render(`papers/coworking`,{
-                        title:              `Коворкинг Papers Kartuli`,
-                        description:        `Выберите зал на свой вкус (цвет почти одтин и тот же).`,
-                        halls:              common.handleQuery(col,true),
-                        translations:       translations,
-                        coworkingRules:     rules,
-                        drawDate:(d)=>      drawDate(d),
-                        lang:               req.language.split('-')[0],
-                        cur:(p)=>           common.cur(p),
-                        uname:(u,id)=>      uname(u,id)
-                    })
-                })
-        }
-        case  `staff`:{
-            return udb
-                .where(`active`,'==',true)
-                .where(`insider`,'==',true)
-                .where(`public`,'==',true)
-                .get()
-                .then(col=>{
-                    res.render(`papers/staff`,{
-                        title:              `Редакция Papers Kartuli`,
-                        description:        `На связи 24/7!`,
-                        staff:              common.handleQuery(col,false,true),
-                        translations:       translations,
-                        coworkingRules:     coworkingRules,
-                        drawDate:(d)=>      drawDate(d),
-                        lang:               req.language.split('-')[0],
-                        cur:(p)=>           common.cur(p),
-                        uname:(u,id)=>      uname(u,id)
-                    })
-                })
-        }
-
-        case  `classes`:{
-            return classes
-                .where(`active`,'==',true)
-                .where(`date`,'>',new Date().toISOString())
-                .get()
-                .then(col=>{
-                    res.render(`papers/classes`,{
-                        title:              `Лекции, концерты, мастер-классы Papers Kartuli`,
-                        description:        `Ждем вас в гости!`,
-                        classes:            common.handleQuery(col).filter(c=>!c.admins && !c.fellows),
-                        translations:       translations,
-                        coworkingRules:     coworkingRules,
-                        drawDate:(d)=>      drawDate(d),
-                        lang:               req.language.split('-')[0],
-                        cur:(p)=>           common.cur(p)
-                    })
-                })
-        }
-        case `authors`:{
-            return authors
-                .where(`active`,'==',true)
-                // .where(`date`,'>',new Date().toISOString())
-                .get()
-                .then(col=>{
-                    res.render(`papers/authors`,{
-                        title:              `Авторы и ведущие Papers Kartuli`,
-                        description:        `Ждем вас в гости!`,
-                        authors:            common.handleQuery(col,false,true),
-                        translations:       translations,
-                        coworkingRules:     coworkingRules,
-                        drawDate:(d)=>      drawDate(d),
-                        lang:               req.language.split('-')[0],
-                        cur:(p)=>           common.cur(p)
-                    })
-                })
-        }
-        default:{
-            return res.sendStatus(404)
-        }
-    }
-})
-
-router.get(`/:section/:id`,(req,res)=>{
-    
-    let response = {
-        translations:       translations,
-        coworkingRules:     rules,
-        uname:(u,id)=>      uname(u,id),
-        drawDate:(d,l,t)=>  drawDate(d,false,t),
-        lang:               req.language.split('-')[0],
-        cur:(p,cur)=>       common.cur(p,cur)
-    }
-
-    switch (req.params.section){
-        case `static`:{
-            return standAlone.doc(req.params.id).get().then(page=>{
-                if(!page.exists) return res.sendStatus(404)
-                page = common.handleDoc(page)
-                if(!page.active) return res.sendStatus(404)
-                
-                standAlone.doc(req.params.id).update({
-                    views: FieldValue.increment(1)
-                })
-
-                return res.render(`papers/static`,{
-                    name:           page.name,
-                    description:    page.description,
-                    html:           page.html,
-                    pic:            page.pic
-                })
-            })
-        }
-        case `tickets`:{
-            return userClasses.doc(req.params.id).get().then(t=>{
-                if(!t.exists) return res.sendStatus(404)
-                t = common.handleDoc(t)
-                if(!t.active) return res.sendStatus(404)
-                classes.doc(t.class).get().then(cl=>{
-                    
-                    devlog(common.handleDoc(cl))
-
-                    res.render(`papers/ticket`,{
-                        cl: common.handleDoc(cl),
-                        ticket: t,
-                        uname:(u,id)=>      uname(u,id),
-                        drawDate:(d,l,t)=>  drawDate(d,false,t),
-                        lang:               req.language.split('-')[0],
-                        cur:(p,cur)=>       common.cur(p,cur)
-                    })
-                })
-            })
-        }
-        case `coworking`:{
-            return getDoc(halls,req.params.id).then(hall=>{
-                
-                views.add({
-                    entity:     `halls`,
-                    date:       new Date(),
-                    id:         req.params.id
-                })
-
-                halls.doc(req.params.id).update({
-                    views: FieldValue.increment(1)
-                })
-
-                let o = {
-                    title:              `${hall.name} | коворкинг Papers Kartuli`,
-                    description:        hall.description,
-                    image:              hall.pics,
-                    hall:               hall
-                }
-
-                Object.keys(response).forEach(k=>o[k] = response[k])
-                
-                res.render(`papers/hall`,o)
-
-
-            })
-        }
-        case `authors`:{
-            return getDoc(authors,req.params.id).then(a=>{
-                if(!a) return res.sendStatus(404)
-                
-                views.add({
-                    entity:     `authors`,
-                    date:       new Date(),
-                    id:         req.params.id
-                })
-    
-                authors.doc(req.params.id).update({
-                    views: FieldValue.increment(1)
-                })
-
-                classes
-                    .where(`authorId`,'==',req.params.id)
-                    .where(`active`,'==',true)
-                    .get()
-                    .then(col=>{
-                        let o = {
-                            title:              `${a.name} | ведущие Papers Kartuli`,
-                            description:        a.description,
-                            image:              a.pic,
-                            classes:            common.handleQuery(col,true).filter(a=>new Date()<new Date(a.date)),
-                            archive:            common.handleQuery(col,true).filter(a=>new Date()>new Date(a.date)),
-                            author:             a  
-                        }
-
-                        Object.keys(response).forEach(k=>o[k] = response[k])
-                        
-                        res.render(`papers/author`,o)
-                    })
-                
-                
-            })
-        }
-        case `classes`:{
-            return getDoc(classes,req.params.id).then(c=>{
-            
-                if(!c) return res.sendStatus(404)
-    
-                let googleData = {
-                    "@context": "https://schema.org",
-                    "@type": "Event",
-                    "name": c.name,
-                    "startDate": c.date,
-                    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-                    "eventStatus": "https://schema.org/EventScheduled",
-                    "location": {
-                      "@type": "Place",
-                      "name": "Papers Space",
-                      "address": {
-                        "@type": "PostalAddress",
-                        "streetAddress": "1/10, 1 Veriko Anjaparidze St",
-                        "addressLocality": "Tbilisi",
-                        "postalCode": "0100",
-                        "addressRegion": "Tbilisi",
-                        "addressCountry": "GE"
-                      }
-                    },
-                    "image": [
-                      c.pic
-                     ],
-                    "description": c.description,
-                    "offers": {
-                      "@type": "Offer",
-                      "url":    appLink + '?startapp=classes_'+c.id,
-                      "price": c.price,
-                      "priceCurrency": "GEL",
-                      "availability": "https://schema.org/InStock",
-                      "validFrom": new Date(c.createdAt._seconds).toISOString()
-                    },
-                    "performer": {
-                      "@type": "PerformingGroup",
-                      "name": c.authorName
-                    },
-                    "organizer": {
-                      "@type": "Organization",
-                      "name": "Papers Space",
-                      "url": "https://papers.dimazvali.com"
-                    }
-                  }
-
-
-                views.add({
-                    entity:     `classes`,
-                    date:       new Date(),
-                    id:         req.params.id
-                })
-    
-                classes.doc(req.params.id).update({
-                    views: FieldValue.increment(1)
-                })
-                
-                res.render(`papers/class`,{
-                    title:              `${c.name} | Лекции, концерты, мастер-классы Papers Kartuli`,
-                    description:        c.description,
-                    image:              c.pic,
-                    cl:                 c,
-                    translations:       translations,
-                    coworkingRules:     coworkingRules,
-                    drawDate:(d,l,t)=>  drawDate(d,false,t),
-                    lang:               req.language.split('-')[0],
-                    cur:(p,cur)=>       common.cur(p,cur),
-                    json:               JSON.stringify(googleData)
-                })
-            })
-        }
-        default: {
-            return res.sendStatus(404)
-        }
-    }
-    
-})
 
 
 if(process.env.develop){
@@ -9594,6 +9317,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                         if(!c.active) return res.sendStatus(404)
 
                         views.add({
+                            name:   c.name,
                             entity: `classes`,
                             id:     req.params.id,
                             user:   +req.query.user
@@ -9895,6 +9619,288 @@ router.all(`/api/:data/:id`, (req, res) => {
     }
 })
 
+
+router.get(`/:section`,(req,res)=>{
+
+    devlog(rules)
+
+    switch(req.params.section){
+        case `coworking`:{
+            return halls
+                .where(`active`,'==',true)
+                .where(`isCoworking`,'==',true)
+                .get()
+                .then(col=>{
+                    res.render(`papers/coworking`,{
+                        title:              `Коворкинг Papers Kartuli`,
+                        description:        `Выберите зал на свой вкус (цвет почти одтин и тот же).`,
+                        halls:              common.handleQuery(col,true),
+                        translations:       translations,
+                        coworkingRules:     rules,
+                        drawDate:(d)=>      drawDate(d),
+                        lang:               req.language.split('-')[0],
+                        cur:(p)=>           common.cur(p),
+                        uname:(u,id)=>      uname(u,id)
+                    })
+                })
+        }
+        case  `staff`:{
+            return udb
+                .where(`active`,'==',true)
+                .where(`insider`,'==',true)
+                .where(`public`,'==',true)
+                .get()
+                .then(col=>{
+                    res.render(`papers/staff`,{
+                        title:              `Редакция Papers Kartuli`,
+                        description:        `На связи 24/7!`,
+                        staff:              common.handleQuery(col,false,true),
+                        translations:       translations,
+                        coworkingRules:     coworkingRules,
+                        drawDate:(d)=>      drawDate(d),
+                        lang:               req.language.split('-')[0],
+                        cur:(p)=>           common.cur(p),
+                        uname:(u,id)=>      uname(u,id)
+                    })
+                })
+        }
+
+        case  `classes`:{
+            return classes
+                .where(`active`,'==',true)
+                .where(`date`,'>',new Date().toISOString())
+                .get()
+                .then(col=>{
+                    res.render(`papers/classes`,{
+                        title:              `Лекции, концерты, мастер-классы Papers Kartuli`,
+                        description:        `Ждем вас в гости!`,
+                        classes:            common.handleQuery(col).filter(c=>!c.admins && !c.fellows),
+                        translations:       translations,
+                        coworkingRules:     coworkingRules,
+                        drawDate:(d)=>      drawDate(d),
+                        lang:               req.language.split('-')[0],
+                        cur:(p)=>           common.cur(p)
+                    })
+                })
+        }
+        case `authors`:{
+            return authors
+                .where(`active`,'==',true)
+                // .where(`date`,'>',new Date().toISOString())
+                .get()
+                .then(col=>{
+                    res.render(`papers/authors`,{
+                        title:              `Авторы и ведущие Papers Kartuli`,
+                        description:        `Ждем вас в гости!`,
+                        authors:            common.handleQuery(col,false,true),
+                        translations:       translations,
+                        coworkingRules:     coworkingRules,
+                        drawDate:(d)=>      drawDate(d),
+                        lang:               req.language.split('-')[0],
+                        cur:(p)=>           common.cur(p)
+                    })
+                })
+        }
+        default:{
+            return res.sendStatus(404)
+        }
+    }
+})
+
+router.get(`/:section/:id`,(req,res)=>{
+    
+    let response = {
+        translations:       translations,
+        coworkingRules:     rules,
+        uname:(u,id)=>      uname(u,id),
+        drawDate:(d,l,t)=>  drawDate(d,false,t),
+        lang:               req.language.split('-')[0],
+        cur:(p,cur)=>       common.cur(p,cur)
+    }
+
+    switch (req.params.section){
+        case `static`:{
+            return standAlone.doc(req.params.id).get().then(page=>{
+                if(!page.exists) return res.sendStatus(404)
+                page = common.handleDoc(page)
+                if(!page.active) return res.sendStatus(404)
+                
+                standAlone.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+
+                return res.render(`papers/static`,{
+                    name:           page.name,
+                    description:    page.description,
+                    html:           page.html,
+                    pic:            page.pic
+                })
+            })
+        }
+        case `tickets`:{
+            return userClasses.doc(req.params.id).get().then(t=>{
+                if(!t.exists) return res.sendStatus(404)
+                t = common.handleDoc(t)
+                if(!t.active) return res.sendStatus(404)
+                classes.doc(t.class).get().then(cl=>{
+                    
+                    devlog(common.handleDoc(cl))
+
+                    res.render(`papers/ticket`,{
+                        cl: common.handleDoc(cl),
+                        ticket: t,
+                        uname:(u,id)=>      uname(u,id),
+                        drawDate:(d,l,t)=>  drawDate(d,false,t),
+                        lang:               req.language.split('-')[0],
+                        cur:(p,cur)=>       common.cur(p,cur)
+                    })
+                })
+            })
+        }
+        case `coworking`:{
+            return getDoc(halls,req.params.id).then(hall=>{
+                
+                views.add({
+                    name:       hall.name,
+                    entity:     `halls`,
+                    date:       new Date(),
+                    id:         req.params.id
+                })
+
+                halls.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+
+                let o = {
+                    title:              `${hall.name} | коворкинг Papers Kartuli`,
+                    description:        hall.description,
+                    image:              hall.pics,
+                    hall:               hall
+                }
+
+                Object.keys(response).forEach(k=>o[k] = response[k])
+                
+                res.render(`papers/hall`,o)
+
+
+            })
+        }
+        case `authors`:{
+            return getDoc(authors,req.params.id).then(a=>{
+                if(!a) return res.sendStatus(404)
+                
+                views.add({
+                    name:       a.data().name,
+                    entity:     `authors`,
+                    date:       new Date(),
+                    id:         req.params.id
+                })
+    
+                authors.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+
+                classes
+                    .where(`authorId`,'==',req.params.id)
+                    .where(`active`,'==',true)
+                    .get()
+                    .then(col=>{
+                        let o = {
+                            title:              `${a.name} | ведущие Papers Kartuli`,
+                            description:        a.description,
+                            image:              a.pic,
+                            classes:            common.handleQuery(col,true).filter(a=>new Date()<new Date(a.date)),
+                            archive:            common.handleQuery(col,true).filter(a=>new Date()>new Date(a.date)),
+                            author:             a  
+                        }
+
+                        Object.keys(response).forEach(k=>o[k] = response[k])
+                        
+                        res.render(`papers/author`,o)
+                    })
+                
+                
+            })
+        }
+        case `classes`:{
+            return getDoc(classes,req.params.id).then(c=>{
+            
+                if(!c) return res.sendStatus(404)
+    
+                let googleData = {
+                    "@context": "https://schema.org",
+                    "@type": "Event",
+                    "name": c.name,
+                    "startDate": c.date,
+                    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+                    "eventStatus": "https://schema.org/EventScheduled",
+                    "location": {
+                      "@type": "Place",
+                      "name": "Papers Space",
+                      "address": {
+                        "@type": "PostalAddress",
+                        "streetAddress": "1/10, 1 Veriko Anjaparidze St",
+                        "addressLocality": "Tbilisi",
+                        "postalCode": "0100",
+                        "addressRegion": "Tbilisi",
+                        "addressCountry": "GE"
+                      }
+                    },
+                    "image": [
+                      c.pic
+                     ],
+                    "description": c.description,
+                    "offers": {
+                      "@type": "Offer",
+                      "url":    appLink + '?startapp=classes_'+c.id,
+                      "price": c.price,
+                      "priceCurrency": "GEL",
+                      "availability": "https://schema.org/InStock",
+                      "validFrom": new Date(c.createdAt._seconds).toISOString()
+                    },
+                    "performer": {
+                      "@type": "PerformingGroup",
+                      "name": c.authorName
+                    },
+                    "organizer": {
+                      "@type": "Organization",
+                      "name": "Papers Space",
+                      "url": "https://papers.dimazvali.com"
+                    }
+                  }
+
+
+                views.add({
+                    name:       c.name,
+                    entity:     `classes`,
+                    date:       new Date(),
+                    id:         req.params.id
+                })
+    
+                classes.doc(req.params.id).update({
+                    views: FieldValue.increment(1)
+                })
+                
+                res.render(`papers/class`,{
+                    title:              `${c.name} | Лекции, концерты, мастер-классы Papers Kartuli`,
+                    description:        c.description,
+                    image:              c.pic,
+                    cl:                 c,
+                    translations:       translations,
+                    coworkingRules:     coworkingRules,
+                    drawDate:(d,l,t)=>  drawDate(d,false,t),
+                    lang:               req.language.split('-')[0],
+                    cur:(p,cur)=>       common.cur(p,cur),
+                    json:               JSON.stringify(googleData)
+                })
+            })
+        }
+        default: {
+            return res.sendStatus(404)
+        }
+    }
+    
+})
 
 function bookMR(date, time, userid, callback, res) {
     udb.doc(userid.toString()).get().then(user => {
