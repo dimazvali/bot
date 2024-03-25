@@ -200,6 +200,11 @@ table.wide{
 
 .flex {
     display: flex;
+    
+}
+
+.flex.c{
+    align-items: center;
 }
 
 .date {

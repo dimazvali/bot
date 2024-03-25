@@ -543,6 +543,76 @@ function showLogs(filter,description) {
         .finally(hideLoader)
 }
 
+function addScreen(collection,name,o){
+    let p = preparePopupWeb(`${collection}_new`)
+    
+    p.append(ce('h1', false, false, name))
+
+    let f = ce(`form`,false,false,false,{
+        action: `/${host}/admin/${collection}`,
+        method: `post`,
+        // onsubmit: preventDefault()
+    })
+    
+    p.append(f)
+
+    Object.keys(o).forEach(k=>{
+        let input = o[k]
+        let el = ce(input.tag||`input`,false,false,false,{
+            placeholder:    input.placeholder || null,
+            type:           input.type || `text`,
+            name:           k
+        })
+        Object.keys(input).forEach(t=>{
+            el[t] = input[t]
+        })
+        f.append(el)
+    })
+
+    f.append(ce(`button`,false,false,`Сохранить`,{
+        type: `submit`
+    }))
+
+}
+
+function showScreen(name, collection, line, addButton){
+    closeLeft()
+    let p = preparePopupWeb(collection,false,false,true)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(collection).then(docs=>{
+        p.innerHTML = '';
+        p.append(ce('h1', false, `header2`, name))
+
+        p.append(ce('button', false, false, `Добавить`, {
+            onclick: () => addButton()
+        }))
+
+        let c = ce('div')
+        
+        docs.forEach(a => {
+            c.append(line(a))
+        });
+
+        let cc = ce('div',false,`controls`)
+            cc.append(sortBlock([{
+                attr: `name`,
+                name: `По названию`
+            },{
+                attr: `views`,
+                name: `По просмотрам`
+            },{
+                attr: `createdAt`,
+                name: `По дате создания`
+            }],c,docs,line))
+        
+        p.append(cc)
+
+        p.append(c)
+
+        p.append(archiveButton(c))
+    })
+}
+
 function copyLink(link, app, text){
     return ce('button',false,`thin`,text||`ссылка`,{
         onclick:function(){
@@ -799,7 +869,7 @@ function listContainer(e,detailed,extra){
         let details = ce('div',false,[`details`,`flex`])
             details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000))) 
             details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
-            if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy).then(author=>details.append(ce('span',false,`info`,uname(author, author.id))))
+            if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
             if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
 
             if(extra) Object.keys(extra).forEach(key=>{

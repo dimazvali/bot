@@ -12,6 +12,15 @@ function closeLeft() {
 if(start){
     start = start.split('_')
     switch(start[0]){
+
+        case `stages`:{
+            if(start[1]) {
+                showStage(start[1])
+            } else {
+                showStages()     
+            }
+            break;
+        }
         case `standAlone`:{
             
             if(start[1]) {
@@ -86,6 +95,43 @@ if(start){
     }
 }
 
+
+function showStageLine(s){
+    let c = listContainer(s,true,{
+        managerName: `администратор`
+    })
+
+    let inner = ce(`div`,false,[`flex`,'c'])
+        let cb = ce(`div`,false,`colorBubble`,false,{
+            dataset:{color:s.color},
+            // style:`background-color:${c.color}`
+            style: {backgroundColor: s.color}
+        })
+
+        cb.style.backgroundColor = s.color;
+        inner.append(cb)
+        inner.append(ce(`h3`,false,false,s.name,{
+            onclick:()=>showStage(s.id)
+        }))
+    c.append(inner)
+
+
+    return c;
+}
+
+function addStage(){
+    addScreen(`stages`,`Новая площадка`,{
+        name:{placeholder:`Название`},
+        address:{placeholder:`Адрес`},
+        description:{placeholder:`Описание`,type:`textarea`},
+        pic:{placeholder:`картинка`}
+    })
+}
+
+
+function showStages(){
+    showScreen(`Залы`,`stages`,showStageLine,addStage)
+}
 
 function showNews(){
     closeLeft()
@@ -607,7 +653,61 @@ function removeConnectionButton(collection,id,upd,attr){
     
 }
 
+function showStage(id){
+    let p = preparePopupWeb(`stages_${id}`,`bank_${id}`,[`banks`,id],true)
+    load(`stages`,id).then(s=>{
 
+        p.append(ce(`h1`,false,false,`Площадка «${s.name}»`,{
+            onclick:function(){
+                edit(`stages`,id,`name`,`text`,s.name,this)
+            }
+        }))
+
+        p.append(ce(`p`,false,false,`Адрес: ${s.address}`,{
+            onclick:function(){
+                edit(`stages`,id,`address`,`text`,s.address,this)
+            }
+        }))
+
+        p.append(ce(`p`,false,false,`Цвет: ${s.color}`,{
+            style: `color:#${s.color}`,
+            onclick:function(){
+                edit(`stages`,id,`color`,`color`,s.color,this)
+            }
+        }))
+
+        if (s.pic) {
+            p.append(ce(`img`, false, `cover`, false, {
+                src: s.pic,
+                onclick: () => edit(`stages`, id, `pic`, `text`, s.pic)
+            }))
+        } else {
+            p.append(ce('p', false, false, `добавить фото`, {
+                onclick: () => edit(`stages`, id, `pic`, `text`, null)
+            }))
+        }
+
+
+        p.append(ce(`p`,false,false,`${s.description || `добавьте описание`}`,{
+            onclick:function(){
+                edit(`stages`,id,`description`,`text`,s.description,this)
+            }
+        }))
+
+        p.append(ce(`p`,false,false,`Куратор: ${s.managerName || `не выбраы`}`,{
+            onclick:function(){
+                edit(`stages`,id,`managerId`,`managerId`,s.managerId,this)
+            }
+        }))
+
+
+
+
+        p.append(deleteButton(`stages`,id,!s.active))
+
+    })
+    
+}
 
 function showBank(id){
     let p = preparePopupWeb(`bank_${id}`,`bank_${id}`,[`banks`,id])
@@ -890,11 +990,11 @@ function edit(entity, id, attr, type, value, container) {
 
     let attrTypes = {
         description: `описание`,
-        name: `название`,
-        authorId: `автор`,
-        courseId: `курс`,
-        descShort: `краткое описание`,
-        descLong: `развернутое пописание`
+        name:       `название`,
+        authorId:   `автор`,
+        courseId:   `курс`,
+        descShort:  `краткое описание`,
+        descLong:   `развернутое пописание`
     }
 
     let entities = {
@@ -933,6 +1033,20 @@ function edit(entity, id, attr, type, value, container) {
                 })))
             edit.append(f)
         })
+    } else if (type == `stageId`) {
+        load(`stages`).then(authors => {
+            f = ce('select')
+            f.append(ce('option', false, false, `Выберите площадку`, {
+                value: ''
+            }))
+            authors
+                .filter(a => a.active)
+                .sort((a, b) => a.name < b.name ? -1 : 1)
+                .forEach(a => f.append(ce('option', false, false, a.name, {
+                    value: a.id
+                })))
+            edit.append(f)
+        })
     } else if (type == `authorId`) {
         load(`authors`).then(authors => {
             f = ce('select')
@@ -943,6 +1057,20 @@ function edit(entity, id, attr, type, value, container) {
                 .filter(a => a.active)
                 .sort((a, b) => a.name < b.name ? -1 : 1)
                 .forEach(a => f.append(ce('option', false, false, a.name, {
+                    value: a.id
+                })))
+            edit.append(f)
+        })
+    } else if (type == `managerId`) {
+        load(`admins`).then(authors => {
+            f = ce('select')
+            f.append(ce('option', false, false, `Выберите администратора`, {
+                value: ''
+            }))
+            authors
+                .filter(a => a.active)
+                // .sort((a, b) => a.name < b.name ? -1 : 1)
+                .forEach(a => f.append(ce('option', false, false, uname(a,a.id), {
                     value: a.id
                 })))
             edit.append(f)
@@ -982,7 +1110,7 @@ function edit(entity, id, attr, type, value, container) {
             placeholder: `Новое значение`
         })
         edit.append(f)
-    }else {
+    } else {
         f = ce('input', false, false, false, {
             value: value,
             type: type,
@@ -1573,8 +1701,6 @@ function showAuthors() {
         
         mc.append(cc)
 
-        
-
         mc.append(c)
 
         mc.append(archiveButton(c))
@@ -1718,6 +1844,10 @@ function showClass(cl, id) {
 
         p.append(ce('p', false, false, `${drawDate(cl.date._seconds*1000,'ru',{time:true})}`, {
             onclick: () => edit(`classes`, cl.id, `date`, `date`, cl.date)
+        }))
+
+        p.append(ce('p', false, false, cl.stageName || `площадка не указана`, {
+            onclick: () => edit(`classes`, cl.id, `stageId`, `stageId`, cl.stageId)
         }))
 
         p.append(ce('h1', false, false, cl.name, {

@@ -253,14 +253,15 @@ let streams = fb.collection('streams')
 let classAlerts = fb.collection(`classAlerts`)
 let userClassesQ = fb.collection(`userClassesQ`)
 let plansRequests = fb.collection(`plansRequests`);
-let plansUsers = fb.collection(`plansUsers`)
-let adminTokens = fb.collection(`adminTokens`)
-let banks = fb.collection(`banks`)
-let channelStats = fb.collection(`channelStats`)
+let plansUsers =        fb.collection(`plansUsers`)
+let adminTokens =       fb.collection(`adminTokens`)
+let banks =             fb.collection(`banks`)
+let channelStats =      fb.collection(`channelStats`)
 let subscriptionsEmail = fb.collection(`subscriptionsEmail`)
-let tags = fb.collection(`tags`)
-let userTags = fb.collection(`usertags`)
+let tags =              fb.collection(`tags`)
+let userTags =          fb.collection(`usertags`)
 let standAlone =        fb.collection('standAlone');
+let stages =            fb.collection('stages');
 
 if (!process.env.develop) {
 
@@ -719,6 +720,38 @@ router.post(`/auth`, (req, res) => {
 })
 
 
+function addNewStage(req,res,admin){
+    if(!req.body.name) return res.status(400).send(`no name provided`);
+    if(!req.body.address) return res.status(400).send(`no address provided`);
+    return stages.add({
+        createdAt:      new Date(),
+        createdBy:      +admin.id,
+        active:         true,
+        name:           req.body.name,
+        description:    req.body.description || null,
+        address:        req.body.address || null,
+        pic:            req.body.pic || null
+    }).then(rec=>{
+        
+        // res.json({
+        //     success:    true,
+        //     id:         rec.id,
+        //     comment:    `Площадка добавлена`
+        // })
+
+        res.redirect(`/${host}/web?page=stages_${rec.id}`)
+
+        log({
+            stage: rec.id,
+            admin: +admin.id,
+            text: `${uname(admin,admin.id)} добавляет площадку ${req.body.name}.`
+        })
+    }).catch(err=>{
+        console.log(err)
+        // handleError(err,req)
+    })
+}
+
 router.all(`/admin/:method`, (req, res) => {
 
     if (!req.query.id && !req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
@@ -743,6 +776,21 @@ router.all(`/admin/:method`, (req, res) => {
                 let admin = user;
                 if (!user.admin) return res.status(403).send(`Вам сюда нельзя`)
                 switch (req.params.method) {
+
+                    case `admins`:{
+                        return udb.where(`admin`,'==',true).get().then(col=>res.json(common.handleQuery(col)))
+                    }
+
+                    case `stages`:{
+                        switch(req.method){
+                            case `GET`:{
+                                return stages.get().then(col=>res.json(common.handleQuery(col,true)))
+                            }
+                            case `POST`:{
+                                return addNewStage(req,res,admin)
+                            }
+                        }
+                    }
                     case `standAlone`:{
                         switch (req.method){
                             case `POST`:{
@@ -1793,7 +1841,23 @@ router.all(`/admin/:data/:id`, (req, res) => {
         udb.doc(doc.user.toString()).get().then(admin => {
             switch (req.params.data) {
 
-                
+                case `stages`:{
+                    let ref = stages.doc(req.params.id);
+                    return ref.get().then(stage => {
+                        if (!stage.exists) return res.sendStatus(404)
+                        switch (req.method) {
+                            case `GET`:{
+                                return res.json(common.handleDoc(stage))
+                            }
+                            case `DELETE`:{
+                                return deleteEntity(req,res,ref,+admin.id)
+                            }
+                            case `PUT`:{
+                                return updateEntity(req,res,ref,+admin.id)
+                            }
+                        }
+                    })
+                }
 
                 case `authors`: {
                     let ref = authors.doc(req.params.id)
@@ -2219,7 +2283,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                                 return res.json(common.handleDoc(doc))
                             }
                             case `DELETE`:{
-                                return deleteEntity(req,res,ref,admin)
+                                return deleteEntity(req,res,ref,+admin.id)
                             }
                             case `PUT`:{
                                 return updateEntity(req,res,ref,+admin.id)
@@ -2370,7 +2434,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                                 return res.json(t)
                             }
                             case `DELETE`: {
-                                deleteEntity(req, res, ref, admin, false, () => removeTags(req.params.id))
+                                deleteEntity(req, res, ref, +admin.id, false, () => removeTags(req.params.id))
                             }
                             case `PUT`: {
                                 updateEntity(req, res, ref, admin.id)
@@ -2492,10 +2556,28 @@ function updateEntity(req, res, ref, adminId,callback) {
             callback()
         }
 
+        if (req.body.attr == `managerId`) {
+            getDoc(udb, req.body.value).then(a => {
+                ref.update({
+                    managerName: uname(a,a.id)
+                })
+            })
+        }
+
+
+
         if (req.body.attr == `authorId`) {
             getDoc(authors, req.body.value).then(a => {
                 ref.update({
                     author: a.name
+                })
+            })
+        }
+
+        if (req.body.attr == `stageId`) {
+            getDoc(stages, req.body.value).then(a => {
+                ref.update({
+                    stageName: a.name
                 })
             })
         }
@@ -4182,9 +4264,9 @@ router.post('/hook', (req, res) => {
                         .where(`user`, '==', +u.id)
                         .get()
                         .then(col => {
-                            let tickets = common.handleQuery(col).filter(t=>!t.isPayed && !t.status)
-
-                            common.devlog(tickets)
+                            let tickets = common
+                                .handleQuery(col)
+                                .filter(t=>!t.isPayed && !t.status)
 
                             if (tickets.length) {
                                 let data = [];
