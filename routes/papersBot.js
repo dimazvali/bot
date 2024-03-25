@@ -1,5 +1,5 @@
-let ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
-let ngrok2 = process.env.ngrok 
+let ngrok2 = "https://a751-109-172-156-240.ngrok-free.app" 
+let ngrok = process.env.ngrok 
 
 var express =   require('express');
 var router =    express.Router();
