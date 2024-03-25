@@ -57,6 +57,9 @@ const {
 const {
     sendAt
 } = require('cron');
+
+var RSS = require('rss');
+
 const { ObjectStreamToJSON } = require('sitemap');
 const { retail } = require('googleapis/build/src/apis/retail/index.js');
 
@@ -2906,6 +2909,40 @@ function alertMiniStats(days){
             
         })
 }
+
+router.get('/rss', function (req, res) {
+    let feed = new RSS({
+        title:      'Papers Kartule',
+        description: 'Лекторий, коворкинг и подкаст-студия в центре Тбилиси.',
+        feed_url: 'https://papers.dimazvali.com/rss',
+        site_url: 'https://papers.dimazvali.com/',
+        // image_url: 'https://s.restorating.ru/w/1280x720/image/og_logo_new[1].jpg',
+        webMaster: 'dimazvali@gmail.com',
+        copyright: 'papers.dimazvali.com',
+        custom_namespaces: {
+            yandex: "http://news.yandex.ru",
+            media: "http://search.yahoo.com/mrss/",
+            turbo: "http://turbo.yandex.ru"
+        }
+    });
+
+    classes.where(`active`,'==',true).get().then(col=>{
+        common.handleQuery(col,true).forEach(cl=>{
+            feed.item({
+                title: cl.name,
+                description: cl.description,
+                url: 'https://papers.dimazvali.com/classes/' + cl.id,
+                guid: cl.id,
+                date: new Date(cl.createdAt._seconds*1000)
+            })
+        })
+        res.attachment('some.xml');
+        res.status(200).send(feed.xml());
+    })
+
+
+    // res.sendFile(feed.xml())
+})
 
 router.get(`/`,(req,res)=>{
     
