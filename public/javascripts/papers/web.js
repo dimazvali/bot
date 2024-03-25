@@ -15,7 +15,7 @@ function closeLeft() {
 }
 
 const appLink = `https://t.me/paperstuffbot/app`
-const web = `https://dimazvali-a43369e5165f.herokuapp.com/paper/mini`
+const web = `https://papers.dimazvali.com`
 
 
 if(start){

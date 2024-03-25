@@ -2948,7 +2948,7 @@ let siteSectionsTypes = {
     }
 }
 
-router.get(`//:section`,(req,res)=>{
+router.get(`/:section`,(req,res)=>{
 
     devlog(rules)
 
@@ -3035,7 +3035,7 @@ router.get(`//:section`,(req,res)=>{
     }
 })
 
-router.get(`//:section/:id`,(req,res)=>{
+router.get(`/:section/:id`,(req,res)=>{
     
     let response = {
         translations:       translations,

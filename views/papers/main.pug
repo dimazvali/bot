@@ -5,21 +5,21 @@ block content
     for c in classes.slice(0,1)
         //- include classLine
         if(c.pic)
-            img.cover.up(src!=c.pic onclick="window.location.pathname='/paper/mini/classes/"+c.id+"'")
+            img.cover.up(src!=c.pic onclick="window.location.pathname='/classes/"+c.id+"'")
         else
             include classLine
     h1 А дальше?..
     for c in classes.slice(1,3)
         include classLine
     .sDivided
-        h3(onclick='window.open("/paper/mini/classes")') Расписание 
+        h3(onclick='window.open("/classes")') Расписание 
     .sDivided
-        h2(onclick='window.open("/paper/mini/coworking")') Коворкинг
+        h2(onclick='window.open("/coworking")') Коворкинг
     .sDivided
-        h2(onclick='window.open("/paper/mini/coworking/pKpZXjdqRX4UcFawHb9I")') Подкаст-студия
+        h2(onclick='window.open("/coworking/pKpZXjdqRX4UcFawHb9I")') Подкаст-студия
     .sDivided
-        h2(onclick='window.open("/paper/mini/authors")') Резиденты
+        h2(onclick='window.open("/authors")') Резиденты
     .sDivided
-        h2(onclick='window.open("/paper/mini/staff")') Редакция
+        h2(onclick='window.open("/staff")') Редакция
     for p in pages
-        h2(onclick='window.open("/paper/mini/static/'+p.slug+'")')!=p.name
+        h2(onclick='window.open("/static/'+p.slug+'")')!=p.name
