@@ -459,9 +459,9 @@ router.post(`/hook`, (req, res) => {
                                                 taskSubmission: null,
                                                 file: true,
                                                 createdAt: new Date(),
-                                                user: +user.id,
-                                                file_id: req.body.message.document.file_id,
-                                                thumb: req.body.message.document.thumbnail.file_id
+                                                user:       +user.id,
+                                                file_id:    req.body.message.document.file_id,
+                                                thumb:      req.body.message.document.thumbnail ? req.body.message.document.thumbnail.file_id : null
                                             }).then(message => {
                                                 m.sendMessage2({
                                                     chat_id: user.id,
