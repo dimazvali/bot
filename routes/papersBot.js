@@ -2907,7 +2907,7 @@ function alertMiniStats(days){
         })
 }
 
-router.get(`/mini`,(req,res)=>{
+router.get(`/`,(req,res)=>{
     
     devlog(coworkingRules)
 
@@ -2948,7 +2948,7 @@ let siteSectionsTypes = {
     }
 }
 
-router.get(`/mini/:section`,(req,res)=>{
+router.get(`//:section`,(req,res)=>{
 
     devlog(rules)
 
@@ -3035,7 +3035,7 @@ router.get(`/mini/:section`,(req,res)=>{
     }
 })
 
-router.get(`/mini/:section/:id`,(req,res)=>{
+router.get(`//:section/:id`,(req,res)=>{
     
     let response = {
         translations:       translations,
