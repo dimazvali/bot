@@ -3190,6 +3190,49 @@ router.get(`/:section/:id`,(req,res)=>{
             
                 if(!c) return res.sendStatus(404)
     
+                let googleData = {
+                    "@context": "https://schema.org",
+                    "@type": "Event",
+                    "name": c.name,
+                    "startDate": c.date,
+                    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+                    "eventStatus": "https://schema.org/EventScheduled",
+                    "location": {
+                      "@type": "Place",
+                      "name": "Papers Space",
+                      "address": {
+                        "@type": "PostalAddress",
+                        "streetAddress": "1/10, 1 Veriko Anjaparidze St",
+                        "addressLocality": "Tbilisi",
+                        "postalCode": "0100",
+                        "addressRegion": "Tbilisi",
+                        "addressCountry": "GE"
+                      }
+                    },
+                    "image": [
+                      c.pic
+                     ],
+                    "description": c.description,
+                    "offers": {
+                      "@type": "Offer",
+                      "url":    appLink + '?startapp=classes_'+c.id,
+                      "price": c.price,
+                      "priceCurrency": "GEL",
+                      "availability": "https://schema.org/InStock",
+                      "validFrom": new Date(c.createdAt._seconds).toISOString()
+                    },
+                    "performer": {
+                      "@type": "PerformingGroup",
+                      "name": c.authorName
+                    },
+                    "organizer": {
+                      "@type": "Organization",
+                      "name": "Papers Space",
+                      "url": "https://papers.dimazvali.com"
+                    }
+                  }
+
+
                 views.add({
                     entity:     `classes`,
                     date:       new Date(),
@@ -3209,7 +3252,8 @@ router.get(`/:section/:id`,(req,res)=>{
                     coworkingRules:     coworkingRules,
                     drawDate:(d,l,t)=>  drawDate(d,false,t),
                     lang:               req.language.split('-')[0],
-                    cur:(p,cur)=>       common.cur(p,cur)
+                    cur:(p,cur)=>       common.cur(p,cur),
+                    json:               JSON.stringify(googleData)
                 })
             })
         }
