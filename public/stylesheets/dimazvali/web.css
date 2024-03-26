@@ -838,4 +838,14 @@ button.deleteButton {
 
 div#content {
     padding: 0 20px;
+    max-width: 600px;
+    margin: 0 auto 0 10vw;
+}
+
+p.footer {
+    margin: 0 auto;
+    text-align: center;
+    font-family: 'oi';
+    letter-spacing: 2px;
+    font-weight: 100;
 }
