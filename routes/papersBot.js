@@ -1479,7 +1479,7 @@ router.all(`/admin/:method`, (req, res) => {
                                     }).catch(err => {
                                         res.status(500).send(err.message)
                                     })
-                                if (inc[1] == 'userClasses') return acceptTicket(inc[1])                                    
+                                if (inc[1] == 'userClasses') return acceptTicket(inc[0])                                    
                             }
                         }
                     }
