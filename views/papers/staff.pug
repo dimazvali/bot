@@ -1,5 +1,6 @@
 extends site
-
+block back
+    a.headerA(href="/")!=`❰ На главную`
 block content
     h2!=translations.staff[lang] 
     for a in staff
