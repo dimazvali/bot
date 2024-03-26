@@ -291,11 +291,14 @@ function tick(){
         .where(`date`,'<=',new Date().toISOString().split('T')[0])
         .get()
         .then(col=>{
+            // получили потоки
             handleQuery(col).forEach(stream=>{
+                // для каждого потока
                 streamUsers
                     .where(`stream`,'==',stream.id)
                     .get()
                     .then(col=>{
+                        // получаем подписчиков
                         let usersInStream = handleQuery(col).filter(r=>r.payed)
                         let users = [];
                         let uData = {};
@@ -305,20 +308,18 @@ function tick(){
                             uData[rec.user] = rec
                             uData[rec.user].record = rec.id
                         })
-
-                        
                         
                         Promise.all(users).then(users=>{
                             
-                            devlog(`подгрузили пользователей`)
+                            // получили пользователей
                             
                             courses.doc(stream.course).get().then(course=>{
                                 course = handleDoc(course)
                                 let shift = Math.floor((+new Date() - +new Date(stream.date))/(24*60*60*1000))
                                 courseDays
-                                    .where(`course`,'==',course.id)
-                                    .where(`index`,'==',shift)
-                                    .where(`active`,'==',true)
+                                    .where(`course`,'==',   course.id)
+                                    .where(`index`,'==',    shift)
+                                    .where(`active`,'==',   true)
                                     .get()
                                     .then(col=>{
                                         handleQuery(col).forEach(day=>{
@@ -380,9 +381,9 @@ udb
         admins = handleQuery(col)
     })
 
-axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(s => {
-    console.log(`vzBot hook set to ${ngrok}`)
-})
+// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(s => {
+//     console.log(`vzBot hook set to ${ngrok}`)
+// })
 
 
 function log(o) {
@@ -2140,19 +2141,4 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
     })
 }
 
-
-// daySteps.where(`active`,'==',true).get().then(col=>{
-//     handleQuery(col).forEach(s=>{
-//         courseDays.doc(s.day).update({
-//             steps: FieldValue.increment(1)
-//         })
-//     })
-// })
-
 module.exports = router;
-
-sendMessage2({
-    chat_id: common.dimazvali,
-    caption: '123',
-    voice: `AwACAgIAAxkBAAIFtmX9jbkM2XK0b99D7C0NPw1RBYIQAAI4RQACXY3wS1LCwpEZnS8ONAQ`,
-},`sendVoice`,token)

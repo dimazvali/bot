@@ -44,14 +44,18 @@ app.use('/igrik',       require('./routes/igrikBot'));
 
 app.use('/paper',       require('./routes/papersBot'));
 app.use(vhost(`papers.*.*`,require('./routes/papersBot')));
-// app.use(vhost(`papers.localhost`,require('./routes/papersBot')))
 
-app.use('/',     require('./routes/dimazvali'));
+
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
+app.use('/dimazvali',     require('./routes/dimazvali'));
+// app.use('/',            require('./routes/dimazvali'));
+
+app.use('/auditoria',           require('./routes/auditoriaBot'));
+app.use(vhost(`auditoria.*.*`,  require('./routes/auditoriaBot')))
+app.use(vhost(`au.localhost`,   require('./routes/auditoriaBot')))
 
 
-app.use('/auditoria',   require('./routes/auditoriaBot'));
-app.use(vhost(`auditoria.*.*`,require('./routes/auditoriaBot')))
+
 
 app.use('/sss',         require('./routes/sss'));
 app.use('/kaha',        require('./routes/kaha'));
