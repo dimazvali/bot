@@ -69,15 +69,15 @@ router.get(`/test`,(req,res)=>{
     
 })
 
-if (!process.env.develop) {
-    cron.schedule(`0,30 * * * *`, () => {
-        tick()
-    })
+// if (!process.env.develop) {
+//     cron.schedule(`0,30 * * * *`, () => {
+//         tick()
+//     })
 
-    cron.schedule(`0 10 * * *`, () => {
-        closeTemp()
-    })
-}
+//     cron.schedule(`0 10 * * *`, () => {
+//         closeTemp()
+//     })
+// }
 
 let gcp = initializeApp({
     credential: cert({
