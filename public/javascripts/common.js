@@ -124,6 +124,16 @@ function subscribe(id){
     }
 }
 
+function clearTags(v) {
+    if (!v) {
+        v = ''
+    }
+    v = v.toString().replace(/<br>/, ' ')
+    return v.toString().replace(/(\<(\/?[^>]+)>)/g, '').replace(/&nbsp;/g, ' ').replace(/&mdash/, '—')
+}
+
+
+
 
 function clearPopUp() {
     let length = document.querySelectorAll('.popup').length;

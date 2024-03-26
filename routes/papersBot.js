@@ -23,6 +23,7 @@ const {
     letterize,
     letterize2,
     shuffle,
+    clearTags
 } = require ('./common.js')
 
 const {
@@ -2964,7 +2965,8 @@ router.get(`/`,(req,res)=>{
                         pages:          common.handleQuery(pages),
                         coworkingRules: coworkingRules,
                         drawDate:(d)=>  drawDate(d),
-                        lang: req.language.split('-')[0]
+                        lang: req.language.split('-')[0],
+                        clearTags:(txt) =>  clearTags(txt)
                     })
                 })
         })
@@ -9640,7 +9642,8 @@ router.get(`/:section`,(req,res)=>{
                         drawDate:(d)=>      drawDate(d),
                         lang:               req.language.split('-')[0],
                         cur:(p)=>           common.cur(p),
-                        uname:(u,id)=>      uname(u,id)
+                        uname:(u,id)=>      uname(u,id),
+                        clearTags:(txt) =>  clearTags(txt)
                     })
                 })
         }
@@ -9660,7 +9663,8 @@ router.get(`/:section`,(req,res)=>{
                         drawDate:(d)=>      drawDate(d),
                         lang:               req.language.split('-')[0],
                         cur:(p)=>           common.cur(p),
-                        uname:(u,id)=>      uname(u,id)
+                        uname:(u,id)=>      uname(u,id),
+                        clearTags:(txt) =>  clearTags(txt)
                     })
                 })
         }
@@ -9679,7 +9683,8 @@ router.get(`/:section`,(req,res)=>{
                         coworkingRules:     coworkingRules,
                         drawDate:(d)=>      drawDate(d),
                         lang:               req.language.split('-')[0],
-                        cur:(p)=>           common.cur(p)
+                        cur:(p)=>           common.cur(p),
+                        clearTags:(txt) =>  clearTags(txt)
                     })
                 })
         }
@@ -9697,7 +9702,8 @@ router.get(`/:section`,(req,res)=>{
                         coworkingRules:     coworkingRules,
                         drawDate:(d)=>      drawDate(d),
                         lang:               req.language.split('-')[0],
-                        cur:(p)=>           common.cur(p)
+                        cur:(p)=>           common.cur(p),
+                        clearTags:(txt) =>  clearTags(txt)
                     })
                 })
         }
@@ -9715,14 +9721,18 @@ router.get(`/:section/:id`,(req,res)=>{
         uname:(u,id)=>      uname(u,id),
         drawDate:(d,l,t)=>  drawDate(d,false,t),
         lang:               req.language.split('-')[0],
-        cur:(p,cur)=>       common.cur(p,cur)
+        cur:(p,cur)=>       common.cur(p,cur),
+        clearTags:(txt) =>  clearTags(txt)
     }
 
     switch (req.params.section){
         case `static`:{
             return standAlone.doc(req.params.id).get().then(page=>{
+                
                 if(!page.exists) return res.sendStatus(404)
+                
                 page = common.handleDoc(page)
+                
                 if(!page.active) return res.sendStatus(404)
                 
                 standAlone.doc(req.params.id).update({
@@ -9752,7 +9762,8 @@ router.get(`/:section/:id`,(req,res)=>{
                         uname:(u,id)=>      uname(u,id),
                         drawDate:(d,l,t)=>  drawDate(d,false,t),
                         lang:               req.language.split('-')[0],
-                        cur:(p,cur)=>       common.cur(p,cur)
+                        cur:(p,cur)=>       common.cur(p,cur),
+                        clearTags:(txt) =>  clearTags(txt)
                     })
                 })
             })
@@ -9891,7 +9902,8 @@ router.get(`/:section/:id`,(req,res)=>{
                     drawDate:(d,l,t)=>  drawDate(d,false,t),
                     lang:               req.language.split('-')[0],
                     cur:(p,cur)=>       common.cur(p,cur),
-                    json:               JSON.stringify(googleData)
+                    json:               JSON.stringify(googleData),
+                    clearTags:(txt) =>  clearTags(txt)
                 })
             })
         }

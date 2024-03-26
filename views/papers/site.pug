@@ -5,9 +5,9 @@ html
     title!=title || `Papers Kartuli`
     meta(name="yandex-verification" content="475ef9740ed79940")
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    meta(name='description' content!=(description || 'Попробуйте — вам понравится.'))
+    meta(name='description' content!=(clearTags(description) || 'Попробуйте — вам понравится.'))
     meta(property='og:title' content!=(title || `Papers Kartuli`))
-    meta(property='og:description' content!=(description || 'Попробуйте — вам понравится.'))
+    meta(property='og:description' content!=(clearTags(description) || 'Попробуйте — вам понравится.'))
     link(rel='icon', type="image/x-icon", href='/images/papers/favicon.ico')
     if (image)
       meta(property='og:image' content!=image)

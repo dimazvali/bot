@@ -381,6 +381,15 @@ function devlog(v) {
     }
 }
 
+function clearTags(v) {
+    if (!v) {
+        v = ''
+    }
+    v = v.toString().replace(/<br>/, ' ')
+    return v.toString().replace(/(\<(\/?[^>]+)>)/g, '').replace(/&nbsp;/g, ' ').replace(/&mdash/, '—')
+}
+
+
 function cur(v,cur) {
     devlog(v)
     devlog(cur)
@@ -517,6 +526,6 @@ function handleError(err,res){
 
 
 module.exports = {
-    handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
+    clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
 };
 
