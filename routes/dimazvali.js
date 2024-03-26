@@ -81,7 +81,8 @@ let sections =                  fb.collection('DIMAZVALIsections');
 let views =                     fb.collection(`DIMAZVALIviews`);
 let logs =                      fb.collection(`DIMAZVALIlogs`);
 let udb =                       fb.collection(`DIMAZVALIusers`);
-// let views =                     fb.collection(`DIMAZVALIviews`);
+let settings =                  fb.collection(`DIMAZVALIsettings`);
+let tags =                      fb.collection(`DIMAZVALItags`);
 
 
 const datatypes = {
@@ -95,24 +96,14 @@ const datatypes = {
     pages: {
         col: pages,
         newDoc: newPage
+    },
+    tags:{
+        col: tags,
+        newDoc: newTag
     }
 }
 
 
-router.get(`/:page`,(req,res)=>{
-    let ref = pages.doc(req.params.page);
-    ref.get().then(p=>{
-        if(!p.exists) return res.sendStatus(404)
-        views.add({
-            page: req.params.page,
-            createdAt: new Date(),
-        })
-        ref.update({
-            views: FieldValue.increment(1)
-        })
-        res.render(`${host}/page`,p.data())
-    })
-})
 
 
 router.post(`/hook`,(req,res)=>{
@@ -302,7 +293,7 @@ function newPage(req,res,admin){
         
         if(s.exists) return res.status(400).send(`слаг уже занят`)
         
-        sections.doc(req.body.slug.toString()).set({
+        pages.doc(req.body.slug.toString()).set({
             createdAt:      new Date(),
             createdBy:      +admin.id,
             active:         true,
@@ -320,6 +311,35 @@ function newPage(req,res,admin){
         })
     })
 }
+
+function newTag(req,res,admin){
+    
+    if(!req.body.slug) return res.status(400).send(`no slug`)
+    if(!req.body.name) return res.status(400).send(`no name`)
+
+    tags.doc(req.body.slug).get().then(s=>{
+        
+        if(s.exists) return res.status(400).send(`слаг уже занят`)
+        
+        tags.doc(req.body.slug.toString()).set({
+            createdAt:      new Date(),
+            createdBy:      +admin.id,
+            active:         true,
+            slug:           req.body.slug,
+            id:             req.body.slug,
+            name:           req.body.name || null,
+            description:    req.body.description  || null,
+            html:           req.body.html || null
+        }).then(rec=>{
+            res.redirect(`/web?tags=pages_${req.body.slug}`)
+            log({
+                admin: +admin.id,
+                text: `${uname(admin,admin.id)} создает тег ${req.body.name}`
+            })
+        })
+    })
+}
+
 
 function alertAdmins(mess) {
     let message = {
@@ -445,7 +465,7 @@ router.get(`/web`,(req,res)=>{
             })
         }) 
 
-    if(!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/paper/auth`)
+    if(!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/auth`)
     
     adminTokens
         .doc(req.signedCookies.adminToken)
@@ -470,6 +490,37 @@ router.get(`/web`,(req,res)=>{
         })
 })
 
+
+router.get(`/`,(req,res)=>{
+    getDoc(settings,`start`).then(about=>{
+        devlog(about)
+        pages
+            .where(`active`,'==',true)
+            .get()
+            .then(col=>{
+                about.pages = handleQuery(col,true)
+                res.render(`${host}/start`,
+                    about
+                )
+            })
+    })
+})
+
+
+router.get(`/:page`,(req,res)=>{
+    let ref = pages.doc(req.params.page);
+    ref.get().then(p=>{
+        if(!p.exists) return res.sendStatus(404)
+        views.add({
+            page: req.params.page,
+            createdAt: new Date(),
+        })
+        ref.update({
+            views: FieldValue.increment(1)
+        })
+        res.render(`${host}/page`,p.data())
+    })
+})
 
 
 

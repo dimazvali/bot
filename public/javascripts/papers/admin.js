@@ -1,9 +1,9 @@
 
-let tg = window.Telegram.WebApp;
-let userid = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : userId
+let tg =        window.Telegram.WebApp;
+let userid =    tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : userId
 let mbbc, mcb = null;
-let host = `paper`
-let appLink = `https://t.me/paperstuffbot/app`
+let host =      `paper`
+let appLink =   `https://t.me/paperstuffbot/app`
 
 axios.get(`/${host}/admin/check?id=${userid}`).then(s=>{
     loader.classList.remove('active')
@@ -419,17 +419,21 @@ function showUserData(type,container,user){
 
 
 function drawDate(d,l,o){
+    
     let options = {
-        weekday: 'short',
-        month: 'short',
-        day:'2-digit',
-        timeZone: 'Asia/Tbilisi'
+        weekday:    'short',
+        month:      'short',
+        day:        '2-digit',
+        timeZone:   'Asia/Tbilisi'
     }
+    
     if(!o) o = {}
+
     if(o.time){
         options.hour= '2-digit',
         options.minute= '2-digit'
     }
+
     if(o.year) options.year = '2-digit'
     
     return new Date(d).toLocaleDateString(`${l||'ru'}-RU`,options)
@@ -458,9 +462,6 @@ function drawClass(l){
         details.append(guests)
 
     c.append(details)
-
-    
-    
 
     c.append(ce('button',false,'dateButton','подробнее',{
         onclick:function(){

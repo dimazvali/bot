@@ -1,7 +1,9 @@
-@font-face {
-    font-family: 'mal';
-    src: url('/stylesheets/au/MalarstvoBlack.woff') format('woff'), /* Modern Browsers */
-         url('/stylesheets/au/MalarstvoBlack.ttf')  format('truetype') /* Safari, Android, iOS */
+.title {
+    font-family: 'Oi';
+    font-size: 8.3vw;
+    text-align: center;
+    text-decoration: none;
+    display: block;
 }
 
 
@@ -11,10 +13,9 @@
 }
 
 body {
-    /* font-family: 'Roboto'; */
+    font-family: 'Oswald';
     background-color: var(--light);
-    font-family: 'Playfair Display';
-    
+    margin: 0;
 }
 
 body.narrow{
@@ -136,12 +137,12 @@ button {
 }
 
 button{
-    font-family: 'Playfair Display';
+    font-family: 'Oswald';
 }
 
 h1,
 h2 {
-    font-family: 'Playfair Display';
+    font-family: 'Oswald';
 }
 
 h1 {
@@ -163,7 +164,7 @@ body.mobile {
 }
 
 div.popup {
-    font-family: 'Playfair Display';
+    font-family: 'Oswald';
     overflow-x: hidden;
 }
 
@@ -833,4 +834,8 @@ label>input {
 
 button.deleteButton {
     background: var(--accent);
+}
+
+div#content {
+    padding: 0 20px;
 }

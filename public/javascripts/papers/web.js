@@ -776,7 +776,7 @@ function edit(entity, id, attr, type, value, container) {
             if (f.value) {
                 axios.put(`/${host}/admin/${entity}/${id}`, {
                         attr: attr,
-                        value: type == `date` ? new Date(f.value) : (type == `number` ? +f.value : f.value)
+                        value: (type == `date` || `datetime-local`) ? new Date(f.value) : (type == `number` ? +f.value : f.value)
                     }).then((s) => {
                         handleSave(s)
                         if (container) container.innerHTML = f.value
@@ -1210,6 +1210,21 @@ function filterUsers(role, container, button,counter) {
 
 
 }
+
+function showViews(){
+    let events = {};
+    let offset = 100
+    let p = preparePopupWeb(`views`,false,false,true)
+        let c = ce(`div`)
+        p.append(c)
+    load(`views`)
+        .then(views=>{
+            views.forEach((v,i)=>{
+                c.append(showViewLine(v))
+            })
+        })
+}
+
 
 function showClass(cl, id) {
     let p = preparePopupWeb(
