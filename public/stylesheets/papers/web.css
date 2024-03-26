@@ -116,6 +116,7 @@ div#left>h3 {
 img.cover {
     width: 300px;
     border-radius: 30px;
+    object-fit: cover;
 }
 
 .content{
@@ -373,3 +374,9 @@ label>input {
 button.deleteButton {
     background: var(--accent);
 }
+
+.story>a{
+    color: var(--dark) !important;
+    font-weight: bold;
+}
+

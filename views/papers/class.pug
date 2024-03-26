@@ -7,7 +7,11 @@ block content
     h1.hA!=cl.name
     if(cl.pic)
         img.cover(src!=cl.pic)
-    h3!=cl.author
+    if(cl.authorId)
+        h3
+            a(href!=`/authors/${cl.authorId}`)!=cl.author
+    else 
+        h3!=cl.author
     p.timing 
         span.date!=drawDate(cl['date'],false,{time:true})
     if(cl.price)

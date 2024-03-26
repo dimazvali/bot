@@ -6,11 +6,9 @@ h1 {
     color: var(--dark);
 }
 
-img.cover {
-    /* max-width: 100%; */
+h3>a {
+    color: var(--dark);
 }
-
-
 body {
     padding: 0 10px;
     box-sizing: border-box;

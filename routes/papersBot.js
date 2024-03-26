@@ -9798,10 +9798,11 @@ router.get(`/:section/:id`,(req,res)=>{
         }
         case `authors`:{
             return getDoc(authors,req.params.id).then(a=>{
-                if(!a) return res.sendStatus(404)
+                
+                if(!a || !a.active) return res.sendStatus(404)
                 
                 views.add({
-                    name:       a.data().name,
+                    name:       a.name,
                     entity:     `authors`,
                     date:       new Date(),
                     id:         req.params.id
