@@ -15,13 +15,24 @@ function sendMessage(m, ep, channel) {
     })
 }
 
-function sendMessage2(m, ep, channel,messages) {
+function sendMessage2(m, ep, channel, messages) {
     
     return axios.post('https://api.telegram.org/bot' + channel + '/' + (ep ? ep : 'sendMessage'), m, {
         headers: {
             'Content-Type': 'application/json'
         }
     }).then(telres => {
+        
+        if(messages && telres.data.ok){
+            messages.add({
+                createdAt:  new Date(),
+                user:       +m.chat_id,
+                text:       m.text || m.caption || null,
+                isReply:    true,
+                photo:      m.photo || null
+            })
+        }
+        
         return telres.data;
         
     }).catch(err => {

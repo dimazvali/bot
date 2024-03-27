@@ -372,7 +372,7 @@ router.post(`/pourMeWine`, (req, res) => {
                 chat_id: req.body.user,
                 caption: translations.winePoured[gifted.data().language_code](req.body.glasses) || translations.winePoured.en(req.body.glasses),
                 photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=wineList`
-            }, 'sendPhoto', token)
+            }, 'sendPhoto', token, messages)
         })
     })
 })
@@ -516,7 +516,7 @@ router.all(`/admin/:method`, (req, res) => {
                         return m.sendMessage2({
                                 chat_id: req.body.user,
                                 text: req.body.text
-                            }, false, token)
+                            }, false, token, messages)
                             .then(r => {
 
                                 devlog(r)
@@ -574,7 +574,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 m.sendMessage2({
                                     chat_id: u.id,
                                     text: translations.deposited(u.deposit)[u.language_code] || translations.deposited(u.deposit).en
-                                },false,token)
+                                },false,token,messages)
                             })
                         })
                     })
@@ -879,7 +879,7 @@ router.all(`/admin/:method`, (req, res) => {
                                             }]
                                         ]
                                     }
-                                }, false, token)
+                                }, false, token, messages)
                             })
                             res.sendStatus(200)
                         })
@@ -995,15 +995,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                         parse_mode: `HTML`,
                                                         protect_content: req.body.safe?true:false,
                                                         disable_notification: req.body.silent?true:false,
-                                                    },false,token).then(res=>{
-                                                        messages.add({
-                                                            createdAt:  new Date(),
-                                                            user:       +u.id || + u.user,
-                                                            text:       req.body.text,
-                                                            news:       rec.id,
-                                                            isReply:    true
-                                                        })
-                                                    })
+                                                    },false,token,messages)
                                                 } else if(req.body.media && req.body.media.length == 1) {
                                                     m.sendMessage2({
                                                         chat_id:    u.user || u.id,
@@ -1012,15 +1004,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                         photo: req.body.media[0],
                                                         protect_content: req.body.safe?true:false,
                                                         disable_notification: req.body.silent?true:false,
-                                                    },`sendPhoto`,token).then(res=>{
-                                                        messages.add({
-                                                            createdAt:  new Date(),
-                                                            user:       +u.id || + u.user,
-                                                            text:       req.body.text,
-                                                            news:       rec.id,
-                                                            isReply:    true
-                                                        })
-                                                    })
+                                                    },`sendPhoto`,token,messages)
                                                 } else if(req.body.media){
                                                     m.sendMessage2({
                                                         chat_id:        u.user || u.id,
@@ -1035,17 +1019,8 @@ router.all(`/admin/:method`, (req, res) => {
                                                         }),
                                                         protect_content: req.body.safe?true:false,
                                                         disable_notification: req.body.silent?true:false,
-                                                    },`sendMediaGroup`,token).then(res=>{
-                                                        messages.add({
-                                                            createdAt:  new Date(),
-                                                            user:       +u.id || + u.user,
-                                                            text:       req.body.text,
-                                                            news:       rec.id,
-                                                            isReply:    true
-                                                        })
-                                                    })
+                                                    },`sendMediaGroup`,token,messages)
                                                 }
-                                                
                                             },i*200)
                                         })
                                     })
@@ -1088,7 +1063,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 m.sendMessage2({
                                     chat_id: user.id,
                                     text: translations.planConfirmed(p)[user.language_code] || translations.planConfirmed(p).en
-                                },false,token)
+                                },false,token,messages)
     
                                 log({
                                     text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${req.body.user}`,
@@ -1271,13 +1246,13 @@ router.all(`/admin/:method`, (req, res) => {
                                                         photo: process.env.ngrok + `/paper/qr?id=${inc[0]}&entity=wineList`,
                                                         chat_id: d.user,
                                                         caption: `Ваш депозит убыл. На балансе ${common.letterize(d.left-1, 'ходка')}`
-                                                    }, 'sendPhoto', token)
+                                                    }, 'sendPhoto', token, messages)
                                                 } else {
                                                     m.sendMessage2({
                                                         photo: process.env.ngrok + `/paper/qr?id=${inc[0]}&entity=wineList`,
                                                         chat_id: d.user,
                                                         caption: `Приплыли. Депозит на нуле. Пора домой`
-                                                    }, 'sendPhoto', token)
+                                                    }, 'sendPhoto', token, messages)
                                                 }
     
                                             }).catch(err => {
@@ -1381,7 +1356,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                 m.sendMessage2({
                                                     chat_id: r.user,
                                                     text: translations.planConfirmed(p)[user.language_code] || translations.planConfirmed(p).en
-                                                },false,token)
+                                                },false,token,messages)
                                                 log({
                                                     text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${uname(user,r.user)}`,
                                                     admin: +req.query.id,
@@ -1697,21 +1672,21 @@ router.all(`/admin/:method`, (req, res) => {
                                             m.sendMessage2({
                                                 chat_id: req.body.user,
                                                 text: translations.congrats[actors[0].language_code] || translations.congrats.en
-                                            }, false, token)
+                                            }, false, token, messages)
                                         }
     
                                         if (req.body.field == 'admin') {
                                             m.sendMessage2({
                                                 chat_id: req.body.user,
                                                 text: `Поздравляем, вы зарегистрированы как админ приложения.`
-                                            }, false, token)
+                                            }, false, token, messages)
                                         }
     
                                         if (req.body.field == 'fellow') {
                                             m.sendMessage2({
                                                 chat_id: req.body.user,
                                                 text: translations.fellow[actors[0].language_code] || translations.fellow.en
-                                            }, false, token)
+                                            }, false, token, messages)
                                         }
                                     }
                                 })
@@ -1758,7 +1733,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 chat_id: u.id,
                                 caption: `Поздравяем! Вы оформили абонемент на вино в Гамоцеме.\n${common.letterize(req.body.left,'ходка')} в вашем распоряжении.\nuse it wisely`,
                                 photo: process.env.ngrok + `/paper/qr?id=${s.id}&entity=wineList`
-                            }, 'sendPhoto', token)
+                            }, 'sendPhoto', token, messages)
                         })
                     })
                 }
@@ -1855,28 +1830,16 @@ function randomCoffee(){
                         }).then(r=>{
                             let txt1 = translations.rcInvite[first.language_code](first,second) || translations.rcInvite.en(first,second)
                             let txt2 = translations.rcInvite[first.language_code](second,first) || translations.rcInvite.en(second,first)
+                            
                             m.sendMessage2({
                                 chat_id:    first.id,
                                 text:       txt1
-                            },false,token).then(()=>{
-                                messages.add({
-                                    createdAt:  new Date(),
-                                    text:       txt1,
-                                    isReply:    true,
-                                    user:       +first.id
-                                })
-                            })
+                            },false,token,messages)
+
                             m.sendMessage2({
                                 chat_id:    second.id,
                                 text:       txt2
-                            },false,token).then(()=>{
-                                messages.add({
-                                    createdAt:  new Date(),
-                                    text:       txt2,
-                                    isReply:    true,
-                                    user:       +second.id
-                                })
-                            })
+                            },false,token,messages)
                         })
                     } else {
                         devlog(`${uname(first,first.id)} перевстречался со всеми`)
@@ -1896,7 +1859,7 @@ function welcome2RC(id){
         m.sendMessage2({
             chat_id: id,
             text: translations.welcome2RC[u.language_code] || translations.welcome2RC.en
-        },false,token)
+        },false,token,messages)
         if(!u.about || !u.occupation){
             m.sendMessage2({
                 chat_id: id,
@@ -1909,7 +1872,7 @@ function welcome2RC(id){
                         }
                     }]]
                 }
-            },false,token)  
+            },false,token,messages)
         }
     })
 }
@@ -2022,28 +1985,14 @@ function alertPlanDisposal(s){
     m.sendMessage2({
         chat_id: s.user,
         text: `Ваша подписка на тарифный план ${s.name} была аннулирована.`
-    },false,token).then(m=>{
-        messages.add({
-            user:       +s.user,
-            text:       `Ваша подписка на тарифный план ${s.name} была аннулирована.`,
-            isReply:    true,
-            createdAt:  new Date()
-        })
-    })
+    },false,token,messages)
 }
 
 function alertCoworkingCancel(rec){
     m.sendMessage2({
         chat_id: rec.user,
         text: `Ваша запись в коворкинг на ${drawDate(rec.date)} была отменена.`
-    },false,token).then(m=>{
-        messages.add({
-            user:       +rec.user,
-            text:       `Ваша запись в коворкинг на ${drawDate(rec.date)} была отменена.`,
-            isReply:    true,
-            createdAt:  new Date()
-        })
-    })
+    },false,token,messages)
 }
 
 router.all(`/admin/:method/:id`,(req,res)=>{
@@ -2344,14 +2293,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                                             m.sendMessage2({
                                                                 chat_id: cwr.data().user,
                                                                 text: txt
-                                                            },false,token).then(s=>{
-                                                                messages.add({
-                                                                    user: +cwr.data().user,
-                                                                    createdAt:  new Date(),
-                                                                    text:       txt,
-                                                                    isReply:    true
-                                                                })
-                                                            })
+                                                            },false,token,messages)
                                                         })
                                                     },i+200)
                                                 })
@@ -2999,20 +2941,46 @@ if(process.env.develop){
         // nowShow()
         // checkBeforeRC()
         // requestCoworkingFeedback()
+        // m.sendMessage2({
+        //     chat_id: common.dimazvali,
+        //     text: `Приложенька с дева`,
+        //     reply_markup: {
+        //         inline_keyboard: [
+        //             [{
+        //                 text: `test`,
+        //                 web_app: {
+        //                     url: `${ngrok2}/paper/app`
+        //                 }
+        //             }]
+        //         ]
+        //     }
+        // }, false, token, messages)
+
         m.sendMessage2({
             chat_id: common.dimazvali,
-            text: `Приложенька с дева`,
+            photo: `https://firebasestorage.googleapis.com/v0/b/paperstuff-620fa.appspot.com/o/random%2Frc.jpg?alt=media&token=85d36cca-9107-4580-a973-daa29a159083`,
+            caption: `Привет! Это команда Papers.
+            
+На этот бот подписаны почти три тысячи человек из сферы IT, медиа, дизайна, бизнеса и НКО. Многие успели познакомиться в коворкинге, на лекциях и комьюнити-днях, но мы решили пойти дальше — и запустить сервис случайных знакомств для неслучайных людей по принципу random coffee.
+
+История random coffee началась 11 лет назад, ее придумали в Англии для того, чтобы сотрудники социального агентства NESTA перестали стесняться разговаривать друг с другом. У них получилось.
+
+Как это работает: 
+
+1️⃣ Вы подтверждаете согласие на участие в программе (кнопка внизу) и заполняете профиль в приложении (сфера деятельности и пара слов о себе — ваш пол, возраст и прочие щепетильности не играют никакой роли).
+2️⃣ Каждый четверг бот подбирает вам нового собеседника — и представляет его. Далее вы можете договориться о встрече онлайн или офлайн. Если вы уезжаете из города или просто не хотите ни с кем разговаривать, вы можете пропустить тур — или вовсе выйти из программы.`,
             reply_markup: {
                 inline_keyboard: [
                     [{
-                        text: `test`,
-                        web_app: {
-                            url: `${ngrok2}/paper/app`
-                        }
+                        text: `Включить random coffee`,
+                        callback_data: `random_subscribe`
                     }]
                 ]
             }
-        }, false, token)
+        },`sendPhoto`,token,messages).then(s=>{
+            devlog(s)
+        })
+
         res.sendStatus(200)
     })
 }
@@ -3079,15 +3047,7 @@ function feedBackRequest(c){
                                     
                                 ]
                             }
-                        },false,token)
-                        
-                        messages.add({
-                            user: ticket.user,
-                            text: translations.feedBackRequest(ticket)[user.language_code] || translations.feedBackRequest(ticket).en,
-                            createdAt: new Date(),
-                            isReply: true
-                        })
-                        
+                        },false,token,messages)
                     })
                     
                 })
@@ -3221,7 +3181,7 @@ function remindOfClass(rec) {
                     }]
                 ]
             }
-        }, false, token)
+        }, false, token, messages)
     })
 }
 
@@ -3249,7 +3209,7 @@ function remindOfCoworking(rec) {
             //         callback_data: `pay_coworking_${rec.id}`
             //     }])
             // }
-            m.sendMessage2(message, false, token)
+            m.sendMessage2(message, false, token, messages)
         })
 
     })
@@ -3284,7 +3244,7 @@ function alertSoonMR() {
                                     }]
                                 ]
                             }
-                        }, false, token)
+                        }, false, token, messages)
                     })
 
                 }
@@ -3407,7 +3367,7 @@ function bookClass(user, classId, res, id) {
                                                                 //     }]
                                                                 // ]
                                                             }
-                                                        }, 'sendPhoto', token).then(data => {
+                                                        }, 'sendPhoto', token, messages).then(data => {
                                                             m.sendMessage2({
                                                                 chat_id: user.id,
                                                                 message_id: data.result.message_id
@@ -3424,7 +3384,7 @@ function bookClass(user, classId, res, id) {
                                                         // m.sendMessage2({
                                                         //     chat_id: user.id,
                                                         //     text: translations.lectureInvite[user.language_code](c.data()) || translations.lectureInvite.en(c.data()),
-                                                        // }, false, token)
+                                                        // }, false, token, messages)
                         
                                                         m.sendMessage2({
                                                             chat_id: user.id,
@@ -3453,7 +3413,7 @@ function bookClass(user, classId, res, id) {
                                                                 //     }]
                                                                 // ]
                                                             }
-                                                        }, 'sendPhoto', token).then(data => {
+                                                        }, 'sendPhoto', token, messages).then(data => {
                                                             m.sendMessage2({
                                                                 chat_id: user.id,
                                                                 message_id: data.result.message_id
@@ -3493,7 +3453,7 @@ function bookClass(user, classId, res, id) {
                                                     m.sendMessage2({
                                                         chat_id: user.id,
                                                         text: translations.noSeatsLeft[user.language_code] 
-                                                    }, false, token)
+                                                    }, false, token, messages)
                                                 }
 
                                                 log({
@@ -3551,7 +3511,7 @@ function bookClass(user, classId, res, id) {
                                                             //     }]
                                                             // ]
                                                         }
-                                                    }, 'sendPhoto', token).then(data => {
+                                                    }, 'sendPhoto', token, messages).then(data => {
                                                         m.sendMessage2({
                                                             chat_id: user.id,
                                                             message_id: data.result.message_id
@@ -3568,7 +3528,7 @@ function bookClass(user, classId, res, id) {
                                                     // m.sendMessage2({
                                                     //     chat_id: user.id,
                                                     //     text: translations.lectureInvite[user.language_code](c.data()) || translations.lectureInvite.en(c.data()),
-                                                    // }, false, token)
+                                                    // }, false, token, messages)
                     
                                                     m.sendMessage2({
                                                         chat_id: user.id,
@@ -3597,7 +3557,7 @@ function bookClass(user, classId, res, id) {
                                                             //     }]
                                                             // ]
                                                         }
-                                                    }, 'sendPhoto', token).then(data => {
+                                                    }, 'sendPhoto', token, messages).then(data => {
                                                         m.sendMessage2({
                                                             chat_id: user.id,
                                                             message_id: data.result.message_id
@@ -3638,7 +3598,7 @@ function bookClass(user, classId, res, id) {
                         m.sendMessage2({
                             chat_id: user.id,
                             text: translations.alreadyBookedClass[user.language_code] || translations.alreadyBookedClass.en
-                        }, false, token)
+                        }, false, token, messages)
                     }
 
                 }
@@ -3970,7 +3930,7 @@ function alertAdmins(mess) {
     udb.where(`admin`, '==', true).get().then(admins => {
         admins.docs.forEach(a => {
             message.chat_id = a.id
-            if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, false, token)
+            if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, false, token, messages)
         })
     })
 }
@@ -4010,7 +3970,7 @@ function registerUser(u) {
                     }]
                 ]
             }
-        }, false, token)
+        }, false, token, messages)
 
         let d = u;
         d.intention = 'newUser'
@@ -4067,7 +4027,7 @@ function sendMeetingRoom(user) {
                 }]
             })
         }
-    }, false, token)
+    }, false, token, messages)
 }
 
 function sendCoworking(user) {
@@ -4087,7 +4047,7 @@ function sendCoworking(user) {
                         }]
                     })
                 }
-            }, false, token)
+            }, false, token, messages)
 
 
         })
@@ -4116,7 +4076,7 @@ function sendHalls(id, lang) {
                             }]
                         ]
                     }
-                }, 'sendPhoto', token)
+                }, 'sendPhoto', token, messages)
             })
         })
 }
@@ -4758,7 +4718,7 @@ function sendUserClasses(id, lang, past) {
                     m.sendMessage2({
                         chat_id: id,
                         text: translations.noClasses[lang] || translations.noClasses.en
-                    }, false, token)
+                    }, false, token, messages)
                 } else {
                     data.forEach(h => {
                         let message = {
@@ -4906,18 +4866,8 @@ router.post(`/news`, (req, res) => {
                             }
                             // u.id == common.dimazvali &&  
                             if (pass) {
-                                s.push(m.sendMessage2(message, false, token).then(() => true).catch(err => false))
-
-                                messages.add({
-                                    user: u.id,
-                                    text: message.text || message.caption,
-                                    createdAt: new Date(),
-                                    isReply: true
-                                })
+                                s.push(m.sendMessage2(message, false, token,messages).then(() => true).catch(err => false))
                             }
-
-
-
                         })
 
                         Promise.all(s).then(line => {
@@ -4974,7 +4924,7 @@ function sorry(user, type) {
     m.sendMessage2({
         chat_id: user.id,
         text: translations.userBlocked[user.language_code] || translations.userBlocked.en
-    }, false, token)
+    }, false, token, messages)
 
     if (type) {
         alertAdmins({
@@ -5419,7 +5369,7 @@ router.post('/slack', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: inc[1],
                                     text: translations.deposit(+a.value)[user.language_code] || translations.deposit(+a.value).en
-                                }, false, token)
+                                }, false, token, messages)
 
                                 log({
                                     text: `Админ ${data.user.username} зачисляет пользователю ${common.uname(user,inc[1])} депозит в ${common.cur(+a.value,'GEL')}`,
@@ -5470,7 +5420,7 @@ router.post('/slack', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: inc[1],
                                     text: translations.undeposit(+a.value)[user.language_code] || translations.undeposit(+a.value).en
-                                }, false, token)
+                                }, false, token, messages)
 
                                 log({
                                     text: `Админ ${data.user.username} списывает с депозита пользователя ${common.uname(user,inc[1])} ${common.cur(+a.value,'GEL')}`,
@@ -5785,7 +5735,7 @@ router.post('/slack', (req, res) => {
                             if (id != 'name') m.sendMessage2({
                                 chat_id: id,
                                 text: a.value
-                            }, false, token)
+                            }, false, token, messages)
                         })
 
                         log({
@@ -6083,7 +6033,7 @@ router.post('/slack', (req, res) => {
                     m.sendMessage2({
                         chat_id: a.action_id.split('_')[1],
                         text: `🧙: ` + a.value
-                    }, false, token).then(() => {
+                    }, false, token, messages).then(() => {
 
                         axios.post(`https://slack.com/api/chat.postMessage`, {
                             channel: data.container.channel_id,
@@ -6190,7 +6140,7 @@ router.post('/slack', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: u.id,
                                     text: `Поздравляем, вы зарегистрированы как админ приложения`
-                                }, false, token)
+                                }, false, token, messages)
                                 break;
                             }
                             case 'insider': {
@@ -6217,7 +6167,7 @@ router.post('/slack', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: u.id,
                                     text: translations.congrats[u.data().language_code] || translations.congrats.en
-                                }, false, token)
+                                }, false, token, messages)
                                 break;
                             }
 
@@ -6245,7 +6195,7 @@ router.post('/slack', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: u.id,
                                     text: translations.fellow[u.data().language_code] || translations.fellow.en
-                                }, false, token)
+                                }, false, token, messages)
                                 break;
                             }
 
@@ -6453,7 +6403,7 @@ router.post('/slack', (req, res) => {
                                         m.sendMessage2({
                                             chat_id: record.data().user,
                                             text: a.value
-                                        }, false, token)
+                                        }, false, token, messages)
                                     })
                                     res.sendStatus(200)
                                 }).catch(handleError)
@@ -6481,7 +6431,7 @@ router.post('/slack', (req, res) => {
                                                     }]
                                                 ]
                                             }
-                                        }, false, token)
+                                        }, false, token, messages)
                                     })
                                     res.sendStatus(200)
                                 }).catch(handleError)
@@ -6833,7 +6783,7 @@ router.post('/slack', (req, res) => {
                                                     reply_markup: {
                                                         inline_keyboard: ikbd
                                                     }
-                                                }, 'sendPhoto', token)
+                                                }, 'sendPhoto', token, messages)
                                             } else {
 
                                                 let ikbd = [
@@ -6858,7 +6808,7 @@ router.post('/slack', (req, res) => {
                                                     reply_markup: {
                                                         inline_keyboard: ikbd
                                                     }
-                                                }, false, token)
+                                                }, false, token, messages)
                                             }
                                         }
 
@@ -6926,7 +6876,7 @@ router.post('/slack', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: u.id,
                                     text: `Добрый день! Коллега ${data.user.username} просит ответить на вопрос ${nl.name.name.value}\n${nl.text.text.value}.\nОтветить вы сможете через приложение.`
-                                }, false, token)
+                                }, false, token, messages)
 
 
                             })
@@ -7103,7 +7053,7 @@ router.post('/hook', (req, res) => {
                             }]
                         ]
                     }
-                }, false, token)
+                }, false, token, messages)
             }
 
             if (req.body.message.text && req.body.message.text.indexOf('/start class') == 0) {
@@ -7181,7 +7131,7 @@ router.post('/hook', (req, res) => {
                                     }]
                                 ]
                             }
-                        }, false, token)
+                        }, false, token, messages)
 
                         m.sendMessage2({
                             chat_id: user.id,
@@ -7196,7 +7146,7 @@ router.post('/hook', (req, res) => {
                                     }]
                                 ]
                             }
-                        }, false, token)
+                        }, false, token, messages)
                         break;
                     case '/pro':
                         m.sendMessage2({
@@ -7212,7 +7162,7 @@ router.post('/hook', (req, res) => {
                                     }]
                                 ]
                             }
-                        }, false, token)
+                        }, false, token, messages)
                         break;
                     case '/coworking':
                         checkUser(user.id).then(p => {
@@ -7267,7 +7217,7 @@ router.post('/hook', (req, res) => {
                                 chat_id: a.id,
                                 caption: `фото от ${uname(u.data(),u.id)}`,
                                 photo: req.body.message.photo[0].file_id
-                            }, 'sendPhoto', token)
+                            }, 'sendPhoto', token, messages)
                         })
                 })
             }
@@ -7473,7 +7423,7 @@ router.post('/hook', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: inc[2],
                                     text: translations.fellow[userdata.language_code] || translations.fellow.en
-                                }, false, token)
+                                }, false, token, messages)
                             })
                             break;
                         }
@@ -7511,7 +7461,7 @@ router.post('/hook', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: inc[2],
                                     text: translations.congrats[userdata.language_code] || translations.congrats.en
-                                }, false, token)
+                                }, false, token, messages)
                             })
                             break;
                         }
@@ -7548,7 +7498,7 @@ router.post('/hook', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: inc[2],
                                     text: 'Поздравляем, вы зарегистрированы как админ приложения'
-                                }, false, token)
+                                }, false, token, messages)
 
                             })
                             break;
@@ -7807,18 +7757,18 @@ router.post('/hook', (req, res) => {
                                                             return m.sendMessage2({
                                                                 chat_id: user.id,
                                                                 text: translations.youArBanned[user.language_code] || translations.youArBanned.en
-                                                            }, false, token)
+                                                            }, false, token, messages)
                                                         }
 
                                                         if (!u.data().occupation) return m.sendMessage2({
                                                             chat_id: user.id,
                                                             text: translations.noOccupationProvided[user.language_code] || translations.noOccupationProvided.en
-                                                        }, false, token)
+                                                        }, false, token, messages)
 
                                                         if (!u.data().email) return m.sendMessage2({
                                                             chat_id: user.id,
                                                             text: translations.noEmailProvided[user.language_code] || translations.noEmailProvided.en
-                                                        }, false, token)
+                                                        }, false, token, messages)
 
                                                         coworking.add({
                                                             user: +user.id,
@@ -7881,7 +7831,7 @@ router.post('/hook', (req, res) => {
                                                                 m.sendMessage2({
                                                                     chat_id: user.id,
                                                                     photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=coworking`
-                                                                }, 'sendPhoto', token)
+                                                                }, 'sendPhoto', token, messages)
 
                                                             })
                                                         })
@@ -8010,13 +7960,13 @@ router.post('/hook', (req, res) => {
                     m.sendMessage2({
                         chat_id: user.id,
                         text: translations.noAppointment[user.language_code] || translations.noAppointment.en
-                    }, false, token)
+                    }, false, token, messages)
                 } else {
                     if (appointment.data().payed) {
                         m.sendMessage2({
                             chat_id: user.id,
                             text: translations.alreadyPayed[user.language_code] || translations.alreadyPayed.en
-                        }, false, token)
+                        }, false, token, messages)
                     } else {
 
                         classes.doc(appointment.data().class).get().then(c => {
@@ -8069,7 +8019,7 @@ router.post('/hook', (req, res) => {
                                     m.sendMessage2({
                                         chat_id: user.id,
                                         text: translations.whatWasWrong[user.language_code] || translations.whatWasWrong.en
-                                    },false,token)   
+                                    },false,token,messages)   
                                 }
                             } else {
                                 m.sendMessage2({
@@ -8663,7 +8613,7 @@ function alertClassClosed(cl) {
                     m.sendMessage2({
                         chat_id: appointment.user,
                         text: translations.classClosed(cl)[ud.language_code] || translations.classClosed(cl).en
-                    }, false, token)
+                    }, false, token, messages)
                 })
 
             })
@@ -9240,7 +9190,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                                             }]
                                                         ]
                                                     }
-                                                }, 'sendPhoto', token)
+                                                }, 'sendPhoto', token, messages)
                                             } else {
                                                 m.sendMessage2({
                                                     chat_id: u.id,
@@ -9259,7 +9209,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                                             }]
                                                         ]
                                                     }
-                                                }, false, token)
+                                                }, false, token, messages)
                                             }
                                         }
 
@@ -9546,13 +9496,13 @@ router.all(`/api/:data/:id`, (req, res) => {
                                                                             }]
                                                                         ]
                                                                     }
-                                                                }, 'sendPhoto', token)
+                                                                }, 'sendPhoto', token, messages)
 
                                                                 if (bonusText) {
                                                                     m.sendMessage2({
                                                                         chat_id: req.query.user,
                                                                         text: translations.coworkingBookingConfirmedBonus[u.data().language_code] || translations.coworkingBookingConfirmedBonus.en
-                                                                    }, false, token)
+                                                                    }, false, token, messages)
                                                                 }
                                                             })
                                                         })
@@ -10048,7 +9998,7 @@ function bookMR(date, time, userid, callback, res) {
                                         }]
                                     ]
                                 }
-                            }, false, token)
+                            }, false, token, messages)
                         }
 
 
@@ -10096,7 +10046,6 @@ function checkBeforeRC(){
                     let txt = `Привет! Очередной случайный кофе начнется через пару часов. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас». ${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
                     m.sendMessage2({
                         chat_id: user.id,
-                        // chat_id: common.dimazvali,
                         text: txt,
                         reply_markup:{
                             inline_keyboard:[[{
@@ -10107,14 +10056,7 @@ function checkBeforeRC(){
                                 callback_data: `random_unsubscribe`
                             }]]
                         }
-                    },false,token).then(s=>{
-                        messages.add({
-                            createdAt: new Date(),
-                            text: txt,
-                            isReply: true,
-                            user: +user.id
-                        })
-                    })
+                    },false,token,messages)
                 },i*200)
             })
         })
@@ -10139,7 +10081,7 @@ function unClassUser(ref, user, res, id, callback_query) {
                 m.sendMessage2({
                     chat_id: user.id,
                     text: translations.noAppointment[user.language_code] || translations.noAppointment.en
-                }, false, token)
+                }, false, token, messages)
 
 
                 if (res) {
@@ -10221,7 +10163,7 @@ function unClassUser(ref, user, res, id, callback_query) {
                                 m.sendMessage2({
                                     chat_id: user.id,
                                     text: translations.appointmentCancelled[user.language_code] || translations.appointmentCancelled.en
-                                }, false, token)
+                                }, false, token, messages)
         
     
         
@@ -10252,7 +10194,7 @@ function unClassUser(ref, user, res, id, callback_query) {
                         m.sendMessage2({
                             chat_id: user.id,
                             text: translations.unAuthorized[user.language_code] || translations.noAppointment.en
-                        }, false, token)
+                        }, false, token, messages)
                     }
 
                 }
@@ -10361,7 +10303,7 @@ function unbookMR(id, userid, callback, res) {
                 m.sendMessage2({
                     chat_id: user.id,
                     text: translations.error[user.language_code] || translations.error.en
-                }, false, token)
+                }, false, token, messages)
             })
 
         })
@@ -10422,7 +10364,7 @@ function rcFollowUp(id){
                             callback_data: `random_confirm_${couple.id}`
                         }]]
                     }
-                },false,token)
+                },false,token,messages)
                 m.sendMessage2({
                     chat_id: couple.second,
                     text: `Здравствуйте! Как вам кофе? Он вообще состоялся?..`,
@@ -10432,7 +10374,7 @@ function rcFollowUp(id){
                             callback_data: `random_confirm_${couple.id}`
                         }]]
                     }
-                },false,token)
+                },false,token,messages)
             })
         })
 }
@@ -10454,7 +10396,6 @@ function requestCoworkingFeedback(){
                             if(col.docs.length == 1) setTimeout(()=>{
                                 m.sendMessage2({
                                     chat_id: record.user,
-                                    // chat_id: common.dimazvali,
                                     text: `Добрый вечер!\nМы были рады видеть вас в коворкинге Papers.А вы?.. \nПожалуйста, поставьте нам честную оценку. Мы также будем рады любой обратной связи (просто напишите в бот, что вам понравилось — а что могло быть и лучше).`,
                                     reply_markup:{
                                         inline_keyboard:[
@@ -10476,7 +10417,7 @@ function requestCoworkingFeedback(){
                                             }],
                                         ]
                                     }
-                                },false,token)
+                                },false,token,messages)
                             },i*100)
                         })
 
@@ -10527,14 +10468,14 @@ function acceptTicket(ticketId,res){
                                 ]
                             }
                             
-                        }, false, token)
+                        }, false, token, messages)
         
                         classes.doc(t.data().class).get().then(cl=>{
                             if(cl.data().welcome){
                                 m.sendMessage2({
                                     chat_id: user.id,
                                     text: cl.data().welcome
-                                }, false, token)
+                                }, false, token, messages)
                             }
                         })
         
@@ -10548,3 +10489,9 @@ function acceptTicket(ticketId,res){
 }
 module.exports = router;
 
+
+
+
+
+
+//     

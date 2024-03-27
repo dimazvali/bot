@@ -993,15 +993,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                     m.sendMessage2({
                                                         chat_id: u.user || u.id,
                                                         text: req.body.text
-                                                    }, false, token).then(res => {
-                                                        messages.add({
-                                                            createdAt: new Date(),
-                                                            user: +u.id,
-                                                            text: req.body.text,
-                                                            news: rec.id,
-                                                            isReply: true
-                                                        })
-                                                    })
+                                                    }, false, token, messages, {news: rec.id})
                                                 }, i * 200)
                                             })
                                         })
@@ -1080,7 +1072,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                     m.sendMessage2({
                                                         chat_id: r.user,
                                                         text: translations.planConfirmed(p)[user.language_code] || translations.planConfirmed(p).en
-                                                    }, false, token)
+                                                    }, false, token, messages)
                                                     log({
                                                         text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${common.uname(user,r.user)}`,
                                                         admin: +req.query.id,
@@ -1165,7 +1157,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                 }]
                                             ]
                                         }
-                                    }, false, token)
+                                    }, false, token, messages)
                                 })
                                 res.sendStatus(200)
                             })
@@ -1179,19 +1171,11 @@ router.all(`/admin/:method`, (req, res) => {
                             return m.sendMessage2({
                                     chat_id: req.body.user,
                                     text: req.body.text
-                                }, false, token)
+                                }, false, token, messages)
                                 .then(() => {
                                     res.json({
                                         success: true
                                     })
-
-                                    messages.add({
-                                        user: +req.body.user,
-                                        text: req.body.text,
-                                        createdAt: new Date(),
-                                        isReply: true
-                                    })
-
                                 }).catch(err => {
                                     res.json({
                                         success: false
@@ -1383,14 +1367,14 @@ router.all(`/admin/:method`, (req, res) => {
                                                 m.sendMessage2({
                                                     chat_id: req.body.user,
                                                     text: translations.congrats[actors[0].language_code] || translations.congrats.en
-                                                }, false, token)
+                                                }, false, token, messages)
                                             }
 
                                             if (req.body.field == 'admin') {
                                                 m.sendMessage2({
                                                     chat_id: req.body.user,
                                                     text: `Поздравляем, вы зарегистрированы как админ приложения`
-                                                }, false, token)
+                                                }, false, token, messages)
                                             }
                                         }
                                     })
@@ -1883,13 +1867,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                                                         }]
                                                     ]
                                                 }
-                                            }, false, token).then(s => {
-                                                if (s) messages.add({
-                                                    isReply: true,
-                                                    createdAt: new Date(),
-                                                    text: req.body.text
-                                                })
-                                            })
+                                            }, false, token, messages)
                                         }, i * 200)
                                     })
                                     res.json({
@@ -2069,13 +2047,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                                                         }]
                                                     ]
                                                 }
-                                            }, false, token).then(s => {
-                                                if (s) messages.add({
-                                                    isReply: true,
-                                                    createdAt: new Date(),
-                                                    text: req.body.text
-                                                })
-                                            })
+                                            }, false, token, messages)
                                         }, i * 200)
                                     })
                                     res.json({
@@ -2341,13 +2313,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                                                 m.sendMessage2({
                                                     chat_id: r.user,
                                                     text: `Доступ к трансляции ${r.className}:\n${cl.streamDesc}`
-                                                }, false, token).then(s => {
-                                                    messages.add({
-                                                        createdAt: new Date(),
-                                                        user: r.user,
-                                                        text: `Доступ к трансляции ${r.className}:\n${cl.streamDesc}`,
-                                                        isReply: true
-                                                    })
+                                                }, false, token, messages).then(s => {
                                                     streams.doc(r.id).update({
                                                         sent: new Date()
                                                     })
@@ -2730,7 +2696,7 @@ function remindOfClass(rec) {
                     }]
                 ]
             }
-        }, false, token)
+        }, false, token, messages)
     })
 }
 
@@ -2758,7 +2724,7 @@ function remindOfCoworking(rec) {
                     callback_data: `pay_coworking_${rec.id}`
                 }])
             }
-            m.sendMessage2(message, false, token)
+            m.sendMessage2(message, false, token, messages)
         })
 
     })
@@ -3083,7 +3049,7 @@ function bookClass(user, classId, res, id, amount) {
                         m.sendMessage2({
                             chat_id: user.id,
                             text: translations.alreadyBookedClass[user.language_code] || translations.alreadyBookedClass.en
-                        }, false, token)
+                        }, false, token, messages)
                     }
 
                 }
@@ -3128,7 +3094,7 @@ function alertAdmins(mess) {
             message.chat_id = a.id
             if (mess.type != 'stopLog' || !a.data().stopLog) {
 
-                if (!process.env.develop || a.id == common.dimazvali) m.sendMessage2(message, false, token)
+                if (!process.env.develop || a.id == common.dimazvali) m.sendMessage2(message, false, token, messages)
             }
         })
     })
@@ -3186,7 +3152,7 @@ function registerUser(u) {
                     }]
                 ]
             }
-        }, false, token)
+        }, false, token, messages)
 
         let d = u;
         d.intention = 'newUser'
@@ -3232,7 +3198,7 @@ function sendMeetingRoom(user) {
                 }]
             })
         }
-    }, false, token)
+    }, false, token, messages)
 }
 
 function sendCoworking(user) {
@@ -3264,7 +3230,7 @@ function sendCoworking(user) {
                         }]
                     })
                 }
-            }, false, token)
+            }, false, token, messages)
 
         })
 
@@ -3284,7 +3250,7 @@ function sendCoworking(user) {
     //                     }]
     //                 })
     //             }
-    //         }, false, token)
+    //         }, false, token, messages)
 
 
     //     })
@@ -3297,7 +3263,7 @@ function sendSubs(id, lang) {
         if (!col.docs.length) return m.sendMessage2({
             chat_id: id,
             text: translations.noContent[lang] || translations.noContent.en
-        }, false, token)
+        }, false, token, messages)
 
         let subs = common.handleQuery(col);
         subs.forEach(s => {
@@ -3766,7 +3732,7 @@ function sendClasses(id, lang, filter) {
                 m.sendMessage2({
                     chat_id: id,
                     text: translations.noContent[lang] || translations.noContent.en,
-                }, false, token)
+                }, false, token, messages)
             }
         })
 }
@@ -3792,7 +3758,7 @@ function sendUserClasses(id, lang, past) {
                     m.sendMessage2({
                         chat_id: id,
                         text: translations.noClasses[lang] || translations.noClasses.en
-                    }, false, token)
+                    }, false, token, messages)
                 } else {
                     data.forEach(h => {
                         let message = {
@@ -3898,19 +3864,7 @@ router.post(`/news`, (req, res) => {
 
 
                             }
-                            // u.id == common.dimazvali &&  
-                            if (pass) {
-                                s.push(m.sendMessage2(message, false, token).then(() => true).catch(err => false))
-                                messages.add({
-                                    user: u.id,
-                                    text: message.text || message.caption,
-                                    createdAt: new Date(),
-                                    isReply: true
-                                })
-                            }
-
-
-
+                            if (pass) s.push(m.sendMessage2(message, false, token, messages).then(() => true).catch(err => false))
                         })
 
                         Promise.all(s).then(line => {
@@ -3967,7 +3921,7 @@ function sorry(user, type) {
     m.sendMessage2({
         chat_id: user.id,
         text: translations.userBlocked[user.language_code] || translations.userBlocked.en
-    }, false, token)
+    }, false, token, messages)
 
     if (type) {
         alertAdmins({
@@ -4175,7 +4129,7 @@ router.post('/hook', (req, res) => {
                                     }]
                                 ]
                             }
-                        }, false, token)
+                        }, false, token, messages)
 
                         break;
                     case '/pro':
@@ -4192,7 +4146,7 @@ router.post('/hook', (req, res) => {
                                     }]
                                 ]
                             }
-                        }, false, token)
+                        }, false, token, messages)
 
                         m.sendMessage2({
                             chat_id: user.id,
@@ -4207,7 +4161,7 @@ router.post('/hook', (req, res) => {
                                     }]
                                 ]
                             }
-                        }, false, token)
+                        }, false, token, messages)
 
                         break;
                     case '/myclasses':
@@ -4240,7 +4194,7 @@ router.post('/hook', (req, res) => {
                             m.sendMessage2({
                                 chat_id: common.dimazvali,
                                 text: `@${user.username} пишет что-то странное: ${req.body.message.text}`
-                            }, false, token)
+                            }, false, token, messages)
                         }
 
                         break;
@@ -4295,7 +4249,7 @@ router.post('/hook', (req, res) => {
                                                     })
 
                                                 }
-                                            }, false, token)
+                                            }, false, token, messages)
                                         }, i * 100)
                                     })
                                 })
@@ -4399,7 +4353,7 @@ router.post('/hook', (req, res) => {
                     m.sendMessage2({
                         chat_id: ticket.user,
                         text: `Ваш билет на мероприятие ${ticket.className} успешно оплачен.`
-                    }, false, token)
+                    }, false, token, messages)
                 })
 
             })
@@ -4707,7 +4661,7 @@ router.post('/hook', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: inc[2],
                                     text: translations.congrats[userdata.language_code] || translations.congrats.en
-                                }, false, token)
+                                }, false, token, messages)
                             })
                             break;
                         }
@@ -4744,7 +4698,7 @@ router.post('/hook', (req, res) => {
                                 m.sendMessage2({
                                     chat_id: inc[2],
                                     text: 'Поздравляем, вы зарегистрированы как админ приложения! Чтобы открыть админку, отправьте /pro'
-                                }, false, token)
+                                }, false, token, messages)
 
                             })
                             break;
@@ -5012,7 +4966,7 @@ router.post('/hook', (req, res) => {
                                                 return m.sendMessage2({
                                                     chat_id: user.id,
                                                     text: translations.youArBanned[user.language_code] || translations.youArBanned.en
-                                                }, false, token)
+                                                }, false, token, messages)
                                             }
 
                                             coworking.add({
@@ -5159,7 +5113,7 @@ router.post('/hook', (req, res) => {
                     m.sendMessage2({
                         chat_id: user.id,
                         text: translations.noAppointment[user.language_code] || translations.noAppointment.en
-                    }, false, token)
+                    }, false, token, messages)
                 } else {
                     if (appointment.data().user == user.id) {
                         userClasses.doc(inc[1]).update({
@@ -5181,7 +5135,7 @@ router.post('/hook', (req, res) => {
                             m.sendMessage2({
                                 chat_id: user.id,
                                 text: translations.appointmentCancelled[user.language_code] || translations.appointmentCancelled.en
-                            }, false, token)
+                            }, false, token, messages)
 
 
                             axios.post(sheet, `intention=unClass&appointment=${inc[1]}`, {
@@ -5195,7 +5149,7 @@ router.post('/hook', (req, res) => {
                         m.sendMessage2({
                             chat_id: user.id,
                             text: translations.unAuthorized[user.language_code] || translations.noAppointment.en
-                        }, false, token)
+                        }, false, token, messages)
                     }
                 }
 
@@ -5222,13 +5176,13 @@ router.post('/hook', (req, res) => {
                     m.sendMessage2({
                         chat_id: user.id,
                         text: translations.noAppointment[user.language_code] || translations.noAppointment.en
-                    }, false, token)
+                    }, false, token, messages)
                 } else {
                     if (appointment.data().payed) {
                         m.sendMessage2({
                             chat_id: user.id,
                             text: translations.alreadyPayed[user.language_code] || translations.alreadyPayed.en
-                        }, false, token)
+                        }, false, token, messages)
                     } else {
 
                         classes.doc(appointment.data().class).get().then(c => {
@@ -5744,7 +5698,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                     m.sendMessage2({
                                         chat_id: req.query.user,
                                         text: `Вы записались на онлайн-трансляцию мероприятия ${c.name}. Мы пришлем вам ссылку и пароль за полчаса до начала.\nЧтобы оплатить трансляцию, пришлите ${common.cur(c.price3,`GEL`)} на ${c.paymentDesc  || c.bankCreds || `счет GE28TB7303145064400005`} — и скиньте мне скриншот с подтверждением.`
-                                    }, false, token)
+                                    }, false, token, messages)
                                 })
                             })
                         }
@@ -6545,7 +6499,7 @@ function bookMR(date, time, userid, callback, res) {
                                         }]
                                     ]
                                 }
-                            }, false, token)
+                            }, false, token, messages)
                         }
 
 
@@ -6649,7 +6603,7 @@ function unbookMR(id, userid, callback, res) {
                 m.sendMessage2({
                     chat_id: user.id,
                     text: translations.error[user.language_code] || translations.error.en
-                }, false, token)
+                }, false, token, messages)
             })
 
         })
