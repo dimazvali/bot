@@ -593,7 +593,7 @@ function drawSchedule(events, start) {
         let isoDate = date.toISOString().split('T')[0]
         day.append(ce(`h3`, false, false, drawDate(date)))
         events.filter(e => new Date(e.date._seconds * 1000).toISOString().split('T')[0] == isoDate).sort((a, b) => a.date._seconds - b.date._seconds).forEach(e => {
-            let line = ce('p', false, false, `<b>${new Date(e.date._seconds*1000).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}</b>: ${e.name}<br><i>${e.stageName||'без адреса'}</i>`, {
+            let line = ce('p', false, false, `<b>${new Date(e.date._seconds*1000).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}</b>: ${e.name}`, {
                 onclick: () => showClass(e, e.id),
                 dataset:{
                     soldOut:    e.soldOut,
@@ -602,9 +602,14 @@ function drawSchedule(events, start) {
                 }
             })
             day.append(line)
-            // if(e.stageId) load(`stages`,e.stageId).then(s=>{
-            //     line.style.borderLeft = `10px solid ${s.color}`
-            // })
+
+            let stage = ce(`span`,false,`block`,`<i>${e.stageName||'без адреса'}`)
+
+            line.append(stage)
+
+            if(e.stageId) load(`stages`,e.stageId).then(s=>{
+                stage.style.backgroundColor = `${s.color}`
+            })
         })
         c.append(day)
         i++
