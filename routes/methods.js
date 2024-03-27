@@ -1,5 +1,7 @@
 var axios = require('axios');
 
+const { devlog, alertMe } = require('./common');
+
 function sendMessage(m, ep, channel) {
     
     return axios.post('https://api.telegram.org/bot' + channel + '/' + (ep ? ep : 'sendMessage'), m, {
@@ -15,7 +17,7 @@ function sendMessage(m, ep, channel) {
     })
 }
 
-function sendMessage2(m, ep, channel, messages) {
+function sendMessage2(m, ep, channel, messages, extra) {
     
     return axios.post('https://api.telegram.org/bot' + channel + '/' + (ep ? ep : 'sendMessage'), m, {
         headers: {
@@ -24,12 +26,21 @@ function sendMessage2(m, ep, channel, messages) {
     }).then(telres => {
         
         if(messages && telres.data.ok){
-            messages.add({
+            
+            let toLog =  {
                 createdAt:  new Date(),
                 user:       +m.chat_id,
                 text:       m.text || m.caption || null,
                 isReply:    true,
                 photo:      m.photo || null
+            }
+
+            if(extra) Object.keys(extra).forEach(f=>toLog[f]=extra[f])
+
+            messages.add(toLog).then(()=>devlog(`logged ${toLog.text} to ${toLog.user}`)).catch(err=>{
+                alertMe({
+                    text: `Ошибка логирования: ${err.message}`
+                })
             })
         }
         
