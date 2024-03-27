@@ -1930,11 +1930,11 @@ function showClass(cl, id) {
 
         p.append(ce('div', false, `story`, cl.descShort, {
             onclick: () => edit(`classes`, cl.id, `descShort`, `textarea`, cl.descShort)
-        }))
+        },true))
 
         p.append(ce('p', false, `story`, cl.descLong, {
             onclick: () => edit(`classes`, cl.id, `descLong`, `textarea`, cl.descLong)
-        }))
+        },true))
 
         p.append(ce(`p`,false,false,cl.streamDesc ? cl.streamDesc : `параметры трансляции не заданы`,{
             onclick:()=>edit(`classes`, cl.id, `streamDesc`, `text`, cl.streamDesc)
@@ -1954,7 +1954,6 @@ function showClass(cl, id) {
             }
         }))
 
-
         let inc = ce('div')
 
         p.append(inc)
@@ -1970,10 +1969,6 @@ function showClass(cl, id) {
                 }))
             })
         }
-
-        
-
-
 
         let guests = ce('div');
 
@@ -2095,17 +2090,19 @@ function showClass(cl, id) {
 }
 
 function drawStreamLine(s){
-    let c = ce(`div`,false,false,false,{
-        dataset:{active:s.active}
-    })
-    c.append(ce(`span`,false,`info`,drawDate(s.createdAt._seconds*1000)))
+    let c = listContainer(s,true)
+    // c.append(ce(`span`,false,`info`,drawDate(s.createdAt._seconds*1000)))
+    c.append(ce(`p`,false,false,s.userName,{
+        onclick: ()=>showUser(false,s.user)
+    }))
+    
     if(s.payed){
         c.append(ce(`p`,false,false,`Оплачено`))
     } else {
         c.append(ce(`p`,false,false,`Еще не оплачено`))
         c.append(ce(`button`,false,false,`Отметить как оплаченную`,{
             onclick:()=>{
-                update(`streams`,s.id,{payed:true})
+                update(`streams`,s.id,{attr: `payed`, value: true})
             }
         }))
     }
@@ -2251,7 +2248,7 @@ function showUsersChart(userData) {
 
 function update(col,doc,data,text){
     let sure = confirm(text||`Уверены?`)
-    if (sure) return axios.put(`/${host}/admin/${col}/${doc}`,data)
+    if (sure) return axios.put(`/${host}/admin/${col}/${doc}`,data).then(handleSave).catch(handleError)
 }
 
 function showTicket(t, id) {

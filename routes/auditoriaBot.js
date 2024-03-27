@@ -2266,6 +2266,7 @@ router.all(`/admin/:data/:id`, (req, res) => {
                 }
                 case `streams`: {
                     let ref = streams.doc(req.params.id)
+
                     return ref.get().then(s => {
                         if (!s.exists) return res.sendStatus(404)
 
@@ -4214,6 +4215,31 @@ router.post('/hook', (req, res) => {
                         }, i * 100)
                     })
 
+                    streams
+                        .where(`active`, '==', true)
+                        .where(`user`, '==', +u.id)
+                        .get()
+                        .then(col=>{
+                            let possibleStreams = common.handleQuery(col).filter(s=>!s.payed)
+                            if(possibleStreams) admins.forEach((a, i) => {
+                                setTimeout(function () {
+                                    m.sendMessage2({
+                                        chat_id: a.id,
+                                        text: `Если это чек, то вот неоплаченные трансляции:`,
+                                        reply_markup: {
+                                            inline_keyboard: possibleStreams.map(t => {
+                                                return [{
+                                                    text: t.className,
+                                                    callback_data: `payStream_${t.id}`
+                                                }]
+                                            })
+
+                                        }
+                                    }, false, token, messages)
+                                }, i * 100)
+                            })
+                        })
+
                     userClasses
                         .where(`active`, '==', true)
                         .where(`user`, '==', +u.id)
@@ -4310,6 +4336,39 @@ router.post('/hook', (req, res) => {
                     })
                 }
             }
+        }
+
+        if(inc[0] == `payStream`) {
+            let ref = streams.doc(inc[1])
+            ref.get().then(s=>{
+                if(!s.exists) return m.sendMessage2({
+                    callback_query_id: req.body.callback_query.id,
+                    show_alert: true,
+                    text: `Нет такого билета (`
+                }, 'answerCallbackQuery', token)
+
+                s = s.data();
+
+                if(s.payed) return m.sendMessage2({
+                    callback_query_id: req.body.callback_query.id,
+                    show_alert: true,
+                    text: `уже оплачен`
+                }, 'answerCallbackQuery', token)
+
+                ref.update({
+                    payed:      true,
+                    payedAt:    new Date(),
+                    payedBy:    +user.id
+                }).then(s=>{
+                    m.sendMessage2({
+                        callback_query_id: req.body.callback_query.id,
+                        show_alert: true,
+                        text: `Готово!`
+                    }, 'answerCallbackQuery', token)
+                }).catch(err=>{
+                    handleError(err)
+                })
+            })
         }
 
         if (inc[0] == `payClass`) {
