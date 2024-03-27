@@ -9693,7 +9693,8 @@ router.get(`/:section/:id`,(req,res)=>{
                     name:           page.name,
                     description:    page.description,
                     html:           page.html,
-                    pic:            page.pic
+                    pic:            page.pic,
+                    clearTags:(txt)=> clearTags(txt)
                 })
             })
         }

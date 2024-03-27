@@ -1242,7 +1242,6 @@ function showClass(cl, id) {
     }
     Promise.resolve(cl).then(cl => {
         
-
         if(new Date()<new Date(cl.date)){
             let mBox = ce(`div`,false,`flex`)
                 p.append(mBox)
