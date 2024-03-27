@@ -878,7 +878,7 @@ router.all(`/admin/:method`, (req, res) => {
                         return classes.doc(req.query.class).get().then(c => {
                             if (!c.exists) return res.sendStatus(404)
                             let lang = `ru`
-                            let h = c.data();
+                            let h = common.handleDoc(c);
                             let kbd = [
                                 [{
                                     text: `Подробнее`,
