@@ -1887,7 +1887,7 @@ function showClass(cl, id) {
         p.append(alertsContainer)
 
         p.append(ce('p', false, false, `ведет: ${cl.author||`неизвестно кто`}`, {
-            onclick: () => edit(`classes`, cl.id, `author`, `authorId`, cl.authorId)
+            onclick: () => edit(`classes`, cl.id, `authorId`, `authorId`, cl.authorId)
         }))
 
         p.append(ce('p', false, false, `курс: ${cl.course||`Не входит ни в один курс`}`, {

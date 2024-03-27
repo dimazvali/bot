@@ -1232,7 +1232,7 @@ function drawClassPopup(c, id) {
             }))
         }
 
-        p.append(ce('p', false, 'bold', c.descShort))
+        p.append(ce('p', false, 'bold', c.descShort,false,true))
 
         if (c.status == 'used') {
             content.append(drawLectureQuestion(c))
@@ -1240,7 +1240,7 @@ function drawClassPopup(c, id) {
 
 
         if (c.descLong) {
-            let long = ce('p', false, 'hidden', c.descLong)
+            let long = ce('p', false, 'hidden', c.descLong,false,true)
             p.append(long)
             p.append(ce('a', false, 'clickable', `Подробнее`, {
                 onclick: function () {

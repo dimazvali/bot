@@ -67,13 +67,13 @@ function drawDate(d,l,o){
 
 
 
-function ce(tag, id, classList, innerHTML, options) {
+function ce(tag, id, classList, innerHTML, options, innerText) {
     var t = document.createElement(tag);
     if (id) {
         t.id = id;
     }
     if (innerHTML) {
-        t.innerHTML = innerHTML;
+        t[innerText ? 'innerText' : 'innerHTML'] =  innerHTML;
     }
     if (classList) {
         if (typeof classList == 'object') {

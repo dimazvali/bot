@@ -37,7 +37,7 @@ function sendMessage2(m, ep, channel, messages, extra) {
 
             if(extra) Object.keys(extra).forEach(f=>toLog[f]=extra[f])
 
-            messages.add(toLog).then(()=>devlog(`logged ${toLog.text} to ${toLog.user}`)).catch(err=>{
+            messages.add(toLog).then(()=>devlog(`logged ${(toLog.text || '').slice(0,10)} to ${toLog.user}`)).catch(err=>{
                 alertMe({
                     text: `Ошибка логирования: ${err.message}`
                 })
