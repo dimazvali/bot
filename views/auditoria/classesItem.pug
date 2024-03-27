@@ -9,6 +9,8 @@ block content
     p.timing
         span.date!=drawDate(data.date._seconds*1000,'ru')
         span.time!=new Date(data.date._seconds*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'Asia/Tbilisi'})
+    if(data.stageName)
+        p!=`Где: ${data.stageName}`
     if (data.author)
         a.clickable(href!=`/auditoria/site/${city}/authors/${data.authorId}`)!=data.author
     if (data.course)

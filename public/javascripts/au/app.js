@@ -1194,6 +1194,8 @@ function drawClassPopup(c, id) {
 
         p.append(ce('p', false, 'timing', `<span class="date">${drawDate(c.date._seconds*1000)}</span> <span class="time">${new Date(c.date._seconds*1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit',timeZone: 'Asia/Tbilisi'})}</span>`))
 
+        if(c.stageName) p.append(ce(`p`,false,false,`Где: ${c.stageName}.`))
+
         if (c.author) {
             if (c.authorId) {
                 p.append(ce('a', false, `clickable`, c.author, {

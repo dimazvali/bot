@@ -593,13 +593,18 @@ function drawSchedule(events, start) {
         let isoDate = date.toISOString().split('T')[0]
         day.append(ce(`h3`, false, false, drawDate(date)))
         events.filter(e => new Date(e.date._seconds * 1000).toISOString().split('T')[0] == isoDate).sort((a, b) => a.date._seconds - b.date._seconds).forEach(e => {
-            day.append(ce('p', false, false, `<b>${new Date(e.date._seconds*1000).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}</b>: ${e.name}`, {
+            let line = ce('p', false, false, `<b>${new Date(e.date._seconds*1000).toLocaleTimeString([],{ hour: "2-digit", minute: "2-digit" })}</b>: ${e.name}<br><i>${e.stageName||'без адреса'}</i>`, {
                 onclick: () => showClass(e, e.id),
                 dataset:{
                     soldOut:    e.soldOut,
-                    kids:       e.kids
+                    kids:       e.kids,
+                    stage:      e.stageId
                 }
-            }))
+            })
+            day.append(line)
+            // if(e.stageId) load(`stages`,e.stageId).then(s=>{
+            //     line.style.borderLeft = `10px solid ${s.color}`
+            // })
         })
         c.append(day)
         i++
