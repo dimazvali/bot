@@ -1832,8 +1832,18 @@ function showClassEdit(c) {
     let p = preparePopupWeb(`class_edit`)
 
     p.append(ce('h1', false, false, c.name ? `Редактируем мероприятие` : `Новое мероприятие`))
+}
 
 
+
+function showStats(){
+    showScreen(`Доходы`,`stats`,showStatsLine,false,[{
+        income: `По доходу`
+    }])
+}
+
+function showStatsLine(c){
+    let p = listContainer(c,true,{income:`доход`})
 }
 
 function showClass(cl, id) {

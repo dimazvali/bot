@@ -763,6 +763,34 @@ router.all(`/admin/:method`, (req, res) => {
                 if (!user.admin) return res.status(403).send(`Вам сюда нельзя`)
                 switch (req.params.method) {
 
+                    case `stats`:{
+                        let curMonth = new Date().getMonth();
+
+                        let start = new Date().setDate(1)
+                        let finish = new Date(start.setMonth(curMonth+1))
+
+                        return classes
+                            .where(`date`,'>=',start)
+                            .get()
+                            .then(col=>{
+                                let needed = common.handleQuery(col).filter(c=>new Date(c.date._seconds*1000) < finish)
+                                let tickets = [];
+                                
+                                needed.forEach(t=>{
+                                    tickets.push(userClasses.where(`class`,'==',t.id).get().then(col=>common.handleQuery(col)))
+                                })
+
+                                Promise.resolve(tickets).then(tickets=>{
+                                    let res = [];
+                                    needed.forEach((cl,i)=>{
+                                        let t = cl;
+                                        t.tickets = tickets[i];
+                                        t.income = tickets[i].filter(t=>t.payed)
+                                    })
+                                })
+                            })
+                    }
+
                     case `admins`:{
                         return udb.where(`admin`,'==',true).get().then(col=>res.json(common.handleQuery(col)))
                     }

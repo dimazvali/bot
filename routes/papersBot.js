@@ -318,6 +318,7 @@ router.get('/app', (req, res) => {
 
     standAlone
         .where(`active`,'==',true)
+        .where(`appVisible`,'==',true)
         .get()
         .then(static=>{
             res.render('papers/app', {
@@ -708,7 +709,9 @@ router.all(`/admin/:method`, (req, res) => {
                                 })
                         }
                         case `POST`:{
-                            randomCoffee()
+                            
+                            randomCoffee(admin)
+                            
                             log({
                                 silent: true,
                                 text: `${uname(admin,admin.id)} запускает random coffee`,
@@ -1791,67 +1794,114 @@ router.all(`/admin/:method`, (req, res) => {
 })
 
 
-function randomCoffee(){
-    randomCoffees.get().then(col=>{
+function randomCoffee(admin){
+    randomCoffeeIterations.add({
+        createdAt: new Date(),
+        createdBy: +admin.id
+    }).then(rec=>{
+        randomCoffees.get().then(col=>{
         
-        before = common.handleQuery(col)
-
-        udb
-            .where(`randomCoffee`,'==',true)
-            .where(`active`,'==',true)
-            .get()
-            .then(col=>{
-                
-                let users2meet = common.handleQuery(col).filter(u=>u.occupation && u.about).filter(u => !u.randomCoffeePass)
-                
-                devlog(`Количество участников: ${users2meet.length}`)
-
-                while(users2meet.length > 1){
-                    let first = users2meet.splice(0,1)[0]
-                    let exs = before.filter(couple => couple.first == +first.id || couple.second == +first.id).map(couple=>couple.first == +first.id ? couple.second : couple.first)
-                    devlog(exs)
-                    console.log(+first.id)
-                    let news = users2meet.slice().filter(u=>exs.indexOf(+u.id) == -1)
-                    if(news.length){
-                        devlog(`остается ${news.length} новых вариантов`)
+            before = common.handleQuery(col)
+    
+            udb
+                .where(`randomCoffee`,'==',true)
+                .where(`active`,'==',true)
+                .get()
+                .then(col=>{
+                    
+                    let users2meet = common.handleQuery(col)
+                        .filter(u => u.occupation && u.about)
+                        .filter(u => !u.randomCoffeePass)
+                    
+                    devlog(`Количество участников: ${users2meet.length}`)
+    
+                    while(users2meet.length > 1){
+                        let first = users2meet.splice(0,1)[0]
+                        let exs = before
+                            .filter(couple => couple.first == +first.id || couple.second == +first.id)
+                            .map(couple=>couple.first == +first.id ? couple.second : couple.first)
                         
-                        let randomIndex = Math.floor(Math.random()*news.length)
-                        let secondId = news[randomIndex].id
-                        let spliceIndex = users2meet.map(u=>u.id).indexOf(secondId)
-                        let second = users2meet.splice(spliceIndex,1)[0]
+                        let news = users2meet.slice().filter(u=>exs.indexOf(+u.id) == -1)
                         
-                        devlog(`${uname(first,first.id)} встретится с ${uname(second,second.id)}`)
-                        
-                        randomCoffees.add({
-                            active:     true,
-                            createdAt:  new Date(),
-                            first:      +first.id,
-                            second:     +second.id
-                        }).then(r=>{
-                            let txt1 = translations.rcInvite[first.language_code](first,second) || translations.rcInvite.en(first,second)
-                            let txt2 = translations.rcInvite[first.language_code](second,first) || translations.rcInvite.en(second,first)
+                        if(news.length){
+                            devlog(`остается ${news.length} новых вариантов`)
                             
-                            m.sendMessage2({
-                                chat_id:    first.id,
-                                text:       txt1
-                            },false,token,messages)
-
-                            m.sendMessage2({
-                                chat_id:    second.id,
-                                text:       txt2
-                            },false,token,messages)
-                        })
-                    } else {
-                        devlog(`${uname(first,first.id)} перевстречался со всеми`)
+                            let randomIndex = Math.floor(Math.random()*news.length)
+                            let secondId = news[randomIndex].id
+                            let spliceIndex = users2meet.map(u=>u.id).indexOf(secondId)
+                            let second = users2meet.splice(spliceIndex,1)[0]
+                            
+                            devlog(`${uname(first,first.id)} встретится с ${uname(second,second.id)}`)
+                            
+                            randomCoffees.add({
+                                iteration:  rec.id,
+                                active:     true,
+                                createdAt:  new Date(),
+                                first:      +first.id,
+                                second:     +second.id
+                            }).then(r=>{
+                                
+                                let txt1 = translations.rcInvite.ru(first,second) || translations.rcInvite.en(first,second)
+                                let txt2 = translations.rcInvite.ru(second,first) || translations.rcInvite.en(second,first)
+                                
+                                m.sendMessage2({
+                                    chat_id:    first.id,
+                                    text:       txt1,
+                                    parse_mode: `Markdown`,
+                                },false,token,messages)
+    
+                                m.sendMessage2({
+                                    chat_id:    second.id,
+                                    text:       txt2,
+                                    parse_mode: `Markdown`,
+                                },false,token,messages)
+                            })
+                        } else {
+                            devlog(`${uname(first,first.id)} перевстречался со всеми`)
+                        }
                     }
-                }
+    
+                    if(users2meet.length){
+                        
+                        let lastOne = users2meet[0];
 
-                if(users2meet.length){
-                    devlog(users2meet[0])
-                }
-            
+                        m.sendMessage2({
+                            chat_id: lastOne.id,
+                            text: `Простите великодушно. Знаете, как это бывает, когда на десять девчонок... В общем, у нас было нечетное количество участников, поэтому вам в собеседники достается разработчик приложения: Дмитрий @dimazvali.`
+                        },false,token)
+
+                        m.sendMessage2({
+                            chat_id: common.dimazvali,
+                            text: `Поcледний кофейный герой: ${uname(lastOne,lastOne.id)}.`
+                        },false,token)
+
+                        devlog(users2meet[0])
+                    }
+
+                    common.handleQuery(col)
+                        .filter(u => !u.occupation || !u.about)
+                        .forEach((u,x)=>{
+                            setTimeout(()=>{
+                                m.sendMessage2({
+                                    chat_id: u.id,
+                                    text: `Добрый вечер! К сожалению, этот круг random coffee вы пропускаете. Пожалуйста, заполните профиль.`,
+                                    reply_markup:{
+                                        inline_keyboard:[[{
+                                            text: `Заполнить профиль`,
+                                            url: `https://t.me/paperstuffbot/app?startapp=profile`
+                                        }]]
+                                    }
+                                },false,token,messages)
+                            },x*200)
+                        })
+
+                    
+
+                
+            })
         })
     })
+    
 }
 
 function welcome2RC(id){
@@ -2930,16 +2980,72 @@ let siteSectionsTypes = {
 }
 
 
+function sendCoffeInvites(){
+    udb
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            common.handleQuery(col)
+                .filter(u=>!u.rcInvited)
+                .filter(u=>!u.hasOwnProperty(`randomCoffee`))
+                // .slice(0,1)
+                .forEach((u,i)=>{
+                    setTimeout(()=>{
+                        m.sendMessage2({
+                            chat_id: u.id, // common.dimazvali,  
+                            photo: `https://firebasestorage.googleapis.com/v0/b/paperstuff-620fa.appspot.com/o/random%2Frc.jpg?alt=media&token=85d36cca-9107-4580-a973-daa29a159083`,
+                            caption: `Привет! Это команда Papers.
+
+На этот бот подписаны почти три тысячи человек из сферы IT, медиа, дизайна, бизнеса и НКО. Многие успели познакомиться в коворкинге, на лекциях и комьюнити-днях, но мы решили пойти дальше — и запустить сервис случайных знакомств для неслучайных людей по принципу random coffee.
+
+История random coffee началась 11 лет назад, ее придумали в Англии для того, чтобы сотрудники социального агентства NESTA перестали стесняться разговаривать друг с другом. У них получилось.
+
+Как это работает: 
+
+1️⃣ Вы подтверждаете согласие на участие в программе (кнопка внизу) и заполняете профиль в приложении (сфера деятельности и пара слов о себе — ваш пол, возраст и прочие щепетильности не играют никакой роли).
+2️⃣ Каждый четверг бот подбирает вам нового собеседника — и представляет его. Далее вы можете договориться о встрече онлайн или офлайн. Если вы уезжаете из города или просто не хотите ни с кем разговаривать, вы можете пропустить тур — или вовсе выйти из программы.`,
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [{
+                                        text: `Включить random coffee`,
+                                        callback_data: `random_subscribe`
+                                    }]
+                                ]
+                            }
+                        },`sendPhoto`,token,messages).then(s=>{
+                            udb.doc(u.id.toString()).update({
+                                rcInvited: new Date()
+                            })
+                            
+                        })
+                    },i*300)
+                })
+        })
+}
 
 
 if(process.env.develop){
     router.get('/test', (req, res) => {
+
+        m.getUser(5413806389,udb).then(s=>{
+            m.getUser(common.dimazvali,udb).then(f=>{
+                m.sendMessage2({
+                    chat_id:    common.dimazvali,
+                    parse_mode: `Markdown`,
+                    text:       translations.rcInvite.ru(f,s)
+                },false,token)
+            })
+        })
+        
+        // classReScore(req.query.class || `O1VdmOqMgsDf6ZmIBzPO`)
+        
+        // rcCheckBefore()
+
         // rcResult(`GtpkkujNjhH1QyB0k01d`)
         // rcFollowUp(`GtpkkujNjhH1QyB0k01d`)
         // count'UserEntries(1);
         // randomCoffee()
         // nowShow()
-        // checkBeforeRC()
         // requestCoworkingFeedback()
         // m.sendMessage2({
         //     chat_id: common.dimazvali,
@@ -2956,30 +3062,7 @@ if(process.env.develop){
         //     }
         // }, false, token, messages)
 
-        m.sendMessage2({
-            chat_id: common.dimazvali,
-            photo: `https://firebasestorage.googleapis.com/v0/b/paperstuff-620fa.appspot.com/o/random%2Frc.jpg?alt=media&token=85d36cca-9107-4580-a973-daa29a159083`,
-            caption: `Привет! Это команда Papers.
-            
-На этот бот подписаны почти три тысячи человек из сферы IT, медиа, дизайна, бизнеса и НКО. Многие успели познакомиться в коворкинге, на лекциях и комьюнити-днях, но мы решили пойти дальше — и запустить сервис случайных знакомств для неслучайных людей по принципу random coffee.
-
-История random coffee началась 11 лет назад, ее придумали в Англии для того, чтобы сотрудники социального агентства NESTA перестали стесняться разговаривать друг с другом. У них получилось.
-
-Как это работает: 
-
-1️⃣ Вы подтверждаете согласие на участие в программе (кнопка внизу) и заполняете профиль в приложении (сфера деятельности и пара слов о себе — ваш пол, возраст и прочие щепетильности не играют никакой роли).
-2️⃣ Каждый четверг бот подбирает вам нового собеседника — и представляет его. Далее вы можете договориться о встрече онлайн или офлайн. Если вы уезжаете из города или просто не хотите ни с кем разговаривать, вы можете пропустить тур — или вовсе выйти из программы.`,
-            reply_markup: {
-                inline_keyboard: [
-                    [{
-                        text: `Включить random coffee`,
-                        callback_data: `random_subscribe`
-                    }]
-                ]
-            }
-        },`sendPhoto`,token,messages).then(s=>{
-            devlog(s)
-        })
+        // sendCoffeInvites()
 
         res.sendStatus(200)
     })
@@ -4081,6 +4164,31 @@ function sendHalls(id, lang) {
         })
 }
 
+function rcQuestionsPapersEdition(){
+    let types = [
+        [
+            'Чем ты занимаешься? ',
+            'Как получилось, что ты занимаешься именно этим? ',
+            'Расскажи про рабочий фейл? ',
+            'А про рабочий успех? ',
+            'Что бы ты делала(а), если бы не надо было зарабатывать деньги? ',
+        ],[
+            'Расскажи про самое запоминающееся путешествие?',
+            'Как тебе нравится проводить выходные?',
+            'А может, есть смешная или странная история свидания?',
+            'В каком городе ты хотел(а) бы жить, если бы можно было выбрать любой?',
+        ],[
+            'Как давно ты в Тбилиси/другом городе?',
+            'Хочешь тут остаться?',
+            'Какие места в городе твои любимые?',
+            'А какие места не нравятся?',
+            'Чего тебе не хватает в городе, где ты живешь?',
+        ]
+    ]
+
+    return shuffle(types)[0].map(q=>`— ${q}`).join(`\n`)
+}
+
 
 function rcQuestions(f,s){
     let q = {
@@ -4097,7 +4205,7 @@ function rcQuestions(f,s){
         },
         lawyer: {
             ru: [
-                `А что, вы тоже работали с ФБК?..`,
+                // `А что, вы тоже работали с ФБК?..`,
                 `Вы занимаетесь международным правом — или консультируете на удаленке?`,
                 `А вы знаете приличного бухгалтера в Тбилиси? Очень нужно.`
             ],
@@ -4128,9 +4236,10 @@ function rcQuestions(f,s){
         },
         other: {
             ru: [
-                `Сколько видов харчо успели попробовать?`,
-                `Знаете ли вы, что такое скуф?..`
-
+                `Сколько видов харчо вы успели попробовать?`,
+                `Знаете ли вы, что такое скуф?..`,
+                `Сколько хинкали вы можете съесть за раз?`,
+                `Чем бы вы занимались, если бы не нужно было зарабатывать?`
             ],
             en: [
                 
@@ -4159,9 +4268,13 @@ const translations = {
         ru: `Если не сложно, расскажите, пожалуйста, что вам не понравилось — мы постараемся учесть и исправиться.`,
         en: `Could you please tell us what we should improve?..`
     },
+    // rcInvite:{
+    //     ru:(f,s)=>`Ваш рандомный кофе готов!\nВстречайте [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id}). ${f.occupation == s.occupation ? `Как и вы, э`: `Э`}тот человек работает в области ${s.occupation}.\nА вот, что он пишет о себе сам: ${s.about}.\nДело за малым: договориться о месте и времени встречи. А если стесняетесь, вот вам пара тем для начала беседы: \n${rcQuestionsPapersEdition(f,s)}`,
+    //     en:(f,s)=>`Your random coffee is ready!\nGreet @${s.username}. ${f.occupation == s.occupation ? `Just like you t`: `T `}his person occupation is in ${s.occupation}.\nAnd that's how he/she describes him/herself: ${s.about}.\nDon't feel shy to write and set a place and time for a cup of coffee. You are? Well, here are some topics to start a conversation:\n${rcQuestions(f,s)}`
+    // },
     rcInvite:{
-        ru:(f,s)=>`Ваш рандомный кофе готов!\nВстречайте @${s.username}. ${f.occupation == s.occupation ? `Как и вы, э`: `Э`}тот человек работает в области ${s.occupation}.\nА вот, что он пишет о себе сам: ${s.about}.\nДело за малым: договориться о месте и времени встречи. А если стесняетесь, вот вам пара тем для начала беседы: \n${rcQuestions(f,s)}`,
-        en:(f,s)=>`Your random coffee is ready!\nGreet @${s.username}. ${f.occupation == s.occupation ? `Just like you t`: `T `}his person occupation is in ${s.occupation}.\nAnd that's how he/she describes him/herself: ${s.about}.\nDon't feel shy to write and set a place and time for a cup of coffee. You are? Well, here are some topics to start a conversation:\n${rcQuestions(f,s)}`
+        ru:(f,s)=>`Привет!\nТвой собеседник [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id}). ${f.occupation == s.occupation ? `Как и ты, э`: `Э`}тот человек работает в области ${s.occupation}.\nА вот, что он пишет про себя: ${s.about}.\nДоговоритесь с ним о формате и времени встречи. Если вам будет тяжело начать беседу, вот пара вопросов для старта: \n${rcQuestionsPapersEdition(f,s)}`,
+        en:(f,s)=>`Your random coffee is ready!\nGreet @${s.username}. ${f.occupation == s.occupation ? `Just like you t`: `T `}his person works in ${s.occupation}.\nAnd that's how he/she describes him/herself: ${s.about}.\nDon't feel shy to write and set a place and time for a cup of coffee. Well, here are some topics to start a conversation:\n${rcQuestions(f,s)}`
     },
     rcMissingDetails:{
         ru: `Чтобы все сработало, пожалуйста, заполните профиль.`,
@@ -8021,6 +8134,9 @@ router.post('/hook', (req, res) => {
                                         text: translations.whatWasWrong[user.language_code] || translations.whatWasWrong.en
                                     },false,token,messages)   
                                 }
+
+                                classReScore(ticket.class)
+
                             } else {
                                 m.sendMessage2({
                                     callback_query_id: req.body.callback_query.id,
@@ -10021,14 +10137,17 @@ function handleError(err) {
     }
 }
 
-function checkBeforeRC(){
+function rcCheckBefore(){
     udb
         .where(`randomCoffee`,'==',true)
         .where(`active`,'==',true)
         .get()
         .then(col=>{
 
-            common.handleQuery(col).forEach((user,i)=>{
+            common.handleQuery(col)
+            // .filter(u=>+u.id == common.dimazvali)
+            // .slice(0,1)
+            .forEach((user,i)=>{
                 
                 if(user.randomCoffeePass){
                     udb.doc(user.id).update({
@@ -10044,18 +10163,26 @@ function checkBeforeRC(){
                 devlog(`${uname(user,user.id)}: ${issues.length? issues.join(', ') :`готов`}`)
 
                 setTimeout(()=>{
-                    let txt = `Привет! Очередной случайный кофе начнется через пару часов. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас». ${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
+                    let txt = `Привет! Первый random coffee польется через пару часов. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас». ${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
+                    
+                    let keyBoard = [[{
+                        text:           `Пас`,
+                        callback_data:  `random_pass`
+                    }]]
+
+                    if(issues.length){
+                        keyBoard.push([{
+                            text: `Заполнить профиль`,
+                            url: `https://t.me/paperstuffbot/app?startapp=profile`
+                        }])
+                    }
+                    
                     m.sendMessage2({
                         chat_id: user.id,
+                        // chat_id: common.dimazvali,
                         text: txt,
                         reply_markup:{
-                            inline_keyboard:[[{
-                                text: `Пас`,
-                                callback_data: `random_pass`
-                            }],[{
-                                text: `Выйти из игры`,
-                                callback_data: `random_unsubscribe`
-                            }]]
+                            inline_keyboard:keyBoard
                         }
                     },false,token,messages)
                 },i*200)

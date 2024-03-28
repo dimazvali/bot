@@ -581,7 +581,7 @@ function addScreen(collection,name,o){
 
 }
 
-function showScreen(name, collection, line, addButton){
+function showScreen(name, collection, line, addButton, sort){
     closeLeft()
     let p = preparePopupWeb(collection,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
@@ -589,7 +589,7 @@ function showScreen(name, collection, line, addButton){
         p.innerHTML = '';
         p.append(ce('h1', false, `header2`, name))
 
-        p.append(ce('button', false, false, `Добавить`, {
+        if(addButton) p.append(ce('button', false, false, `Добавить`, {
             onclick: () => addButton()
         }))
 
@@ -600,7 +600,8 @@ function showScreen(name, collection, line, addButton){
         });
 
         let cc = ce('div',false,`controls`)
-            cc.append(sortBlock([{
+
+            let sortAble = [{
                 attr: `name`,
                 name: `По названию`
             },{
@@ -609,7 +610,11 @@ function showScreen(name, collection, line, addButton){
             },{
                 attr: `createdAt`,
                 name: `По дате создания`
-            }],c,docs,line))
+            }]
+
+            if(sort) sort.forEach(t=>sortAble.push(t))
+
+            cc.append(sortBlock(sortAble,c,docs,line))
         
         p.append(cc)
 
@@ -617,6 +622,10 @@ function showScreen(name, collection, line, addButton){
 
         p.append(archiveButton(c))
     })
+    return {
+        container: p,
+        listing: c
+    }
 }
 
 function copyLink(link, app, text){
@@ -688,14 +697,16 @@ function shuffle(array) {
   
 
 function toggleButton(collection, id, attr, value, ifYes,ifNo, cl){
-    let b = ce('button',false,cl||false,value?ifYes:ifNo,{
+    let b = ce('button',false,cl||false,(value?ifYes:ifNo),{
         dataset:{on:value?1:0},
         onclick:function(){
             axios.put(`/${host}/admin/${collection}/${id}`,{
                 attr: attr,
                 value: !(Number(this.dataset.on))
             }).then(s=>{
-                this.dataset.on = !(Number(this.dataset.on))?1:0
+                let newState = !(Number(this.dataset.on)) ? 1 : 0
+                this.dataset.on = newState
+                this.innerHTML = newState ? ifYes : ifNo
                 handleSave(s)
             }).catch(handleError)
         }
@@ -880,6 +891,7 @@ function listContainer(e,detailed,extra){
 
             if(extra) Object.keys(extra).forEach(key=>{
                 if(e[key]) details.append(ce('span',false,`info`,`${extra[key]}: ${e[key]._seconds ? drawDate(e[key]._seconds*1000) : e[key]}`))
+                c.dataset[key] = e[key]
             })
         c.append(details)
     }
@@ -905,7 +917,7 @@ function sortableText(t){
     return txt
 }
 
-function preparePopupWeb(name, link,weblink,state,lb) {
+function preparePopupWeb(name, link,weblink,state,lb,fslink) {
     let c = ce('div', false, 'popupWeb')
     
     c.append(ce('span', false, `closeMe`, `✖`, {
@@ -919,8 +931,10 @@ function preparePopupWeb(name, link,weblink,state,lb) {
 
     if(link)        c.append(copyLink(link,appLink, `ссылка на приложение`))
     if(weblink)     c.append(copyWebLink(web,weblink))
+    if(fslink)      c.append(ce(`a`,false,`thin`,`firestore`,{href: fsdb+fslink,target:'_blank'}))
     if(state)       window.history.pushState({}, "", `web?page=${name}`);
     if(lb)          c.append(lb)
+    
     // if(weblink)c.append(copyLink(link,appLink))
 
     document.body.append(c)

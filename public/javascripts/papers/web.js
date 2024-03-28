@@ -1,6 +1,6 @@
 let userFilters = {};
 
-
+const fsdb = `https://console.firebase.google.com/u/0/project/paperstuff-620fa/firestore/data`
 
 let host = `paper`
 
@@ -575,7 +575,7 @@ function drawSchedule(events, start) {
 
 function newClass(){
     closeLeft()
-    let p = preparePopupWeb(`newClass`,false,false,true)
+    let p = preparePopupWeb(`newClass`,false,false,true,false,`/classes/qATeRPHCEHrFKeO2klJB`)
     p.classList.add('inpC')
     p.append(ce(`h1`,false,false,`Новое мероприятие`))
     
@@ -708,6 +708,7 @@ function edit(entity, id, attr, type, value, container) {
     }
 
     let edit = modal()
+
     edit.append(ce('h2', false, false, `Правим поле ${attrTypes[attr]||attr} для ${entities[entity]||entity}#${id}`))
     let f = ce('input');
     if (type == `date`) {
@@ -764,8 +765,8 @@ function edit(entity, id, attr, type, value, container) {
         edit.append(f)
     } else {
         f = ce('input', false, false, false, {
-            value: value,
-            type: type,
+            value:  value,
+            type:   type,
             placeholder: `Новое значение`
         })
         edit.append(f)
@@ -776,7 +777,7 @@ function edit(entity, id, attr, type, value, container) {
             if (f.value) {
                 axios.put(`/${host}/admin/${entity}/${id}`, {
                         attr: attr,
-                        value: (type == `date` || `datetime-local`) ? new Date(f.value) : (type == `number` ? +f.value : f.value)
+                        value: (type == `date` || type == `datetime-local`) ? new Date(f.value) : (type == `number` ? +f.value : f.value)
                     }).then((s) => {
                         handleSave(s)
                         if (container) container.innerHTML = f.value
@@ -877,6 +878,9 @@ function addStandAlone(){
 function showStandAlonePage(pid){
     let p = preparePopupWeb(`standAlone_${pid}`,false,[`static`,pid],true)
         load(`standAlone`,pid).then(page=>{
+
+
+            p.append(toggleButton(`standAlone`,page.id,`appVisible`,page.appVisible,`Видно в приложении`,`Только для сайта`))
 
             p.append(ce('h1',false,`clickable`,page.name,{
                 onclick: function () {
@@ -1232,7 +1236,8 @@ function showClass(cl, id) {
         `class_${cl.id|| id}`,
         [`classes`, cl.id || id],
         true,
-        logButton(`class`,cl.id||id,`логи`)
+        logButton(`class`,cl.id||id,`логи`),
+        `/classes/${id}`
         )
     
     // p.append()
@@ -1375,7 +1380,7 @@ function showClass(cl, id) {
 
         p.append(ce(`button`,false,[`dateButton`,`dark`],`Изменить продолжительность`,{
             onclick: function () {
-                edit(`classes`, cl.id, `capaccity`, `number`, cl.duration || null)
+                edit(`classes`, cl.id, `duration`, `number`, cl.duration || null)
             }
         }))
 
@@ -1389,7 +1394,7 @@ function showClass(cl, id) {
             onclick: () => showHall(false, cl.hall)
         }))
 
-        p.append(ce('p', false, `story`, cl.description,{
+        p.append(ce('p', false, `story`, cl.description || `Добавьте описание`,{
             onclick: function () {
                 edit(`classes`, cl.id, `description`, `textarea`, cl.description || null, this)
             }

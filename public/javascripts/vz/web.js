@@ -171,7 +171,6 @@ function edit(entity, id, attr, type, value, container) {
 
 window.addEventListener('keydown', (e) => {
     if (e.key == 'Escape') {
-
         if(document.querySelector('.editWindow')){
             document.querySelector('.editWindow').remove()
         } else if(document.querySelector('#hover')){
