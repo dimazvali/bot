@@ -59,11 +59,8 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
                     [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
                 } 
     
-    
                 log(logObject)
             }
-            
-            
 
             res.json({
                 success: true
@@ -160,25 +157,26 @@ const {
 
 let gcp = initializeApp({
     credential: cert({
-        "type": "service_account",
-        "project_id": "auditorium-7e39d",
-        "private_key_id": "fca76d09dd1f013f49a8d8e356abe2d769fa600a",
-        "private_key": process.env.auGCPkey.replace(/\\n/g, '\n'),
-        "client_email": "firebase-adminsdk-gq1zl@auditorium-7e39d.iam.gserviceaccount.com",
-        "client_id": "103448403464129922999",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
+        "type":             "service_account",
+        "project_id":       "auditorium-7e39d",
+        "private_key_id":   "fca76d09dd1f013f49a8d8e356abe2d769fa600a",
+        "private_key":      process.env.auGCPkey.replace(/\\n/g, '\n'),
+        "client_email":     "firebase-adminsdk-gq1zl@auditorium-7e39d.iam.gserviceaccount.com",
+        "client_id":        "103448403464129922999",
+        "auth_uri":         "https://accounts.google.com/o/oauth2/auth",
+        "token_uri":        "https://oauth2.googleapis.com/token",
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-gq1zl%40auditorium-7e39d.iam.gserviceaccount.com"
     }),
     databaseURL: "https://rrspecialsapi.firebaseio.com"
 }, 'auditoria');
+
 let fb = getFirestore(gcp);
 
-let channelLink = 'https://t.me/+yDUeXnlR2r4yMzUy'
-let channel_id = -1002067678991
-
-let appLink = `https://t.me/AuditoraBot/app`
+let channelLink =   'https://t.me/+yDUeXnlR2r4yMzUy'
+let channel_id =    -1002067678991
+let prodChannelId = `@auditoria_tbilisi`
+let appLink =       `https://t.me/AuditoraBot/app`
 
 let token =         process.env.auditoriaToken
 let paymentToken =  process.env.auPaymentToken
@@ -193,18 +191,6 @@ axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/auditori
 let getDoc = common.getDoc;
 
 
-
-// axios.post(`${sheet}?intention=getCategories`).then(s=>{
-//     common.devlog(`categories initiated`)
-// }).catch(err=>{
-//     common.devlog(err)
-// })
-
-// axios.post(`${sheet}?intention=getDishes`).then(s=>{
-//     common.devlog(`dishes initiated`)
-// }).catch(err=>{
-//     common.devlog(err)
-// })
 
 let menuCategories = []
 let menuDishes = [];
@@ -883,32 +869,38 @@ router.all(`/admin/:method`, (req, res) => {
                                 [{
                                     text: `Подробнее`,
                                     url: `${appLink}?startapp=class_${req.query.class}`
-                                    // web_app:{
-                                    //     url: `${ngrok}/${host}/app2?start=class_${req.query.class}`
-                                    // }
                                 }],
                                 [{
                                     text: translations.book[lang] || translations.book.en,
                                     callback_data: 'class_' + req.query.class
                                 }]
                             ]
-                            let message = {
-                                chat_id: channel_id,
-                                text: classDescription(h, 'ru'),
-                                parse_mode: 'HTML',
-                                reply_markup: {
-                                    inline_keyboard: kbd
+
+                            let authorDesc = null;
+
+                            if(h.authorId) authorDesc = getDoc(authors,h.authorId).then(a=>a.description).catch(e=>null)
+                            
+                            Promise.resolve(authorDesc).then(authorDesc=>{
+                                let message = {
+                                    chat_id:    req.query.prod ? prodChannelId :  channel_id,
+                                    text:       classDescription(h, 'ru',authorDesc),
+                                    parse_mode: 'HTML',
+                                    reply_markup: {
+                                        inline_keyboard: kbd
+                                    }
                                 }
-                            }
-                            if (h.pic) {
-                                message.caption = message.text.slice(0, 1000)
-                                message.photo = h.pic
-                                // delete message.text
-                            }
-                            m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
-                            res.json({
-                                success: true
+                                if (h.pic) {
+                                    message.caption = message.text.slice(0, 1000)
+                                    message.photo = h.pic
+                                    // delete message.text
+                                }
+                                m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
+                                res.json({
+                                    success: true
+                                })
                             })
+
+                            
                         })
                     }
                     case `issue`: {
@@ -2629,28 +2621,22 @@ router.get('/qr', async (req, res) => {
 
 router.get('/test', (req, res) => {
     // stopClasses()
-    checkChannel()
+    // checkChannel()
     // alertSoonCoworking();
     // alertSoonClasses();
+
+    m.sendMessage2({
+        chat_id:     req.query.id,
+        text:        req.query.text || `123`,
+    },false,token).then(s=>{
+        devlog(s)
+    })
+
+
     res.sendStatus(200)
 })
 
 
-// udb.get().then(col=>{
-//     col.docs.forEach((u,i)=>{
-//         setTimeout(function(){
-//             let m = u.data();
-//                 m.intention = 'newUser'
-//                 m.id = u.id
-//             axios.post(sheet,Object.keys(m).map(k=>`${k}=${m[k]}`).join('&'),{headers:{ "Content-Type": "application/x-www-form-urlencoded" }}).then(d=>{
-//                 console.log(d.data)
-//             }).catch(err=>{
-//                 console.log(err.message)
-//             })
-//         },i*2500)
-
-//     })
-// })
 
 
 
@@ -2782,7 +2768,7 @@ function bookClass(user, classId, res, id, amount) {
                                 .get()
                                 .then(col => {
 
-                                    let line =      col.docs.length;
+                                    let line =      common.handleQuery(col).reduce((a,b)=>a+Number((b.tickets||0)),0);
                                     let capacity =  c.data().capacity
                                     let seatsData = '';
 
@@ -3154,27 +3140,6 @@ function registerUser(u) {
                 ]
             }
         }, false, token, messages)
-
-        let d = u;
-        d.intention = 'newUser'
-        d.id = u.id
-        d.createdAt = new Date(d.createdAt).toISOString()
-
-        axios.post(sheet, Object.keys(d).map(k => `${k}=${d[k]}`).join('&'), {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            }
-        }).then(d => {
-            console.log(d.data)
-        }).catch(err => {
-            console.log(err.message)
-        })
-
-        alertAdmins({
-            type: 'newUser',
-            text: `Новый пользователь бота:\n${JSON.stringify(u,null,2)}`,
-            user_id: u.id
-        })
 
     }).catch(err => {
         console.log(err)
@@ -3662,10 +3627,12 @@ function randomPic() {
 }
 
 
-function classDescription(h, lang) {
+function classDescription(h, lang,authoDesc) {
+
+    
     return `${common.drawDate(h.date._seconds*1000,lang,{time:true})}.\n
 <b>${h.name}</b>\n
-${h.author ? `<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n` : ''}${h.hallName ? `<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n` : ''}${h.descShort ? `${h.descShort}\n`:''}${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}\n<a href="https://t.me/AuditoraBot?start=quick_class_${h.id}">${translations.tellMeMore[lang] || translations.tellMeMore.en}</a>`
+${h.author ? `<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author} ${authoDesc? `, ${authoDesc}` :''}\n\n` : ''}${h.hallName ? `<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n` : ''}${h.descShort ? `${h.descShort}\n\n`:''}${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}\n\n<a href="https://t.me/AuditoraBot?start=quick_class_${h.id}">${translations.tellMeMore[lang] || translations.tellMeMore.en}</a>`
 }
 
 
@@ -4221,7 +4188,7 @@ router.post('/hook', (req, res) => {
                         .get()
                         .then(col=>{
                             let possibleStreams = common.handleQuery(col).filter(s=>!s.payed)
-                            if(possibleStreams) admins.forEach((a, i) => {
+                            if(possibleStreams.length) admins.forEach((a, i) => {
                                 setTimeout(function () {
                                     m.sendMessage2({
                                         chat_id: a.id,
@@ -4662,17 +4629,6 @@ router.post('/hook', (req, res) => {
                                 updatedBy: +user.id
                             }).then(() => {
 
-                                udb.doc(inc[2]).get().then(u => {
-                                    let m = u.data()
-                                    m.intention = `updateUser`;
-                                    m.id = u.id
-                                    axios.post(sheet, Object.keys(m).map(k => `${k}=${m[k]}`).join('&'), {
-                                        headers: {
-                                            "Content-Type": "application/x-www-form-urlencoded"
-                                        }
-                                    })
-                                })
-
                                 log({
                                     text: `Админ @${user.username} заблокировал пользователя @${userdata.username}`,
                                     user: +inc[2],
@@ -4701,16 +4657,6 @@ router.post('/hook', (req, res) => {
                                     admin: user.id
                                 })
 
-                                udb.doc(inc[2]).get().then(u => {
-                                    let m = u.data()
-                                    m.intention = `updateUser`;
-                                    m.id = u.id
-                                    axios.post(sheet, Object.keys(m).map(k => `${k}=${m[k]}`).join('&'), {
-                                        headers: {
-                                            "Content-Type": "application/x-www-form-urlencoded"
-                                        }
-                                    })
-                                })
 
                                 m.sendMessage2({
                                     callback_query_id: req.body.callback_query.id,
@@ -4735,17 +4681,6 @@ router.post('/hook', (req, res) => {
                                     text: `Админ @${user.username} сделал пользователя @${userdata.username} равным себе`,
                                     user: +inc[2],
                                     admin: user.id
-                                })
-
-                                udb.doc(inc[2]).get().then(u => {
-                                    let m = u.data()
-                                    m.intention = `updateUser`;
-                                    m.id = u.id
-                                    axios.post(sheet, Object.keys(m).map(k => `${k}=${m[k]}`).join('&'), {
-                                        headers: {
-                                            "Content-Type": "application/x-www-form-urlencoded"
-                                        }
-                                    })
                                 })
 
                                 m.sendMessage2({
@@ -5055,12 +4990,6 @@ router.post('/hook', (req, res) => {
                                                     paymentNeeded: u.data().insider ? true : false,
                                                     payed: false
                                                 }
-
-                                                axios.post(sheet, Object.keys(pl).map(k => `${k}=${pl[k]}`).join('&'), {
-                                                    headers: {
-                                                        "Content-Type": "application/x-www-form-urlencoded"
-                                                    }
-                                                })
 
                                                 m.sendMessage2({
                                                     chat_id: user.id,
@@ -6687,3 +6616,6 @@ function removeTags(id) {
 }
 
 module.exports = router;
+
+
+

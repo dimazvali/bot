@@ -1932,7 +1932,7 @@ function showClass(cl, id) {
             onclick: () => edit(`classes`, cl.id, `descShort`, `textarea`, cl.descShort)
         },true))
 
-        p.append(ce('p', false, `story`, cl.descLong, {
+        p.append(ce('p', false, `story`, cl.descLong || `введите развернутое описание`, {
             onclick: () => edit(`classes`, cl.id, `descLong`, `textarea`, cl.descLong)
         },true))
 
@@ -2049,12 +2049,30 @@ function showClass(cl, id) {
             }
         }))
 
-        p.append(ce(`button`, false, `dateButton`, `Запостить в канал`, {
+        p.append(ce(`button`, false, `dateButton`, `Запостить в канал ТЕСТ`, {
             dataset: {
                 booked: 1
             },
             onclick: () => {
                 axios.post(`/${host}/admin/channel?class=${cl.id}`)
+                    .then(s => {
+                        alert(`ok`)
+                    })
+                    .catch(err => {
+                        alert(err.message)
+                    })
+            }
+        }))
+
+        p.append(ce(`button`, false, `dateButton`, `Запостить в канал ПРОД`, {
+            dataset: {
+                booked: 1
+            },
+            onclick: () => {
+
+                let sure = confirm(`В паблик?`)
+
+                if(sure) axios.post(`/${host}/admin/channel?class=${cl.id}&prod=true`)
                     .then(s => {
                         alert(`ok`)
                     })

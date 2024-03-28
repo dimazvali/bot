@@ -202,7 +202,7 @@ function drawClassLine(c) {
     if (c.author) {
         desc.append(ce('h5', false, false, `${c.author}`))
     } else if (c.descShort){
-        desc.append(ce('h5', false, false, `${c.descShort}`))
+        desc.append(ce('h5', false, false, `${c.descShort}`,false,true))
     }
 
     cl.onclick = () => {
