@@ -26,17 +26,22 @@ function sendMessage2(m, ep, channel, messages, extra) {
     }).then(telres => {
         
         if(messages && telres.data.ok){
+
+            devlog(telres.data)
             
             let toLog =  {
                 createdAt:  new Date(),
                 user:       +m.chat_id,
                 text:       m.text || m.caption || null,
                 isReply:    true,
-                photo:      m.photo || null
+                photo:      m.photo || null,
+                messageId:  telres.data.result.message_id
             }
 
             if(extra) Object.keys(extra).forEach(f=>toLog[f]=extra[f])
 
+            devlog(toLog)
+            
             messages.add(toLog).then(()=>devlog(`logged ${(toLog.text || '').slice(0,10)} to ${toLog.user}`)).catch(err=>{
                 alertMe({
                     text: `Ошибка логирования: ${err.message}`

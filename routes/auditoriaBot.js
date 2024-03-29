@@ -1458,6 +1458,8 @@ router.all(`/admin/:method`, (req, res) => {
                             if (!c.exists) return res.sendStatus(404)
 
                             c = c.data()
+
+                            
                             userClasses
                                 .where(`class`, '==', req.body.class)
                                 .where(`active`, '==', true)

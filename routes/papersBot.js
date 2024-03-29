@@ -441,6 +441,17 @@ router.all(`/admin/:method`, (req, res) => {
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
 
+                case `messages`:{
+                    return messages
+                        .orderBy(`createdAt`,`desc`)
+                        .offset(req.query.offset?+req.query.offset:0)
+                        .limit(req.query.limit?+req.query.limit:200)
+                        .get()
+                        .then(col=>{
+                            res.json(common.handleQuery(col))
+                        })
+                }
+
                 case `userSearch`:{
                     if(!req.query.name) return res.sendStatus(400)
                     return Promise.resolve(userList).then(userList=>{
@@ -448,6 +459,7 @@ router.all(`/admin/:method`, (req, res) => {
                     })
                     
                 }
+
 
                 case `mr`:{
                     switch(req.method){
@@ -517,7 +529,9 @@ router.all(`/admin/:method`, (req, res) => {
                         return m.sendMessage2({
                                 chat_id: req.body.user,
                                 text: req.body.text
-                            }, false, token, messages)
+                            }, false, token, messages,{
+                                admin: +admin.id
+                            })
                             .then(r => {
 
                                 devlog(r)
@@ -526,13 +540,7 @@ router.all(`/admin/:method`, (req, res) => {
                                     success: true
                                 })
 
-                                messages.add({
-                                    user:       +req.body.user,
-                                    text:       req.body.text,
-                                    createdAt:  new Date(),
-                                    isReply:    true,
-                                    by:         +admin.id
-                                })
+                                
 
                             }).catch(err => {
                                 res.json({
@@ -2583,13 +2591,76 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                 }
 
                 case `messages`: {
-                    return messages
-                        .where(`user`, '==', +req.params.id)
-                        .orderBy(`createdAt`, 'asc')
-                        .get()
-                        .then(col => {
-                            res.json(common.handleQuery(col))
-                        })
+                    switch (req.method){
+                        case `GET`:{
+                            return messages
+                                .where(`user`, '==', +req.params.id)
+                                .orderBy(`createdAt`, 'asc')
+                                .get()
+                                .then(col => {
+                                    res.json(common.handleQuery(col))
+                                })
+                        }
+                        case `PUT`:{
+                            let ref = messages.doc(req.params.id);
+
+                            return ref.get().then(mess=>{
+                                if(!mess.exists) return res.sendStatus(404);
+                                mess = common.handleDoc(mess);
+                                if(mess.deleted || mess.edited)       return res.status(400).send(`уже удалено`);
+                                if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
+                                
+                                m.sendMessage2({
+                                    chat_id:    mess.user,
+                                    message_id: mess.messageId,
+                                    text:       req.body.value
+                                },`editMessageText`,token).then(resp=>{
+                                    if(resp.ok) {
+                                        res.json({
+                                            success: true,
+                                            comment: `Сообщение обновлено.`
+                                        })
+                                        ref.update({
+                                            text:       req.body.value,
+                                            textInit:   mess.text,
+                                            editedBy:   +admin.id,
+                                            edited:     new Date()
+                                        })
+                                    } else {
+                                        res.sendStatus(500)
+                                    }
+                                })
+                            })
+                        }
+                        case `DELETE`:{
+                            let ref = messages.doc(req.params.id);
+                            return ref.get().then(mess=>{
+                                if(!mess.exists) return res.sendStatus(404);
+                                mess = common.handleDoc(mess);
+                                if(mess.deleted)       return res.status(400).send(`уже удалено`);
+                                if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
+                                
+                                m.sendMessage2({
+                                    chat_id:    mess.user,
+                                    message_id: mess.messageId
+                                },`deleteMessage`,token).then(resp=>{
+                                    if(resp.ok) {
+                                        res.json({
+                                            success: true,
+                                            comment: `Сообщение удалено.`
+                                        })
+                                        ref.update({
+                                            deleted:    new Date(),
+                                            deletedBy:  +admin.id
+                                        })
+                                    } else {
+                                        res.sendStatus(500)
+                                    }
+                                })
+                            })
+                        }
+                    }
+                    
                 }
 
                 case `news`:{
@@ -2778,6 +2849,12 @@ function nowShow(){
         })
 }
 
+
+function alertIncome(){
+    let startDate = new Date()
+}
+
+
 function alertNewClassesOffers(){
     axios.get(`https://api.trello.com/1/lists/6551e8f31844b130a4db500a/cards?key=${process.env.kahaTrelloKey}&token=${process.env.kahaTrelloToken}`).then(data=>{
         data.data.forEach(card=>{
@@ -2824,6 +2901,10 @@ if(!process.env.develop){
         })
 
         updatePlans()
+    })
+
+    cron.schedule(`0 19 * * *`, () => {
+        feedBackTimer()
     })
     
     cron.schedule(`0 5 * * 1`, () => {
@@ -3087,9 +3168,28 @@ if(process.env.develop){
 //     })
 // })
 
+function feedBackTimer(){
+    classes
+        .where(`active`,'==',true)
+        .where(`date`,`>=`,new Date(+new Date() - 24*60*60*1000))
+        .get()
+        .then(col=>{
+            common.handleQuery(col)
+                .filter(c=>!c.feedBackSent)
+                .forEach(c=>{
+                    log({
+                        silent: true,
+                        text:   `Автоматический запрос отзывов на лекцию ${c.name}`,
+                        class:  c.id
+                    })
+                    feedBackRequest(c.id)
+                })
+        })
+}
+
 
 function feedBackRequest(c){
-    return classes.doc(c).get().then(l=>{
+    return getDoc(classes,c).then(l=>{
         return userClasses
             .where(`class`,'==',c)
             .where('active','==',true)
@@ -3101,7 +3201,7 @@ function feedBackRequest(c){
                     m.getUser(ticket.user,udb).then(user=>{
                         m.sendMessage2({
                             chat_id: ticket.user,
-                            text: translations.feedBackRequest(ticket)[user.language_code] || translations.feedBackRequest(ticket).en,
+                            text: translations.feedBackRequest(ticket,l)[user.language_code] || translations.feedBackRequest(ticket,l).en,
                             reply_markup:{
                                 inline_keyboard:[
 
@@ -4013,7 +4113,7 @@ function alertAdmins(mess) {
     udb.where(`admin`, '==', true).get().then(admins => {
         admins.docs.forEach(a => {
             message.chat_id = a.id
-            if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, false, token, messages)
+            if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, false, token)
         })
     })
 }
@@ -4332,10 +4432,10 @@ const translations = {
             en: `Congratulations! You've bought a plan for ${plan.visits} visits and ${plan.events} lectures. Feel free to use it in the next ${plan.days} days.`
         }
     },
-    feedBackRequest:(ticket)=>{
+    feedBackRequest:(ticket,cl)=>{
         return {
-            ru: `Здравствуйте! Как вам наше мероприятие (${ticket.className})? Поставьте оценку (это вполне анонимно).`,
-            en: `Hello! Please, rate the event (${ticket.className}).`
+            ru: `Здравствуйте! Как вам наше мероприятие (${ticket.className})? Поставьте оценку (это вполне анонимно).${cl.slides?`\nКстати, презентацию этой лекции вы можете открыть по <a href="${cl.slides}">этой ссылке</a>.`:''}`,
+            en: `Hello! Please, rate the event (${ticket.className}).${cl.slides?`\nBy the way, here's a link to the <a href="${cl.slides}">presentation</a>.`:''}`
         }
     },
     notifications: {
@@ -10073,7 +10173,8 @@ function bookMR(date, time, userid, callback, res) {
                     }).then(rec => {
 
                         log({
-                            text: `${uname(user, user.id)} забронировал место в переговорке на ${time} ${date}`,
+                            silent: true,
+                            text: `${uname(user, user.id)} бронирует место в переговорке на ${time} ${date}`,
                             user: user.id,
                         })
 

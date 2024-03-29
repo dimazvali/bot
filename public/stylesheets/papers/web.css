@@ -380,3 +380,6 @@ button.deleteButton {
     font-weight: bold;
 }
 
+.flex.line>* {
+    margin-right: 20px;
+}

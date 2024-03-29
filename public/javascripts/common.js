@@ -838,8 +838,13 @@ function logLine(l){
 }
 
 
-function load(collection, id,extra) {
+function load(collection, id, extra, whereToLook) {
+    if(whereToLook && whereToLook[id]) {
+        console.log(id, `из кэша`)
+        return Promise.resolve(whereToLook[id])
+    } 
     return axios.get(`/${host}/admin/${collection}${id?`/${id}`:''}${extra?`?${Object.keys(extra).map(k=>`${k}=${extra[k]}`).join(`&`)}`:''}`).then(data => {
+        if(whereToLook) whereToLook[id] = data.data
         return data.data
     })
 }
@@ -879,18 +884,38 @@ function sortBlock(sortTypes,container,array,callback,style){
     return c;
 }
 
-function listContainer(e,detailed,extra){
+function line(){
+    // console.log(this.args)
+    console.log(arguments)
+    
+    let c = ce(`div`,false,[`flex`,'line'])
+    
+    for (let i = 0; i < arguments.length; i++) {
+        c.append(arguments[i])
+    }
+    
+    return c
+}
+
+function listContainer(e,detailed,extra,dataset){
     let c =  ce('div',false,[`sDivided`,e.active?`reg`:`hidden`],false,{dataset:{active:e.active}})
 
     if(detailed){
         let details = ce('div',false,[`details`,`flex`])
-            details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000))) 
+            details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000)))
+            if(e.edited) details.append(ce('span',false,`info`,`отредактировано ${drawDate(e.edited._seconds*1000)}`))
+            if(e.deleted) details.append(ce('span',false,`info`,`удалено ${drawDate(e.deleted._seconds*1000)}`))
             details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
-            if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
+            if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
+            if(e.by && Number(e.by)) load(`users`,e.by, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
+            
             if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
 
             if(extra) Object.keys(extra).forEach(key=>{
                 if(e[key]) details.append(ce('span',false,`info`,`${extra[key]}: ${e[key]._seconds ? drawDate(e[key]._seconds*1000) : e[key]}`))
+                c.dataset[key] = e[key]
+            })
+            if(dataset) Object.keys(dataset).forEach(key=>{
                 c.dataset[key] = e[key]
             })
         c.append(details)

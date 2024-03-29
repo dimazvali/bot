@@ -5,7 +5,7 @@ const fsdb = `https://console.firebase.google.com/u/0/project/paperstuff-620fa/f
 let host = `paper`
 
 let users = {};
-
+let downLoadedUsers = {}
 
 let mc = document.querySelector(`#main`)
 
@@ -106,6 +106,7 @@ function drawCoworkingShedule(records,start){
     
     let cc = ce('div', false, `scroll`)
     let c = ce('div', false, `flex`)
+
     
     load(`coworking`).then(data=>{
         let fc = ce('div',false,`flex`)
@@ -149,7 +150,7 @@ function drawCoworkingShedule(records,start){
                     })
                         rec.append(ce(`span`,false,`info`,e.hallName))
                         
-                        load(`users`,e.user).then(u=>
+                        load(`users`,e.user, false, downLoadedUsers).then(u=>
                             rec.append(ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
                                 // onclick:()=> showUser(u,u.id)
                                 onclick:function(){
@@ -296,6 +297,7 @@ function newPlan(){
 
 }
 
+
 function showPlan(id){
     let p = preparePopupWeb(`plans_${id}`,false,false,true)
         load(`plans`,id).then(plan=>{
@@ -327,7 +329,7 @@ function showPlan(id){
                     reqs.filter(c=>c.active).forEach(r=>{
                         let c = listContainer(r,true)
                             c.classList.add(`flex`)
-                            load(`users`,r.user).then(u=>{
+                            load(`users`,r.user,false,downLoadedUsers).then(u=>{
                                 c.append(ce(`button`,false,[`dateButton`,`dark`],uname(u,u.id),{
                                     onclick:()=>showUser(false,u.id)
                                 }))
@@ -389,7 +391,7 @@ function planUseLine(line,butUser){
     if(!line.active) c.classList.remove(`hidden`)
     let bc = ce(`div`,false,`flex`)
     c.append(bc)
-    if(!butUser) load(`users`,line.user).then(u=>{
+    if(!butUser) load(`users`,line.user, false, downLoadedUsers).then(u=>{
         bc.append(ce(`button`,false,[`dateButton`,`dark`],uname(u,u.id),{
             onclick:()=>showUser(false,u.id)
         }))
@@ -1076,7 +1078,7 @@ function showCoworkingLine(r,butHall,butUser){
     
     
 
-    if(!butUser) load(`users`,r.user).then(u=>{
+    if(!butUser) load(`users`,r.user, false, downLoadedUsers).then(u=>{
         c.append(ce('button',false,[`dateButton`,`dark`],uname(u,u.id),{
             onclick:()=>showUser(false,u.id)
         }))
@@ -1211,9 +1213,10 @@ function filterUsers(role, container, button,counter) {
     })
 
     counter.innerHTML = `Всего: ${cnt}`
-
-
 }
+
+
+
 
 function showViews(){
     let events = {};
@@ -1306,6 +1309,18 @@ function showClass(cl, id) {
         p.append(ce('h3', false, false, cl.subTitle || `Без подзаголовка`,{
             onclick: function () {
                 edit(`classes`, cl.id, `subTitle`, `text`, cl.subTitle || null, this)
+            }
+        }))
+
+
+        if(cl.slides) {
+            p.append(ce('a', false, false, `Скачать презентацию`,{
+                href: cl.slides,
+            }))
+        }
+        p.append(ce('p', false, false, cl.slides ? `ссылка на презентацию: ${cl.slides}`: `добавьте ссылку на презентацию`,{
+            onclick: function () {
+                edit(`classes`, cl.id, `slides`, `text`, cl.slides || null, this)
             }
         }))
 
@@ -1724,7 +1739,7 @@ function showTicket(t,id){
             }))
         }
 
-        load(`users`,ticket.user).then(u=>{
+        load(`users`,ticket.user, false, downLoadedUsers).then(u=>{
             user.append(ce('button',false,[`dateButton`,`dark`],uname(u,u.id),{
                 onclick:()=>showUser(u,u.id)
             }))
@@ -1907,11 +1922,11 @@ function rcLine(couple){
         c.append(ce(`span`,false,`info`,drawDate(couple.createdAt._seconds*1000)))
         let users = ce(`div`,false,`flex`)
         c.append(users)
-    load(`users`,couple.first).then(f=>{
+    load(`users`,couple.first, false, downLoadedUsers).then(f=>{
         users.append(ce('button',false,[`dark`,`dateButton`,((couple.proof && couple.proof.first) ? `fineButton` : `reg`)],uname(f,f.id),{
             onclick:()=>showUser(f,f.id)
         }))
-        load(`users`,couple.second).then(s=>{
+        load(`users`,couple.second, false, downLoadedUsers).then(s=>{
             users.append(ce('button',false,[`dark`,`dateButton`,((couple.proof && couple.proof.second) ? `fineButton` : `reg`)],uname(s,s.id),{
                 onclick:()=>showUser(s,s.id)
             }))    
@@ -2139,7 +2154,7 @@ function showMeetingRoom(){
                     })
                         rec.append(ce(`span`,false,`info`,time))
                         
-                        load(`users`,f1.user).then(u=>
+                        load(`users`,f1.user, false, downLoadedUsers).then(u=>
                             rec.append(ce(`button`,false,[`dark`,`dateButton`,((f1.payed||!f1.paymentNeeded)?'fineButton':'reg'),f1.status==`used`?`active`:'reg'],unameShort(u,u.id),{
                                 // onclick:()=> showUser(u,u.id)
                                 onclick:function(){
@@ -2173,7 +2188,7 @@ function showMeetingRoom(){
                     let e = f2;
                         rec.append(ce(`span`,false,`info`,e.time))
                         
-                        load(`users`,e.user).then(u=>
+                        load(`users`,e.user, false, downLoadedUsers).then(u=>
                             rec.append(ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
                                 onclick:function(){
                                     showMROptions(e,u,this)
@@ -2318,6 +2333,80 @@ function occupyMR(date,time,button){
         
 }
 
+function messageLine(m){
+    m.active = m.hasOwnProperty(`deleted`) ? false : true
+    let c = listContainer(m,true,{
+        // edited: m.edited,
+        // deleted: m.deleted
+    },{
+        reply:  m.isReply,
+        user:   m.user
+    })
+
+    if(!m.active) c.classList.remove(`hidden`)
+
+    c.append(ce(`p`,false,false,m.text || `без текста`))
+    if(m.textInit) c.append(ce(`p`,false,false,`Исходный текст: ${m.textInit}`))
+
+    if(m.messageId && !m.deleted  && (+new Date() - new Date(m.createdAt._seconds*1000 < 48*60*60*1000))){
+        c.append(deleteButton(`messages`,m.id,false,[`active`,`dark`,`dateButton`],()=>message.remove()))
+        if(!m.edited) c.append(ce(`button`,false,[`dark`,`dateButton`],`редактировать`,{
+            onclick:()=>{
+                let ew = modal()
+                    let txt = ce(`textarea`,false,false,false,{
+                        placeholder: `вам слово`,
+                        value: m.text || null
+                    })
+                     
+                    ew.append(txt);
+
+                    ew.append(ce(`button`,false,false,`Сохранить`,{
+                        onclick:()=>{
+                            if(txt.value) axios.put(`/${host}/admin/messages/${m.id}`,{
+                                attr: `text`,
+                                value: txt.value
+                            }).then(handleSave)
+                            .catch(handleError)
+                        }
+                    }))
+            }
+        }))
+    }
+
+    return c
+}
+
+function showMessages(){
+    let p = preparePopupWeb(`messages`,false,false,true)
+        p.append(ce(`h1`,false,false,`Сообщения`))
+        let c = ce('div')
+        
+        load(`messages`)
+            .then(messages=>{
+                messages.forEach(m=>{
+                    c.append(messageLine(m))
+                    
+                })
+            })
+        p.append(c)
+
+        let offset = 0;
+
+        p.append(ce(`button`,false,[`dark`,`dateButton`],`Еще`,{
+            onclick:function(){
+                offset = offset+200;
+                load(`messages`,false,{offset:offset})
+                    .then(messages=>{
+                        if(messages.length<200) this.remove()
+                        messages.forEach(m=>{
+                            c.append(messageLine(m))
+                        })
+                        
+                    })
+            }
+        }))
+}
+
 function showUser(u, id) {
 
     if (!u) {
@@ -2329,37 +2418,43 @@ function showUser(u, id) {
     }
 
     Promise.resolve(u).then(u => {
-        let p = preparePopupWeb(`users_${u.id}`,false,false,true)
-
-        p.append(logButton(`user`, u.id, `Лог по пользователю`))
+        
+        let p = preparePopupWeb(`users_${u.id}`,false,false,true,logButton(`user`, u.id, `Лог по пользователю`))
         
         p.append(ce('h1', false, false, `${uname(u,u.id)} (${u.language_code})`))
-        p.append(ce('p', false, false, `регистрация: ${drawDate(u.createdAt._seconds*1000)}`))
-        if(u.appLastOpened) p.append(ce('p', false, false, `последний раз в приложении: ${drawDate(u.appLastOpened._seconds*1000)}`))
         
-        p.append(ce('p', false, false, `Имя: ${u.first_name || `имя не указано`}`, {
-            onclick: function () {
-                edit(`users`, u.id, `first_name`, `text`, u.first_name, this)
-            }
-        }))
-        p.append(ce('p', false, false, `Фамилия: ${u.last_name || `фамилия не указана`}`, {
-            onclick: function () {
-                edit(`users`, u.id, `last_name`, `text`, u.last_name, this)
-            }
-        }))
+        p.append(line(
+            ce('p', false, false, `регистрация: ${drawDate(u.createdAt._seconds*1000)}`),
+            ce('p', false, false, `последний раз в приложении: ${u.appLastOpened ? drawDate(u.appLastOpened._seconds*1000) : `нет данных`}`)
+        ))
+        
+        p.append(line(
+            ce('p', false, false, `${u.first_name || `Имя не указано`}`, {
+                onclick: function () {
+                    edit(`users`, u.id, `first_name`, `text`, u.first_name, this)
+                }
+            }),
+            ce('p', false, false, `${u.last_name || `Фамилия не указана`}`, {
+                onclick: function () {
+                    edit(`users`, u.id, `last_name`, `text`, u.last_name, this)
+                }
+            })
+        ))
+        
+        p.append(line(
+            ce('p', false, false, `email: ${u.email || `не указан`}`, {
+                onclick: function () {
+                    edit(`users`, u.id, `email`, `text`, u.email, this)
+                }
+            }),
+            ce('p', false, false, `about: ${u.about || `о себе не рассказывал`}`, {
+                onclick: function () {
+                    edit(`users`, u.id, `about`, `textarea`, u.about, this)
+                }
+            }),
+            ce('p', false, false, `occupation: ${u.occupation || `о себе не рассказывал`}`)
 
-        p.append(ce('p', false, false, `email: ${u.email || `не указан`}`, {
-            onclick: function () {
-                edit(`users`, u.id, `email`, `text`, u.email, this)
-            }
-        }))
-        p.append(ce('p', false, false, `about: ${u.about || `о себе не рассказывал`}`, {
-            onclick: function () {
-                edit(`users`, u.id, `about`, `textarea`, u.about, this)
-            }
-        }))
-        p.append(ce('p', false, false, `occupation: ${u.occupation || `о себе не рассказывал`}`))
-
+        ))
 
         let adminLinks = [{
             attr: `admin`,
@@ -2398,11 +2493,57 @@ function showUser(u, id) {
             }))
         })
 
-        let line = ce(`div`,false,`flex`)
-        p.append(line)
-        line.append(toggleButton(`users`,u.id,`blocked`,u.blocked||false,`Разблокировать`,`Заблокировать`,[`dateButton`,`dark`]))
-            line.append(toggleButton(`users`,u.id,`randomCoffee`,u.randomCoffee||false,`Убрать из randomCoffee`,`Добавить в randomCoffee`,[`dateButton`,`dark`]))
-            line.append(toggleButton(`users`,u.id,`noSpam`,u.noSpam||false,`Выключить новости`,`Включить новости`,[`dateButton`,`dark`]))
+        // let line = ce(`div`,false,`flex`)
+
+        p.append(line(
+            toggleButton(`users`,u.id,`blocked`,u.blocked||false,`Разблокировать`,`Заблокировать`,[`dateButton`,`dark`]),
+            toggleButton(`users`,u.id,`randomCoffee`,u.randomCoffee||false,`Убрать из randomCoffee`,`Добавить в randomCoffee`,[`dateButton`,`dark`]),
+            toggleButton(`users`,u.id,`noSpam`,u.noSpam||false,`Выключить новости`,`Включить новости`,[`dateButton`,`dark`])
+        ))
+
+
+        let messenger = ce('div')
+        p.append(messenger)
+
+        messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Открыть переписку`,{
+            onclick:function(){
+                this.remove()
+                messenger.append(ce(`h2`,false,false,`Переписка:`))
+                load(`messages`,u.id).then(messages=>{
+                    let mc = ce(`div`,false,`messenger`)
+                    messenger.append(mc)
+                    messages.forEach(m=>{
+                        // let message = ce('div',false,false,false,{dataset:{reply:m.isReply}})
+                        //     message.append(ce(`span`,false,`info`,drawDate(m.createdAt._seconds*1000,false,{time:true})))
+                        //     message.append(ce(`p`,false,false,m.text))
+                        mc.prepend(messageLine(m))
+                    })
+                    let txt = ce('textarea',false,false,false,`вам слово`)
+                    messenger.append(txt)
+                    messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Отправить`,{
+                        onclick:()=>{
+                            if(txt.value){
+                                axios.post(`/${host}/admin/message`,{
+                                    text: txt.value,
+                                    user: u.id
+                                }).then(s=>{
+                                    
+                                    alert(`ушло!`)
+                                    let message = ce('div',false,false,false,{dataset:{reply:true}})
+                                        message.append(ce(`span`,false,`info`,drawDate(new Date(),false,{time:true})))
+                                        message.append(ce(`p`,false,false,txt.value))
+                                        txt.value = null;
+                                    mc.prepend(message)
+                                }).catch(err=>{
+                                    alert(err.message)
+                                })
+                            }
+                        }
+                    }))
+                })
+            }
+        }))
+            
 
 
 
@@ -2577,47 +2718,7 @@ function showUser(u, id) {
             p.append(wineButton(u.id))
         })
 
-        let messenger = ce('div')
-        p.append(messenger)
-
-        messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Открыть переписку`,{
-            onclick:function(){
-                this.remove()
-                messenger.append(ce(`h2`,false,false,`Переписка:`))
-                load(`messages`,u.id).then(messages=>{
-                    let mc = ce(`div`,false,`messenger`)
-                    messenger.append(mc)
-                    messages.forEach(m=>{
-                        let message = ce('div',false,false,false,{dataset:{reply:m.isReply}})
-                            message.append(ce(`span`,false,`info`,drawDate(m.createdAt._seconds*1000,false,{time:true})))
-                            message.append(ce(`p`,false,false,m.text))
-                        mc.prepend(message)
-                    })
-                    let txt = ce('textarea',false,false,false,`вам слово`)
-                    messenger.append(txt)
-                    messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Отправить`,{
-                        onclick:()=>{
-                            if(txt.value){
-                                axios.post(`/${host}/admin/message`,{
-                                    text: txt.value,
-                                    user: u.id
-                                }).then(s=>{
-                                    
-                                    alert(`ушло!`)
-                                    let message = ce('div',false,false,false,{dataset:{reply:true}})
-                                        message.append(ce(`span`,false,`info`,drawDate(new Date(),false,{time:true})))
-                                        message.append(ce(`p`,false,false,txt.value))
-                                        txt.value = null;
-                                    mc.prepend(message)
-                                }).catch(err=>{
-                                    alert(err.message)
-                                })
-                            }
-                        }
-                    }))
-                })
-            }
-        }))
+        
     })
 }
 
@@ -2660,7 +2761,7 @@ function wineLine(w){
     })
     let details = ce(`div`,false,`details`)
     details.append(ce(`span`,false,`info`,`налито: ${drawDate(w.createdAt._seconds*1000)}`))
-    if(w.createBy) load(`users`,w.createBy).then(u=>details.append(ce(`span`,false,`info`,uname(u,u.id))))
+    if(w.createBy) load(`users`,w.createBy, false, downLoadedUsers).then(u=>details.append(ce(`span`,false,`info`,uname(u,u.id))))
     c.append(details)
 
     c.append(ce('h5',false,false,`Остаток: ${w.left}`))
@@ -2693,7 +2794,7 @@ function depositLine(d){
         c.append(ce(`h3`,false,false,cur(d.amount,`GEL`)))
         let uc =ce(`div`)
         c.append(uc)
-        load(`users`,d.user).then(u=>{
+        load(`users`,d.user, false, downLoadedUsers).then(u=>{
             uc.append(ce(`button`,false,[`dateButton`,`dark`],uname(u,u.id),{
                 onclick:()=>showUser(false,u.id)
             }))
