@@ -620,7 +620,6 @@ function showKids() {
     axios.get(`/auditoria/api/classes?kids=true&user=${userid}`)
         .then(classes => {
 
-
             let tt = ce('table')
 
             p.append(tt)

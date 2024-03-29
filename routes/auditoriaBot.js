@@ -1214,7 +1214,8 @@ router.all(`/admin/:method`, (req, res) => {
                                 let nclasses = classes.where('active', '==', true)
                                 if (req.query.filter == `future`) nclasses = nclasses.where(`date`, '>=', new Date(+new Date() - 3 * 60 * 60 * 1000))
                                 return nclasses.orderBy('date', req.query.filter ? 'asc' : 'desc')
-                                    .limit(50)
+                                    .offset(+req.query.offset || 0)
+                                    .limit(200)
                                     .get()
                                     .then(col => {
                                         res.json(common.handleQuery(col))
@@ -5458,8 +5459,6 @@ router.get(`/api/:type`, (req, res) => {
         case 'classes': {
 
             let data = []
-
-
 
             data.push(classes
                 .where(`active`, '==', true)

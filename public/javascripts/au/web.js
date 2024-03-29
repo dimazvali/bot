@@ -2624,6 +2624,8 @@ function showSchedule() {
     closeLeft()
     mc.innerHTML = '<h1>Загружаем...</h1>'
     window.history.pushState({}, "", `web?page=classes`);
+    let offset = 0;
+
     axios.get(`/${host}/admin/classes`)
         .then(data => {
             console.log(data.data)
@@ -2638,6 +2640,16 @@ function showSchedule() {
             });
             
             mc.append(c)
+            mc.append(ce(`button`,false,false,`Еще`,{
+                onclick:()=>{
+                    offset = offset+200;
+                    load(`classes`,false,{offset:offset}).then(classes=>{
+                        classes.forEach(cl=>{
+                            c.append(showClassLine(cl))
+                        })
+                    })
+                }
+            }))
 
 
         })
