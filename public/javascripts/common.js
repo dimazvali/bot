@@ -557,7 +557,6 @@ function addScreen(collection,name,o){
     let f = ce(`form`,false,false,false,{
         action: `/${host}/admin/${collection}`,
         method: `post`,
-        // onsubmit: preventDefault()
     })
     
     p.append(f)
@@ -579,12 +578,15 @@ function addScreen(collection,name,o){
         type: `submit`
     }))
 
+    return p
+
 }
 
 function showScreen(name, collection, line, addButton, sort){
     closeLeft()
     let p = preparePopupWeb(collection,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
+    let c = ce('div')
     load(collection).then(docs=>{
         p.innerHTML = '';
         p.append(ce('h1', false, `header2`, name))
@@ -593,7 +595,7 @@ function showScreen(name, collection, line, addButton, sort){
             onclick: () => addButton()
         }))
 
-        let c = ce('div')
+        
         
         docs.forEach(a => {
             c.append(line(a))
@@ -623,8 +625,8 @@ function showScreen(name, collection, line, addButton, sort){
         p.append(archiveButton(c))
     })
     return {
-        container: p,
-        listing: c
+        container:  p,
+        listing:    c
     }
 }
 
@@ -908,7 +910,9 @@ function listContainer(e,detailed,extra,dataset){
             details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
             if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
             if(e.by && Number(e.by)) load(`users`,e.by, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
-            
+            if(e.user && Number(e.buser)) load(`users`,e.usery, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,`кому: ${uname(author.user ? author.user : author, author.id)}`,{onclick:()=>showUser(false,e.user)})))
+                
+
             if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
 
             if(extra) Object.keys(extra).forEach(key=>{

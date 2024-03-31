@@ -19,6 +19,7 @@ const {
     handleQuery,
     handleDoc,
     handleError,
+    sudden,
 } = require ('./common.js')
 
 
@@ -70,7 +71,7 @@ let fb = getFirestore(gcp);
 
 
 setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok2}/dimazvali/hook`).then(()=>{
+    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/dimazvali/hook`).then(()=>{
         console.log(`dimazvali hook set on ${ngrok}`)
     }).catch(handleError)   
 },1000)
@@ -83,9 +84,47 @@ let logs =                      fb.collection(`DIMAZVALIlogs`);
 let udb =                       fb.collection(`DIMAZVALIusers`);
 let settings =                  fb.collection(`DIMAZVALIsettings`);
 let tags =                      fb.collection(`DIMAZVALItags`);
+let landMarks =                 fb.collection(`DIMAZVALIlandMarks`);
+let tours =                     fb.collection(`DIMAZVALItours`);
+let toursSteps =                fb.collection(`DIMAZVALItoursSteps`);
+let messages =                  fb.collection(`DIMAZVALImessage`);
+let usersTours =                fb.collection(`DIMAZVALIusersTours`);
+let usersLandmarks =            fb.collection(`DIMAZVALIusersLandmarks`);
+
+let savedLandmarks =    {};
+let savedSteps =        {};
+let savedUsers =        {};
+
+
+landMarks.get().then(col=>{
+    handleQuery(col).forEach(l=>{
+        savedLandmarks[l.id] = l
+    })
+})
+
+toursSteps.get().then(col=>{
+    handleQuery(col).forEach(l=>{
+        savedSteps[l.id] = l
+    })
+})
+
+
+
 
 
 const datatypes = {
+    tours: {
+        col: tours,
+        newDoc: newTour
+    },
+    toursSteps:{
+        col: toursSteps,
+        newDoc: newTourStep
+    },
+    landmarks:{
+        col: landMarks,
+        newDoc: newLandMark
+    },
     sections:{
         col: sections,
         newDoc: newSection
@@ -104,7 +143,141 @@ const datatypes = {
 }
 
 
+function dist(lat,long,toLat, toLong){
+    return +(Math.sqrt(Math.pow((lat - toLat) * 111.11, 2) + Math.pow((long - toLong) * 55.8, 2))).toFixed(3)
+}
 
+let alertedUsers = {
+
+}
+
+
+
+
+function handleLocation(userId,loc){
+
+    let sUser = savedUsers[userId]
+
+    if(!sUser){
+        sUser = getUser(userId,udb)
+    }
+
+
+    Promise.resolve(sUser).then(sUser=>{
+
+
+        if(!alertedUsers[userId]) alertedUsers[userId] = {};
+
+        if(loc.horizontal_accuracy < 30){
+        
+            Object.keys(savedLandmarks).forEach(key=>{
+
+                let place = savedLandmarks[key];
+
+                let distance = dist(loc.latitude,loc.longitude, +place.lat, +place.lng)*1000
+                
+                try {
+                    if(distance - loc.horizontal_accuracy < (place.proximity || 50)){
+        
+                        devlog(`пользователь прибыл в точку ${place.name}`)
+                        
+                        if(!alertedUsers[userId][place.id]) {
+                            
+                            let m = {
+                                chat_id: userId,
+                                parse_mode: `Markdown`,
+                                text: `*${place.name}*\n${place.greetings||place.description}`
+                            }
+
+                            if(place.pic){
+                                m.caption = m.text
+                            }
+                            
+                            
+
+                            usersLandmarks.add({
+                                createdAt:  new Date(),
+                                user:       sUser.id,
+                                landmark:   place.id
+                            })
+
+                            landMarks.doc(place.id).update({
+                                visited: FieldValue.increment(1)
+                            })
+
+                            alertedUsers[userId][place.id] = true;
+
+                            sendMessage2(m,m.pic?'sendPhoto':false,token,messages).then(()=>{
+                                if(place.voice) sendMessage2({
+                                    chat_id: userId,
+                                    voice: place.voice
+                                },`sendVoice`,token,messages)
+                            }).then(()=>{
+                                if(sUser.currentTour){
+                                    let route = Object.keys(savedSteps)
+                                        .filter(s=>savedSteps[s].tour == sUser.currentTour)
+                                        .sort((a,b)=>savedSteps[a].index-savedSteps[b].index)
+                                    
+                                        
+                                    let index = route.map(s=>savedSteps[s].landmark)
+                                    
+                                    devlog(index)
+    
+                                    let curIndex = index.indexOf(place.id)
+    
+                                    devlog(curIndex)
+                                    
+                                    if(curIndex > -1){
+                                        if((curIndex+1) <= index.length){
+                                            
+                                            // sendStep(savedLandmarks[index[curIndex+1]],userId)
+                                            sendStep(savedSteps[route[curIndex+1]],userId)
+                                            // getDoc(landMarks,index[]).then(l=>{
+                                                
+                                            // })
+                                        } else {
+                                            sendMessage2({
+                                                chat_id: userId,
+                                                text: `Это последняя точка маршрута. Спасибо, что были с нами. Не прощаемся.`
+                                            },false,token)
+    
+                                            usersTours.doc(sUser.currentAttempt).update({
+                                                finishedAt: new Date()
+                                            })
+    
+                                            udb.doc(userId.toString()).update({
+                                                currentAttempt: null,
+                                                currentTour:    null
+                                            })
+                                        }
+                                    } else {
+                                        devlog(`Это точка не на маршруте`)
+                                    }
+                                }
+                            })
+
+                            
+
+                        }
+
+                    } else {
+
+                        if(alertedUsers[userId][place.id]){
+                            if(place.goodbyes) sendMessage2({
+                                chat_id: userId,
+                                text: place.goodbyes
+                            },false,token,messages)
+                        }
+
+                        alertedUsers[userId][place.id] = false
+                    }    
+                } catch (error) {
+                    console.log(error)
+                }
+            })
+        }
+    })
+}
 
 router.post(`/hook`,(req,res)=>{
     
@@ -119,10 +292,199 @@ router.post(`/hook`,(req,res)=>{
         user = req.body.message.from
 
         udb.doc(user.id.toString()).get().then(u => {
+            
             if (!u.exists) registerUser(user)
+
+            u = handleDoc(u);
+
+            if(req.body.message.text){
+                let txt = req.body.message.text;
+                if(!txt.indexOf(`/tours`)) sendTours(u.id)
+                // if(!txt.indexOf(`/near`)) sendTours(u.id)
+                
+            }
+
+
+
+            if(req.body.message.voice && u.admin){
+                // devlog(`Это голосовое`)
+                sendMessage2({
+                    chat_id: u.id,
+                    parse_mode: `Markdown`,
+                    text: '```'+req.body.message.voice.file_id+'```'
+                },false,token,messages).then(d=>console.log(d))
+            }
+
         })
     }
+
+    if(req.body.edited_message && req.body.edited_message.location){
+        handleLocation(req.body.edited_message.from.id,req.body.edited_message.location)
+    }
+
+    if(req.body.callback_query){
+        let user = req.body.callback_query.from;
+        let inc = req.body.callback_query.data.split('_')
+        switch(inc[0]){
+            case `tour`:{
+                return getDoc(tours,inc[1]).then(t=>{
+                    
+                    if(!t) return sendMessage2({
+                        callback_query_id: req.body.callback_query.id,
+                        show_alert: true,
+                        text: `${sudden.sad()}, такой экскурсии нет!`
+                    }, 'answerCallbackQuery', token)
+
+                    if(!inc[2]) {
+                        sendMessage2({
+                            callback_query_id: req.body.callback_query.id,
+                            show_alert: true,
+                            text: `${sudden.fine()}!`
+                        }, 'answerCallbackQuery', token)
+
+                        sendTour(user, t)
+                    } else {
+                        if(inc[2] == `start`){
+                            startTour(user,t)
+                        }
+                        if(inc[2] == `stop`){
+                            stopTour(user,t)
+                        }
+                    }
+
+                })
+            }
+            default:{
+                return sendMessage2({
+                    callback_query_id: req.body.callback_query.id,
+                    show_alert: true,
+                    text: `${sudden.sad()}, такая команда не предусмотрена!`
+                }, 'answerCallbackQuery', token)
+            }
+        }
+    }
 })
+
+function sendTour(user, tour, res){
+    let m = {
+        chat_id:    user.id,
+        parse_mode: `Markdown`,
+        text:       `*${tour.name}*:\n ${tour.description || `Изините, описание пока не готово`}.`,
+        reply_markup:{
+            inline_keyboard:[[{text: `Начать`,callback_data: `tour_${tour.id}_start`}]]
+        }
+    }
+    if(tour.pic){
+        m.caption = m.text;
+        m.photo = tour.pic;
+    }
+    sendMessage2(m,tour.pic?`sendPhoto`:false,token,messages)
+    
+    if(res) res.sendStatus(200) 
+}
+
+function stopTour(){
+    
+}
+
+function startTour(user,tour,res,admin){
+    usersTours.add({
+        createdAt:  new Date(),
+        active:     true,
+        tour:       tour.id,
+        tourName:   tour.name,
+        user:       user.id,
+        userName:   uname(user,user.id),
+        admin:      admin?+admin.id:null
+    }).then(rec=>{
+        getUser(user.id,udb).then(u=>{
+
+            if(u.currentTour) stopTour(u,u.currentTour);
+            
+            udb.doc(user.id.toString()).update({
+                currentTour:    tour.id,
+                currentAttempt: rec.id
+            })
+
+            if(!savedUsers[user.id]) savedUsers[user.id] = user
+            savedUsers[user.id].currentTour = tour.id
+
+            tours.doc(tour.id).update({
+                started: FieldValue.increment(1)
+            })
+
+            log({
+                user: +user.id,
+                tours: tour.id,
+                text: `${uname(user,user.id)} начинает экскурсию ${tour.name}`
+            })
+            
+            if(tour.voice) {
+                sendMessage2({
+                    chat_id:    user.id,
+                    voice:      tour.voice
+                },`sendVoice`,token)
+            } else {
+                devlog(`аудио нет`)
+            }
+
+            toursSteps
+                .where(`tour`,'==',tour.id)
+                // .orderBy(`index`,`asc`)
+                // .limit(1)
+                .get()
+                .then(col=>{
+                    sendStep(handleQuery(col).sort((a,b)=>a.index-b.index)[0],user.id) 
+                })
+
+        })
+    })
+
+    if(res) res.sendStatus(200) 
+}
+
+function sendStep(step, userId){
+    getDoc(landMarks,step.landmark).then(l=>{
+        sendMessage2({
+            chat_id: userId,
+            text: `Держим курс на ${l.name}. Сейчас я пришлю точку на карте.`
+        },false,token,messages).then(()=>{
+            sendMessage2({
+                chat_id:    userId,
+                latitude:   l.lat,
+                longitude:  l.lng
+            },`sendLocation`,token)
+        })
+        
+    })
+    
+}
+
+function sendTours(uid){
+    tours
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            if(!col.docs.length) return sendMessage2({
+                chat_id: uid,
+                text: `Боюсь, нам сейчас нечего вам показать (но мы исправимся и напишем об этом).`
+            },false,token,messages)
+
+            sendMessage2({
+                chat_id: uid,
+                text: `${sudden.fine()}! Вот, куда мы можем вас отвести:`,
+                reply_markup:{
+                    inline_keyboard:handleQuery(col).map(t=>{
+                        return [{
+                            text: t.name,
+                            callback_data: `tour_${t.id}`
+                        }]
+                    })
+                }
+            },false,token,messages)
+
+        })
+}
 
 
 router.get(`/auth`,(req,res)=>{
@@ -190,7 +552,19 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             
             if(!admin.admin) return res.sendStatus(403)
             
-            switch(req.method){
+            switch(req.params.method){
+                case `logs`:{
+                    devlog(`Запрос логов`)
+                    let q = req.params.id.split('_')
+                    
+                    return logs
+                        .where(q[0],'==',Number(q[1])?+q[1]:q[1])
+                        .get()
+                        .then(col=>{
+                            res.json(handleQuery(col,true))
+                        })
+                }
+
                 default:{
                     
                     if(!datatypes[req.params.method])  return res.sendStatus(404)
@@ -247,6 +621,11 @@ function updateEntity(req,res,ref,admin){
         res.json({
             success: true
         })
+        if(req.params.method.toLowerCase() == `landmarks`){
+            getDoc(landMarks,req.params.id).then(l=>{
+                savedLandmarks[l.id] = l;
+            })
+        }
         log({
             admin: +admin.id,
             [req.params.method]: req.params.id,
@@ -255,6 +634,105 @@ function updateEntity(req,res,ref,admin){
     })
 }
 
+
+function newTour(req,res,admin){
+    if(!req.body.name) return res.status(400).send(`no name`)
+    tours.add({
+        createdAt:      new Date(),
+        createdBy:      +admin.id,
+        active:         true,
+        description:    req.body.description || null,
+        name:           req.body.name || null,
+        pic:            req.body.pic || null,
+        voice:          req.body.voice || null
+    }).then(rec=>{
+        res.redirect(`/${host}/web?page=tours_${rec.id}`)
+        log({
+            admin:      +admin.id,
+            tours:      rec.id,
+            text:       `${uname(admin,admin.id)} создает экскурсию ${req.body.name}`
+        })
+    })
+}
+
+
+function newTourStep(req,res,admin){
+    if(!req.body.tour) return res.status(400).send(`no tour`)
+    if(!req.body.landmark) return res.status(400).send(`no step`)
+
+    getDoc(tours,req.body.tour).then(t=>{
+        if(!t) return res.sendStatus(404)
+        if(!t.active) return res.status(400).send(`Этот тур деактивирован`)
+        getDoc(landMarks,req.body.landmark).then(s=>{
+            if(!s) return res.sendStatus(404)
+            if(!s.active) return res.status(400).send(`Этот шаг деактивирован`)
+            toursSteps
+                .where(`tour`,'==',req.body.tour)
+                .where(`active`,'==',true)
+                .get()
+                .then(col=>{
+                    let before = handleQuery(col).map(s=>s.landmark)
+                    if(before.indexOf(req.body.landmark)>-1) return res.status(400).send(`Эта точка уже добавлена в маршрут`)
+                    toursSteps.add({
+                        active:         true,
+                        tour:           req.body.tour,
+                        landmark:       req.body.landmark,
+                        landmarkName:   s.name,
+                        admin:          +admin.id,
+                        createdAt:      new Date(),
+                        index:          col.docs.length+1
+                    }).then(rec=>{
+                        res.redirect(`/${host}/web?page=tours_${req.body.tour}`)
+                        log({
+                            silent:     true,
+                            admin:      +admin.id,
+                            tours:      req.body.tour,
+                            toursSteps: rec.id,
+                            text:       `${uname(admin,admin.id)} добавляет точку ${s.name} к маршруту ${t.name}`
+                        })
+                        tours.doc(req.body.tour).update({
+                            steps: FieldValue.increment(1)
+                        })
+                    })
+                })
+        })
+    })
+}
+
+function newLandMark(req,res,admin){
+    if(!req.body.name) return res.status(400).send(`no name`)
+    if(!req.body.lat) return res.status(400).send(`no lat`)
+    if(!req.body.lng) return res.status(400).send(`no lng`)
+
+    landMarks.add({
+        createdAt:      new Date(),
+        createdBy:      +admin.id,
+        active:         true,
+        description:    req.body.description || null,
+        name:           req.body.name || null,
+        pic:            req.body.pic || null,
+        greetings:      req.body.greetings  || null,
+        goodbyes:       req.body.goodbyes  || null,
+        lat:            req.body.lat || null,
+        lng:            req.body.lng || null,
+        voice:          req.body.voice || null
+    }).then(rec=>{
+
+        res.redirect(`/${host}/web?page=landmarks_${rec.id}`)
+
+        getDoc(landMarks,rec.id).then(l=>{
+            savedLandmarks[rec.id] = l
+        })
+
+        // updateLandMark(rec.id)
+
+        log({
+            admin:      +admin.id,
+            landmarks:  rec.id,
+            text:       `${uname(admin,admin.id)} создает точку ${req.body.name}`
+        })
+    })
+}
 
 function newSection(req,res,admin){
     if(!req.body.slug) return res.status(400).send(`no slug`)
@@ -274,7 +752,7 @@ function newSection(req,res,admin){
             description:    req.body.description  || null,
             html:           req.body.html || null
         }).then(rec=>{
-            res.redirect(`/web?page=sections_${req.body.slug}`)
+            res.redirect(`/${host}/web?page=sections_${req.body.slug}`)
             log({
                 admin: +admin.id,
                 text: `${uname(admin,admin.id)} создает раздел ${req.body.name}`
@@ -303,7 +781,7 @@ function newPage(req,res,admin){
             description:    req.body.description  || null,
             html:           req.body.html || null
         }).then(rec=>{
-            res.redirect(`/web?page=pages_${req.body.slug}`)
+            res.redirect(`/${host}/web?page=pages_${req.body.slug}`)
             log({
                 admin: +admin.id,
                 text: `${uname(admin,admin.id)} создает страницу ${req.body.name}`
@@ -331,7 +809,7 @@ function newTag(req,res,admin){
             description:    req.body.description  || null,
             html:           req.body.html || null
         }).then(rec=>{
-            res.redirect(`/web?tags=pages_${req.body.slug}`)
+            res.redirect(`/${host}/web?tags=pages_${req.body.slug}`)
             log({
                 admin: +admin.id,
                 text: `${uname(admin,admin.id)} создает тег ${req.body.name}`
@@ -402,7 +880,7 @@ function newPage(req,res,admin){
             description:    req.body.description  || null,
             html:           req.body.html || null
         }).then(rec=>{
-            res.redirect(`/web?page=pages_${rec.id}`)
+            res.redirect(`/${host}/web?page=pages_${rec.id}`)
             log({
                 admin: +admin.id,
                 text: `${uname(admin,admin.id)} создает страницу ${req.body.name}`
@@ -422,7 +900,7 @@ function registerUser(u){
         sendMessage2({
             chat_id: u.id,
             text: `Добро пожаловать. Напишите, пожалуйста, чем могу быть полезен?..`
-        },false,token)
+        },false,token,messages)
         log({
             user: +u.id,
             text: `Новый пользователь: ${uname(u,u.id)}`

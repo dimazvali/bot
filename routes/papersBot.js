@@ -7174,6 +7174,10 @@ router.all(`/trello`,(req,res)=>{
     res.sendStatus(200)
 })
 
+
+
+
+
 router.post('/hook', (req, res) => {
     
     res.sendStatus(200)
@@ -8478,7 +8482,78 @@ router.post('/hook', (req, res) => {
             })
         }
     }
+
+    if(req.body.edited_message && req.body.edited_message.location){
+        let loc = req.body.edited_message.location;
+        devlog(loc)
+        let lookup= [
+            {
+                location: 'дома',
+                lat: 41.695299,
+                long: 44.856253,
+                greetings: `Вы почти на месте!`,
+                googbyes: `Заходите в гости!`,
+            },{
+                location: 'магазина',
+                lat: 41.697341,
+                long: 44.855363,
+                greetings: `Не забудьте купить вина!`,
+                googbyes: `Точно не забыли?..`,
+                
+            },{
+                location: 'магазина',
+                greetings: `Добро пожаловать в Papers!`,
+                googbyes: `До новых встреч!`,
+                lat: 41.710950,
+                long: 44.783232
+            }
+        ]
+        
+        lookup.forEach(place=>{
+    
+            devlog(place)
+    
+            let distance = dist(loc.latitude,loc.longitude, place.lat, place.long)*1000
+            
+            devlog(place.location,distance)
+            
+            if(distance-loc.horizontal_accuracy < 30 ){
+    
+                devlog(`пользователь прибыл в точку ${place.location}`)
+                if(!alertedUsers[req.body.edited_message.chat.id] || !alertedUsers[req.body.edited_message.chat.id][place.location]) m.sendMessage2({
+                    chat_id: req.body.edited_message.chat.id,
+                    text: place.greetings
+                },false,token)
+                
+                
+    
+                if(!alertedUsers[req.body.edited_message.chat.id]) alertedUsers[req.body.edited_message.chat.id] = {}
+                
+                alertedUsers[req.body.edited_message.chat.id][place.location] = true 
+            } else {
+                if(!alertedUsers[req.body.edited_message.chat.id]) alertedUsers[req.body.edited_message.chat.id] = {}
+                
+                if(alertedUsers[req.body.edited_message.chat.id][place.location]){
+                    m.sendMessage2({
+                        chat_id: req.body.edited_message.chat.id,
+                        text: place.googbyes
+                    },false,token)
+                }
+                alertedUsers[req.body.edited_message.chat.id][place.location] = false
+            }
+        })
+    }
+
 })
+
+
+function dist(lat,long,toLat, toLong){
+    return +(Math.sqrt(Math.pow((lat - toLat) * 111.11, 2) + Math.pow((long - toLong) * 55.8, 2))).toFixed(3)
+}
+
+alertedUsers = {
+
+}
 
 
 function isoDate(){

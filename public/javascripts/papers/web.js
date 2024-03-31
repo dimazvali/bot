@@ -713,6 +713,7 @@ function edit(entity, id, attr, type, value, container) {
 
     edit.append(ce('h2', false, false, `Правим поле ${attrTypes[attr]||attr} для ${entities[entity]||entity}#${id}`))
     let f = ce('input');
+    f.focus()
     if (type == `date`) {
         f.type = `datetime-local`
         edit.append(f)

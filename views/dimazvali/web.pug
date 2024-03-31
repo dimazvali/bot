@@ -8,6 +8,7 @@ html
     meta(name='description' content='Попробуйте — вам понравится.')
     script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
     script(src='/javascripts/common.js')
+    script(src='https://maps.googleapis.com/maps/api/js?key=AIzaSyDtoqBwHVsUdk8OUwl-v82s2vsLEfuR5tM')
     link(rel='icon', type="image/x-icon", href='/images/dimazvali/favicon.ico')
     link(rel='stylesheet', href='/stylesheets/dimazvali/style.css')
     link(rel='stylesheet', href='/stylesheets/dimazvali/web.css')
@@ -17,6 +18,7 @@ html
     link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&family=Rubik+80s+Fade&display=swap")
     link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;900&display=swap")
     script(src="https://cdn.amcharts.com/lib/5/index.js")
+    script!=`let start="${start}"`
     script(src="https://cdn.amcharts.com/lib/5/xy.js")
     script(src="https://cdn.amcharts.com/lib/5/themes/Animated.js")
     link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Oi&family=Oswald:wght@400;700;900&display=swap")
@@ -27,6 +29,8 @@ html
         h3(onclick="s(this),showPages()")       Страницы
         h3(onclick="s(this),showSections()")    Разделы
         h3(onclick="s(this),showTags()")        Теги
+        h3(onclick="s(this),showLandmarks()")        Достопримечательности
+        h3(onclick="s(this),showTours()")        Экскурсии
         
         
 

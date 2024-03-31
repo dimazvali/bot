@@ -2010,11 +2010,7 @@ router.post('/adminHook', (req, res) => {
 })
 
 
-function dist(lat,long,toLat, toLong){
-    return (Math.sqrt(Math.pow((lat - toLat) * 111.11, 2) + Math.pow((long - toLong) * 55.8, 2))).toFixed(3)
-}
 
-alertedUsers ={}
 
 router.post('/hook', (req, res) => {
 
@@ -2024,57 +2020,7 @@ router.post('/hook', (req, res) => {
     console.log(JSON.stringify(req.body))
 
 
-    // if(req.body.edited_message && req.body.edited_message.location){
-    //     let loc = req.body.edited_message.location;
-    //     console.log(loc)
-    //     let lookup= [
-    //         {
-    //             location: 'дома',
-    //             lat: 41.695299,
-    //             long: 44.856253
-    //         },{
-    //             location: 'магазина',
-    //             lat: 41.697341,
-    //             long: 44.855363
-    //         }
-    //     ]
-        
-    //     lookup.forEach(place=>{
-
-    //         console.log(place)
-
-    //         let distance = dist(loc.latitude,loc.longitude, place.lat, place.long)*1000
-            
-    //         console.log(place.location,distance)
-            
-    //         if(distance-loc.horizontal_accuracy < 30 ){
-
-    //             console.log(`пользователь прибыл в точку ${place.location}`)
-    //             if(!alertedUsers[req.body.edited_message.chat.id] || !alertedUsers[req.body.edited_message.chat.id][place.location]) m.sendMessage2({
-    //                 chat_id: req.body.edited_message.chat.id,
-    //                 text: `Вот вы и ${place.location}`
-    //             },false,token)
-                
-                
-
-    //             if(!alertedUsers[req.body.edited_message.chat.id]) alertedUsers[req.body.edited_message.chat.id] = {}
-                
-    //             alertedUsers[req.body.edited_message.chat.id][place.location] = true 
-    //         } else {
-    //             if(!alertedUsers[req.body.edited_message.chat.id]) alertedUsers[req.body.edited_message.chat.id] = {}
-                
-    //             if(alertedUsers[req.body.edited_message.chat.id][place.location]){
-    //                 m.sendMessage2({
-    //                     chat_id: req.body.edited_message.chat.id,
-    //                     text: `Вы ушли из ${place.location}`
-    //                 },false,token)
-    //             }
-    //             alertedUsers[req.body.edited_message.chat.id][place.location] = false
-    //         }
-    //     })
-
-        
-    // }
+    
 
 
     if (req.body.update_id && req.body.message && req.body.message.contact) {

@@ -1465,8 +1465,9 @@ router.all(`/admin/:method`, (req, res) => {
                                             }).then(() => {
                                                 m.sendMessage2({
                                                     chat_id: u.id,
+                                                    parse_mode: `HTML`,
                                                     text: `${common.sudden.fine()}! Новое задание: ${req.body.name}\n${req.body.description}`
-                                                }, false, token)
+                                                }, false, token, messages)
                                             })
                                         }, i * 200)
                                     })

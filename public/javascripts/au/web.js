@@ -4,6 +4,8 @@ const appLink = `https://t.me/AuditoraBot/app`
 const web = `https://dimazvali-a43369e5165f.herokuapp.com/auditoria/site/tbi`
 let mc = document.querySelector(`#main`)
 
+let downLoadedUsers = {};
+
 function closeLeft() {
     document.querySelector(`#left`).classList.remove('active')
     document.querySelectorAll(`.popupWeb`).forEach(p => p.remove())
@@ -1143,6 +1145,9 @@ function edit(entity, id, attr, type, value, container) {
             }
         }
     }))
+
+    f.focus()
+    
     document.body.append(edit)
 }
 
