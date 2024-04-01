@@ -1,6 +1,8 @@
 
 let host = `ps`
 
+let downLoadedUsers = {};
+
 let mc = document.querySelector(`#main`)
 
 function closeLeft(){
