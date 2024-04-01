@@ -15,7 +15,7 @@ function line(tag, values,cb) {
 
 function selector(col,placeholder){
     let s = ce('select')
-        s.append(ce('option',false,false,placeholder||`выберите`))
+        s.append(ce('option',false,false,placeholder||`выберите`,{value:''}))
     load(col).then(options=>{
         options.filter(o=>o.active).forEach(o=>{
             s.append(ce(`option`,false,false,o.name,{
@@ -166,7 +166,7 @@ function clearPopUp() {
 }
 
 function uname(u,id){
-    return `${u.admin? `админ` : (u.insider ? 'сотрудник' : (u.fellow ? 'fellow' : (u.known ? 'гость' : 'пионер')))} ${u.username ? `@${u.username}` : `id ${id}` } (${u.first_name||''} ${u.last_name||''})`
+    return `${u.admin? `админ` : (u.insider ? 'сотрудник' : (u.fellow ? 'fellow' : `гость`))} ${u.username ? `@${u.username}` : `id ${id}` } (${u.first_name||''} ${u.last_name||''})`
 }
 
 
@@ -549,6 +549,25 @@ function showLogs(filter,description) {
         .finally(hideLoader)
 }
 
+function viewScreen(collection,id,fields){
+    let p = preparePopupWeb(`${collection}_${id}`,false,false,true)
+    load(collection,id).then(data=>{
+        p.append(ce('h1', false, false, data.name,{
+            onclick:function(){
+                edit(collection,id,`name`,`text`,data.name,this)
+            }
+        }))
+        fields.forEach(f=>{
+            p.append(ce(f.tag||`p`,false,false,`${f.name}: ${data[f.attr] || `добавить`}`,{
+                onclick:function(){
+                    edit(collection,id,f.attr,f.type||`text`,data[f.attr]||null,this)
+                }
+            }))
+        })
+        p.append(deleteButton(collection,id,!data.active))
+    })
+}
+
 function addScreen(collection,name,o){
     let p = preparePopupWeb(`${collection}_new`)
     
@@ -563,16 +582,25 @@ function addScreen(collection,name,o){
 
     Object.keys(o).forEach(k=>{
         let input = o[k]
-        let el = ce(input.tag||`input`,false,false,false,{
-            placeholder:    input.placeholder || null,
-            type:           input.type || `text`,
-            name:           k
-        })
-        Object.keys(input).forEach(t=>{
-            el[t] = input[t]
-        })
-        f.append(el)
+        if(!input.hasOwnProperty(`selector`)){
+            let el = ce(input.tag||`input`,false,false,false,{
+                placeholder:    input.placeholder || null,
+                type:           input.type || `text`,
+                name:           k
+            })
+            Object.keys(input).forEach(t=>{
+                el[t] = input[t]
+            })
+            f.append(el)
+        } else {
+            let s = selector(input.selector,input.placeholder)
+            s.name = k;
+            f.append(s)
+        }
+        
     })
+
+    // f.append(selector())
 
     f.append(ce(`button`,false,false,`Сохранить`,{
         type: `submit`
@@ -875,6 +903,9 @@ function sortBlock(sortTypes,container,array,callback,style){
                         case `price`:{
                             return (+b.price||0) - (+a.price||0)
                         }
+                        default:{
+                            return a[type.attr] < b[type.attr] ? 1 :-1
+                        }
                     }
                 }).forEach(r=>{
                     container.append(callback(r))
@@ -904,7 +935,7 @@ function listContainer(e,detailed,extra,dataset){
 
     if(detailed){
         let details = ce('div',false,[`details`,`flex`])
-            details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000)))
+            details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000,false,{time:true})))
             if(e.edited) details.append(ce('span',false,`info`,`отредактировано ${drawDate(e.edited._seconds*1000)}`))
             if(e.deleted) details.append(ce('span',false,`info`,`удалено ${drawDate(e.deleted._seconds*1000)}`))
             details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
