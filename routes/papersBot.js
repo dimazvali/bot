@@ -441,6 +441,9 @@ router.all(`/admin/:method`, (req, res) => {
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
 
+                case `rcIterations`:{
+                    return randomCoffeeIterations.get().then(col=>res.json(common.handleQuery(col,true)))
+                }
                 case `messages`:{
                     return messages
                         .orderBy(`createdAt`,`desc`)
@@ -709,9 +712,11 @@ router.all(`/admin/:method`, (req, res) => {
                 case `rc`:{
                     switch(req.method){
                         case `GET`:{
-                            return randomCoffees
-                                .where(`active`,'==',true)
-                                .get()
+                            let col = randomCoffees.where(`active`,'==',true)
+                            
+                            if(req.query.iteration) col = col.where(`iteration`,'==',req.query.iteration)
+
+                            return col.get()
                                 .then(col=>{
                                     res.json(common.handleQuery(col,true))
                                 })
@@ -2066,6 +2071,14 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+                
+                case `rcIterations`:{
+                    return randomCoffeeIterations
+                        .doc(req.params.id)
+                        .get()
+                        .then(doc=>res.json(common.handleDoc(doc)))
+                }
+
 
                 case `mr`:{
                     
@@ -3108,22 +3121,22 @@ function sendCoffeInvites(){
 if(process.env.develop){
     router.get('/test', (req, res) => {
 
-        m.getUser(5413806389,udb).then(s=>{
-            m.getUser(common.dimazvali,udb).then(f=>{
-                m.sendMessage2({
-                    chat_id:    common.dimazvali,
-                    parse_mode: `Markdown`,
-                    text:       translations.rcInvite.ru(f,s)
-                },false,token)
-            })
-        })
+        // m.getUser(5413806389,udb).then(s=>{
+        //     m.getUser(common.dimazvali,udb).then(f=>{
+        //         m.sendMessage2({
+        //             chat_id:    common.dimazvali,
+        //             parse_mode: `Markdown`,
+        //             text:       translations.rcInvite.ru(f,s)
+        //         },false,token)
+        //     })
+        // })
         
         // classReScore(req.query.class || `O1VdmOqMgsDf6ZmIBzPO`)
         
         // rcCheckBefore()
 
         // rcResult(`GtpkkujNjhH1QyB0k01d`)
-        // rcFollowUp(`GtpkkujNjhH1QyB0k01d`)
+        // rcFollowUp(`6eVR7BO0P9tNwEjMTEPq`)
         // count'UserEntries(1);
         // randomCoffee()
         // nowShow()
@@ -10715,7 +10728,7 @@ function rcFollowUp(id){
         .get()
         .then(col=>{
             common.handleQuery(col)
-                // .filter(c=>c.id == `OqDGlmxbYCQ5nw8vIrPM`)
+                // .filter(c=>c.id == `nuKIH5Fj9uvSemBYQilG`)
                 .forEach(couple=>{
                 m.sendMessage2({
                     chat_id: couple.first,
@@ -10863,9 +10876,3 @@ function acceptTicket(ticketId,res){
 }
 module.exports = router;
 
-
-
-
-
-
-//     

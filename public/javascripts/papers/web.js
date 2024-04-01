@@ -1,3 +1,4 @@
+
 let userFilters = {};
 
 const fsdb = `https://console.firebase.google.com/u/0/project/paperstuff-620fa/firestore/data`
@@ -1899,23 +1900,60 @@ function showRC(){
     mc.append(usersC)
     mc.append(listing)
 
+    listing.append(ce(`h2`,false,false,`Список встреч:`))
+
+
     load(`rcParticipants`).then(users=>{
-        usersC.append(ce('h3',false,false,`Участников: ${users.length}`,{
-            onclick:()=>{
+        usersC.append(ce('h3',false,false,`Участников: ${users.length}`))
+        usersC.append(ce(`button`,false,[`dateButton`,`dark`],`Показать`,{
+            onclick:function(){
+                this.remove()
                 users.forEach(u=>{
                     usersC.append(showUserLine(u,u.randomCoffeePass?`пас`:`в игре`))
                 })
             }
         }))
-
     })
-    
-    load(`rc`).then(coffees=>{
-        listing.append(ce(`h3`,false,false,`Встречи`))
-        coffees.forEach(couple=>{
-            listing.append(rcLine(couple))
+
+    load(`rcIterations`).then(col=>{
+        col.forEach(i=>{
+            listing.append(rcIterationLine(i))
         })
     })
+    
+    
+}
+
+function rcIterationLine(i){
+    let c = listContainer(i,true,{
+        couples: `пар`,
+        meets: `встреч`
+    })
+    
+    if(!i.active) c.classList.remove(`hidden`);
+
+    c.append(ce(`h3`,false,false,drawDate(i.createdAt._seconds*1000),{
+        onclick:()=>{
+            showRCIteration(i.id)
+        }
+    }))
+    return c
+}
+
+function showRCIteration(id){
+    let p = preparePopupWeb(`rc_${id}`,false,false,true);
+    load(`rcIterations`,id).then(i=>{
+        
+        p.append(ce(`h2`,false,false,drawDate(i.createdAt._seconds*1000)))
+
+        load(`rc`,false,{iteration:id}).then(coffees=>{
+            p.append(ce(`h3`,false,false,`Встречи`))
+            coffees.forEach(couple=>{
+                p.append(rcLine(couple))
+            })
+        })
+    })
+        
 }
 
 function rcLine(couple){
@@ -1924,11 +1962,11 @@ function rcLine(couple){
         let users = ce(`div`,false,`flex`)
         c.append(users)
     load(`users`,couple.first, false, downLoadedUsers).then(f=>{
-        users.append(ce('button',false,[`dark`,`dateButton`,((couple.proof && couple.proof.first) ? `fineButton` : `reg`)],uname(f,f.id),{
+        users.append(ce('button',false,[`dark`,`dateButton`,((couple.proof && couple.proof.first) ? `fineButton` : (couple.proof && couple.proof.hasOwnProperty(`first`) ? `sadButton` : `reg`))],uname(f,f.id),{
             onclick:()=>showUser(f,f.id)
         }))
         load(`users`,couple.second, false, downLoadedUsers).then(s=>{
-            users.append(ce('button',false,[`dark`,`dateButton`,((couple.proof && couple.proof.second) ? `fineButton` : `reg`)],uname(s,s.id),{
+            users.append(ce('button',false,[`dark`,`dateButton`,((couple.proof && couple.proof.second) ? `fineButton` : (couple.proof && couple.proof.hasOwnProperty(`second`) ? `sadButton` : `reg`))],uname(s,s.id),{
                 onclick:()=>showUser(s,s.id)
             }))    
         })
