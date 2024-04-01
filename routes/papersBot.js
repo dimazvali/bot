@@ -1168,15 +1168,15 @@ router.all(`/admin/:method`, (req, res) => {
                                         let withdraw = 0;
     
                                         if (d.paymentNeeded && !d.payed) {
-                                            toPay = 30;
+                                            toPay = 20;
                                         }
     
                                         if (user.deposit) {
-                                            if (user.deposit > 30) {
+                                            if (user.deposit > 20) {
                                                 toPay = 0
                                                 alertWithdrawal(user, false, 30, `coworking`)
                                             } else {
-                                                toPay = 30 - user.deposit;
+                                                toPay = 20 - user.deposit;
                                                 alertWithdrawal(user, false, user.deposit, `coworking`)
                                             }
                                         }
@@ -2692,7 +2692,7 @@ function coworkingReason(record,reason){
         devlog(record);
         m.getUser(record.user,udb).then(user=>{
             if(reason == `deposit`){
-                alertWithdrawal(user,user.id,30,`посещение коворкинга`)
+                alertWithdrawal(user,user.id,20,`посещение коворкинга`)
             }
             if(`bonus`) {
                 udb.doc(record.user.toString()).update({
@@ -4451,8 +4451,8 @@ const translations = {
         en: `You won't get any messages about upcoming events. If can turn them on again in Profile section of the built-in app.`
     },
     toKnow: {
-        en: `30 GEL per day. The first day is for free.`,
-        ru: `Стоимость — 30 лари в день, первый тестовый день — бесплатно.`
+        en: `20 GEL per day. The first day is for free.`,
+        ru: `Стоимость — 20 лари в день, первый тестовый день — бесплатно.`
     },
     iliani: {
         en: '1/10 Veriko Anjaparidze St, Tbilisi, Georgia',
@@ -4742,9 +4742,9 @@ const translations = {
         ka: 'განრიგის ნახვა'
     },
     intro: {
-        ru: `Добро пожаловать в пространство PAPERS от Paper Kartuli. Тут можно забронировать место в коворкинге или переговорке, посмотреть расписание лекций, — или сразу пройти в бар.\nУдобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка внизу (или в нижнем левом углу).Вы можете записаться на бесплатный тестовый день в коворкинге. Следующие дни — по стандартному тарифу (30 GEL в день, оплата на месте). Для аренды переговорки или ивент-пространства, напишите прямо в наш чат-бот, и наш администратор вам ответит.`,
-        en: `Welcome to the PAPERS space by Paper Kartuli. Here you can book a place in a coworking or meeting room, see the lecture schedule, or go straight to the bar.\nThe most convenient way to use the bot is through the application: this button is at the bottom (or in the lower left corner). You can sign up for a free test day in a coworking space. The following days - at the standard rate (30 GEL per day, payable locally). To rent a meeting room or event space, write directly to our chatbot, and our administrator will answer you.`,
-        ka: 'კეთილი იყოს თქვენი მობრძანება Paper Kartuli-ის PAPERS სივრცეში, აქ შეგიძლიათ დაჯავშნოთ ადგილი კოვორკინგში ან შეხვედრების ოთახში, ნახოთ ლექციების განრიგი ან პირდაპირ ბარში ჩაბრძანდეთ. ბოტის გამოყენების ყველაზე მოსახერხებელი გზაა აპლიკაციის საშუალებით: ეს არის ქვედა ღილაკი (ან ქვედა მარცხენა კუთხეში) შეგიძლიათ დარეგისტრირდეთ უფასო ტესტის დღეს კოვორკინგის სივრცეში. მომდევნო დღეებში - სტანდარტული ღირებულობით (დღეში 30 ლარი, გადასახდელი ადგილობრივად). შეხვედრების ოთახის ან ღონისძიების სივრცის დასაქირავებლად მოგვწერეთ პირდაპირ ჩვენს ჩატბოტში და ჩვენი ადმინისტრატორი გიპასუხებთ.'
+        ru: `Добро пожаловать в пространство PAPERS от Paper Kartuli. Тут можно забронировать место в коворкинге или переговорке, посмотреть расписание лекций, — или сразу пройти в бар.\nУдобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка внизу (или в нижнем левом углу).Вы можете записаться на бесплатный тестовый день в коворкинге. Следующие дни — по стандартному тарифу (20 GEL в день, оплата на месте). Для аренды переговорки или ивент-пространства, напишите прямо в наш чат-бот, и наш администратор вам ответит.`,
+        en: `Welcome to the PAPERS space by Paper Kartuli. Here you can book a place in a coworking or meeting room, see the lecture schedule, or go straight to the bar.\nThe most convenient way to use the bot is through the application: this button is at the bottom (or in the lower left corner). You can sign up for a free test day in a coworking space. The following days - at the standard rate (20 GEL per day, payable locally). To rent a meeting room or event space, write directly to our chatbot, and our administrator will answer you.`,
+        ka: 'კეთილი იყოს თქვენი მობრძანება Paper Kartuli-ის PAPERS სივრცეში, აქ შეგიძლიათ დაჯავშნოთ ადგილი კოვორკინგში ან შეხვედრების ოთახში, ნახოთ ლექციების განრიგი ან პირდაპირ ბარში ჩაბრძანდეთ. ბოტის გამოყენების ყველაზე მოსახერხებელი გზაა აპლიკაციის საშუალებით: ეს არის ქვედა ღილაკი (ან ქვედა მარცხენა კუთხეში) შეგიძლიათ დარეგისტრირდეთ უფასო ტესტის დღეს კოვორკინგის სივრცეში. მომდევნო დღეებში - სტანდარტული ღირებულობით (დღეში 20 ლარი, გადასახდელი ადგილობრივად). შეხვედრების ოთახის ან ღონისძიების სივრცის დასაქირავებლად მოგვწერეთ პირდაპირ ჩვენს ჩატბოტში და ჩვენი ადმინისტრატორი გიპასუხებთ.'
     },
     introButton: {
         ru: `Открыть приложение`,
