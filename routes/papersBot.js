@@ -8355,18 +8355,76 @@ router.post('/hook', (req, res) => {
                                 reply_markup: {
                                     inline_keyboard: [
                                         [{
-                                            text: `🤯`,
+                                            text: `😵`,
                                             callback_data: `random_rate_${inc[2]}_${rate}_0`
                                         },{
-                                            text: `🤔`,
+                                            text: `😐`,
                                             callback_data: `random_rate_${inc[2]}_${rate}_0.5`
                                         },{
-                                            text: `🤗`,
+                                            text: `🤩`,
                                             callback_data: `random_rate_${inc[2]}_${rate}_1`
                                         }]
                                     ]
                                 }
                             }, 'editMessageReplyMarkup', token)
+
+                        })
+                    }
+                    case `later`:{
+                        return m.sendMessage2({
+                            callback_query_id: req.body.callback_query.id,
+                            show_alert: true,
+                            text: `Спасибо! Держим за вас кулачки!`
+                        }, 'answerCallbackQuery', token)
+                    }
+                    case `deny`:{
+                        let ref = randomCoffees.doc(inc[2]); 
+                        return ref.get().then(meeting=>{
+                            meeting = common.handleDoc(meeting)
+                            let rate = null;
+
+                            if(meeting.first == user.id){
+                                ref.update({
+                                    ['proof.first']:false
+                                })
+                                rate = `second`
+                            } else if(meeting.second == user.id){
+                                ref.update({
+                                    ['proof.second']:false
+                                })
+                                rate = `first`
+                            } else {
+                                return m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: `Но вас там не было!`
+                                }, 'answerCallbackQuery', token)
+                            }
+
+                            m.sendMessage2({
+                                callback_query_id: req.body.callback_query.id,
+                                show_alert: true,
+                                text: `Ничего страшного! Может быть, в следующий раз получится.`
+                            }, 'answerCallbackQuery', token)
+
+                            // m.sendMessage2({
+                            //     chat_id: user.id,
+                            //     message_id: req.body.callback_query.message.message_id,
+                            //     reply_markup: {
+                            //         inline_keyboard: [
+                            //             [{
+                            //                 text: `🤯`,
+                            //                 callback_data: `random_rate_${inc[2]}_${rate}_0`
+                            //             },{
+                            //                 text: `🤔`,
+                            //                 callback_data: `random_rate_${inc[2]}_${rate}_0.5`
+                            //             },{
+                            //                 text: `🤗`,
+                            //                 callback_data: `random_rate_${inc[2]}_${rate}_1`
+                            //             }]
+                            //         ]
+                            //     }
+                            // }, 'editMessageReplyMarkup', token)
 
                         })
                     }
@@ -10661,21 +10719,33 @@ function rcFollowUp(id){
                 .forEach(couple=>{
                 m.sendMessage2({
                     chat_id: couple.first,
-                    text: `Здравствуйте!\nКак вам кофе? Он вообще состоялся?..`,
+                    text: `Привет! Как вам кофе? Удалось ли пообщаться?`,
                     reply_markup:{
                         inline_keyboard:[[{
                             text: `Да`,
                             callback_data: `random_confirm_${couple.id}`
+                        },{
+                            text: `Нет`,
+                            callback_data: `random_deny_${couple.id}`
+                        }],[{
+                            text: `Нет, но планирую`,
+                            callback_data: `random_later_${couple.id}`
                         }]]
                     }
                 },false,token,messages)
                 m.sendMessage2({
                     chat_id: couple.second,
-                    text: `Здравствуйте! Как вам кофе? Он вообще состоялся?..`,
+                    text: `Привет! Как вам кофе? Удалось ли пообщаться?`,
                     reply_markup:{
                         inline_keyboard:[[{
                             text: `Да`,
                             callback_data: `random_confirm_${couple.id}`
+                        },{
+                            text: `Нет`,
+                            callback_data: `random_deny_${couple.id}`
+                        }],[{
+                            text: `Нет, но планирую`,
+                            callback_data: `random_later_${couple.id}`
                         }]]
                     }
                 },false,token,messages)
