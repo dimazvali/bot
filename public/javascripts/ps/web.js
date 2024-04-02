@@ -1226,7 +1226,7 @@ function showUser(u,id){
     if(!u) u = load(`users`,id)
 
     Promise.resolve(u).then(u=>{
-        let p = preparePopupWeb(`user${u.id}`)
+        let p = preparePopupWeb(`user_${u.id}`,false,false,true)
 
         p.append(logButton(`user`,u.id,`Логи ${uname(u,u.id)}`))
 
