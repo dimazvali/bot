@@ -4,13 +4,21 @@
 // 3. починить отображение выполненных заданий на экране пользователя
 
 
-const ngrok = process.env.ngrok;
-const ngrok2 = `https://a751-109-172-156-240.ngrok-free.app`;
+const ngrok2 = process.env.ngrok;
+const ngrok = `https://a751-109-172-156-240.ngrok-free.app`;
 
+
+var axios = require('axios');
+let token =         process.env.psToken;
 const host = 'ps';
+
+axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(s => {
+    console.log(`psBot hook set to ${ngrok}`)
+})
+
 var express = require('express');
 var router = express.Router();
-var axios = require('axios');
+
 var cors = require('cors')
 var sha256 = require('sha256');
 var common = require('./common');
@@ -146,7 +154,6 @@ let gcp = initializeApp({
 let fb = getFirestore(gcp);
 
 
-let token =         process.env.psToken;
 let udb =           fb.collection('users');
 let messages =      fb.collection('userMessages');
 let logs =          fb.collection('logs');
@@ -167,12 +174,11 @@ udb
     .get()
     .then(col => {
         admins = common.handleQuery(col)
+        // .filter(a=>+a.id == common.dimazvali)
     })
 
 
-axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(s => {
-    console.log(`psBot hook set to ${ngrok}`)
-})
+
 
 router.get('/admin', (req, res) => {
     res.render(host + '/admin', {
@@ -347,12 +353,18 @@ function regstriationIncomplete(user, message) {
     }
 }
 
+let processor = null;
+
+let mediaGroups = {};
+
 router.post(`/hook`, (req, res) => {
+    
     res.sendStatus(200)
 
     devlog(JSON.stringify(req.body, null, 2))
 
     let user = {};
+    
     if (req.body.my_chat_member) {
         if (req.body.my_chat_member.new_chat_member.status == 'kicked') {
 
@@ -431,83 +443,15 @@ router.post(`/hook`, (req, res) => {
 
             if (req.body.message.document) {
 
-                return messages
-                    .where('file_id', '==', req.body.message.document.file_id)
-                    .get()
-                    .then(col => {
-                        if (!col.docs.length) {
-
-                            // if(!req.body.message.caption) return m.sendMessage2({
-                            //     chat_id: user.id,
-                            //     text: `Простите, но к картинке нужна подпись.`
-                            // }, false, token)
-
-
-                            tasks
-                                .where(`active`, '==', true)
-                                .get()
-                                .then(col => {
-                                    let tasks = common.handleQuery(col).map(t => t.id)
-                                    userTasks
-                                        .where(`user`, '==', +user.id)
-                                        .get()
-                                        .then(col => {
-                                            let uTasks = common.handleQuery(col).filter(t => tasks.indexOf(t.task) > -1)
-
-
-                                            messages.add({
-                                                taskSubmission: null,
-                                                file: true,
-                                                createdAt: new Date(),
-                                                user:       +user.id,
-                                                file_id:    req.body.message.document.file_id,
-                                                thumb:      req.body.message.document.thumbnail ? req.body.message.document.thumbnail.file_id : null
-                                            }).then(message => {
-                                                m.sendMessage2({
-                                                    chat_id: user.id,
-                                                    text: `${common.sudden.fine()}! Ваш материал принят.`
-                                                }, false, token)
-
-                                                admins.forEach(a => {
-                                                    m.sendMessage2({
-                                                        chat_id: a.id,
-                                                        from_chat_id: user.id,
-                                                        message_id: req.body.message.message_id
-                                                    }, 'forwardMessage', token).then(s => {
-                                                        m.sendMessage2({
-                                                            chat_id: a.id,
-                                                            text: `Выберите, к какому заданию относится это фото, а потом поставьте оценку.`,
-                                                            reply_markup: {
-                                                                inline_keyboard: uTasks.map(t => {
-                                                                    return [{
-                                                                        text: `${uTasks.map(t=>t.task).indexOf(t.id) == -1 ? '(new) ' : ''} ${t.name}`,
-                                                                        callback_data: `pic_${message.id}_task_${t.id}`
-                                                                    }]
-                                                                })
-                                                            }
-                                                        }, false, token)
-                                                    })
-
-                                                })
-                                            })
-
-
-
-
-                                        })
-
-                                })
-
-
-                        } else {
-                            m.sendMessage2({
-                                chat_id: user.id,
-                                text: `${common.sudden.sad()} Такой файл у нас уже есть.`
-                            }, false, token)
-                        }
-                    })
-
-
+                if(req.body.message.media_group_id){
+                    if(!mediaGroups[req.body.message.media_group_id]) mediaGroups[req.body.message.media_group_id] = [];
+                    setTimeout(()=>{
+                        handleDoc(req,user)
+                    },mediaGroups[req.body.message.media_group_id].length*1000)
+                    mediaGroups[req.body.message.media_group_id].push(req.body.message.document.file_id)
+                } else {
+                    handleDoc(req,user)
+                }
             }
 
         })
@@ -697,6 +641,85 @@ router.post(`/hook`, (req, res) => {
     }
 })
 
+
+function handleDoc(req,user){
+    messages
+    .where('file_id', '==', req.body.message.document.file_id)
+    .get()
+    .then(col => {
+        if (!col.docs.length) {
+
+            // if(!req.body.message.caption) return m.sendMessage2({
+            //     chat_id: user.id,
+            //     text: `Простите, но к картинке нужна подпись.`
+            // }, false, token)
+
+
+            tasks
+                .where(`active`, '==', true)
+                .get()
+                .then(col => {
+                    let tasks = common.handleQuery(col).map(t => t.id)
+                    userTasks
+                        .where(`user`, '==', +user.id)
+                        .get()
+                        .then(col => {
+
+                            let uTasks = common.handleQuery(col).filter(t => tasks.indexOf(t.task) > -1)
+
+
+                            messages.add({
+                                taskSubmission: null,
+                                file: true,
+                                createdAt: new Date(),
+                                user: +user.id,
+                                file_id: req.body.message.document.file_id,
+                                thumb: req.body.message.document.thumbnail ? req.body.message.document.thumbnail.file_id : null
+                            }).then(message => {
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    text: `${common.sudden.fine()}! Ваш материал принят.`
+                                }, false, token)
+
+
+                                let sent = [];
+
+                                admins.forEach(a => {
+                                    sent.push(new Promise((fine, not) => {
+                                        m.sendMessage2({
+                                            chat_id: a.id,
+                                            from_chat_id: user.id,
+                                            message_id: req.body.message.message_id
+                                        }, 'forwardMessage', token).then(s => {
+                                            m.sendMessage2({
+                                                chat_id: a.id,
+                                                text: `Выберите, к какому заданию относится это фото, а потом поставьте оценку.`,
+                                                reply_markup: {
+                                                    inline_keyboard: uTasks.map(t => {
+                                                        return [{
+                                                            text: `${uTasks.map(t=>t.task).indexOf(t.id) == -1 ? '(new) ' : ''} ${t.name}`,
+                                                            callback_data: `pic_${message.id}_task_${t.id}`
+                                                        }]
+                                                    })
+                                                }
+                                            }, false, token)
+                                            fine()
+                                        }).catch(() => {
+                                            not()
+                                        })
+                                    }))
+                                })
+                            })
+                        })
+                })
+        } else {
+            m.sendMessage2({
+                chat_id: user.id,
+                text: `${common.sudden.sad()} Такой файл у нас уже есть.`
+            }, false, token)
+        }
+    })
+}
 
 
 router.get(`/auth`, (req, res) => {
