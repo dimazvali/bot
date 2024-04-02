@@ -2,18 +2,19 @@
 
 function showNews(){
     closeLeft()
-    let p = preparePopupWeb(`news`,false,false,true)
-    p.append(ce('h2',false,false,`Загружаем...`))
-    load(`news`).then(tasks=>{
-        p.innerHTML = `<h2>Рассылки</h2>`
-        p.append(ce('button',false,`dateButton`,`Добавить`,{
-            dataset:{booked:1},
-            onclick:()=>showNewNews()
-        }))
-        tasks.forEach(t=>{
-            p.append(newsLine(t))
-        })
-    })
+    showScreen(`Рассылки`,`news`,newsLine,showNewNews,false,true,[`dark`,`dateButton`])
+    // let p = preparePopupWeb(`news`,false,false,true)
+    // p.append(ce('h2',false,false,`Загружаем...`))
+    // load(`news`).then(tasks=>{
+    //     p.innerHTML = `<h2>Рассылки</h2>`
+    //     p.append(ce('button',false,`dateButton`,`Добавить`,{
+    //         dataset:{booked:1},
+    //         onclick:()=>showNewNews()
+    //     }))
+    //     tasks.forEach(t=>{
+    //         p.append(newsLine(t))
+    //     })
+    // })
 }
 
 function newsLine(n){

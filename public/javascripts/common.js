@@ -610,7 +610,7 @@ function addScreen(collection,name,o){
 
 }
 
-function showScreen(name, collection, line, addButton, sort, help){
+function showScreen(name, collection, line, addButton, sort, help,cl){
     closeLeft()
     let p = preparePopupWeb(collection,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
@@ -623,7 +623,7 @@ function showScreen(name, collection, line, addButton, sort, help){
         p.append(h)
 
         if(help){
-            load(`settings`,name).then(d=>{
+            load(`settings`,collection).then(d=>{
                 if(d.help){
                     h.classList.add(`infoBubble`)
                     h.onclick = () => showHelp(d.help,name)
@@ -633,7 +633,7 @@ function showScreen(name, collection, line, addButton, sort, help){
             })
         }
 
-        if(addButton) p.append(ce('button', false, false, `Добавить`, {
+        if(addButton) p.append(ce('button', false, cl||false, `Добавить`, {
             onclick: () => addButton()
         }))
 
@@ -658,13 +658,13 @@ function showScreen(name, collection, line, addButton, sort, help){
 
             if(sort) sort.forEach(t=>sortAble.push(t))
 
-            cc.append(sortBlock(sortAble,c,docs,line))
+            cc.append(sortBlock(sortAble,c,docs,line,cl))
         
         p.append(cc)
 
         p.append(c)
 
-        p.append(archiveButton(c))
+        p.append(archiveButton(c,cl))
     })
     return {
         container:  p,

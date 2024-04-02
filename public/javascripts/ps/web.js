@@ -11,6 +11,65 @@ function closeLeft(){
 }
 
 
+if(start){
+    start = start.split('_')
+    switch(start[0]){
+        case `users`:{
+            if(!start[1]){
+                showUsers()
+            } else {
+                showUser(start[1])
+            }
+            break
+        }
+
+        case `tasks`:{
+            if(!start[1]){
+                showTasks()
+            } else {
+                showTask(start[1])
+            }
+            break
+        }
+
+        case `news`:{
+            if(!start[1]){
+                showNews()
+            } else {
+                if(start[1] == add) showNewNews()
+                showNewsNews(start[1])
+            }
+            break
+        }
+
+        case `tasksSubmissions`:{
+            if(!start[1]){
+                showIncoming()
+            }
+            break
+        }
+
+        case `unseen`:{
+            if(!start[1]){
+                showUnseen()
+            }
+            break
+        }
+
+        case `tags`:{
+            if(!start[1]){
+                showTags()
+            } else {
+                showTag(start[1])
+            }
+            break
+        }
+        
+
+        
+    }
+}
+
 function drawSchedule(events, start) {
     let cc = ce('div',false,`scroll`)
     let c = ce('div', false, `flex`)
@@ -580,12 +639,13 @@ function showUsersChart(userData){
 
 function showUsers(){
     closeLeft()
-    mc.innerHTML = '<h1>Загружаем...</h1>'
+    // mc.innerHTML = '<h1>Загружаем...</h1>'
+    let mc = preparePopupWeb(`users`,false,false,true,false,false,`Пользователи`)
     axios.get(`/${host}/admin/users`)
         .then(data=>{
             console.log(data.data)
-            mc.innerHTML = '';
-            mc.append(ce('h1',false,`header2`,`Пользователи`))
+            // mc.innerHTML = '';
+            // mc.append(ce('h1',false,`header2`,`Пользователи`))
             let c = ce('div')
 
             let counter = ce('h4',false,`mtop`)
@@ -716,16 +776,16 @@ function message(m){
 
 function showIncoming(){
     closeLeft()
-    let p = preparePopupWeb(`tasksSubmissions`)
+    let p = preparePopupWeb(`tasksSubmissions`,false,false,true,false,false,`Входящие материалы`)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`taskSubissions`).then(inc=>{
         p.innerHTML = null;
-        p.append(ce('h1',false,`infoBubble`,`Входящие материалы`,{
-            onclick:()=>showHelp([
-                `Здесь собираются входящие фотографии, разобранные по сюжетам.`,
-                `На экране отображаются превью картинок, вне зависимости от типа файла (heic/jpg). По клику в превью скачивается оригинал.`
-            ])
-        }))
+        // p.append(ce('h1',false,`infoBubble`,`Входящие материалы`,{
+        //     onclick:()=>showHelp([
+        //         `Здесь собираются входящие фотографии, разобранные по сюжетам.`,
+        //         `На экране отображаются превью картинок, вне зависимости от типа файла (heic/jpg). По клику в превью скачивается оригинал.`
+        //     ])
+        // }))
         let listing = ce('div')
         p.append(listing)
         inc.forEach((s,i)=>{
@@ -744,7 +804,7 @@ function showIncoming(){
                 right.append(ce('h3',false,false,s.name))
                 let udata = ce('div')
                 right.append(udata)
-                load(`users`,s.user).then(u=>{
+                load(`users`,s.user,false,downLoadedUsers).then(u=>{
                     udata.append(ce('p',false,false,uname(u,u.id)))
                     udata.append(ce('button',false,[`dateButton`,`dark`],`Открыть профиль`,{
                         onclick:()=>showUser(false,u.id)
@@ -765,16 +825,11 @@ function showIncoming(){
 
 function showUnseen(){
     closeLeft()
-    let p = preparePopupWeb(`tasksSubmissions`)
+    let p = preparePopupWeb(`unseen`,false,false,true,false,false,`Неразобранное`)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`unseen`).then(inc=>{
         p.innerHTML = null;
-        p.append(ce('h1',false,`infoBubble`,`Неразобранное`,{
-            onclick:()=>showHelp([
-                `Здесь отображаются неразобранные фотографии.`,
-                `Вы можете отклонить лишние, или определить тему (и оценку) для подходящих.`
-            ])
-        }))
+       
         let listing = ce('div')
         p.append(listing)
         inc.forEach((s,i)=>{
@@ -791,7 +846,7 @@ function showUnseen(){
                 right.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000,false,{time:true})))
                 let udata = ce('div')
                 right.append(udata)
-                load(`users`,s.user).then(u=>{
+                load(`users`,s.user,false,downLoadedUsers).then(u=>{
                     udata.append(ce('p',false,false,uname(u,u.id)))
                     udata.append(ce('button',false,[`dateButton`,`dark`],`Открыть профиль`,{
                         onclick:()=>showUser(false,u.id)
@@ -830,7 +885,7 @@ function showUnseen(){
 
 
 function showSubmissions(userTaskId){
-    let p = preparePopupWeb(`tasksSubmissions_${userTaskId}`)
+    let p = preparePopupWeb(`tasksSubmissions_${userTaskId}`,false,false,true)
 
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`taskSubissions`,userTaskId).then(task=>{
@@ -850,7 +905,7 @@ function showSubmissions(userTaskId){
                 right.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
                 right.append(ce(`p`,false,false,`Оценка: ${s.score}`))
             p.append(c)
-            if(s.admin) load(`users`,s.admin).then(admin=>right.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
+            if(s.admin) load(`users`,s.admin,false,downLoadedUsers).then(admin=>right.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
             if(s.message) load(`messages`,s.message).then(m=>{
                 if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>left.append(img))
                 
@@ -869,7 +924,7 @@ function editable(e){
 
 
 function showTag(tagId){
-    let p = preparePopupWeb(`tags_${tagId}`)
+    let p = preparePopupWeb(`tags_${tagId}`,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`tags`,tagId).then(tag=>{
         p.innerHTML = null;
@@ -900,7 +955,7 @@ function showTag(tagId){
             users.innerHTML = tusers.length ? `${tusers.length} пользователей` : `юзеров нет`
             
             tusers.forEach(u=>{
-                load(`users`,u.user).then(u=>{
+                load(`users`,u.user,false,downLoadedUsers).then(u=>{
                     users.append(showUserLine(u))
                 })        
             })    
@@ -944,7 +999,7 @@ function showTag(tagId){
 }
 
 function showTask(taskId){
-    let p = preparePopupWeb(`tasks`)
+    let p = preparePopupWeb(`tasks_${taskId}`,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`tasks`,taskId).then(task=>{
 
@@ -976,12 +1031,12 @@ function showTask(taskId){
                     c.append(ce('span',false,`info`,drawDate(s.createdAt._seconds*1000)))
                     c.append(ce(`p`,false,false,`Оценка: ${s.score}`))
                     submissions.append(c)
-                if(s.admin) load(`users`,s.admin).then(admin=>c.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
+                if(s.admin) load(`users`,s.admin,false,downLoadedUsers).then(admin=>c.append(ce(`p`,false,false,`Кто поставил: ${uname(admin,admin.id)}`)))
                 if(s.message) load(`messages`,s.message).then(m=>{
                     if(m.thumb || m.file_id) getPicture(m.thumb, m.file_id).then(img=>c.append(img))
                 })
                 if(s.user){
-                    load(`users`,s.user).then(u=>{
+                    load(`users`,s.user,false,downLoadedUsers).then(u=>{
                         c.append(showUserLine(u))
                     })
                 }
@@ -1019,10 +1074,10 @@ function showTask(taskId){
 
 function showTags(){
     closeLeft()
-    let p = preparePopupWeb(`tags`)
+    let p = preparePopupWeb(`tags`,false,false,true,false,false,`Теги`)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`tags`).then(tasks=>{
-        p.innerHTML = `<h2>Теги</h2>`
+        // p.innerHTML = `<h2>Теги</h2>`
         p.append(ce('button',false,`dateButton`,`Добавить`,{
             dataset:{booked:1},
             onclick:()=>showNewTag()
@@ -1036,18 +1091,19 @@ function showTags(){
 
 function showNews(){
     closeLeft()
-    let p = preparePopupWeb(`news`,false,false,true)
-    p.append(ce('h2',false,false,`Загружаем...`))
-    load(`news`).then(tasks=>{
-        p.innerHTML = `<h2>Рассылки</h2>`
-        p.append(ce('button',false,`dateButton`,`Добавить`,{
-            dataset:{booked:1},
-            onclick:()=>showNewNews()
-        }))
-        tasks.forEach(t=>{
-            p.append(newsLine(t))
-        })
-    })
+    showScreen(`Рассылки`,`news`,newsLine,showNewNews,false,true)
+    // let p = preparePopupWeb(`news`,false,false,true)
+    // p.append(ce('h2',false,false,`Загружаем...`))
+    // load(`news`).then(tasks=>{
+    //     p.innerHTML = `<h2>Рассылки</h2>`
+    //     p.append(ce('button',false,`dateButton`,`Добавить`,{
+    //         dataset:{booked:1},
+    //         onclick:()=>showNewNews()
+    //     }))
+    //     tasks.forEach(t=>{
+    //         p.append(newsLine(t))
+    //     })
+    // })
 }
 
 
@@ -1063,7 +1119,7 @@ function newsLine(n){
 }
 
 function showNewsNews(id){
-    let p = preparePopupWeb(`news_${id}`)
+    let p = preparePopupWeb(`news_${id}`,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`news`,id).then(n=>{
         p.innerHTML = `<h2>${n.name}</h2>`
@@ -1076,7 +1132,7 @@ function showNewsNews(id){
 
         p.append(credits)
 
-        load(`users`,n.createdBy).then(u=>{
+        load(`users`,n.createdBy,false,downLoadedUsers).then(u=>{
             credits.append(ce(`button`,false,['dateButton','dark'],uname(u,id),{
                 onclick:()=>showUser(u,u.id)
             }))
@@ -1101,7 +1157,7 @@ function showNewsNews(id){
 
                         c.append(ce(`p`,false,false,s.user))
 
-                        load(`users`,s.user).then(u=>{
+                        load(`users`,s.user,false,downLoadedUsers).then(u=>{
                             c.append(ce('a',false,false,uname(u,u.id),{
                                 href: '#',
                                 onclick:()=>showUser(false,u.id)
@@ -1120,17 +1176,11 @@ function showNewsNews(id){
 
 function showTasks(){
     closeLeft()
-    let p = preparePopupWeb(`tasks`)
+    let p = preparePopupWeb(`tasks`,false,false,true,false,false,`Задания`)
     p.append(ce('h2',false,false,`Загружаем...`))
     load(`tasks`).then(tasks=>{
         p.innerHTML = null;
-        p.append(ce('h2',false,`infoBubble`,`Задания`,{
-            
-            onclick:()=>showHelp([
-                `Здесь вы можете создавать новые задания, к которым в дальнейшем будут привязываться присланные пользователями материалы.`,
-                `При добавлении нового задания пользователи с меткой "готовы" получат сообщения с названием и описанием задания.`
-            ])
-        }))
+
         p.append(ce('button',false,`dateButton`,`Добавить`,{
             dataset:{booked:1},
             onclick:()=>showNewTask()

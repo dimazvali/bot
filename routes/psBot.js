@@ -165,6 +165,7 @@ let userTasks =     fb.collection('userTasks');
 let userTasksSubmits = fb.collection('userTasksSubmits');
 let tasks =         fb.collection(`tasks`);
 let news =          fb.collection(`news`);
+let settings =      fb.collection(`settings`);
 
 let admins = [];
 
@@ -785,6 +786,7 @@ router.get(`/web`, (req, res) => {
                 signed: true,
                 httpOnly: true,
             }).render(`${host}/web`, {
+                start: req.query.page,
                 logs: common.handleQuery(col),
                 // token: req.signedCookies.adminToken
             })
@@ -805,6 +807,7 @@ router.get(`/web`, (req, res) => {
                     .then(col => {
                         res.render(`${host}/web`, {
                             logs: common.handleQuery(col),
+                            start: req.query.page,
                             // token: req.signedCookies.adminToken
                         })
                     })
@@ -850,6 +853,28 @@ router.all(`/admin/:method/:id`, (req, res) => {
 
 
         switch (req.params.method) {
+
+            case `settings`:{
+                switch(req.method){
+                    case `POST`:{
+                        devlog(req.params.id);
+                        devlog(req.body.value);
+                        return settings.doc(req.params.id).set({help:req.body.value}).then(s=>{
+                            res.json({
+                                success: true
+                            })
+                        }).catch(err=>{
+                            res.status(500).send(err)
+                        })
+                    }
+                    case `GET`:{
+                        return common.getDoc(settings,req.params.id).then(d=>res.json(d))
+                    }
+                    case `PUT`:{
+                        return updateEntity(req,res,settings.doc(req.params.id),+admin.id)
+                    }
+                }
+            }
             
             case `usersNews`:{
                 return messages
@@ -1274,6 +1299,9 @@ router.all(`/admin/:method`, (req, res) => {
         if (!admin || !admin.admin) return res.sendStatus(403)
 
         switch (req.params.method) {
+
+            
+
             case `news`:{
                 switch(req.method){
                     case `GET`:{
