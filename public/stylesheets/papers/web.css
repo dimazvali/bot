@@ -10,6 +10,7 @@ div#left {
     box-shadow: 4px 4px 10px var(--dark);
     background: var(--dark);
     z-index: 10;
+    overflow: scroll;
 }
 
 div#main {
@@ -185,6 +186,7 @@ img.cover {
     box-shadow: 5px 5px 12px var(--dark);
     max-width: 100vw;
     box-sizing: border-box;
+    min-width: 50vw;
 }
 
 table.wide{
@@ -278,7 +280,7 @@ button.dateButton.active {
     background: var(--accent);
 }
 
-
+.sadButton::before,
 .fineButton::before {
     content: '';
     background: linear-gradient(135deg, var(--accent),var(--accent) 50%, transparent 50%);
@@ -288,11 +290,16 @@ button.dateButton.active {
     left: 0;
 }
 
+.sadButton::before{
+    background: linear-gradient(135deg, red, red 50%, transparent 50%);
+}
+
+.sadButton,
 .fineButton {
     position: relative;
     overflow: hidden;
 }
-
+.sadButton::after,
 .fineButton::after {
     content: '✔';
     position: absolute;
@@ -304,6 +311,10 @@ button.dateButton.active {
     line-height: 10px;
     text-align: center;
     font-size: 10px;
+}
+
+.sadButton::after{
+    content: '-';
 }
 
 .delete {
@@ -382,4 +393,16 @@ button.deleteButton {
 
 .flex.line>* {
     margin-right: 20px;
+}
+
+.mTop {
+    margin-top: 20px !important;
+}
+
+p.hover {
+    cursor: pointer;
+}
+
+.hover:hover {
+    text-decoration: underline;
 }

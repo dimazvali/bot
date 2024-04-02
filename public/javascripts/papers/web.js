@@ -23,6 +23,10 @@ if(start){
     start = start.split('_')
 
     switch(start[0]){
+        case `messages`:{
+            showMessages();
+            break;
+        }
         case `mr`:{
             showMeetingRoom()
             break;
@@ -170,8 +174,8 @@ function drawCoworkingShedule(records,start){
 
 
 function showPlans(){
-    let p = preparePopupWeb(`plans`,false,false,true);
-        p.append(ce(`h1`,false,false,`Тарифы и подписки`))
+    let p = preparePopupWeb(`plans`,false,false,true,false,false,`Тарифы и подписки`);
+        // p.append(ce(`h1`,false,false,`Тарифы и подписки`))
         load(`plans`).then(plans=>{
 
             let c = ce('div')
@@ -492,7 +496,7 @@ function showCoworkingOptions(record, user, container){
 
         if(record.paymentNeeded && user.deposit){
             c.append(`У пользователя есть депозит: ${cur(user.deposit)}`)
-            if(!record.status != `used`) c.append(ce(`button`,false,[`dark`,`dateButton`],`Списать с депозита`,{
+            if(!record.status != `used`) c.append(ce(`button`,false,[`dark`,`dateButton`],`Списать с депозита (20)`,{
                 onclick:function(){
                     axios.put(`/${host}/admin/coworking/${record.id}`,{
                         attr:   `status`,
@@ -565,7 +569,7 @@ function drawSchedule(events, start) {
         let isoDate = date.toISOString().split('T')[0]
         day.append(ce(`h3`, false, (date.getDay() == 0 || date.getDay() == 6) ? `active` : false, drawDate(date)))
         events.filter(e => typeof e.date == `string` && new Date(e.date).toISOString().split('T')[0] == isoDate).forEach(e => {
-            day.append(ce('p', false, false, `${drawDate(e.date,false,{time:true})}: ${e.name}`, {
+            day.append(ce('p', false, `hover`, `${drawDate(e.date,false,{time:true})}: ${e.name}`, {
                 onclick: () => showClass(e, e.id)
             }))
         })
@@ -807,8 +811,8 @@ window.addEventListener('keydown', (e) => {
 
 function showStandAlone(){
     closeLeft()
-    let p = preparePopupWeb(`standAlone`,false,false,true)
-        p.append(ce('h1',false,false,`Отдельные страницы`))
+    let p = preparePopupWeb(`standAlone`,false,false,true,false,false,`Отдельные страницы`)
+        // p.append(ce('h1',false,false,`Отдельные страницы`))
         p.append(ce(`button`,false,[`dark`,`dateButton`],`Добавить`,{
             onclick:()=>addStandAlone()
         }))
@@ -939,8 +943,7 @@ function showStandAlonePage(pid){
 
 function showCoworking(){
     closeLeft()
-    let p = preparePopupWeb(`coworking`,false,false,true)
-    p.append(ce('h1',false,false,`Коворкинг`))
+    let p = preparePopupWeb(`coworking`,false,false,true,false,false,`Коворкинг`)
     
     p.append(drawCoworkingShedule())
 
@@ -1117,24 +1120,25 @@ function showCoworkingLine(r,butHall,butUser){
 
 function showSchedule() {
     closeLeft()
-    mc.innerHTML = '<h1>Загружаем...</h1>'
-    window.history.pushState({}, "", `web?page=classes`);
+    // mc.innerHTML = '<h1>Загружаем...</h1>'
+    // window.history.pushState({}, "", `web?page=classes`);
+    let p = preparePopupWeb(`classes`,false,false,true,false,false,`Расписание`)
     axios.get(`/${host}/admin/classes`)
         .then(data => {
             console.log(data.data)
-            mc.innerHTML = '';
-            mc.append(ce('h1', false, `header2`, `Расписание`))
-            mc.append(drawSchedule(data.data))
+            // mc.innerHTML = '';
+            // mc.append(ce('h1', false, `header2`, `Расписание`))
+            p.append(drawSchedule(data.data))
             let c = ce('div')
 
-            c.append(ce('button',false,[`dark`,`dateButton`],`Добавить`,{
+            c.append(ce('button',false,[`dark`,`dateButton`,`mTop`],`Добавить событие`,{
                 onclick:()=>newClass()
             }))
 
             data.data.forEach(cl => {
                 c.append(showClassLine(cl))
             });
-            mc.append(c)
+            p.append(c)
 
 
         })
@@ -1159,6 +1163,8 @@ function showClassLine(cl) {
         if(cl.visitors) details.append(ce(`span`,false,`info`,cl.visitors?`гостей: ${cl.visitors}`:''))
         if(cl.views) details.append(ce(`span`,false,`info`,cl.views?`просмотров: ${cl.views}`:''))
         if(cl.rate)  details.append(ce(`span`,false,`info`,`оценка: ${cl.rate}`))
+        if(cl.admins)  details.append(ce(`span`,false,`info`,`только для админов`))
+        if(cl.fellows)  details.append(ce(`span`,false,`info`,`только для fellows`))
         c.append(ce('h2', false, false, cl.name))
     c.append(ce('p', false, false, `${drawDate(cl.date)} @ ${cl.hallName}`))
     return c
@@ -1242,7 +1248,7 @@ function showClass(cl, id) {
         [`classes`, cl.id || id],
         true,
         logButton(`class`,cl.id||id,`логи`),
-        `/classes/${id}`
+        `/classes/${id}`,
         )
     
     // p.append()
@@ -1575,8 +1581,8 @@ function showClass(cl, id) {
 
 function showTickets(){
     closeLeft();
-    let p = preparePopupWeb(`tickets`,false,false,true)
-    p.append(ce(`h1`,false,false,`Билеты`))
+    let p = preparePopupWeb(`tickets`,false,false,true,false,false,`Билеты`)
+    // p.append(ce(`h1`,false,false,`Билеты`))
     load(`userClasses`).then(plans=>{
 
         let c = ce('div')
@@ -1879,9 +1885,10 @@ function showUsersChart(userData) {
 
 function showRC(){
     closeLeft()
-    mc.innerHTML = '<h1>Random coffee</h1>'
+    // mc.innerHTML = '<h1>Random coffee</h1>'
     
-    window.history.pushState({}, "", `web?page=rc`);
+    // window.history.pushState({}, "", `web?page=rc`);
+    let p = preparePopupWeb(`rc`,false,false,true,false,false,`Random Coffee`)
     let usersC = ce('div')
     let listing = ce('div')
     
@@ -1897,8 +1904,8 @@ function showRC(){
         }
     }))
 
-    mc.append(usersC)
-    mc.append(listing)
+    p.append(usersC)
+    p.append(listing)
 
     listing.append(ce(`h2`,false,false,`Список встреч:`))
 
@@ -1981,15 +1988,16 @@ function showUsers() {
     userFilters = {};
 
     closeLeft()
-    mc.innerHTML = '<h1>Загружаем...</h1>'
+    // mc.innerHTML = '<h1>Загружаем...</h1>'
     
-    window.history.pushState({}, "", `web?page=users`);
+    // window.history.pushState({}, "", `web?page=users`);
+
+    let mc = preparePopupWeb(`users`,false,false,true,false,false,`Пользователи`)
 
     axios.get(`/${host}/admin/users`)
         .then(data => {
             console.log(data.data)
-            mc.innerHTML = '';
-            mc.append(ce('h1', false, `header2`, `Пользователи`))
+            // mc.innerHTML = '';
             
             let c = ce('div')
 
@@ -2157,7 +2165,7 @@ function showUserLine(u, cnt) {
 
 
 function showMeetingRoom(){
-    let p = preparePopupWeb(`mr`,false,false,true)
+    let p = preparePopupWeb(`mr`,false,false,true,false,false,`Переговорка`)
     load(`mr`).then(data=>{
         let cc = ce('div', false, `scroll`)
         let c = ce('div', false, `flex`)
@@ -2374,6 +2382,7 @@ function occupyMR(date,time,button){
 
 function messageLine(m){
     m.active = m.hasOwnProperty(`deleted`) ? false : true
+    
     let c = listContainer(m,true,{
         // edited: m.edited,
         // deleted: m.deleted
@@ -2387,9 +2396,12 @@ function messageLine(m){
     c.append(ce(`p`,false,false,m.text || `без текста`))
     if(m.textInit) c.append(ce(`p`,false,false,`Исходный текст: ${m.textInit}`))
 
+    let bc =ce(`div`,false,`flex`)
+        c.append(bc)
+
     if(m.messageId && !m.deleted  && (+new Date() - new Date(m.createdAt._seconds*1000 < 48*60*60*1000))){
-        c.append(deleteButton(`messages`,m.id,false,[`active`,`dark`,`dateButton`],()=>message.remove()))
-        if(!m.edited) c.append(ce(`button`,false,[`dark`,`dateButton`],`редактировать`,{
+        bc.append(deleteButton(`messages`,m.id,false,[`active`,`dark`,`dateButton`],()=>message.remove()))
+        if(!m.edited) bc.append(ce(`button`,false,[`dark`,`dateButton`],`редактировать`,{
             onclick:()=>{
                 let ew = modal()
                     let txt = ce(`textarea`,false,false,false,{
@@ -2412,12 +2424,38 @@ function messageLine(m){
         }))
     }
 
+    if(!m.isReply){
+        bc.append(ce(`button`,false,[`dark`,`dateButton`],`Ответить`,{
+            onclick:()=>{
+                let b = modal()
+                let txt = ce(`textarea`,false,false,false,{placeholder: `Вам слово`})
+                    b.append(txt)
+                    b.append(ce(`button`,false,[`dark`,`dateButton`],`Написать`,{
+                        onclick:function(){
+                            if(!txt.value) return alert(`Я не вижу ваших букв`)
+                            this.setAttribute(`disabled`,true)
+                            axios.post(`/${host}/admin/message`,{
+                                text: txt.value,
+                                user: m.user
+                            }).then(handleSave)
+                            .catch(handleError)
+                            .finally(()=>{
+                                txt.value = null;
+                                this.removeAttribute(`disabled`)
+                            })
+                        }
+                    }))
+            }
+        }))
+    }
+
     return c
 }
 
 function showMessages(){
-    let p = preparePopupWeb(`messages`,false,false,true)
-        p.append(ce(`h1`,false,false,`Сообщения`))
+    let p = preparePopupWeb(`messages`,false,false,true,false,false,`Сообщения`)
+        
+        
         let c = ce('div')
         
         load(`messages`)
@@ -2843,8 +2881,7 @@ function depositLine(d){
 }
 
 function showDeposits(){
-    let p = preparePopupWeb(`deposits`,false,false,true)
-        p.append(ce(`h1`,false,false,`Движения по депозитам`))
+    let p = preparePopupWeb(`deposits`,false,false,true,false,false,`Движения по депозитам`)
         load(`deposits`).then(list=>{
             list.forEach(d=>{
                 p.append(depositLine(d))            
@@ -2853,41 +2890,40 @@ function showDeposits(){
 }
 
 function showHalls(){
-    closeLeft()
-    mc.innerHTML = '<h1>Загружаем...</h1>'
-    window.history.pushState({}, "", `web?page=halls`);
-    load(`halls`).then(halls => {
-        mc.innerHTML = '';
-        mc.append(ce('h1', false, `header2`, `Залы`))
-        let c = ce('div')
+    showScreen(`Залы`,`halls`,showHallLine,false,false,true)
+    // load(`halls`).then(halls => {
 
-        halls.forEach(h => {
-            c.append(showHallLine(h))
-        });
+    //     let p = preparePopupWeb(`halls`,false,false,true,false,false,`Залы`)
 
-        let cc = ce('div', false, `controls`)
+    //     let c = ce(`div`)
+
+    //     halls.forEach(h => {
+    //         p.append(showHallLine(h))
+    //     });
+
+    //     let cc = ce('div', false, `controls`)
         
-        cc.append(sortBlock([{
-            attr: `name`,
-            name: `По названию`
-        }, {
-            attr: `views`,
-            name: `По просмотрам`
-        }, {
-            attr: `createdAt`,
-            name: `По дате создания`
-        }], c, halls, showHallLine, [`dark`,`dateButton`]))
+    //     cc.append(sortBlock([{
+    //         attr: `name`,
+    //         name: `По названию`
+    //     }, {
+    //         attr: `views`,
+    //         name: `По просмотрам`
+    //     }, {
+    //         attr: `createdAt`,
+    //         name: `По дате создания`
+    //     }], c, halls, showHallLine, [`dark`,`dateButton`]))
 
-        mc.append(cc)
+    //     p.append(cc)
 
-        c.append(ce('button', false, [`dark`,`dateButton`], `Добавить зал`, {
-            onclick: () => newHall()
-        }))
+    //     p.append(ce('button', false, [`dark`,`dateButton`], `Добавить зал`, {
+    //         onclick: () => newHall()
+    //     }))
 
-        mc.append(c)
+    //     // p.append(c)
 
-        mc.append(archiveButton(c,[`dark`,`dateButton`]))
-    })
+    //     p.append(archiveButton(c,[`dark`,`dateButton`]))
+    // })
 }
 
 function showHallLine(a){
@@ -2922,12 +2958,15 @@ function showAuthors() {
     mc.innerHTML = '<h1>Загружаем...</h1>'
     window.history.pushState({}, "", `web?page=authors`);
     load(`authors`).then(authors => {
-        mc.innerHTML = '';
-        mc.append(ce('h1', false, `header2`, `Авторы`))
-        mc.append(ce(`p`, false, false, `В этом разделе отображаются авторы. У каждого из них появляется собственная страница, а у пользователей — возможность подписаться на обновления.<br>По умолчанию отображаются только активные авторы. Если кто-то ушел, а потом вернулся, не стоит создавать новую запись, откройте архив и верните к жизни предыдущую запись.`))
+        let p = preparePopupWeb(`authors`,false,false,true,false,false,`Авторы`)
+        // mc.innerHTML = '';
+        // mc.append(ce('h1', false, `header2`, `Авторы`))
+        // mc.append(ce(`p`, false, false, `В этом разделе отображаются авторы. У каждого из них появляется собственная страница, а у пользователей — возможность подписаться на обновления.<br>По умолчанию отображаются только активные авторы. Если кто-то ушел, а потом вернулся, не стоит создавать новую запись, откройте архив и верните к жизни предыдущую запись.`))
 
 
         let c = ce('div')
+
+        // p.append(c)
 
         authors.forEach(a => {
             c.append(showAuthorLine(a))
@@ -2945,15 +2984,15 @@ function showAuthors() {
             name: `По дате создания`
         }], c, authors, showAuthorLine,[`dark`,`dateButton`]))
 
-        mc.append(cc)
+        p.append(cc)
 
         c.append(ce('button', false, [`dark`,`dateButton`], `Добавить автора`, {
             onclick: () => newAuthor()
         }))
 
-        mc.append(c)
+        p.append(c)
 
-        mc.append(archiveButton(c,[`dark`,`dateButton`]))
+        p.append(archiveButton(c,[`dark`,`dateButton`]))
     })
 }
 

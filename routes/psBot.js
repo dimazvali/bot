@@ -4,8 +4,8 @@
 // 3. починить отображение выполненных заданий на экране пользователя
 
 
-const ngrok2 = process.env.ngrok;
-const ngrok = `https://a751-109-172-156-240.ngrok-free.app`;
+const ngrok = process.env.ngrok;
+const ngrok2 = `https://a751-109-172-156-240.ngrok-free.app`;
 
 
 var axios = require('axios');

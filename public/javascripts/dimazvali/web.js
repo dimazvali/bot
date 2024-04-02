@@ -1,5 +1,6 @@
 let host = `dimazvali`
 let downLoadedUsers = {};
+let botLink = `https://t.me/dimazvalibot`
 
 function closeLeft() {
     document.querySelector(`#left`).classList.remove('active')
@@ -7,11 +8,18 @@ function closeLeft() {
 }
 
 function showLandmarks(){
-    showScreen(`Достопримечательности`,`landmarks`,showLandMarkLine,addLandMark)
+    showScreen(`Достопримечательности`,`landmarks`,showLandMarkLine,addLandMark,[{
+        attr: `visited`,
+        name: `По количеству посещений`
+    }])
 }
 
 function showTags(){
     showScreen(`Теги`,`tags`,showTagLine,addTag)
+}
+
+function showCities(){
+    showScreen(`Города`,`cities`,showCityLine,addCity)
 }
 
 function showPages(){
@@ -29,13 +37,33 @@ function showTours(){
 start = start.split('_')
 switch(start[0]){
     case `landmarks`:{
-        showLandmarks()
+        if(start[1]){
+            showLandmark(start[1])
+        } else {
+            showLandmarks()
+        }
+        break;
+    }
+    case `tours`:{
+        if(start[1]){
+            showTour(start[1])
+        } else {
+            showTours()
+        }
+        break;
+    }
+    case `cities`:{
+        if(start[1]){
+            showCity(start[1])
+        } else {
+            showCities()
+        }
         break;
     }
 }
 
 function showLandMarkLine(l){
-    let c = listContainer(l,true)
+    let c = listContainer(l,true,{visited:`посещений`})
         c.append(ce(`h2`,false,false,l.name,{
             onclick: ()=>showLandmark(l.id)
         }))
@@ -70,6 +98,29 @@ function showTagLine(p){
     return c
 }
 
+function showCityLine(city){
+    let c = listContainer(city,true,{
+        tours: `экскурсий`
+    })
+        c.append(ce(`h2`,false,false,city.name,{
+            onclick: ()=>showCity(city.id)
+        }))
+        c.append(ce(`p`,false,false,city.description))
+    return c
+}
+
+function visitLine(v){
+    let c = listContainer(v,true)
+        if(!v.active) c.classList.remove(`hidden`)
+        load(`users`,v.user,false,downLoadedUsers).then(u=>{
+            c.append(ce(`h4`,false,false,uname(u,u.id),{
+                onclick: ()=>showUser(u.id)
+            }))
+        })
+        // c.append(ce(`p`,false,false,city.description))
+    return c
+}
+
 function showPageLine(p){
     let c = listContainer(p,true)
         c.append(ce(`h2`,false,false,p.name,{
@@ -84,7 +135,14 @@ function showStepLine(p){
         c.append(ce(`h2`,false,false,p.landmarkName,{
             onclick: ()=>showLandmark(p.landmark)
         }))
-        c.append(ce(`p`,false,false,`Добавить фото`,{
+
+        c.append(ce('p',false,false,`номер ${p.index}`,{
+            onclick:function(){
+                edit(`toursSteps`,p.id,`index`,`number`,p.index,this)
+            }
+        }))
+
+        c.append(ce(`p`,false,false,p.description||`добавить описание`,{
             onclick:function(){
                 edit(`toursSteps`,p.id,`description`,`textarea`,p.description||`Добавьте пару слов от себя`,this)
             }
@@ -97,7 +155,8 @@ function addTour(){
     addScreen(`tours`,`Новый Тур`,{
         name:       {placeholder:`Название`},
         description:{placeholder:`Описание`,type:`textarea`},
-        pic:        {placeholder:`картинка`}
+        pic:        {placeholder:`картинка`},
+        city:       {selector: `cities`,placeholder:`город`}
     })
 }
 
@@ -112,6 +171,15 @@ function addSection(){
 
 function addPage(){
     addScreen(`pages`,`Новая страница`,{
+        name:       {placeholder:`Название`},
+        slug:       {placeholder: `slug`},
+        description:{placeholder:`Описание`,type:`textarea`},
+        pic:        {placeholder:`картинка`}
+    })
+}
+
+function addCity(){
+    addScreen(`cities`,`Новый город`,{
         name:       {placeholder:`Название`},
         slug:       {placeholder: `slug`},
         description:{placeholder:`Описание`,type:`textarea`},
@@ -255,7 +323,9 @@ function initMap(form,lat,lng) {
   
 function showTour(id){
     closeLeft();
+    
     let p = preparePopupWeb(`tours_${id}`,false,false,true)
+        p.append(ce(`p`,false,false,`${botLink}?start=tour_${id}`))
     load(`tours`,id).then(t=>{
         let details = ce(`div`,false,`details`)
             details.append(ce('span',false,`info`,`создано ${drawDate(t.createdAt._seconds*1000)}`))
@@ -311,7 +381,7 @@ function showTour(id){
         load(`toursSteps`,false,{tour:id}).then(steps=>{
             steps
                 .filter(s=>s.tour == id)
-                .sort((a,b)=>b.index-a.index)
+                .sort((a,b)=>a.index-b.index)
                 .forEach(step=>{
                     stepsListing.append(showStepLine(step))
                 })
@@ -345,6 +415,123 @@ function showTour(id){
     })
 }
 
+function showUser(id){
+    let p = preparePopupWeb(`users_${id}`,false,false,true)
+    load(`users`,id).then(u=>{
+        p.append(ce('h1', false, false, `${uname(u,u.id)} (${u.language_code})`))
+        
+        p.append(line(
+            ce('p', false, false, `регистрация: ${drawDate(u.createdAt._seconds*1000)}`),
+            // ce('p', false, false, `последний раз в приложении: ${u.appLastOpened ? drawDate(u.appLastOpened._seconds*1000) : `нет данных`}`)
+        ))
+        
+        p.append(line(
+            ce('p', false, false, `${u.first_name || `Имя не указано`}`, {
+                onclick: function () {
+                    edit(`users`, u.id, `first_name`, `text`, u.first_name, this)
+                }
+            }),
+            ce('p', false, false, `${u.last_name || `Фамилия не указана`}`, {
+                onclick: function () {
+                    edit(`users`, u.id, `last_name`, `text`, u.last_name, this)
+                }
+            })
+        ))
+        
+        p.append(line(
+            ce('p', false, false, `email: ${u.email || `не указан`}`, {
+                onclick: function () {
+                    edit(`users`, u.id, `email`, `text`, u.email, this)
+                }
+            }),
+            ce('p', false, false, `about: ${u.about || `о себе не рассказывал`}`, {
+                onclick: function () {
+                    edit(`users`, u.id, `about`, `textarea`, u.about, this)
+                }
+            }),
+            ce('p', false, false, `occupation: ${u.occupation || `о себе не рассказывал`}`)
+
+        ))
+
+        let adminLinks = [{
+            attr: `admin`,
+            name: `сделать админом`,
+            disname: `снять админство`
+        }, {
+            attr: `insider`,
+            name: `сделать сотрудником`,
+            disname: `убрать из сотрудников`
+        }, {
+            attr: `blocked`,
+            name: `заблокировать`,
+            disname: `разблокировать`
+        }]
+
+        let ac = ce(`div`,false,`flex`)
+        p.append(ac)
+
+        adminLinks.forEach(type => {
+            ac.append(ce('button', false, [`dateButton`,`dark`], u[type.attr] ? type.disname : type.name, {
+                onclick: () => {
+                    axios.put(`/${host}/admin/users/${u.id}`, {
+                        attr: type.attr,
+                        value: !u[type.attr]
+                    }).then(handleSave)
+                    .catch(handleError)
+                }
+            }))
+        })
+
+        // let line = ce(`div`,false,`flex`)
+
+        p.append(line(
+            toggleButton(`users`,u.id,`blocked`,u.blocked||false,`Разблокировать`,`Заблокировать`,[`dateButton`,`dark`]),
+            // toggleButton(`users`,u.id,`randomCoffee`,u.randomCoffee||false,`Убрать из randomCoffee`,`Добавить в randomCoffee`,[`dateButton`,`dark`]),
+            // toggleButton(`users`,u.id,`noSpam`,u.noSpam||false,`Выключить новости`,`Включить новости`,[`dateButton`,`dark`])
+        ))
+
+
+        let messenger = ce('div')
+        p.append(messenger)
+
+        messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Открыть переписку`,{
+            onclick:function(){
+                this.remove()
+                messenger.append(ce(`h2`,false,false,`Переписка:`))
+                load(`messages`,false,{user:+u.id}).then(messages=>{
+                    let mc = ce(`div`,false,`messenger`)
+                    messenger.append(mc)
+                    messages.forEach(m=>{
+                        mc.prepend(messageLine(m))
+                    })
+                    let txt = ce('textarea',false,false,false,`вам слово`)
+                    messenger.append(txt)
+                    messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Отправить`,{
+                        onclick:()=>{
+                            if(txt.value){
+                                axios.post(`/${host}/admin/messages`,{
+                                    text: txt.value,
+                                    user: u.id
+                                }).then(s=>{
+                                    
+                                    alert(`ушло!`)
+                                    
+                                    let message = ce('div',false,false,false,{dataset:{reply:true}})
+                                        message.append(ce(`span`,false,`info`,drawDate(new Date(),false,{time:true})))
+                                        message.append(ce(`p`,false,false,txt.value))
+                                        txt.value = null;
+                                    mc.prepend(message)
+                                }).catch(err=>{
+                                    alert(err.message)
+                                })
+                            }
+                        }
+                    }))
+                })
+            }
+        }))
+    })
+}
 
 function showLandmark(id){
     let p = preparePopupWeb(`landmarks_${id}`,false,false,true)
@@ -363,6 +550,12 @@ function showLandmark(id){
         p.append(ce(`h1`,false,false,s.name,{
             onclick:function(){
                 edit(`landmarks`,id,`name`,`text`,s.name,this)
+            }
+        }))
+
+        p.append(ce(`p`,false,false,s.address || `Добавьте адрес`,{
+            onclick:function(){
+                edit(`landmarks`,id,`address`,`text`,s.address || null,this)
             }
         }))
 
@@ -416,6 +609,22 @@ function showLandmark(id){
 
         initMap(false,+s.lat,+s.lng);
 
+        let visits = ce(`div`)
+        p.append(visits)
+            visits.append(ce(`h3`,false,false,`История посещений`))
+            visits.append(ce(`button`,false,false,`Открыть`,{
+                onclick:function(){
+                    this.remove();
+                    load(`usersLandMarks`,false,{landmark:id})
+                        .then(visitsLog=>{
+                            visitsLog.forEach(v=>{
+                                visits.append(visitLine(v))
+                            })
+                            
+                        })
+                }
+            }))
+
         p.append(deleteButton(`landmarks`,id,!s.active))
     })
 }
@@ -466,6 +675,27 @@ function showSection(id){
 }
 
 
+function showCity(id){
+    
+    let p = preparePopupWeb(`cities_${id}`,false,false,true)
+    
+    load(`cities`,id).then(s=>{
+        
+        p.append(ce(`h1`,false,false,s.name,{
+            onclick:function(){
+                edit(`cities`,id,`name`,`text`,s.name,this)
+            }
+        }))
+
+        p.append(ce(`p`,false,false,s.description,{
+            onclick:function(){
+                edit(`cities`,id,`description`,`textarea`,s.description,this)
+            }
+        }))
+
+        p.append(deleteButton(`cities`,id,!s.active))
+    })
+}
 
 
 

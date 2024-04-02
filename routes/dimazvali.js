@@ -1,5 +1,5 @@
-const ngrok = process.env.ngrok 
-const ngrok2 = "https://a751-109-172-156-240.ngrok-free.app" 
+const ngrok2 = process.env.ngrok 
+const ngrok = "https://a751-109-172-156-240.ngrok-free.app" 
 const host = `dimazvali`
 const token = process.env.dimazvaliToken;
 var express =   require('express');
@@ -90,6 +90,7 @@ let toursSteps =                fb.collection(`DIMAZVALItoursSteps`);
 let messages =                  fb.collection(`DIMAZVALImessage`);
 let usersTours =                fb.collection(`DIMAZVALIusersTours`);
 let usersLandmarks =            fb.collection(`DIMAZVALIusersLandmarks`);
+let cities =                    fb.collection(`DIMAZVALIcities`);
 
 let savedLandmarks =    {};
 let savedSteps =        {};
@@ -113,6 +114,10 @@ toursSteps.get().then(col=>{
 
 
 const datatypes = {
+    cities: {
+        col: cities,
+        newDoc: newCity
+    },
     tours: {
         col: tours,
         newDoc: newTour
@@ -193,11 +198,10 @@ function handleLocation(userId,loc){
                                 m.caption = m.text
                             }
                             
-                            
 
                             usersLandmarks.add({
                                 createdAt:  new Date(),
-                                user:       sUser.id,
+                                user:       +sUser.id,
                                 landmark:   place.id
                             })
 
@@ -315,6 +319,21 @@ router.post(`/hook`,(req,res)=>{
                 },false,token,messages).then(d=>console.log(d))
             }
 
+            if(req.body.message.text){
+                if(!req.body.message.text.indexOf(`/start`)){
+                    let inc = req.body.message.text.split(' ')
+                    if(inc[1]){
+                        let attr = inc[1].split('_');
+                        if(attr[0] == `tour`){
+                            getDoc(tours,attr[1]).then(t=>{
+                                if(t && t.active){
+                                    sendTour(user, t)
+                                }
+                            })
+                        }
+                    }
+                }
+            }
         })
     }
 
@@ -596,7 +615,10 @@ router.all(`/admin/:method`,(req,res)=>{
             
             if(!admin.admin) return res.sendStatus(403)
 
-            switch(req.method){
+            switch(req.params.method){
+                case `usersLandMarks`:{
+                    if(req.method == `GET`)     return usersLandmarks.where(`landmark`,'==',req.query.landmark).get().then(col=>res.json(handleQuery(col,true))) 
+                }
                 case `about`:{
                     if(req.method == `GET`)     return settings.doc(`about`).get().then(d=>res.json(handleDoc(d,true))) 
                     if(req.method == `PUT`)     return updateEntity(req,res,settings.doc(`about`),admin)
@@ -634,6 +656,34 @@ function updateEntity(req,res,ref,admin){
     })
 }
 
+
+function newCity(req,res,admin){
+    if(!req.body.name) return res.status(400).send(`no name`)
+
+    cities.doc(req.body.slug).get().then(s=>{
+        
+        if(s.exists) return res.status(400).send(`слаг уже занят`)
+
+        cities.doc(req.body.slug).set({
+            createdAt:      new Date(),
+            createdBy:      +admin.id,
+            active:         true,
+            description:    req.body.description || null,
+            name:           req.body.name || null,
+            pic:            req.body.pic || null,
+            // voice:          req.body.voice || null
+        }).then(rec=>{
+            res.redirect(`/${host}/web?page=cities_${rec.id}`)
+            log({
+                admin:      +admin.id,
+                cities:      req.body.slug,
+                text:       `${uname(admin,admin.id)} создает город ${req.body.name}`
+            })
+        })
+
+    })
+    
+}
 
 function newTour(req,res,admin){
     if(!req.body.name) return res.status(400).send(`no name`)

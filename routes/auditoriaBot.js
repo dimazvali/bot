@@ -2385,11 +2385,13 @@ router.all(`/admin/:data/:id`, (req, res) => {
                                 let data = []
                                 data.push(userClasses.where(`user`, '==', +req.params.id).get().then(col => common.handleQuery(col, `date`)))
                                 data.push(subscriptions.where(`user`, '==', +req.params.id).get().then(col => common.handleQuery(col, `date`)))
+                                data.push(streams.where(`user`, '==', +req.params.id).get().then(col => common.handleQuery(col, `date`)))
                                 return Promise.all(data).then(data => {
                                     res.json({
-                                        user: user,
-                                        classes: data[0],
-                                        subscriptions: data[1]
+                                        user:           user,
+                                        classes:        data[0],
+                                        subscriptions:  data[1],
+                                        streams:        data[2]
                                     })
                                 })
 
@@ -2779,7 +2781,7 @@ function bookClass(user, classId, res, id, amount) {
 
                         let d = {
                             user:       +user.id,
-                            userName:   `${user.first_name} ${user.last_name} (${user.username})`,
+                            userName:   uname(user,user.id),
                             active:     true,
                             createdAt:  new Date(),
                             className:  c.data().name,
@@ -5017,7 +5019,7 @@ router.post('/hook', (req, res) => {
                                                     hall: inc[2],
                                                     date: inc[3],
                                                     user: user.id,
-                                                    userName: (user.first_name + ' ' + user.last_name),
+                                                    userName: uname(u.data(),user.id),
                                                     paymentNeeded: u.data().insider ? true : false,
                                                     payed: false
                                                 }
@@ -5936,7 +5938,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                         .where(`authorId`, '==', req.params.id)
                         .get()
                         .then(col => {
-                            return common.handleQuery(col).sort((a, b) => b.date > a.date ? -1 : 1)
+                            return common.handleQuery(col).filter(l=>new Date()<= new Date(l.date._seconds*1000)).sort((a, b) => b.date > a.date ? -1 : 1)
                         })
                     )
                     data.push(subscriptions

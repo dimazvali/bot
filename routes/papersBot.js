@@ -1,6 +1,8 @@
 let ngrok2 = "https://a751-109-172-156-240.ngrok-free.app" 
 let ngrok = process.env.ngrok 
 
+let coworkingPrice = 30;
+
 var express =   require('express');
 var router =    express.Router();
 var axios =     require('axios');
@@ -148,6 +150,7 @@ let randomCoffeeIterations = fb.collection('randomCoffeeIterations');
 let standAlone =        fb.collection('standAlone');
 let invoices =          fb.collection('invoices');
 let deposits=           fb.collection('deposits');
+let settings=           fb.collection('settings');
 
 
 let userList = udb.get().then(col=>common.handleQuery(col))
@@ -772,7 +775,42 @@ router.all(`/admin/:method`, (req, res) => {
                     }
                 }
                 case `stats`:{
+                    
+
                     switch(req.query.type){
+                        case `schedule`:{
+                            
+                            return classes.get().then(col=>{
+                                let opts = {
+                                    fields: [
+                                        `date`,
+                                        `name`,
+                                        `author`,
+                                        `visitors`,
+                                        `rate`,
+                                        `views`,
+                                        `fellows`,
+                                        `admins`
+                                    ]
+                                }
+                                const parser = new Parser(opts);
+
+                                let csv = parser.parse(common.handleQuery(col,true).map(c=>{
+                                    return {
+                                        date:  (c.date && new Date(c.date)) ? new Date(c.date) : null,
+                                        name: c.name,
+                                        author: c.author || c.authorName,
+                                        visitors: c.visitors || null,
+                                        rate: c.rate || null,
+                                        admins: c.admins || false,
+                                        fellows: c.fellows || false
+                                    }
+                                }), opts);
+                        
+                                res.attachment('classes_'+Number(new Date())+'.csv');
+                                res.status(200).send(csv);
+                            })
+                        }
                         case `cowork`:{
                             let fields = [
                                 'date',
@@ -784,7 +822,6 @@ router.all(`/admin/:method`, (req, res) => {
                                 fields
                             };
                 
-                            const parser = new Parser(opts);
 
                             return coworking
                             .where(`active`,'==',true)
@@ -1173,15 +1210,15 @@ router.all(`/admin/:method`, (req, res) => {
                                         let withdraw = 0;
     
                                         if (d.paymentNeeded && !d.payed) {
-                                            toPay = 20;
+                                            toPay = coworkingPrice;
                                         }
     
                                         if (user.deposit) {
-                                            if (user.deposit > 20) {
+                                            if (user.deposit > coworkingPrice) {
                                                 toPay = 0
-                                                alertWithdrawal(user, false, 30, `coworking`)
+                                                alertWithdrawal(user, false, coworkingPrice, `coworking`)
                                             } else {
-                                                toPay = 20 - user.deposit;
+                                                toPay = coworkingPrice - user.deposit;
                                                 alertWithdrawal(user, false, user.deposit, `coworking`)
                                             }
                                         }
@@ -2072,6 +2109,27 @@ router.all(`/admin/:method/:id`,(req,res)=>{
 
             switch(req.params.method){
                 
+                case `settings`:{
+                    switch(req.method){
+                        case `POST`:{
+                            devlog(req.params.id);
+                            devlog(req.body.value);
+                            return settings.doc(req.params.id).set({help:req.body.value}).then(s=>{
+                                res.json({
+                                    success: true
+                                })
+                            }).catch(err=>{
+                                res.status(500).send(err)
+                            })
+                        }
+                        case `GET`:{
+                            return getDoc(settings,req.params.id).then(d=>res.json(d))
+                        }
+                        case `PUT`:{
+                            return updateEntity(req,res,settings.doc(req.params.id),+admin.id)
+                        }
+                    }
+                }
                 case `rcIterations`:{
                     return randomCoffeeIterations
                         .doc(req.params.id)
@@ -2705,7 +2763,7 @@ function coworkingReason(record,reason){
         devlog(record);
         m.getUser(record.user,udb).then(user=>{
             if(reason == `deposit`){
-                alertWithdrawal(user,user.id,20,`посещение коворкинга`)
+                alertWithdrawal(user,user.id,coworkingPrice-10,`посещение коворкинга`)
             }
             if(`bonus`) {
                 udb.doc(record.user.toString()).update({
@@ -3023,8 +3081,22 @@ router.get('/rss', function (req, res) {
                 date: new Date(cl.createdAt._seconds*1000)
             })
         })
-        res.attachment('some.xml');
-        res.status(200).send(feed.xml());
+
+        authors.where(`active`,'==',true).get().then(col=>{
+            common.handleQuery(col,true).forEach(cl=>{
+                feed.item({
+                    title: cl.name,
+                    description: cl.description,
+                    url: 'https://papers.dimazvali.com/authors/' + cl.id,
+                    guid: cl.id,
+                    date: new Date(cl.createdAt._seconds*1000)
+                })
+            })
+            res.attachment('some.xml');
+            res.status(200).send(feed.xml());
+        })
+
+        
     })
 
 
@@ -4464,8 +4536,8 @@ const translations = {
         en: `You won't get any messages about upcoming events. If can turn them on again in Profile section of the built-in app.`
     },
     toKnow: {
-        en: `20 GEL per day. The first day is for free.`,
-        ru: `Стоимость — 20 лари в день, первый тестовый день — бесплатно.`
+        en: `${coworkingPrice} GEL per day. The first day is for free.`,
+        ru: `Стоимость — ${coworkingPrice} лари в день, первый тестовый день — бесплатно.`
     },
     iliani: {
         en: '1/10 Veriko Anjaparidze St, Tbilisi, Georgia',
@@ -4755,9 +4827,9 @@ const translations = {
         ka: 'განრიგის ნახვა'
     },
     intro: {
-        ru: `Добро пожаловать в пространство PAPERS от Paper Kartuli. Тут можно забронировать место в коворкинге или переговорке, посмотреть расписание лекций, — или сразу пройти в бар.\nУдобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка внизу (или в нижнем левом углу).Вы можете записаться на бесплатный тестовый день в коворкинге. Следующие дни — по стандартному тарифу (20 GEL в день, оплата на месте). Для аренды переговорки или ивент-пространства, напишите прямо в наш чат-бот, и наш администратор вам ответит.`,
-        en: `Welcome to the PAPERS space by Paper Kartuli. Here you can book a place in a coworking or meeting room, see the lecture schedule, or go straight to the bar.\nThe most convenient way to use the bot is through the application: this button is at the bottom (or in the lower left corner). You can sign up for a free test day in a coworking space. The following days - at the standard rate (20 GEL per day, payable locally). To rent a meeting room or event space, write directly to our chatbot, and our administrator will answer you.`,
-        ka: 'კეთილი იყოს თქვენი მობრძანება Paper Kartuli-ის PAPERS სივრცეში, აქ შეგიძლიათ დაჯავშნოთ ადგილი კოვორკინგში ან შეხვედრების ოთახში, ნახოთ ლექციების განრიგი ან პირდაპირ ბარში ჩაბრძანდეთ. ბოტის გამოყენების ყველაზე მოსახერხებელი გზაა აპლიკაციის საშუალებით: ეს არის ქვედა ღილაკი (ან ქვედა მარცხენა კუთხეში) შეგიძლიათ დარეგისტრირდეთ უფასო ტესტის დღეს კოვორკინგის სივრცეში. მომდევნო დღეებში - სტანდარტული ღირებულობით (დღეში 20 ლარი, გადასახდელი ადგილობრივად). შეხვედრების ოთახის ან ღონისძიების სივრცის დასაქირავებლად მოგვწერეთ პირდაპირ ჩვენს ჩატბოტში და ჩვენი ადმინისტრატორი გიპასუხებთ.'
+        ru: `Добро пожаловать в пространство PAPERS от Paper Kartuli. Тут можно забронировать место в коворкинге или переговорке, посмотреть расписание лекций, — или сразу пройти в бар.\nУдобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка внизу (или в нижнем левом углу).Вы можете записаться на бесплатный тестовый день в коворкинге. Следующие дни — по стандартному тарифу (${coworkingPrice} GEL в день, оплата на месте). Для аренды переговорки или ивент-пространства, напишите прямо в наш чат-бот, и наш администратор вам ответит.`,
+        en: `Welcome to the PAPERS space by Paper Kartuli. Here you can book a place in a coworking or meeting room, see the lecture schedule, or go straight to the bar.\nThe most convenient way to use the bot is through the application: this button is at the bottom (or in the lower left corner). You can sign up for a free test day in a coworking space. The following days - at the standard rate (${coworkingPrice} GEL per day, payable locally). To rent a meeting room or event space, write directly to our chatbot, and our administrator will answer you.`,
+        ka: `კეთილი იყოს თქვენი მობრძანება Paper Kartuli-ის PAPERS სივრცეში, აქ შეგიძლიათ დაჯავშნოთ ადგილი კოვორკინგში ან შეხვედრების ოთახში, ნახოთ ლექციების განრიგი ან პირდაპირ ბარში ჩაბრძანდეთ. ბოტის გამოყენების ყველაზე მოსახერხებელი გზაა აპლიკაციის საშუალებით: ეს არის ქვედა ღილაკი (ან ქვედა მარცხენა კუთხეში) შეგიძლიათ დარეგისტრირდეთ უფასო ტესტის დღეს კოვორკინგის სივრცეში. მომდევნო დღეებში - სტანდარტული ღირებულობით (დღეში ${coworkingPrice} ლარი, გადასახდელი ადგილობრივად). შეხვედრების ოთახის ან ღონისძიების სივრცის დასაქირავებლად მოგვწერეთ პირდაპირ ჩვენს ჩატბოტში და ჩვენი ადმინისტრატორი გიპასუხებთ.`
     },
     introButton: {
         ru: `Открыть приложение`,
@@ -9631,6 +9703,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                         if(!c.active) return res.sendStatus(404)
 
                         views.add({
+                            createdAt: new Date(),
                             name:   c.name,
                             entity: `classes`,
                             id:     req.params.id,
@@ -10087,7 +10160,7 @@ router.get(`/:section/:id`,(req,res)=>{
                 views.add({
                     name:       hall.name,
                     entity:     `halls`,
-                    date:       new Date(),
+                    createdAt:  new Date(),
                     id:         req.params.id
                 })
 
@@ -10117,7 +10190,7 @@ router.get(`/:section/:id`,(req,res)=>{
                 views.add({
                     name:       a.name,
                     entity:     `authors`,
-                    date:       new Date(),
+                    createdAt:  new Date(),
                     id:         req.params.id
                 })
     
@@ -10198,7 +10271,7 @@ router.get(`/:section/:id`,(req,res)=>{
                 views.add({
                     name:       c.name,
                     entity:     `classes`,
-                    date:       new Date(),
+                    createdAt:  new Date(),
                     id:         req.params.id
                 })
     
@@ -10875,4 +10948,3 @@ function acceptTicket(ticketId,res){
         })
 }
 module.exports = router;
-

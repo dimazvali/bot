@@ -304,33 +304,44 @@ function showNewsNews(id){
 
 
 function showStreams(){
-    closeLeft()
-    mc.innerHTML = '<h1>Загружаем...</h1>'
-    axios.get(`/${host}/admin/streams`)
-        .then(data => {
-            window.history.pushState({}, "", `web?page=streams`);
-            mc.innerHTML = '';
-            mc.append(ce('h1', false, `header2`, `Трансляции`))
-            let c = ce('div')
-            data.data.forEach(cl => {
-                c.append(showStreamLine(cl))
-            });
-            mc.append(c)
 
-        })
-        .catch(err => {
-            console.log(err)
-            alert(err.message)
-        })
+    showScreen(`Трансляции`,`streams`,showStreamLine)
+
+    // closeLeft()
+    // mc.innerHTML = '<h1>Загружаем...</h1>'
+    // axios.get(`/${host}/admin/streams`)
+    //     .then(data => {
+    //         window.history.pushState({}, "", `web?page=streams`);
+    //         mc.innerHTML = '';
+    //         mc.append(ce('h1', false, `header2`, `Трансляции`))
+    //         let c = ce('div')
+    //         data.data.forEach(cl => {
+    //             c.append(showStreamLine(cl))
+    //         });
+    //         mc.append(c)
+
+    //     })
+    //     .catch(err => {
+    //         console.log(err)
+    //         alert(err.message)
+    //     })
 }
 
 function showStreamLine(s){
-    let c = ce('div',false,false,false,{
-        dataset:{active:s.active}
+
+    let c = listContainer(s,true,{
+        payedAt: `оплачено`
     })
-    c.append(ce(`span`,false,`info`,drawDate(s.createdAt._seconds*1000)))
+    
     c.append(ce('h3',false,false,`${s.userName} @ ${s.className} (${s.payed?'✔️':'❌'})`,{
         onclick:()=>showStream(s.id)
+    }))
+
+    c.append(ce(`button`,false,false,`Открыть меропориятие`,{
+        onclick:()=>showClass(false,s.class)
+    }))
+    c.append(ce(`button`,false,false,`Открыть профиль`,{
+        onclick:()=>showUser(false,s.user)
     }))
     return c;
 }
@@ -2009,7 +2020,7 @@ function showClass(cl, id) {
                         }
 
 
-                        guests.append(ce(`p`, false, false, `Гостей: ${data.tickets.filter(t=>t.active).length}${cl.price ? ` // оплачено ${data.tickets.filter(g=>g.isPayed).length}` : ''}${` // пришли ${data.tickets.filter(g=>g.status == 'used').length}`}`))
+                        guests.append(ce(`p`, false, false, `Гостей: ${data.tickets.filter(t=>t.active).reduce((a,b)=>a + b.tickets,0)}${cl.price ? ` // оплачено ${data.tickets.filter(g=>g.isPayed).length}` : ''}${` // пришли ${data.tickets.filter(g=>g.status == 'used').length}`}`))
                         
                         guests.innerHTML += `<table><tr><th>Имя</th><th>👨‍👨‍👦‍👦</th><th>💲</th><th>📍</th><th>примечания админу</th></tr>
                             ${data.tickets.filter(t=>t.active).map(u=>`<tr class="story">
@@ -2021,7 +2032,7 @@ function showClass(cl, id) {
                                 <td onclick=showTicket(false,"${u.id}")>Открыть билет</td>
                             </tr>`).join('')}</table>`
 
-                        guests.append(ce(`h3`,false,false,`Трансляции`))
+                        guests.append(ce(`h3`,false,false,`Трансляции (${data.streams?data.streams.length:0})`))
                         
                         if(data.streams.length){
                             data.streams.forEach(s=>{
@@ -2497,6 +2508,8 @@ function showUser(u, id) {
         
         let classes = u.classes;
         let subscriptions = u.subscriptions;
+        let streams = u.streams;
+
         if(u.user) u = u.user
 
         let p = preparePopupWeb(`user${u.id}`)
@@ -2606,6 +2619,16 @@ function showUser(u, id) {
                 }
             }))
         })
+
+
+        if(streams) streams.forEach(c=>{
+            p.append(ce('p', false, false, `${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`, {
+                dataset: {
+                    active: c.active
+                }
+            }))
+        })
+
 
         p.append(ce(`h2`, false, false, `Подписки`))
         

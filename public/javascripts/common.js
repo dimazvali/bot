@@ -610,14 +610,28 @@ function addScreen(collection,name,o){
 
 }
 
-function showScreen(name, collection, line, addButton, sort){
+function showScreen(name, collection, line, addButton, sort, help){
     closeLeft()
     let p = preparePopupWeb(collection,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
     let c = ce('div')
     load(collection).then(docs=>{
         p.innerHTML = '';
-        p.append(ce('h1', false, `header2`, name))
+        // p.append(ce('h1', false, `header2`, name))
+
+        let h = ce(`h1`,false,false,name)
+        p.append(h)
+
+        if(help){
+            load(`settings`,name).then(d=>{
+                if(d.help){
+                    h.classList.add(`infoBubble`)
+                    h.onclick = () => showHelp(d.help,name)
+                } else {
+                    h.onclick = () => showHelp(d.help,name)
+                }
+            })
+        }
 
         if(addButton) p.append(ce('button', false, false, `Добавить`, {
             onclick: () => addButton()
@@ -941,7 +955,7 @@ function listContainer(e,detailed,extra,dataset){
             details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
             if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
             if(e.by && Number(e.by)) load(`users`,e.by, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
-            if(e.user && Number(e.buser)) load(`users`,e.usery, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,`кому: ${uname(author.user ? author.user : author, author.id)}`,{onclick:()=>showUser(false,e.user)})))
+            if(e.user && Number(e.user)) load(`users`,e.user, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,`кому: ${uname(author.user ? author.user : author, author.id)}`,{onclick:()=>showUser(false,e.user)})))
                 
 
             if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
@@ -977,9 +991,10 @@ function sortableText(t){
     return txt
 }
 
-function preparePopupWeb(name, link,weblink,state,lb,fslink) {
-    let c = ce('div', false, 'popupWeb')
+function preparePopupWeb(name, link,weblink,state,lb,fslink,header) {
     
+    let c = ce('div', false, 'popupWeb')
+
     c.append(ce('span', false, `closeMe`, `✖`, {
         onclick: () => {
             c.classList.add(`slideBack`)
@@ -994,6 +1009,19 @@ function preparePopupWeb(name, link,weblink,state,lb,fslink) {
     if(fslink)      c.append(ce(`a`,false,`thin`,`firestore`,{href: fsdb+fslink,target:'_blank'}))
     if(state)       window.history.pushState({}, "", `web?page=${name}`);
     if(lb)          c.append(lb)
+
+    if(header){
+        let h = ce(`h1`,false,false,header)
+        c.append(h)
+        load(`settings`,name).then(d=>{
+            if(d.help){
+                h.classList.add(`infoBubble`)
+                h.onclick = () => showHelp(d.help,name)
+            } else {
+                h.onclick = () => showHelp(d.help,name)
+            }
+        })
+    }
     
     // if(weblink)c.append(copyLink(link,appLink))
 
@@ -1051,13 +1079,13 @@ function modal(){
     return c
 }
 
-function showHelp(text){
+function showHelp(text, name){
 
     if(document.querySelector(`.editWindow`)) {
         document.querySelector(`.editWindow`).remove()
     } else {
-        let container = ce('div',false,`editWindow`)
-        document.body.append(container)
+        let container = modal()
+
         if(!text || !text.length){
             container.append(ce(`p`,false,[`story`,`dark`],`Тут может быть ваша подсказка`))
         } else {
@@ -1065,6 +1093,26 @@ function showHelp(text){
                 container.append(ce(`p`,false,[`story`,`dark`],p))
             })
         }
+
+        container.append(ce('button',false,`thin`,`Редактировать`,{
+            onclick:()=>{
+                let h = modal()
+                h.append(ce(`h2`,false,false,`Правим подсказку для ${name}`))
+                let txt = ce(`textarea`,false,false,false,{
+                    value: text ? text.join('\n') : ''
+                })
+                h.append(txt)
+                h.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить`,{
+                    onclick:()=>{
+                        if(txt.value) axios[text?`put`:`post`](`/${host}/admin/settings/${name}`,{
+                            attr: `help`,
+                            value: txt.value.split('\n')
+                        }).then(handleSave)
+                        .catch(handleError)
+                    }
+                }))
+            }
+        }))
         
     }
 
