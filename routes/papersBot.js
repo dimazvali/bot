@@ -743,7 +743,7 @@ router.all(`/admin/:method`, (req, res) => {
                 }
                 case `coworking`:{
                     return coworking
-                        .where(`date`,'>=',req.query.start||new Date().toISOString().split('T')[0])
+                        .where(`date`,'>=',req.query.start||isoDate())
                         .where(`active`,'==',true)
                         .get()
                         .then(col=>{
@@ -2375,7 +2375,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         .then(h=>{
                             if(!h.exists) return res.sendStatus(404)
                             h = common.handleDoc(h)
-                            let d = req.body.date || new Date().toISOString().split('T')[0]
+                            let d = req.body.date || isoDate()
 
                             roomsBlocked
                                 .where(`active`,'==',true)
@@ -2943,8 +2943,7 @@ function alertNewClassesOffers(){
 
 
 if(!process.env.develop){
-    cron.schedule(`55,25 9-23 * * *`, () => {
-        // :55, :25 каждый час с 9 до 23
+    cron.schedule(`55,25 * * * *`, () => {
         alertSoonMR()
     })
     
@@ -2954,36 +2953,29 @@ if(!process.env.develop){
         alertAdminsCoworking()
         countUserEntries(1)
         nowShow()
-    })
-
-    
-    
-    cron.schedule(`0 11 * * *`, () => {
-        alertSoonClasses()
-        alertMiniStats()
-    })
-    
-    
-    cron.schedule(`0 5 * * *`, () => {
+        updatePlans()
         common.getNewUsers(udb,1).then(newcomers=>{
             log({
                 text: `Новых пользователей за сутки: ${newcomers}`
             })
         })
-
-        updatePlans()
     })
 
-    cron.schedule(`0 19 * * *`, () => {
-        feedBackTimer()
-    })
-    
-    cron.schedule(`0 5 * * 1`, () => {
+    cron.schedule(`0 5 * * 1`,()=>{
+        alertMiniStats(7)
         common.getNewUsers(udb,7).then(newcomers=>{
             log({
                 text: `Новых пользователей за неделю: ${newcomers}`
             })
         })
+    })
+    
+    cron.schedule(`0 11 * * *`, () => {
+        alertSoonClasses()
+    })
+
+    cron.schedule(`0 19 * * *`, () => {
+        feedBackTimer()
     })
 
     cron.schedule(`0 15 * * *`, () => {
@@ -2999,14 +2991,39 @@ if(!process.env.develop){
     })
 }
 
+function updatePlans(){
+    plansUsers
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            let toBeOff = common.handleQuery(col).filter(p=>new Date()>new Date(p.to._seconds*1000))
+            devlog(toBeOff.map(p=>drawDate(p.to._seconds*1000)))
+            toBeOff.forEach(rec=>{
+                m.getUser(rec.user,udb).then(u=>{
+                    log({
+                        text: `Подписка ${rec.name} ${uname(u,u.id)} закончила действие ${drawDate(p.to._seconds*1000)}. Отправлен запрос на продление.`,
+                        user: +rec.user,
+                    })
+                    plansUsers.doc(req.id).update({
+                        active: false
+                    })
+                    m.sendMessage2({
+                        chat_id: rec.id,
+                        text: translations.planTerminated(rec)[u.language_code] || translations.planTerminated(rec).en
+                    },false,token,messages)
+                })
+            })
+            
+        })
+}
+
 
 function alertMiniStats(days){
+    
     let ndate = new Date(+new Date() - days*24*60*60*1000)
-    devlog(ndate)
-    devlog(Timestamp.fromDate(ndate))
-    // 
+     
     views
-        .where('date','>=',ndate)
+        .where('createdAt','>=',ndate)
         .get()
         .then(col=>{
             devlog(col)
@@ -3036,18 +3053,22 @@ function alertMiniStats(days){
                     })
                     Promise.all(data).then(data=>{
                         
-                        devlog(data)
+                        udb.where(`admin`, '==', true).get().then(admins => {
+                            admins.docs.forEach(a => {
+                                m.sendMessage2({
+                                    chat_id: a.id,
+                                    parse_mode: 'HTML',
+                                    text: `<b>${siteSectionsTypes[type].title}</b>:\n\n${
+                                        Object.keys(sections[type])
+                                            .sort((a,b)=>sections[type][b]-sections[type][a])
+                                            .map(id=>`${data.filter(r=>r.id == id)[0] ? data.filter(r=>r.id == id)[0].name : id}: ${sections[type][id]}`)
+                                            .join('\n')
+                                    }`
+                                },false,token)
+                            })
+                        })
 
-                        m.sendMessage2({
-                            chat_id: common.dimazvali,
-                            parse_mode: 'HTML',
-                            text: `<b>${siteSectionsTypes[type].title}</b>:\n\n${
-                                Object.keys(sections[type])
-                                    .sort((a,b)=>sections[type][b]-sections[type][a])
-                                    .map(id=>`${data.filter(r=>r.id == id)[0] ? data.filter(r=>r.id == id)[0].name : id}: ${sections[type][id]}`)
-                                    .join('\n')
-                            }`
-                        },false,token)
+                        
                     })
                 })
             }
@@ -3192,43 +3213,8 @@ function sendCoffeInvites(){
 
 if(process.env.develop){
     router.get('/test', (req, res) => {
-
-        // m.getUser(5413806389,udb).then(s=>{
-        //     m.getUser(common.dimazvali,udb).then(f=>{
-        //         m.sendMessage2({
-        //             chat_id:    common.dimazvali,
-        //             parse_mode: `Markdown`,
-        //             text:       translations.rcInvite.ru(f,s)
-        //         },false,token)
-        //     })
-        // })
         
-        // classReScore(req.query.class || `O1VdmOqMgsDf6ZmIBzPO`)
-        
-        // rcCheckBefore()
-
-        // rcResult(`GtpkkujNjhH1QyB0k01d`)
-        // rcFollowUp(`6eVR7BO0P9tNwEjMTEPq`)
-        // count'UserEntries(1);
-        // randomCoffee()
-        // nowShow()
-        // requestCoworkingFeedback()
-        // m.sendMessage2({
-        //     chat_id: common.dimazvali,
-        //     text: `Приложенька с дева`,
-        //     reply_markup: {
-        //         inline_keyboard: [
-        //             [{
-        //                 text: `test`,
-        //                 web_app: {
-        //                     url: `${ngrok2}/paper/app`
-        //                 }
-        //             }]
-        //         ]
-        //     }
-        // }, false, token, messages)
-
-        // sendCoffeInvites()
+        updatePlans();
 
         res.sendStatus(200)
     })
@@ -3341,7 +3327,7 @@ function countUserEntries(days){
 }
 
 function alertAdminsCoworking() {
-    let date = new Date().toISOString().split('T')[0]
+    let date = isoDate()
     coworking
         .where('active', '==', true)
         .where('date', '==', date)
@@ -3351,6 +3337,7 @@ function alertAdminsCoworking() {
             let toBePayed = records.filter(r => r.paymentNeeded && !r.payed)
             let payed = records.filter(r => r.payed)
             let free = records.filter(r => !r.paymentNeeded)
+            
             if (records.length) {
                 hallsData = [];
                 [...new Set(records.map(r => r.hall))].forEach(id => {
@@ -3392,7 +3379,7 @@ function alertAdminsCoworking() {
                         axios.post(process.env.papersHook, {
                             blocks: modals.coworkingReport(toBePayed, payed, free, hallsReady, uReady)
                         }).then(s => {
-                            if (process.env.develop == 'true') console.log(s.data)
+                            devlog(s.data)
                         }).catch(err => {
                             console.log(err)
                         })
@@ -3410,7 +3397,7 @@ function alertAdminsCoworking() {
 function alertSoonClasses() {
     classes
         .where('active', '==', true)
-        .where('date', '==', new Date().toISOString().split('T')[0])
+        .where('date', '==', isoDate())
         .get()
         .then(col => {
             common.handleQuery(col).forEach(record => {
@@ -3424,7 +3411,7 @@ function alertSoonClasses() {
 function alertSoonCoworking() {
     coworking
         .where('active', '==', true)
-        .where('date', '==', new Date().toISOString().split('T')[0])
+        .where('date', '==', isoDate())
         .get()
         .then(col => {
             common.handleQuery(col).forEach(record => {
@@ -3437,10 +3424,10 @@ function alertSoonCoworking() {
 
 
 function remindOfClass(rec) {
-    udb.doc(rec.user.toString()).get().then(user => {
+    m.getUser(rec.user,udb).then(user => {
         m.sendMessage2({
             chat_id: rec.user,
-            text: translations.lectureReminder(rec)[user.language_code] || translations.lectureReminder(rec).en,
+            text: translations.lectureReminder(rec,user)[user.language_code] || translations.lectureReminder(rec,user).en,
             reply_markup: {
                 inline_keyboard: [
                     [{
@@ -3483,40 +3470,42 @@ function remindOfCoworking(rec) {
     })
 }
 
+function localTime(plusMinutes,date){
+    return (date || new Date(+new Date()+(plusMinutes||0)*60*1000)).toLocaleTimeString(false,{timeZone:'Asia/Tbilisi',hour:`2-digit`,minute:`2-digit`})
+}
+
+
+
 function alertSoonMR() {
 
-    let h = +new Date().toTimeString().split(' ')[0].split(':')[0] + 1
     mra
         .where('active', '==', true)
-        .where('date', '==', new Date().toISOString().split('T')[0])
-        .where('time', '>', h + ':00')
+        .where('date', '==', isoDate())
+        .where('time', '<', localTime(20))
         .orderBy('time', 'asc')
-        .limit(1)
         .get()
         .then(col => {
-            col = common.handleQuery(col)
-            if (col.length) {
-                let rec = col[0];
-                if (new Date(rec.date + ' ' + rec.time) - new Date() < 10 * 60 * 1000) {
-                    udb.doc(rec.user.toString()).get().then(u => {
-                        let udata = u.data()
-
-                        m.sendMessage2({
-                            chat_id: rec.user,
-                            text: translations.mrReminder((h + 1) + ':00')[udata.language_code] || translations.mrReminder((h + 1) + ':00').en,
-                            reply_markup: {
-                                inline_keyboard: [
-                                    [{
-                                        text: translations.coworkingBookingCancel[udata.language_code] || translations.coworkingBookingCancel.en,
-                                        callback_data: `mr_unbook_${rec.id}`
-                                    }]
-                                ]
-                            }
-                        }, false, token, messages)
+            common.handleQuery(col).filter(rec=>!rec.alerted).forEach(rec=>{
+                m.getUser(rec.user,udb).then(udata=>{
+                    m.sendMessage2({
+                        chat_id: rec.user,
+                        text: translations.mrReminder(rec.time)[udata.language_code] || translations.mrReminder(rec.time).en,
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{
+                                    text: translations.coworkingBookingCancel[udata.language_code] || translations.coworkingBookingCancel.en,
+                                    callback_data: `mr_unbook_${rec.id}`
+                                }]
+                            ]
+                        }
+                    }, false, token, messages).then(()=>{
+                        mra.doc(rec.id).update({
+                            alerted: new Date()
+                        })
                     })
-
-                }
-            }
+                })
+                
+            })
         }).catch(err => {
             console.log(err)
         })
@@ -4435,6 +4424,12 @@ function rcQuestions(f,s){
 }
 
 const translations = {
+    planTerminated:(p,u)=>{
+        return {
+            ru: `Все хорошее когда-то заканчивается. Вот и ваша подписка ${p.name} закончилась ${drawDate(p.to._seconds*1000)}. Давайте повторим?`,
+            en: `Your plan ${p.name} has expired on ${drawDate(p.to._seconds*1000,'en')}. Would you like to renew it?`
+        }
+    },
     deposited:(left)=>{
         return {
             ru: `Ваш депозит обновлен. Текущий остаток: ${cur(left,`GEL`)}.`,
@@ -4855,11 +4850,11 @@ const translations = {
             ka: `დიდი! გელოდებით ლექციაზე "${l.name}"`
         }
     },
-    lectureReminder: (l) => {
+    lectureReminder: (l,u) => {
         return {
-            ru: `Напоминаем, что сегодня в ${l.time} мы ждем вас на лекции ${l.name}.${(l.price&&!l.payed)?`\n\nОбратите внимание: к оплате на месте ${common.cur(l.price,'GEL')}`:''}`,
-            en: `Let me remind you of upcoming event today: ${l.name} at ${l.time}. ${l.price?`\n\nBeware: entrance fee is ${common.cur(l.price,'GEL')}`:''}`,
-            ka: `შეგახსენებთ, რომ დღეს ${l.time}-ზე გელოდებით ლექციაზე ${l.name}`
+            ru: `Напоминаем, что сегодня в ${localTime(false,new Date(l.date._seconds*1000))} мы ждем вас на лекции ${l.name}.${(l.price&&!l.payed)?`\n\nОбратите внимание: к оплате на месте ${common.cur(l.price,'GEL')}`:''}\n\n${(u.classesVisits||u.coworkingVisits) ? `` : `Адрес: Верико Анджапаридзе, 1 (Отель «Илиани»).`}`,
+            en: `Let me remind you of upcoming event today: ${l.name} at ${localTime(false,new Date(l.date._seconds*1000))}. ${l.price?`\n\nBeware: entrance fee is ${common.cur(l.price,'GEL')}`:''}\n\n${(u.classesVisits||u.coworkingVisits) ? `` : `Address: 1/10, 1 Veriko Anjaparidze St, Tbilisi.`}`,
+            ka: `შეგახსენებთ, რომ დღეს ${localTime(false,new Date(l.date._seconds*1000))}-ზე გელოდებით ლექციაზე ${l.name}`
         }
     },
     lectureConfirm: {
@@ -6201,7 +6196,7 @@ router.post('/slack', (req, res) => {
                     return coworking
                         .where('hall', '==', inc[1])
                         .where('active', '==', true)
-                        .where('date', '>=', a.selected_date || new Date().toISOString().split('T')[0])
+                        .where('date', '>=', a.selected_date || isoDate())
                         .get()
                         .then(reservations => {
                             reservations = common.handleQuery(reservations);
@@ -6220,7 +6215,7 @@ router.post('/slack', (req, res) => {
                             roomsBlocked
                                 .where('room', '==', inc[1])
                                 .where('active', '==', true)
-                                .where('date', '>=', a.selected_date ? a.selected_date : new Date().toISOString().split('T')[0])
+                                .where('date', '>=', a.selected_date ? a.selected_date : isoDate())
                                 .get()
                                 .then(blocks => {
                                     udb.where('id', 'in', usersToCome.length ? usersToCome : [common.dimazvali]).get().then(users => {
@@ -7964,7 +7959,7 @@ router.post('/hook', (req, res) => {
                 coworking
                     .where('hall', '==', inc[1])
                     .where('active', '==', true)
-                    .where('date', '>=', new Date().toISOString().split('T')[0])
+                    .where('date', '>=', isoDate())
                     .get()
                     .then(reservations => {
 
@@ -8828,10 +8823,10 @@ router.get(`/api/:type`, (req, res) => {
 
                     let data = [];
 
-                    data.push(classes.where(`date`, '>', new Date().toISOString().split('T')[0]).get().then(col => common.handleQuery(col)))
+                    data.push(classes.where(`date`, '>', isoDate()).get().then(col => common.handleQuery(col)))
                     data.push(userClasses.where(`user`, '==', +req.query.id).where('active', '==', true).get().then(col => common.handleQuery(col)))
-                    data.push(coworking.where('date', '>=', new Date().toISOString().split('T')[0]).where('user', '==', +req.query.id).where('active', '==', true).get().then(col => common.handleQuery(col)))
-                    data.push(mra.where('date', '>=', new Date().toISOString().split('T')[0]).where('user', '==', +req.query.id).where('active', '==', true).get().then(col => common.handleQuery(col)))
+                    data.push(coworking.where('date', '>=', isoDate()).where('user', '==', +req.query.id).where('active', '==', true).get().then(col => common.handleQuery(col)))
+                    data.push(mra.where('date', '>=', isoDate()).where('user', '==', +req.query.id).where('active', '==', true).get().then(col => common.handleQuery(col)))
 
                     if (u.fellow) {
                         data.push(
@@ -8970,7 +8965,7 @@ router.get(`/api/:type`, (req, res) => {
         case 'mr': {
             mra
                 .where('active', '==', true)
-                .where('date', '>=', new Date().toISOString().split('T')[0])
+                .where('date', '>=', isoDate())
                 .get()
                 .then(col => {
                     let records = common.handleQuery(col);
@@ -9755,7 +9750,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                     return coworking
                         .where('hall', '==', req.params.id)
                         .where('active', '==', true)
-                        .where('date', '>=', new Date().toISOString().split('T')[0])
+                        .where('date', '>=', isoDate())
                         .get().then(reservations => {
 
                             halls.doc(req.params.id).get().then(h => {
