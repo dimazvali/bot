@@ -355,11 +355,12 @@ router.post(`/pourMeWine`, (req, res) => {
 
         if (!user.admin) return res.status(403).send(`Вам сюда нельзя`)
 
-        fb.collection('wineList').add({
-            user: req.body.user,
-            left: req.body.glasses,
-            createdBy: +req.query.id,
-            createdAt: new Date()
+        wineList.add({
+            user:       +req.body.user,
+            left:       req.body.glasses,
+            total:      req.body.glasses,
+            createdBy:  +req.query.id,
+            createdAt:  new Date()
         }).then(rec => {
 
             udb.doc(req.body.user.toString()).get().then(gifted => {
@@ -444,6 +445,13 @@ router.all(`/admin/:method`, (req, res) => {
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
 
+                case `userClassesQ`:{
+                    let q = userClassesQ;
+                    if(req.query.class){
+                        q = q.where(`class`,'==',req.query.class)
+                    }
+                    return q.get().then(col=>res.json(common.handleQuery(col,true)))
+                }
                 case `rcIterations`:{
                     return randomCoffeeIterations.get().then(col=>res.json(common.handleQuery(col,true)))
                 }
@@ -1289,9 +1297,9 @@ router.all(`/admin/:method`, (req, res) => {
                                         fb.collection(inc[1])
                                             .doc(inc[0])
                                             .update({
-                                                left: FieldValue.increment(-1),
-                                                updatedAt: new Date(),
-                                                statusBy: req.query.id
+                                                left:       FieldValue.increment(-1),
+                                                updatedAt:  new Date(),
+                                                statusBy:   +req.query.id
                                             }).then(() => {
                                                 res.sendStatus(201)
                                                 if (d.left - 1) {
@@ -1770,6 +1778,7 @@ router.all(`/admin/:method`, (req, res) => {
                             createdAt:  new Date(),
                             createdBy:  +admin.id,
                             user:       +req.body.user,
+                            total:      +req.body.left,
                             left:       +req.body.left
                         }).then(s=>{
                             res.json({
@@ -1789,6 +1798,14 @@ router.all(`/admin/:method`, (req, res) => {
                             }, 'sendPhoto', token, messages)
                         })
                     })
+                }
+
+                case `wineList`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return wineList.get().then(col=>res.json(common.handleQuery(col)))
+                        }
+                    }
                 }
 
                 case `plans`:{
@@ -3211,10 +3228,27 @@ function sendCoffeInvites(){
 }
 
 
+function sendTestApp(uid){
+    m.sendMessage2({
+        chat_id: uid || common.dimazvali,
+        text: `Приложенька с дева`,
+        reply_markup: {
+            inline_keyboard: [
+                [{
+                    text: `test`,
+                    web_app: {
+                        url: `${ngrok2}/paper/app`
+                    }
+                }]
+            ]
+        }
+    }, false, token, messages)
+}
+
 if(process.env.develop){
     router.get('/test', (req, res) => {
         
-        updatePlans();
+        sendTestApp(req.query.user||common.dimazvali)
 
         res.sendStatus(200)
     })
@@ -3679,7 +3713,7 @@ function bookClass(user, classId, res, id) {
                                                     }
 
                                                     log({
-                                                        text: `${uname(user, user.id)} просит место на лекцию ${c.data().name}\n${seatsData}`,
+                                                        text: `${uname(user, user.id)} регистрируется на лекцию ${c.data().name}\n${seatsData}`,
                                                         user: user.id,
                                                         class: c.id,
                                                         ticket: record.id
@@ -3828,7 +3862,7 @@ function bookClass(user, classId, res, id) {
                                                     }
                                                 })
                                                 log({
-                                                    text: `${uname(user, user.id)} просит место на лекцию ${c.data().name}\n${seatsData}`,
+                                                    text: `${uname(user, user.id)} регистрируется на лекцию ${c.data().name}\n${seatsData}`,
                                                     user: user.id,
                                                     class: c.id,
                                                     ticket: record.id
@@ -9171,8 +9205,23 @@ router.all(`/api/:data/:id`, (req, res) => {
                                     text:       req.body.text
                                 }).then(s=>{
 
-                                    alertAdmins({
-                                        text: `Новый вопрос к лекции: _${req.body.text}_`
+                                    getDoc(classes,req.body.class).then(c=>{
+                                        if(c){
+                                            log({
+                                                text:   `Новый вопрос к лекции ${c.name}: _${req.body.text}_`,
+                                                user:   +req.body.user,
+                                                class:  req.body.class
+                                            })
+    
+                                            if(c && c.authorId) getDoc(authors,c.authorId).then(a=>{
+                                                if(a && a.user){
+                                                    m.sendMessage2({
+                                                        chat_id: a.user,
+                                                        text: `Новый вопрос по вашей лекции: ${req.body.text}.`
+                                                    },false,token,messages)
+                                                }
+                                            })
+                                        }
                                     })
 
                                     res.json({
@@ -9722,7 +9771,8 @@ router.all(`/api/:data/:id`, (req, res) => {
 
                                 c.booked = c.appointmentId = ticket ? ticket.id : null
                                 c.used = ticket ? ticket.status : null
-
+                                c.status = ticket ? ticket.status : null
+                                
                                 res.json(c)
                             }).catch(err=>{
                                 res.status(500).send(err.message)
@@ -10943,3 +10993,5 @@ function acceptTicket(ticketId,res){
         })
 }
 module.exports = router;
+
+

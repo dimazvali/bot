@@ -425,6 +425,7 @@ body.mobile>h2 {
     flex-direction: row;
     /* justify-content: space-around; */
     margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
 .price{
@@ -558,4 +559,9 @@ div.headerSlider>h2 {
 
 .mTop20 {
     margin-top: 20px;
+}
+
+.scroll>.flex {
+    display: flex;
+    flex-wrap: nowrap;
 }

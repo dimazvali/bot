@@ -23,6 +23,10 @@ if(start){
     start = start.split('_')
 
     switch(start[0]){
+        case `wineList`:{
+            showWine()
+            break;
+        }
         case `messages`:{
             showMessages();
             break;
@@ -106,6 +110,17 @@ if(start){
 }
 
 
+function showWine(){
+    let screen = showScreen(
+        `Вино`,
+        `wineList`,
+        wineLine,
+        false,
+        false,
+        true,
+        [`dark`,`dateButton`]
+    )
+}
 
 function drawCoworkingShedule(records,start){
     
@@ -1136,7 +1151,7 @@ function showSchedule() {
             }))
 
             data.data.forEach(cl => {
-                c.append(showClassLine(cl))
+                c.append(showClassLine2(cl))
             });
             p.append(c)
 
@@ -1165,7 +1180,37 @@ function showClassLine(cl) {
         if(cl.rate)  details.append(ce(`span`,false,`info`,`оценка: ${cl.rate}`))
         if(cl.admins)  details.append(ce(`span`,false,`info`,`только для админов`))
         if(cl.fellows)  details.append(ce(`span`,false,`info`,`только для fellows`))
+        
         c.append(ce('h2', false, false, cl.name))
+
+    c.append(ce('p', false, false, `${drawDate(cl.date)} @ ${cl.hallName}`))
+    return c
+}
+
+function classAlerts(cl){
+    let alerts = [];
+
+    if(!cl.description) alerts.push(`нет описания`)
+    if(!cl.clearPic)    alerts.push(`нет картинки без буковок`)
+    if(!cl.slides)      alerts.push(`нет презентации`)
+    
+
+    return alerts;
+}
+
+function showClassLine2(cl) {
+
+    let c = listContainer(cl,true,{
+        visitors: `гостей`,
+        rate: `оценка`,
+        admins: `только для админов`,
+        fellows: `только для fellows`
+    },false,classAlerts(cl))
+    
+    c.append(ce('h3', false, false, cl.name,{
+        onclick:()=>showClass(false,cl.id)
+    }))
+
     c.append(ce('p', false, false, `${drawDate(cl.date)} @ ${cl.hallName}`))
     return c
 }
@@ -1334,9 +1379,11 @@ function showClass(cl, id) {
 
         if(cl.rate) p.append(ce('h3',false,false,`Оценка: ${cl.rate}`))
 
-        let alertsContainer = ce('div', false, 'flexible')
-            if (cl.admins) alertsContainer.append(ce('button', false, `accent`, `только для админов`))
-            if (cl.fellows) alertsContainer.append(ce('button', false, `fellows`, `только для fellows`))
+        let alertsContainer = ce('div', false, 'flex')
+
+            alertsContainer.append(toggleButton(`classes`,cl.id,`admins`,cl.admins,`только для админов`,`не для админов`,[`dark`,`dateButton`]))
+            alertsContainer.append(toggleButton(`classes`,cl.id,`fellows`,cl.fellows,`только для fellows`,`не для fellows`,[`dark`,`dateButton`]))
+
             if (cl.noRegistration) alertsContainer.append(ce(`button`, false, `accent`, `регистрация закрыта`))
             if (!cl.capacity) alertsContainer.append(ce(`button`, false, `accent`, `вместимость не указана`))
             if (!cl.pic) alertsContainer.append(ce(`button`, false, `accent`, `картинка не указана`))
@@ -1346,8 +1393,11 @@ function showClass(cl, id) {
             onclick: () => edit(`classes`, cl.id, `authorId`, `authorId`, null)
         }))
 
-        p.append(ce('p', false, false, `Текст приветствия (после подтверждения билета):`))
-        p.append(ce('p', false, false, cl.welcome || `не указан`, {
+        
+
+
+
+        p.append(ce('p', false, false, `Текст приветствия (после подтверждения билета): ${cl.welcome || `не указан`}`,{
             onclick: function () {
                 edit(`classes`, cl.id, `welcome`, `textarea`, cl.welcome || null, this)
             }
@@ -1383,31 +1433,31 @@ function showClass(cl, id) {
             }))
         }
 
+        let det = ce(`div`,false,[`flex`,`spread`])
+        
+        p.append(det)
 
 
-        p.append(ce('p', false, false, `цена: ${cur(cl.price,`GEL`)}`,{
+        det.append(ce('p', false, `hover`, `цена: ${cur(cl.price,`GEL`)}`,{
             onclick: function () {
                 edit(`classes`, cl.id, `price`, `number`, cl.price || null, this)
             }
         }))
 
 
-        p.append(ce('p', false, false, `${drawDate(cl.date,'ru',{time:true})}, продолжительность ${cl.duration} мин.`))
-
-
-        p.append(ce(`button`,false,[`dateButton`,`dark`],`Изменить дату`,{
+        det.append(ce('p', false, `hover`, `${drawDate(cl.date,'ru',{time:true})}`,{
             onclick: function () {
                 edit(`classes`, cl.id, `date`, `datetime-local`, cl.date || null)
-            }
+            } 
         }))
 
-        p.append(ce(`button`,false,[`dateButton`,`dark`],`Изменить продолжительность`,{
+        det.append(ce('p', false, `hover`, `продолжительность ${cl.duration} мин.`,{
             onclick: function () {
                 edit(`classes`, cl.id, `duration`, `number`, cl.duration || null)
             }
         }))
 
-        p.append(ce(`p`,false,false,`Вместимость: ${cl.capacity}`,{
+        det.append(ce(`p`,false,`hover`,`Вместимость: ${cl.capacity}`,{
             onclick: function () {
                 edit(`classes`, cl.id, `capacity`, `number`, cl.capacity || null, this)
             }
@@ -1417,11 +1467,23 @@ function showClass(cl, id) {
             onclick: () => showHall(false, cl.hall)
         }))
 
-        p.append(ce('p', false, `story`, cl.description || `Добавьте описание`,{
+        p.append(ce('p', false, [`story`,`hover`], cl.description || `Добавьте описание`,{
             onclick: function () {
                 edit(`classes`, cl.id, `description`, `textarea`, cl.description || null, this)
             }
         }))
+
+
+        let qBox = ce(`div`)
+        p.append(qBox)
+        load(`userClassesQ`,false,{class:cl.id}).then(q=>{
+            if(q.length){
+                qBox.append(ce(`h3`,false,false,`Вопросы от гостей:`))
+                q.forEach(question=>{
+                    qBox.append(showQLine(question))
+                })
+            }
+        })
 
         let guests = ce('div');
 
@@ -2287,6 +2349,47 @@ function showMeetingRoom(){
     })
 }
 
+function addUser(collection,id){
+    let p = modal()
+
+        p.append(ce(`h2`,false,false,`Добавить пользователя`))
+
+        let suggest = ce(`div`)
+
+        let cv = null;
+
+        let inp = ce('input',false,false,false,{
+            placeholder: `начните вводить ник пользователя`,
+            oninput:function(){
+                if(this.value && this.value!=cv && this.value.length > 3){
+                    cv = this.value
+                    suggest.innerHTML = `ищу-свищу`
+                    axios.get(`/${host}/admin/userSearch?name=${this.value}`).then(options=>{
+                        if(options.data.length){
+                            suggest.innerHTML = null;
+                            options.data.forEach(u=>{
+                                suggest.append(ce(`button`,false,[`dark`,`dateButton`],uname(u,u.id),{
+                                    onclick:function(){
+                                        this.setAttribute(`disabled`,true)
+                                        axios.put(`/${host}/admin/${collection}/${id}`,{
+                                            attr:   `user`,
+                                            value:  +u.id
+                                        }).then(s=>{
+                                            handleSave(s)
+                                            p.remove()
+                                        })
+                                    }
+                                }))
+                            })
+                        }
+                    })
+                }
+            }
+        })
+
+        p.append(inp)
+        p.append(suggest)   
+}
 
 function addGuest(cid,container){
     let p = modal()
@@ -2833,16 +2936,10 @@ function wineButton(userId){
 }
 
 function wineLine(w){
-    let c = ce(`div`,false,`sDivided`,false,{
-        dataset:{active:true}
-    })
-    let details = ce(`div`,false,`details`)
-    details.append(ce(`span`,false,`info`,`налито: ${drawDate(w.createdAt._seconds*1000)}`))
-    if(w.createBy) load(`users`,w.createBy, false, downLoadedUsers).then(u=>details.append(ce(`span`,false,`info`,uname(u,u.id))))
-    c.append(details)
-
-    c.append(ce('h5',false,false,`Остаток: ${w.left}`))
-    
+    c = listContainer(w,true)
+    c.classList.remove(`hidden`)
+    c.append(ce('h3',false,false,`Налито: ${w.total}. Остаток: ${w.left}`))
+    // c.append(ce('h3',false,false,`Остаток: ${w.left}`))
     return c
 }
 
@@ -2996,6 +3093,12 @@ function showAuthors() {
     })
 }
 
+function showQLine(q){
+    let c = listContainer(q,true)
+        c.append(ce(`p`,false,false,q.text))
+    return c;
+}
+
 function showAuthorLine(a) {
 
     let div = ce('div', false, `sDivided`, false, {
@@ -3061,6 +3164,17 @@ function showAuthor(a, id) {
             onclick: () => edit(`authors`, a.id, `description`, `textarea`, a.description)
         }))
 
+        if(a.user){
+            load(`users`,a.user,false,downLoadedUsers).then(u=>{
+                p.append(ce(`button`,false,[`dark`,`dateButton`],uname(u,u.id)))
+            })
+            
+        } else {
+            p.append(ce(`button`,false,[`dateButton`,`dark`],`Добавьте связь с пользователем`,{
+                onclick:()=>addUser(`authors`,a.id)
+            }))
+        }
+
 
 
         p.append(deleteButton(`authors`, a.id, !a.active,[`dark`,`dateButton`]))
@@ -3076,7 +3190,7 @@ function showAuthor(a, id) {
             p.append(ce('h2', false, false, authorData.classes.length ? `Лекции` : `Лекций еще нет`))
 
             authorData.classes.sort(byDate).reverse().forEach(cl => {
-                p.append(showClassLine(cl))
+                p.append(showClassLine2(cl))
             })
 
             p.append(ce('h2', false, false, authorData.courses.length ? `Курсы` : `Курсов нет`))

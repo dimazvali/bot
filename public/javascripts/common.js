@@ -944,7 +944,7 @@ function line(){
     return c
 }
 
-function listContainer(e,detailed,extra,dataset){
+function listContainer(e,detailed,extra,dataset,alerts){
     let c =  ce('div',false,[`sDivided`,e.active?`reg`:`hidden`],false,{dataset:{active:e.active}})
 
     if(detailed){
@@ -968,6 +968,16 @@ function listContainer(e,detailed,extra,dataset){
                 c.dataset[key] = e[key]
             })
         c.append(details)
+    }
+
+    if(alerts&&alerts.length){
+        let alertsContainer = ce('div',false,[`details`,`flex`])
+        
+        alerts.forEach(a=>{
+            alertsContainer.append(ce(`span`,false,[`info`,`alert`],a))
+        })
+
+        c.append(alertsContainer);
     }
 
     return c
