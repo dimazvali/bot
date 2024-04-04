@@ -1,4 +1,5 @@
 
+
 let userFilters = {};
 // let userFilters = {};
 
@@ -114,6 +115,29 @@ if(start){
 }
 
 
+function showStats(){
+    let p = preparePopupWeb(`stats`)
+        p.append(ce(`h1`,false,false,`Выгрузки`))
+        p.append(ce(`p`,false,false,`Здесь вы можете выгрузить данные по коворкингу, расписанию, пользователям. Запросы логируются.`))
+        p.append(ce(`p`,false,false,`Данные выгружаются в CSV. Если они отобраются некорректно, воспользуйтесь кнопкой "импорт" (в excel) — или просто откройте файл через гуглодоки.`))
+
+        let types = {
+            cowork:  `Коворкинг`,
+            schedule:   `Расписание`,
+            users:      `Пользователи`
+        }
+
+        Object.keys(types).forEach(t=>{
+            p.append(ce(`button`,false,buttonStyle,types[t],{
+                onclick:()=>{
+                    window.open(`/${host}/admin/stats?type=${t}`)
+                    // load(`stats`,false,{type:t})
+                }
+            }))
+        })
+
+}
+
 function showWine(){
     let screen = showScreen(
         `Вино`,
@@ -122,7 +146,7 @@ function showWine(){
         false,
         false,
         true,
-        [`dark`,`dateButton`]
+        buttonStyle
     )
 }
 
@@ -137,7 +161,7 @@ function drawCoworkingShedule(records,start){
         data.halls
         .sort((a,b)=>b.name<a.name?1:-1)
         .forEach(h=>{
-            fc.append(ce(`button`,false,[`dark`,`dateButton`],h.name,{
+            fc.append(ce(`button`,false,buttonStyle,h.name,{
                 onclick:function(){
                     this.parentNode.querySelectorAll(`.active`).forEach(b=>b.classList.remove(`active`))
                     this.classList.add(`active`)
@@ -214,16 +238,16 @@ function showPlans(){
             }, {
                 attr: `createdAt`,
                 name: `По дате создания`
-            }], c, plans, showPlanLine, [`dark`,`dateButton`]))
+            }], c, plans, showPlanLine, buttonStyle))
 
             p.append(cc)
 
-            c.append(ce('button', false, [`dark`,`dateButton`], `Добавить тариф`, {
+            c.append(ce('button', false, buttonStyle, `Добавить тариф`, {
                 onclick: () => newPlan()
             }))
             
             p.append(c)
-            p.append(archiveButton(c,[`dark`,`dateButton`]))
+            p.append(archiveButton(c,buttonStyle))
             
         })
 }
@@ -343,7 +367,7 @@ function showPlan(id){
             
             p.append(ce(`p`,false,false,`Коворк: ${plan.visits}.`))
 
-            p.append(deleteButton(`plans`,id,!plan.active,[`dark`,`dateButton`]))
+            p.append(deleteButton(`plans`,id,!plan.active,buttonStyle))
 
 
             let requests = ce('div')
@@ -452,7 +476,7 @@ function showMROptions(record, user, container){
 
     let txt = ce(`textarea`,false,false,false,{placeholder: `Вам слово`})
     c.append(txt)
-    c.append(ce(`button`,false,[`dark`,`dateButton`],`Написать`,{
+    c.append(ce(`button`,false,buttonStyle,`Написать`,{
         onclick:function(){
             if(!txt.value) return alert(`Я не вижу ваших букв`)
             this.setAttribute(`disabled`,true)
@@ -473,7 +497,7 @@ function showCoworkingOptions(record, user, container){
         
         c.append(ce(`button`,false,[`dateButton`,`dark`],uname(user,user.id),{onclick:()=>showUser(false,user.id)}))
 
-        if(user.bonus && record.status != `used`) c.append(ce(`button`,false,[`dark`,`dateButton`],`Списать первое посещение`,{
+        if(user.bonus && record.status != `used`) c.append(ce(`button`,false,buttonStyle,`Списать первое посещение`,{
             onclick:function(){
                 axios.put(`/${host}/admin/coworking/${record.id}`,{
                     attr:   `status`,
@@ -513,9 +537,9 @@ function showCoworkingOptions(record, user, container){
             }))
         }
 
-        if(record.paymentNeeded && user.deposit){
+        if(record.paymentNeeded && user.deposit && !record.isPayed){
             c.append(`У пользователя есть депозит: ${cur(user.deposit)}`)
-            if(!record.status != `used`) c.append(ce(`button`,false,[`dark`,`dateButton`],`Списать с депозита (20)`,{
+            if(!record.status != `used`) c.append(ce(`button`,false,buttonStyle,`Списать с депозита (20)`,{
                 onclick:function(){
                     axios.put(`/${host}/admin/coworking/${record.id}`,{
                         attr:   `status`,
@@ -539,7 +563,7 @@ function showCoworkingOptions(record, user, container){
 
                     plans.filter(p=>p.active).forEach(p=>{
                         c.append(ce(`p`,false,false,`Остаток посещений по плану: ${p.visitsLeft}.`))
-                        if(p.visitsLeft && record.status != `used`) c.append(ce(`button`,false,[`dark`,`dateButton`],`Списать с плана`,{
+                        if(p.visitsLeft && record.status != `used`) c.append(ce(`button`,false,buttonStyle,`Списать с плана`,{
                             onclick:function(){
                                 axios.put(`/${host}/admin/coworking/${record.id}`,{
                                     attr:   `status`,
@@ -558,7 +582,7 @@ function showCoworkingOptions(record, user, container){
 
     let txt = ce(`textarea`,false,false,false,{placeholder: `Вам слово`})
     c.append(txt)
-    c.append(ce(`button`,false,[`dark`,`dateButton`],`Написать`,{
+    c.append(ce(`button`,false,buttonStyle,`Написать`,{
         onclick:function(){
             if(!txt.value) return alert(`Я не вижу ваших букв`)
             this.setAttribute(`disabled`,true)
@@ -832,7 +856,7 @@ function showStandAlone(){
     closeLeft()
     let p = preparePopupWeb(`standAlone`,false,false,true,false,false,`Отдельные страницы`)
         // p.append(ce('h1',false,false,`Отдельные страницы`))
-        p.append(ce(`button`,false,[`dark`,`dateButton`],`Добавить`,{
+        p.append(ce(`button`,false,buttonStyle,`Добавить`,{
             onclick:()=>addStandAlone()
         }))
     load(`standAlone`).then(pages=>{
@@ -945,7 +969,7 @@ function showStandAlonePage(pid){
                 ai_request: (request, respondWith) => respondWith.string(() => Promise.reject("See docs to implement AI Assistant")),
               });
 
-            p.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить правки в HTML`,{
+            p.append(ce(`button`,false,buttonStyle,`Сохранить правки в HTML`,{
                 onclick:()=>{
                     let html = tinymce.activeEditor.getContent("#html");
                     axios.put(`/${host}/admin/standAlone/${page.id}`,{
@@ -956,12 +980,14 @@ function showStandAlonePage(pid){
                 }
             }))
 
-            p.append(deleteButton(`standAlone`,page.id,!page.active,[`dark`,`dateButton`]))
+            p.append(deleteButton(`standAlone`,page.id,!page.active,buttonStyle))
         })
 }
 
 function showCoworking(){
+    
     closeLeft()
+
     let p = preparePopupWeb(`coworking`,false,false,true,false,false,`Коворкинг`)
     
     p.append(drawCoworkingShedule())
@@ -983,7 +1009,7 @@ function showCoworking(){
 
 function closeHallButton(id){
 
-    return ce(`button`,false,[`dark`,`dateButton`],`Закрыть зал`,{
+    return ce(`button`,false,buttonStyle,`Закрыть зал`,{
         onclick:()=>{
             let edit = modal()
             edit.append(ce('h2', false, false, `Закрываем зал`))
@@ -1049,7 +1075,7 @@ function showHall(h,id){
             }
         }))
 
-        p.append(deleteButton(`halls`,id,!h.active,[`dark`,`dateButton`]))
+        p.append(deleteButton(`halls`,id,!h.active,buttonStyle))
 
         let closures = ce(`div`)
 
@@ -1121,7 +1147,7 @@ function showCoworkingLine(r,butHall,butUser){
     
     
 
-    if(r.status != `used`) controls.append(deleteButton(`coworking`,r.id,!r.active,[`dark`,`dateButton`]))
+    if(r.status != `used`) controls.append(deleteButton(`coworking`,r.id,!r.active,buttonStyle))
 
     if(r.status != `used` && r.active) controls.append(ce(`button`,false,[`dateButton`,`dark`],`гость пришел`,{
         onclick:function(){
@@ -1319,7 +1345,7 @@ function showClass(cl, id) {
             let mBox = ce(`div`,false,`flex`)
                 p.append(mBox)
             
-            mBox.append(ce(`button`,false,[`dark`,`dateButton`],`Отправить себе`,{
+            mBox.append(ce(`button`,false,buttonStyle,`Отправить себе`,{
                 onclick:()=>{
                     axios.get(`/${host}/admin/alertClass/${cl.id}?self=true`)
                         .then(handleSave)
@@ -1327,7 +1353,7 @@ function showClass(cl, id) {
                 }
             }))
 
-            mBox.append(ce(`button`,false,[`dark`,`dateButton`],`Рассылка по админам`,{
+            mBox.append(ce(`button`,false,buttonStyle,`Рассылка по админам`,{
                 onclick:()=>{
                     let sure = confirm(`Стартуем по админам. Точно?`)
                     if(sure) axios.get(`/${host}/admin/alertClass/${cl.id}?admins=true`)
@@ -1335,7 +1361,7 @@ function showClass(cl, id) {
                         .catch(handleError)
                 }
             }))
-            mBox.append(ce(`button`,false,[`dark`,`dateButton`],`Рассылка по пользователям`,{
+            mBox.append(ce(`button`,false,buttonStyle,`Рассылка по пользователям`,{
                 onclick:function(){
                     let sure = confirm(`Стартуем по админам. Точно?`)
                     if(sure) {
@@ -1393,15 +1419,15 @@ function showClass(cl, id) {
 
         let alertsContainer = ce('div', false, 'flex')
 
-            alertsContainer.append(toggleButton(`classes`,cl.id,`admins`,cl.admins,`только для админов`,`не для админов`,[`dark`,`dateButton`]))
-            alertsContainer.append(toggleButton(`classes`,cl.id,`fellows`,cl.fellows,`только для fellows`,`не для fellows`,[`dark`,`dateButton`]))
+            alertsContainer.append(toggleButton(`classes`,cl.id,`admins`,cl.admins,`только для админов`,`не для админов`,buttonStyle))
+            alertsContainer.append(toggleButton(`classes`,cl.id,`fellows`,cl.fellows,`только для fellows`,`не для fellows`,buttonStyle))
 
             if (cl.noRegistration) alertsContainer.append(ce(`button`, false, `accent`, `регистрация закрыта`))
             if (!cl.capacity) alertsContainer.append(ce(`button`, false, `accent`, `вместимость не указана`))
             if (!cl.pic) alertsContainer.append(ce(`button`, false, `accent`, `картинка не указана`))
         p.append(alertsContainer)
 
-        if (!cl.authorId) alertsContainer.append(ce(`button`, false, [`dark`,`dateButton`], `выбрать автора`, {
+        if (!cl.authorId) alertsContainer.append(ce(`button`, false, buttonStyle, `выбрать автора`, {
             onclick: () => edit(`classes`, cl.id, `authorId`, `authorId`, null)
         }))
 
@@ -1431,7 +1457,7 @@ function showClass(cl, id) {
 
 
         if (!cl.feedBackSent && new Date()>new Date(cl.date)) {
-            p.append(ce(`button`, false, [`dark`,`dateButton`], `Отправить запрос на отзывы`, {
+            p.append(ce(`button`, false, buttonStyle, `Отправить запрос на отзывы`, {
                 onclick: function () {
                     this.setAttribute(`disabled`, true)
                     axios
@@ -1680,17 +1706,17 @@ function showTickets(){
         // }, {
         //     attr: `createdAt`,
         //     name: `По дате создания`
-        // }], c, plans, showTicketLine, [`dark`,`dateButton`]))
+        // }], c, plans, showTicketLine, buttonStyle))
 
         // p.append(cc)
 
-        // c.append(ce('button', false, [`dark`,`dateButton`], `Добавить тариф`, {
+        // c.append(ce('button', false, buttonStyle, `Добавить тариф`, {
         //     onclick: () => newPlan()
         // }))
         
         p.append(c)
 
-        p.append(ce(`button`,false,[`dark`,`dateButton`],`Еще`,{
+        p.append(ce(`button`,false,buttonStyle,`Еще`,{
             onclick:function(){
                 offset = offset+100;
                 load(`userClasses`,false,{offset:offset})
@@ -1704,7 +1730,7 @@ function showTickets(){
             }
         }))
 
-        p.append(archiveButton(c,[`dark`,`dateButton`]))
+        p.append(archiveButton(c,buttonStyle))
         
     })   
 }
@@ -1966,7 +1992,7 @@ function showRC(){
     let usersC = ce('div')
     let listing = ce('div')
     
-    mc.append(ce('button',false,[`dark`,`dateButton`],`Запустить`,{
+    mc.append(ce('button',false,buttonStyle,`Запустить`,{
         onclick:function(){
             let sure = confirm(`Уверены?`)
             if(sure) {
@@ -2380,7 +2406,7 @@ function addUser(collection,id){
                         if(options.data.length){
                             suggest.innerHTML = null;
                             options.data.forEach(u=>{
-                                suggest.append(ce(`button`,false,[`dark`,`dateButton`],uname(u,u.id),{
+                                suggest.append(ce(`button`,false,buttonStyle,uname(u,u.id),{
                                     onclick:function(){
                                         this.setAttribute(`disabled`,true)
                                         axios.put(`/${host}/admin/${collection}/${id}`,{
@@ -2421,7 +2447,7 @@ function addGuest(cid,container){
                         if(options.data.length){
                             suggest.innerHTML = null;
                             options.data.forEach(u=>{
-                                suggest.append(ce(`button`,false,[`dark`,`dateButton`],uname(u,u.id),{
+                                suggest.append(ce(`button`,false,buttonStyle,uname(u,u.id),{
                                     onclick:function(){
                                         this.setAttribute(`disabled`,true)
                                         axios.post(`/${host}/admin/userClasses`,{
@@ -2465,7 +2491,7 @@ function occupyMR(date,time,button){
                         if(options.data.length){
                             suggest.innerHTML = null;
                             options.data.forEach(u=>{
-                                suggest.append(ce(`button`,false,[`dark`,`dateButton`],uname(u,u.id),{
+                                suggest.append(ce(`button`,false,buttonStyle,uname(u,u.id),{
                                     onclick:function(){
                                         this.setAttribute(`disabled`,true)
                                         axios.post(`/${host}/admin/mr`,{
@@ -2517,7 +2543,7 @@ function messageLine(m){
 
     if(m.messageId && !m.deleted  && (+new Date() - new Date(m.createdAt._seconds*1000 < 48*60*60*1000))){
         bc.append(deleteButton(`messages`,m.id,false,[`active`,`dark`,`dateButton`],()=>message.remove()))
-        if(!m.edited) bc.append(ce(`button`,false,[`dark`,`dateButton`],`редактировать`,{
+        if(!m.edited) bc.append(ce(`button`,false,buttonStyle,`редактировать`,{
             onclick:()=>{
                 let ew = modal()
                     let txt = ce(`textarea`,false,false,false,{
@@ -2541,12 +2567,12 @@ function messageLine(m){
     }
 
     if(!m.isReply){
-        bc.append(ce(`button`,false,[`dark`,`dateButton`],`Ответить`,{
+        bc.append(ce(`button`,false,buttonStyle,`Ответить`,{
             onclick:()=>{
                 let b = modal()
                 let txt = ce(`textarea`,false,false,false,{placeholder: `Вам слово`})
                     b.append(txt)
-                    b.append(ce(`button`,false,[`dark`,`dateButton`],`Написать`,{
+                    b.append(ce(`button`,false,buttonStyle,`Написать`,{
                         onclick:function(){
                             if(!txt.value) return alert(`Я не вижу ваших букв`)
                             this.setAttribute(`disabled`,true)
@@ -2602,7 +2628,7 @@ function showMessages(){
 
         let offset = 0;
 
-        p.append(ce(`button`,false,[`dark`,`dateButton`],`Еще`,{
+        p.append(ce(`button`,false,buttonStyle,`Еще`,{
             onclick:function(){
                 offset = offset+200;
                 load(`messages`,false,{offset:offset})
@@ -2715,7 +2741,7 @@ function showUser(u, id) {
         let messenger = ce('div')
         p.append(messenger)
 
-        messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Открыть переписку`,{
+        messenger.append(ce(`button`,false,buttonStyle,`Открыть переписку`,{
             onclick:function(){
                 this.remove()
                 messenger.append(ce(`h2`,false,false,`Переписка:`))
@@ -2730,7 +2756,7 @@ function showUser(u, id) {
                     })
                     let txt = ce('textarea',false,false,false,`вам слово`)
                     messenger.append(txt)
-                    messenger.append(ce(`button`,false,[`dark`,`dateButton`],`Отправить`,{
+                    messenger.append(ce(`button`,false,buttonStyle,`Отправить`,{
                         onclick:()=>{
                             if(txt.value){
                                 axios.post(`/${host}/admin/message`,{
@@ -2797,7 +2823,7 @@ function showUser(u, id) {
             let dep = ce(`p`,false,false,(u.deposit ? cur(u.deposit,`GEL`) : `отсутствует`))
             deposits.append(dep)
 
-        deposits.append(ce(`button`,false,[`dark`,`dateButton`],`Добавить депозит`,{
+        deposits.append(ce(`button`,false,buttonStyle,`Добавить депозит`,{
             onclick:()=>{
                 let c = modal()
                     c.append(ce('h2',false,false,`Вносим денег`))
@@ -2815,7 +2841,7 @@ function showUser(u, id) {
                 c.append(amount)
                 c.append(desc)
 
-                c.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить`,{
+                c.append(ce(`button`,false,buttonStyle,`Сохранить`,{
                     onclick:function(){
                         if(amount.value){
                             let sure = confirm(`Уверены?`)
@@ -2856,7 +2882,7 @@ function showUser(u, id) {
                 c.append(amount)
                 c.append(desc)
 
-                c.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить`,{
+                c.append(ce(`button`,false,buttonStyle,`Сохранить`,{
                     onclick:function(){
                         if(amount.value){
                             let sure = confirm(`Уверены?`)
@@ -2923,7 +2949,7 @@ function showUser(u, id) {
                 cw.append(showCoworkingLine(rec,false,true))
             })
             
-            cw.append(ce('button',false,[`dark`,`dateButton`],`Показать архивные записи в коворкинг`,{
+            cw.append(ce('button',false,buttonStyle,`Показать архивные записи в коворкинг`,{
                 onclick:function(){
                     this.remove()
                     records.filter(rec=>rec.date<new Date().toISOString().split('T')[0]).reverse().forEach(rec=>{
@@ -2949,7 +2975,7 @@ function showUser(u, id) {
 
 function wineButton(userId){
 
-    return ce(`button`,false,[`dark`,`dateButton`],`Налить вина`,{
+    return ce(`button`,false,buttonStyle,`Налить вина`,{
         onclick:()=>{
             let edit = modal()
                 edit.append(ce(`h2`,false,false,`Привет, гертруда!`))
@@ -3054,17 +3080,17 @@ function showHalls(){
     //     }, {
     //         attr: `createdAt`,
     //         name: `По дате создания`
-    //     }], c, halls, showHallLine, [`dark`,`dateButton`]))
+    //     }], c, halls, showHallLine, buttonStyle))
 
     //     p.append(cc)
 
-    //     p.append(ce('button', false, [`dark`,`dateButton`], `Добавить зал`, {
+    //     p.append(ce('button', false, buttonStyle, `Добавить зал`, {
     //         onclick: () => newHall()
     //     }))
 
     //     // p.append(c)
 
-    //     p.append(archiveButton(c,[`dark`,`dateButton`]))
+    //     p.append(archiveButton(c,buttonStyle))
     // })
 }
 
@@ -3124,17 +3150,17 @@ function showAuthors() {
         }, {
             attr: `createdAt`,
             name: `По дате создания`
-        }], c, authors, showAuthorLine,[`dark`,`dateButton`]))
+        }], c, authors, showAuthorLine,buttonStyle))
 
         p.append(cc)
 
-        c.append(ce('button', false, [`dark`,`dateButton`], `Добавить автора`, {
+        c.append(ce('button', false, buttonStyle, `Добавить автора`, {
             onclick: () => newAuthor()
         }))
 
         p.append(c)
 
-        p.append(archiveButton(c,[`dark`,`dateButton`]))
+        p.append(archiveButton(c,buttonStyle))
     })
 }
 
@@ -3211,7 +3237,7 @@ function showAuthor(a, id) {
 
         if(a.user){
             load(`users`,a.user,false,downLoadedUsers).then(u=>{
-                p.append(ce(`button`,false,[`dark`,`dateButton`],uname(u,u.id)))
+                p.append(ce(`button`,false,buttonStyle,uname(u,u.id)))
             })
             
         } else {
@@ -3222,7 +3248,7 @@ function showAuthor(a, id) {
 
 
 
-        p.append(deleteButton(`authors`, a.id, !a.active,[`dark`,`dateButton`]))
+        p.append(deleteButton(`authors`, a.id, !a.active,buttonStyle))
 
 
 

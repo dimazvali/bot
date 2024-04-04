@@ -784,6 +784,10 @@ router.all(`/admin/:method`, (req, res) => {
                 }
                 case `stats`:{
                     
+                    log({
+                        text: `${uname(admin,admin.id)} запрашивает выгрузку данных ${req.query.type}`,
+                        admin: +admin.id
+                    })
 
                     switch(req.query.type){
                         case `schedule`:{
@@ -830,7 +834,8 @@ router.all(`/admin/:method`, (req, res) => {
                                 fields
                             };
                 
-
+                            const parser = new Parser(opts);
+                            
                             return coworking
                             .where(`active`,'==',true)
                             .get()
@@ -870,6 +875,63 @@ router.all(`/admin/:method`, (req, res) => {
                             
                             
 
+                        }
+                        case `users`:{
+                            return udb.get().then(col=>{
+                                let opts = {
+                                    fields: [
+                                        `id`,
+                                        `active`,
+                                        `createdAt`,
+                                        `first_name`,
+                                        `last_name`,
+                                        `userName`,
+                                        `language_code`,
+                                        `about`,
+                                        `occupation`,
+                                        `blocked`,
+                                        `bonus`,
+                                        `classesVisits`,
+                                        `coworkingVisits`,
+                                        `deposit`,
+                                        `noSpam`,
+                                        `insider`,
+                                        `fellow`,
+                                        `admin`,
+
+                                    ]
+                                }
+                                const parser = new Parser(opts);
+
+                                let csv = parser.parse(common.handleQuery(col,true).map(c=>{
+                                    return {
+                                        id: c.id,
+                                        active: c.active,
+                                        createdAt: new Date(c.createdAt._seconds*1000),
+                                        first_name: c.first_name,
+                                        last_name: c.last_name,
+                                        userName: c.userName,
+                                        language_code: c.language_code,                                        
+                                        about: c.about,
+                                        occupation: c.occupation,
+                                        blocked: c.blocked,
+                                        bonus: c.bonus,
+                                        classesVisits: c.classesVisits,
+                                        coworkingVisits: c.coworkingVisits,
+                                        deposit: c.deposit,
+                                        noSpam: c.noSpam,
+                                        insider: c.insider,
+                                        fellow: c.fellow,
+                                        admin: c.admin,
+                                    }
+                                }), opts);
+                        
+                                res.attachment('users_'+Number(new Date())+'.csv');
+                                res.status(200).send(csv);
+                            })
+                        }
+                        default:{
+                            return res.sendStatus(404)
                         }
                     }
                     
@@ -10878,6 +10940,5 @@ function acceptTicket(ticketId,res){
                 })
         })
 }
+
 module.exports = router;
-
-
