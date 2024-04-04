@@ -34,6 +34,16 @@ function showTours(){
     showScreen(`Экскурсии`,`tours`,showTourLine,addTour)
 }
 
+
+function showAuthors(){
+    showScreen(`Ведущие`,`authors`,showAuthorLine,addAuthor)
+}
+
+function showPrograms(){
+    showScreen(`Программы`,`programs`,showProgramLine,addProgram)
+}
+
+
 start = start.split('_')
 switch(start[0]){
     case `landmarks`:{
@@ -62,12 +72,39 @@ switch(start[0]){
     }
 }
 
+function showProgramLine(p){
+    let c = listContainer(p,true)
+        c.append(ce(`h2`,false,false,p.name,{
+            onclick: ()=>showProgram(p.id)
+        }))
+        c.append(ce(`p`,false,false,p.description))
+    return c;
+}
+
 function showLandMarkLine(l){
     let c = listContainer(l,true,{visited:`посещений`})
         c.append(ce(`h2`,false,false,l.name,{
             onclick: ()=>showLandmark(l.id)
         }))
         c.append(ce(`p`,false,false,l.description))
+    return c
+}
+
+function showShowLine(s){
+    let c = listContainer(s,true,{played:`прослушано`},{played:s.played||0})
+        c.append(ce(`h2`,false,false,s.name,{
+            onclick: ()=>showShow(s.id)
+        }))
+        c.append(ce(`p`,false,false,s.description))
+    return c
+}
+
+function showAuthorLine(a){
+    let c = listContainer(a,true)
+        c.append(ce(`h2`,false,false,a.name,{
+            onclick: ()=>showAuthor(a.id)
+        }))
+        c.append(ce(`p`,false,false,a.description))
     return c
 }
 
@@ -187,6 +224,34 @@ function addCity(){
     })
 }
 
+function addAuthor(){
+    addScreen(`authors`,`Новый автор`,{
+        name:       {placeholder:`Название`},
+        slug:       {placeholder: `slug`},
+        description:{placeholder:`Описание`,type:`textarea`},
+        pic:        {placeholder:`картинка`}
+    })
+}
+
+function addProgram(){
+    addScreen(`programs`,`Новая программа`,{
+        name:       {placeholder:`Название`},
+        slug:       {placeholder: `slug`},
+        author:     {selector:`authors`,placeholder:`Автор`},
+        description:{placeholder:`Описание`,type:`textarea`},
+        pic:        {placeholder:`картинка`}
+    })
+}
+
+function addShow(){
+    addScreen(`shows`,`Новый выпуск`,{
+        name:       {placeholder:`Название`},
+        description:{placeholder:`Описание`,type:`textarea`},
+        program:    {selector:'programs',placeholder: `Программ`},
+        pic:        {placeholder:`картинка`}
+    })
+}
+
 function addTag(){
     addScreen(`tags`,`Новый тег`,{
         name:       {placeholder:`Название`},
@@ -212,6 +277,54 @@ function addLandMark(){
     initMap(p.querySelector(`form`))
 }
 
+
+function showAuthor(id){
+    let p = preparePopupWeb(`authors_${id}`,false,false,true)
+    load(`authors`,id).then(s=>{
+        
+        p.append(ce(`h1`,false,false,s.name,{
+            onclick:function(){
+                edit(`tags`,id,`name`,`text`,s.name,this)
+            }
+        }))
+
+        p.append(ce(`p`,false,false,s.description || `Добавьте описание`,{
+            onclick:function(){
+                edit(`tags`,id,`description`,`textarea`,s.description,this)
+            }
+        }))
+        
+        p.append(deleteButton(`tags`,id,!s.active))
+
+        // p.append(ce('textarea',false,false,false,{
+        //     value: s.html
+        // }))
+
+        // tinymce.init({
+        //     selector: 'textarea',
+        //     plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed linkchecker a11ychecker tinymcespellchecker permanentpen powerpaste advtable advcode editimage advtemplate tableofcontents footnotes mergetags typography inlinecss',
+        //     toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table mergetags | addcomment showcomments | spellcheckdialog a11ycheck typography | align lineheight | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
+        //     tinycomments_mode: 'embedded',
+        //     tinycomments_author: 'Author name',
+        //     mergetags_list: [
+        //       { value: 'First.Name', title: 'First Name' },
+        //       { value: 'Email', title: 'Email' },
+        //     ],
+        //     ai_request: (request, respondWith) => respondWith.string(() => Promise.reject("See docs to implement AI Assistant")),
+        //   });
+
+        // p.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить правки в HTML`,{
+        //     onclick:()=>{
+        //         let html = tinymce.activeEditor.getContent("#html");
+        //         axios.put(`/${host}/admin/authors/${s.id}`,{
+        //             attr: `html`,
+        //             value: html
+        //         }).then(handleSave)
+        //         .catch(handleError)
+        //     }
+        // }))
+    })
+}
 
 
 function showTag(id){
@@ -321,11 +434,87 @@ function initMap(form,lat,lng) {
     marker=marker;
 }
   
+function showShows(){
+    showScreen(`Выпуски`,`shows`,showShowLine,false,[{
+        attr: `played`,
+        name: `По прослушиваниям`
+    }])
+}
+
+function showShow(id){
+    // closeLeft();
+    let c = preparePopupWeb(`shows_${id}`,false,false,true)
+        c.append(ce(`p`,false,false,`${botLink}?start=shows_${id}`))
+    load(`shows`,id).then(s=>{
+        let details = ce(`div`,false,`details`)
+            details.append(ce('span',false,`info`,`создано ${drawDate(s.createdAt._seconds*1000)}`))
+            if(s.updatedAt) details.append(ce('span',false,`info`,`обновлено ${drawDate(s.updatedAt._seconds*1000)}`))
+            details.append(ce('span',false,`info`,`прослушано ${s.played||0}`))
+        c.append(details)
+        
+        c.append(ce(`h1`,false,`editable`,s.name,{
+            onclick:function(){
+                edit(`shows`,id,`name`,`text`,s.name,this)
+            }
+        }))
+
+        c.append(ce(`p`,false,`editable`,s.description || `Добавьте описание`,{
+            onclick:function(){
+                edit(`shows`,id,`description`,`textarea`,s.description,this)
+            }
+        }))
+
+        c.append(ce(`p`,false,false,`ссылка на файл: ${s.url || `не задана`}`,{
+            onclick:function(){
+                edit(`shows`,id,`url`,`text`,s.url||null,this)
+            }
+        }))
+    })
+}
+
+function showProgram(id){
+    closeLeft();
+    let c = preparePopupWeb(`programs_${id}`,false,false,true)
+        c.append(ce(`p`,false,false,`${botLink}?start=programs_${id}`))
+    load(`programs`,id).then(p=>{
+        let details = ce(`div`,false,`details`)
+            details.append(ce('span',false,`info`,`создано ${drawDate(p.createdAt._seconds*1000)}`))
+            if(p.updatedAt) details.append(ce('span',false,`info`,`обновлено ${drawDate(p.updatedAt._seconds*1000)}`))
+            details.append(ce('span',false,`info`,`выпусков ${p.shows||0}`))
+        c.append(details)
+
+        c.append(ce(`h1`,false,`editable`,p.name,{
+            onclick:function(){
+                edit(`programs`,id,`name`,`text`,p.name,this)
+            }
+        }))
+
+        c.append(ce(`p`,false,`editable`,p.description || `Добавьте описание`,{
+            onclick:function(){
+                edit(`programs`,id,`description`,`textarea`,p.description,this)
+            }
+        }))
+
+        let showsContainer = ce(`div`);
+        
+        c.append(showsContainer)
+
+        load(`shows`,false,{program:id}).then(shows=>{
+            shows.forEach(s=>{
+                showsContainer.append(showShowLine(s))
+            })
+        })
+    })
+
+}
+
+
 function showTour(id){
     closeLeft();
     
     let p = preparePopupWeb(`tours_${id}`,false,false,true)
         p.append(ce(`p`,false,false,`${botLink}?start=tour_${id}`))
+    
     load(`tours`,id).then(t=>{
         let details = ce(`div`,false,`details`)
             details.append(ce('span',false,`info`,`создано ${drawDate(t.createdAt._seconds*1000)}`))

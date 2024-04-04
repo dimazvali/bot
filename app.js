@@ -47,8 +47,12 @@ app.use(vhost(`papers.*.*`,require('./routes/papersBot')));
 
 
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
+app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
 app.use('/dimazvali',     require('./routes/dimazvali'));
-// app.use('/',            require('./routes/dimazvali'));
+
+app.use(vhost(`neva.localhost`,require('./routes/neva')))
+app.use(vhost(`neva.*.*`,require('./routes/neva')))
+
 
 app.use('/auditoria',           require('./routes/auditoriaBot'));
 app.use(vhost(`auditoria.*.*`,  require('./routes/auditoriaBot')))

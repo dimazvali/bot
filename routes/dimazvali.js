@@ -92,6 +92,10 @@ let usersTours =                fb.collection(`DIMAZVALIusersTours`);
 let usersLandmarks =            fb.collection(`DIMAZVALIusersLandmarks`);
 let cities =                    fb.collection(`DIMAZVALIcities`);
 
+let authors =                   fb.collection(`NEVAauthors`);
+let programs =                  fb.collection(`NEVAprograms`);
+let shows =                     fb.collection(`NEVAshows`);
+
 let savedLandmarks =    {};
 let savedSteps =        {};
 let savedUsers =        {};
@@ -109,11 +113,21 @@ toursSteps.get().then(col=>{
     })
 })
 
-
-
-
-
 const datatypes = {
+    shows:{
+        col: shows,
+        newDoc: newEntity,
+        extras: [`program`] 
+    },
+    programs:{
+        col: programs,
+        newDoc: newEntity,
+        extras: [`author`]
+    },
+    authors:{
+        col: authors,
+        newDoc: newEntity
+    },
     cities: {
         col: cities,
         newDoc: newCity
@@ -559,6 +573,27 @@ router.post(`/auth`,(req,res)=>{
 })
 
 
+router.all(`/api/:method/:id`,(req,res)=>{
+    switch(req.params.method){
+        case `showstarted`:{
+            return shows
+                .doc(req.params.id)
+                .update({
+                    played: FieldValue.increment(1)
+                })
+                .then(()=>{
+                    res.sendStatus(200)
+                })
+                .catch(err=>{
+                    res.status(400).send(err.message)
+                })
+        }
+        default:{
+            res.sendStatus(404)
+        }
+    }
+})
+
 router.all(`/admin/:method/:id`,(req,res)=>{
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
@@ -583,6 +618,10 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                             res.json(handleQuery(col,true))
                         })
                 }
+
+                
+
+                
 
                 default:{
                     
@@ -616,6 +655,13 @@ router.all(`/admin/:method`,(req,res)=>{
             if(!admin.admin) return res.sendStatus(403)
 
             switch(req.params.method){
+                
+                case `shows`:{
+                    let q = shows;
+                    if(req.query.program) q = q.where(`program`,'==',req.query.program)
+                    return q.get().then(col=>res.json(handleQuery(col,true)))
+                }
+
                 case `usersLandMarks`:{
                     if(req.method == `GET`)     return usersLandmarks.where(`landmark`,'==',req.query.landmark).get().then(col=>res.json(handleQuery(col,true))) 
                 }
@@ -626,7 +672,7 @@ router.all(`/admin/:method`,(req,res)=>{
                 default:{
                     if(!datatypes[req.params.method])  return res.sendStatus(404)
                     if(req.method == `GET`)     return datatypes[req.params.method].col.get().then(col=>res.json(handleQuery(col,true))) 
-                    if(req.method == `POST`)    return datatypes[req.params.method].newDoc(req,res,admin)
+                    if(req.method == `POST`)    return datatypes[req.params.method].newDoc(req,res,admin,datatypes[req.params.method].extras)
                     return res.sendStatus(404)
                 }
             }
@@ -681,8 +727,33 @@ function newCity(req,res,admin){
             })
         })
 
-    })
+    })   
+}
+
+function newEntity(req,res,admin,extra){
+    if(!req.body.name) return res.status(400).send(`no name`)
     
+    let o = {
+        createdAt:      new Date(),
+        createdBy:      +admin.id,
+        active:         true,
+        description:    req.body.description || null,
+        name:           req.body.name || null,
+        pic:            req.body.pic || null,
+    }
+
+    if(extra) extra.forEach(t=>{
+        o[t] = req.body[t] ||null
+    })
+
+    datatypes[req.params.method].col.add(o).then(rec=>{
+        res.redirect(`/${host}/web?page=${req.params.method}_${rec.id}`)
+        log({
+            admin:      +admin.id,
+            [req.params.method]:      rec.id,
+            text:       `${uname(admin,admin.id)} создает ${req.params.method} ${req.body.name}`
+        })
+    })
 }
 
 function newTour(req,res,admin){
@@ -1035,6 +1106,42 @@ router.get(`/`,(req,res)=>{
 })
 
 
+router.get(`/neva`,(req,res)=>{
+    programs
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+            res.render(`${host}/neva`,{
+                programs: handleQuery(col,false,true)
+            })
+        })
+})
+
+router.get(`/neva/:program`,(req,res)=>{
+    programs
+        .doc(req.params.program)
+        .get()
+        .then(p=>{
+            
+            if(!p.exists) return res.sendStatus(404)
+            p = handleDoc(p) 
+            shows
+                .where(`program`,'==',req.params.program)
+                .where(`active`,'==',true)
+                .get()
+                .then(col=>{
+                    res.render(`${host}/program`,{
+                        name: `${p.name} | Радио Нева FM | dimazvali.com`,
+                        description: `Временный архив передачи ${p.name}.`,
+                        program: p,
+                        shows: handleQuery(col,true)
+                    })
+                })
+        })
+    
+})
+
+
 router.get(`/:page`,(req,res)=>{
     let ref = pages.doc(req.params.page);
     ref.get().then(p=>{
@@ -1054,3 +1161,25 @@ router.get(`/:page`,(req,res)=>{
 
 
 module.exports = router;
+
+
+
+let kg = []
+
+kg.reverse().forEach((s,i)=>{
+    setTimeout(()=>{
+        shows.add({
+            active:     true,
+            createdAt:  new Date(),
+            name:       s.name,
+            url:        s.url,
+            program:    `WKQMnoH6x1gqXOEFDtuA`,
+            description: null, 
+        }).then(s=>{
+            programs.doc(`WKQMnoH6x1gqXOEFDtuA`).update({
+                shows: FieldValue.increment(1)
+            })
+            devlog(s.id)
+        })
+    },i*300)
+})

@@ -1,0 +1,12 @@
+extends site
+
+block content
+    h1!=name
+    for p in programs
+        .sDivided
+            h2
+                a(href!=`${p.id}`)!=p.name
+            if(p.description)
+                p!=p.description
+            if(p.authorName)
+                p!=p.authorName

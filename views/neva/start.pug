@@ -1,0 +1,8 @@
+extends site 
+block content
+    if(pic)
+        img.cover(src!=pic)
+    h1 Добрый день, господа
+    p!=about
+    for p in pages
+        include pageLine
