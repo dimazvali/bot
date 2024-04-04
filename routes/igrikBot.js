@@ -617,7 +617,7 @@ function getIikoToken() {
     }).then(s => {
         return s.data.token
     }).catch(err => {
-        throw new Error(err)
+        return false
     })
 }
 

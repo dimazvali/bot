@@ -747,7 +747,6 @@ router.all(`/admin/:method`, (req, res) => {
                             })
                         }
                     }
-                    
                 }
                 case `coworking`:{
                     return coworking
@@ -3316,6 +3315,8 @@ if(process.env.develop){
     router.get('/test', (req, res) => {
         
         sendTestApp(req.query.user||common.dimazvali)
+
+        // rcCheckBefore()
 
         res.sendStatus(200)
     })
@@ -7605,7 +7606,8 @@ router.post('/hook', (req, res) => {
     if (req.body.callback_query) {
 
     
-        getUser(req.body.callback_query.from.id).then(userData => {
+        m.getUser(req.body.callback_query.from.id,udb).then(userData => {
+            
             let userRef = udb.doc(userData.id.toString())
             
             let userLogName = uname(userData,userData.id)
@@ -10476,7 +10478,7 @@ function rcCheckBefore(){
                 devlog(`${uname(user,user.id)}: ${issues.length? issues.join(', ') :`готов`}`)
 
                 setTimeout(()=>{
-                    let txt = `Привет! Первый random coffee польется через пару часов. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас». ${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
+                    let txt = `Привет! Через пару часов мы запустим очередную серию встреч в формате random coffee. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас».${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
                     
                     let keyBoard = [[{
                         text:           `Пас`,
