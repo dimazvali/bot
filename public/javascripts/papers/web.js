@@ -1,12 +1,16 @@
 
 let userFilters = {};
+// let userFilters = {};
 
 const fsdb = `https://console.firebase.google.com/u/0/project/paperstuff-620fa/firestore/data`
 
 let host = `paper`
 
+let buttonStyle = [`dark`,`dateButton`]
+
 let users = {};
 let downLoadedUsers = {}
+let messagesFilter = {}
 
 let mc = document.querySelector(`#main`)
 
@@ -1088,6 +1092,7 @@ function showHall(h,id){
 }
 
 function showCoworkingLine(r,butHall,butUser){
+    
     let c = ce(`div`,false,`sDivided`,false,{
         dataset:{active:r.active}
     })
@@ -1231,20 +1236,27 @@ function addComment(c, id) {
 
 
 
-function filterUsers(role, container, button,counter) {
+function filterUsers(role, container, button,counter,selector,fo) {
+    let userFilters = fo ||userFilters
     let c = button.parentNode;
+        
+        let toBeOff = button.classList.value.indexOf('active') >- 1
+
         c.querySelectorAll('button').forEach(b => {
             b.classList.remove('active')
             b.classList.add('passive')
             userFilters[b.dataset.filter] = false;
         })
 
-        if(role) userFilters[role] = true
+        if(role) userFilters[role] = !toBeOff
+
+    if(!toBeOff){
+        button.classList.add('active')
+        button.classList.remove('passive')
+    }
         
-    button.classList.add('active')
-    button.classList.remove('passive')
     let cnt = 0
-    container.querySelectorAll('.userLine').forEach(user => {
+    container.querySelectorAll(selector||'.userLine').forEach(user => {
         // if (!role) return user.classList.remove('hidden')
         
         let passed = true;
@@ -1265,7 +1277,7 @@ function filterUsers(role, container, button,counter) {
         }
     })
 
-    counter.innerHTML = `Всего: ${cnt}`
+    if(counter) counter.innerHTML = `Всего: ${cnt}`
 }
 
 
@@ -2047,7 +2059,7 @@ function rcLine(couple){
 
 function showUsers() {
     
-    userFilters = {};
+    
 
     closeLeft()
     // mc.innerHTML = '<h1>Загружаем...</h1>'
@@ -2110,7 +2122,7 @@ function showUsers() {
                 fc.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
                     dataset:{filter:type},
                     onclick: function () {
-                        filterUsers(type, c, this, counter)
+                        filterUsers(type, c, this, counter,false,userFilters)
                     }
                 }))
             })
@@ -2136,7 +2148,7 @@ function showUsers() {
                     occup.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
                         dataset:{filter:type},
                         onclick: function () {
-                            filterUsers(type, c, this,counter)
+                            filterUsers(type, c, this,counter,false,userFilters)
                         }
                     }))
                 })
@@ -2161,7 +2173,7 @@ function showUsers() {
                     occup.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
                         dataset:{filter:type},
                         onclick: function () {
-                            filterUsers(type, c, this,counter)
+                            filterUsers(type, c, this,counter,false,userFilters)
                         }
                     }))
                 })
@@ -2484,14 +2496,15 @@ function occupyMR(date,time,button){
 }
 
 function messageLine(m){
+    
     m.active = m.hasOwnProperty(`deleted`) ? false : true
     
-    let c = listContainer(m,true,{
-        // edited: m.edited,
-        // deleted: m.deleted
-    },{
-        reply:  m.isReply,
-        user:   m.user
+    let c = listContainer(m,true,false,{
+        isReply:        m.isReply,
+        isIncoming:     !m.isReply,
+        user:           m.user,
+        reply:          m.isReply?true:false,
+        incoming:       !m.isReply?true:false,
     })
 
     if(!m.active) c.classList.remove(`hidden`)
@@ -2557,15 +2570,32 @@ function messageLine(m){
 
 function showMessages(){
     let p = preparePopupWeb(`messages`,false,false,true,false,false,`Сообщения`)
-        
-        
         let c = ce('div')
         
+        // let filters = ce(`div`,false,`flex`)
+        
+        let filterTypes = {
+            reply:    `Исходящие`,
+            incoming:  `Входящие`,
+        }
+
+        let fc = ce('div',false,`flex`)
+        
+        p.append(fc)
+        
+        Object.keys(filterTypes).forEach(type => {
+            fc.append(ce('button', false, [type,`dateButton`,`dark`], filterTypes[type], {
+                dataset:{filter:type},
+                onclick: function () {
+                    filterUsers(type, c, this,false,`.sDivided`,messagesFilter)
+                }
+            }))
+        })
+
         load(`messages`)
             .then(messages=>{
                 messages.forEach(m=>{
-                    c.append(messageLine(m))
-                    
+                    c.append(messageLine(m))            
                 })
             })
         p.append(c)
@@ -2858,7 +2888,8 @@ function showUser(u, id) {
             .get(`/${host}/admin/user?user=${u.id}&data=lections`)
             .then(data => {
                 lecs.append(ce(`h2`, false, false, `Лекции (${data.data.length})`))
-                data.data.forEach(c => {
+                
+                data.data.filter(l=>new Date()<new Date(l.date)).forEach(c => {
                     lecs.append(ce('p', false, false, `${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`, {
                         dataset: {
                             active: c.active
@@ -2866,6 +2897,20 @@ function showUser(u, id) {
                         onclick:()=>showTicket(false,c.id)
                     })) 
                 })
+
+                if(data.data.length) lecs.append(ce(`button`,false,buttonStyle,`Показать архив`,{
+                    onclick:function(){
+                        this.remove();
+                        data.data.filter(l=>new Date()>new Date(l.date)).forEach(c => {
+                            lecs.append(ce('p', false, false, `${drawDate(c.createdAt._seconds*1000)}: ${c.className} (${c.status == `used` ? `✔️` : `❌`})`, {
+                                dataset: {
+                                    active: c.active
+                                },
+                                onclick:()=>showTicket(false,c.id)
+                            })) 
+                        })
+                    }
+                }))
             })
 
         let cw = ce('div')

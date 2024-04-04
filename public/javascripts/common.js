@@ -965,7 +965,7 @@ function listContainer(e,detailed,extra,dataset,alerts){
                 c.dataset[key] = e[key]
             })
             if(dataset) Object.keys(dataset).forEach(key=>{
-                c.dataset[key] = e[key]
+                c.dataset[key] = dataset[key]
             })
         c.append(details)
     }

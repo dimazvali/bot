@@ -1014,9 +1014,11 @@ router.all(`/admin/:method`, (req, res) => {
                         }
                         case `POST`:{
                             if(!req.body.name || !req.body.text) return res.sendStatus(400)
+                            
                             let q = udb
                                 .where(`active`,'==',true)
                                 .where(`blocked`,'==',false)
+
                             if(req.body.filter && req.body.filter != 'all'){
                                 q = q.where(req.body.filter,'==',true)
                             }
@@ -2368,6 +2370,9 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         switch (req.method) {
                             case `PUT`:{
                                 return updateEntity(req,res,ref,+admin.id,()=>{
+                                    coworking.doc(req.params.id).update({
+                                        payed: new Date()
+                                    })
                                     coworkingReason(cl.data(),req.body.by)
                                 })
                             }
@@ -3255,24 +3260,6 @@ if(process.env.develop){
 }
 
 
-
-
-// udb.get().then(col=>{
-//     col.docs.forEach((u,i)=>{
-//         setTimeout(function(){
-//             let m = u.data();
-//                 m.intention = 'newUser'
-//                 m.id = u.id
-//             axios.post(sheet,Object.keys(m).map(k=>`${k}=${m[k]}`).join('&'),{headers:{ "Content-Type": "application/x-www-form-urlencoded" }}).then(d=>{
-//                 console.log(d.data)
-//             }).catch(err=>{
-//                 console.log(err.message)
-//             })
-//         },i*2500)
-
-//     })
-// })
-
 function feedBackTimer(){
     classes
         .where(`active`,'==',true)
@@ -3855,12 +3842,7 @@ function bookClass(user, classId, res, id) {
                                                         }, 'pinChatMessage', token)
                                                     })
                                                 }
-                                                let t = Object.keys(d).map(k => `${k}=${d[k]}`).join('&')
-                                                axios.post(sheet, t, {
-                                                    headers: {
-                                                        "Content-Type": "application/x-www-form-urlencoded"
-                                                    }
-                                                })
+                                                
                                                 log({
                                                     text: `${uname(user, user.id)} регистрируется на лекцию ${c.data().name}\n${seatsData}`,
                                                     user: user.id,
@@ -7559,1021 +7541,829 @@ router.post('/hook', (req, res) => {
     }
 
     if (req.body.callback_query) {
-        user = req.body.callback_query.from;
 
-        let inc = req.body.callback_query.data.split('_')
-
-        if (inc[0] == 'unsubscribe') {
-            udb.doc(user.id.toString()).update({
-                noSpam: true
-            }).then(() => {
-                m.sendMessage2({
-                    callback_query_id: req.body.callback_query.id,
-                    show_alert: true,
-                    text: translations.unsubscribeMessage[user.language_code] || translations.unsubscribeMessage.en
-                }, 'answerCallbackQuery', token)
-            }).catch(err => {
-                m.sendMessage2({
-                    callback_query_id: req.body.callback_query.id,
-                    show_alert: true,
-                    text: err.message
-                }, 'answerCallbackQuery', token)
-            })
-        }
-
-        if (inc[0] == 'admin') {
-            switch (inc[1]) {
-                case 'log': {
-                    console.log('обновления подписок', inc[2])
-                    switch (inc[2]) {
-                        case 'unsubscribe': {
-                            isAdmin(user.id.toString()).then(proof => {
-
-                                if (!proof) return m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: `Простите великодушно, но вы же не админ. Как вы вообще получили эту кнопку?..`
-                                }, 'answerCallbackQuery', token)
-
-
-
-                                udb.doc(user.id.toString()).update({
-                                    stopLog: true
+    
+        getUser(req.body.callback_query.from.id).then(userData => {
+            let userRef = udb.doc(userData.id.toString())
+            
+            let userLogName = uname(userData,userData.id)
+    
+            user = req.body.callback_query.from;
+    
+            let inc = req.body.callback_query.data.split('_')
+    
+            if (inc[0] == 'unsubscribe') {
+                userRef.update({
+                    noSpam: true
+                }).then(() => {
+                    m.sendMessage2({
+                        callback_query_id: req.body.callback_query.id,
+                        show_alert: true,
+                        text: translations.unsubscribeMessage[user.language_code] || translations.unsubscribeMessage.en
+                    }, 'answerCallbackQuery', token)
+                    log({
+                        silent: true,
+                        text: `${userLogName} отписывается от новостей`,
+                        user: +userData.id
+                    })
+                }).catch(err => {
+                    m.sendMessage2({
+                        callback_query_id: req.body.callback_query.id,
+                        show_alert: true,
+                        text: err.message
+                    }, 'answerCallbackQuery', token)
+                })
+            }
+    
+            if (inc[0] == 'admin') {
+                switch (inc[1]) {
+                    case 'log': {
+                        switch (inc[2]) {
+                            case 'unsubscribe': {
+                                isAdmin(user.id.toString()).then(proof => {
+    
+                                    if (!proof) return m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        show_alert: true,
+                                        text: `Простите великодушно, но вы же не админ. Как вы вообще получили эту кнопку?..`
+                                    }, 'answerCallbackQuery', token)
+    
+    
+    
+                                    userRef.update({
+                                        stopLog: true
+                                    }).then(() => {
+    
+                                        log({
+                                            silent: true,
+                                            text: `${userLogName} отписывается от рассылки логов`,
+                                            user: +userData.id
+                                        })
+    
+                                        m.sendMessage2({
+                                            callback_query_id: req.body.callback_query.id,
+                                            show_alert: true,
+                                            text: `Вы отписаны от фоновых уведомлений.\nЧтобы вернуть их, нажмите на ту же кнопку.`
+                                        }, 'answerCallbackQuery', token).then(() => {
+                                            m.sendMessage2({
+                                                chat_id: user.id,
+                                                message_id: req.body.callback_query.message.message_id,
+                                                reply_markup: {
+                                                    inline_keyboard: [
+                                                        [{
+                                                            text: 'Подписаться на обновления',
+                                                            callback_data: `admin_log_subscribe`
+                                                        }]
+                                                    ]
+                                                }
+                                            }, 'editMessageReplyMarkup', token)
+                                        })
+    
+                                    }).catch(err => {
+                                        console.log(err)
+                                    })
+                                }).catch(err => {
+                                    console.log(err)
+                                })
+                                break;
+                            }
+                            case 'subscribe': {
+                                isAdmin(user.id.toString()).then(proof => {
+                                    if (!proof) return m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        show_alert: true,
+                                        text: `Простите великодушно, но вы же не админ. Как вы вообще получили эту кнопку?..`
+                                    }, 'answerCallbackQuery', token)
+                                    
+                                    userRef.update({
+                                        stopLog: false
+                                    }).then(() => {
+                                        
+                                        log({
+                                            silent: true,
+                                            text: `${userLogName} подписывается на рассылку логов`,
+                                            user: +userData.id
+                                        })
+    
+                                        return m.sendMessage2({
+                                            callback_query_id: req.body.callback_query.id,
+                                            show_alert: true,
+                                            text: `Вы подписались на  фоновые уведомления.\nЧтобы отключить их, нажмите на ту же кнопку.`
+                                        }, 'answerCallbackQuery', token).then(() => {
+                                            m.sendMessage2({
+                                                chat_id: user.id,
+                                                message_id: req.body.callback_query.message.message_id,
+                                                reply_markup: {
+                                                    inline_keyboard: [
+                                                        [{
+                                                            text: 'Отписаться от обновлений',
+                                                            callback_data: `admin_log_unsubscribe`
+                                                        }]
+                                                    ]
+                                                }
+                                            }, 'editMessageReplyMarkup', token)
+                                        })
+    
+                                    })
+                                })
+                                break;
+                            }
+    
+                            default:
+                                break;
+    
+                        }
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
+            }
+    
+            if (inc[0] == 'user') {
+                isAdmin(user.id.toString()).then(proof => {
+                    if (!proof) return m.sendMessage2({
+                        callback_query_id: req.body.callback_query.id,
+                        show_alert: true,
+                        text: `Простите великодушно, но вы же не админ. Как вы вообще получили эту кнопку?..`
+                    }, 'answerCallbackQuery', token)
+    
+                    udb.doc(inc[2]).get().then(userdata => {
+    
+                        userdata = userdata.data();
+    
+                        switch (inc[1]) {
+                            case 'block': {
+                                udb.doc(inc[2]).update({
+                                    blocked:    true,
+                                    updatedAt:  new Date(),
+                                    updatedBy:  +user.id
                                 }).then(() => {
-
+    
+                                    log({
+                                        text:   `${userLogName} заблокировал пользователя ${uname(userdata,inc[2])}`,
+                                        user:   +inc[2],
+                                        admin:  user.id
+                                    })
+    
                                     m.sendMessage2({
                                         callback_query_id: req.body.callback_query.id,
                                         show_alert: true,
-                                        text: `Вы отписаны от фоновых уведомлений.\nЧтобы вернуть их, нажмите на ту же кнопку.`
-                                    }, 'answerCallbackQuery', token).then(() => {
-                                        m.sendMessage2({
-                                            chat_id: user.id,
-                                            message_id: req.body.callback_query.message.message_id,
-                                            reply_markup: {
-                                                inline_keyboard: [
-                                                    [{
-                                                        text: 'Подписаться на обновления',
-                                                        callback_data: `admin_log_subscribe`
-                                                    }]
-                                                ]
-                                            }
-                                        }, 'editMessageReplyMarkup', token)
+                                        text: `Пользователь заблокирован.`
+                                    }, 'answerCallbackQuery', token)
+                                })
+                                break;
+                            }
+    
+                            case 'fellow': {
+                                udb.doc(inc[2]).update({
+                                    fellow: true,
+                                    updatedAt: new Date(),
+                                    updatedBy: +user.id
+                                }).then(() => {
+    
+    
+                                    log({
+                                        text: `${userLogName} сделал пользователя ${uname(userdata,inc[2])} участником fellows`,
+                                        user: +inc[2],
+                                        admin: user.id
                                     })
-
-                                }).catch(err => {
-                                    console.log(err)
+    
+    
+                                    m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        show_alert: true,
+                                        text: `Пользователь отмечен как участник fellows.`
+                                    }, 'answerCallbackQuery', token)
+    
+                                    m.sendMessage2({
+                                        chat_id: inc[2],
+                                        text: translations.fellow[userdata.language_code] || translations.fellow.en
+                                    }, false, token, messages)
+                                })
+                                break;
+                            }
+    
+                            case 'insider': {
+                                udb.doc(inc[2]).update({
+                                    insider: true,
+                                    updatedAt: new Date(),
+                                    updatedBy: +user.id
+                                }).then(() => {
+    
+                                    log({
+                                        text: `Админ @${user.username} сделал пользователя ${uname(userdata,inc[2])} сотрудником`,
+                                        user: +inc[2],
+                                        admin: user.id
+                                    })
+    
+                                    m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        show_alert: true,
+                                        text: `Пользователь отмечен как сотрудник.`
+                                    }, 'answerCallbackQuery', token)
+                                    m.sendMessage2({
+                                        chat_id: inc[2],
+                                        text: translations.congrats[userdata.language_code] || translations.congrats.en
+                                    }, false, token, messages)
+                                })
+                                break;
+                            }
+                            case 'admin': {
+                                udb.doc(inc[2]).update({
+                                    admin: true,
+                                    updatedAt: new Date(),
+                                    updatedBy: +user.id
+                                }).then(() => {
+    
+                                    log({
+                                        text: `${userLogName} сделал пользователя ${uname(userdata,inc[2])} равным себе`,
+                                        user: +inc[2],
+                                        admin: user.id
+                                    })
+    
+                                    m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        show_alert: true,
+                                        text: `Пользователь отмечен как админ.`
+                                    }, 'answerCallbackQuery', token)
+    
+                                    m.sendMessage2({
+                                        chat_id: inc[2],
+                                        text: 'Поздравляем, вы зарегистрированы как админ приложения'
+                                    }, false, token, messages)
+    
+                                })
+                                break;
+                            }
+                            case 'bonus': {
+                                udb.doc(inc[2]).update({
+                                    bonus: false,
+                                    updatedAt: new Date(),
+                                    updatedBy: +user.id
+                                }).then(() => {
+                                    log({
+                                        text: `Админ @${user.username} снимает бонус коворкинга с пользователя ${uname(userdata,inc[2])} равным себе`,
+                                        user: +inc[2],
+                                        admin: user.id
+                                    })
+                                })
+                                break;
+                            }
+                            default:
+                                return m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: translations.nosais[req.body.callback_query.from.language_code] || translations.nosais.en
+                                }, 'answerCallbackQuery', token)
+                        }
+                    })
+    
+    
+                })
+            }
+    
+            if (inc[0] == 'mr') {
+    
+    
+                switch (inc[1]) {
+    
+                    case 'repeat': {
+                        sendMeetingRoom(user)
+                    }
+                    case 'date': {
+    
+                        return mra
+                            .where('active', '==', true)
+                            .where('date', '==', inc[2])
+                            .get()
+                            .then(data => {
+    
+                                tt = common.handleQuery(data).sort((a, b) => b.time - a.time)
+                                let shift = 0;
+                                let start = new Date().setHours(10, 0, 0);
+                                let ts = [];
+    
+    
+                                while (shift < 10) {
+                                    let h = [];
+                                    let time = new Date(+start + shift * 60 * 60 * 1000).toTimeString().split(' ')[0].split(':').slice(0, 2).join(':')
+                                    let time2 = new Date(+start + shift * 60 * 60 * 1000 + 30 * 60 * 1000).toTimeString().split(' ')[0].split(':').slice(0, 2).join(':')
+    
+                                    h.push({
+                                        text: `${tt.filter(s=>s.time == time).length ? '❌' : '✔️'} ${time}`,
+                                        callback_data: `mr_book_${inc[2]}_${time}`
+                                    }, {
+                                        text: `${tt.filter(s=>s.time == time2).length ? '❌' : '✔️'} ${time2}`,
+                                        callback_data: `mr_book_${inc[2]}_${time2}`
+                                    })
+    
+                                    ts.push(h)
+    
+                                    shift++
+                                }
+    
+    
+    
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    text: (translations.dateSelected(inc[2])[user.language_code] || translations.dateSelected(inc[2]).en) + '\n' + (translations.chooseTime[user.language_code] || translations.chooseTime.en),
+                                    message_id: req.body.callback_query.message.message_id
+                                }, 'editMessageText', token).then(() => {
+                                    m.sendMessage2({
+                                        chat_id: user.id,
+                                        message_id: req.body.callback_query.message.message_id,
+                                        reply_markup: {
+                                            inline_keyboard: ts
+                                        }
+                                    }, 'editMessageReplyMarkup', token)
                                 })
                             }).catch(err => {
                                 console.log(err)
                             })
-                            break;
-                        }
-                        case 'subscribe': {
-                            isAdmin(user.id.toString()).then(proof => {
-                                if (!proof) return m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: `Простите великодушно, но вы же не админ. Как вы вообще получили эту кнопку?..`
-                                }, 'answerCallbackQuery', token)
-                                udb.doc(user.id.toString()).update({
-                                    stopLog: false
-                                }).then(() => {
-                                    return m.sendMessage2({
-                                        callback_query_id: req.body.callback_query.id,
-                                        show_alert: true,
-                                        text: `Вы подписались на  фоновые уведомления.\nЧтобы отключить их, нажмите на ту же кнопку.`
-                                    }, 'answerCallbackQuery', token).then(() => {
-                                        m.sendMessage2({
-                                            chat_id: user.id,
-                                            message_id: req.body.callback_query.message.message_id,
-                                            reply_markup: {
-                                                inline_keyboard: [
-                                                    [{
-                                                        text: 'Отписаться от обновлений',
-                                                        callback_data: `admin_log_unsubscribe`
-                                                    }]
-                                                ]
-                                            }
-                                        }, 'editMessageReplyMarkup', token)
-                                    })
-
-                                })
-                            })
-                            break;
-                        }
-
-                        default:
-                            break;
-
+    
+                        break;
                     }
-                    break;
+                    case 'book': {
+    
+                        return bookMR(inc[2], inc[3], user.id, req.body.callback_query)
+    
+                    }
+                    case 'unbook': {
+                        return unbookMR(inc[2], user.id, req.body.callback_query)
+                    }
+                    default:
+                        break;
                 }
-                default: {
-                    break;
-                }
+    
             }
-        }
-
-        if (inc[0] == 'user') {
-            isAdmin(user.id.toString()).then(proof => {
-                if (!proof) return m.sendMessage2({
-                    callback_query_id: req.body.callback_query.id,
-                    show_alert: true,
-                    text: `Простите великодушно, но вы же не админ. Как вы вообще получили эту кнопку?..`
-                }, 'answerCallbackQuery', token)
-
-                udb.doc(inc[2]).get().then(userdata => {
-
-                    userdata = userdata.data();
-
-                    switch (inc[1]) {
-                        case 'block': {
-                            udb.doc(inc[2]).update({
-                                blocked: true,
-                                updatedAt: new Date(),
-                                updatedBy: +user.id
-                            }).then(() => {
-
-                                udb.doc(inc[2]).get().then(u => {
-                                    let m = u.data()
-                                    m.intention = `updateUser`;
-                                    m.id = u.id
-                                    axios.post(sheet, Object.keys(m).map(k => `${k}=${m[k]}`).join('&'), {
-                                        headers: {
-                                            "Content-Type": "application/x-www-form-urlencoded"
-                                        }
-                                    })
-                                })
-
-                                log({
-                                    text: `Админ @${user.username} заблокировал пользователя ${uname(userdata,inc[2])}`,
-                                    user: +inc[2],
-                                    admin: user.id
-                                })
-
-                                m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: `Пользователь заблокирован.`
-                                }, 'answerCallbackQuery', token)
-                            })
-                            break;
-                        }
-
-                        case 'fellow': {
-                            udb.doc(inc[2]).update({
-                                fellow: true,
-                                updatedAt: new Date(),
-                                updatedBy: +user.id
-                            }).then(() => {
-
-
-                                log({
-                                    text: `Админ @${user.username} сделал пользователя ${uname(userdata,inc[2])} участником fellows`,
-                                    user: +inc[2],
-                                    admin: user.id
-                                })
-
-                                udb.doc(inc[2]).get().then(u => {
-                                    let m = u.data()
-                                    m.intention = `updateUser`;
-                                    m.id = u.id
-                                    axios.post(sheet, Object.keys(m).map(k => `${k}=${m[k]}`).join('&'), {
-                                        headers: {
-                                            "Content-Type": "application/x-www-form-urlencoded"
-                                        }
-                                    })
-                                })
-
-                                m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: `Пользователь отмечен как участник fellows.`
-                                }, 'answerCallbackQuery', token)
-
-                                m.sendMessage2({
-                                    chat_id: inc[2],
-                                    text: translations.fellow[userdata.language_code] || translations.fellow.en
-                                }, false, token, messages)
-                            })
-                            break;
-                        }
-
-                        case 'insider': {
-                            udb.doc(inc[2]).update({
-                                insider: true,
-                                updatedAt: new Date(),
-                                updatedBy: +user.id
-                            }).then(() => {
-
-
-                                log({
-                                    text: `Админ @${user.username} сделал пользователя ${uname(userdata,inc[2])} сотрудником`,
-                                    user: +inc[2],
-                                    admin: user.id
-                                })
-
-                                udb.doc(inc[2]).get().then(u => {
-                                    let m = u.data()
-                                    m.intention = `updateUser`;
-                                    m.id = u.id
-                                    axios.post(sheet, Object.keys(m).map(k => `${k}=${m[k]}`).join('&'), {
-                                        headers: {
-                                            "Content-Type": "application/x-www-form-urlencoded"
-                                        }
-                                    })
-                                })
-
-                                m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: `Пользователь отмечен как сотрудник.`
-                                }, 'answerCallbackQuery', token)
-                                m.sendMessage2({
-                                    chat_id: inc[2],
-                                    text: translations.congrats[userdata.language_code] || translations.congrats.en
-                                }, false, token, messages)
-                            })
-                            break;
-                        }
-                        case 'admin': {
-                            udb.doc(inc[2]).update({
-                                admin: true,
-                                updatedAt: new Date(),
-                                updatedBy: +user.id
-                            }).then(() => {
-
-                                log({
-                                    text: `Админ @${user.username} сделал пользователя ${uname(userdata,inc[2])} равным себе`,
-                                    user: +inc[2],
-                                    admin: user.id
-                                })
-
-                                udb.doc(inc[2]).get().then(u => {
-                                    let m = u.data()
-                                    m.intention = `updateUser`;
-                                    m.id = u.id
-                                    axios.post(sheet, Object.keys(m).map(k => `${k}=${m[k]}`).join('&'), {
-                                        headers: {
-                                            "Content-Type": "application/x-www-form-urlencoded"
-                                        }
-                                    })
-                                })
-
-                                m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: `Пользователь отмечен как админ.`
-                                }, 'answerCallbackQuery', token)
-
-                                m.sendMessage2({
-                                    chat_id: inc[2],
-                                    text: 'Поздравляем, вы зарегистрированы как админ приложения'
-                                }, false, token, messages)
-
-                            })
-                            break;
-                        }
-                        case 'bonus': {
-                            udb.doc(inc[2]).update({
-                                bonus: false,
-                                updatedAt: new Date(),
-                                updatedBy: +user.id
-                            }).then(() => {
-                                log({
-                                    text: `Админ @${user.username} снимает бонус коворкинга с пользователя ${uname(userdata,inc[2])} равным себе`,
-                                    user: +inc[2],
-                                    admin: user.id
-                                })
-                            })
-                            break;
-                        }
-                        default:
-                            return m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: translations.nosais[req.body.callback_query.from.language_code] || translations.nosais.en
-                            }, 'answerCallbackQuery', token)
-                    }
-                })
-
-
-            })
-        }
-
-        if (inc[0] == 'mr') {
-
-
-            switch (inc[1]) {
-
-                case 'repeat': {
-                    sendMeetingRoom(user)
-                }
-                case 'date': {
-
-                    return mra
+    
+            if (inc[0] == 'coworking') {
+                halls.doc(inc[1]).get().then(h => {
+                    h = h.data()
+                    coworking
+                        .where('hall', '==', inc[1])
                         .where('active', '==', true)
-                        .where('date', '==', inc[2])
+                        .where('date', '>=', isoDate())
                         .get()
-                        .then(data => {
-
-                            tt = common.handleQuery(data).sort((a, b) => b.time - a.time)
-                            let shift = 0;
-                            let start = new Date().setHours(10, 0, 0);
-                            let ts = [];
-
-
-                            while (shift < 10) {
-                                let h = [];
-                                let time = new Date(+start + shift * 60 * 60 * 1000).toTimeString().split(' ')[0].split(':').slice(0, 2).join(':')
-                                let time2 = new Date(+start + shift * 60 * 60 * 1000 + 30 * 60 * 1000).toTimeString().split(' ')[0].split(':').slice(0, 2).join(':')
-
-                                h.push({
-                                    text: `${tt.filter(s=>s.time == time).length ? '❌' : '✔️'} ${time}`,
-                                    callback_data: `mr_book_${inc[2]}_${time}`
-                                }, {
-                                    text: `${tt.filter(s=>s.time == time2).length ? '❌' : '✔️'} ${time2}`,
-                                    callback_data: `mr_book_${inc[2]}_${time2}`
-                                })
-
-                                ts.push(h)
-
+                        .then(reservations => {
+    
+                            reservations = common.handleQuery(reservations);
+    
+                            let inline_keyboard = []
+                            let shift = 0
+    
+                            while (shift < 8) {
+    
+                                let date = new Date(+new Date() + shift * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                                inline_keyboard.push([{
+                                    text: `${date}:  ${h.capacity - reservations.filter(r=> r.date == date).length} ${translations.seats[user.language_code] || translations.seats.en}`,
+                                    callback_data: `ca_set_${inc[1]}_${date.toString()}`
+                                }])
                                 shift++
                             }
-
-
-
+    
+    
                             m.sendMessage2({
                                 chat_id: user.id,
-                                text: (translations.dateSelected(inc[2])[user.language_code] || translations.dateSelected(inc[2]).en) + '\n' + (translations.chooseTime[user.language_code] || translations.chooseTime.en),
+                                text: translations.chooseDate[user.language_code] || translations.chooseDate.en,
                                 message_id: req.body.callback_query.message.message_id
                             }, 'editMessageText', token).then(() => {
                                 m.sendMessage2({
                                     chat_id: user.id,
                                     message_id: req.body.callback_query.message.message_id,
                                     reply_markup: {
-                                        inline_keyboard: ts
+                                        inline_keyboard: inline_keyboard
                                     }
                                 }, 'editMessageReplyMarkup', token)
                             })
+    
                         }).catch(err => {
                             console.log(err)
                         })
-
-                    break;
-                }
-                case 'book': {
-
-                    return bookMR(inc[2], inc[3], user.id, req.body.callback_query)
-                    // return mra
-                    //     .where('date', '==', inc[2])
-                    //     .where('time', '==', inc[3])
-                    //     .where('active', '==', true)
-                    //     .get()
-                    //     .then(col => {
-                    //         if (col.docs.length) {
-                    //             m.sendMessage2({
-                    //                 callback_query_id: req.body.callback_query.id,
-                    //                 show_alert: true,
-                    //                 text: translations.noSeatsLeft[user.language_code] || translations.noSeatsLeft.en
-                    //             }, 'answerCallbackQuery', token)
-                    //         } else {
-                    //             m.sendMessage2({
-                    //                 callback_query_id: req.body.callback_query.id,
-                    //                 text: translations.onIt[user.language_code] || translations.noSeatsLeft.en
-                    //             }, 'answerCallbackQuery', token)
-                    //             mra.add({
-                    //                 user: user.id,
-                    //                 date: inc[2],
-                    //                 time: inc[3],
-                    //                 active: true,
-                    //             }).then(rec => {
-
-                    //                 log({
-                    //                     text: `${user.username} забронировал место в переговорке на ${inc[3]} ${inc[2]}`,
-                    //                     user: user.id,
-                    //                 })
-
-                    //                 m.sendMessage2({
-                    //                     chat_id: user.id,
-                    //                     text: `${(translations.dateSelected(inc[2])[user.language_code] || translations.dateSelected(inc[2]).en)}\n${(translations.timeSelected(inc[3])[user.language_code] || translations.timeSelected(inc[3]).en)}\n${translations.coworkingBookingConfirmed[user.language_code] || translations.coworkingBookingConfirmed.en}`,
-                    //                     message_id: req.body.callback_query.message.message_id
-                    //                 }, 'editMessageText', token).then(() => {
-                    //                     m.sendMessage2({
-                    //                         chat_id: user.id,
-                    //                         message_id: req.body.callback_query.message.message_id,
-                    //                         reply_markup: {
-                    //                             inline_keyboard: [
-                    //                                 [{
-                    //                                     text: translations.coworkingBookingCancel[user.language_code] || translations.coworkingBookingCancel.en,
-                    //                                     callback_data: `mr_unbook_${rec.id}`
-                    //                                 }]
-                    //                             ]
-                    //                         }
-                    //                     }, 'editMessageReplyMarkup', token)
-                    //                 })
-                    //             })
-                    //         }
-                    //     })
-                    break;
-                }
-                case 'unbook': {
-                    return unbookMR(inc[2], user.id, req.body.callback_query)
-                    break;
-                }
-                default:
-                    break;
+                })
+    
             }
-
-        }
-
-        if (inc[0] == 'coworking') {
-            halls.doc(inc[1]).get().then(h => {
-                h = h.data()
-                coworking
-                    .where('hall', '==', inc[1])
-                    .where('active', '==', true)
-                    .where('date', '>=', isoDate())
-                    .get()
-                    .then(reservations => {
-
-                        reservations = common.handleQuery(reservations);
-
-                        let inline_keyboard = []
-                        let shift = 0
-
-                        while (shift < 8) {
-
-                            let date = new Date(+new Date() + shift * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                            inline_keyboard.push([{
-                                text: `${date}:  ${h.capacity - reservations.filter(r=> r.date == date).length} ${translations.seats[user.language_code] || translations.seats.en}`,
-                                callback_data: `ca_set_${inc[1]}_${date.toString()}`
-                            }])
-                            shift++
-                        }
-
-
-                        m.sendMessage2({
-                            chat_id: user.id,
-                            text: translations.chooseDate[user.language_code] || translations.chooseDate.en,
-                            message_id: req.body.callback_query.message.message_id
-                        }, 'editMessageText', token).then(() => {
-                            m.sendMessage2({
-                                chat_id: user.id,
-                                message_id: req.body.callback_query.message.message_id,
-                                reply_markup: {
-                                    inline_keyboard: inline_keyboard
-                                }
-                            }, 'editMessageReplyMarkup', token)
-                        })
-
-                    }).catch(err => {
-                        console.log(err)
-                    })
-            })
-
-        }
-
-        if (inc[0] == 'ca') {
-            switch (inc[1]) {
-                case 'set': {
-                    halls.doc(inc[2]).get().then(hall => {
-                        hall = hall.data()
-                        if (!hall.active) {
-                            return m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: translations.hallNotAvailable[user.language_code] || translations.hallNotAvailable.en
-                            }, 'answerCallbackQuery', token)
-                        } else {
-
-                            roomsBlocked
-                                .where('active', '==', true)
-                                .where('room', '==', inc[2])
-                                .where('date', '==', inc[3])
-                                .get()
-                                .then(col => {
-                                    if (col.docs.length) {
-                                        return m.sendMessage2({
-                                            callback_query_id: req.body.callback_query.id,
-                                            show_alert: true,
-                                            text: translations.roomBlocked[user.language_code] || translations.roomBlocked.en
-                                        }, 'answerCallbackQuery', token)
-                                    } else {
-                                        coworking
-                                            .where('hall', '==', inc[2])
-                                            .where('date', '==', inc[3])
-                                            .where('active', '==', true)
-                                            .get()
-                                            .then(col => {
-
-                                                let users = common.handleQuery(col).map(r => r.user)
-
-                                                if (users.indexOf(user.id) > -1) {
-                                                    return m.sendMessage2({
-                                                        callback_query_id: req.body.callback_query.id,
-                                                        show_alert: true,
-                                                        text: translations.alreadyBooked[user.language_code] || translations.alreadyBooked.en
-                                                    }, 'answerCallbackQuery', token)
-                                                } else if (users.length == hall.capacity) {
-                                                    return m.sendMessage2({
-                                                        callback_query_id: req.body.callback_query.id,
-                                                        show_alert: true,
-                                                        text: translations.noSeatsLeft[user.language_code] || translations.noSeatsLeft.en
-                                                    }, 'answerCallbackQuery', token)
-                                                } else {
-                                                    udb.doc(user.id.toString()).get().then(u => {
-
-                                                        if (u.data().blocked) {
-                                                            return m.sendMessage2({
-                                                                chat_id: user.id,
-                                                                text: translations.youArBanned[user.language_code] || translations.youArBanned.en
-                                                            }, false, token, messages)
-                                                        }
-
-                                                        if (!u.data().occupation) return m.sendMessage2({
-                                                            chat_id: user.id,
-                                                            text: translations.noOccupationProvided[user.language_code] || translations.noOccupationProvided.en
-                                                        }, false, token, messages)
-
-                                                        if (!u.data().email) return m.sendMessage2({
-                                                            chat_id: user.id,
-                                                            text: translations.noEmailProvided[user.language_code] || translations.noEmailProvided.en
-                                                        }, false, token, messages)
-
-                                                        coworking.add({
-                                                            user: +user.id,
-                                                            hall: inc[2],
-                                                            date: inc[3],
-                                                            createdAt: new Date(),
-                                                            active: true,
-                                                            paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
-                                                            payed: false
-                                                        }).then(rec => {
-
-                                                            if (u.data().bonus) {
-                                                                udb.doc(u.id).update({
-                                                                    bonus: false
-                                                                })
-                                                            }
-
-                                                            log({
-                                                                text: `${uname(user,u.id)} бронирует место в коворкинге ${hall.name} на ${inc[3]}`,
-                                                                user: user.id,
-                                                                hall: inc[2]
-                                                            })
-
-                                                            let pl = {
-                                                                active: true,
-                                                                id: rec.id,
-                                                                intention: 'bookCoworking',
-                                                                hall: inc[2],
-                                                                date: inc[3],
-                                                                user: user.id,
-                                                                userName: (user.first_name + ' ' + user.last_name),
-                                                                paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
-                                                                payed: false
-                                                            }
-
-                                                            axios.post(sheet, Object.keys(pl).map(k => `${k}=${pl[k]}`).join('&'), {
-                                                                headers: {
-                                                                    "Content-Type": "application/x-www-form-urlencoded"
-                                                                }
-                                                            })
-
-                                                            m.sendMessage2({
-                                                                chat_id: user.id,
-                                                                text: translations.coworkingBookingDetails(inc[3], hall.name, user.language_code)[user.language_code] || translations.coworkingBookingDetails(inc[3], hall.name, user.language_code).en,
-                                                                message_id: req.body.callback_query.message.message_id
-                                                            }, 'editMessageText', token).then(() => {
-                                                                m.sendMessage2({
-                                                                    chat_id: user.id,
-                                                                    message_id: req.body.callback_query.message.message_id,
-                                                                    reply_markup: {
-                                                                        inline_keyboard: [
-                                                                            [{
-                                                                                text: translations.coworkingBookingCancel[user.language_code] || translations.coworkingBookingCancel.en,
-                                                                                callback_data: `ca_cancel_${rec.id}`
-                                                                            }]
-                                                                        ]
-                                                                    }
-                                                                }, 'editMessageReplyMarkup', token)
-
-                                                                m.sendMessage2({
-                                                                    chat_id: user.id,
-                                                                    photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=coworking`
-                                                                }, 'sendPhoto', token, messages)
-
-                                                            })
-                                                        })
-                                                    })
-                                                }
-                                            })
-                                    }
-                                })
-
-
-                        }
-                    })
-                    break;
-                }
-
-                case 'cancel': {
-                    coworking.doc(inc[2]).get().then(record => {
-
-                        if (!record.exists) {
-                            return m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: translations.noAppointment[user.language_code] || translations.noAppointment.en
-                            }, 'answerCallbackQuery', token)
-                        }
-
-                        record = record.data();
-
-
-                        if (+user.id !== +record.user) {
-                            return m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: translations.unAuthorized[user.language_code] || translations.unAuthorized.en
-                            }, 'answerCallbackQuery', token)
-                        }
-
-                        if (!record.active) {
-                            return m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: translations.alreadyCancelled[user.language_code] || translations.alreadyCancelled.en
-                            }, 'answerCallbackQuery', token)
-                        }
-
-
-
-                        coworking.doc(inc[2]).update({
-                            active: false,
-                            updatedAt: new Date(),
-                            updatedBy: user.id
-                        }).then(() => {
-                            log({
-                                text: `${uname(user,user.id)} отменяет запись в коворкинге на ${record.date}`
-                            })
-
-                            m.sendMessage2({
-                                chat_id: user.id,
-                                text: translations.bookingCancelled[user.language_code] || translations.bookingCancelled.en,
-                                message_id: req.body.callback_query.message.message_id
-                            }, 'editMessageText', token).then(() => {
-                                m.sendMessage2({
-                                    chat_id: user.id,
-                                    message_id: req.body.callback_query.message.message_id,
-                                    reply_markup: {
-                                        inline_keyboard: [
-                                            [{
-                                                text: translations.letsTryAgain[user.language_code] || translations.letsTryAgain.en,
-                                                callback_data: `ca_repeat`
-                                            }]
-                                        ]
-                                    }
-                                }, 'editMessageReplyMarkup', token)
-
-                            })
-
-                        })
-                    })
-                    break
-                }
-
-                case 'repeat': {
-                    checkUser(user.id).then(p => {
-                        if (p) return sendCoworking(user)
-                        sorry(user, `доступе к коворкингу`)
-                    })
-                    break;
-                }
-
-                default:
-                    break;
-            }
-        }
-
-        if (inc[0] == 'unclass') {
-
-            m.sendMessage2({
-                chat_id: user.id,
-                message_id: req.body.callback_query.message.message_id
-            }, 'unpinChatMessage', token)
-
-            unClassUser(inc[1], user,false,false,req.body.callback_query.id)
-            
-            
-        }
-
-        if (inc[0] == 'class') {
-
-            common.devlog(`Бронь места`)
-
-            bookClass(false, inc[1], false, user.id)
-
-
-            // classes.doc(inc[1]).get().then(c=>{
-
-            //     if(!c.exists) return res.sendStatus(404)
-
-
-            // })
-
-        }
-
-        if (inc[0] == 'pay') {
-            userClasses.doc(inc[1]).get().then(appointment => {
-                if (!appointment.exists) {
-                    m.sendMessage2({
-                        chat_id: user.id,
-                        text: translations.noAppointment[user.language_code] || translations.noAppointment.en
-                    }, false, token, messages)
-                } else {
-                    if (appointment.data().payed) {
-                        m.sendMessage2({
-                            chat_id: user.id,
-                            text: translations.alreadyPayed[user.language_code] || translations.alreadyPayed.en
-                        }, false, token, messages)
-                    } else {
-
-                        classes.doc(appointment.data().class).get().then(c => {
-                            m.sendMessage2({
-                                "chat_id": user.id,
-                                "title": translations.paymentTitleClass(c.data())[user.language_code] || translations.paymentTitleClass(c.data()).en,
-                                "description": translations.paymentDesc[user.language_code] || translations.paymentDesc.en,
-                                "payload": inc[1],
-                                "provider_token": paymentToken,
-                                "currency": "GEL",
-                                "prices": [{
-                                    "label": "входной билет",
-                                    "amount": c.data().price * 100
-                                }]
-
-                            }, 'sendInvoice', token)
-                        })
-
-                    }
-                }
-            })
-
-        }
-
-        if(inc[0] == 'feedback'){
-            
-            switch(inc[1]){
-                case 'ticket':{
-                    return userClasses.doc(inc[2]).get().then(c=>{
-                        let ticket = c.data();
-
-                        if(c.exists){
-                            if(ticket.user == user.id){
-                                userClasses.doc(inc[2]).update({
-                                    rate: +inc[3]
-                                })
-                                log({
-                                   text: `${uname(user,user.id)} ставит оценку ${inc[3]} меропориятию ${ticket.className}.`,
-                                   user: +user.id,
-                                   class: ticket.class 
-                                })
-
-                                m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    text: translations.thanks[user.language_code] || translations.thanks.en,
-                                    show_alert: true,
-                                }, 'answerCallbackQuery', token)
-
-                                if(+inc[3]<4){
-                                    m.sendMessage2({
-                                        chat_id: user.id,
-                                        text: translations.whatWasWrong[user.language_code] || translations.whatWasWrong.en
-                                    },false,token,messages)   
-                                }
-
-                                classReScore(ticket.class)
-
-                            } else {
-                                m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    text: translations.notYourTicket[user.language_code] || translations.notYourTicket.en,
-                                    show_alert: true,
-                                }, 'answerCallbackQuery', token)    
-                            }
-                        } else {
-                            m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                text: translations.noTicket[user.language_code] || translations.noTicket.en,
-                                show_alert: true,
-                            }, 'answerCallbackQuery', token)
-                        }
-                    })
-                }
-                case `coworking`:{
-
-                    devlog(`Отзыв к коворку`)
-                    
-                    log({
-                        silent: +inc[2] <4 ? false : true,
-                        text:   `${uname(user,user.id)} ставит коворкингу оценку ${inc[2]}.`,
-                        user:   +user.id,
-                    })
-
-                    udb.doc(user.id.toString()).update({
-                        coworkingRate: +inc[2]
-                    })
-
-                    return m.sendMessage2({
-                        callback_query_id: req.body.callback_query.id,
-                        text: `Спасибо!`,
-                        show_alert: true,
-                    }, 'answerCallbackQuery', token)
-                }
-            }
-        }
-
-        if(inc[0] == `random`){
-            devlog(`это random`)
-            // devlog()
-            return udb.doc(user.id.toString()).get().then(u=>{
-                u = common.handleDoc(u);
-                switch(inc[1]){
-                    case `rate`:{
-                        let ref = randomCoffees.doc(inc[2]); 
-                        
-                        return ref.get().then(couple=>{
-                            couple = common.handleDoc(couple)
-                            if((couple.rate||{}).hasOwnProperty(inc[3])){
+    
+            if (inc[0] == 'ca') {
+                switch (inc[1]) {
+                    case 'set': {
+                        halls.doc(inc[2]).get().then(hall => {
+                            hall = hall.data()
+                            if (!hall.active) {
                                 return m.sendMessage2({
                                     callback_query_id: req.body.callback_query.id,
                                     show_alert: true,
-                                    text: `Извините, вы уже поставили оценку.`
+                                    text: translations.hallNotAvailable[user.language_code] || translations.hallNotAvailable.en
                                 }, 'answerCallbackQuery', token)
                             } else {
-
-                                rcReScore(Number(inc[4]),couple[inc[3]])
-                            
-                                return ref.update({
-                                    [`rate.${inc[3]}`]: Number(inc[4])
-                                }).then(s=>{
-                                    
+    
+                                roomsBlocked
+                                    .where('active', '==', true)
+                                    .where('room', '==', inc[2])
+                                    .where('date', '==', inc[3])
+                                    .get()
+                                    .then(col => {
+                                        if (col.docs.length) {
+                                            return m.sendMessage2({
+                                                callback_query_id: req.body.callback_query.id,
+                                                show_alert: true,
+                                                text: translations.roomBlocked[user.language_code] || translations.roomBlocked.en
+                                            }, 'answerCallbackQuery', token)
+                                        } else {
+                                            coworking
+                                                .where('hall', '==', inc[2])
+                                                .where('date', '==', inc[3])
+                                                .where('active', '==', true)
+                                                .get()
+                                                .then(col => {
+    
+                                                    let users = common.handleQuery(col).map(r => r.user)
+    
+                                                    if (users.indexOf(user.id) > -1) {
+                                                        return m.sendMessage2({
+                                                            callback_query_id: req.body.callback_query.id,
+                                                            show_alert: true,
+                                                            text: translations.alreadyBooked[user.language_code] || translations.alreadyBooked.en
+                                                        }, 'answerCallbackQuery', token)
+                                                    } else if (users.length == hall.capacity) {
+                                                        return m.sendMessage2({
+                                                            callback_query_id: req.body.callback_query.id,
+                                                            show_alert: true,
+                                                            text: translations.noSeatsLeft[user.language_code] || translations.noSeatsLeft.en
+                                                        }, 'answerCallbackQuery', token)
+                                                    } else {
+                                                        userRef.get().then(u => {
+    
+                                                            if (u.data().blocked) {
+                                                                return m.sendMessage2({
+                                                                    chat_id: user.id,
+                                                                    text: translations.youArBanned[user.language_code] || translations.youArBanned.en
+                                                                }, false, token, messages)
+                                                            }
+    
+                                                            if (!u.data().occupation) return m.sendMessage2({
+                                                                chat_id: user.id,
+                                                                text: translations.noOccupationProvided[user.language_code] || translations.noOccupationProvided.en
+                                                            }, false, token, messages)
+    
+                                                            if (!u.data().email) return m.sendMessage2({
+                                                                chat_id: user.id,
+                                                                text: translations.noEmailProvided[user.language_code] || translations.noEmailProvided.en
+                                                            }, false, token, messages)
+    
+                                                            coworking.add({
+                                                                user: +user.id,
+                                                                hall: inc[2],
+                                                                date: inc[3],
+                                                                createdAt: new Date(),
+                                                                active: true,
+                                                                paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
+                                                                payed: false
+                                                            }).then(rec => {
+    
+                                                                if (u.data().bonus) {
+                                                                    udb.doc(u.id).update({
+                                                                        bonus: false
+                                                                    })
+                                                                }
+    
+                                                                log({
+                                                                    text: `${userLogName} бронирует место в коворкинге ${hall.name} на ${inc[3]}`,
+                                                                    user: user.id,
+                                                                    hall: inc[2]
+                                                                })
+    
+                                                                let pl = {
+                                                                    active: true,
+                                                                    id: rec.id,
+                                                                    intention: 'bookCoworking',
+                                                                    hall: inc[2],
+                                                                    date: inc[3],
+                                                                    user: user.id,
+                                                                    userName: (user.first_name + ' ' + user.last_name),
+                                                                    paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
+                                                                    payed: false
+                                                                }
+    
+                                                                axios.post(sheet, Object.keys(pl).map(k => `${k}=${pl[k]}`).join('&'), {
+                                                                    headers: {
+                                                                        "Content-Type": "application/x-www-form-urlencoded"
+                                                                    }
+                                                                })
+    
+                                                                m.sendMessage2({
+                                                                    chat_id: user.id,
+                                                                    text: translations.coworkingBookingDetails(inc[3], hall.name, user.language_code)[user.language_code] || translations.coworkingBookingDetails(inc[3], hall.name, user.language_code).en,
+                                                                    message_id: req.body.callback_query.message.message_id
+                                                                }, 'editMessageText', token).then(() => {
+                                                                    m.sendMessage2({
+                                                                        chat_id: user.id,
+                                                                        message_id: req.body.callback_query.message.message_id,
+                                                                        reply_markup: {
+                                                                            inline_keyboard: [
+                                                                                [{
+                                                                                    text: translations.coworkingBookingCancel[user.language_code] || translations.coworkingBookingCancel.en,
+                                                                                    callback_data: `ca_cancel_${rec.id}`
+                                                                                }]
+                                                                            ]
+                                                                        }
+                                                                    }, 'editMessageReplyMarkup', token)
+    
+                                                                    m.sendMessage2({
+                                                                        chat_id: user.id,
+                                                                        photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=coworking`
+                                                                    }, 'sendPhoto', token, messages)
+    
+                                                                })
+                                                            })
+                                                        })
+                                                    }
+                                                })
+                                        }
+                                    })
+    
+    
+                            }
+                        })
+                        break;
+                    }
+    
+                    case 'cancel': {
+                        coworking.doc(inc[2]).get().then(record => {
+    
+                            if (!record.exists) {
+                                return m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: translations.noAppointment[user.language_code] || translations.noAppointment.en
+                                }, 'answerCallbackQuery', token)
+                            }
+    
+                            record = record.data();
+    
+    
+                            if (+user.id !== +record.user) {
+                                return m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: translations.unAuthorized[user.language_code] || translations.unAuthorized.en
+                                }, 'answerCallbackQuery', token)
+                            }
+    
+                            if (!record.active) {
+                                return m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: translations.alreadyCancelled[user.language_code] || translations.alreadyCancelled.en
+                                }, 'answerCallbackQuery', token)
+                            }
+    
+    
+    
+                            coworking.doc(inc[2]).update({
+                                active: false,
+                                updatedAt: new Date(),
+                                updatedBy: user.id
+                            }).then(() => {
+                                log({
+                                    text: `${userLogName} отменяет запись в коворкинге на ${record.date}`,
+                                    user: +userData.id
+                                })
+    
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    text: translations.bookingCancelled[user.language_code] || translations.bookingCancelled.en,
+                                    message_id: req.body.callback_query.message.message_id
+                                }, 'editMessageText', token).then(() => {
+                                    m.sendMessage2({
+                                        chat_id: user.id,
+                                        message_id: req.body.callback_query.message.message_id,
+                                        reply_markup: {
+                                            inline_keyboard: [
+                                                [{
+                                                    text: translations.letsTryAgain[user.language_code] || translations.letsTryAgain.en,
+                                                    callback_data: `ca_repeat`
+                                                }]
+                                            ]
+                                        }
+                                    }, 'editMessageReplyMarkup', token)
+    
+                                })
+    
+                            })
+                        })
+                        break
+                    }
+    
+                    case 'repeat': {
+                        checkUser(user.id).then(p => {
+                            if (p) return sendCoworking(user)
+                            sorry(user, `доступе к коворкингу`)
+                        })
+                        break;
+                    }
+    
+                    default:
+                        break;
+                }
+            }
+    
+            if (inc[0] == 'unclass') {
+    
+                m.sendMessage2({
+                    chat_id: user.id,
+                    message_id: req.body.callback_query.message.message_id
+                }, 'unpinChatMessage', token)
+    
+                unClassUser(inc[1], user, false, false, req.body.callback_query.id)
+    
+    
+            }
+    
+            if (inc[0] == 'class') {
+                bookClass(false, inc[1], false, user.id)
+            }
+    
+            if (inc[0] == 'pay') {
+                userClasses.doc(inc[1]).get().then(appointment => {
+                    if (!appointment.exists) {
+                        m.sendMessage2({
+                            chat_id: user.id,
+                            text: translations.noAppointment[user.language_code] || translations.noAppointment.en
+                        }, false, token, messages)
+                    } else {
+                        if (appointment.data().payed) {
+                            m.sendMessage2({
+                                chat_id: user.id,
+                                text: translations.alreadyPayed[user.language_code] || translations.alreadyPayed.en
+                            }, false, token, messages)
+                        } else {
+    
+                            classes.doc(appointment.data().class).get().then(c => {
+                                m.sendMessage2({
+                                    "chat_id": user.id,
+                                    "title": translations.paymentTitleClass(c.data())[user.language_code] || translations.paymentTitleClass(c.data()).en,
+                                    "description": translations.paymentDesc[user.language_code] || translations.paymentDesc.en,
+                                    "payload": inc[1],
+                                    "provider_token": paymentToken,
+                                    "currency": "GEL",
+                                    "prices": [{
+                                        "label": "входной билет",
+                                        "amount": c.data().price * 100
+                                    }]
+    
+                                }, 'sendInvoice', token)
+                            })
+    
+                        }
+                    }
+                })
+    
+            }
+    
+            if (inc[0] == 'feedback') {
+    
+                switch (inc[1]) {
+                    case 'ticket': {
+                        return userClasses.doc(inc[2]).get().then(c => {
+                            let ticket = c.data();
+    
+                            if (c.exists) {
+                                if (ticket.user == user.id) {
+                                    userClasses.doc(inc[2]).update({
+                                        rate: +inc[3]
+                                    })
+                                    log({
+                                        text: `${userLogName} ставит оценку ${inc[3]} меропориятию ${ticket.className}.`,
+                                        user: +user.id,
+                                        class: ticket.class
+                                    })
+    
+                                    m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        text: translations.thanks[user.language_code] || translations.thanks.en,
+                                        show_alert: true,
+                                    }, 'answerCallbackQuery', token)
+    
+                                    if (+inc[3] < 4) {
+                                        m.sendMessage2({
+                                            chat_id: user.id,
+                                            text: translations.whatWasWrong[user.language_code] || translations.whatWasWrong.en
+                                        }, false, token, messages)
+                                    }
+    
+                                    classReScore(ticket.class)
+    
+                                } else {
+                                    m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        text: translations.notYourTicket[user.language_code] || translations.notYourTicket.en,
+                                        show_alert: true,
+                                    }, 'answerCallbackQuery', token)
+                                }
+                            } else {
+                                m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    text: translations.noTicket[user.language_code] || translations.noTicket.en,
+                                    show_alert: true,
+                                }, 'answerCallbackQuery', token)
+                            }
+                        })
+                    }
+                    case `coworking`: {
+    
+                        devlog(`Отзыв к коворку`)
+    
+                        log({
+                            silent: +inc[2] < 4 ? false : true,
+                            text: `${userLogName} ставит коворкингу оценку ${inc[2]}.`,
+                            user: +user.id,
+                        })
+    
+                        userRef.update({
+                            coworkingRate: +inc[2]
+                        })
+    
+                        return m.sendMessage2({
+                            callback_query_id: req.body.callback_query.id,
+                            text: `Спасибо!`,
+                            show_alert: true,
+                        }, 'answerCallbackQuery', token)
+                    }
+                }
+            }
+    
+            if (inc[0] == `random`) {
+    
+                devlog(`это random`)
+    
+                return userRef.get().then(u => {
+                    u = common.handleDoc(u);
+                    switch (inc[1]) {
+                        case `rate`: {
+                            let ref = randomCoffees.doc(inc[2]);
+    
+                            return ref.get().then(couple => {
+                                couple = common.handleDoc(couple)
+                                if ((couple.rate || {}).hasOwnProperty(inc[3])) {
                                     return m.sendMessage2({
                                         callback_query_id: req.body.callback_query.id,
                                         show_alert: true,
-                                        text: `Спасибо и до новых встреч!`
+                                        text: `Извините, вы уже поставили оценку.`
                                     }, 'answerCallbackQuery', token)
-        
-                                }).catch(err=>{
-                                    handleError(err)
-                                })
-                            }
-                            
-                        })
-
-                        
-                    }
-                    case `confirm`:{
-                        let ref = randomCoffees.doc(inc[2]); 
-                        return ref.get().then(meeting=>{
-                            meeting = common.handleDoc(meeting)
-                            let rate = null;
-                            if(meeting.first == user.id){
-                                ref.update({
-                                    ['proof.first']:true
-                                })
-                                rate = `second`
-                            } else if(meeting.second == user.id){
-                                ref.update({
-                                    ['proof.second']:true
-                                })
-                                rate = `first`
-                            } else {
-                                return m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: `Но вас там не было!`
-                                }, 'answerCallbackQuery', token)
-                            }
-
-                            m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: `Спасибо! Как вам понравилось?\n(это совершенно анонимно)`
-                            }, 'answerCallbackQuery', token)
-
-                            m.sendMessage2({
-                                chat_id: user.id,
-                                message_id: req.body.callback_query.message.message_id,
-                                reply_markup: {
-                                    inline_keyboard: [
-                                        [{
-                                            text: `😵`,
-                                            callback_data: `random_rate_${inc[2]}_${rate}_0`
-                                        },{
-                                            text: `😐`,
-                                            callback_data: `random_rate_${inc[2]}_${rate}_0.5`
-                                        },{
-                                            text: `🤩`,
-                                            callback_data: `random_rate_${inc[2]}_${rate}_1`
-                                        }]
-                                    ]
+                                } else {
+    
+                                    rcReScore(Number(inc[4]), couple[inc[3]])
+    
+                                    return ref.update({
+                                        [`rate.${inc[3]}`]: Number(inc[4])
+                                    }).then(s => {
+    
+                                        return m.sendMessage2({
+                                            callback_query_id: req.body.callback_query.id,
+                                            show_alert: true,
+                                            text: `Спасибо и до новых встреч!`
+                                        }, 'answerCallbackQuery', token)
+    
+                                    }).catch(err => {
+                                        handleError(err)
+                                    })
                                 }
-                            }, 'editMessageReplyMarkup', token)
-
-                        })
-                    }
-                    case `later`:{
-                        return m.sendMessage2({
-                            callback_query_id: req.body.callback_query.id,
-                            show_alert: true,
-                            text: `Спасибо! Держим за вас кулачки!`
-                        }, 'answerCallbackQuery', token)
-                    }
-                    case `deny`:{
-                        let ref = randomCoffees.doc(inc[2]); 
-                        return ref.get().then(meeting=>{
-                            meeting = common.handleDoc(meeting)
-                            let rate = null;
-
-                            if(meeting.first == user.id){
-                                ref.update({
-                                    ['proof.first']:false
-                                })
-                                rate = `second`
-                            } else if(meeting.second == user.id){
-                                ref.update({
-                                    ['proof.second']:false
-                                })
-                                rate = `first`
-                            } else {
-                                return m.sendMessage2({
+    
+                            })
+    
+    
+                        }
+                        case `confirm`: {
+                            let ref = randomCoffees.doc(inc[2]);
+                            return ref.get().then(meeting => {
+                                meeting = common.handleDoc(meeting)
+                                let rate = null;
+                                if (meeting.first == user.id) {
+                                    ref.update({
+                                        ['proof.first']: true
+                                    })
+                                    rate = `second`
+                                } else if (meeting.second == user.id) {
+                                    ref.update({
+                                        ['proof.second']: true
+                                    })
+                                    rate = `first`
+                                } else {
+                                    return m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        show_alert: true,
+                                        text: `Но вас там не было!`
+                                    }, 'answerCallbackQuery', token)
+                                }
+    
+                                m.sendMessage2({
                                     callback_query_id: req.body.callback_query.id,
                                     show_alert: true,
-                                    text: `Но вас там не было!`
+                                    text: `Спасибо! Как вам понравилось?\n(это совершенно анонимно)`
                                 }, 'answerCallbackQuery', token)
-                            }
-
-                            m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: `Ничего страшного! Может быть, в следующий раз получится.`
-                            }, 'answerCallbackQuery', token)
-
-                            // m.sendMessage2({
-                            //     chat_id: user.id,
-                            //     message_id: req.body.callback_query.message.message_id,
-                            //     reply_markup: {
-                            //         inline_keyboard: [
-                            //             [{
-                            //                 text: `🤯`,
-                            //                 callback_data: `random_rate_${inc[2]}_${rate}_0`
-                            //             },{
-                            //                 text: `🤔`,
-                            //                 callback_data: `random_rate_${inc[2]}_${rate}_0.5`
-                            //             },{
-                            //                 text: `🤗`,
-                            //                 callback_data: `random_rate_${inc[2]}_${rate}_1`
-                            //             }]
-                            //         ]
-                            //     }
-                            // }, 'editMessageReplyMarkup', token)
-
-                        })
-                    }
-                    case `pass`:{
-                        return udb.doc(user.id.toString()).update({
-                            randomCoffeePass: true
-                        }).then(s=>{
-                            log({
-                                silent: true,
-                                user: user.id,
-                                text: `${uname(u,u.id)} пропускает randomCoffee`,
-                            })
-                            m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: `До скорых встрех!`
-                            }, 'answerCallbackQuery', token)
-    
-                        })
-                    }
-                    case `subscribe`:{
-                        devlog(`это подключение`)
-                        return udb.doc(user.id.toString()).update({
-                            randomCoffee: true
-                        }).then(s=>{
-                            log({
-                                silent: true,
-                                user: user.id,
-                                text: `${uname(u,u.id)} включает randomCoffee`,
-                            })
-                            m.sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text: `Ждем четверг!`
-                            }, 'answerCallbackQuery', token).then(()=>{
     
                                 m.sendMessage2({
                                     chat_id: user.id,
@@ -8581,55 +8371,170 @@ router.post('/hook', (req, res) => {
                                     reply_markup: {
                                         inline_keyboard: [
                                             [{
-                                                text: `Отменить участие`,
-                                                callback_data: `random_unsubscribe`
+                                                text: `😵`,
+                                                callback_data: `random_rate_${inc[2]}_${rate}_0`
+                                            }, {
+                                                text: `😐`,
+                                                callback_data: `random_rate_${inc[2]}_${rate}_0.5`
+                                            }, {
+                                                text: `🤩`,
+                                                callback_data: `random_rate_${inc[2]}_${rate}_1`
                                             }]
                                         ]
                                     }
                                 }, 'editMessageReplyMarkup', token)
-                            })
     
-    
-                        })
-                    }
-                    case `unsubscribe`:{
-                        return udb.doc(user.id.toString()).update({
-                            randomCoffee: false
-                        }).then(s=>{
-                            log({
-                                silent: true,
-                                user: user.id,
-                                text: `${uname(u,u.id)} отключает randomCoffee`,
                             })
-                            m.sendMessage2({
+                        }
+                        case `later`: {
+                            return m.sendMessage2({
                                 callback_query_id: req.body.callback_query.id,
                                 show_alert: true,
-                                text: `Не прощаемся!`
-                            }, 'answerCallbackQuery', token).then(()=>{
+                                text: `Спасибо! Держим за вас кулачки!`
+                            }, 'answerCallbackQuery', token)
+                        }
+                        case `deny`: {
+                            let ref = randomCoffees.doc(inc[2]);
+                            return ref.get().then(meeting => {
+                                meeting = common.handleDoc(meeting)
+                                let rate = null;
+    
+                                if (meeting.first == user.id) {
+                                    ref.update({
+                                        ['proof.first']: false
+                                    })
+                                    rate = `second`
+                                } else if (meeting.second == user.id) {
+                                    ref.update({
+                                        ['proof.second']: false
+                                    })
+                                    rate = `first`
+                                } else {
+                                    return m.sendMessage2({
+                                        callback_query_id: req.body.callback_query.id,
+                                        show_alert: true,
+                                        text: `Но вас там не было!`
+                                    }, 'answerCallbackQuery', token)
+                                }
     
                                 m.sendMessage2({
-                                    chat_id: user.id,
-                                    message_id: req.body.callback_query.message.message_id,
-                                    reply_markup: {
-                                        inline_keyboard: [
-                                            [{
-                                                text: `Включить random coffee`,
-                                                callback_data: `random_subscribe`
-                                            }]
-                                        ]
-                                    }
-                                }, 'editMessageReplyMarkup', token)
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: `Ничего страшного! Может быть, в следующий раз получится.`
+                                }, 'answerCallbackQuery', token)
+    
+                                // m.sendMessage2({
+                                //     chat_id: user.id,
+                                //     message_id: req.body.callback_query.message.message_id,
+                                //     reply_markup: {
+                                //         inline_keyboard: [
+                                //             [{
+                                //                 text: `🤯`,
+                                //                 callback_data: `random_rate_${inc[2]}_${rate}_0`
+                                //             },{
+                                //                 text: `🤔`,
+                                //                 callback_data: `random_rate_${inc[2]}_${rate}_0.5`
+                                //             },{
+                                //                 text: `🤗`,
+                                //                 callback_data: `random_rate_${inc[2]}_${rate}_1`
+                                //             }]
+                                //         ]
+                                //     }
+                                // }, 'editMessageReplyMarkup', token)
+    
                             })
+                        }
+                        case `pass`: {
+                            return userRef.update({
+                                randomCoffeePass: true
+                            }).then(s => {
+                                log({
+                                    silent: true,
+                                    user: user.id,
+                                    text: `${uname(u,u.id)} пропускает randomCoffee`,
+                                })
+                                m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: `До скорых встрех!`
+                                }, 'answerCallbackQuery', token)
+    
+                            })
+                        }
+                        case `subscribe`: {
+                            devlog(`это подключение`)
+                            return userRef.update({
+                                randomCoffee: true
+                            }).then(s => {
+                                log({
+                                    silent: true,
+                                    user: user.id,
+                                    text: `${uname(u,u.id)} включает randomCoffee`,
+                                })
+                                m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: `Ждем четверг!`
+                                }, 'answerCallbackQuery', token).then(() => {
+    
+                                    m.sendMessage2({
+                                        chat_id: user.id,
+                                        message_id: req.body.callback_query.message.message_id,
+                                        reply_markup: {
+                                            inline_keyboard: [
+                                                [{
+                                                    text: `Отменить участие`,
+                                                    callback_data: `random_unsubscribe`
+                                                }]
+                                            ]
+                                        }
+                                    }, 'editMessageReplyMarkup', token)
+                                })
     
     
-                        })
+                            })
+                        }
+                        case `unsubscribe`: {
+                            return userRef.update({
+                                randomCoffee: false
+                            }).then(s => {
+                                log({
+                                    silent: true,
+                                    user: user.id,
+                                    text: `${uname(u,u.id)} отключает randomCoffee`,
+                                })
+                                m.sendMessage2({
+                                    callback_query_id: req.body.callback_query.id,
+                                    show_alert: true,
+                                    text: `Не прощаемся!`
+                                }, 'answerCallbackQuery', token).then(() => {
+    
+                                    m.sendMessage2({
+                                        chat_id: user.id,
+                                        message_id: req.body.callback_query.message.message_id,
+                                        reply_markup: {
+                                            inline_keyboard: [
+                                                [{
+                                                    text: `Включить random coffee`,
+                                                    callback_data: `random_subscribe`
+                                                }]
+                                            ]
+                                        }
+                                    }, 'editMessageReplyMarkup', token)
+                                })
+    
+    
+                            })
+                        }
                     }
-                }
-            }).catch(err=>{
-                console.log(err)
-            })
-            
-        }
+                }).catch(err => {
+                    console.log(err)
+                })
+    
+            }
+        })
+    
+    
     }
 
     if (req.body.my_chat_member) {
@@ -9937,25 +9842,6 @@ router.all(`/api/:data/:id`, (req, res) => {
                                                                     user: req.query.user,
                                                                     hall: req.params.id
                                                                 })
-
-                                                                let pl = {
-                                                                    active: true,
-                                                                    id: rec.id,
-                                                                    intention: 'bookCoworking',
-                                                                    hall: req.params.id,
-                                                                    date: req.query.date,
-                                                                    user: req.query.user,
-                                                                    userName: (u.data().first_name + ' ' + u.data().last_name),
-                                                                    paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
-                                                                    payed: false
-                                                                }
-
-                                                                axios.post(sheet, Object.keys(pl).map(k => `${k}=${pl[k]}`).join('&'), {
-                                                                    headers: {
-                                                                        "Content-Type": "application/x-www-form-urlencoded"
-                                                                    }
-                                                                })
-
 
                                                                 res.json({
                                                                     success: true,
