@@ -1992,7 +1992,7 @@ function showRC(){
     let usersC = ce('div')
     let listing = ce('div')
     
-    mc.append(ce('button',false,buttonStyle,`Запустить`,{
+    p.append(ce('button',false,buttonStyle,`Запустить`,{
         onclick:function(){
             let sure = confirm(`Уверены?`)
             if(sure) {
