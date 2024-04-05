@@ -89,7 +89,7 @@ function handleQuery(col,byDate,byName){
     if(byName){
         res = res.sort((a,b)=>sortableText(b.name) > sortableText(a.name) ? -1 : 0)
     }
-    devlog(res)
+    // devlog(res)
     return res
 }
 
@@ -108,6 +108,10 @@ function handleDoc(d){
         t.id = d.id;
     return t;
 }
+
+
+
+
 
 
 

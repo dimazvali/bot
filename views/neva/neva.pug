@@ -1,7 +1,14 @@
 extends site
 
+//- block player
+    #player
+        h2!=random.name
+        audio(controls src=random.url)
 block content
     h1!=name
+    p!=`${greetings()}! Вы находитесь на капище, посвященном радио Нева FM. Осторожно: капище находится в режиме разработки.`
+    
+    h2 Программы
     for p in programs
         .sDivided
             h2
@@ -10,3 +17,4 @@ block content
                 p!=p.description
             if(p.authorName)
                 p!=p.authorName
+    //- h2 Авторы

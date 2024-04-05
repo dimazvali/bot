@@ -574,7 +574,7 @@ function addScreen(collection,name,o){
     p.append(ce('h1', false, false, name))
 
     let f = ce(`form`,false,false,false,{
-        action: `/${host}/admin/${collection}`,
+        action: `${host ? `/${host}` : ``}/admin/${collection}`,
         method: `post`,
     })
     
@@ -887,7 +887,7 @@ function load(collection, id, extra, whereToLook) {
         console.log(id, `из кэша`)
         return Promise.resolve(whereToLook[id])
     } 
-    return axios.get(`/${host}/admin/${collection}${id?`/${id}`:''}${extra?`?${Object.keys(extra).map(k=>`${k}=${extra[k]}`).join(`&`)}`:''}`).then(data => {
+    return axios.get(`${host ? `/${host}` : ''}/admin/${collection}${id?`/${id}`:''}${extra?`?${Object.keys(extra).map(k=>`${k}=${extra[k]}`).join(`&`)}`:''}`).then(data => {
         if(whereToLook) whereToLook[id] = data.data
         return data.data
     })

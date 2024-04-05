@@ -49,6 +49,10 @@ const {
     FieldValue
 } = require('firebase-admin/firestore');
 
+const { getStorage, getDownloadURL } = require('firebase-admin/storage');
+
+
+
 const { ObjectStreamToJSON } = require('sitemap');
 
 let gcp = initializeApp({
@@ -68,7 +72,16 @@ let gcp = initializeApp({
 }, 'dimazvali');
 
 let fb = getFirestore(gcp);
+let s = getStorage(gcp)
 
+s.bucket(`default`)
+    .upload(__dirname + `/../public/sounds/123.mp3`)
+    .then(s=>{
+        console.log(s)
+    })
+    .catch(err=>{
+        console.log(err)
+    })
 
 setTimeout(function(){
     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/dimazvali/hook`).then(()=>{
@@ -161,6 +174,31 @@ const datatypes = {
     }
 }
 
+function newEntity(req,res,admin,extra){
+    if(!req.body.name) return res.status(400).send(`no name`)
+    
+    let o = {
+        createdAt:      new Date(),
+        createdBy:      +admin.id,
+        active:         true,
+        description:    req.body.description || null,
+        name:           req.body.name || null,
+        pic:            req.body.pic || null,
+    }
+
+    if(extra) extra.forEach(t=>{
+        o[t] = req.body[t] ||null
+    })
+
+    datatypes[req.params.method].col.add(o).then(rec=>{
+        res.redirect(`/${host}/web?page=${req.params.method}_${rec.id}`)
+        log({
+            admin:      +admin.id,
+            [req.params.method]:      rec.id,
+            text:       `${uname(admin,admin.id)} создает ${req.params.method} ${req.body.name}`
+        })
+    })
+}
 
 function dist(lat,long,toLat, toLong){
     return +(Math.sqrt(Math.pow((lat - toLat) * 111.11, 2) + Math.pow((long - toLong) * 55.8, 2))).toFixed(3)
@@ -730,31 +768,7 @@ function newCity(req,res,admin){
     })   
 }
 
-function newEntity(req,res,admin,extra){
-    if(!req.body.name) return res.status(400).send(`no name`)
-    
-    let o = {
-        createdAt:      new Date(),
-        createdBy:      +admin.id,
-        active:         true,
-        description:    req.body.description || null,
-        name:           req.body.name || null,
-        pic:            req.body.pic || null,
-    }
 
-    if(extra) extra.forEach(t=>{
-        o[t] = req.body[t] ||null
-    })
-
-    datatypes[req.params.method].col.add(o).then(rec=>{
-        res.redirect(`/${host}/web?page=${req.params.method}_${rec.id}`)
-        log({
-            admin:      +admin.id,
-            [req.params.method]:      rec.id,
-            text:       `${uname(admin,admin.id)} создает ${req.params.method} ${req.body.name}`
-        })
-    })
-}
 
 function newTour(req,res,admin){
     if(!req.body.name) return res.status(400).send(`no name`)

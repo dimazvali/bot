@@ -52,7 +52,7 @@ app.use('/dimazvali',     require('./routes/dimazvali'));
 
 app.use(vhost(`neva.localhost`,require('./routes/neva')))
 app.use(vhost(`neva.*.*`,require('./routes/neva')))
-
+app.use('/neva',       require('./routes/neva'));
 
 app.use('/auditoria',           require('./routes/auditoriaBot'));
 app.use(vhost(`auditoria.*.*`,  require('./routes/auditoriaBot')))
