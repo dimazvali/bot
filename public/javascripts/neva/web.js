@@ -295,6 +295,9 @@ function showProgram(id){
     // closeLeft();
     let c = preparePopupWeb(`programs_${id}`,false,false,true)
         c.append(ce(`p`,false,false,`${botLink}?start=programs_${id}`))
+        c.append(ce(`a`,false,false,`rss`,{
+            href: `/rss/${id}`,
+        }))
     load(`programs`,id).then(p=>{
         let details = ce(`div`,false,`details`)
             details.append(ce('span',false,`info`,`создано ${drawDate(p.createdAt._seconds*1000)}`))

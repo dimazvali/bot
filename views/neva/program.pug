@@ -6,6 +6,7 @@ block head
 block content
     script(src="/javascripts/dimazvali/neva.js") 
     h1!=program.name
+    a(href!=`/rss/${program.id}`) rss
     if(program.description)
         p!=program.description
 
