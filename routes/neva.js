@@ -8,6 +8,9 @@ var axios =     require('axios');
 var cors =      require('cors');
 var RSS = require('rss');
 
+var sha256 =    require('sha256');
+const { createHash,createHmac } = require('node:crypto');
+
 const {
     dimazvali,
     getDoc,
@@ -299,20 +302,26 @@ router.get(`/rss/:program`,(req,res)=>{
 
 
 function updateEntity(req,res,ref,admin){
-    ref.update({
-        [req.body.attr]: req.body.value || null,
-        updatedAt: new Date(),
-        updatedBy: +admin.id
-    }).then(s=>{
-        res.json({
-            success: true
-        })
-        log({
-            admin: +admin.id,
-            [req.params.method]: req.params.id,
-            text: `Обновлен ${req.params.method} / ${req.params.id}.\n${req.body.attr} стало ${req.body.value}`
+    ref.get().then(d=>{
+        
+        d = handleDoc(d);
+
+        ref.update({
+            [req.body.attr]: req.body.value || null,
+            updatedAt: new Date(),
+            updatedBy: +admin.id
+        }).then(s=>{
+            res.json({
+                success: true
+            })
+            log({
+                admin: +admin.id,
+                [req.params.method]: req.params.id,
+                text: `Обновлен ${req.params.method} / ${d.name || req.params.id}.\n${req.body.attr} стало ${req.body.value} (было ${d[req.body.attr || null]})`
+            })
         })
     })
+    
 }
 
 

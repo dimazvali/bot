@@ -49,17 +49,13 @@ const {
 const {
     getDatabase
 } = require('firebase-admin/database');
+
 const {
     text,
     query,
     json
 } = require('express');
-const {
-    factchecktools_v1alpha1
-} = require('googleapis');
-const {
-    sendAt
-} = require('cron');
+
 
 var RSS = require('rss');
 
