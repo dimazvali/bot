@@ -89,6 +89,16 @@ router.get(`/auth`,(req,res)=>{
     res.render(`${host}/auth`)
 })
 
+function isAdmin(id) {
+    return udb.doc(id || 'noWay').get().then(a => {
+        if (!a.exists) return false
+        if (a.data().admin) return true
+        return false
+    }).catch(err => {
+        return false
+    })
+}
+
 router.post(`/auth`,(req,res)=>{
 
     data_check_string=Object.keys(req.body)
