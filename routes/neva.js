@@ -5,7 +5,8 @@ const token = process.env.nevaToken;
 var express =   require('express');
 var router =    express.Router();
 var axios =     require('axios');
-var cors =      require('cors')
+var cors =      require('cors');
+var RSS = require('rss');
 
 const {
     dimazvali,
@@ -69,6 +70,7 @@ setTimeout(function(){
         console.log(`neva hook set on ${ngrok}`)
     }).catch(handleError)   
 },1000)
+
 
 let authors =                   fb.collection(`NEVAauthors`);
 let programs =                  fb.collection(`NEVAprograms`);
@@ -150,7 +152,7 @@ router.get(`/web`,(req,res)=>{
             })
         }) 
 
-    if(!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/auth`)
+    if(!req.signedCookies.adminToken) return res.redirect(`/auth`)
     
     adminTokens
         .doc(req.signedCookies.adminToken)
@@ -246,8 +248,54 @@ router.get(`/:program`,(req,res)=>{
                     })
                 })
         })
-    
 })
+
+router.get(`/rss/:program`,(req,res)=>{
+    programs
+        .doc(req.params.program)
+        .get()
+        .then(p=>{
+            
+            if(!p.exists) return res.sendStatus(404)
+            p = handleDoc(p)
+
+            let feed = new RSS({
+                title:          p.name,
+                description:    p.description,
+                feed_url: `https://neva.dimazvali.com/rss/${req.params.program}`,
+                site_url: 'https://neva.dimazvali.com/',
+                webMaster: 'dimazvali@gmail.com',
+                copyright: 'neva.dimazvali.com',
+                custom_namespaces: {
+                    itunes:     "http://www.itunes.com/dtds/podcast-1.0.dtd",
+                    content:    "http://purl.org/rss/1.0/modules/content/"
+                }
+            });
+
+            shows
+                .where(`program`,'==',req.params.program)
+                .where(`active`,'==',true)
+                .get()
+                .then(col=>{
+                    handleQuery(col).forEach(show=>{
+                        feed.item({
+                            title:          show.name,
+                            description:    show.description,
+                            enclosure: {
+                                url: show.url
+                            },
+                            url:            `https://neva.dimazvali.com/programs/${req.params.program}/${show.id}`,
+                            guid:           show.id,
+                            pubDate:        new Date(show.date ? show.date : show.createdAt._seconds*1000).toISOString()
+                        })
+                    })
+                    res.attachment(`${req.params.program}.xml`);
+                    res.status(200).send(feed.xml());
+                })
+        })
+})
+
+
 
 
 function updateEntity(req,res,ref,admin){
@@ -475,7 +523,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
 
             return programs.doc(req.params.id).get().then(p=>{
                 if(!p.exists) return res.sendStatus(404)
-                res.sendStatus(200)
+                res.send(`import ${req.body.length} shows to ${p.data().name}`)
                 req.body.reverse().forEach((s,i)=>{
                     setTimeout(()=>{
                         shows.add({
@@ -489,9 +537,9 @@ router.all(`/api/:method/:id`,(req,res)=>{
                             programs.doc(req.params.id).update({
                                 shows: FieldValue.increment(1)
                             })
-                            devlog(i,s.id)
+                            devlog(`${i} — ${s.id}`)
                         })
-                    },i*300)
+                    },i*500)
                 })
                 
             })
@@ -522,6 +570,46 @@ router.all(`/api/:method/:id`,(req,res)=>{
     }
 })
 
+
+function deleteEntity(req,res,ref,admin,callback){
+    return ref.get().then(e => {
+
+        let data = handleDoc(e)
+
+        devlog(data)
+
+        let attr = req.body.attr
+
+        if (!data[attr || 'active']) return res.json({
+            success: false,
+            comment: `Вы опоздали. Запись уже удалена.`
+        })
+
+        ref.update({
+            [attr || 'active']: false,
+            updatedBy: +admin.id
+        }).then(s => {
+            
+            log({
+                [req.params.method]: req.params.id,
+                text: `${uname(admin,admin.id)} архивирует ${req.params.method} ${data.name||data.id}`,
+                admin: +admin.id
+            })
+            res.json({
+                success: true
+            })
+
+            if (typeof (callback) == 'function') {
+                callback()
+            }
+        }).catch(err => {
+            res.json({
+                success: false,
+                comment: err.message
+            })
+        })
+    })
+}
 
 router.all(`/admin/:method`,(req,res)=>{
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
@@ -559,91 +647,3 @@ router.all(`/admin/:method`,(req,res)=>{
 })
 
 module.exports = router;
-
-
-let kg = [
-    {
-        "name": "Выпуск 20",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e950fa751c9.mp3"
-    },
-    {
-        "name": "Выпуск 19",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e80eae791a4.mp3"
-    },
-    {
-        "name": "Выпуск 18",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e6d0fe7d809.mp3"
-    },
-    {
-        "name": "Выпуск 17",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c7f8d18ed.mp3"
-    },
-    {
-        "name": "Выпуск 16",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c7e9b50ab.mp3"
-    },
-    {
-        "name": "Выпуск 15",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c7d56a03d.mp3"
-    },
-    {
-        "name": "Выпуск 14",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c7ba54661.mp3"
-    },
-    {
-        "name": "Выпуск 13",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c79f3054c.mp3"
-    },
-    {
-        "name": "Выпуск 12",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c77fa35a5.mp3"
-    },
-    {
-        "name": "Выпуск 11",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c770404f7.mp3"
-    },
-    {
-        "name": "Выпуск 10",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c75b2b580.mp3"
-    },
-    {
-        "name": "Выпуск 9",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c7276d274.mp3"
-    },
-    {
-        "name": "Выпуск 8",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c71ab2997.mp3"
-    },
-    {
-        "name": "выпуск 7",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c6fe934fb.mp3"
-    },
-    {
-        "name": "Выпуск 6",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c6ed9511d.mp3"
-    },
-    {
-        "name": "Выпуск 5",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c5ee90d20.mp3"
-    },
-    {
-        "name": "Выпуск 4",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c595e2735.mp3"
-    },
-    {
-        "name": "Выпуск 3",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c5857d933.mp3"
-    },
-    {
-        "name": "Выпуск 2",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c575ae24f.mp3"
-    },
-    {
-        "name": "Выпуск 1",
-        "url": "https://web.archive.org/web/20161029060938if_/http://www.neva.fm/media/audio/audio_0_494_55e5c566cda02.mp3"
-    }
-]
-
-kg.reverse().forEach((s,i)=>{
-    
-})

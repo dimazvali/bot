@@ -18,34 +18,35 @@ function showPrograms(){
 
 start = start.split('_')
 switch(start[0]){
-    case `landmarks`:{
+    case `shows`:{
         if(start[1]){
-            showLandmark(start[1])
+            showShow(start[1])
         } else {
-            showLandmarks()
+            showShows()
         }
         break;
     }
-    case `tours`:{
+    case `authors`:{
         if(start[1]){
-            showTour(start[1])
+            showAuthor(start[1])
         } else {
-            showTours()
+            showAuthors()
         }
         break;
     }
-    case `cities`:{
+    case `programs`:{
         if(start[1]){
-            showCity(start[1])
+            showProgram(start[1])
         } else {
-            showCities()
+            showPrograms()
         }
         break;
     }
+    
 }
 
 function showProgramLine(p){
-    let c = listContainer(p,true)
+    let c = listContainer(p,true,{shows:`выпусков`,played:`прослушано`})
         c.append(ce(`h2`,false,false,p.name,{
             onclick: ()=>showProgram(p.id)
         }))
@@ -53,9 +54,24 @@ function showProgramLine(p){
     return c;
 }
 
+function checkConsistency(type,data){
+    let issues = [];
+    switch(type){
+        case `show`:{
+            if(!data.date) issues.push(`нет даты публикации`);
+            break;
+        }
+        case `author`:{
+            if(!data.pic) issues.push(`нет фото`);
+            if(!data.description) issues.push(`нет описания`);
+            break;
+        }
+    }
+    return issues
+}
 
 function showShowLine(s){
-    let c = listContainer(s,true,{played:`прослушано`},{played:s.played||0})
+    let c = listContainer(s,true,{played:`прослушано`},{played:s.played||0},checkConsistency(`show`,s))
         c.append(ce(`h2`,false,false,s.name,{
             onclick: ()=>showShow(s.id)
         }))
@@ -64,7 +80,7 @@ function showShowLine(s){
 }
 
 function showAuthorLine(a){
-    let c = listContainer(a,true)
+    let c = listContainer(a,true,false,false,checkConsistency(`author`,a))
         c.append(ce(`h2`,false,false,a.name,{
             onclick: ()=>showAuthor(a.id)
         }))
@@ -97,7 +113,8 @@ function addShow(){
         name:       {placeholder:`Название`},
         description:{placeholder:`Описание`,type:`textarea`},
         program:    {selector:'programs',placeholder: `Программ`},
-        pic:        {placeholder:`картинка`}
+        pic:        {placeholder:`картинка`},
+        date:       {placeholder: `дата выпуска`,type:'date'}
     })
 }
 
@@ -260,7 +277,13 @@ function showShow(id){
             }
         }))
 
-        c.append(ce(`p`,false,false,`ссылка на файл: ${s.url || `не задана`}`,{
+        c.append(ce(`p`,false,`editable`,s.date || `Добавьте дату выпуска`,{
+            onclick:function(){
+                edit(`shows`,id,`date`,`date`,s.date,this)
+            }
+        }))
+
+        c.append(ce(`p`,false,false,`ссылка на файл: ${decodeURIComponent(s.url) || `не задана`}`,{
             onclick:function(){
                 edit(`shows`,id,`url`,`text`,s.url||null,this)
             }
@@ -269,7 +292,7 @@ function showShow(id){
 }
 
 function showProgram(id){
-    closeLeft();
+    // closeLeft();
     let c = preparePopupWeb(`programs_${id}`,false,false,true)
         c.append(ce(`p`,false,false,`${botLink}?start=programs_${id}`))
     load(`programs`,id).then(p=>{
@@ -300,105 +323,13 @@ function showProgram(id){
                 showsContainer.append(showShowLine(s))
             })
         })
+
+        c.append(deleteButton(`programs`,id,!p.active))
     })
 
 }
 
 
-function showTour(id){
-    closeLeft();
-    
-    let p = preparePopupWeb(`tours_${id}`,false,false,true)
-        p.append(ce(`p`,false,false,`${botLink}?start=tour_${id}`))
-    
-    load(`tours`,id).then(t=>{
-        let details = ce(`div`,false,`details`)
-            details.append(ce('span',false,`info`,`создано ${drawDate(t.createdAt._seconds*1000)}`))
-            if(t.updatedAt) details.append(ce('span',false,`info`,`обновлено ${drawDate(t.updatedAt._seconds*1000)}`))
-            details.append(ce('span',false,`info`,`запусков ${t.started||0}`))
-        p.append(details)
-
-        p.append(logButton(`tours`,id))
-
-        p.append(ce(`h1`,false,false,t.name,{
-            onclick:function(){
-                edit(`tours`,id,`name`,`text`,t.name,this)
-            }
-        }))
-
-        if(t.pic){
-            p.append(ce(`img`,false,`cover`,false,{
-                src: t.pic,
-                onclick:()=>{
-                    edit(`tours`,id,`pic`,`text`,t.pic||null,this)   
-                }
-            }))
-        } else {
-            p.append(ce(`p`,false,false,`Добавить фото`,{
-                onclick:function(){
-                    edit(`tours`,id,`pic`,`text`,t.pic||null,this)
-                }
-            }))
-        }
-
-        p.append(ce(`p`,false,false,t.description ? `Описание: ${t.description}` : `Добавить описание`,{
-            onclick:function(){
-                edit(`tours`,id,`description`,`textarea`,t.description,this)
-            }
-        }))
-
-        p.append(ce(`p`,false,false,t.voice ? `Голосовое: ${t.voice}` : `Добавить Голосовое`,{
-            onclick:function(){
-                edit(`tours`,id,`voice`,`text`,t.voice,this)
-            }
-        }))
-
-        let steps = ce(`div`)
-        
-        p.append(steps)
-        
-        steps.append(ce(`h2`,false,false,`Точки`))
-
-        let stepsListing = ce(`div`)
-        steps.append(stepsListing)
-
-
-        load(`toursSteps`,false,{tour:id}).then(steps=>{
-            steps
-                .filter(s=>s.tour == id)
-                .sort((a,b)=>a.index-b.index)
-                .forEach(step=>{
-                    stepsListing.append(showStepLine(step))
-                })
-
-        })
-        steps.append(ce(`button`,false,false,`Добавить`,{
-            onclick:()=>{
-                let c = modal()
-                c.append(ce(`h3`,false,false,`Добавляем шаг`))
-                let points = selector(`landmarks`,`Выберите точку`)
-                c.append(points)
-                c.append(ce(`button`,false,false,`Добавить`,{
-                    onclick:()=>{
-                        if(points.value) axios.post(`/admin/toursSteps`,{
-                            tour:   id,
-                            landmark: points.value
-                        }).then(s=>{
-                            handleSave(s)
-                            showTour(id)
-                        }).catch(handleError)
-                    }
-                }))
-            }
-        }))
-
-
-
-
-
-
-    })
-}
 
 function showUser(id){
     let p = preparePopupWeb(`users_${id}`,false,false,true)
@@ -772,7 +703,7 @@ function edit(entity, id, attr, type, value, container) {
     
     let f = ce('input');
     if (type == `date`) {
-        f.type = `datetime-local`
+        f.type = `date`
         edit.append(f)
     } else if (type == `textarea`) {
         f = ce('textarea', false, false, false, {

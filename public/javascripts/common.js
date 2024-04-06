@@ -29,9 +29,9 @@ function selector(col,placeholder){
 
 function onTelegramAuth(user,host) {
     console.log(user)
-    axios.post(`/${host}/auth`,user)
+    axios.post(`${host?`/${host}`:``}/auth`,user)
         .then(ok=>{
-            window.location.pathname = `/${host}/web`
+            window.location.pathname = `${host?`/${host}`:``}/web`
         }).catch(err=>{
             alert(err.message)
         })
@@ -512,7 +512,7 @@ function letterize(v, word) {
 
 function showLogs(filter,description) {
     showLoader();
-    axios.get(`/${host}/admin/logs?id=${userid}${filter||''}`)
+    axios.get(`${host ? `/${host}` : ''}/admin/logs?id=${userid}${filter||''}`)
         .then(data => {
             let p = preparePopup(filter?'log':'logs')
             p.append(ce('h1', false, `header`, 'Логи'+(description||'')))
@@ -744,7 +744,7 @@ function toggleButton(collection, id, attr, value, ifYes,ifNo, cl){
     let b = ce('button',false,cl||false,(value?ifYes:ifNo),{
         dataset:{on:value?1:0},
         onclick:function(){
-            axios.put(`/${host}/admin/${collection}/${id}`,{
+            axios.put(`${host ? `/${host}` : ''}/admin/${collection}/${id}`,{
                 attr: attr,
                 value: !(Number(this.dataset.on))
             }).then(s=>{
@@ -811,7 +811,7 @@ function deleteButton(collection,id,reverse,cl,callback){
             let proof = confirm(`Вы уверены?`)
             if(proof) {
                 if(reverse) {
-                    axios.put(`/${host}/admin/${collection}/${id}`,{
+                    axios.put(`${host ? `/${host}` : ''}/admin/${collection}/${id}`,{
                         attr: `active`,
                         value: true
                     })
@@ -821,7 +821,7 @@ function deleteButton(collection,id,reverse,cl,callback){
                         })
                         .catch(handleError)
                 } else {
-                    axios.delete(`/${host}/admin/${collection}/${id}`)
+                    axios.delete(`${host ? `/${host}` : ''}/admin/${collection}/${id}`)
                         .then(s=>{
                             handleSave(s)
                             if(callback) callback()
@@ -1064,7 +1064,7 @@ function newAuthor() {
         onclick: function () {
             if (name.value) {
                 this.setAttribute(`disabled`, true)
-                axios.post(`/${host}/admin/authors`, {
+                axios.post(`${host ? `/${host}` : ''}/admin/authors`, {
                         name:           name.value,
                         description:    description.value,
                         pic:            pic.value
@@ -1114,7 +1114,7 @@ function showHelp(text, name){
                 h.append(txt)
                 h.append(ce(`button`,false,[`dark`,`dateButton`],`Сохранить`,{
                     onclick:()=>{
-                        if(txt.value) axios[text?`put`:`post`](`/${host}/admin/settings/${name}`,{
+                        if(txt.value) axios[text?`put`:`post`](`${host ? `/${host}` : ''}/admin/settings/${name}`,{
                             attr: `help`,
                             value: txt.value.split('\n')
                         }).then(handleSave)

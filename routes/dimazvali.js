@@ -1175,25 +1175,3 @@ router.get(`/:page`,(req,res)=>{
 
 
 module.exports = router;
-
-
-
-let kg = []
-
-kg.reverse().forEach((s,i)=>{
-    setTimeout(()=>{
-        shows.add({
-            active:     true,
-            createdAt:  new Date(),
-            name:       s.name,
-            url:        s.url,
-            program:    `WKQMnoH6x1gqXOEFDtuA`,
-            description: null, 
-        }).then(s=>{
-            programs.doc(`WKQMnoH6x1gqXOEFDtuA`).update({
-                shows: FieldValue.increment(1)
-            })
-            devlog(s.id)
-        })
-    },i*300)
-})
