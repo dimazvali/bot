@@ -4202,16 +4202,25 @@ router.post('/hook', (req, res) => {
                 }
             }
 
-            if (req.body.message.photo) {
+            if (req.body.message.photo || req.body.message.document) {
                 udb.where('admin', '==', true).get().then(col => {
                     let admins = common.handleQuery(col)
                     admins.forEach((a, i) => {
                         setTimeout(function () {
-                            m.sendMessage2({
-                                chat_id: a.id,
-                                caption: `фото от ${common.uname(u.data(),u.id)}`,
-                                photo: req.body.message.photo[0].file_id
-                            }, 'sendPhoto', token)
+                            if(req.body.message.photo){
+                                m.sendMessage2({
+                                    chat_id: a.id,
+                                    caption: `фото от ${common.uname(u.data(),u.id)}`,
+                                    photo: req.body.message.photo[0].file_id
+                                }, 'sendPhoto', token)
+                            } else {
+                                m.sendMessage2({
+                                    chat_id: a.id,
+                                    from_chat_id: user.id,
+                                    message_id: req.body.message.message_id
+                                }, 'forwardMessage', token)
+                            }
+                            
                         }, i * 100)
                     })
 
