@@ -946,6 +946,15 @@ function line(){
 
 function listContainer(e,detailed,extra,dataset,alerts){
     let c =  ce('div',false,[`sDivided`,e.active?`reg`:`hidden`],false,{dataset:{active:e.active}})
+    let right = ce(`div`)
+    
+    if(e.pic) {
+        c.classList.add(`flex`)
+        let pc = ce(`div`,false,`previewContainer`)
+        pc.append(ce(`img`,false,`preview`,false,{src:e.pic}))
+        c.append(pc)
+        c.append(right)
+    }
 
     if(detailed){
         let details = ce('div',false,[`details`,`flex`])
@@ -967,7 +976,8 @@ function listContainer(e,detailed,extra,dataset,alerts){
             if(dataset) Object.keys(dataset).forEach(key=>{
                 c.dataset[key] = dataset[key]
             })
-        c.append(details)
+
+        e.pic ? right.append(details) :  c.append(details)
     }
 
     if(alerts&&alerts.length){
@@ -977,9 +987,10 @@ function listContainer(e,detailed,extra,dataset,alerts){
             alertsContainer.append(ce(`span`,false,[`info`,`alert`],a))
         })
 
-        c.append(alertsContainer);
+        e.pic ? right.append(alertsContainer) : c.append(alertsContainer);
     }
 
+    if(e.pic) c.append = (e) => right.append(e)
     return c
 }
 
