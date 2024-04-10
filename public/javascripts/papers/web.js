@@ -114,15 +114,59 @@ if(start){
     }
 }
 
+function checkMissing(type,data){
+    let alerts = [];
+    switch(type){
+        case `books`:{
+            if(!data.isbn) alerts.push(`Нет ISBN`)
+            if(!data.author) alerts.push(`Нет автора`)
+            if(!data.description) alerts.push(`Нет описания`)
+        }
+        default:{
+            if(!data.name) alerts.push(`Нет названия!`)
+        }
+    }
+    
+    return alerts
+}
+
+
+function showBooks(){
+    showScreen(`Книги`,`books`,showBookLine,addBook,false,true,buttonStyle)
+}
+
+function showBookLine(b){
+    let c = listContainer(b,true,{isbn:b.isbn},false,checkMissing(`books`,b))
+        c.onclick = () => showBook(b.id)
+        c.append(ce(`h3`,false,false,b.name))
+        c.append(ce(`p`,false,false,b.description? b.description.toString().slice(0,100) : `без описания`))
+        return c;
+}
+
+function addBook(){
+    addScreen(`books`,`Новая книга`,{
+        name:           {placeholder:`Название`},
+        description:    {placeholder: `Описание`,type:`textarea`},
+        isbn:           {placeholder: `ISBN`},
+        lang:           {selector:  `langs`,placeholder: `Выберите язык`},
+        author:         {placeholder: `Автор`},
+        pic:            {placeholder: `Обложка`},
+        price:          {placeholder: `Стоимость`, type: `number`},
+        publisher:     {placeholder: `Издательство`},
+        year:           {placeholder: `Год издания`, type: `number`},
+        new:            {placeholder: `Состояние`,selector: `bookState`}
+    })
+}
 
 function showStats(){
-    let p = preparePopupWeb(`stats`)
+    let p = preparePopupWeb(`stats`);
+        
         p.append(ce(`h1`,false,false,`Выгрузки`))
         p.append(ce(`p`,false,false,`Здесь вы можете выгрузить данные по коворкингу, расписанию, пользователям. Запросы логируются.`))
         p.append(ce(`p`,false,false,`Данные выгружаются в CSV. Если они отобраются некорректно, воспользуйтесь кнопкой "импорт" (в excel) — или просто откройте файл через гуглодоки.`))
 
         let types = {
-            cowork:  `Коворкинг`,
+            cowork:     `Коворкинг`,
             schedule:   `Расписание`,
             users:      `Пользователи`
         }
@@ -198,14 +242,18 @@ function drawCoworkingShedule(records,start){
                     })
                         rec.append(ce(`span`,false,`info`,e.hallName))
                         
-                        load(`users`,e.user, false, downLoadedUsers).then(u=>
-                            rec.append(ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
+                        load(`users`,e.user, false, downLoadedUsers).then(u=>{
+                            let b = ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
                                 // onclick:()=> showUser(u,u.id)
                                 onclick:function(){
                                     showCoworkingOptions(e,u,this)
                                 }
-                            }))
-                        )
+                            });
+                            if(u.avatar_id) load(`images`,u.avatar_id).then(p=>{
+                                b.prepend(ce(`img`,false,[`avatar`,`xSmall`],false,{src:p.src}))
+                            })
+                            rec.append(b)
+                        })
                     day.append(rec)
                 })
             c.append(day)
@@ -496,6 +544,14 @@ function showCoworkingOptions(record, user, container){
     let c = modal()
         
         c.append(ce(`button`,false,[`dateButton`,`dark`],uname(user,user.id),{onclick:()=>showUser(false,user.id)}))
+
+        if(user.avatar_id) {
+            let picHolder = ce(`img`,false,[`avatar`,`small`])
+            c.prepend(picHolder);
+            load(`images`,user.avatar_id).then(a=>{
+                picHolder.src = a.src
+            })
+        }
 
         if(user.bonus && record.status != `used`) c.append(ce(`button`,false,buttonStyle,`Списать первое посещение`,{
             onclick:function(){
@@ -1363,7 +1419,7 @@ function showClass(cl, id) {
             }))
             mBox.append(ce(`button`,false,buttonStyle,`Рассылка по пользователям`,{
                 onclick:function(){
-                    let sure = confirm(`Стартуем по админам. Точно?`)
+                    let sure = confirm(`Стартуем по всем. Точно?`)
                     if(sure) {
                         this.remove();
                         axios.get(`/${host}/admin/alertClass/${cl.id}`)
@@ -2657,7 +2713,19 @@ function showUser(u, id) {
         
         let p = preparePopupWeb(`users_${u.id}`,false,false,true,logButton(`user`, u.id, `Лог по пользователю`))
         
-        p.append(ce('h1', false, false, `${uname(u,u.id)} (${u.language_code})`))
+        
+
+        let headline = ce(`div`,false,`flex`)
+        p.append(headline)
+        if(u.avatar_id){
+            let img = ce(`img`,false,`avatar`)
+            headline.append(img)
+            load(`images`,u.avatar_id).then(pic=>{
+                img.src = pic.src
+            })
+        }
+
+        headline.append(ce('h1', false, false, `${uname(u,u.id)} (${u.language_code})`))
         
         p.append(line(
             ce('p', false, false, `регистрация: ${drawDate(u.createdAt._seconds*1000)}`),

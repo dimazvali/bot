@@ -60,20 +60,19 @@ const {
 var RSS = require('rss');
 
 const { ObjectStreamToJSON } = require('sitemap');
-const { retail } = require('googleapis/build/src/apis/retail/index.js');
 
 
 
 let gcp = initializeApp({
     credential: cert({
-        "type": "service_account",
-        "project_id": "paperstuff-620fa",
-        "private_key_id": "c01abf8b7c2531fe0e33fae7955c1b3978ba8dc3",
-        "private_key": process.env.paperGCPkey.replace(/\\n/g, '\n'),
-        "client_email": "firebase-adminsdk-g7u75@paperstuff-620fa.iam.gserviceaccount.com",
-        "client_id": "117123513251467365122",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
+        "type":             "service_account",
+        "project_id":       "paperstuff-620fa",
+        "private_key_id":   "c01abf8b7c2531fe0e33fae7955c1b3978ba8dc3",
+        "private_key":      process.env.paperGCPkey.replace(/\\n/g, '\n'),
+        "client_email":     "firebase-adminsdk-g7u75@paperstuff-620fa.iam.gserviceaccount.com",
+        "client_id":        "117123513251467365122",
+        "auth_uri":         "https://accounts.google.com/o/oauth2/auth",
+        "token_uri":        "https://oauth2.googleapis.com/token",
         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-g7u75%40paperstuff-620fa.iam.gserviceaccount.com"
     }),
@@ -83,10 +82,8 @@ let gcp = initializeApp({
 let fb = getFirestore(gcp);
 
 
-let token =         process.env.papersToken
-let paymentToken =  process.env.papersPaymentToken
-
-
+let token =         process.env.papersToken;
+let paymentToken =  process.env.papersPaymentToken;
 
 let sheet = process.env.papersSheet
 
@@ -147,7 +144,7 @@ let standAlone =        fb.collection('standAlone');
 let invoices =          fb.collection('invoices');
 let deposits=           fb.collection('deposits');
 let settings=           fb.collection('settings');
-
+let books =             fb.collection('books');
 
 let userList = udb.get().then(col=>common.handleQuery(col))
 
@@ -163,6 +160,38 @@ eventTypes.get().then(col => {
         eTypes[m.en] = m
     })
 })
+
+function addBook(req,res,admin){
+    
+    let b = {
+        createdAt:  new Date(),
+        active:     true,
+        createdBy:  +admin.id,
+        name:       req.body.name   || null,
+        description:req.body.description || null,
+        pic:        req.body.pic    || null,
+        isbn:       req.body.isbn   || null,
+        lang:       req.body.lang   || `ru`,
+        author:     req.body.author || null,
+        price:      +req.body.price || null,
+        owner:      +req.body.owner || null,
+        year:       +req.body.year  || null,
+        state:      +req.body.state || null,
+        publisher:  req.body.publisher || null,
+    }
+
+    return books.add(b).then(rec=>{
+        
+        log({
+            text:   `${uname(admin,admin.id)} добавляет книгу ${b.name}.`,
+            book:   rec.id,
+            admin:  +admin.id,
+            silent: true
+        })
+
+        return res.redirect(`/paper/web?page=books_${rec.id}`)
+    })
+}
 
 router.post(`/invite`,(req,res)=>{
     if(!req.body.occupation)        return res.status(400).send(`occupation is missing`)
@@ -384,8 +413,10 @@ function alertWithdrawal(user, id, sum, reason) {
         deposit: FieldValue.increment(sum)
     }).then(() => {
         deposits.add({
-            createdAt: new Date(),
-            amount: sum
+            createdAt:      new Date(),
+            amount:         sum,
+            user:           +user.id || id,
+            description:    reason || null
         }).then(rec=>{
             log({
                 deposit: rec.id,
@@ -441,6 +472,34 @@ router.all(`/admin/:method`, (req, res) => {
             if (!(user.admin || user.insider)) return res.status(403).send(`Вам сюда нельзя`)
             switch (req.params.method) {
 
+                case `langs`:{
+                    return res.json([{
+                        id: `en`,
+                        name: `Английский`,
+                        active:true
+                    },{
+                        id: `ka`,
+                        name: `Грузинский`,
+                        active:true
+                    },{
+                        id: `ru`,
+                        name: `Русский`,
+                        active:true
+                    }])
+                }
+
+                case `bookState`:{
+                    return res.json([{
+                        id: `new`,
+                        name: `Новая`,
+                        active:true
+                    },{
+                        id: `user`,
+                        name: `Читаная`,
+                        active:true
+                    }])
+                }
+
                 case `userClassesQ`:{
                     let q = userClassesQ;
                     if(req.query.class){
@@ -460,6 +519,17 @@ router.all(`/admin/:method`, (req, res) => {
                         .then(col=>{
                             res.json(common.handleQuery(col))
                         })
+                }
+
+                case `books`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return books.get().then(col=>res.json(common.handleQuery(col)))
+                        }
+                        case `POST`:{
+                            return addBook(req,res,admin)
+                        }
+                    }
                 }
 
                 case `userSearch`:{
@@ -2184,6 +2254,16 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+
+                case `images`: {
+                    return axios.post(`https://api.telegram.org/bot${token}/getFile`, {
+                        file_id: req.params.id
+                    }).then(s => {
+                        res.json({
+                            src: `https://api.telegram.org/file/bot${token}/${s.data.result.file_path}`
+                        })
+                    })
+                }
                 
                 case `settings`:{
                     switch(req.method){
@@ -2227,6 +2307,24 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         }
                     })
                     
+                }
+
+                case `books`:{
+                    let ref = books.doc(req.params.id);
+                        return ref.get().then(p=>{
+                            
+                            if(!p.exists) return res.sendStatus(404)
+
+                            switch(req.method){
+                                case `DELETE`:{
+                                    return deleteEntity(req,res,ref,+admin.id)
+                                }
+                                case `PUT`:{
+                                    return updateEntity(req,res,ref,+admin.id)
+                                }
+                            }
+
+                        })   
                 }
 
                 case `plansUsers`:{
@@ -3310,11 +3408,13 @@ function sendTestApp(uid){
 if(process.env.develop){
     router.get('/test', (req, res) => {
         
-        sendTestApp(req.query.user||common.dimazvali)
+        // sendTestApp(req.query.user||common.dimazvali)
+
+        getAvatar(req.query.user).then(d=>res.json(d));
 
         // rcCheckBefore()
 
-        res.sendStatus(200)
+        // res.sendStatus(200)
     })
 }
 
@@ -4303,6 +4403,16 @@ function registerUser(u) {
                 ]
             }
         }, false, token, messages)
+
+        getAvatar(u.id).then(data=>{
+            if(data && data.ok && data.result.total_count){
+                let pic = data.result.photos[0].reverse()[0]
+                // devlog(`${i}: ${pic.file_id}`)
+                udb.doc(u.id.toString()).update({
+                    avatar_id: pic.file_id
+                })
+            }
+        })
 
         let d = u;
         d.intention = 'newUser'
@@ -7367,6 +7477,8 @@ router.post('/hook', (req, res) => {
                     createdAt:  new Date()
                 })
             }
+
+
 
             if (req.body.message.text && req.body.message.text.indexOf('/start promo') == 0) {
                 
@@ -10940,3 +11052,34 @@ function acceptTicket(ticketId,res){
 }
 
 module.exports = router;
+
+
+function getAvatar(id){
+    return axios.post('https://api.telegram.org/bot' + token + '/getUserProfilePhotos', {
+        user_id: id || common.dimazvali
+    }, {headers: {'Content-Type': 'application/json'}
+    }).then(d=>{
+        return d.data
+        console.log(d.data)
+    }).catch(err=>{
+        console.log(err)
+    })
+}
+
+// udb.where(`active`,'==',true).get().then(col=>{
+//     common.handleQuery(col).filter(u=>!u.avatar_id).forEach((u,i)=>{
+//         setTimeout(()=>{
+//             getAvatar(u.id).then(data=>{
+//                 if(data && data.ok && data.result.total_count){
+//                     let pic = data.result.photos[0].reverse()[0]
+//                     devlog(`${i}: ${pic.file_id}`)
+//                     udb.doc(u.id).update({
+//                         avatar_id: pic.file_id
+//                     })
+//                 }
+//             })
+//         },i*200)
+        
+//     })
+// })
+

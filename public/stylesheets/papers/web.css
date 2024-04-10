@@ -421,3 +421,29 @@ span.info.alert {
     flex-direction: row;
     /* max-width: 100vw; */
 }
+
+img.avatar {
+    max-width: 300px;
+    border-radius: 50%;
+}
+
+img.avatar.small{
+    max-width: 120px;
+    float: left;
+    margin-right: 30px;
+    transition: .5s;
+}
+
+img.avatar.small:hover {
+    position: absolute;
+    max-width: 450px;
+    z-index: 100;
+    transform: translate(-30%, -30%);
+}
+
+img.avatar.xSmall {
+    width: 20px;
+    margin-bottom: -5px;
+    margin-left: -8px;
+    margin-right: 7px;
+}
