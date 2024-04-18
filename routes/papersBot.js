@@ -7542,7 +7542,7 @@ router.post('/hook', (req, res) => {
                 })
             }
 
-            if (req.body.message.text && req.body.message.text.indexOf('/start mr') == 0) {
+            if (req.body.message.text && req.body.message.text.indexOf('/start randomcoffee') == 0) {
                 udb.doc(user.id.toString()).update({
                     randomCoffee: true
                 }).then(()=>{
