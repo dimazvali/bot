@@ -7549,7 +7549,7 @@ router.post('/hook', (req, res) => {
                     log({
                         silent: true,
                         user: user.id,
-                        text: `${uname(u.data(),u.id)} включает randomCoffee`,
+                        text: `${uname(user,user.id)} включает randomCoffee`,
                     })
                     m.sendMessage2({
                         chat_id: user.id,
@@ -10651,7 +10651,7 @@ function bookMR(date, time, userid, callback, res) {
 
 function rcCheckBefore(){
     udb
-        .where(`randomCoffee`,'==',true)
+        .where(`randomCof   fee`,'==',true)
         .where(`active`,'==',true)
         .get()
         .then(col=>{
