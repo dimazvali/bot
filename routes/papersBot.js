@@ -1,6 +1,9 @@
 let ngrok2 = "https://a751-109-172-156-240.ngrok-free.app" 
 let ngrok = process.env.ngrok 
+// let ngrok = `https://62a2-87-253-45-124.ngrok-free.app`
 
+
+// https://62a2-87-253-45-124.ngrok-free.app/papers/app?startapp=class_2wXcJffTfce457jZxgTm
 let coworkingPrice = 30;
 
 var express =   require('express');
@@ -92,6 +95,11 @@ setTimeout(function(){
         console.log(`papers hook set on ${ngrok}`)
     }).catch(handleError)   
 },1000)
+
+function handleError(err,res) {
+    console.log(err);
+    if(res) res.status(500).send(err.message)
+}
 
 
 let rules = {
@@ -1132,6 +1140,7 @@ router.all(`/admin/:method`, (req, res) => {
                 }
                 case `news`: {
                     switch (req.method){
+                        
                         case `GET`:{
                             return news.orderBy('createdAt', 'DESC').get().then(col => {
                                 res.json(common.handleQuery(col))
@@ -1139,6 +1148,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 res.status(500).send(err.message)
                             })
                         }
+
                         case `POST`:{
                             if(!req.body.name || !req.body.text) return res.sendStatus(400)
                             
@@ -1152,7 +1162,9 @@ router.all(`/admin/:method`, (req, res) => {
     
                             return q.get()
                                 .then(col=>{
+                                    
                                     devlog(common.handleQuery(col).length)
+                                    
                                     news.add({
                                         createdAt:  new Date(),
                                         createdBy:  +admin.id,
@@ -1183,15 +1195,15 @@ router.all(`/admin/:method`, (req, res) => {
                                                         chat_id:    u.user || u.id,
                                                         text:       req.body.text,
                                                         parse_mode: `HTML`,
-                                                        protect_content: req.body.safe?true:false,
-                                                        disable_notification: req.body.silent?true:false,
+                                                        protect_content:        req.body.safe?true:false,
+                                                        disable_notification:   req.body.silent?true:false,
                                                     },false,token,messages)
                                                 } else if(req.body.media && req.body.media.length == 1) {
                                                     m.sendMessage2({
-                                                        chat_id:    u.user || u.id,
-                                                        caption:       req.body.text,
-                                                        parse_mode: `HTML`,
-                                                        photo: req.body.media[0],
+                                                        chat_id:        u.user || u.id,
+                                                        caption:        req.body.text,
+                                                        parse_mode:     `HTML`,
+                                                        photo:          req.body.media[0],
                                                         protect_content: req.body.safe?true:false,
                                                         disable_notification: req.body.silent?true:false,
                                                     },`sendPhoto`,token,messages)
@@ -1202,9 +1214,9 @@ router.all(`/admin/:method`, (req, res) => {
                                                         parse_mode:     `HTML`,
                                                         media:          req.body.media.map((p,i)=>{
                                                             return {
-                                                                type: `photo`,
-                                                                media: p,
-                                                                caption: i?'':req.body.text
+                                                                type:       `photo`,
+                                                                media:      p,
+                                                                caption:    i?'':req.body.text
                                                             }
                                                         }),
                                                         protect_content: req.body.safe?true:false,
@@ -1283,13 +1295,13 @@ router.all(`/admin/:method`, (req, res) => {
                             switch (req.method) {
                                 case 'GET': {
     
-    
-    
                                     m.getUser(d.user, udb).then(user => {
                                         d.user = user;
+                                        
                                         if (user.blocked) {
                                             d.alert = `Этот человек в черном списке!!!`
                                         }
+
                                         halls.doc(d.hall).get().then(h => {
                                             d.hall = h.data()
     
@@ -1315,7 +1327,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                         common.devlog(`подписка есть`)
     
                                                         res.json({
-                                                            alert: `Гость  на подписке (у него еще ${plan.visitsLeft} посещений)`,
+                                                            alert: `Гость на подписке (у него еще ${plan.visitsLeft} посещений)`,
                                                             data: d
                                                         })
     
@@ -2190,7 +2202,11 @@ function updateEntity(req, res, ref, adminId,callback) {
     })
 }
 
-function sendClass(h,u){
+function classDescription(h, lang, newsId){
+    return `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`
+}
+
+function sendClass(h,u,newsId){
     
     let lang = u.language_code
 
@@ -2212,7 +2228,7 @@ function sendClass(h,u){
 
     let message = {
         chat_id: u.id,
-        text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+        text: classDescription(h,lang),
         parse_mode: 'HTML',
         reply_markup: {
             inline_keyboard: kbd
@@ -2224,7 +2240,7 @@ function sendClass(h,u){
         message.photo = h.pic
         // delete message.text
     }
-    m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
+    m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token, messages,newsId?{news:newsId}:false)
 }
 
 function alertPlanDisposal(s){
@@ -2254,6 +2270,10 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+
+                case `usersNews`:{
+                    return messages.where(`news`,'==',req.params.id).get().then(col=>res.json(common.handleQuery(col,true)))
+                }
 
                 case `images`: {
                     return axios.post(`https://api.telegram.org/bot${token}/getFile`, {
@@ -2419,25 +2439,57 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         if(!cl || !cl.active) return res.sendStatus(404)
 
                         if(req.query.self){
+                            
                             getDoc(udb,admin.id).then(u=>{
+                                
                                 sendClass(cl,u)
+                                
                                 res.json({
                                     success: true,
                                     comment: `Го в тележку`
                                 })
                             })
+
                         } else if(req.query.admins){
                             udb
                                 .where(`admin`,'==',true)
                                 .where(`active`,'==',true)
                                 .get()
                                 .then(col=>{
-                                    common.handleQuery(col).forEach(u=>{
-                                        sendClass(cl,u)
-                                    })
-                                    res.json({
-                                        success: true,
-                                        comment: `Рассылка уходит на ${letterize(col.docs.length,'юзер')}.`
+                                    // common.handleQuery(col).forEach(u=>{
+                                    //     sendClass(cl,u)
+                                    // })
+                                    // res.json({
+                                    //     success: true,
+                                    //     comment: `Рассылка уходит на ${letterize(col.docs.length,'юзер')}.`
+                                    // })
+                                    
+                                    let line = common.handleQuery(col)
+                                    
+
+                                    news.add({
+                                        audience:   line.length,
+                                        createdAt:  new Date(),
+                                        createdBy:  +admin.id,
+                                        name:       `Рассылка по админам по лекции ${cl.name}`,
+                                        text:       classDescription(cl,`ru`)
+                                    }).then(newsRef=>{
+                                        line.forEach((u,i)=>{
+                                            setTimeout(()=>{
+                                                sendClass(cl,u,newsRef.id)
+                                            },i*200)
+                                        })
+                                        
+                                        res.json({
+                                            success: true,
+                                            comment: `Рассылка уходит на ${letterize(line.length,'юзер')}.`
+                                        })
+    
+                                        log({
+                                            admin: +admin.id,
+                                            text: `${uname(admin,admin.id)} стартует админскую рассылку по лекции ${cl.name}. Аудитория: ${line.length}.`,
+                                            class: cl.id
+                                        })    
                                     })
                                 })
                         } else {
@@ -2448,20 +2500,33 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                             users
                                 .get()
                                 .then(col=>{
+                                    
                                     let line = common.handleQuery(col).filter(u=>!u.noSpam)
-                                    line.forEach((u,i)=>{
-                                        setTimeout(()=>{
-                                            sendClass(cl,u)
-                                        },i*200)
-                                    })
-                                    res.json({
-                                        success: true,
-                                        comment: `Рассылка уходит на ${letterize(line.length,'юзер')}.`
-                                    })
-                                    log({
-                                        admin: +admin.id,
-                                        text: `${uname(admin,admin.id)} стартует рассылку по лекции ${cl.name}. Аудитория: ${line.length}.`,
-                                        class: cl.id
+                                    
+
+                                    news.add({
+                                        audience:   line.length,
+                                        createdAt:  new Date(),
+                                        createdBy:  +admin.id,
+                                        name:       `Рассылка по лекции ${cl.name}`,
+                                        text:       classDescription(cl,`ru`)
+                                    }).then(newsRef=>{
+                                        line.forEach((u,i)=>{
+                                            setTimeout(()=>{
+                                                sendClass(cl,u,newsRef.id)
+                                            },i*200)
+                                        })
+                                        
+                                        res.json({
+                                            success: true,
+                                            comment: `Рассылка уходит на ${letterize(line.length,'юзер')}.`
+                                        })
+    
+                                        log({
+                                            admin: +admin.id,
+                                            text: `${uname(admin,admin.id)} стартует рассылку по лекции ${cl.name}. Аудитория: ${line.length}.`,
+                                            class: cl.id
+                                        })    
                                     })
                                 })
                         }
@@ -3119,54 +3184,54 @@ function alertNewClassesOffers(){
 }
 
 
-// if(!process.env.develop){
-//     cron.schedule(`55,25 * * * *`, () => {
-//         alertSoonMR()
-//     })
+if(!process.env.develop){
+    cron.schedule(`55,25 * * * *`, () => {
+        alertSoonMR()
+    })
     
     
-//     cron.schedule(`0 5 * * *`, () => {
-//         alertSoonCoworking()
-//         alertAdminsCoworking()
-//         countUserEntries(1)
-//         nowShow()
-//         updatePlans()
-//         common.getNewUsers(udb,1).then(newcomers=>{
-//             log({
-//                 text: `Новых пользователей за сутки: ${newcomers}`
-//             })
-//         })
-//     })
+    cron.schedule(`0 5 * * *`, () => {
+        alertSoonCoworking()
+        alertAdminsCoworking()
+        countUserEntries(1)
+        nowShow()
+        updatePlans()
+        common.getNewUsers(udb,1).then(newcomers=>{
+            log({
+                text: `Новых пользователей за сутки: ${newcomers}`
+            })
+        })
+    })
 
-//     cron.schedule(`0 5 * * 1`,()=>{
-//         alertMiniStats(7)
-//         common.getNewUsers(udb,7).then(newcomers=>{
-//             log({
-//                 text: `Новых пользователей за неделю: ${newcomers}`
-//             })
-//         })
-//     })
+    cron.schedule(`0 5 * * 1`,()=>{
+        alertMiniStats(7)
+        common.getNewUsers(udb,7).then(newcomers=>{
+            log({
+                text: `Новых пользователей за неделю: ${newcomers}`
+            })
+        })
+    })
     
-//     cron.schedule(`0 11 * * *`, () => {
-//         alertSoonClasses()
-//     })
+    cron.schedule(`0 11 * * *`, () => {
+        alertSoonClasses()
+    })
 
-//     cron.schedule(`0 19 * * *`, () => {
-//         feedBackTimer()
-//     })
+    cron.schedule(`0 19 * * *`, () => {
+        feedBackTimer()
+    })
 
-//     cron.schedule(`0 15 * * *`, () => {
-//         requestCoworkingFeedback()
-//     })
+    cron.schedule(`0 15 * * *`, () => {
+        requestCoworkingFeedback()
+    })
     
-//     cron.schedule(`0 5 1 * *`, () => {
-//         common.getNewUsers(udb,30).then(newcomers=>{
-//             log({
-//                 text: `Новых пользователей за месяц: ${newcomers}`
-//             })
-//         })
-//     })
-// }
+    cron.schedule(`0 5 1 * *`, () => {
+        common.getNewUsers(udb,30).then(newcomers=>{
+            log({
+                text: `Новых пользователей за месяц: ${newcomers}`
+            })
+        })
+    })
+}
 
 function updatePlans(){
     plansUsers
@@ -3330,16 +3395,16 @@ router.get(`/`,(req,res)=>{
 
 let siteSectionsTypes = {
     classes:{
-        title: `Афиша`,
-        data: classes,
+        title:  `Афиша`,
+        data:   classes,
     },
     authors:{
-        title: `Резиденты`,
-        data: authors
+        title:  `Резиденты`,
+        data:   authors
     },
     halls:{
-        title: `Коворкинг`,
-        data: halls
+        title:  `Коворкинг`,
+        data:   halls
     }
 }
 
@@ -3406,11 +3471,22 @@ function sendTestApp(uid){
 }
 
 if(process.env.develop){
+
+
+    
     router.get('/test', (req, res) => {
+
         
+        m.sendMessage2({
+            chat_id: 6168772688,
+            text: `тест`
+        },false,token)
+        // books.get().then(col=>res.json(common.handleQuery(col)))
+        
+
         // sendTestApp(req.query.user||common.dimazvali)
 
-        getAvatar(req.query.user).then(d=>res.json(d));
+        // getAvatar(req.query.user).then(d=>res.json(d));
 
         // rcCheckBefore()
 
@@ -3805,7 +3881,7 @@ function bookClass(user, classId, res, id) {
                                                                 // ]
                                                             }
                                                         }, 'sendPhoto', token, messages).then(data => {
-                                                            m.sendMessage2({
+                                                            if(data && data.result) m.sendMessage2({
                                                                 chat_id: user.id,
                                                                 message_id: data.result.message_id
                                                             }, 'pinChatMessage', token)
@@ -5369,9 +5445,7 @@ router.post(`/news`, (req, res) => {
         } else {
             res.sendStatus(403)
         }
-
     })
-
 })
 
 function isAdmin(id) {
@@ -5392,7 +5466,6 @@ function checkUser(id) {
         alertAdmins({
             text: `ошибка проверки пользователя: ${err.message}`
         })
-
         return false;
 
     })
@@ -5575,7 +5648,7 @@ router.get('/alertClass/:class', (req, res) => {
             let users = common.handleQuery(col)
 
             users.forEach(u => {
-                console.log(u.id)
+                
                 if (!u.noSpam) {
 
                     lang = u.language_code
@@ -5610,10 +5683,9 @@ router.get('/alertClass/:class', (req, res) => {
                     if (h.pic) {
                         message.caption = message.text.slice(0, 1000)
                         message.photo = h.pic
-                        // delete message.text
                     }
-                    // if(u.admin ) 
-                    m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token)
+
+                    m.sendMessage2(message, (h.pic ? 'sendPhoto' : false), token, messages)
                 }
             })
         })
@@ -7458,7 +7530,7 @@ router.post('/hook', (req, res) => {
 
             if (!u.exists) registerUser(user)
 
-            if( u.data() && !u.data().active){
+            if(u.data() && !u.data().active){
                 udb.doc(user.id.toString()).update({
                     active: true,
                     stopped: null
@@ -7468,6 +7540,30 @@ router.post('/hook', (req, res) => {
                         user: +user.id
                     })  
                 })
+            }
+
+            if (req.body.message.text && req.body.message.text.indexOf('/start mr') == 0) {
+                udb.doc(user.id.toString()).update({
+                    randomCoffee: true
+                }).then(()=>{
+                    log({
+                        silent: true,
+                        user: user.id,
+                        text: `${uname(u.data(),u.id)} включает randomCoffee`,
+                    })
+                    m.sendMessage2({
+                        chat_id: user.id,
+                        text: `${common.greeting()}! Вы включились в random coffee. Дело за малым: оформить профиль. Пожалуйста, укажите свою сферу деятельности и напишите пару слов о себе:`,
+                        reply_markup:{
+                            inline_keyboard:[[{
+                                text: `Заполнить профиль`,
+                                url: `https://t.me/paperstuffbot/app?startapp=profile`
+                            }]]
+                        }
+                    },false,token,messages)
+                    
+                })
+
             }
 
             if (req.body.message.text && req.body.message.text.indexOf('/start campaign') == 0) {
@@ -10551,14 +10647,7 @@ function bookMR(date, time, userid, callback, res) {
 }
 
 
-function handleError(err) {
-    console.log(err);
-    try {
-        res.status(500).send(err.message)
-    } catch (err) {
 
-    }
-}
 
 function rcCheckBefore(){
     udb
@@ -10586,8 +10675,8 @@ function rcCheckBefore(){
                 devlog(`${uname(user,user.id)}: ${issues.length? issues.join(', ') :`готов`}`)
 
                 setTimeout(()=>{
-                    // let txt = `Привет! Через пару часов мы запустим очередную серию встреч в формате random coffee. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас».${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
-                    let txt = `Привет еще раз! У нас произошел небольшой технический сбой. Если вы не готовы участвовать в random coffee на этой неделе, пожалуйста, нажмите кнопку «Пас» еще раз. Через час мы запустим очередную серию встреч между подписчиками бота.`
+                    let txt = `Привет! Через пару часов мы запустим очередную серию встреч в формате random coffee. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас».${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
+                    // let txt = `Привет еще раз! У нас произошел небольшой технический сбой. Если вы не готовы участвовать в random coffee на этой неделе, пожалуйста, нажмите кнопку «Пас» еще раз. Через час мы запустим очередную серию встреч между подписчиками бота.`
                     let keyBoard = [[{
                         text:           `Пас`,
                         callback_data:  `random_pass`

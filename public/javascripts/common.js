@@ -13,13 +13,14 @@ function line(tag, values,cb) {
     return l
 }
 
-function selector(col,placeholder){
+function selector(col,placeholder,id){
     let s = ce('select')
         s.append(ce('option',false,false,placeholder||`выберите`,{value:''}))
     load(col).then(options=>{
         options.filter(o=>o.active).forEach(o=>{
             s.append(ce(`option`,false,false,o.name,{
-                value: o.id
+                value: o.id,
+                selected: o.id == id
             }))
         })
     })
@@ -568,8 +569,20 @@ function viewScreen(collection,id,fields){
     })
 }
 
+
+function cutMe(txt, limit) {
+    let t = txt.split('. ')
+    let r = t[0];
+    let i = 1
+    while ((r + '. ' + t[i]).length < limit && i <= t.length) {
+        r = r + '. ' + t[i]
+        i++
+    }
+    return r
+}
+
 function addScreen(collection,name,o){
-    let p = preparePopupWeb(`${collection}_new`)
+    let p = preparePopupWeb(`${collection}_new`,false,false,true)
     
     p.append(ce('h1', false, false, name))
 
@@ -582,7 +595,59 @@ function addScreen(collection,name,o){
 
     Object.keys(o).forEach(k=>{
         let input = o[k]
-        if(!input.hasOwnProperty(`selector`)){
+        
+        if(input.type == `file`){
+            let c = ce(`div`)
+                c.append(ce(`p`,false,`info`,`Прикрепите файл с обложкой.`))
+                c.append(ce(`input`,false,false,false,{
+                    type:   `file`,
+                    accept: `image/png, image/jpeg`,
+                    name:   `cover`
+                }))
+            f.append(c)
+        } else if(input.line){
+            let l = ce(input.tag||`p`,input.id||false,input.class||false,input.text||false,{
+                onclick: input.callback ? input.callback : null
+            })
+            f.append(l)
+        } else if(input.selector){
+            let s = selector(input.selector,input.placeholder,input.id)
+            s.name = k;
+            f.append(s)
+        } else if(input.datalist){
+            load(input.datalist).then(col=>{
+                let inp = ce(`select`,false,false,false,{
+                    placeholder: input.placeholder||`выберите вариант...`,
+                    list: `${k}_list`,
+                    name: k
+                })
+                let datalist = ce(`datalist`,`${k}_list`)
+                col.forEach(el=>{
+                    datalist.append(ce(`option`,false,false,el.name,{
+                        value: el.id
+                    }))
+                })
+                inp.setAttribute(`list`,`${k}_list`)
+                f.append(inp)
+                f.append(datalist)
+
+                    
+            })
+            // let s = selector(input.selector,input.placeholder,input.id)
+            // s.name = k;
+            
+        } else if(input.bool){
+            let c = ce(`div`)
+            let yes = ce('label',false,false,input.placeholder)
+            yes.append(ce(`input`,false,false,false,{
+                checked: false,
+                type: `checkbox`,
+                name: k,
+                value: true
+            }))
+            c.append(yes)
+            f.append(c)
+        } else {
             let el = ce(input.tag||`input`,false,false,false,{
                 placeholder:    input.placeholder || null,
                 type:           input.type || `text`,
@@ -592,10 +657,6 @@ function addScreen(collection,name,o){
                 el[t] = input[t]
             })
             f.append(el)
-        } else {
-            let s = selector(input.selector,input.placeholder)
-            s.name = k;
-            f.append(s)
         }
         
     })
@@ -625,7 +686,9 @@ function showScreen(name, collection, line, addButton, sort, help,cl){
         if(help){
             load(`settings`,collection).then(d=>{
                 if(d.help){
+                    
                     h.classList.add(`infoBubble`)
+
                     h.onclick = () => showHelp(d.help,name)
                 } else {
                     h.onclick = () => showHelp(d.help,name)
@@ -942,6 +1005,21 @@ function line(){
     }
     
     return c
+}
+
+
+function detailsContainer(e){
+    let details = ce(`div`,false,[`details`,`flex`])
+        details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000,false,{time:true})))
+        if(e.edited) details.append(ce('span',false,`info`,`отредактировано ${drawDate(e.edited._seconds*1000)}`))
+        if(e.deleted) details.append(ce('span',false,`info`,`удалено ${drawDate(e.deleted._seconds*1000)}`))
+        details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
+        if(e.createdBy && Number(e.createdBy)) load(`users`,e.createdBy, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
+        if(e.by && Number(e.by)) load(`users`,e.by, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,uname(author.user ? author.user : author, author.id))))
+        if(e.user && Number(e.user)) load(`users`,e.user, false, downLoadedUsers ? downLoadedUsers : false).then(author=>details.append(ce('span',false,`info`,`кому: ${uname(author.user ? author.user : author, author.id)}`,{onclick:()=>showUser(false,e.user)})))
+        if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
+    
+    return details;
 }
 
 function listContainer(e,detailed,extra,dataset,alerts){

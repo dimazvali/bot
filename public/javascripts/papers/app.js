@@ -1336,7 +1336,6 @@ function drawLecturePopup(c){
 function drawLecture(c){
     let cl = ce('div',false,'class')
 
-
         // cl.append(ce('h3',false,false,`${new Date(c.date._seconds*1000).toLocaleDateString('ru-RU',{day: '2-digit',month: '2-digit'})} / ${new Date(c.date._seconds*1000).toLocaleTimeString('ru-RU', {timeZone: 'Asia/Tbilisi',hour: '2-digit', minute:'2-digit'})}`))
         
         cl.append(ce('h3',false,false,`${drawDate(c.date,userLang)} / ${new Date(c.date).toLocaleTimeString('ru-RU', {timeZone: 'Asia/Tbilisi',hour: '2-digit', minute:'2-digit'})}`))
@@ -1345,7 +1344,7 @@ function drawLecture(c){
         
         if(c.subTitle) cl.append(ce('h4',false,false,`${c.subTitle}`))
         
-        cl.append(ce('h5',false,false,`${c.author}`))
+        if(c.authorName || c.author) cl.append(ce('h5',false,false,`${c.authorName || c.author}`))
         
         cl.onclick = () => drawLecturePopup(c)
         

@@ -50,11 +50,12 @@ function showNewsNews(id){
         let users = ce('div')
         p.append(users)
 
-        users.append(ce('button',false,[`dateButton`,`dark`],`показать всех получаетей`,{
+        users.append(ce('button',false,[`dateButton`,`dark`],`показать всех получателей`,{
             onclick:()=>{
                 load(`usersNews`,id).then(sends=>{
                     sends.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds).forEach((s,i)=>{
-                        let c = ce('div',false,`sDivided`)
+                        let c = ce('div',`message_${s.id}`,`sDivided`)
+                        
                         users.append(c);
 
                         c.append(ce(
@@ -66,7 +67,7 @@ function showNewsNews(id){
 
                         c.append(ce(`p`,false,false,s.user))
 
-                        load(`users`,s.user).then(u=>{
+                        load(`users`,s.user,downLoadedUsers).then(u=>{
                             c.append(ce('a',false,false,uname(u,u.id),{
                                 href: '#',
                                 onclick:()=>showUser(false,u.id)
@@ -74,9 +75,31 @@ function showNewsNews(id){
                         })
                         
                     })
+
+                    if((+new Date() - +new Date(n.createdAt._seconds*1000)) < 2*24*60*60*1000){
+                        users.append(ce(`button`,false,[`dateButton`,`dark`,`active`],`Удалить сообщение`,{
+                            onclick:function(){
+                                let sure = confirm(`Сообщение будет удалено у всех доступных адресатов. Уверены?`)
+                                if(sure) {
+                                    sends.forEach((m,i)=>{
+                                        setTimeout(()=>{
+                                            axios.delete(`/${host}/admin/messages/${m.id}`).then(()=>{
+                                                document.querySelector(`#message_${m.id}`).dataset.active = false;
+                                            }).catch(err=>{
+                                                alert(err.message)
+                                            })
+                                        },i*200)
+                                    })
+                                }
+                            }
+                        }))
+                    }
                 })
             }
         }))
+
+        
+        
 
 
     })
