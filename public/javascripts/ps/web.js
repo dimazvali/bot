@@ -1141,7 +1141,7 @@ function showNewsNews(id){
         let users = ce('div')
         p.append(users)
 
-        users.append(ce('button',false,[`dateButton`,`dark`],`показать всех получаетей`,{
+        users.append(ce('button',false,[`dateButton`,`dark`],`показать всех получателей`,{
             onclick:()=>{
                 load(`usersNews`,id).then(sends=>{
                     sends.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds).forEach((s,i)=>{

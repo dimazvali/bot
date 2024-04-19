@@ -589,6 +589,7 @@ function addScreen(collection,name,o){
     let f = ce(`form`,false,false,false,{
         action: `${host ? `/${host}` : ``}/admin/${collection}`,
         method: `post`,
+        enctype:`multipart/form-data`
     })
     
     p.append(f)
@@ -602,7 +603,8 @@ function addScreen(collection,name,o){
                 c.append(ce(`input`,false,false,false,{
                     type:   `file`,
                     accept: `image/png, image/jpeg`,
-                    name:   `cover`
+                    name:   `cover`,
+                    required: input.required
                 }))
             f.append(c)
         } else if(input.line){
@@ -613,13 +615,15 @@ function addScreen(collection,name,o){
         } else if(input.selector){
             let s = selector(input.selector,input.placeholder,input.id)
             s.name = k;
+            s.required= input.required
             f.append(s)
         } else if(input.datalist){
             load(input.datalist).then(col=>{
                 let inp = ce(`select`,false,false,false,{
                     placeholder: input.placeholder||`выберите вариант...`,
                     list: `${k}_list`,
-                    name: k
+                    name: k,
+                    required: input.required
                 })
                 let datalist = ce(`datalist`,`${k}_list`)
                 col.forEach(el=>{
@@ -651,7 +655,8 @@ function addScreen(collection,name,o){
             let el = ce(input.tag||`input`,false,false,false,{
                 placeholder:    input.placeholder || null,
                 type:           input.type || `text`,
-                name:           k
+                name:           k,
+                required:       input.required
             })
             Object.keys(input).forEach(t=>{
                 el[t] = input[t]
@@ -1005,6 +1010,15 @@ function line(){
     }
     
     return c
+}
+
+function toast(text){
+    let c = ce(`div`,false,`toast`)
+        c.append(ce(`p`,false,false,text))
+    document.body.append(c)
+    setTimeout(()=>{
+        c.remove()
+    },5000)
 }
 
 

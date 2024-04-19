@@ -38,6 +38,14 @@ var sudden = {
     },
 }
 
+function objectify(array){
+    let o = {};
+    array.filter(i=>i.id).forEach(i=>{
+        o[i.id] = i
+    })
+    return o;
+}
+
 function shuffle(array) {
     let currentIndex = array.length,  randomIndex;
     // While there remain elements to shuffle.
@@ -530,6 +538,6 @@ function handleError(err,res){
 
 
 module.exports = {
-    clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
+    objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
 };
 

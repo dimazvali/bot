@@ -1,0 +1,23 @@
+body.mobile {
+    background: white;
+}
+
+h1,h2 {
+    color: var(--dark) !important;
+}
+
+body.light {
+    background: var(--light);
+    color: var(--dark) !important;
+}
+
+body.light>#content>h1, body.light>#content>h2 {
+    color: var(--dark) !important;
+}
+
+form>input,form>select {
+    width: 100%;
+    line-height: 40px !important;
+    height: 40px;
+    background: var(--light);
+}

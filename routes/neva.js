@@ -325,6 +325,7 @@ function updateEntity(req,res,ref,admin){
                 success: true
             })
             log({
+                silent: true,
                 admin: +admin.id,
                 [req.params.method]: req.params.id,
                 text: `Обновлен ${req.params.method} / ${d.name || req.params.id}.\n${req.body.attr} стало ${req.body.value} (было ${d[req.body.attr || null]})`
@@ -489,6 +490,7 @@ router.post(`/hook`,(req,res)=>{
 
 router.all(`/admin/:method/:id`,(req,res)=>{
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
+    
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
         
         if (!doc.exists) return res.sendStatus(403)

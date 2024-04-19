@@ -9070,11 +9070,6 @@ router.get(`/api/:type`, (req, res) => {
                         })
                         
                     })
-
-
-
-
-
                 })
             })
             break;

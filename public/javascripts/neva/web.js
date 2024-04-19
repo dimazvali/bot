@@ -305,6 +305,14 @@ function showProgram(id){
             details.append(ce('span',false,`info`,`выпусков ${p.shows||0}`))
         c.append(details)
 
+        if(p.pic) c.append(ce(`img`,false,`cover`,false,{src:p.pic}))
+
+        c.append(ce(`p`,false,`editable`,p.pic||`задать картинку`,{
+            onclick:function(){
+                edit(`programs`,id,`pic`,`text`,p.pic||null,this)
+            }
+        }))
+
         c.append(ce(`h1`,false,`editable`,p.name,{
             onclick:function(){
                 edit(`programs`,id,`name`,`text`,p.name,this)

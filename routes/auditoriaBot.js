@@ -249,45 +249,45 @@ let userTags =          fb.collection(`usertags`)
 let standAlone =        fb.collection('standAlone');
 let stages =            fb.collection('stages');
 
-if (!process.env.develop) {
+// if (!process.env.develop) {
 
-    cron.schedule(`0 10 * * *`, () => {
-        refreshMenu()
-        common.getNewUsers(udb, 1).then(newcomers => {
-            if (newcomers.length) {
-                log({
-                    text: `Новых пользователей за сутки: ${newcomers}`
-                })
-            }
-        })
-        checkChannel()
+//     cron.schedule(`0 10 * * *`, () => {
+//         refreshMenu()
+//         common.getNewUsers(udb, 1).then(newcomers => {
+//             if (newcomers.length) {
+//                 log({
+//                     text: `Новых пользователей за сутки: ${newcomers}`
+//                 })
+//             }
+//         })
+//         checkChannel()
 
-    })
+//     })
 
-    cron.schedule(`0 11 * * 1`, () => {
-        if (newcomers.length) common.getNewUsers(udb, 7).then(newcomers => {
-            log({
-                text: `Новых пользователей за неделю: ${newcomers}`
-            })
-        })
-    })
+//     cron.schedule(`0 11 * * 1`, () => {
+//         if (newcomers.length) common.getNewUsers(udb, 7).then(newcomers => {
+//             log({
+//                 text: `Новых пользователей за неделю: ${newcomers}`
+//             })
+//         })
+//     })
 
-    cron.schedule(`0 11 1 * *`, () => {
-        if (newcomers.length) common.getNewUsers(udb, 7).then(newcomers => {
-            log({
-                text: `Новых пользователей за месяц: ${newcomers}`
-            })
-        })
-    })
+//     cron.schedule(`0 11 1 * *`, () => {
+//         if (newcomers.length) common.getNewUsers(udb, 7).then(newcomers => {
+//             log({
+//                 text: `Новых пользователей за месяц: ${newcomers}`
+//             })
+//         })
+//     })
 
-    cron.schedule(`0 9 * * *`, () => {
-        alertSoonCoworking()
-    })
+//     cron.schedule(`0 9 * * *`, () => {
+//         alertSoonCoworking()
+//     })
 
-    cron.schedule(`0 15 * * *`, () => {
-        alertSoonClasses()
-    })
-}
+//     cron.schedule(`0 15 * * *`, () => {
+//         alertSoonClasses()
+//     })
+// }
 
 router.get('/app', (req, res) => {
     res.render('auditoria/app', {

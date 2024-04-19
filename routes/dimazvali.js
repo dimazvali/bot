@@ -74,20 +74,21 @@ let gcp = initializeApp({
 let fb = getFirestore(gcp);
 let s = getStorage(gcp)
 
-s.bucket(`default`)
-    .upload(__dirname + `/../public/sounds/123.mp3`)
-    .then(s=>{
-        console.log(s)
-    })
-    .catch(err=>{
-        console.log(err)
-    })
+// s.bucket(`dimazvalimisc`)
+//     .upload(__dirname + `/../public/sounds/123.mp3`)
+//     .then(s=>{
+//         console.log(s)
+//     })
+//     .catch(err=>{
+//         console.log(err)
+//     })
 
 setTimeout(function(){
     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/dimazvali/hook`).then(()=>{
         console.log(`dimazvali hook set on ${ngrok}`)
     }).catch(handleError)   
 },1000)
+
 
 let adminTokens =               fb.collection('DIMAZVALIadminTokens');
 let pages =                     fb.collection('DIMAZVALIpages');
@@ -657,10 +658,6 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         })
                 }
 
-                
-
-                
-
                 default:{
                     
                     if(!datatypes[req.params.method])  return res.sendStatus(404)
@@ -681,7 +678,9 @@ router.all(`/admin/:method/:id`,(req,res)=>{
 })
 
 router.all(`/admin/:method`,(req,res)=>{
+    
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
+
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
         
         if (!doc.exists) return res.sendStatus(403)
@@ -1085,6 +1084,7 @@ router.get(`/web`,(req,res)=>{
         .get()
         .then(data=>{
             if(!data.exists) return res.sendStatus(403)
+            
             if(data.data().active){
                 logs
                     .orderBy(`createdAt`,'desc')

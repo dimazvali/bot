@@ -68,6 +68,7 @@ app.use('/test',        require('./routes/test'));
 app.use('/cyprus',      require('./routes/cyprus'));
 app.use('/ps',          require('./routes/psBot'));
 app.use('/vz',          require('./routes/vzBot'));
+app.use('/books',       require('./routes/booksBot'));
 
 
 // catch 404 and forward to error handler
