@@ -259,6 +259,14 @@ function showOfferLine(b){
         return c;
 }
 
+function showDealLine(d){
+    let c = listContainer(d,true,{price:d.price},false,checkMissing(`deal`,d))
+        c.onclick = () => showDeal(d.id)
+        c.append(ce(`h3`,false,false,d.bookName))
+        c.append(ce(`p`,false,false,d.type))
+    return c;
+}
+
 
 function closeLeft() {
     document.querySelector(`#left`).classList.remove('active')
@@ -402,4 +410,8 @@ function showUserOffers(){
 
 function uploadFile(file){
     axios.post(`/${host}/upload`,file)
+}
+
+function showUserDeals(){
+    showScreen(`Сделки`, `dealsByUser`,showDealLine,false,false,true)
 }

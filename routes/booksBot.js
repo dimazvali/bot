@@ -52,6 +52,7 @@ const {
     handleQuery,
     handleDoc,
     sudden,
+    cutMe,
 } = require ('./common.js')
 
 const {
@@ -134,6 +135,10 @@ let logs =              fb.collection(`${host}Logs`);
 let cities =            fb.collection(`${host}Cities`);
 let shops =             fb.collection(`${host}Shops`);
 let offers =            fb.collection(`${host}Offers`);
+
+let savedCities = {};
+
+cities.where(`active`,'==',true).get().then(col=>savedCities = objectify(handleQuery(col)))
 
 function addBook(req,res,admin){
     
@@ -303,7 +308,23 @@ function alertAdmins(mess) {
     // })
 }
 
+
+function sendMessage(req,res,admin){
+    let t = {
+        chat_id: req.body.user,
+        text:   req.body.text
+    }
+    
+    sendMessage2(t, false, token, messages,{admin: +admin.id})
+    
+    if(res) res.sendStatus(200);
+}
+
 const datatypes = {
+    messages:{
+        col: messages,
+        newDoc: sendMessage,
+    },
     offers:{
         col: offers,
         newDoc: addOffer
@@ -410,7 +431,6 @@ router.all(`/admin/:method`,(req,res)=>{
                         let data = handleQuery(col,true);
                         
                         Object.keys(req.query).forEach(q=>{
-                            console.log(q,`==`, req.query[q])
                             data = data.filter(i=> i[q] == (Number(req.query[q]) ? Number(req.query[q]) : req.query[q]))
                         })
 
@@ -453,7 +473,7 @@ router.get(`/catalogue`,(req,res)=>{
     })
 
     query.get().then(col=>{
-        res.render(`${host}/catalogu`,{
+        res.render(`${host}/catalogue`,{
             q:      req.query,
             data:   handleQuery(col)
         })
@@ -537,21 +557,51 @@ function updateEntity(req,res,ref,admin){
         
         d = handleDoc(d);
 
-        ref.update({
-            [req.body.attr]: req.body.value || null,
-            updatedAt: new Date(),
-            updatedBy: +admin.id
-        }).then(s=>{
-            res.json({
-                success: true
+        if(req.params.method == `messages`){
+            let mess = d;
+            
+            if(mess.deleted || mess.edited)       return res.status(400).send(`уже удалено`);
+            if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
+            
+            sendMessage2({
+                chat_id:    mess.user,
+                message_id: mess.messageId,
+                text:       req.body.value
+            },`editMessageText`,token).then(resp=>{
+                if(resp.ok) {
+                    res.json({
+                        success: true,
+                        comment: `Сообщение обновлено.`
+                    })
+                    ref.update({
+                        text:       req.body.value,
+                        textInit:   mess.text,
+                        editedBy:   +admin.id,
+                        edited:     new Date()
+                    })
+                } else {
+                    res.sendStatus(500)
+                }
             })
-            log({
-                silent: true,
-                admin: +admin.id,
-                [req.params.method]: req.params.id,
-                text: `Обновлен ${req.params.method} / ${d.name || req.params.id}.\n${req.body.attr} стало ${req.body.value} (было ${d[req.body.attr || null]})`
+        } else {
+            ref.update({
+                [req.body.attr]: req.body.value || null,
+                updatedAt: new Date(),
+                updatedBy: +admin.id
+            }).then(s=>{
+                res.json({
+                    success: true
+                })
+                log({
+                    silent: true,
+                    admin: +admin.id,
+                    [req.params.method]: req.params.id,
+                    text: `Обновлен ${req.params.method} / ${d.name || req.params.id}.\n${req.body.attr} стало ${req.body.value} (было ${d[req.body.attr || null]})`
+                })
             })
-        })
+        }
+
+        
     })
     
 }
@@ -626,6 +676,109 @@ router.post(`/sellerConcent`,(req,res)=>{
 })
 
 
+router.get(`/offers/:offer`,(req,res)=>{
+    offers.doc(req.params.offer).get().then(o=>{
+        
+        o = handleDoc(o);
+
+        if(!o) return res.render(`${host}/error`,{
+            code: 404,
+            name: `Нет такого предложения...`
+        })
+
+        let data = [];
+
+        data.push(getDoc(books,o.book))
+
+        data.push(offers
+            .where(`book`,'==',o.book)
+            .where(`active`,'==',true)
+            .get()
+            .then(col=>{
+                return handleQuery(col,true)
+            })
+        )
+        Promise.all(data).then(data=>{
+            res.render(`${host}/offer`,{
+                offer:      o,
+                book:       data[0],
+                offers:   data[1],
+                dummyBook:  dummyBook,
+                cur:(s,b)=>cur(s,b),
+                cities: savedCities
+            })
+        })
+    })
+})
+
+router.get(`/offers`,(req,res)=>{
+    
+    let queries = {
+        city: `в городе`,
+        bookName: `по названию`,
+    }
+    
+    if(req.query.city) res.cookie('city', req.query.city, {
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        signed: true,
+        httpOnly: true,
+    })
+
+    if(req.signedCookies.city && !req.query.city) req.query.city = req.signedCookies.city
+
+    let user = {};
+
+    if(req.signedCookies.admin){
+        user = adminTokens.doc(req.signedCookies.admin).get().then(doc => {
+            if(!doc.exists) user = {};
+            udb.doc(doc.data().user.toString()).get().then(u=>{
+                user = u.data();
+            })
+            return u.data()
+        })
+    }
+
+    Promise.resolve(user).then(u=>{
+        offers.where(`active`,'==',true).get().then(col=>{
+            let books = handleQuery(col,true)
+            let filters = [];
+        
+            Object.keys(req.query).filter(q=>req.query[q]).forEach(k=>{
+                devlog(k)
+                if(queries[k]) {            
+                    books=books.filter(b => b[k])
+                    if(k == `city`){
+                        books = books.filter(b=> b[k] == req.query[k])
+                        filters.push(`в городе ${savedCities[req.query[k]].name}`)
+                    } else if (k == `bookName`){
+                        books = books.filter(b=> b[k].toLowerCase().indexOf(req.query[k].toLowerCase().trim())>-1)
+                        filters.push(`c названием «${req.query[k].toLowerCase().trim()}»`)
+                    } else {
+                        books = books.filter(b=>b[k] == req.query[k])
+                        filters.push(`${queries[k]} ${req.query[k]}`)
+                    }
+                    
+                }
+            })
+    
+            res.render(`${host}/search`,{
+                books:          books,
+                cutMe:          cutMe,
+                dummyBook:      dummyBook,
+                seller:         u.seller,
+                admin:          u.admin,
+                cities:         savedCities,
+                q:              req.query,
+                city:           req.query.city || req.signedCookies.city || null,
+                name:           filters.length ? `Книги ${filters.join(', ')}.` : `Новые поступления`,
+                description:    books.length ? `${letterize(books.length,`книжечка`)} вы можете взять почитать (или забрать к себе в библиотеку).` : `К сожалению, мы не нашли ничего подходящего...`
+            })
+        })
+    })
+
+    
+    
+})
 
 
 router.post(`/upload`,(req,res)=>{
@@ -680,38 +833,68 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
         
         let data = common.handleDoc(e)
 
-        if (!data[attr || 'active']) return res.json({
-            success: false,
-            comment: `Вы опоздали. Запись уже удалена.`
-        })
-        ref.update({
-            [attr || 'active']: false,
-            updatedBy: +admin.id
-        }).then(s => {
-
-            log({
-                [req.params.data]: req.params.id,
-                admin: +admin.id,
-                text: `${uname(admin,admin.id)} архивирует ${req.params.data} ${e.name || e.id}.`
-            })
-
-            res.json({
-                success: true
-            })
-
-            if (typeof (callback) == 'function') {
-                console.log(`Запускаем коллбэк`)
-                callback()
-            }
-        }).catch(err => {
+        if(req.params.method == `messages`){ 
             
-            console.log(err)
+            mess = data;
 
-            res.json({
-                success: false,
-                comment: err.message
+            if(mess.deleted)       return res.status(400).send(`уже удалено`);
+            if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
+            
+            sendMessage2({
+                chat_id:    mess.user,
+                message_id: mess.messageId
+            },`deleteMessage`,token).then(resp=>{
+                if(resp.ok) {
+                    res.json({
+                        success: true,
+                        comment: `Сообщение удалено.`
+                    })
+                    ref.update({
+                        deleted:    new Date(),
+                        deletedBy:  +admin.id
+                    })
+                } else {
+                    res.sendStatus(500)
+                }
             })
-        })
+        } else {
+            if (!data[attr || 'active']) return res.json({
+                success: false,
+                comment: `Вы опоздали. Запись уже удалена.`
+            })
+    
+    
+            ref.update({
+                [attr || 'active']: false,
+                updatedBy: +admin.id
+            }).then(s => {
+    
+                log({
+                    [req.params.data]: req.params.id,
+                    admin: +admin.id,
+                    text: `${uname(admin,admin.id)} архивирует ${req.params.data} ${e.name || e.id}.`
+                })
+    
+                res.json({
+                    success: true
+                })
+    
+                if (typeof (callback) == 'function') {
+                    console.log(`Запускаем коллбэк`)
+                    callback()
+                }
+            }).catch(err => {
+                
+                console.log(err)
+    
+                res.json({
+                    success: false,
+                    comment: err.message
+                })
+            })
+        }
+
+        
     })
 }
 
@@ -731,28 +914,28 @@ router.get(`/web`,(req,res)=>{
         if(!t || !t.active) return res.sendStatus(403)
 
         getUser(t.user,udb).then(u=>{
-
-            devlog(u)
             
-            // if(process.env.develop == `true`) return logs
-            //     .orderBy(`createdAt`,'desc')
-            //     .limit(100)
-            //     .get()
-            //     .then(col=>{
-            //         res.cookie('adminToken', req.query.admintoken || process.env.adminToken, {
-            //             maxAge: 24 * 60 * 60 * 1000,
-            //             signed: true,
-            //             httpOnly: true,
-            //         }).render(`${host}/web`,{
-            //             user:       u,
-            //             admin:      req.query.admin ? true : false,
-            //             wysykey:    process.env.wysykey,
-            //             adminAccess: true,
-            //             start:      req.query.page,
-            //             logs:       handleQuery(col),
-            //             // token: req.signedCookies.adminToken
-            //         })
-            //     }) 
+            if(process.env.develop == `true`) return logs
+                .orderBy(`createdAt`,'desc')
+                .limit(100)
+                .get()
+                .then(col=>{
+                    cities.get().then(col2=>{
+                        res.cookie('adminToken', req.query.admintoken || process.env.adminToken, {
+                            maxAge: 24 * 60 * 60 * 1000,
+                            signed: true,
+                            httpOnly: true,
+                        }).render(`${host}/web`,{
+                            user:       u,
+                            admin:      req.query.admin ? true : false,
+                            wysykey:    process.env.wysykey,
+                            adminAccess: true,
+                            start:      req.query.page,
+                            logs:       handleQuery(col),
+                            cities:     objectify(handleQuery(col2))
+                        })
+                    })
+                }) 
         
         
 
@@ -770,10 +953,8 @@ router.get(`/web`,(req,res)=>{
                             adminAccess: u.admin,
                             logs:       handleQuery(col),
                             cities:     objectify(handleQuery(col2))
-                            // token: req.signedCookies.adminToken
                         })
                     })
-                    
                 })
 
             
@@ -783,8 +964,7 @@ router.get(`/web`,(req,res)=>{
                 .where(`user`,`==`,+u.id)
                 .get()
                 .then(col=>{
-
-                    cities.get().then(col=>{
+                    cities.get().then(col2=>{
                         res.render(`${host}/admin`,{
                             user:       u,
                             seller:     true,
@@ -792,11 +972,9 @@ router.get(`/web`,(req,res)=>{
                             adminAccess: u.admin,
                             wysykey:    process.env.wysykey,
                             logs:       handleQuery(col),
-                            cities:     objectify(handleQuery(col))
+                            cities:     objectify(handleQuery(col2))
                         })
                     })
-
-                    
                 })
 
             
@@ -1017,12 +1195,25 @@ router.post(`/hook`,(req,res)=>{
                             .where(`active`,'==',true)
                             .get()
                             .then(col=>{
+                                let books = handleQuery(col,true);
+                                if(!books.length) return sendMessage2({
+                                    chat_id: +u.id,
+                                    text:   locals.noBooksAvailable,
+                                    reply_markup: {
+                                        inline_keyboard: books.map(c=>{
+                                            return [{
+                                                text:   c.bookName,
+                                                callback_data: `offer_${c.id}_view`
+                                            }]
+                                        })
+                                    }
+                                }, false, token, messages)
 
                                 sendMessage2({
                                     chat_id: +u.id,
                                     text:   locals.catalogue,
                                     reply_markup: {
-                                        inline_keyboard:handleQuery(col,true).map(c=>{
+                                        inline_keyboard: books.map(c=>{
                                             return [{
                                                 text:   c.bookName,
                                                 callback_data: `offer_${c.id}_view`
@@ -1053,10 +1244,26 @@ router.post(`/hook`,(req,res)=>{
                     }
 
                     default:
-                        return alertAdmins({
-                            text: `${uname(u,u.id)} пишет: ${req.body.message.text}`,
-                            user: user.id
-                        })
+                        if(!req.body.message.text.indexOf(`/start`)){
+                            let inc = req.body.message.text.split(' ');
+                            if(inc[1]){
+                                inc = inc[1].split('_');
+                                if(inc[0] == `offer`){
+                                    getDoc(offers,inc[1]).then(o=>{
+                                        getDoc(books,o.book).then(b=>{
+                                            sendOffer(b,o,req.body.message.from)
+                                        })
+                                    })
+                                    
+                                }
+                            }
+                        } else {
+                            return alertAdmins({
+                                text: `${uname(u,u.id)} пишет: ${req.body.message.text}`,
+                                user: user.id
+                            })
+                        }
+                        
                 }
             }
 
@@ -1168,7 +1375,7 @@ router.post(`/hook`,(req,res)=>{
                 }
                 case `user`:{
                     return userRef.update({
-                        [inc[1]]:inc[2]
+                        [inc[1]]: inc[2]
                     }).then(upd=>{
                         log({
                             user:   +user.id,
@@ -1180,6 +1387,11 @@ router.post(`/hook`,(req,res)=>{
                             show_alert: true,
                             text:       locals.updateSuccess
                         }, 'answerCallbackQuery', token)
+                        if(inc[1] == `city`) sendMessage2({
+                            chat_id: +user.id,
+                            text: `Что дальше? Пока сайт находися в разработке, вы можете воспользоваться поиском непосредственно в боте (для этого отправьте мне /offers).\nВы также можете добавить свои книги: выставить их на продажу, в подарок или в режиме "Дам почитать". Для этого вам понадобится перейти в [админку](https://dimazvali-a43369e5165f.herokuapp.com/books/auth).\nПолный список доступных команд доступен в меню.`,
+                            reply_markup: `Markdown`,
+                        },false,token,messages)
                     }).catch(err=>{
                         console.log(err)
                     })
@@ -1377,6 +1589,7 @@ ${offer.price ? `Стоимость: ${cur(offer.price)}` : offer.rent ? `` : `�
 }
 
 const locals = {
+    noBooksAvailable: `${sudden.sad()}! Кажется, в вашем городе нет доступных книг. Может быть, вы сможете добавить парочку?..`,
     dealConfirmed2Buyer:(d,s)=>     `${sudden.fine()}! Книга «${d.bookName}» без малого ваша. А вот ее хозяин: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`,
     rentCancelled2Seller:(d,s)=>    `${sudden.fine()}! А вот и человек, который хотел бы получить книгу «${d.bookName}»: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`,
     rentCancelledByOwner: (d) =>    `${sudden.sad()}! Хозяин книги «${d.bookName}» не сможет ей поделиться. Такое бывает. Давайте найдем что-нибудь еще?..`,
@@ -1390,7 +1603,7 @@ const locals = {
     rentRequest: (o)=>              `${sudden.fine()}! Кто-то хочет взять почитать ваше издание «${o.bookName}».\nНажмите «Согласиться» — и мы свяжем вас напрямую.\nЕсли вы не можете им поделиться — не беда. Нажмите «Вежливый отказ». Мы все передадим (и снимем издание с полки).`,
     rentRequestSent:(o)=>           `Отличный выбор! Ваш запрос на книгу «${o.bookName}» отправлен владельцу. После подтверждения мы свяжем вас напрямую.`,
     offerBlocked:   `${sudden.sad()}! Эту книгу сейчас читают...`,
-    greetings:      `${greeting()}! Рады знакомству. Чтобы продолжить, выберите город из предложенных ниже. Если вашего города в списке нет — напишите об этом обычным текстовым сообщением.`,
+    greetings:      `${greeting()}! Рады знакомству.\n Чтобы продолжить, выберите город из предложенных ниже. Если вашего города в списке нет — напишите об этом обычным текстовым сообщением.`,
     updateSuccess:  `Настройки обновлены.`,
     noCityProvided: `Извините, но вы все еще не указали свой город. Давайте исправим это:`,
     catalogue:      `Присмотримся...`,

@@ -1,0 +1,8 @@
+.flex.book
+    img.cover(src!=book.bookPic||dummyBook)
+    div.txt
+        h4!=book.author
+        h3!=book.name||book.bookName
+        if(book.bookDescription)
+            p!=cutMe(book.bookDescription,300)
+        a(href=`/books/offers/${book.id}`) Подробнее

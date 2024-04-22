@@ -43,6 +43,7 @@ function objectify(array){
     array.filter(i=>i.id).forEach(i=>{
         o[i.id] = i
     })
+    devlog(o)
     return o;
 }
 
@@ -138,6 +139,38 @@ function getNewUsers(udb,period){
 
 function letterize(v, word) {
     switch (word) {
+        case 'книжечка':{
+            if (v < 11 || v > 14) {
+                var l = v.toString().slice(-1);
+                if (l > 4) {
+                    return v + ' книг, которые';
+                }
+                if (l > 1) {
+                    return v + ' книги, которые';
+                }
+                if (l == 1) {
+                    return v + ' книга, которую';
+                }
+            }
+            return v + ' книг, которые ';
+        }
+
+        case 'книга':{
+            if (v < 11 || v > 14) {
+                var l = v.toString().slice(-1);
+                if (l > 4) {
+                    return v + ' книг';
+                }
+                if (l > 1) {
+                    return v + ' книги';
+                }
+                if (l == 1) {
+                    return v + ' книга';
+                }
+            }
+            return v + ' книг';
+        }
+
         case 'позиция':{
             if (v < 11 || v > 14) {
                 var l = v.toString().slice(-1);
@@ -537,7 +570,21 @@ function handleError(err,res){
 }
 
 
+function cutMe(txt, limit) {
+    let t = txt.split('. ')
+    let r = t[0];
+    let i = 1
+
+    while ((r + '. ' + t[i]).length < limit && i < t.length) {
+        r = r + '. ' + t[i]
+        i++
+    }
+    if(r.length < txt.length) r=r+' ...'
+    return r
+}
+
+
 module.exports = {
-    objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
+    cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
 };
 

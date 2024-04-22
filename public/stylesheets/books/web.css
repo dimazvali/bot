@@ -584,6 +584,8 @@ div#left>h3 {
 img.cover {
     width: 300px;
     border-radius: 30px;
+    object-fit: contain;
+    min-width: 300px;
 }
 
 .content{
@@ -660,6 +662,8 @@ table.wide{
 
 .flex {
     display: flex;
+    align-content: flex-start;
+    align-items: flex-start;
 }
 
 .date {
@@ -911,4 +915,137 @@ img.smallLogo {
     background-color: azure;
     margin-right: 20px;
     height: 60px;
+}
+
+.flex.book>.cover {
+    margin: initial;
+}
+
+.txt {
+    margin-left: 30px;
+}
+
+.txt>h4 {
+    margin-top: inherit;
+}
+
+.flex.book {
+    margin-top: 50px;
+    border-bottom: 1px solid;
+    padding-bottom: 40px;
+}
+
+#opener{
+    display: none;
+}
+
+
+div#content {
+    display: flex;
+}
+
+div#r {
+    width: 30vw;
+    position: fixed;
+    top: 0;
+    left: 60vw;
+    transition: .5s;
+}
+
+div#r>form {
+    width: 100%;
+}
+
+div#r>form>input {
+    line-height: 40px;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+img.logo.small {
+    width: 200px;
+    height: 200px;
+    object-fit: scale-down;
+    border-radius: 50%;
+    margin: 15px auto;
+    display: block;
+}
+
+.mTop {
+    margin-top: 20px;
+}
+
+button.full {
+    width: 100%;
+    margin-top: 20px;
+    background: var(--accent);
+    line-height: 40px;
+}
+
+
+
+@media all and (max-width: 600px) {
+
+    .flex.book {
+        flex-wrap: wrap;
+    }
+    .txt>h4 {
+        margin-top: 20px;
+    }
+    .txt{
+        margin-left: 0;
+    }
+    div#content{
+        margin: 0 auto;
+    }
+    img.cover{
+        min-width: 100%;
+    }
+    #opener{
+        display: block;
+    }
+
+    div#r {
+        left: 100vw;
+        width: 100vw;
+        min-height: 100vh;
+        background: var(--dark);
+        padding: 20px;
+        box-sizing: border-box;
+    }
+
+    div#r.opened {
+        left: 0vw;
+    }
+
+    #opener {
+        font-size: 30px;
+        background: var(--accent);
+        text-align: center;
+        width: 40px;
+        line-height: 40px;
+        border-bottom-left-radius: 5px;
+        font-weight: bold;
+        position: absolute;
+        top: 0;
+        left: -40px;
+    }
+    .opened>#opener{
+        left: calc(100vw - 40px);
+    }
+
+    label{
+        display: block;
+    }
+}
+
+a.petite {
+    text-align: center;
+    display: block;
+    margin-top: 20px;
+    font-size: small;
+}
+
+.flex.book:last-of-type {
+    border-bottom: none;
 }
