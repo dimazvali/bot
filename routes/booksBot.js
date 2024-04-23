@@ -640,7 +640,7 @@ router.post(`/auth`,(req,res)=>{
                     active:     true 
                 }).then(c=>{
                     res.cookie('adminToken', c.id, {
-                        maxAge: 24 * 60 * 60 * 1000,
+                        maxAge: 7 * 24 * 60 * 60 * 1000,
                         signed: true,
                         httpOnly: true,
                     }).sendStatus(200)
@@ -711,6 +711,28 @@ router.get(`/offers/:offer`,(req,res)=>{
     })
 })
 
+router.get(`/about`,(req,res)=>{
+    res.render(`${host}/page`,{
+        name: `О проекте`,
+        html: `<p>${greeting()}! Вы находитесь на сайте проекта с рабочим названием «Книгожук». Давайте осмотримся.</p>
+<p>Что мы делаем: сервис продажи/обмена/аренды книг с прицелом на экспатские круги (но не только).</p>
+<h2>Зачем мы это делаем?</h2>
+<p>Бумажные книги — это очень про нормальный быт. Очень многим сейчас недостает нормальности.</p>
+<p>При этом экспаты (и не только) живут совсем не той жизнью, чтобы книги копить.</p> 
+<p>Детские книги вообще копить бессмысленно, а выбрасывать невозможно.</p>
+<p>Книги должны “жить”. То есть читаться. Обычные цепочки обмена что среди уехавших, что среди оставшихся успели пострадать: где-то разорваться, а где-то не успеть наладиться.</p>`
+    })
+})
+
+router.get(`/contacts`,(req,res)=>{
+    res.render(`${host}/page`,{
+        name: `Поговорим?`,
+        html: `<p>Автор идеи и технического воплощения — Дмитрий Шестаков, dimazvali@gmail.com, t.me/dimazvali.</p>`
+    })
+})
+
+
+
 router.get(`/offers`,(req,res)=>{
     
     let queries = {
@@ -749,7 +771,7 @@ router.get(`/offers`,(req,res)=>{
                     books=books.filter(b => b[k])
                     if(k == `city`){
                         books = books.filter(b=> b[k] == req.query[k])
-                        filters.push(`в городе ${savedCities[req.query[k]].name}`)
+                        filters.push(`в ${savedCities[req.query[k]].name}`)
                     } else if (k == `bookName`){
                         books = books.filter(b=> b[k].toLowerCase().indexOf(req.query[k].toLowerCase().trim())>-1)
                         filters.push(`c названием «${req.query[k].toLowerCase().trim()}»`)

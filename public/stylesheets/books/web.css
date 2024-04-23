@@ -1049,3 +1049,10 @@ a.petite {
 .flex.book:last-of-type {
     border-bottom: none;
 }
+
+.flex.spread {
+    align-items: flex-start;
+    flex-direction: row;
+    display: flex;
+    justify-content: space-evenly;
+}

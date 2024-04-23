@@ -20,7 +20,10 @@ block content
                         !=c.name
             button.full(type="submit") Найти
 
-            a.petite(href=`/books/web`) Предложить книгу
+            .flex.spread
+                a.petite(href=`/books/web`) Предложить книгу
+                a.petite(href=`/books/about`) О проекте
+                a.petite(href=`/books/contacts`) Контакты
 
             if(seller)
                 a(href=`/books/web`) Перейти в админку
