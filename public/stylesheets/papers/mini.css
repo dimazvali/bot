@@ -127,6 +127,8 @@ img.ticket {
 img.galPic {
     width: 100%;
     border-radius: 10px;
+    max-height: 50vh;
+    object-fit: cover;
 }
 
 .galleryContainer>div {
@@ -140,6 +142,6 @@ img.galPic {
 }
 
 .galleryContainer.flex>div {
-    min-width: 400px;
+    min-width: 80%;
     margin-right: 30px;
 }

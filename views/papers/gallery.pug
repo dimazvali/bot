@@ -8,6 +8,7 @@ block content
     //- if(pic)
     //-     img.cover(src!=pic)
     //- h3!=cl.author
+    div!=html 
     .galleryContainer.flex
         for p in gallery
             div
@@ -16,4 +17,4 @@ block content
                     p!=`@${p.username}`
                 if(p.caption)
                     p.story!=p.caption
-    div!=html 
+    
