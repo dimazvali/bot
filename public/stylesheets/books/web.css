@@ -1056,3 +1056,9 @@ a.petite {
     display: flex;
     justify-content: space-evenly;
 }
+
+img.coverBig {
+    width: 400px;
+    border-radius: 10px;
+    margin-top: 20px;
+}

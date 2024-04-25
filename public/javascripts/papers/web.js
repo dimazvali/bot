@@ -430,7 +430,7 @@ function showPlan(id){
                                     onclick:()=>showUser(false,u.id)
                                 }))
 
-                                c.append(ce(`button`,false,[`dateButton`,`dark`],`Подвтердить`,{
+                                c.append(ce(`button`,false,[`dateButton`,`dark`],`Подтвердить`,{
                                     onclick:function(){
                                         let sure = confirm(`Уверены?`)
                                         if(sure){

@@ -1,5 +1,5 @@
-let ngrok2 = process.env.ngrok2 
 let ngrok = process.env.ngrok 
+// let ngrok = process.env.ngrok 
 
 const host = `books`;
 const token = process.env.booksToken;
@@ -34,7 +34,7 @@ router.use(fileUpload({
     tempFileDir : '/tmp/'
   }));
 
-const dummyBook = `${ngrok2}/images/${host}/blank.png`
+const dummyBook = `${ngrok}/images/${host}/blank.png`
 
 
 const appLink = `https://t.me/paperstuffbot/app`
@@ -53,6 +53,7 @@ const {
     handleDoc,
     sudden,
     cutMe,
+    interpreteCallBackData,
 } = require ('./common.js')
 
 const {
@@ -112,8 +113,8 @@ let s = getStorage(gcp)
 
 
 setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok2}/${host}/hook`).then(()=>{
-        console.log(`${host} hook set on ${ngrok2}`)
+    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(()=>{
+        console.log(`${host} hook set on ${ngrok}`)
     }).catch(err=>{
         handleError(err)
     })   
@@ -136,6 +137,21 @@ let cities =            fb.collection(`${host}Cities`);
 let shops =             fb.collection(`${host}Shops`);
 let offers =            fb.collection(`${host}Offers`);
 
+
+let langs = [{
+    id:     `en`,
+    name:   `Английский`,
+    active:true
+},{
+    id: `ka`,
+    name: `Грузинский`,
+    active:true
+},{
+    id: `ru`,
+    name: `Русский`,
+    active:true
+}]
+
 let savedCities = {};
 
 cities.where(`active`,'==',true).get().then(col=>savedCities = objectify(handleQuery(col)))
@@ -146,14 +162,13 @@ function addBook(req,res,admin){
         createdAt:  new Date(),
         active:     true,
         createdBy:  +admin.id,
-        name:       req.body.name   || null,
+        name:       req.body.name ? req.body.name.trim() : null,
         description:req.body.description || null,
         pic:        req.body.pic    || null,
         isbn:       req.body.isbn   || null,
         lang:       req.body.lang   || `ru`,
         author:     req.body.author || null,
         year:       +req.body.year  || null,
-        // state:      +req.body.state || null,
         kids:       req.body.kids   || false,
     }
 
@@ -225,15 +240,21 @@ function addOffer(req,res,admin){
                 isbn:           b.isbn   || null,
                 lang:           b.lang   || `ru`,
                 author:         b.author || null,
-                rent:           +req.body.rent || false,
+                rent:           req.body.rent || false,
                 price:          +req.body.price || null,
                 owner:          +req.body.owner || +admin.id || null,
-                state:          +req.body.state || null,
+                state:          req.body.state || null,
                 city:           req.body.city || null,
                 address:        req.body.address,
             }
         
             return offers.add(o).then(rec=>{
+
+                books.doc(b.id).update({
+                    offers: {
+                        [req.body.city]: FieldValue.increment(1)
+                    }
+                })
                 
                 log({
                     text: `${uname(admin,admin.id)} добавляет в продажу книгу ${b.name}.`,
@@ -261,6 +282,8 @@ function addOffer(req,res,admin){
                                             pic: link[0]
                                         })
                                         fs.unlinkSync(uploadPath)
+
+                                        
                                     })
                                 })
                                 .catch(err=>{
@@ -268,15 +291,34 @@ function addOffer(req,res,admin){
                                 })
                         
                         });
-                }       
+                }   
+                
+                alertNewOffer(rec.id)
 
                 return res.redirect(`/${host}/web?page=offers_${rec.id}`)
             })
         })
+}
 
-
-
-    
+function alertNewOffer(id){
+    getDoc(offers,id).then(o=>{
+        getDoc(books,o.book).then(b=>{
+            udb
+                .where(`city`,'==',o.city)
+                .where(`active`,'==',true)
+                .get()
+                .then(col=>{
+                    handleQuery(col)
+                        .filter(u=>!u.noSpam)
+                        .filter(u=>u[b.lang])
+                        .forEach((u,i)=>{
+                            setTimeout(()=>{
+                                sendOffer(b,o,u,true)
+                            },i*200)
+                        })
+                })
+        })
+    })
 }
 
 function log(o) {
@@ -391,19 +433,7 @@ router.all(`/admin/:method`,(req,res)=>{
 
             switch(req.params.method){
                 case `langs`:{
-                    return res.json([{
-                        id:     `en`,
-                        name:   `Английский`,
-                        active:true
-                    },{
-                        id: `ka`,
-                        name: `Грузинский`,
-                        active:true
-                    },{
-                        id: `ru`,
-                        name: `Русский`,
-                        active:true
-                    }])
+                    return res.json(langs)
                 }
 
                 case `bookState`:{
@@ -412,7 +442,7 @@ router.all(`/admin/:method`,(req,res)=>{
                         name: `Новая`,
                         active:true
                     },{
-                        id: `user`,
+                        id: `used`,
                         name: `Читаная`,
                         active:true
                     }])
@@ -632,7 +662,9 @@ router.post(`/auth`,(req,res)=>{
 
         getUser(req.body.id,udb).then(u=>{
 
-            if(!u || u.blocked) return res.sendStatus(403)
+            if(u.blocked) return res.sendStatus(403)
+
+            if(!u) registerUser(req.body)
                 
                 adminTokens.add({
                     createdAt:  new Date(),
@@ -832,10 +864,10 @@ router.post(`/upload`,(req,res)=>{
                     expires: '03-09-2500'
                 }).then(link=>{
                     datatypes[req.query.collection].col.doc(req.query.id).update({
-                        pic: link,
+                        pic: link[0],
                         updatedAt: new Date()
                     })
-                    res.redirect(`${ngrok2}/${host}/web?page=${req.query.collection}_${req.query.id}`)
+                    res.redirect(`${ngrok}/${host}/web?page=${req.query.collection}_${req.query.id}`)
                 }).catch(err=>{
                     res.status(500).send(err.message)
                 })
@@ -1034,8 +1066,8 @@ function startDeal(ref, deal){
     
             sendMessage2({
                 chat_id:    deal.seller,
-                text:       locals.rentCancelled2Seller(deal,users[0]),
-                parse_mode: `Markdown`,l
+                text:       locals.rentConfirmed2Seller(deal,users[0]),
+                parse_mode: `Markdown`,
             },false,token,messages)
         })
         log({
@@ -1193,6 +1225,24 @@ router.post(`/hook`,(req,res)=>{
 
 
                 switch (req.body.message.text) {
+                    case `/settings`:{
+                        return sendMessage2({
+                            chat_id: +u.id,
+                            text:   locals.settingsDescription,
+                            reply_markup: {
+                                inline_keyboard:[[{
+                                    text: `Город`,
+                                    callback_data: `userSettings_city`
+                                }],[{
+                                    text: `Подписки`,
+                                    callback_data: `userSettings_subscriptions`
+                                }],[{
+                                    text: `Языки`,
+                                    callback_data: `userSettings_languages`
+                                }],]
+                            }
+                        }, false, token, messages)
+                    }
 
                     case `/offers`:{
                         if(!u.city) return cities.get().then(col=>{
@@ -1335,9 +1385,59 @@ router.post(`/hook`,(req,res)=>{
 
             // TBD: проверка блокировки
 
-            let userLogName = uname(u||user,u ? u.id : user.id)
+            let userLogName = uname(u||user, u ? u.id : user.id)
 
             switch(inc[0]){
+                case `userSettings`:{
+                    switch(inc[1]){
+                        case `city`:{
+                            return sendMessage2({
+                                chat_id: user.id,
+                                text: `Хорошо там, где мы есть:`,
+                                reply_markup:{
+                                    inline_keyboard: Object.keys(savedCities).map(c=>{
+                                        return [{
+                                            text: `${u.city == c ?  `✔️` : `❌`} ${savedCities[c].name} (${savedCities[c].currency})`,
+                                            callback_data: `user_city_${c}`
+                                        }]
+                                    })
+                                }
+                            },false,token,messages)
+                        }
+                        case `subscriptions`:{
+                            return sendMessage2({
+                                chat_id: user.id,
+                                text: `Пока что у нас есть только один вид подписки: на все новые книги в нужном вам городе на знакомых вам языках.`,
+                                reply_markup:{
+                                    inline_keyboard:[
+                                        [{
+                                            text: `Включить`,
+                                            callback_data: `user_noSpam_false`
+                                        }],
+                                        [{
+                                            text: `Выключить`,
+                                            callback_data: `user_noSpam_true`
+                                        }],
+                                    ]
+                                }
+                            },false,token,messages)
+                        }
+                        case `languages`:{
+                            return sendMessage2({
+                                chat_id: user.id,
+                                text:   `Больше не меньше...`,
+                                reply_markup:{
+                                    inline_keyboard:langs.map(l=>{
+                                        return [{
+                                            text: `${u[l.id] ?  `✔️` : `❌`} ${l.name}`,
+                                            callback_data: `user_${l.id}_${u[l.id]?false:true}`
+                                        }]
+                                    })
+                                }
+                            },false,token,messages)
+                        }
+                    }
+                }
                 case `offer`:{
                     let offerRef = offers.doc(inc[1])
 
@@ -1397,7 +1497,7 @@ router.post(`/hook`,(req,res)=>{
                 }
                 case `user`:{
                     return userRef.update({
-                        [inc[1]]: inc[2]
+                        [inc[1]]: interpreteCallBackData(inc[2])
                     }).then(upd=>{
                         log({
                             user:   +user.id,
@@ -1409,10 +1509,29 @@ router.post(`/hook`,(req,res)=>{
                             show_alert: true,
                             text:       locals.updateSuccess
                         }, 'answerCallbackQuery', token)
+
+                        if(langs.map(l=>l.id).indexOf(inc[1])>-1){
+                            getUser(user.id, udb).then(u=>{
+                                sendMessage2({
+                                    chat_id:    +user.id,
+                                    message_id: req.body.callback_query.message.message_id,
+                                    reply_markup:{
+                                        inline_keyboard: langs.map(l=>{
+                                            return [{
+                                                text: `${u[l.id] ? `✔️` : `❌`} ${l.name}`,
+                                                callback_data: `user_${l.id}_${u[l.id]?false:true}`
+                                            }]
+                                        })
+                                    }
+                                },`editMessageReplyMarkup`,token,messages)
+                            })
+                            
+                        }
+
                         if(inc[1] == `city`) sendMessage2({
-                            chat_id: +user.id,
-                            text: `Что дальше? Пока сайт находися в разработке, вы можете воспользоваться поиском непосредственно в боте (для этого отправьте мне /offers).\nВы также можете добавить свои книги: выставить их на продажу, в подарок или в режиме "Дам почитать". Для этого вам понадобится перейти в [админку](https://dimazvali-a43369e5165f.herokuapp.com/books/auth).\nПолный список доступных команд доступен в меню.`,
-                            reply_markup: `Markdown`,
+                            chat_id:    +user.id,
+                            text:       `Что дальше? Пока сайт находися в разработке, вы можете воспользоваться поиском непосредственно в боте (для этого отправьте мне /offers — или введите @shelfCareBot и название книги через пробел).\nВы также можете добавить свои книги: выставить их на продажу, в подарок или в режиме "Дам почитать". Для этого вам понадобится перейти в [админку](https://dimazvali-a43369e5165f.herokuapp.com/books/auth).\nПолный список доступных команд доступен в меню.`,
+                            parse_mode: `Markdown`,
                         },false,token,messages)
                     }).catch(err=>{
                         console.log(err)
@@ -1420,16 +1539,21 @@ router.post(`/hook`,(req,res)=>{
                 }
                 case `book`:{
                     let ref = books.doc(inc[1]);
-                    switch(req[2]){
+                    devlog(`its a book`)
+                    // devlog()
+                    switch(inc[2]){
+                        
                         case `view`:{
                             return ref.get().then(d=>{
                                 let book = handleDoc(d)
+
                                 if(!book) return sendMessage2({
                                     callback_query_id: req.body.callback_query.id,
                                     show_alert: true,
                                     text:       locals.noOffer
                                 }, 'answerCallbackQuery', token)
-                                return sendBook(book,user)
+                                
+                                return sendBook(book,u)
                             })
                         }
                     }
@@ -1529,6 +1653,26 @@ router.post(`/hook`,(req,res)=>{
     }
 })
 
+function composeBookDescription(book, offerLine, citySpecific, active){
+    let txt = `*${book.name}*
+${book.author||''}
+${book.publisher?`${book.publisher}, `:''}${book.year||''}
+
+${cutMe(book.description,500)}`;
+
+    if(active.length) {
+        txt+=`\n\nВ вашем городе ${letterize(active.length, `книжечка`)} можно взять почитать:`
+    } else if (citySpecific.length) {
+        txt+=`\n\nВ вашем городе есть ${letterize(active.length, `книга`)}. Правда, придется постоять в очереди...`
+    } else if(offerLine.length) {
+        txt+=`\n\nБоюсь, сейчас ни одной копии в вашем городе нет. Хотите, я пришлю вам уведомление, как только такая появится?..`
+    } else {
+        txt+=`\n\nБоюсь, сейчас ни одной копии в открытом доступе нет. Хотите, я пришлю вам уведомление, как только такая появится?..`
+    }
+
+    return txt;
+}
+
 function rentBook(book, offer, user){
     deals.add({
         createdAt:  new Date(),
@@ -1573,14 +1717,15 @@ function rentBook(book, offer, user){
 
 }
 
-function sendOffer(b,o,u){
+function sendOffer(b,o,u,subscription){
+    
     let kbd = [[{
         text:           `Подробнее о книге`,
         callback_data:  `book_${o.book}_view`
     }]]
 
     if(o.price) kbd.push([{
-        text:           `Купить (${cur(o.price,u.currency)})`,
+        text:           `Купить (${cur(o.price,savedCities[u.city].currency)})`,
         callback_data:  `offer_${o.id}_buy`
     }])
 
@@ -1589,31 +1734,39 @@ function sendOffer(b,o,u){
         callback_data:  `offer_${o.id}_rent`
     }])
 
+    if(subscription) kbd.push([{
+        text:           `Отписаться от новостей`,
+        callback_data:  `user_noSpam_true`
+    }])
+
 
     sendMessage2({
         chat_id:        u.id,
         parse_mode:     `Markdown`,
-        caption:        offerDescription(o,b),
+        caption:        (subscription ? `Новинка!\n\n` : ``)+offerDescription(o,b)+(subscription?locals.subscriptionDisclaimer:''),
         photo:          (o.pic ? (typeof o.pic == `object` ? o.pic[0] : o.pic) : false) || (b.pic ? (typeof b.pic == `object` ? b.pic[0] : b.pic) : false) || dummyBook,
         reply_markup: {
             inline_keyboard: kbd
         }
     },`sendPhoto`,token,messages)
+
 }
 
 function offerDescription(offer,book){
     let txt = `*${book.name}*
 ${book.author||''} ${book.publisher||''} ${book.year||''}
-${offer.description ? `От владельца: _${offer.description}_` : ``}
-${offer.price ? `Стоимость: ${cur(offer.price)}` : offer.rent ? `` : `Книга в подарок.`}
-Где можно забрать: ${offer.address}`
+${offer.description ? `От владельца: _${cutMe(offer.description,600)}_` : ``}
+${offer.price ? `Стоимость: ${cur(offer.price)}` : (offer.rent ? `Книгу можно взять почитать.` : `Книгу можно получить в подарок.`)}
+Где: ${savedCities[offer.city].name}, ${offer.address}.`
     return txt
 }
 
 const locals = {
+    settingsDescription:    `Что именно вам хотелось бы изменить?..`,
+    subscriptionDisclaimer: `\nВы получили это сообщение, так как подписаны на все новинки в своем городе. Чтобы отписаться, нажмите последнюю кнопку под сообщением.`,
     noBooksAvailable: `${sudden.sad()}! Кажется, в вашем городе нет доступных книг. Может быть, вы сможете добавить парочку?..`,
     dealConfirmed2Buyer:(d,s)=>     `${sudden.fine()}! Книга «${d.bookName}» без малого ваша. А вот ее хозяин: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`,
-    rentCancelled2Seller:(d,s)=>    `${sudden.fine()}! А вот и человек, который хотел бы получить книгу «${d.bookName}»: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`,
+    rentConfirmed2Seller:(d,s)=>    `${sudden.fine()}! А вот и человек, который хотел бы получить книгу «${d.bookName}»: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`,
     rentCancelledByOwner: (d) =>    `${sudden.sad()}! Хозяин книги «${d.bookName}» не сможет ей поделиться. Такое бывает. Давайте найдем что-нибудь еще?..`,
     rentCancelled:(d)=>             `${sudden.sad()}! Запрос на книгу «${d.bookName}» был отменен.`,
     afterCancel:    `Ваш запрос отменен`,
@@ -1646,14 +1799,68 @@ function getAvatar(id){
     })
 }
 
+function sendBook(book,user){
+    let method = book.pic ? `sendPhoto` : false;
+    
+    offers
+        .where(`book`,'==',book.id)
+        .where(`active`,'==',true)
+        .get()
+        .then(col=>{
+
+            console.log(user.city);
+            
+            let offerLine =     handleQuery(col,true);
+            let citySpecific =  offerLine.filter(o=>o.city == user.city);
+            let active =        citySpecific.filter(o=>!o.blocked);
+
+            let kbd = [];
+
+            if(active.length){
+                kbd = active.slice(0,9).map(o=>{
+                    return [{
+                        text: `${o.price ? cur(p.price, savedCities[user.city].currency) : (o.rent ? `взять почитать на ${o.address}` : `взять в подарок на ${o.address}`)}`,
+                        callback_data: `offer_${o.id}_view`
+                    }]
+                })
+            } else if(citySpecific.length) {
+                kbd = citySpecific.slice(0,9).map(o=>{
+                    return [{
+                        text: `${o.price ? cur(p.price, savedCities[user.city].currency) : (o.rent ? `взять почитать на ${o.address}` : `взять в подарок на ${o.address}`)}`,
+                        callback_data: `offer_${o.id}_view`
+                    }]
+                })
+            } else if(offerLine.length) {
+                kbd = offerLine.slice(0,9).map(o=>{
+                    return [{
+                        text: `${savedCities[o.city].name}`,
+                        callback_data: `offer_${o.id}_view`
+                    }]
+                })
+            }
+
+            let m = {
+                chat_id: user.id,
+                parse_mode: `Markdown`,
+                photo: book.pic || dummyBook,
+                caption: composeBookDescription(book, offerLine, citySpecific, active)
+            }
+
+            if(kbd.length) m.reply_markup = {inline_keyboard:kbd}
+            sendMessage2(m,`sendPhoto`,token,messages)
+        })
+
+
+}
 
 function registerUser(u) {
 
-    u.createdAt =   new Date();
-    u.active =      true;
-    u.blocked =     false;
-    u.city =        null;
-    u.score =       0;
+    u.createdAt =       new Date();
+    u.active =          true;
+    u.blocked =         false;
+    u.city =            null;
+    u.score =           0;
+    u[u.language_code] = true; 
     
     cities.get().then(col=>{
         udb.doc(u.id.toString()).set(u).then(() => {
@@ -1701,14 +1908,27 @@ module.exports = router;
 //     })
 // })
 
-offers.get().then(col=>{
-    // handleQuery(col).filter(b=>b.bookPic).forEach(b=>{
-    //     if(typeof b.bookPic == `object`) offers.doc(b.id).update({bookPic:b.bookPic[0]})
-    // })
+// offers.get().then(col=>{
 
-    handleQuery(col).forEach(o=>{
-        offers.doc(o.id).update({
-            rent: true
-        })
-    })
-})
+//     // handleQuery(col).filter(b=>b.bookPic).forEach(b=>{
+//     //     if(typeof b.bookPic == `object`) offers.doc(b.id).update({bookPic:b.bookPic[0]})
+//     // })
+
+//     handleQuery(col).forEach(o=>{
+//         // offers.doc(o.id).update({
+//         //     rent: true
+//         // })
+//         // books.doc(o.book).update({
+//         //     offers:{[o.city]:FieldValue.increment(1)}
+//         // })
+//     })
+// })
+
+// udb.get().then(col=>{
+//     col.docs.forEach(u=>{
+//         udb.doc(u.id).update({
+//             ru: true,
+//             en: true
+//         })
+//     })
+// })

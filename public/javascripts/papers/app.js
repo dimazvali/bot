@@ -839,6 +839,7 @@ function showSchedule(el){
 
 function requestPlan(id){
     tg.MainButton.showProgress()
+    
     axios.post(`/${host}/api/tariffs/${id}?id=${userid}`,{
         user: userid
     }).then(s=>{

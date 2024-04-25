@@ -15,6 +15,11 @@ function checkMissing(type,data){
 }
 
 
+if(userData){
+    if(userData.address) localStorage.address = userData.address;
+    if(userData.city) localStorage.city = userData.city;
+} 
+
 function showBooks(){
     showScreen(`Каталог`,`books`,showBookLine,addBook,[{
         attr: `year`,
@@ -285,12 +290,11 @@ function addOffer(o){
             addBook();
         }},
         description:    {placeholder: `Описание`,tag:`textarea`},
-        pic:            {placeholder: `Обложка`},
-        new:            {placeholder: `Состояние`,selector: `bookState`},
+        cover:          {placeholder:   `Обложка`, type: `file`},
+        status:         {placeholder:   `Состояние`,selector: `bookState`},
         price:          {placeholder: `Стоимость`, type: `number`},
         rent:           {placeholder: `Можно взять почитать`, bool: true},
-        new:            {placeholder:   `Состояние`,selector: `bookState`},
-        address:        {placeholder: `Адрес`},
+        address:        {placeholder: `Адрес`,value: localStorage.address || null},
         city:           {selector:`cities`, placeholder:`Город`,id:localStorage.city}
     })
 }

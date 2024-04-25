@@ -37,9 +37,10 @@ function messageLine(m){
     if(!m.active) c.classList.remove(`hidden`)
 
     c.append(ce(`p`,false,false,m.text || `без текста`))
+    
     if(m.textInit) c.append(ce(`p`,false,false,`Исходный текст: ${m.textInit}`))
 
-    let bc =ce(`div`,false,`flex`)
+    let bc = ce(`div`,false,`flex`)
         c.append(bc)
 
     if(m.messageId && !m.deleted  && (+new Date() - new Date(m.createdAt._seconds*1000 < 48*60*60*1000))){
@@ -93,6 +94,45 @@ function messageLine(m){
     }
 
     return c
+}
+
+function showDeal(id){
+    let p = preparePopupWeb(`deal_${id}`,false,false,true);
+    load(`deals`,id).then(deal=>{
+        p.append(ce(`h1`,false,false,deal.bookName,{
+            onclick:()=>showBook(deal.book)
+        }))
+        p.append(detailsContainer(deal))
+        
+        let uc = ce(`div`)
+        
+        p.append(uc)
+
+        load(`users`,deal.seller,downLoadedUsers).then(seller=>{
+            load(`users`,deal.buyer,downLoadedUsers).then(buyer=>{
+                uc.append(line(
+                    ce(`button`,false,false,uname(seller,seller.id),{
+                        onclick:()=>showUser(seller.id)
+                    }),
+                    ce(`button`,false,false,uname(buyer,buyer.id),{
+                        onclick:()=>showUser(buyer.id)
+                    })
+                ))
+                // uc.append(deal.address)
+            })
+        })
+
+        load(`offers`,deal.offer).then(o=>{
+            uc.append(ce(`p`,false,false,o.address))
+        })
+
+        p.append(line(
+            ce(`p`,false,`mrRight`,`Статус: ${deal.status}`),
+            ce(`p`,false,false,`Тип: ${deal.type}`)
+        ))
+
+        p.append(deleteButton(`deals`,id))
+    })
 }
 
 function showUser(id){

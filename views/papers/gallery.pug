@@ -1,0 +1,19 @@
+extends site
+
+block back
+    a.headerA(href="/")!=`❰ На главную`
+block content
+    
+    h1.hA!=name
+    //- if(pic)
+    //-     img.cover(src!=pic)
+    //- h3!=cl.author
+    .galleryContainer.flex
+        for p in gallery
+            div
+                img.galPic(src!=p.img)
+                if(p.username)
+                    p!=`@${p.username}`
+                if(p.caption)
+                    p.story!=p.caption
+    div!=html 

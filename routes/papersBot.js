@@ -1,4 +1,4 @@
-let ngrok2 = "https://a751-109-172-156-240.ngrok-free.app" 
+let ngrok2 = "https://62a2-87-253-45-124.ngrok-free.app" 
 let ngrok = process.env.ngrok 
 // let ngrok = `https://62a2-87-253-45-124.ngrok-free.app`
 
@@ -64,7 +64,7 @@ var RSS = require('rss');
 
 const { ObjectStreamToJSON } = require('sitemap');
 
-
+const { getStorage, getDownloadUrl } = require('firebase-admin/storage');
 
 let gcp = initializeApp({
     credential: cert({
@@ -153,6 +153,10 @@ let invoices =          fb.collection('invoices');
 let deposits=           fb.collection('deposits');
 let settings=           fb.collection('settings');
 let books =             fb.collection('books');
+
+
+let gallery =             fb.collection('gallery');
+
 
 let userList = udb.get().then(col=>common.handleQuery(col))
 
@@ -7794,11 +7798,38 @@ router.post('/hook', (req, res) => {
                 udb.where('admin','==',true).get().then(col=>{
                     common.handleQuery(col).forEach(a=>{
                             m.sendMessage2({
-                                chat_id: a.id,
-                                caption: `фото от ${uname(u.data(),u.id)}`,
-                                photo: req.body.message.photo[0].file_id
-                            }, 'sendPhoto', token, messages)
-                        })
+                                chat_id:    a.id,
+                                caption:    `фото от ${uname(u.data(),u.id)}`,
+                                photo:      req.body.message.photo[0].file_id
+                        }, 'sendPhoto', token, messages)
+                    })
+                })
+                axios.post(`https://api.telegram.org/bot${token}/getFile`, {
+                    file_id: req.body.message.photo.reverse()[0].file_id
+                }).then(src => {
+
+                    gallery.doc(u.id.toString()).set({
+                        active:     true,
+                        img:        `https://api.telegram.org/file/bot${token}/${src.data.result.file_path}`,
+                        caption:    req.body.message.caption||null,
+                        username:   req.body.message.chat.username
+                    })
+                    
+                    // getStorage(gcp).bucket(`paperstuff-620fa`)
+                    //     .upload(`https://api.telegram.org/file/bot${token}/${src.data.result.file_path}`)
+                    //     .then(()=>{
+                    //         getStorage(gcp).bucket(`paperstuff-620fa`).file(src.data.result.file_path).getSignedUrl({
+                    //             action: `read`,
+                    //             expires: '03-09-2491'
+                    //         }).then(link=>{
+                    //             gallery.doc(common.dimazvali.toString()).set({
+                    //                 pic:link[0]
+                    //             })
+                    //         })
+                    //     })
+                    //     .catch(err=>{
+                    //         console.log(err)
+                    //     })
                 })
             }
 
@@ -9278,9 +9309,12 @@ router.all(`/api/:data/:id`, (req, res) => {
                 }
                 case `POST`:{
                     return getDoc(plans,req.params.id).then(p=>{
+                        
                         if(!p || !p.active) return res.sendStatus(404)
+                        
                         getDoc(udb,req.query.id).then(u=>{
                             if(!u || u.blocked) return res.sendStatus(400)
+                            
                             plansRequests.add({
                                 createdAt:  new Date(),
                                 user:       +req.query.id,
@@ -10308,6 +10342,8 @@ router.get(`/:section/:id`,(req,res)=>{
         case `static`:{
             return standAlone.doc(req.params.id).get().then(page=>{
                 
+                
+
                 if(!page.exists) return res.sendStatus(404)
                 
                 page = common.handleDoc(page)
@@ -10316,6 +10352,17 @@ router.get(`/:section/:id`,(req,res)=>{
                 
                 standAlone.doc(req.params.id).update({
                     views: FieldValue.increment(1)
+                })
+
+                if(req.params.id == `gallery`) return gallery.where(`active`,'==',true).get().then(col=>{
+                    res.render(`papers/gallery`,{
+                        name:           page.name,
+                        description:    page.description,
+                        html:           page.html,
+                        pic:            page.pic,
+                        gallery:        common.handleQuery(col),
+                        clearTags:(txt)=> clearTags(txt)
+                    })
                 })
 
                 return res.render(`papers/static`,{

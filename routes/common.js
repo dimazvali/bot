@@ -118,6 +118,12 @@ function handleDoc(d){
     return t;
 }
 
+function interpreteCallBackData(data){
+    if(+data || data === `0`) return +data;
+    if(data == `true`) return true;
+    if(data == `false`) return false;
+    return data;
+}
 
 
 
@@ -585,6 +591,6 @@ function cutMe(txt, limit) {
 
 
 module.exports = {
-    cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
+    interpreteCallBackData,cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
 };
 
