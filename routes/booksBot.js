@@ -1,5 +1,5 @@
+// let ngrok = process.env.ngrok2 
 let ngrok = process.env.ngrok 
-// let ngrok = process.env.ngrok 
 
 const host = `books`;
 const token = process.env.booksToken;
@@ -1049,25 +1049,44 @@ router.get(`/web`,(req,res)=>{
 
 function startDeal(ref, deal){
     ref.update({
-        active:     false,
+        // active:     false,
         status:     `inProgress`,
         started:    new Date()
     }).then(()=>{
+
         let users = [];
             users.push(getUser(deal.buyer,udb))
             users.push(getUser(deal.seller,udb))
 
         Promise.all(users).then(users=>{
             sendMessage2({
-                chat_id:    deal.buyer,
-                text:       locals.dealConfirmed2Buyer(deal,users[1]),
-                parse_mode: `Markdown`,
+                chat_id:        deal.buyer,
+                text:           locals.dealConfirmed2Buyer(deal,users[1]),
+                parse_mode:     `Markdown`,
+                reply_markup: {
+                    inline_keyboard: [[{
+                        text: `Книга получена`,
+                        callback_data: `deal_${deal.id}_buyerConfirmed`
+                    }],[{
+                        text: `Галя, у нас отмена`,
+                        callback_data: `deal_${deal.id}_buyerCancelled`
+                    }]]
+                }
             },false,token,messages)
     
             sendMessage2({
-                chat_id:    deal.seller,
-                text:       locals.rentConfirmed2Seller(deal,users[0]),
-                parse_mode: `Markdown`,
+                chat_id:        deal.seller,
+                text:           locals.rentConfirmed2Seller(deal,users[0]),
+                parse_mode:     `Markdown`,
+                reply_markup: {
+                    inline_keyboard: [[{
+                        text: `Книга передана`,
+                        callback_data: `deal_${deal.id}_sellerConfirmed`
+                    }],[{
+                        text: `Галя, у нас отмена`,
+                        callback_data: `deal_${deal.id}_sellerCancelled`
+                    }]]
+                }
             },false,token,messages)
         })
         log({
@@ -1578,8 +1597,104 @@ router.post(`/hook`,(req,res)=>{
                         }, 'answerCallbackQuery', token)
 
                         switch(inc[2]){
+
+                            case `buyerConfirmed`:{
+                                if(d.buyerConfirmed) return cba(req,locals.tooLate)
+                                
+                                ref.update({
+                                    buyerConfirmed: new Date(),
+                                })
+                                if(d.sellerConfirmed){
+                                    ref.update({
+                                        status:         `given`,
+                                        givenAt:        new Date()     
+                                    })
+
+                                    if(d.type !== `rent`){
+                                        ref.update({
+                                            completed: true
+                                        })
+                                        
+                                        udb.doc(d.seller.toString()).update({
+                                            sold: FieldValue.increment(1)
+                                        })
+
+                                        udb.doc(d.buyer.toString()).update({
+                                            bought: FieldValue.increment(1)
+                                        })
+                                    }
+
+                                    cba(req,`Спасибо! Вы молодцы! )`)
+                                } else {
+                                    cba(req,`Спасибо! Осталось дождаться подтверждения у второй стороны.`)
+
+                                    sendMessage2({
+                                        chat_id: d.seller,
+                                        text: `${greeting()}! Получатель книги «${d.bookName}» сообщает, что передача состоялась. Все так?`,
+                                        reply_markup:{
+                                            inline_keyboard:[[{
+                                                text:           `Да`,
+                                                callback_data:  `deal_${d.id}_sellerConfirmed`
+                                            },{
+                                                text: `Нет`,
+                                                callback_data:  `deal_${d.id}_sellerDenied`
+                                            }]]
+                                        }
+                                    },false,token,messages)
+                                }
+                                break;
+                            }
+                            case `sellerConfirmed`:{
+                                if(d.sellerConfirmed) return cba(req,locals.tooLate)
+                                ref.update({
+                                    sellerConfirmed: new Date(),
+                                })
+                                if(d.buyerConfirmed) {
+
+                                    ref.update({
+                                        status:         `given`,
+                                        givenAt:        new Date()     
+                                    })
+
+                                    if(d.type !== `rent`){
+                                        ref.update({
+                                            completed: true
+                                        })
+                                        
+                                        udb.doc(d.seller.toString()).update({
+                                            sold: FieldValue.increment(1)
+                                        })
+
+                                        udb.doc(d.buyer.toString()).update({
+                                            bought: FieldValue.increment(1)
+                                        })
+                                    }
+
+                                    cba(req,`Спасибо! Вы молодцы! )`)
+
+                                } else {
+                                    
+                                    cba(req,`Спасибо! Осталось дождаться подтверждения у второй стороны.`)
+
+                                    sendMessage2({
+                                        chat_id: d.buyer,
+                                        text: `${greeting()}! Хозяин книги «${d.bookName}» сообщает, что передача состоялась. Все так?`,
+                                        reply_markup:{
+                                            inline_keyboard:[[{
+                                                text:           `Да`,
+                                                callback_data:  `deal_${d.id}_buyerConfirmed`
+                                            },{
+                                                text: `Нет`,
+                                                callback_data:  `deal_${d.id}_buyerDenied`
+                                            }]]
+                                        }
+                                    },false,token,messages)
+                                }
+                                break;
+                            }
                             case `buyerCancel`:{
-                                if(d.status == `inReview`) return cancelDeal(inc[2],ref,d)
+
+                                if(d.status == `inReview` ) return cancelDeal(inc[2],ref,d)
                                 
                                 return sendMessage2({
                                     callback_query_id: req.body.callback_query.id,
@@ -1588,6 +1703,7 @@ router.post(`/hook`,(req,res)=>{
                                 }, 'answerCallbackQuery', token)
                             }
                             case `sellerCancel`:{
+
                                 if(d.status == `inReview`) return cancelDeal(inc[2],ref,d)
                                 
                                 return sendMessage2({
@@ -1786,6 +1902,13 @@ const locals = {
     noOffer:        `${sudden.sad()}! Это предложение уже недоступно...`
 }
 
+function cba(req,txt){
+    sendMessage2({
+        callback_query_id: req.body.callback_query.id,
+        show_alert: true,
+        text:       txt
+    }, 'answerCallbackQuery', token)
+}
 
 function getAvatar(id){
     return axios.post('https://api.telegram.org/bot' + token + '/getUserProfilePhotos', {
