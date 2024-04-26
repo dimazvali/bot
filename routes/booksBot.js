@@ -210,7 +210,7 @@ function addBook(req,res,admin){
             admin: +admin.id
         })
 
-        return res.redirect(`/${host}/web?page=books_${rec.id}`)
+        return res.redirect(`/${host}/web?page=newOffer_${rec.id}`)
         // res.json({
         //     success: true,
         //     id: rec.id
@@ -968,6 +968,25 @@ router.get(`/web`,(req,res)=>{
         if(!t || !t.active) return res.sendStatus(403)
 
         getUser(t.user,udb).then(u=>{
+
+            if(process.env.develop && req.query.stopadmin) return logs
+            .orderBy(`createdAt`,'desc')
+            .limit(100)
+            .where(`user`,`==`,+u.id)
+            .get()
+            .then(col=>{
+                cities.get().then(col2=>{
+                    res.render(`${host}/admin`,{
+                        user:       u,
+                        seller:     true,
+                        admin:      false,
+                        adminAccess: u.admin,
+                        wysykey:    process.env.wysykey,
+                        logs:       handleQuery(col),
+                        cities:     objectify(handleQuery(col2))
+                    })
+                })
+            })
             
             if(process.env.develop == `true`) return logs
                 .orderBy(`createdAt`,'desc')

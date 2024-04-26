@@ -26,6 +26,15 @@ switch(start[0]){
         break;
     }
 
+    case `newOffer`:{
+        if(start[1]){
+            addOffer({book:start[1]})
+        } else {
+            addOffer()
+        }
+        break;
+    }
+
     case `offers`:{
         if(start[1]){
             showOffer(start[1])

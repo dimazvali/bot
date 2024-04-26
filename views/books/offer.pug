@@ -19,5 +19,6 @@ block content
             .mTop
                 h4 Все варианты:
                 for offer in offers
-                    .sDivided
+                    .sDivided.flex
+                        img.smallestLogo(src!=offer.pic||offer.bookPic||dummyBook)
                         p!=`${cities[offer.city].name}: ${offer.price ? cur(offer.price, cities[offer.city].currency) : `бесплатно`}`

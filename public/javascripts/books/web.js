@@ -37,7 +37,7 @@ function messageLine(m){
     if(!m.active) c.classList.remove(`hidden`)
 
     c.append(ce(`p`,false,false,m.text || `без текста`))
-    
+
     if(m.textInit) c.append(ce(`p`,false,false,`Исходный текст: ${m.textInit}`))
 
     let bc = ce(`div`,false,`flex`)
@@ -231,6 +231,16 @@ function showUser(id){
 start = start.split('_')
 
 switch(start[0]){
+    case `newOffer`:{
+        console.log(`newOffer_${start[1]}`)
+        if(start[1]){
+            addOffer({book:start[1]})
+        } else {
+            addOffer()
+        }
+        break;
+    }
+
     case `books`:{
         if(start[1]){
             if(start[1] == `new`) {
