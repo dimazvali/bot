@@ -9645,7 +9645,6 @@ router.all(`/api/:data/:id`, (req, res) => {
                 case 'PUT': {
                     udb.doc(req.params.id.toString()).get().then(d => {
 
-
                         if (!d.exists) return res.sendStatus(404)
 
                         let plausible = [
@@ -9658,9 +9657,15 @@ router.all(`/api/:data/:id`, (req, res) => {
                             'noSpam',
                             `randomCoffee`
                         ]
+                        
+                        devlog(req.body);
 
                         plausible.forEach(type => {
-                            if (req.body[type]) {
+                            
+                            devlog(type)
+
+                            if (req.body.hasOwnProperty(type)) {
+                                devlog(`${type}: ${req.body[type]}`)
                                 udb.doc(req.params.id).update({
                                     [type]: req.body[type],
                                     updatedAt: new Date()
