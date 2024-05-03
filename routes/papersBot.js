@@ -228,9 +228,9 @@ router.get('/oauth', (req, res) => {
     if (req.query.code) {
 
         let data = qs.stringify({
-            'client_id': process.env.paperBotId,
+            'client_id':    process.env.paperBotId,
             'client_secret': process.env.paperBotSecret,
-            'code': req.query.code,
+            'code':         req.query.code,
             'redirect_uri': process.env.ngrok + '/paper/oauth',
             'state': 'qwdqwd'
         });
@@ -867,6 +867,40 @@ router.all(`/admin/:method`, (req, res) => {
                     })
 
                     switch(req.query.type){
+                        case `tickets`:{
+                            return userClasses.get().then(col=>{
+                                let opts = {
+                                    fields: [
+                                        `id`,
+                                        `createdAt`,
+                                        `date`,
+                                        `user`,
+                                        `status`,
+                                        `class`,
+                                        `rate`,
+                                        `active`,
+                                    ]
+                                }
+                                const parser = new Parser(opts);
+
+                                let csv = parser.parse(common.handleQuery(col,true).map(c=>{
+                                    return {
+                                        id: c.id,
+                                        createdAt: new Date(c.createdAt._seconds*1000),
+                                        date:  (c.date && new Date(c.date)) ? new Date(c.date) : null,
+                                        user: c.user,
+                                        status: c.status,
+                                        class: c.class || null,
+                                        rate: c.rate || null,
+                                        rate: c.rate || false,
+                                        // fellows: c.fellows || false
+                                    }
+                                }), opts);
+                        
+                                res.attachment('tickets_'+Number(new Date())+'.csv');
+                                res.status(200).send(csv);
+                            })
+                        }
                         case `schedule`:{
                             
                             return classes.get().then(col=>{

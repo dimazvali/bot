@@ -49,4 +49,6 @@ html
                   button(onclick!="showUser(false,'"+l.user+"')") открыть профиль
                 if(l.author) 
                   button(onclick!="showAuthor(false,'"+l.author+"')") открыть автора
+    script!=`let start="${start}"`
     script(src='/javascripts/cyprus/web.js')
+    

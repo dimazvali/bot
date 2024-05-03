@@ -574,10 +574,12 @@ function cutMe(txt, limit) {
     let t = txt.split('. ')
     let r = t[0];
     let i = 1
-    while ((r + '. ' + t[i]).length < limit && i <= t.length) {
+
+    while ((r + '. ' + t[i]).length < limit && i < t.length) {
         r = r + '. ' + t[i]
         i++
     }
+    if(r.length < txt.length) r=r+' ...'
     return r
 }
 
@@ -676,7 +678,7 @@ function addScreen(collection,name,o){
 
 }
 
-function showScreen(name, collection, line, addButton, sort, help,cl){
+function showScreen(name, collection, line, addButton, sort, help, cl, filterTypes ){
     closeLeft()
     let p = preparePopupWeb(collection,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
@@ -729,6 +731,20 @@ function showScreen(name, collection, line, addButton, sort, help,cl){
             cc.append(sortBlock(sortAble,c,docs,line,cl))
         
         p.append(cc)
+
+        if(filterTypes){
+            let filters = ce(`div`,false,`flex`)
+
+            Object.keys(filterTypes).forEach(type => {
+                filters.append(ce('button', false, type, filterTypes[type], {
+                    onclick: function () {
+                        filterUsers(type, c, this, `.userLine`)
+                    }
+                }))
+            })
+            p.append(filters)
+        }
+        
 
         p.append(c)
 

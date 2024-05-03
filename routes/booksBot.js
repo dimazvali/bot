@@ -955,19 +955,25 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
 
 router.get(`/web`,(req,res)=>{
     
+    devlog(req.signedCookies.adminToken)
+
     if(!(process.env.develop == `true`) && !req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/${host}/auth`)
     
-    getDoc(adminTokens, req.signedCookies.adminToken).then(t=>{
+    getDoc(adminTokens, (req.signedCookies.adminToken || process.env.adminToken)).then(t=>{
 
-        if(!req.signedCookies.adminToken && (process.env.develop == `true`)) return res.cookie('adminToken', req.query.admintoken || process.env.adminToken, {
-            maxAge: 24 * 60 * 60 * 1000,
-            signed: true,
-            httpOnly: true,
-        })
+        devlog(t)
+
+        // if(!req.signedCookies.adminToken && (process.env.develop == `true`)) return res.cookie('adminToken', req.query.adminToken || process.env.adminToken, {
+        //     maxAge: 24 * 60 * 60 * 1000,
+        //     signed: true,
+        //     httpOnly: true,
+        // })
 
         if(!t || !t.active) return res.sendStatus(403)
 
         getUser(t.user,udb).then(u=>{
+
+            devlog(`пользватель получен`)
 
             if(process.env.develop && req.query.stopadmin) return logs
             .orderBy(`createdAt`,'desc')
@@ -1942,6 +1948,7 @@ function getAvatar(id){
 }
 
 function sendBook(book,user){
+
     let method = book.pic ? `sendPhoto` : false;
     
     offers

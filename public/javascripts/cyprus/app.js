@@ -91,6 +91,8 @@ function newPub(){
     })
     p.append(media)
 
+    p.append(ce(`p`,false,`info`,`Чтобы получить id медиафайла, просто отправьте его боту. Это самый быстрый, удобный и безопасный способ.`))
+
     let txt = ce('textarea',false,false,false,{
         placeholder: `текст новости`
     })
@@ -106,14 +108,17 @@ function newPub(){
             if(!txt.value) return tg.showAlert(`Я не вижу ваших букв!`)
 
             this.setAttribute(`disabled`,true)
+
             axios.post(`/${host}/api/news?user=${userid}`,{
                 title:  title.value,
                 text:   txt.value,
                 media:  media.value
             }).then(s=>{
                 if(s.data.success)  return tg.showAlert(`Спасибо! Ждите подтверждения от редакции.`)
-                tg.showAlert(s.data.comment)
-                location.reload()
+                tg.showAlert(s.data.comment).then(()=>{
+                    location.reload()
+                })
+                
             }).catch(handleError)
             .finally(()=>{
                 this.removeAttribute(`disabled`)

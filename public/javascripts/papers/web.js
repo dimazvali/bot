@@ -152,7 +152,7 @@ function addBook(){
         author:         {placeholder: `Автор`},
         pic:            {placeholder: `Обложка`},
         price:          {placeholder: `Стоимость`, type: `number`},
-        publisher:     {placeholder: `Издательство`},
+        publisher:      {placeholder: `Издательство`},
         year:           {placeholder: `Год издания`, type: `number`},
         new:            {placeholder: `Состояние`,selector: `bookState`}
     })
@@ -168,7 +168,8 @@ function showStats(){
         let types = {
             cowork:     `Коворкинг`,
             schedule:   `Расписание`,
-            users:      `Пользователи`
+            users:      `Пользователи`,
+            tickets:    `Билеты`
         }
 
         Object.keys(types).forEach(t=>{

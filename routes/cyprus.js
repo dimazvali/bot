@@ -16,7 +16,7 @@ const { createHash,createHmac } = require('node:crypto');
 const devlog = require(`./common`).devlog
 const host = `cyprus`
 
-
+const channellId = -1002139324312;
 
 const {
     initializeApp,
@@ -160,11 +160,12 @@ router.all(`/admin/:data/`,(req,res)=>{
         if(!doc.active) return res.sendStatus(403)
 
         switch(req.params.data){
+
             case `news`:{
-                return news.get().then(col => res.json(common.handleQuery(col)))
+                return news.get().then(col => res.json(common.handleQuery(col,true)))
             }
             case `users`:{
-                return udb.get().then(col => res.json(common.handleQuery(col)))
+                return udb.get().then(col => res.json(common.handleQuery(col,true)))
             }
             case 'message': {
                 if (req.body.text && req.body.user) {
@@ -229,12 +230,12 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                         return ref.get().then(p=>{
 
                             p = common.handleDoc(p)
+
+                            data.push(udb.doc(p.user.toString()).get().then(u=>common.handleDoc(u)))
                             
                             if(p.media) data.push(axios.post(`https://api.telegram.org/bot${token}/getFile`,{
                                 file_id: p.media 
                             }).then(d=>d.data))
-                            
-                            data.push(udb.doc(p.user.toString()).get().then(u=>common.handleDoc(u)))
                             
                             Promise.all(data).then(data=>{
 
@@ -242,10 +243,9 @@ router.all(`/admin/:data/:id`,(req,res)=>{
 
                                 res.json({
                                     publication:    p,
-                                    user:           data[1],
-                                    media:          `https://api.telegram.org/file/bot${token}/${data[0].result.file_path}` 
+                                    user:           data[0],
+                                    media:          data[1] ? `https://api.telegram.org/file/bot${token}/${data[1].result.file_path}` : null 
                                 })
-
 
                             })
                         })                        
@@ -278,7 +278,7 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                             if(d.media) method = `sendPhoto`;
                             
                             let message = {
-                                chat_id:    -1002139324312,
+                                chat_id:    channellId,
                                 text:       d.text,
                                 caption:    d.media ? d.text : null, 
                                 photo:      d.media || null
@@ -289,11 +289,17 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                                     devlog(s)
                                     devlog(s.data)
                                     res.json({success:true})
+                                    
                                     ref.update({
                                         status:         `published`,
                                         published:      true,
                                         publishedAt:    new Date()
                                     })
+
+                                    udb.doc(d.user.toString()).update({
+                                        publications: FieldValue.increment(1)
+                                    })
+
                                     m.sendMessage2({
                                         chat_id:    d.user,
                                         text: `Спасибо!\nВаша публикая была отправлена в канал: ${testChannelLink}`
@@ -315,7 +321,8 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                     
                     case `GET`:{
                         return ref.get().then(d=>{
-                            let publications = news.where(`user`,'==',+req.params.id).get().then(col=>common.handleQuery(col))
+                            let publications = news.where(`user`,'==',+req.params.id).get().then(col=>common.handleQuery(col,true))
+                            
                             Promise.resolve(publications).then(publications=>{
                                 res.json({
                                     user: common.handleDoc(d),
@@ -367,25 +374,37 @@ router.all(`/api/:data`,(req,res)=>{
                         .where(`user`,'==',+req.query.user)
                         .get()
                         .then(col=>{
-                            res.json(common.handleQuery(col))
+                            res.json(common.handleQuery(col,true))
                         })
                 }
                 case 'POST':{
+                    if(!req.query.user) return res.json({success:false,comment:`Публикации без автора не принимаются.`})
                     if(!req.body.title) return res.json({success:false,comment:`Публикации без заголовка не принимаются.`})
                     if(!req.body.text) return res.json({success:false,comment:`Публикации без текста не принимаются.`})
-                    // if(!req.body.media) return res.json({success:false,comment:`Публикации без фото или видео не принимаются.`})
                     
-                    return news.add({
-                        user:       +req.query.user,
-                        title:      req.body.title,
-                        createdAt:  new Date(),
-                        text:       req.body.text,
-                        media:      req.body.media || null,
-                        active:     true,
-                        status:     `new`
-                    }).then(s=>{
-                        res.json({success:true})
+                    return common.getDoc(udb,req.query.user).then(u=>{
+                        if(!u) return res.json({success:false,comment:`Публикации без автора не принимаются.`})
+                        
+                        return news.add({
+                            user:       +req.query.user,
+                            title:      req.body.title,
+                            createdAt:  new Date(),
+                            text:       req.body.text,
+                            media:      req.body.media || null,
+                            active:     true,
+                            status:     `new`
+                        }).then(s=>{
+                            res.json({success:true})
+
+                            log({
+                                text: `Новая публикация от пользователя  ${uname(u,u.id)}: ${req.body.title}.\nЧитаем здесь: ${ngrok}/${host}/web?page=news_${s.id}`,
+                                user: +req.query.user,
+                                news: s.id
+                            })
+                        })
                     })
+
+                    
                 }
             }
             
@@ -546,6 +565,11 @@ router.post('/hook', (req, res) => {
 function log(o) {
     o.createdAt = new Date()
     logs.add(o)
+    if(!o.silent){
+        alertAdmins({
+            text:   o.text
+        })
+    }
 }
 
 function alertAdmins(mess) {
@@ -680,6 +704,19 @@ router.post(`/auth`,(req,res)=>{
 
 
 
+function isAdmin(id) {
+    return udb.doc(id || 'noWay').get().then(a => {
+        if (!a.exists) return false
+        if (a.data().admin) return true
+        return false
+    }).catch(err => {
+        return false
+    })
+}
+
+
+
+
 router.get(`/web`,(req,res)=>{
     if(process.env.develop == `true`) return logs
         .orderBy(`createdAt`,'desc')
@@ -689,9 +726,10 @@ router.get(`/web`,(req,res)=>{
             res.cookie('adminToken', process.env.adminToken, {
                 maxAge: 24 * 60 * 60 * 1000,
                 signed: true,
-                httpOnly: true,
+                httpOnly: true
             }).render(`${host}/web`,{
                 logs: common.handleQuery(col),
+                start:  req.query.page
                 // token: req.signedCookies.adminToken
             })
         }) 
@@ -711,6 +749,7 @@ router.get(`/web`,(req,res)=>{
                     .then(col=>{
                         res.render(`${host}/web`,{
                             logs: common.handleQuery(col),
+                            start:  req.query.page
                             // token: req.signedCookies.adminToken
                         })
                     })

@@ -1,45 +1,19 @@
 let mc = document.querySelector(`#main`)
 
 const host = `cyprus`
+
 function load(collection, id) {
     return axios.get(`/${host}/admin/${collection}${id?`/${id}`:''}`).then(data => {
         return data.data
     })
 }
 
+let downLoadedUsers = {};
+
+
 function showNews(){
-    let p = preparePopupWeb(`class_new`)
-        p.append(ce('h1', false, false, `Публикации`))
-
-        let filtersc = ce(`div`)
-        
-        let filters = {
-            active: `только новые`,
-            published: `опубликованные`
-        }
-
-        
-
-        let nc = ce(`div`)
-        p.append(filtersc)
-        p.append(nc)
-        
-        Object.keys(filters).forEach(b=>{
-            filtersc.append(ce('button',false,false,filters[b],{
-                onclick:function(){
-                    filterUsers(b,nc,this)
-                }
-            }))
-        })
-
-        load(`news`).then(news=>{
-            
-            news.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds).forEach(n => {
-                nc.append(drawNewsLine(n))
-            });
-        })
+    showScreen(`Публикации`, `news`, drawNewsLine)
 }
-
 
 function showUser(u, id) {
 
@@ -92,6 +66,7 @@ function showUser(u, id) {
         })
 
         let messenger = ce('div')
+
         p.append(messenger)
 
         messenger.append(ce(`button`,false,false,`Открыть переписку`,{
@@ -142,6 +117,20 @@ function showUser(u, id) {
     })
 }
 
+start = start.split('_')
+
+switch(start[0]){
+    case `news`:{
+        if(start[1]){
+            drawNews({id:start[1]})
+            break;
+        } else {
+            showNews()
+        }
+
+    }
+}
+
 
 function filterUsers(role,container,button){
     let c = button.parentNode;
@@ -149,7 +138,7 @@ function filterUsers(role,container,button){
     c.querySelectorAll('button').forEach(b=>b.classList.add('passive'))
     button.classList.add('active')
     button.classList.remove('passive')
-    container.querySelectorAll('.divided').forEach(user=>{
+    container.querySelectorAll('.userLine').forEach(user=>{
         if(!role) return user.classList.remove('hidden')
         
         if(user.dataset[role] == 'true') {
@@ -163,27 +152,15 @@ function filterUsers(role,container,button){
 }
 
 
+
 function drawNewsLine(n){
-    
-    let c = ce('div',false,[`pub`,`divided`],false,{
-        dataset: {
-            active:         n.active,
-            published:      n.published
-        },
-        onclick:()=>drawNews(n)
-    })
-
-    let s = ce('div',false,[`stat`,`flex`])
-
-        s.append(ce('p',false,false,`Прислана: ${drawDate(n.createdAt._seconds*1000)}`))
-        s.append(ce('p',false,false,`Статус: ${n.status}`))
-
-    c.append(s)
-    c.append(ce('h2',false,false,n.title))
-    c.append(ce(`p`,false,false,))
-
-    return c
+    let c = listContainer(n,true, {status:`статус`})
+        c.append(ce('h3',false,false,n.title))
+        c.append(ce(`p`,false,false,cutMe(n.text,200)))
+        c.onclick=()=>drawNews(n)
+    return c;
 }
+
 
 
 function edit(entity, id, attr, type, value) {
@@ -380,100 +357,28 @@ function preparePopupWeb(name){
     return content;
 }
 
-
-function showUsers() {
-    closeLeft()
-    mc.innerHTML = '<h1>Загружаем...</h1>'
-    axios.get(`/${host}/admin/users`)
-        .then(data => {
-            console.log(data.data)
-            mc.innerHTML = '';
-            mc.append(ce('h1', false, `header2`, `Пользователи`))
-            let c = ce('div')
-
-            // let chart = ce(`div`, `chartdiv`)
-
-            // mc.append(chart)
-
-            let udata = {}
-
-
-
-
-            data.data.forEach(cl => {
-                let d = new Date(cl.createdAt._seconds * 1000).toISOString().split('T')[0]
-                if (!udata[d]) udata[d] = 0
-                udata[d]++
-                c.append(showUserLine(cl))
-            });
-
-            let d = Object.keys(udata).map(date => {
-                return {
-                    date: +new Date(date),
-                    value: udata[date]
-                }
-            })
-
-
-            let filterTypes = {
-                blocked: `Вышли из чата`,
-                admin: `админы`,
-            }
-
-            Object.keys(filterTypes).forEach(type => {
-                mc.append(ce('button', false, type, filterTypes[type], {
-                    onclick: function () {
-                        filterUsers(type, c, this)
-                    }
-                }))
-            })
-
-            // let sortTypes = {
-            //     appOpens: `По частоте использования`,
-            //     classes: `По количеству лекций`,
-            //     // fellow: `fellows`,
-            // }
-
-            // Object.keys(sortTypes).forEach(type => {
-            //     mc.append(ce('button', false, type, sortTypes[type], {
-            //         onclick: function () {
-            //             c.innerHTML = ''
-            //             data.data.sort((a, b) => (b[type] || 0) - (a[type] || 0)).forEach(cl => {
-            //                 c.append(showUserLine(cl, (cl[type] || 0)))
-            //             });
-            //         }
-            //     }))
-            // })
-
-            mc.append(c)
-
-            // showUsersChart(d)
-
-            // data.data.users.forEach(cl => {
-            //     if(!udata[new Date(cl.createdAt).toISOString()]) udata[new Date(cl.createdAt).toISOString()] =0
-            //     udata[new Date(cl.createdAt).toISOString()] ++ 
-            //     // c.append(showUserLine(cl))
-            // });
-        })
-        .catch(err => {
-            alert(err.message)
-        })
+function showUsers(){
+    showScreen(`Писатели`,`users`,showUserLine,false,[{
+        attr: `publications`,
+        name: `по публикациям`
+    }],false,false,{
+        blocked:    `Вышли из чата`,
+        admin:      `Админы`,
+    })
 }
 
 
 function showUserLine(u, cnt) {
-    let c = ce(`div`, false, `userLine`, false, {
-        dataset: {
-            active: u.active,
-            blocked: !u.active,
-            admin: u.admin,
-            fellow: u.fellow,
-        }
+
+    let c = listContainer(u,true,{publications: `публикаций`},{
+        active:     u.active,
+        blocked:    !u.active,
+        admin:      u.admin
     })
 
     c.append(ce('h3', false, false, (cnt ? `${cnt}: ` : '') + uname(u, u.id), {
         onclick: () => {
-            showUser(u)
+            showUser(false,u.id)
         }
     }))
 

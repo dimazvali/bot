@@ -6,12 +6,12 @@
 
 @font-face {
     font-family: 'greek';
-    src: url('/stylesheets/cyprus/GrafitaNormal.otf') format('opentype');
+    src: url('/stylesheets/cyprus/fonts/GrafitaNormal.otf') format('opentype');
 }
 
 @font-face {
     font-family: 'greekSpecials';
-    src: url('/stylesheets/cyprus/GrafitaSpecial.otf') format('opentype');
+    src: url('/stylesheets/cyprus/fonts/GrafitaSpecial.otf') format('opentype');
 }
 
 
@@ -188,15 +188,20 @@ button.passive {
 }
 
 textarea,
-input[type="text"],input[type="number"] {
-    display: block;
-    line-height: 20px;
-    margin-top: 10px;
-    width: 100%;
-    border: none;
+input[type="text"],
+input[type="number"] {
+    display:        block;
+    line-height:    40px;
+    margin-top:     10px;
+    width:          100%;
+    border:         none;
     background: rgb(255 255 255 / 52%);
-    border-bottom: 1px solid gray;
-    font-family: 'Roboto';
+    border-bottom:  1px solid gray;
+    font-family:    'Roboto';
+}
+
+textarea{
+    line-height: 20px;
 }
 
 a {
@@ -235,11 +240,11 @@ td.timing>.date {
 }
 
 [data-type]>div>h1::before {
-    position: absolute;
-    filter: opacity(0.1);
-    font-size: 130px;
-    left: -20px;
-    top: -15px;
+    position:   absolute;
+    filter:     opacity(0.1);
+    font-size:  130px;
+    left:       -20px;
+    top:        -15px;
 }
 [data-type="course"]>div>h1::before {
     content: 'Курс';
@@ -455,4 +460,16 @@ p.soldOut {
     font-weight: bold;
     text-align: center;
     line-height: 40px;
+}
+
+.sDivided {border-top: 0.5px solid;padding-top: 10px;margin-top: 20px;}
+
+.details.flex>span {
+    margin-right: 20px;
+    border-right: 1px solid;
+    padding-right: 20px;
+}
+
+.controls {
+    margin-bottom: 30px;
 }
