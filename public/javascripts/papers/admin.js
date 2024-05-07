@@ -572,8 +572,6 @@ function filterUsers(role,container,button){
             user.classList.add('hidden')
         }
     })
-
-    
 }
 
 function showUsers(){

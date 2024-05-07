@@ -70,6 +70,8 @@ app.use('/ps',          require('./routes/psBot'));
 app.use('/vz',          require('./routes/vzBot'));
 app.use('/books',       require('./routes/booksBot'));
 
+app.use('/homeless',       require('./routes/homelessBot'));
+
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

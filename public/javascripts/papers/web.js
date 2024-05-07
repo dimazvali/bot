@@ -2532,7 +2532,7 @@ function occupyMR(date,time,button){
     let p = modal()
     
         p.append(ce(`h2`,false,false,`Запись в переговорку`))
-        p.append(ce(`з`,false,false,`${date}, ${time}`))
+        p.append(ce(`p`,false,false,`${date}, ${time}`))
         
         let suggest = ce(`div`)
 

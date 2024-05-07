@@ -601,12 +601,12 @@ function addScreen(collection,name,o){
         
         if(input.type == `file`){
             let c = ce(`div`)
-                c.append(ce(`p`,false,`info`,`Прикрепите файл с обложкой.`))
+                c.append(ce(`p`,false,`info`,input.placeholder || `Прикрепите файл с обложкой.`))
                 c.append(ce(`input`,false,false,false,{
-                    type:   `file`,
-                    accept: `image/png, image/jpeg`,
-                    name:   `cover`,
-                    required: input.required
+                    type:       `file`,
+                    accept:     `image/png, image/jpeg`,
+                    name:       input.name || `cover`,
+                    required:   input.required
                 }))
             f.append(c)
         } else if(input.line){
@@ -678,7 +678,7 @@ function addScreen(collection,name,o){
 
 }
 
-function showScreen(name, collection, line, addButton, sort, help, cl, filterTypes ){
+function showScreen(name, collection, line, addButton, sort, help, cl, filterTypes, filterSelector){
     closeLeft()
     let p = preparePopupWeb(collection,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
@@ -738,7 +738,7 @@ function showScreen(name, collection, line, addButton, sort, help, cl, filterTyp
             Object.keys(filterTypes).forEach(type => {
                 filters.append(ce('button', false, type, filterTypes[type], {
                     onclick: function () {
-                        filterUsers(type, c, this, `.userLine`)
+                        filterUsers(type, c, this, filterSelector || `.userLine`)
                     }
                 }))
             })
@@ -754,6 +754,24 @@ function showScreen(name, collection, line, addButton, sort, help, cl, filterTyp
         container:  p,
         listing:    c
     }
+}
+
+
+function filterUsers(role,container,button, selector){
+    let c = button.parentNode;
+    c.querySelectorAll('button').forEach(b=>b.classList.remove('active'))
+    c.querySelectorAll('button').forEach(b=>b.classList.add('passive'))
+    button.classList.add('active')
+    button.classList.remove('passive')
+    container.querySelectorAll(selector || '.divided').forEach(user=>{
+        if(!role) return user.classList.remove('hidden')
+        
+        if(user.dataset[role] == 'true') {
+            user.classList.remove('hidden')
+        } else {
+            user.classList.add('hidden')
+        }
+    })
 }
 
 function copyLink(link, app, text){
@@ -1078,6 +1096,7 @@ function listContainer(e,detailed,extra,dataset,alerts){
             if(e.audience) details.append(ce('span',false,`info`,`Аудитория: ${e.audience||`нрзб.`}`))
 
             if(extra) Object.keys(extra).forEach(key=>{
+                console.log(key, e[key])
                 if(e[key]) details.append(ce('span',false,`info`,`${extra[key]}: ${e[key]._seconds ? drawDate(e[key]._seconds*1000) : e[key]}`))
                 c.dataset[key] = e[key]
             })
