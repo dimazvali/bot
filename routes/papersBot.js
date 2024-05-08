@@ -5144,7 +5144,7 @@ const translations = {
     },
     lectureInvite: (l) => {
         return {
-            ru: `Отлично! Ждем вас на лекции «${l.name}».${l.price?`\n\nОбратите внимание: к оплате на месте ${common.cur(l.price,'GEL')}`:''}`,
+            ru: `Отлично! Ждем вас на лекции «${l.name}» (${drawDate(l.date,false,{time:true})}).${l.price?`\n\nОбратите внимание: к оплате на месте ${common.cur(l.price,'GEL')}`:''}`,
             en: `Great! Looking forward to meeting you. ${l.price?`\n\nBeware: entrance fee is ${common.cur(l.price,'GEL')}`:''}`,
             ka: `დიდი! გელოდებით ლექციაზე "${l.name}"`
         }
@@ -11252,4 +11252,5 @@ function getAvatar(id){
         
 //     })
 // })
+
 

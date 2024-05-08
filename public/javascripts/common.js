@@ -208,9 +208,10 @@ function preparePopup(type) {
 }
 
 function handleError(err) {
-    let teleAlert = false
+    let teleAlert = false;
+    console.log(err)
     try{
-        tg.showAlert(err.data || err.message)
+        tg.showAlert(err.response && err.response.data ? err.response.data : (err.data || err.message))
         teleAlert = true
     } catch(err){
         // alert(err.data || err.message)
@@ -676,6 +677,14 @@ function addScreen(collection,name,o){
 
     return p
 
+}
+
+function editable(e){
+    return ce(e.tag||`p`,false,false,e.value||'добавьте буквы',{
+        onclick:function(){
+            edit(e.entity,e.id,e.attr,e.type||`text`,e.value||null,this)
+        }
+    })
 }
 
 function showScreen(name, collection, line, addButton, sort, help, cl, filterTypes, filterSelector){

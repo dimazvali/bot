@@ -1,0 +1,24 @@
+
+doctype html
+html
+  head
+    title homeless
+    script(src='https://telegram.org/js/telegram-web-app.js')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(name='description' content='Попробуйте — вам понравится.')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script!=`userId="${user}"`
+    script!=`intention=${start ? `"${start}"` : false }`
+    script(src='/javascripts/common.js')
+    script!=`${start?`let start="${start}"`:'let start=null'}`
+    script(src="https://cdn.jsdelivr.net/jsbarcode/3.3.20/JsBarcode.all.min.js") 
+    link(rel='stylesheet', href='/stylesheets/homeless/app.css')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap")
+  body
+    script!=`let authNeeded=${authNeeded}`
+    if(authNeeded)
+        .modal!=`Авторизация...`
+            
+  script(src='/javascripts/homeless/app.js')

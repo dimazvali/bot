@@ -1,5 +1,98 @@
 const { default: axios } = require("axios");
 
+var sha256 =    require('sha256');
+const { createHash,createHmac } = require('node:crypto');
+const { getUser } = require("./methods");
+
+
+function authTG(req,res,token,token,adminTokens,udb){
+    data_check_string=Object.keys(req.body)
+        .filter(key => key !== 'hash')
+        .sort()
+        .map(key=>`${key}=${req.body[key]}`)
+        .join('\n')
+
+    const secretKey = createHash('sha256')
+        .update(token)
+        .digest();
+
+    const hmac = createHmac('sha256', secretKey)
+        .update(data_check_string)
+        .digest('hex');
+
+    if(req.body.hash == hmac){
+
+        getUser(req.body.id,udb).then(u=>{
+
+            if(u.blocked) return res.sendStatus(403)
+
+            if(!u) registerUser(req.body)
+                
+                adminTokens.add({
+                    createdAt:  new Date(),
+                    user:       +req.body.id,
+                    active:     true 
+                }).then(c=>{
+                    res.cookie('adminToken', c.id, {
+                        maxAge: 7 * 24 * 60 * 60 * 1000,
+                        signed: true,
+                        httpOnly: true,
+                    }).sendStatus(200)
+                })
+        })
+    } else {
+        res.sendStatus(403)
+    }
+}
+
+function authWebApp(req,res,token,adminTokens,udb){
+    data_check_string=Object.keys(req.body)
+        .filter(key => key !== 'hash')
+        .sort()
+        .map(key=>`${key}=${req.body[key]}`)
+        .join('\n')
+
+    // const secretKey = createHash('sha256')
+    //     .update(token)
+    //     .digest();
+
+    const secretKey = createHmac('sha256','WebAppData')
+        .update(token)
+        .digest();
+
+    const hmac = createHmac('sha256', secretKey)
+        .update(data_check_string)
+        .digest('hex');
+
+    if(req.body.hash == hmac){
+        req.body.user = JSON.parse(req.body.user);
+        
+
+        getUser(req.body.user.id,udb).then(u=>{
+        
+            if(u.blocked) return res.sendStatus(403)
+
+            if(!u) registerUser(req.body.user)
+                
+                adminTokens.add({
+                    createdAt:  new Date(),
+                    user:       +req.body.user.id,
+                    active:     true 
+                }).then(c=>{
+                    res.cookie((req.query.token||'adminToken'), c.id, {
+                        maxAge: 7 * 24 * 60 * 60 * 1000,
+                        signed: true,
+                        httpOnly: true,
+                    }).sendStatus(200)
+                })
+        }).catch(err=>{
+            console.log(err)
+        })
+    } else {
+        res.sendStatus(403)
+    }
+}
+
 var sudden = {
     good: [
         'грандиозно',
@@ -43,7 +136,6 @@ function objectify(array){
     array.filter(i=>i.id).forEach(i=>{
         o[i.id] = i
     })
-    devlog(o)
     return o;
 }
 
@@ -592,6 +684,6 @@ function cutMe(txt, limit) {
 
 
 module.exports = {
-    interpreteCallBackData,cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
+    authTG,authWebApp,interpreteCallBackData,cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
 };
 

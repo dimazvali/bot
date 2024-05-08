@@ -1101,3 +1101,11 @@ img.avatar.xSmall {
 [data-active="false"] {
     filter: opacity(0.5);
 }
+
+.addButton {
+    background: var(--accent);
+}
+
+button.removeButton {
+    background: var(--accent2);
+}

@@ -6,6 +6,8 @@ let buttonStyle = []
 let appLink = ``
 let fsdb = `https://console.firebase.google.com/u/0/project/dimazvalimisc/firestore/databases/-default-/data`
 
+
+
 function showCities(){
     showScreen(`Города`,`cities`,showCityLine,addCity)
 }
@@ -64,7 +66,7 @@ function drawBusShedule(records,start){
                         onclick:()=>showTrip(trip.id)
                     }))
                 } else {
-                    day.append(ce(`button`,false,false,`Добавить рейс`,{
+                    day.append(ce(`button`,false,`addButton`,`Добавить рейс`,{
                         onclick:()=>addTrip(isoDate)
                     }))
                 }
@@ -92,7 +94,7 @@ function drawBusShedule(records,start){
                             })
                         day.append(rec)
                     })
-                    if(trip) day.append(ce(`button`,false,false,`Добавить ездока`,{
+                    if(trip) day.append(ce(`button`,false,`addButton`,`Добавить ездока`,{
                         onclick:()=>{
                             add2Bus(trip.id,isoDate)
                         }
@@ -134,7 +136,7 @@ function showBusOptions(record,user,trip,button){
                 }).catch(handleError)
             }
         }))
-        tv.append(ce(`button`,false,[`dateButton`,`dark`,`active`],`снять запись`,{
+        tv.append(ce(`button`,false,`removeButton`,`снять запись`,{
             onclick:function(){
                 axios.delete(`/${host}/admin/bus/${record.id}`).then(s=>{
                     handleSave(s)
@@ -635,8 +637,50 @@ let savedUserTypes = {
     tgAdmin:    `админы ТГ`
 }
 
+function removeTag(refId,userId,container){
+    axios.delete(`/${host}/admin/userTags/${refId}`)
+        .then(s=>{
+            handleSave(s)
+            container.remove()
+        }).catch(handleError)
+}
+
+function addTag(userId){
+    let edit = ce('div', false, `editWindow`)
+    edit.append(ce(`h2`,false,false,`Добавляем тег`))
+    let f;
+    load(`tags`).then(tags=>{
+        f = ce('select')
+        f.append(ce('option', false, false, `Выберите тег`, {
+            value: ''
+        }))
+        tags
+            .filter(a => a.active)
+            .sort((a, b) => a.name < b.name ? -1 : 1)
+            .forEach(a => f.append(ce('option', false, false, a.name, {
+                value: a.id
+            })))
+        edit.append(f)
+
+        edit.append(ce('button', false, false, `Сохранить`, {
+            onclick: function () {
+                if (f.value) {
+                    axios.post(`/${host}/admin/userTags/${userId}`, {
+                        tag: f.value
+                    }).then((d)=>{
+                        handleSave(d);
+                    })
+                    .catch(handleError)
+                }
+            }
+        }))
+        document.body.append(edit)
+
+    })
+}
+
 function showUser(id){
-    let p = preparePopupWeb(`user_${id}`,false,false,true)
+    let p = preparePopupWeb(`users_${id}`,false,false,true)
     load(`users`,id).then(u=>{
         
         if(u.avatar_id) {
@@ -661,6 +705,27 @@ function showUser(id){
         p.append(line(
             ...Object.keys(savedUserTypes).map(t=>toggleButton(`users`,u.id,t,u[t]||false,`${savedUserTypes[t]} — да`,`${savedUserTypes[t]} — нет`))
         ))
+
+        let tags = ce('div')
+
+        tags.append(ce('h2',false,false,`Теги`))
+
+        p.append(tags)
+
+        load(`userTags`,false,{user:u.id}).then(tgs=>{
+            if(!tgs.length) tags.append(ce('p',false,false,`тегов еще нет`))
+            tgs.forEach(t=>{
+                tags.append(ce('button',false,[`dateButton`,`dark`],t.name,{
+                    onclick:function(){
+                        removeTag(t.id,u.id,this)
+                    }
+                }))
+            })
+        })
+        
+        p.append(ce(`button`,false,`addButton`,`Добавить тег`,{
+            onclick:() => addTag(u.id)
+        }))
         
 
         
@@ -754,11 +819,103 @@ switch(start[0]){
     }
 }
 
+function showTag(tagId){
+    let p = preparePopupWeb(`tags_${tagId}`,false,false,true)
+    p.append(ce('h2',false,false,`Загружаем...`))
+    load(`tags`,tagId).then(tag=>{
+        p.innerHTML = null;
+        
+        p.append(logButton(`tag`,tagId,`Лог по тегу`))
 
-function showDeals(){
-    showScreen(`Сделки`, `deals`,showDealLine,false,false,true)
+        p.append(ce(`h1`,false,false,tag.name,{
+            onclick:function(){
+                edit(`tags`,tagId,`name`,`text`,tag.name,this)
+            }
+        }))
+        
+        p.append(editable({
+            entity: `tags`,
+            id:     tagId,
+            attr:   `description`,
+            value:  tag.description
+        }))
+        
+        if(tag.active) p.append(deleteButton(`tags`,tagId))
+
+        let users = ce('div',false,false,`загружаем пользователей`)
+        
+        p.append(users)
+
+        load(`userTags`,false,{tag:tagId}).then(tusers=>{
+            
+            users.innerHTML = tusers.length ? `${tusers.length} пользователей` : `юзеров нет`
+            
+            tusers.forEach(u=>{
+                load(`users`,u.user,false,downLoadedUsers).then(u=>{
+                    users.append(showUserLine(u))
+                })        
+            })    
+            
+            if(tusers.length){
+                let mb = ce(`div`,false,`inpC`)
+                mb.append(ce('h3',false,false,`Отправить сообщение`))
+
+                let name = ce('input',false,`block`,false,{placeholder: `Название`})
+                let desc = ce('textarea',false,false,false,{placeholder: `Текст`})
+                let sb = ce('button',false,`dateButton`,`Отправить`,{
+                    dataset:{booked:1},
+                    onclick:function(){
+                        if(name.value && desc.value){
+                            this.setAttribute(`disabled`,true)
+                            axios.post(`/${host}/admin/news`,{
+                                name:           name.value,
+                                text:           desc.value,
+                                tag:            tagId,
+                                filter:         `tagged`
+                            }).then(r=>{
+                                alert(r.data.comment)
+                            }).catch(err=>{
+                                alert(err.message)
+                            }).finally(()=>{
+                                this.removeAttribute(`disabled`)
+                            })
+                        }
+                    }
+                })
+                mb.append(name)
+                mb.append(desc)
+                mb.append(sb)
+                p.append(mb)
+            }
+        })
+
+        
+
+    })
 }
 
+function showTags(){
+    showScreen(`Теги`,`tags`,showTagLine,addNewTag)
+}
+
+function addNewTag(){
+    addScreen(`tags`,`Новый тег`,{
+        name: {
+            placeholder: `Название`
+        },
+        description: {
+            placeholder: `Описание`,
+            tag:        `textarea`
+        }
+    })
+}
+
+function showTagLine(t){
+    let c = listContainer(t,true,{cnt:`пользователей`})
+        c.append(t.name)
+        c.onclick=()=>showTag(t.id)
+    return c
+}
 
 function showCity(id){
     let p = preparePopupWeb(`cities_${id}`,false,false,true)
@@ -905,4 +1062,17 @@ function mediaLine(){
     mc.append(media)
     mc.append(db)
     return mc
+}
+
+if(start){
+    switch(start[0]){
+        case `bus`:{
+            showBus();
+            break;
+        }
+        case `tags`:{
+            showTags()
+            break;
+        }
+    }
 }

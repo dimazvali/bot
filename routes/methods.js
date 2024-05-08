@@ -1,6 +1,31 @@
 var axios = require('axios');
 
-const { devlog, alertMe } = require('./common');
+// const devlog = require('./common').devlog
+// const alertMe = require('./common').alertMe;
+function alertMe(m, ep) {
+    if (!m.chat_id) {
+        m.chat_id = dimazvali
+    }
+    return axios.post('https://api.telegram.org/bot' + process.env.papersToken + '/' + (ep ? ep : 'sendMessage'),
+        m, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(success => {
+        return true;
+    }).catch(err => {
+        console.log(err)
+        return false;
+    })
+}
+
+function devlog(v) {
+    if (process.env.develop == 'true') {
+        console.log(v)
+    }
+}
+
+// const { devlog, alertMe } = require('./common');
 
 function sendMessage(m, ep, channel) {
     

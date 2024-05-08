@@ -13,7 +13,7 @@ const fileUpload = require('express-fileupload');
 
 
 var cors =      require('cors')
-var sha256 =    require('sha256');
+
 var common =    require('./common');
 const m =       require('./methods.js');
 var QRCode =    require('qrcode')
@@ -23,7 +23,7 @@ var modals =    require('./modals.js').modals
 const qs =      require('qs');
 const fs =      require('fs')
 
-const { createHash,createHmac } = require('node:crypto');
+
 router.use(cors())
 
 router.use(fileUpload({
@@ -55,6 +55,8 @@ const {
     sudden,
     cutMe,
     interpreteCallBackData,
+    authTG,
+    authWebApp,
 } = require ('./common.js')
 
 const {
@@ -141,6 +143,8 @@ let news =              fb.collection(`${host}News`);
 let bus =               fb.collection(`${host}Bus`);
 let busTrips =          fb.collection(`${host}BusTrips`);
 let settings =          fb.collection(`${host}Settings`);
+let tags =              fb.collection(`${host}Tags`);
+let userTags =          fb.collection(`${host}UserTags`);
 
 let savedCities = {};
 
@@ -201,6 +205,13 @@ function sendMessage(req,res,admin){
 
 
 const datatypes = {
+    userTags:{
+        col: userTags,
+    },
+    tags: {
+        col: tags,
+        newDoc: newEntity
+    },
     settings:{
         col: settings,
     },
@@ -258,6 +269,88 @@ function addtrip(req,res,admin){
                 res.redirect(`/${host}/web?page=bus`)
             })
         })
+}
+
+function register2Bus(tripId,u,callback,res){
+    getDoc(busTrips,tripId).then(trip=>{
+        if(!trip || !trip.active) {
+            
+            if(callback) return sendMessage2({
+                callback_query_id: callback.id,
+                show_alert: true,
+                text:       locals.eventCancelled
+            }, 'answerCallbackQuery', token)
+
+            return res.status(400).send(locals.eventCancelled)
+        }
+
+        if(trip.guests > 5) {
+            if(callback){
+                return sendMessage2({
+                    callback_query_id: callback.id,
+                    show_alert: true,
+                    text:       locals.overBooking
+                }, 'answerCallbackQuery', token)
+            }
+            return res.status(400).send(locals.overBooking)
+        }
+
+        bus
+            .where(`trip`,`==`,tripId)
+            .where(`active`,`==`,true)
+            .where(`user`,'==',+u.id)
+            .get()
+            .then(col=>{
+                if(col.docs.length) {
+                    if(callback){
+                        return sendMessage2({
+                            callback_query_id: callback.id,
+                            show_alert: true,
+                            text:       locals.alreadyBooked
+                        }, 'answerCallbackQuery', token)
+                    }
+                    return res.status(400).send(locals.alreadyBooked)
+                } 
+                
+                
+
+                bus.add({
+                    active:     true,
+                    createdAt:  new Date(),
+                    trip:       tripId,
+                    date:       trip.date,
+                    user:       +u.id
+                }).then(rec=>{
+
+                    busTrips.doc(tripId).update({
+                        guests: FieldValue.increment(1)
+                    })
+
+                    log({
+                        text:       `${uname(u,u.id)} записывается на рейс ${trip.date}`,
+                        busTrip:    tripId,
+                        bus:        rec.id,
+                        user:       +u.id 
+                    })
+
+                    sendMessage2({
+                        chat_id: u.id,
+                        text: locals.busAccepted(trip),
+                        reply_markup:{
+                            inline_keyboard:[[{
+                                text: `Не смогу прийти.`,
+                                callback_data: `bus_leave_${rec.id}`
+                            }]]
+                        }
+                    },false,token,messages)
+
+                    if(res) res.json({
+                        success: true,
+                        id: rec.id
+                    })
+                })
+            })
+    })
 }
 
 function addBus(req,res,admin){
@@ -322,8 +415,14 @@ function addNews(req,res,admin){
             .where(`active`,'==',true)
             .where(`blocked`,'==',false)
 
-        if(req.body.filter && req.body.filter != 'all'){
+        if(req.body.filter && req.body.filter != 'all' && req.body.filter != 'tagged'){
             q = q.where(req.body.filter,'==',true)
+        }
+
+        if(req.body.filter && req.body.filter == `tagged`){
+            q = userTags
+                .where(`active`,'==',true)
+                .where(`tag`,'==',req.body.tag)
         }
 
         return q.get()
@@ -459,6 +558,90 @@ function newEntity(req,res,admin,extra){
     })
 }
 
+function isoDate(){
+    return new Date().toISOString().split('T')[0]
+}
+
+
+router.all(`/api/:method`,(req,res)=>{
+    
+    if (!req.signedCookies.userToken) return res.status(401).send(`Вы кто вообще?`)
+    
+    adminTokens.doc(req.signedCookies.userToken).get().then(doc => {
+        
+        if (!doc.exists) return res.sendStatus(403)
+        
+        let token = handleDoc(doc)
+
+        getUser(token.user,udb).then(user=>{
+
+            if(!user) return res.sendStatus(403)
+
+            devlog(user)
+
+            switch(req.params.method){
+                case `trips`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return busTrips
+                                .where(`date`,`>=`,isoDate())
+                                // .where(`active`,'==',true)
+                                .get()
+                                .then(col=>{
+                                    res.json(handleQuery(col).filter(a=>a.active))
+                                })
+                        }
+                        case `POST`:{
+                            if(!req.body.trip) return res.sendStatus(400)
+                            return register2Bus(req.body.trip, user, false, res)
+                        }
+                    }
+                }
+
+                case `events`:{
+                    return events
+                        .where(`date`,`>=`,new Date())
+                        .get()
+                        .then(col=>{
+                            
+                            let events = handleQuery(col).filter(e=>e.active)
+                            
+                            Object.keys(savedUserTypes).forEach(type=>{
+                                if(user[type]) events = events.filter(e=>e[type])
+                            })  
+
+                            res.json(events)
+                        })
+                }
+
+                case `usersEvents`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return usersEvents
+                                .where(`user`,`==`,+user.id)
+                                .get()
+                                .then(col=>{
+                                    res.json(handleQuery(col).filter(r=>r.active))
+                                })
+                        }
+                    }
+                }
+                case `bus`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return bus
+                                .where(`user`,`==`,+user.id)
+                                .get()
+                                .then(col=>{
+                                    res.json(handleQuery(col).filter(r=>r.active))
+                                })
+                        }
+                    }
+                }
+            }
+        })
+    })
+})
 
 router.all(`/admin/:method`,(req,res)=>{
     
@@ -525,6 +708,88 @@ router.all(`/admin/:method/:id`,(req,res)=>{
 
         getUser(token.user,udb).then(admin=>{
             switch(req.params.method){
+                
+                case `userTags`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return userTags
+                                .where(`user`,'==',+req.params.id)
+                                .where(`active`,'==',true)
+                                .get()
+                                .then(col=>{
+                                    res.json(common.handleQuery(col))
+                                })
+                        }
+                        case 'POST':{
+                            if(!req.body.tag) return res.sendStatus(404)
+                            return udb.doc(req.params.id).get().then(u=>{
+                                if(!u.exists) return res.status(400).send(`no such user`)
+                                tags.doc(req.body.tag).get().then(t=>{
+                                    if(!t.exists) res.status(400).send(`no such tag`)
+                                        t = common.handleDoc(t)
+                                    if(!t.active) res.status(400).send(`tag is not active`)
+    
+                                    userTags
+                                        .where(`user`,'==',+req.params.id)
+                                        .where(`tag`,'==',req.body.tag)
+                                        .where(`active`,'==',true)
+                                        .get()
+                                        .then(already=>{
+                                            
+                                            if(common.handleQuery(already).length) return res.status(400).send(`tag is already set`)
+                                            
+                                            userTags.add({
+                                                user:       +req.params.id,
+                                                active:     true,
+                                                createdAt:  new Date(),
+                                                createdBy:  +admin.id,
+                                                tag:        req.body.tag,
+                                                name:       t.name
+                                            }).then(rec=>{
+                                                res.json({
+                                                    comment: `Тег добавлен`,
+                                                    id: rec.id
+                                                })
+                                                tags.doc(req.body.tag).update({
+                                                    cnt: FieldValue.increment(1)
+                                                })
+                                                log({
+                                                    text:   `${uname(admin,admin.id)} добавляет тег ${t.name} пользователю с id ${req.params.id}`,
+                                                    admin:  +admin.id,
+                                                    tag:    req.body.tag,
+                                                    user:   +req.params.id
+                                                })
+                                            })
+                                        })
+                                })
+                            })
+                        } 
+                        case `DELETE`:{
+                            let ref = userTags.doc(req.params.id)
+                            return ref.get().then(t=>{
+                                if(!t.exists) return res.sendStatus(404)
+                                t = common.handleDoc(t)
+                                if(!t.active) return res.status(400).send(`already deleted`)
+                                ref.update({
+                                    active: false
+                                }).then(s=>{
+                                    res.json({
+                                        comment: `Тег снят`
+                                    })
+                                    tags.doc(t.tag).update({
+                                        cnt: FieldValue.increment(-1)
+                                    })
+                                    log({
+                                        text:   `${uname(admin,admin.id)} снимает тег ${t.name} пользователю с id ${t.user}`,
+                                        admin:  +admin.id,
+                                        tag:    t.tag,
+                                        user:   +t.user
+                                    })
+                                })
+                            })
+                        }
+                    }
+                }
 
                 case `images`: {
                     return axios.post(`https://api.telegram.org/bot${process.env.homelessToken}/getFile`, {
@@ -718,49 +983,35 @@ router.get(`/auth`,(req,res)=>{
     res.render(`${host}/auth`)
 })
 
-router.post(`/auth`,(req,res)=>{
-
-    data_check_string=Object.keys(req.body)
-        .filter(key => key !== 'hash')
-        .sort()
-        .map(key=>`${key}=${req.body[key]}`)
-        .join('\n')
-
-        devlog(data_check_string)
-
-    const secretKey = createHash('sha256')
-        .update(token)
-        .digest();
-
-    const hmac = createHmac('sha256', secretKey)
-        .update(data_check_string)
-        .digest('hex');
-
-    if(req.body.hash == hmac){
-
-        getUser(req.body.id,udb).then(u=>{
-
-            if(u.blocked) return res.sendStatus(403)
-
-            if(!u) registerUser(req.body)
-                
-                adminTokens.add({
-                    createdAt:  new Date(),
-                    user:       +req.body.id,
-                    active:     true 
-                }).then(c=>{
-                    res.cookie('adminToken', c.id, {
-                        maxAge: 7 * 24 * 60 * 60 * 1000,
-                        signed: true,
-                        httpOnly: true,
-                    }).sendStatus(200)
-                })
-        })
-    } else {
-        res.sendStatus(403)
-    }
+router.post(`/authWebApp`,(req,res)=>{
+    authWebApp(req,res,token,adminTokens,udb)
 })
 
+router.post(`/auth`,(req,res)=>{
+    authTG(req,res,token,adminTokens,udb)
+})
+
+
+router.get(`/app`,(req,res)=>{
+    if(req.signedCookies.userToken){
+        getDoc(adminTokens,req.signedCookies.userToken).then(proof=>{
+            if(!proof) res.render(`${host}/app`,{
+                authNeeded: true
+            })
+            getUser(proof.user,udb).then(u=>{
+                res.render(`${host}/app`,{
+                    user: u
+                })
+            })
+        })
+        
+    } else {
+        res.render(`${host}/app`,{
+            authNeeded: true
+        })
+    }
+    
+})
 
 
 router.get(`/web`,(req,res)=>{
@@ -924,6 +1175,20 @@ router.post(`/hook`,(req,res)=>{
 
 
                 switch (req.body.message.text) {
+                    case `/test`:{
+                        return sendMessage2({
+                            chat_id:    u.id,
+                            text:       `Приложение с теста`,
+                            reply_markup:{
+                                inline_keyboard:[[{
+                                    text: `${ngrok}`,
+                                    web_app:{
+                                        url: `${ngrok}/${host}/app` 
+                                    }
+                                }]]
+                            }
+                        },false,token,messages)
+                    }
                     case `/bus`:{
                         return busTrips
                             .where(`date`,'>=',new Date().toISOString().split('T')[0])
@@ -1082,60 +1347,7 @@ router.post(`/hook`,(req,res)=>{
                 case `bus`:{
                     switch(inc[1]){
                         case `join`:{
-                            return getDoc(busTrips,inc[2]).then(trip=>{
-                                if(!trip || !trip.active) return sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text:       locals.eventCancelled
-                                }, 'answerCallbackQuery', token)
-
-                                if(trip.guests > 5) return sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text:       locals.overBooking
-                                }, 'answerCallbackQuery', token)
-
-                                bus
-                                    .where(`trip`,`==`,inc[2])
-                                    .where(`active`,`==`,true)
-                                    .where(`user`,'==',+u.id)
-                                    .get()
-                                    .then(col=>{
-                                        if(col.docs.length) return sendMessage2({
-                                            callback_query_id: req.body.callback_query.id,
-                                            show_alert: true,
-                                            text:       locals.alreadyBooked
-                                        }, 'answerCallbackQuery', token)
-
-                                        bus.add({
-                                            active:     true,
-                                            createdAt:  new Date(),
-                                            trip:       inc[2],
-                                            date:       trip.date,
-                                            user:       +u.id
-                                        }).then(rec=>{
-                                            busTrips.doc(inc[2]).update({
-                                                guests: FieldValue.increment(1)
-                                            })
-                                            log({
-                                                text:       `${uname(u,u.id)} записывается на рейс ${trip.date}`,
-                                                busTrip:    trip.id,
-                                                bus:        rec.id,
-                                                user:       +u.id 
-                                            })
-                                            sendMessage2({
-                                                chat_id: u.id,
-                                                text: locals.busAccepted(trip),
-                                                reply_markup:{
-                                                    inline_keyboard:[[{
-                                                        text: `Не смогу прийти.`,
-                                                        callback_data: `bus_leave_${rec.id}`
-                                                    }]]
-                                                }
-                                            },false,token,messages)
-                                        })
-                                    })
-                            })
+                            return register2Bus(inc[2], u, req.body.callback_query)
                             
                         }
                         case `leave`:{

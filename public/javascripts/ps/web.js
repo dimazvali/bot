@@ -914,13 +914,7 @@ function showSubmissions(userTaskId){
     })
 }
 
-function editable(e){
-    return ce(e.tag||`p`,false,false,e.value||'добавьте буквы',{
-        onclick:function(){
-            edit(e.entity,e.id,e.attr,e.type||`text`,e.value||null,this)
-        }
-    })
-}
+
 
 
 function showTag(tagId){
