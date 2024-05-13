@@ -2042,9 +2042,6 @@ function showUsersChart(userData) {
 
 function showRC(){
     closeLeft()
-    // mc.innerHTML = '<h1>Random coffee</h1>'
-    
-    // window.history.pushState({}, "", `web?page=rc`);
     let p = preparePopupWeb(`rc`,false,false,true,false,false,`Random Coffee`)
     let usersC = ce('div')
     let listing = ce('div')
@@ -2055,8 +2052,8 @@ function showRC(){
             if(sure) {
                 this.setAttribute(`disabled`,true)
                 axios.post(`/${host}/admin/rc`)
-                .then(handleSave)
-                .catch(handleError)
+                    .then(handleSave)
+                    .catch(handleError)
             }
         }
     }))

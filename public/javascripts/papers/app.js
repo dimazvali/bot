@@ -28,6 +28,8 @@ try{
     console.error(err)
 }
 
+tg.requestWriteAccess();
+
 translations.bookOn = (d)=>{
     return {
         ru: `Забронировать на ${d}`,

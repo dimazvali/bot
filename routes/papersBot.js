@@ -1,9 +1,6 @@
 let ngrok2 = "https://62a2-87-253-45-124.ngrok-free.app" 
 let ngrok = process.env.ngrok 
-// let ngrok = `https://62a2-87-253-45-124.ngrok-free.app`
 
-
-// https://62a2-87-253-45-124.ngrok-free.app/papers/app?startapp=class_2wXcJffTfce457jZxgTm
 let coworkingPrice = 30;
 
 var express =   require('express');
@@ -3510,18 +3507,8 @@ function sendTestApp(uid){
 
 if(process.env.develop){
 
-
-    
     router.get('/test', (req, res) => {
-
         
-        m.sendMessage2({
-            chat_id: 6168772688,
-            text: `тест`
-        },false,token)
-        // books.get().then(col=>res.json(common.handleQuery(col)))
-        
-
         // sendTestApp(req.query.user||common.dimazvali)
 
         // getAvatar(req.query.user).then(d=>res.json(d));
@@ -10732,14 +10719,12 @@ function bookMR(date, time, userid, callback, res) {
 
 function rcCheckBefore(){
     udb
-        .where(`randomCof   fee`,'==',true)
+        .where(`randomCoffee`,'==',true)
         .where(`active`,'==',true)
         .get()
         .then(col=>{
 
             common.handleQuery(col)
-            // .filter(u=>+u.id == common.dimazvali)
-            // .slice(0,1)
             .forEach((user,i)=>{
                 
                 if(user.randomCoffeePass){
