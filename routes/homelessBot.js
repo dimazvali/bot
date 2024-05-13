@@ -1,5 +1,5 @@
 // let ngrok = process.env.ngrok2 
-let ngrok = process.env.ngrok 
+let ngrok = process.env.ngrok;
 
 const host = `homeless`;
 const token = process.env.homelessToken;
@@ -10,7 +10,6 @@ var router =    express.Router();
 var axios =     require('axios');
 
 const fileUpload = require('express-fileupload');
-
 
 var cors =      require('cors')
 
@@ -357,8 +356,12 @@ function register2Bus(tripId,u,callback,res){
 
 function addBus(req,res,admin){
     
-    if(!req.body.user || !req.body.date || !+new Date(req.body.date) || new Date()<new Date(req.body.date)) return res.sendStatus(400)
     
+    if(!req.body.user)return res.status(400).send(`no user provided`)
+    if(!req.body.date)return res.status(400).send(`no date provided`)
+    if(!+new Date(req.body.date)) return res.status(400).send(`invalid date provided`)
+    if(new Date() > new Date(req.body.date)) return res.status(400).send(`no way back`)
+
     getUser(req.body.user,udb).then(u=>{
         
         if(!u)          return res.json({success:false,comment: `Такого пользователя в системе нет`})
@@ -417,7 +420,7 @@ function addNews(req,res,admin){
             .where(`active`,'==',true)
             .where(`blocked`,'==',false)
 
-        if(req.body.filter && req.body.filter != 'all' && req.body.filter != 'tagged'){
+        if(req.body.filter && req.body.filter != 'all' && req.body.filter != 'tagged'  && req.body.filter != 'trip'){
             q = q.where(req.body.filter,'==',true)
         }
 
@@ -425,6 +428,12 @@ function addNews(req,res,admin){
             q = userTags
                 .where(`active`,'==',true)
                 .where(`tag`,'==',req.body.tag)
+        }
+
+        if(req.body.filter && req.body.filter == `trip`){
+            q = bus
+                .where(`active`,'==',true)
+                .where(`trip`,'==',req.body.trip)
         }
 
         return q.get()
@@ -442,6 +451,7 @@ function addNews(req,res,admin){
                 }).then(rec=>{
                     
                     res.json({
+                        success:    true,
                         id:         rec.id,
                         comment:    `Рассылка создана и расходится на ${col.docs.length} пользователей.`
                     })
@@ -825,7 +835,7 @@ router.all(`/api/:method`,(req,res)=>{
                                 .get()
                                 .then(col=>{
                                     // col
-                                    res.json(handleQuery(col).filter(r=>r.active).filter(t=>t.date._seconds*1000>+new Date()))
+                                    res.json(handleQuery(col).filter(r=>r.active).filter(t=>t.date>isoDate()))
                                 })
                         }
                     }
@@ -837,9 +847,11 @@ router.all(`/api/:method`,(req,res)=>{
 
 router.all(`/admin/:method`,(req,res)=>{
     
-    if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
+    let token = req.signedCookies.adminToken || req.signedCookies.userToken;
+
+    if (!token) return res.status(401).send(`Вы кто вообще?`)
     
-    adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
+    adminTokens.doc(token).get().then(doc => {
         
         if (!doc.exists) return res.sendStatus(403)
         
@@ -892,9 +904,10 @@ router.all(`/admin/:method`,(req,res)=>{
 
 
 router.all(`/admin/:method/:id`,(req,res)=>{
-    if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
+    let token = req.signedCookies.adminToken || req.signedCookies.userToken;
+    if (!token) return res.status(401).send(`Вы кто вообще?`)
     
-    adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
+    adminTokens.doc(token).get().then(doc => {
         
         if (!doc.exists) return res.sendStatus(403)
         
@@ -1074,7 +1087,7 @@ function updateEntity(req,res,ref,admin){
             })
         } else {
             ref.update({
-                [req.body.attr]: req.body.value || null,
+                [req.body.attr]: (req.body.type == `date`? new Date(req.body.value) : req.body.value) || null,
                 updatedAt: new Date(),
                 updatedBy: +admin.id
             }).then(s=>{

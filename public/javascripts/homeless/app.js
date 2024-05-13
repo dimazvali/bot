@@ -8,15 +8,17 @@ function shimmer(light){
     tg.HapticFeedback.notificationOccurred('success')
 }
 
-let confirmed = true;
+let confirmed = false;
 
-if(authNeeded){
+// if(authNeeded){
     console.log(`Нужна авторизация`)
     confirmed = axios.post(`/${host}/authWebApp?token=userToken`,tg.initData)
         .then(s=>{
-            confirmed = true;
+            // confirmed = 
+            console.log(`получили данные админа ${s.data}`)
+            return s.data.admin;
         })
-}
+// }
 
 function userLoad(collection, id) {
     return axios.get(`/${host}/api/${collection}${id?`/${id}`:''}`).then(data => {
@@ -26,7 +28,7 @@ function userLoad(collection, id) {
 
 Promise
     .resolve(confirmed)
-    .then(()=>{
+    .then(admin=>{
 
         console.log(`погнали`)
 
@@ -53,6 +55,39 @@ Promise
             }))
 
         })
+        
+        console.log(`админ: ${admin}`)
+
+        if(admin){
+            
+            let adminBus = ce(`div`,`adminBus`,`container`)
+            c.append(adminBus)
+            adminBus.append(ce(`h2`,false,false,`Админка автобуса`))
+            load(`busTrips`).then(trips=>{
+                let nearest = ce(`div`,false,`h40`)
+                let scrollable =ce(`div`,false,`scrollable`)
+                
+                adminBus.append(nearest)
+                nearest.append(scrollable)
+
+                setTimeout(()=>{
+                    scrollable.append(ce(`div`,false,`box`,`🚌`))
+                },0)
+                
+                    
+                    
+                    trips.forEach((t,i)=>{
+                        setTimeout(()=>{
+                            scrollable.append(ce(`div`,false,`box`,drawDate(t.date),{
+                                onclick:()=>{
+                                    showAdminBusTrip(t.id)
+                                }
+                            }))
+                        },0)
+                    })
+                
+            })
+        }
         
         let bus = ce(`div`,`bus`,[`container`,`left`])
         
@@ -186,6 +221,111 @@ Promise
         
     })
 
+
+function showAdminBusTrip(tripId){
+    let p = preparePopup(`trip_${tripId}`)
+    load(`busTrips`,tripId).then(trip=>{
+        load(`bus`,false,{trip:tripId}).then(records=>{
+            p.append(ce(`h1`,false,false,`🚌 ${drawDate(trip.date)}`))
+            p.append(ce(`p`,false,`info`,`<b>время</b>: ${trip.time}`))
+            p.append(ce(`p`,false,`info`,`<b>место</b>: ${trip.start}`))
+            p.append(ce(`p`,false,`info`,`<b>примечания</b>: ${trip.comment || `не указаны`}`))
+            p.append(ce(`hr`))
+            let uc = ce(`div`,false,`relative`)
+                uc.append(ce(`h3`,false,false,`Участники:`))
+                uc.append(ce(`span`,false,[`info`,`upRightSmall`],`показать отмены`,{
+                    onclick:function(){
+                        this.remove();
+                        uc.querySelectorAll(`.sDivided.hidden`).forEach(line=>{line.classList.toggle(`hidden`)})
+                    }
+                }))
+                records.forEach(r=>{
+                    load(`users`,r.user).then(u=>{
+                        let rc = ce(`div`,false,[`sDivided`,r.active?`reg`:`hidden`],false,{dataset:{active:r.active}})
+                            rc.append(ce(`p`,false,`info`,`заявка от ${drawDate(r.createdAt._seconds*1000)}`))
+                            rc.append(ce(`p`,false,false,uname(u,u.id),{
+                                onclick:()=>tg.openTelegramLink(`https://t.me/${u.username}`)
+                            }))
+                            if(r.active){
+                                let flex = ce(`div`,false,`flex`)
+                                rc.append(flex)
+                                if(r.onplace){
+                                    rc.append(ce(`p`,false,`info`,`на месте с ${drawDate(r.onplace._seconds*1000,false,{time:true})}`))
+                                } else {
+                                    flex.append(ce(`button`,false,`addButton`,`На месте`,{
+                                        onclick:function(){
+                                            this.setAttribute(`disabled`,true)
+                                            tg.showConfirm(`Уверены?`,(e)=>{
+                                                if(e){
+                                                    axios.put(`/${host}/admin/bus/${r.id}`,{
+                                                        attr: `onplace`,
+                                                        value: new Date(),
+                                                        type: `date`
+                                                    }).then((s)=>{
+                                                        handleSave(s)
+                                                        this.remove()
+                                                    })
+                                                    .catch(handleError)
+                                                } else {
+                                                    this.removeAttribute(`disabled`)
+                                                }
+                                            })
+    
+                                        }
+                                    }))
+                                    flex.append(ce(`button`,false,`deleteButton`,`Снять запись`,{
+                                        onclick:function(){
+                                            this.setAttribute(`disabled`,true)
+                                            tg.showConfirm(`Человек не придет?`,(e)=>{
+                                                if(e){
+                                                    axios.delete(`/${host}/admin/bus/${r.id}`)
+                                                    .then((s)=>{
+                                                        handleSave(s)
+                                                        rc.remove()
+                                                    })
+                                                    .catch(handleError)
+                                                } else {
+                                                    this.removeAttribute(`disabled`)
+                                                }
+                                            })
+    
+                                        }
+                                    }))
+                                    
+                                }
+                            }
+                            
+                        uc.append(rc)
+                    })
+                })
+            p.append(uc)
+            p.append(ce(`hr`))
+            let txt = ce(`textarea`,false,false,false,{
+                placeholder: `Рассылка по участникам`
+            });
+            p.append(txt);
+            p.append(ce(`button`,false,`sendButton`,`Отправить`,{
+                onclick:function(){
+                    if(!txt.value) return tg.showAlert(`Я не вижу ваших букв!`)
+                    this.setAttribute(`disabled`,true);
+                    axios.post(`/${host}/admin/news`,{
+                        name: `Рассылка по участникам ночного рейса ${trip.date}`,
+                        text:   txt.value,
+                        filter: `trip`,
+                        trip:     tripId
+                    }).then(s=>{
+                        handleSave(s)
+                        txt.value = null
+                    }).catch(handleError)
+                    .finally(()=>{
+                        this.removeAttribute(`disabled`)
+                    })
+
+                }
+            }))
+        })
+    })
+}
 function showSettings(profile){
     shimmer(true)
     let p = preparePopup(`profile`)

@@ -83,7 +83,9 @@ function authWebApp(req,res,token,adminTokens,udb){
                         maxAge: 7 * 24 * 60 * 60 * 1000,
                         signed: true,
                         httpOnly: true,
-                    }).sendStatus(200)
+                    }).json({
+                        admin: u && u.admin ? true : false
+                    })
                 })
         }).catch(err=>{
             console.log(err)
