@@ -32,6 +32,7 @@ h1, h2, h3, h4 {
 }
 
 .container {
+    position: relative;
     padding: 15px;
     background: var(--tg-theme-secondary-bg-color);
     margin-bottom: 20px;
@@ -151,6 +152,10 @@ img.cover {
     min-width: 60px;
     border-left: 1px solid var(--tg-theme-accent-text-color);
     text-align: center;
+    background: var(--tg-theme-bg-color);
+    padding: 5px;
+    border-radius: 5px;
+    margin-left: 5px;
 }
 
 .box:nth-child(1) {
@@ -159,4 +164,64 @@ img.cover {
     /* margin-left: 100vw; */
     /* transition: 1s; */
     animation: slideLeftM 1s forwards;
+}
+
+h4.rideLine::after {
+    content: 'отменить';
+    font-size: x-small;
+    color: var(--tg-theme-button-text-color);
+    font-weight: 100;
+    float: right;
+    background: var(--tg-theme-destructive-text-color);
+    padding: 2px 9px;
+    border-radius: 5px;
+}
+
+.help {
+    text-decoration: underline;
+}
+
+.upRight {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: larger;
+}
+
+[data-on="0"] {
+    filter: opacity(0.5);
+}
+
+.mBottom{
+    margin-bottom: 10px;
+}
+
+label.toggleLabel {
+    display: block;
+    line-height: 40px;
+}
+
+label.toggleLabel::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    border: 2.5px solid var(--tg-theme-button-color);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--tg-theme-bg-color);
+    transition: .3s;
+    margin-right: 20px;
+}
+
+.hiddenInput>input {
+    display: none;
+}
+
+input:checked+label.toggleLabel::before {
+    background: var(--tg-theme-button-color);
+    content: '✓';
+    font-size: 18px;
+    text-align: center;
+    line-height: 20px;
 }

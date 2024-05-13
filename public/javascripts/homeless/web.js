@@ -230,6 +230,12 @@ function showTrip(id){
                 edit(`busTrips`,id,`start`,`textarea`,trip.start,this)
             }
         }))
+
+        p.append(ce(`p`,false,false,`примечания: ${trip.comment||`(нажмите, чтобы добавить)`}`,{
+            onclick:function(){
+                edit(`busTrips`,id,`comment`,`textarea`,trip.start,this)
+            }
+        }))
     })
 }
 
@@ -237,7 +243,7 @@ function showUsers(){
     showScreen(`Пользователи`,`users`,showUserLine,false,false,false,false,{
         volunteer:  `волонтеры`,
         media:      `журналисты`,
-        sponsor:    `спонсоры`,
+        sponsor:    `партнеры`,
         tgAdmin:    `админы ТГ`
     },`.sDivided`)
 }
@@ -246,7 +252,7 @@ function showEvents(){
     showScreen(`События`,`events`,showEventLine,addEvent,false,false,false,{
         volunteer:  `для волонтеров`,
         media:      `для журналистов`,
-        sponsor:    `для спонсоров`,
+        sponsor:    `для партнеров`,
         tgAdmin:    `для телеграмщиков`
     },`.sDivided`)
 }
@@ -375,7 +381,7 @@ function showEventLine(e){
             date:       `когда`,
             media:      `для журналистов`,
             volunteer:  `для волонтеров`,
-            sponsor:    `для спонсоров`,
+            sponsor:    `для партнеров`,
         });
         c.append(ce(`h3`,false,false,e.name,{
             onclick:()=>showEvent(e.id)
@@ -388,7 +394,7 @@ function showUserLine(u){
         events:     `Мероприятий`,
         media:      `Медиа`,
         volunteer:  `Волонтер`,
-        sponsor:    `Спонсор`,
+        sponsor:    `Партнер`,
         tgAdmin:    `Админ ТГ`
     });
         c.append(ce(`h3`,false,false,uname(u, u.id),{
@@ -476,6 +482,11 @@ function addTrip(date){
             type: `text`,
             placeholder: `Точка старта`,
             value: settings.defaultStartPlace.value
+        },
+        comment: {
+            type: `textarea`,
+            placeholder: `примечания`,
+            value: null
         }
     })
 }
@@ -511,7 +522,7 @@ function addEvent(){
         },
         sponsor: {
             bool: true,
-            placeholder: `Для спонсоров`
+            placeholder: `Для партнеров`
         }
 
     })
@@ -632,7 +643,7 @@ function showDeal(id){
 
 let savedUserTypes = {
     volunteer:  `волонтеры`,
-    sponsor:    `спонсоры`,
+    sponsor:    `партнеры`,
     media:      `журналисты`,
     tgAdmin:    `админы ТГ`
 }
@@ -839,6 +850,8 @@ function showTag(tagId){
             attr:   `description`,
             value:  tag.description
         }))
+
+        p.append(toggleButton(`tags`,tagId,`public`,tag.public,`Публичный тег`, `Тег для админов`))
         
         if(tag.active) p.append(deleteButton(`tags`,tagId))
 
@@ -906,6 +919,10 @@ function addNewTag(){
         description: {
             placeholder: `Описание`,
             tag:        `textarea`
+        },
+        public:{
+            placeholder: `Пользователь может проставить самому себе`,
+            bool: true
         }
     })
 }
@@ -985,7 +1002,7 @@ function addNews(){
         media:          `Медийщикам`,
         volunteer:      `Волонтерам`,
         tgAdmin:        `Администраторам ТГ`,
-        sponsor:        `Спонсорам`,
+        sponsor:        `Партнерам`,
         all:            `Всем`
     } 
 

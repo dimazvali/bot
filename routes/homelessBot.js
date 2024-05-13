@@ -1,5 +1,5 @@
-// let ngrok = process.env.ngrok2 
-let ngrok = process.env.ngrok 
+let ngrok = process.env.ngrok2 
+// let ngrok = process.env.ngrok 
 
 const host = `homeless`;
 const token = process.env.homelessToken;
@@ -21,7 +21,7 @@ var cron =      require('node-cron');
 var FormData =  require('form-data');
 var modals =    require('./modals.js').modals
 const qs =      require('qs');
-const fs =      require('fs')
+const fs =      require('fs');
 
 
 router.use(cors())
@@ -150,7 +150,7 @@ let savedCities = {};
 
 let savedUserTypes = {
     volunteer:  `волонтеры`,
-    sponsor:    `спонсоры`,
+    sponsor:    `партнеры`,
     media:      `журналисты`
 }
 
@@ -210,7 +210,8 @@ const datatypes = {
     },
     tags: {
         col: tags,
-        newDoc: newEntity
+        newDoc: newEntity,
+        extras: [`public`],
     },
     settings:{
         col: settings,
@@ -259,7 +260,8 @@ function addtrip(req,res,admin){
                 admin:  +admin.id,
                 date:   req.body.date,
                 start:  req.body.start ||   savedSettings.defaultStartPlace.value,
-                time:   req.body.time ||    savedSettings.defaultStartTime.value
+                time:   req.body.time ||    savedSettings.defaultStartTime.value,
+                comment: req.body.comment || null
             }).then(rec=>{
                 log({
                     text:       `${uname(admin,admin.id)} запускает рейс автобуса на ${req.body.date}`,
@@ -508,7 +510,6 @@ function newEntity(req,res,admin,extra){
         name:           req.body.name || null,
         pic:            req.body.pic || null,
     }
-
     
 
     if(extra) extra.forEach(t=>{
@@ -563,6 +564,155 @@ function isoDate(){
 }
 
 
+router.all(`/api/:method/:id`,(req,res)=>{
+    
+    if (!req.signedCookies.userToken) return res.status(401).send(`Вы кто вообще?`)
+    
+    adminTokens.doc(req.signedCookies.userToken).get().then(doc => {
+        
+        if (!doc.exists) return res.sendStatus(403)
+        
+        let token = handleDoc(doc)
+
+        getUser(token.user,udb).then(user=>{
+
+            if(!user) return res.sendStatus(403)
+
+            devlog(user)
+
+            switch(req.params.method){
+
+                case `userTags`:{
+                    
+                    if(+user.id != +req.params.id) return res.sendStatus(403)
+
+                    
+                    return getDoc(tags,req.body.attr).then(tag=>{
+                        if(!tag || !tag.active) return res.sendStatus(404)
+                        
+                        userTags
+                            .where(`tag`,`==`,req.body.attr)
+                            .where(`user`,`==`,+req.params.id)
+                            .where(`active`,'==',true)
+                            .get()
+                            .then(col=>{
+                                
+                                let already = handleQuery(col);
+                                
+                                if(req.body.value){
+                                    if(already.length) return res.status(400).send(`уже записано`)
+                                    userTags.add({
+                                        tag:        req.body.attr,
+                                        createdAt:  new Date(),
+                                        user:       +user.id,
+                                        active:     true,
+                                        name:       tag.name
+                                    }).then(r=>{
+                                        tags.doc(tag.id).update({
+                                            users: FieldValue.increment(1)
+                                        })
+                                        res.json({
+                                            success: true,
+                                            comment: `Спасибо!`
+                                        })
+                                        log({
+                                            silent: true,
+                                            tag: tag.id,
+                                            user: +user.id,
+                                            text: `${uname(user,user.id)} добавляет себе тег ${tag.name}`
+                                        })
+                                    })
+                                } else {
+                                    if(!already.length) return res.status(400).send(`нечего удалять...`)
+                                    already.forEach(record=>{
+                                        userTags.doc(record.id).update({
+                                            active: false
+                                        })
+                                        tags.doc(tag.id).update({
+                                            users: FieldValue.increment(-1)
+                                        })
+                                        log({
+                                            silent: true,
+                                            tag: tag.id,
+                                            user: +user.id,
+                                            text: `${uname(user,user.id)} снимает тег ${tag.name}`
+                                        })
+                                    })
+                                    res.json({
+                                        success: true,
+                                        comment: `Спасибо!`
+                                    })
+                                }
+                            })
+
+                        
+                    })
+                }
+                case `profile`:{
+                    switch (req.method){
+                        case `PUT`:{
+                            let possible = {
+                                volunteer:  `волонтер`,
+                                media:      `медиа`,
+                                news:       `новости`
+                            }
+                            if(possible[req.body.attr]){
+                                return udb.doc(user.id).update({
+                                    [req.body.attr]:req.body.value  
+                                }).then(()=>{
+                                    res.sendStatus(200)
+                                    
+                                    log({
+                                        user: +user.id,
+                                        text: `${uname(user,user.id)} обновляет профиль: ${possible[req.body.attr]} становится ${req.body.value}.`
+                                    })
+                                })
+                            }
+                             
+                        }
+                    }
+                }
+                case `bus`:{
+                    let ref = bus.doc(req.params.id);
+                    return getDoc(bus,req.params.id).then(ride=>{
+                        if(!ride) return res.sendStatus(404);
+                        switch (req.method){
+                            case `GET`:{
+                                return getDoc(busTrips,ride.trip).then(trip=>{
+                                    res.json({
+                                        ride: ride,
+                                        trip: trip
+                                    })
+                                })
+                            }
+                            case `DELETE`:{
+                                if(!ride.active) return res.status(400).send(`Запись уже отменена`);
+                                return ref.update({
+                                    active: false,
+                                }).then(()=>{
+                                    busTrips.doc(ride.trip).update({
+                                        guests: FieldValue.increment(-1)
+                                    })
+                                    log({
+                                        bus: req.params.id,
+                                        busTrip: ride.trip,
+                                        user: +user.id,
+                                        text: `${uname(user,user.id)} снимается с рейса ${ride.date}`
+                                    })
+                                    res.json({
+                                        success: true
+                                    })
+                                })
+                            }
+                        }
+                    })
+                    
+                }
+            }
+        })
+    })
+})
+
 router.all(`/api/:method`,(req,res)=>{
     
     if (!req.signedCookies.userToken) return res.status(401).send(`Вы кто вообще?`)
@@ -580,6 +730,47 @@ router.all(`/api/:method`,(req,res)=>{
             devlog(user)
 
             switch(req.params.method){
+
+                case `userTags`:{
+                    return userTags
+                        .where(`user`,`==`,+user.id)
+                        .where(`active`,'==',true)
+                        .get()
+                        .then(col=>{
+                            res.json(handleQuery(col))
+                        })
+                }
+                
+                case `tags`:{
+                    let data = []
+                    data.push(tags
+                        .where(`public`,'==',true)
+                        .where(`active`,'==',true)
+                        .get()
+                        .then(col=>{
+                            return handleQuery(col, false, true)
+                        })
+                    )
+
+                    data.push(userTags
+                        .where(`user`,'==',+user.id)
+                        .where(`active`,'==',true)
+                        .get()
+                        .then(col=>{
+                            return handleQuery(col, false, true)
+                        })
+                    )
+                    return Promise.all(data).then(data=>{
+                        res.json({
+                            tags:       data[0],
+                            userTags:   data[1]
+                        })
+                    })
+                }
+
+                case `profile`:{
+                    return res.json(user);
+                }
                 case `trips`:{
                     switch(req.method){
                         case `GET`:{
@@ -633,7 +824,8 @@ router.all(`/api/:method`,(req,res)=>{
                                 .where(`user`,`==`,+user.id)
                                 .get()
                                 .then(col=>{
-                                    res.json(handleQuery(col).filter(r=>r.active))
+                                    // col
+                                    res.json(handleQuery(col).filter(r=>r.active).filter(t=>t.date._seconds*1000>+new Date()))
                                 })
                         }
                     }
@@ -660,6 +852,8 @@ router.all(`/admin/:method`,(req,res)=>{
             devlog(admin)
 
             switch(req.params.method){
+
+
 
                 case `userSearch`:{
                     if(!req.query.name) return res.sendStatus(400)

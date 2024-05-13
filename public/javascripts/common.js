@@ -851,11 +851,43 @@ function shuffle(array) {
   }
   
 
-function toggleButton(collection, id, attr, value, ifYes,ifNo, cl){
+function toggleCheckBox(collection,id,attr,value,placeholder){
+    let cd = ce(`div`,false,`hiddenInput`)
+
+    let l = ce(`label`,false,`toggleLabel`,false,{
+        for: attr
+    })
+
+    let cb = ce(`input`,attr,false,false,{
+        type:`checkbox`,
+        checked: value ? true : false
+    })
+
+    console.log(`${placeholder} has to be ${value}`)
+    
+    cd.append(cb)
+    cd.append(l)
+
+    l.append(ce(`span`,false,`info`,placeholder))
+    
+    cb.onchange=function(){
+        axios.put(`${host ? `/${host}` : ''}/api/${collection}/${id}`,{
+            attr: attr,
+            value: this.checked
+        }).then(s=>{
+            handleSave(s)
+        }).catch(handleError)
+    }
+
+    l.setAttribute(`for`,attr)
+    return cd
+}
+
+function toggleButton(collection, id, attr, value, ifYes, ifNo, cl, layer){
     let b = ce('button',false,cl||false,(value?ifYes:ifNo),{
         dataset:{on:value?1:0},
         onclick:function(){
-            axios.put(`${host ? `/${host}` : ''}/admin/${collection}/${id}`,{
+            axios.put(`${host ? `/${host}` : ''}/${layer||`admin`}/${collection}/${id}`,{
                 attr: attr,
                 value: !(Number(this.dataset.on))
             }).then(s=>{

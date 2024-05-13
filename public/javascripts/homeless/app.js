@@ -37,11 +37,122 @@ Promise
         }))
 
         let c = ce(`div`,false,`mobile`)
-        let events = ce(`div`,`events`,[`container`,`left`])
+
+        let profile = ce(`div`,`profile`,[`container`])
+
+        c.append(profile)
+
+        userLoad(`profile`).then(user=>{
+            let uname = `${user.first_name||''} ${user.last_name||''}`.trim();
+            if(!uname) uname = user.username ? `@${user.username}` : user.id
+
+            profile.append(ce(`h3`,false,false,uname));
+            profile.append(ce(`p`,false,`info`,`Место отображения статуса и регалий.`))
+            profile.append(ce(`div`,false,`upRight`,`⚙️`,{
+                onclick:()=>showSettings(user)
+            }))
+
+        })
+        
         let bus = ce(`div`,`bus`,[`container`,`left`])
         
         c.append(bus)
 
+        userLoad(`bus`).then(busData=>{
+            bus.classList.remove(`left`)
+            bus.append(ce(`h2`,false,`help`,`Ночной автобус`,{
+                onclick:()=>{
+                    tg.showPopup({
+                        title: `Что это такое?`,
+                        message: `Специально оборудованный микроавтобус пять дней в неделю выезжает в отдалённые районы города: на четырёх стоянках волонтёры Ночлежки раздают нуждающимся людям горячую еду, средства гигиены, одежду.`,
+                        buttons: [{
+                            text: `Подробнее`,
+                            id: `https://homeless.ru/projects/478/`
+                        }]
+                    },(e)=>{
+                        tg.openLink(e)
+                    })
+                }
+            }))
+            if(busData.length) {
+                bus.append(ce(`p`,false,`info`,`Это дни, на которые вы записались.`))
+            } else {
+                bus.append(ce(`p`,false,`info`,`Никуда не едем...`))
+            }
+            busData.forEach(e=>{
+                bus.append(ce(`h4`,false,`rideLine`,`🚌 ${drawDate(e.date)}`,{
+                    onclick:function(){
+                        userLoad(`bus`,e.id).then(data=>{
+                            tg.showPopup({
+                                title: `${drawDate(e.date)}, ${data.trip.time}.`,
+                                message: `${data.trip.start}\n${data.trip.comment||''}`,
+                                buttons: [{
+                                    type: `destructive`,
+                                    text: `отменить`,
+                                    id: `cancel`
+                                },{
+                                    text: `ok`
+                                }]
+                            },(cb)=>{
+                                if(cb == `cancel`){
+                                    axios.delete(`/${host}/api/bus/${e.id}`)
+                                        .then(()=>{
+                                            this.remove()
+                                        })
+                                        .catch(handleError)
+                                }
+                            })
+                        })
+                        
+                    }
+                }))
+            })
+            bus.append(ce(`p`,false,`info`,`А это — расписание на неделю вперед.`))
+
+            let nearest = ce(`div`,false,`h40`)
+            let scrollable =ce(`div`,false,`scrollable`)
+            bus.append(nearest)
+            nearest.append(scrollable)
+            
+            userLoad(`trips`).then(trips=>{
+                setTimeout(()=>{
+                    scrollable.append(ce(`div`,false,`box`,`🚌`))
+                },0)
+                
+                trips.slice(0,7).forEach((t,i)=>{
+                    setTimeout(()=>{
+                        scrollable.append(ce(`div`,false,`box`,drawDate(t.date),{
+                            onclick:()=>{
+                                tg.showConfirm(`Хотите записаться на ${drawDate(t.date)}?`,(e)=>{
+                                    if(e) axios.post(`/${host}/api/trips`,{
+                                        trip: t.id
+                                    }).then(s=>{
+                                        if(s.data.success) tg.showAlert(`ok!`)
+                                    }).catch(handleError)
+                                })
+                            }
+                        }))
+                    },0)
+                })
+            })
+
+            bus.append(ce(`button`,false,`loadButton`,`Показать полное расписание`,{
+                onclick:function(){
+                    // this.setAttribute(`disabled`,true)
+                    tg.MainButton.setParams({
+                        text:`загружаем`,
+                        is_visible: true
+                    })
+                    tg.MainButton.showProgress()
+                    userLoad(`trips`).then(trips=>{
+                        showTrips(trips)
+                    })
+                }
+            }))
+        })
+        
+        let events = ce(`div`,`events`,[`container`,`left`])
+        
         c.append(events)
         
         document.body.append(c)
@@ -72,65 +183,36 @@ Promise
             }))
         })
 
-        userLoad(`bus`).then(busData=>{
-            bus.classList.remove(`left`)
-            bus.append(ce(`h2`,false,false,`Ночной автобус`))
-            if(busData.length) {
-                bus.append(ce(`p`,false,`info`,`Это дни, на которые вы записались.`))
-            } else {
-                bus.append(ce(`p`,false,`info`,`Никуда не едем...`))
-            }
-            busData.forEach(e=>{
-                bus.append(ce(`h4`,false,false,`🚌 ${drawDate(e.date)}`))
-            })
-
-            let nearest = ce(`div`,false,`h40`)
-            let scrollable =ce(`div`,false,`scrollable`)
-            bus.append(nearest)
-            nearest.append(scrollable)
-            
-            userLoad(`trips`).then(trips=>{
-                setTimeout(()=>{
-                    scrollable.append(ce(`div`,false,`box`,`🚌`))
-                },0)
-                
-                trips.slice(0,7).forEach((t,i)=>{
-                    setTimeout(()=>{
-                        scrollable.append(ce(`div`,false,`box`,drawDate(t.date),{
-                            onclick:()=>{
-                                tg.showConfirm(`Хотите записаться на ${drawDate(t.date)}?`,(e)=>{
-                                    if(e) axios.post(`/${host}/api/trips`,{
-                                        trip: t.id
-                                    }).then(s=>{
-                                        if(s.data.success) tg.showAlert(`ok!`)
-                                    }).catch(handleError)
-                                })
-                            }
-                        }))
-                    },0)
-                })
-            })
-
-
-
-
-            bus.append(ce(`button`,false,`loadButton`,`Показать полное расписание`,{
-                onclick:function(){
-                    // this.setAttribute(`disabled`,true)
-                    tg.MainButton.setParams({
-                        text:`загружаем`,
-                        is_visible: true
-                    })
-                    tg.MainButton.showProgress()
-                    userLoad(`trips`).then(trips=>{
-                        showTrips(trips)
-                    })
-                }
-            }))
-        })
+        
     })
 
+function showSettings(profile){
+    shimmer(true)
+    let p = preparePopup(`profile`)
+    
+    p.append(ce(`h1`,false,false,`Настройки`))
+
+    p.append(ce(`p`,false,`info`,`Краткая информация о том, что тут можно делать...`))
+
+    p.append(toggleButton(`profile`,profile.id,`volunteer`, profile.volunteer,  `Я волонтер`,               `Я не волонтер`,`mBottom`,`api`))
+    p.append(toggleButton(`profile`,profile.id,`media`,     profile.media,      `Я журналист`,              `Я не работаю в медиа`,`mBottom`,`api`))
+    p.append(toggleButton(`profile`,profile.id,`news`,      profile.news,       `Хочу получать новости`,    `Не хочу получать новости`,`mBottom`,`api`))
+
+    p.append(ce('h3',false,false,`Чем похвастаетесь?..`))
+    userLoad(`tags`).then(td=>{
+        td.tags.forEach(t=>{
+            p.append(toggleCheckBox(`userTags`,
+                profile.id,
+                t.id,
+                td.userTags.map(t=>t.tag).indexOf(t.id)>-1?true:false,
+                `${t.name}`
+            ))
+        })
+    })
+}
+
 function showEvents(events){
+    shimmer(true)
     let p = preparePopup(`events`)
     p.append(ce(`h1`,false,false,`События`))
     p.append(ce(`p`,false,`info`,`Информация о правилах посещения, проведения и прочего недоразумения.`))
@@ -157,6 +239,7 @@ function showEvents(events){
 }
 
 function showTrips(trips){
+    shimmer(true)
     let p = preparePopup(`trips`)
     p.append(ce(`h1`,false,false,`Ночной автобус`))
     p.append(ce(`p`,false,`info`,`Информация о правилах посещения, проведения и прочего недоразумения.`))
