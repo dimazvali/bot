@@ -71,6 +71,7 @@ app.use('/vz',          require('./routes/vzBot'));
 app.use('/books',       require('./routes/booksBot'));
 
 app.use('/homeless',       require('./routes/homelessBot'));
+app.use('/stalker',       require('./routes/stalkerBot'));
 
 
 // catch 404 and forward to error handler
