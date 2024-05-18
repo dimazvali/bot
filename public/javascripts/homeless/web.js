@@ -21,7 +21,7 @@ function showSettings(){
             c.append(ce(`h3`,false,false,item.id))
             c.append(ce(`p`,false,false,item.value,{
                 onclick:function(){
-                    edit(`settings`,item.id,`value`,`text`,item.value)
+                    edit(`settings`,item.id,`value`,(item.type||`text`),item.value,this)
                 }
             }))
             p.append(c)
@@ -459,8 +459,46 @@ function showEvent(id){
             }
         }))
 
-        p.append(toggleButton(`events`,cl.id,`media`,cl.media, `Для медиа`, `Не для медиа`))
-        p.append(toggleButton(`events`,cl.id,`volunteer`,cl.volunteer, `Для волонтеров`, `Не для волонтеров`))
+        p.append(line(
+            toggleButton(`events`,cl.id,`media`,       cl.media,       `Для медиа`,        `Не для медиа`),
+            toggleButton(`events`,cl.id,`volunteer`,   cl.volunteer,   `Для волонтеров`,   `Не для волонтеров`),
+            toggleButton(`events`,cl.id,`sponsor`,     cl.sponsor,     `Для спонсоров`,    `Не для спонсоров`),
+            toggleButton(`events`,cl.id,`tgAdmin`,     cl.tgAdmin,     `Для админов ТГ`,   `Не для админов ТГ`),
+        ))
+        
+        
+        
+        
+
+        p.append(ce(`button`,false,false,`Отправить анонс`,{
+            onclick:()=>{
+
+                let c = modal(`Рассылка по возможным участникам`)
+                
+                let txt = ce(`textarea`,false,false,false,{
+                    placeholder: `Вам слово`,
+                    value: null
+                })
+
+                c.append(txt)
+
+                c.append(ce(`button`,false,`sendButton`,`Отправить`,{
+                    onclick:()=>{
+                        if(!txt.value) return alert(`я не вижу ваших букв!`)
+                        axios.post(`/${host}/admin/news`,{
+                            name:   `рассылка возможным гостям ${cl.name}`,
+                            text:   txt.value,
+                            filter: `event`,
+                            event:  cl.id,
+                            app:{
+                                text: `Открыть событие`,
+                                link: `events_${cl.id}`
+                            }
+                        })
+                    }
+                }))
+            }
+        }))
 
         p.append(deleteButton(`events`,cl.id,!cl.active))
 
@@ -473,6 +511,11 @@ function addTrip(date){
             type: `date`,
             value: date,
             required: true
+        },
+        count: {
+            type:       `number`,
+            value:      settings.defaultBusRiders.value,
+            placeholder: `мест для волонтеров`   
         },
         time: {
             type: `time`,
@@ -523,8 +566,11 @@ function addEvent(){
         sponsor: {
             bool: true,
             placeholder: `Для партнеров`
+        },
+        tgAdmin:{
+            bool: true,
+            placeholder: `Для админов ТГ`
         }
-
     })
 }
 

@@ -254,13 +254,14 @@ function addtrip(req,res,admin){
         .then(col=>{
             if(col.docs.length) return res.json({success:false,comment:`Этот день уже внесен!`})
             busTrips.add({
-                createdAt: new Date(),
-                active: true,
-                admin:  +admin.id,
-                date:   req.body.date,
-                start:  req.body.start ||   savedSettings.defaultStartPlace.value,
-                time:   req.body.time ||    savedSettings.defaultStartTime.value,
-                comment: req.body.comment || null
+                createdAt:  new Date(),
+                active:     true,
+                admin:      +admin.id,
+                date:       req.body.date,
+                start:      req.body.start ||   savedSettings.defaultStartPlace.value,
+                time:       req.body.time ||    savedSettings.defaultStartTime.value,
+                comment:    req.body.comment || null,
+                count:      +req.body.count || savedSettings.defaultBusRiders.value || 5
             }).then(rec=>{
                 log({
                     text:       `${uname(admin,admin.id)} запускает рейс автобуса на ${req.body.date}`,
@@ -285,7 +286,7 @@ function register2Bus(tripId,u,callback,res){
             return res.status(400).send(locals.eventCancelled)
         }
 
-        if(trip.guests > 5) {
+        if(trip.guests > (trip.count || 5)) {
             if(callback){
                 return sendMessage2({
                     callback_query_id: callback.id,
@@ -413,6 +414,85 @@ function addBus(req,res,admin){
     
 }
 
+function sendNews(req,res,col, admin){
+    news.add({
+        active:     true,
+        createdAt:  new Date(),
+        createdBy:  +admin.id,
+        text:       req.body.text,
+        name:       req.body.name,
+        audience:   col.length
+    }).then(rec=>{
+        
+        res.json({
+            success:    true,
+            id:         rec.id,
+            comment:    `Рассылка создана и расходится на ${col.length} пользователей.`
+        })
+        
+        log({
+            silent: true,
+            text:  `${uname(admin,admin.id)} стартует рассылку с названием «${req.body.name}».`,
+            admin: +admin.id
+        })
+
+        col
+            .forEach((u,i)=>{
+            setTimeout(()=>{
+                if(req.body.app){
+                    m.sendMessage2({
+                        chat_id:    u.user || u.id,
+                        text:       req.body.text,
+                        parse_mode: `HTML`,
+                        reply_markup:{
+                            inline_keyboard:[[{
+                                text: req.body.app.text,
+                                web_app:{
+                                    url: `${ngrok}/${host}/app?startapp=${req.body.app.link}`
+                                }
+                            }]]
+                        },
+                        protect_content:        req.body.safe?true:false,
+                        disable_notification:   req.body.silent?true:false,
+                    },false,token,messages)
+                } else if(!req.body.media || !req.body.media.length){
+                    m.sendMessage2({
+                        chat_id:    u.user || u.id,
+                        text:       req.body.text,
+                        parse_mode: `HTML`,
+                        protect_content:        req.body.safe?true:false,
+                        disable_notification:   req.body.silent?true:false,
+                    },false,token,messages)
+                } else if(req.body.media && req.body.media.length == 1) {
+                    m.sendMessage2({
+                        chat_id:        u.user || u.id,
+                        caption:        req.body.text,
+                        parse_mode:     `HTML`,
+                        photo:          req.body.media[0],
+                        protect_content: req.body.safe?true:false,
+                        disable_notification: req.body.silent?true:false,
+                    },`sendPhoto`,token,messages)
+                } else if(req.body.media){
+                    m.sendMessage2({
+                        chat_id:        u.user || u.id,
+                        caption:        req.body.text,
+                        parse_mode:     `HTML`,
+                        media:          req.body.media.map((p,i)=>{
+                            return {
+                                type:       `photo`,
+                                media:      p,
+                                caption:    i?'':req.body.text
+                            }
+                        }),
+                        protect_content: req.body.safe?true:false,
+                        disable_notification: req.body.silent?true:false,
+                    },`sendMediaGroup`,token,messages)
+                }
+            },i*200)
+        })
+    })
+}
+
 function addNews(req,res,admin){
     if(!req.body.name || !req.body.text) return res.sendStatus(400)
                             
@@ -420,7 +500,7 @@ function addNews(req,res,admin){
             .where(`active`,'==',true)
             .where(`blocked`,'==',false)
 
-        if(req.body.filter && req.body.filter != 'all' && req.body.filter != 'tagged'  && req.body.filter != 'trip'){
+        if(req.body.filter && req.body.filter != 'all' && req.body.filter != 'tagged'  && req.body.filter != 'trip' && req.body.filter != 'event'){
             q = q.where(req.body.filter,'==',true)
         }
 
@@ -436,76 +516,35 @@ function addNews(req,res,admin){
                 .where(`trip`,'==',req.body.trip)
         }
 
-        return q.get()
-            .then(col=>{
-                
-                devlog(common.handleQuery(col).length)
-                
-                news.add({
-                    active:     true,
-                    createdAt:  new Date(),
-                    createdBy:  +admin.id,
-                    text:       req.body.text,
-                    name:       req.body.name,
-                    audience:   col.docs.length
-                }).then(rec=>{
-                    
-                    res.json({
-                        success:    true,
-                        id:         rec.id,
-                        comment:    `Рассылка создана и расходится на ${col.docs.length} пользователей.`
-                    })
-                    
-                    log({
-                        silent: true,
-                        text:  `${uname(admin,admin.id)} стартует рассылку с названием «${req.body.name}».`,
-                        admin: +admin.id
-                    })
-
-                    common.handleQuery(col)
-                        // .slice(0,1)
-                        .forEach((u,i)=>{
-                        // u.id = common.dimazvali // УБРАТЬ
-
-                        setTimeout(()=>{
-                            if(!req.body.media || !req.body.media.length){
-                                m.sendMessage2({
-                                    chat_id:    u.user || u.id,
-                                    text:       req.body.text,
-                                    parse_mode: `HTML`,
-                                    protect_content:        req.body.safe?true:false,
-                                    disable_notification:   req.body.silent?true:false,
-                                },false,token,messages)
-                            } else if(req.body.media && req.body.media.length == 1) {
-                                m.sendMessage2({
-                                    chat_id:        u.user || u.id,
-                                    caption:        req.body.text,
-                                    parse_mode:     `HTML`,
-                                    photo:          req.body.media[0],
-                                    protect_content: req.body.safe?true:false,
-                                    disable_notification: req.body.silent?true:false,
-                                },`sendPhoto`,token,messages)
-                            } else if(req.body.media){
-                                m.sendMessage2({
-                                    chat_id:        u.user || u.id,
-                                    caption:        req.body.text,
-                                    parse_mode:     `HTML`,
-                                    media:          req.body.media.map((p,i)=>{
-                                        return {
-                                            type:       `photo`,
-                                            media:      p,
-                                            caption:    i?'':req.body.text
-                                        }
-                                    }),
-                                    protect_content: req.body.safe?true:false,
-                                    disable_notification: req.body.silent?true:false,
-                                },`sendMediaGroup`,token,messages)
-                            }
-                        },i*200)
-                    })
+        if(req.body.filter == `event`){
+            getDoc(events,req.body.event).then(e=>{
+                q.get().then(col=>{
+                    let audience = handleQuery(col)
+                    let filter = [];
+                        if(e.media)     filter.push(`media`)
+                        if(e.volunteer) filter.push(`volunteer`) 
+                        if(e.sponsor)   filter.push(`sponsor`)
+                        if(e.tgAdmin)   filter.push(`tgAdmin`)
+                    if(filter.length){
+                        audience = audience.filter(u => {
+                            let passed = false;
+                            filter.forEach(t=>{
+                                if(u[t]) passed = true;
+                            })
+                            return passed;
+                        })
+                    }
+                    sendNews(req,res,audience,admin)
                 })
-                
             })
+        } else {
+            return q.get()
+            .then(col=>{
+                sendNews(req,res,handleQuery(col),admin)                
+            })
+        }
+
+        
 }
 
 function newEntity(req,res,admin,extra){
@@ -718,6 +757,45 @@ router.all(`/api/:method/:id`,(req,res)=>{
                     })
                     
                 }
+                case `usersEvents`:{
+                    let ref = usersEvents.doc(req.params.id);
+                    return getDoc(usersEvents,req.params.id).then(e=>{
+                        if(!e || !e.active) res.sendStatus(404);
+                        if(+user.id != e.user) res.sendStatus(401)
+                        ref.update({
+                            active: false
+                        }).then(()=>{
+                            events.doc(e.event).update({
+                                guests: FieldValue.increment(-1)
+                            })
+                            res.json({
+                                success: true,
+                                comment: `Очень жаль. До новых встреч!`
+                            })
+                            log({
+                                silent: true,
+                                text: `${uname(user,user.id)} отказывается от места на мероприятии ${e.eventName}.`,
+                                event: req.params.id,
+                                user: +user.id
+                            })
+                        })
+                    })
+                }
+                case `events`:{
+                    return getDoc(events,req.params.id).then(e=>{
+                        if(!e || !e.active) return res.sendStatus(404)
+                        usersEvents
+                            .where(`user`,  '==',+user.id)
+                            .where(`active`,'==',true)
+                            .where(`event`, '==',req.params.id)
+                            .get()
+                            .then(col=>{
+                                col = handleQuery(col)
+                                e.ticket = col[0] ? col[0].id : false,
+                                res.json(e) 
+                            })
+                    })
+                }
             }
         })
     })
@@ -805,11 +883,26 @@ router.all(`/api/:method`,(req,res)=>{
                         .get()
                         .then(col=>{
                             
-                            let events = handleQuery(col).filter(e=>e.active)
+                            let events = handleQuery(col)
+                                .filter(e=>e.active)
+                                .filter(e=>{
+                                    let filter = [];
+                                        if(e.media)     filter.push(`media`)
+                                        if(e.volunteer) filter.push(`volunteer`) 
+                                        if(e.sponsor)   filter.push(`sponsor`)
+                                        if(e.tgAdmin)   filter.push(`tgAdmin`)
+                                    let passed = false;
+                                    
+                                    if(!filter.length) {
+                                        return true;
+                                    } else {
+                                        filter.forEach(type=>{
+                                            if(user[type]) passed = true;
+                                        })
+                                        return passed;
+                                    }
+                                })
                             
-                            Object.keys(savedUserTypes).forEach(type=>{
-                                if(user[type]) events = events.filter(e=>e[type])
-                            })  
 
                             res.json(events)
                         })
@@ -823,6 +916,43 @@ router.all(`/api/:method`,(req,res)=>{
                                 .get()
                                 .then(col=>{
                                     res.json(handleQuery(col).filter(r=>r.active))
+                                })
+                        }
+                        case `POST`:{
+                            if(!req.body.event) return res.status(400).send(`no event provided`)
+                            return getDoc(events, req.body.event)
+                                .then(e=>{
+                                    if(!e || !e.active) return res.status(404).send(`no such event`)
+                                    if(e.capacity && e.capacity <= e.guests) return res.status(400).send(`Извините, но свободных мест больше нет.`)
+                                    usersEvents
+                                        .where(`event`,'==',e.id)
+                                        .where(`active`,'==',true)
+                                        .where(`user`,'==',+user.id)
+                                        .get()
+                                        .then(col=>{
+                                            if(col.docs[0]) return res.status(400).send(`Извините, но вы уже зарегистрированы.`)
+                                            usersEvents.add({
+                                                createdAt:  new Date(),
+                                                event:      e.id,
+                                                user:       +user.id,
+                                                eventName:  e.name,
+                                                date:       e.date,
+                                                active: true
+                                            }).then(rec=>{
+                                                res.json({
+                                                    success:    true,
+                                                    id:         rec.id,
+                                                    comment:    `Спасибо и до скорой встречи!`
+                                                })
+                                                log({
+                                                    silent: true,
+                                                    text:   `${uname(user,user.id)} регистрируется на мероприятие ${e.name}.`,
+                                                    event:  req.body.event,
+                                                    user:   +user.id
+                                                })
+                                            }).catch(err=>handleError(err,res))
+                                        })
+                                        
                                 })
                         }
                     }
@@ -1203,18 +1333,21 @@ router.get(`/app`,(req,res)=>{
     if(req.signedCookies.userToken){
         getDoc(adminTokens,req.signedCookies.userToken).then(proof=>{
             if(!proof) res.render(`${host}/app`,{
-                authNeeded: true
+                authNeeded: true,
+                start: req.query.startapp,
             })
             getUser(proof.user,udb).then(u=>{
                 res.render(`${host}/app`,{
-                    user: u
+                    user: u,
+                    start: req.query.startapp,
                 })
             })
         })
         
     } else {
         res.render(`${host}/app`,{
-            authNeeded: true
+            authNeeded: true,
+            start: req.query.startapp,
         })
     }
     

@@ -5,7 +5,7 @@ const { createHash,createHmac } = require('node:crypto');
 const { getUser } = require("./methods");
 
 
-function authTG(req,res,token,token,adminTokens,udb){
+function authTG(req,res,token,adminTokens,udb,registerUser){
     data_check_string=Object.keys(req.body)
         .filter(key => key !== 'hash')
         .sort()
@@ -22,12 +22,15 @@ function authTG(req,res,token,token,adminTokens,udb){
 
     if(req.body.hash == hmac){
 
+        console.log(req.body)
+
         getUser(req.body.id,udb).then(u=>{
 
-            if(u.blocked) return res.sendStatus(403)
-
             if(!u) registerUser(req.body)
+            u = req.body
                 
+                if(u.blocked) return res.sendStatus(403)
+
                 adminTokens.add({
                     createdAt:  new Date(),
                     user:       +req.body.id,

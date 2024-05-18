@@ -1,7 +1,7 @@
 let tg = window.Telegram.WebApp;
 const host = `homeless`
 
-let mcb, mbbc = null;
+let mcb, mbbc, curLecture, curTicket = null;
 
 function shimmer(light){
     if(light) return tg.HapticFeedback.impactOccurred('light')
@@ -9,6 +9,91 @@ function shimmer(light){
 }
 
 let confirmed = false;
+
+function list(){
+    
+    showLoad();
+    
+    axios.post(`/${host}/api/usersEvents`,{
+        event: curLecture
+    }).then((s)=>{
+        handleSave(s)
+        tg.MainButton.offClick(list);
+        curTicket = s.data.id
+    })
+    .catch(err=>{
+        handleError(err)
+        tg.MainButton.offClick(list)
+    })
+}
+
+function deList(){
+    showLoad();
+    axios.delete(`/${host}/api/usersEvents/${curTicket}`)
+        .then(s=>{
+            handleSave(s)
+            tg.MainButton.offClick(deList)
+            mbbc = list
+            tg.MainButton.setText(`Зарегистрироваться`)
+            tg.MainButton.onClick(list)
+        })
+        .catch(err=>{
+            handleError(err)
+            tg.MainButton.offClick(deList)
+            tg.MainButton.hide()
+        })
+}
+
+function showEvent(id){
+    curLecture = id;
+
+    let p = preparePopup(`event_${id}`)
+    userLoad(`events`,id).then(e=>{
+        if(e.pic) p.append(ce(`img`,false,`cover`,false,{src:e.pic}))
+        p.append(ce(`h1`,false,false,e.name))
+        p.append(ce(`p`,false,`info`,e.description,false,true))
+        if(e.capacity && !e.ticket){
+            if(!e.guests || e.guests < e.capacity) {
+                
+                tg.MainButton.setText(`Зарегистрироваться`)
+                tg.MainButton.show()
+                tg.MainButton.onClick(list)
+                mbbc = list
+                
+            } else {
+                p.append(ce(`p`,false,`info`,`Извините, но мест больше нет.`))
+            }
+        }
+        if(e.ticket){
+
+            curTicket = e.ticket;
+            tg.MainButton.setText(`Снять запись`)
+            tg.MainButton.show()
+            tg.MainButton.onClick(deList)
+            mbbc = deList
+
+            // p.append(ce(`button`,false,`deleteButton`,`Снять запись`,{
+            //     onclick:function(){
+            //         this.remove();
+            //         showLoad();
+            //         axios.delete(`/${host}/api/usersEvents/${e.ticket}`)
+            //             .then(handleSave)
+            //             .catch(handleError)
+            //     }
+            // }))
+        }
+
+    })
+}
+
+
+function showLoad(){
+    tg.MainButton.setParams({
+        text:`загружаем`,
+        is_visible: true
+    })
+    tg.MainButton.showProgress()
+}
 
 // if(authNeeded){
     console.log(`Нужна авторизация`)
@@ -45,6 +130,7 @@ Promise
         c.append(profile)
 
         userLoad(`profile`).then(user=>{
+
             let uname = `${user.first_name||''} ${user.last_name||''}`.trim();
             if(!uname) uname = user.username ? `@${user.username}` : user.id
 
@@ -53,7 +139,8 @@ Promise
             profile.append(ce(`div`,false,`upRight`,`⚙️`,{
                 onclick:()=>showSettings(user)
             }))
-
+        }).catch(err=>{
+            tg.showAlert(`Изините, вам тут не рады.`)
         })
         
         console.log(`админ: ${admin}`)
@@ -87,6 +174,28 @@ Promise
                     })
                 
             })
+        }
+
+        if(start) {
+            start = start.split(`_`)
+            switch(start[0]){
+                case `events`:{
+                    if(start[1]) {
+                        showEvent(start[1])
+                        break;
+                    }
+                    userLoad(`events`).then(e=>showEvents())
+                    break;
+                }
+                case `event`:{
+                    if(start[1]) {
+                        showEvent(start[1])
+                        break;
+                    }
+                    userLoad(`events`).then(e=>showEvents())
+                    break;
+                }
+            }
         }
         
         let bus = ce(`div`,`bus`,[`container`,`left`])
@@ -173,12 +282,7 @@ Promise
 
             bus.append(ce(`button`,false,`loadButton`,`Показать полное расписание`,{
                 onclick:function(){
-                    // this.setAttribute(`disabled`,true)
-                    tg.MainButton.setParams({
-                        text:`загружаем`,
-                        is_visible: true
-                    })
-                    tg.MainButton.showProgress()
+                    
                     userLoad(`trips`).then(trips=>{
                         showTrips(trips)
                     })
@@ -204,14 +308,11 @@ Promise
 
             events.append(ce(`button`,false,`loadButton`,`Показать расписание`,{
                 onclick:function(){
-                    tg.MainButton.setParams({
-                        text:`загружаем`,
-                        is_visible: true
-                    })
-
-                    tg.MainButton.showProgress()
+                    
+                    showLoad()
                     
                     userLoad(`events`).then(events=>{
+                        tg.MainButton.hideProgress()
                         showEvents(events)
                     })
                 }
@@ -360,13 +461,16 @@ function showEvents(events){
         .sort((a,b)=>b.date<a.date?-1:1)
         .forEach((t,i)=>{
             setTimeout(()=>{
-                let c = ce(`div`,false,`container`)
+                let c = ce(`div`,false,`container`,false,{
+                    onclick:()=>showEvent(t.id)
+                })
                 if(t.pic) c.append(ce(`img`,false,`cover`,false,{
                     src: t.pic
                 }))
                 c.append(ce(`h3`,false,false,`${t.name}`))
                 c.append(ce(`h4`,false,false,`${drawDate(t.date._seconds*1000)}`))
-                c.append(ce(`p`,false,false,`${t.description}.`))
+                c.append(ce(`p`,false,`info`,`${cutMe(t.description,200)}`,false,true))
+            
                 // if(t.comment) c.append(ce(`p`,false,false,`${t.comment}`))
                 if(t.ticket){
 

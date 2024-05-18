@@ -1259,12 +1259,16 @@ function newAuthor() {
     }))
 }
 
-function modal(){
+function modal(title){
     if(document.querySelectorAll(`.editWindow`)) {
         document.querySelectorAll(`.editWindow`).forEach(m=>m.remove())
     }
     let c = ce(`div`,false,[`editWindow`,`inpC`])
+    
+    if(title) c.append(ce(`h1`,false,false,title))
+    
     document.body.append(c)
+
     return c
 }
 
@@ -1313,9 +1317,16 @@ function handleSave(s) {
     let ctx = `Ура! Пожалуй, стоит обновить страницу.`
 
     if (s.data.hasOwnProperty('success')){
-        return alert(`${s.data.success ? sudden.fine() : sudden.sad()} ${s.data.comment || ''}` || ctx)
+        alert(`${s.data.success ? sudden.fine() : sudden.sad()} ${s.data.comment || ''}` || ctx)
     } else {
         alert(ctx)
+    }
+
+    try{
+        tg.MainButton.hideProgress()
+        tg.MainButton.hide()
+    } catch(err){
+        console.log(err)
     }
 }
 
