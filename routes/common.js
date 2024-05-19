@@ -6,6 +6,7 @@ const { getUser } = require("./methods");
 
 
 function authTG(req,res,token,adminTokens,udb,registerUser){
+
     data_check_string=Object.keys(req.body)
         .filter(key => key !== 'hash')
         .sort()
@@ -22,11 +23,11 @@ function authTG(req,res,token,adminTokens,udb,registerUser){
 
     if(req.body.hash == hmac){
 
-        console.log(req.body)
-
         getUser(req.body.id,udb).then(u=>{
 
             if(!u) registerUser(req.body)
+
+
             u = req.body
                 
                 if(u.blocked) return res.sendStatus(403)

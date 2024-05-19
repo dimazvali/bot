@@ -51,6 +51,7 @@ function showEvent(id){
     userLoad(`events`,id).then(e=>{
         if(e.pic) p.append(ce(`img`,false,`cover`,false,{src:e.pic}))
         p.append(ce(`h1`,false,false,e.name))
+        p.append(ce(`h3`,false,false,drawDate(e.date._seconds*1000,false,{time:true})))
         p.append(ce(`p`,false,`info`,e.description,false,true))
         if(e.capacity && !e.ticket){
             if(!e.guests || e.guests < e.capacity) {
@@ -135,7 +136,18 @@ Promise
             if(!uname) uname = user.username ? `@${user.username}` : user.id
 
             profile.append(ce(`h3`,false,false,uname));
+
             profile.append(ce(`p`,false,`info`,`Место отображения статуса и регалий.`))
+            
+            let tagsContainer = ce(`div`)
+            
+            profile.append(tagsContainer)
+
+            if(user.volunteer) tagsContainer.append(ce(`span`,false,[`utag`,`volunteer`],`волонтер`))
+            if(user.media) tagsContainer.append(ce(`span`,false,[`utag`,`media`],`журналист`))
+            if(user.admin) tagsContainer.append(ce(`span`,false,[`utag`,`admin`],`админ`))
+
+            
             profile.append(ce(`div`,false,`upRight`,`⚙️`,{
                 onclick:()=>showSettings(user)
             }))
@@ -301,7 +313,9 @@ Promise
             events.append(ce(`h2`,false,false,`Другие события`))
             
             eventsData.forEach(e=>{
-                events.append(ce(`p`,false,false,e.name))
+                events.append(ce(`p`,false,`middle`,`<span class="info">${drawDate(e.date._seconds*1000)}</span><br>${e.eventName}`,{
+                    onclick:()=>showEvent(e.event)
+                }))
             })
 
             if(!eventsData.length) events.append(ce(`p`,false,`info`,`Вы не идете никуда. Фактически, стоите на месте. Но это можно исправить!`))

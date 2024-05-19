@@ -274,3 +274,22 @@ textarea {
     height: 70px;
     padding: 5px;
 }
+
+.utag {
+    font-size: small;
+    padding: 5px 10px;
+    background: var(--tg-theme-button-color);
+    margin-right: 20px;
+    border-radius: 2px;
+    position: relative;
+}
+
+.utag::after {
+    content: '';
+    border: 1.1em solid var(--tg-theme-button-color);
+    border-right: 0.6em solid transparent;
+    position: absolute;
+    height: inherit;
+    right: -10px;
+    top: 0;
+}
