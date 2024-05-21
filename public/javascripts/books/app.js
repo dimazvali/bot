@@ -657,7 +657,7 @@ function showSettings(profile){
 
     p.append(ce(`p`,false,`info`,`Краткая информация о том, что тут можно делать...`))
 
-    let city = selector(`cities`,`Выберите город`,profile.city)
+    let city = selector(`cities`,`Выберите город`,profile.city,true)
 
     city.onchange = ()=>{
         axios.put(`/${host}/api/profile/${profile.id}`,{
