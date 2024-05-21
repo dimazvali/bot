@@ -1,5 +1,5 @@
-// let ngrok = process.env.ngrok2 
-let ngrok = process.env.ngrok 
+let ngrok = process.env.ngrok2 
+// let ngrok = process.env.ngrok 
 
 const host = `books`;
 const token = process.env.booksToken;
@@ -54,6 +54,9 @@ const {
     sudden,
     cutMe,
     interpreteCallBackData,
+    authWebApp,
+    sanitize,
+    cur,
 } = require ('./common.js')
 
 const {
@@ -219,13 +222,15 @@ function addBook(req,res,admin){
     })
 }
 
-function addOffer(req,res,admin){
+function addOffer(req,res,admin,app){
     
     if(!req.body.book) return res.status(400).send(`no book provided`);
 
     getDoc(books, req.body.book)
         .then(b=>{
             if(!b) return res.sendStatus(404)
+
+            
             
             let o = {
                 createdAt:      new Date(),
@@ -244,9 +249,11 @@ function addOffer(req,res,admin){
                 price:          +req.body.price || null,
                 owner:          +req.body.owner || +admin.id || null,
                 state:          req.body.state || null,
-                city:           req.body.city || null,
+                city:           req.body.city || admin.city || null,
                 address:        req.body.address,
             }
+
+            devlog(o)
         
             return offers.add(o).then(rec=>{
 
@@ -261,6 +268,13 @@ function addOffer(req,res,admin){
                     offer: rec.id,
                     // admin: +admin.id
                 })
+
+                if(req.files){
+                    devlog(`ФАЙЛО`)
+                    devlog(req.files.cover)
+                } else {
+                    devlog(`нет файлов`)
+                }
 
                 if(req.files && req.files.cover){
                     let sampleFile = req.files.cover;
@@ -282,8 +296,6 @@ function addOffer(req,res,admin){
                                             pic: link[0]
                                         })
                                         fs.unlinkSync(uploadPath)
-
-                                        
                                     })
                                 })
                                 .catch(err=>{
@@ -295,7 +307,7 @@ function addOffer(req,res,admin){
                 
                 alertNewOffer(rec.id)
 
-                return res.redirect(`/${host}/web?page=offers_${rec.id}`)
+                return app  ? res.redirect(`/${host}/app?page=offers_${rec.id}`) :  res.redirect(`/${host}/web?page=offers_${rec.id}`)
             })
         })
 }
@@ -510,6 +522,293 @@ router.get(`/catalogue`,(req,res)=>{
     })
 })
 
+
+router.all(`/api/:method/:id`,(req,res)=>{
+    
+    if (!req.signedCookies.userToken) return res.status(401).send(`Вы кто вообще?`)
+    
+    adminTokens.doc(req.signedCookies.userToken).get().then(doc => {
+        
+        if (!doc.exists) return res.sendStatus(403)
+        
+        let token = handleDoc(doc)
+
+        getUser(token.user,udb).then(user=>{
+            if(!user) return res.sendStatus(403)
+
+            devlog(user)
+            
+            switch(req.params.method){
+
+                case `books`:{
+                    return getDoc(books, req.params.id).then(book=>{
+                        if(!book || !book.active) return res.sendStatus(404)
+                        return res.json(book)
+                    })
+                }
+
+                case `isbn`:{
+
+                    let isbn = req.params.id.replace(/-/g,'')
+                    
+                    devlog(isbn);
+
+                    if(isbn.length != 13 && isbn.length != 10) return res.status(400).send(`Извините, ${isbn} не похоже на ISBN`)
+
+                    return books
+                        .where(`active`,'==',true)
+                        .where(`isbn`,'==',isbn)
+                        .get()
+                        .then(col=>{
+                            if(col.docs[    0]) return res.json({
+                                id: col.docs[0].id
+                            })
+                            devlog(handleQuery(col))
+                            return axios.get(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`).then(books=>{
+                                if(books.data && books.data.totalItems){
+                                    let b = books.data.items[0].volumeInfo
+
+                                    res.json({
+                                        name:           b.title,
+                                        description:    b.description,
+                                        lang:           b.language,
+                                        author:         b.authors.join(', '),
+                                        publisher:      b.publisher,
+                                        year:           b.publishedDate
+                                    })
+                                } else {
+                                    res.json({})
+                                }
+                            })
+                        })
+                            
+                    
+                }
+                case `profile`:{
+                    
+                    if(user.id  !== user.id) return res.sendStatus(403);
+
+                    let ref = udb.doc(req.params.id);
+
+                    let allowedChanges = [`city`,`news`,`first_name`,`last_name`]
+
+                    if(allowedChanges.indexOf(req.body.attr)>-1) return updateEntity(req,res,ref,user)
+                    
+                    return res.sendStatus(403)
+
+                }
+                case `offers`:{
+                    let ref = offers.doc(req.params.id);
+
+                    return getDoc(offers,req.params.id).then(o=>{
+                        if(!o) return res.sendStatus(404);
+
+                        switch(req.method){
+                            case `GET`:{
+                                ref.update({
+                                    views: FieldValue.increment(1)
+                                })
+                                delete o.createdBy
+                                delete o.owner
+                                return res.json(o)
+                            }
+                            case `PUT`:{
+                                if (o.createdBy != +user.id) return res.sendStatus(403);
+                                return updateEntity(req,res,ref,user)
+                            }
+                            case `DELETE`:{
+                                if (o.createdBy != +user.id) return res.sendStatus(403);
+                                return ref.update({
+                                    active: false
+                                }).then(()=>{
+                                    res.json({
+                                        success: true,
+                                        comment: `Книга была скрыта.`
+                                    })
+
+                                    log({
+                                        text: `${uname(user,user.id)} скрывает книгу ${o.bookName}`,
+                                        offer: req.params.id
+                                    })
+                                })
+                            }
+                        }
+                    })
+                    
+                }
+                case `requestSeller`:{
+                    return getDoc(deals,req.params.id).then(d=>{
+                        if(!d || !d.active) return res.sendStatus(404)
+                        getUser(d.seller,udb).then(s=>{
+                            sendMessage2({
+                                chat_id: user.id,
+                                parse_mode: `Markdown`,
+                                text: `Владелец книги «${d.bookName}»: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`
+                            },false,process.env.booksToken,messages).then(()=>{
+                                res.json({
+                                    success: true,
+                                    comment: `Я отправил вам сообщение с контактами.`
+                                })
+                            })
+                        })
+                    })
+                }
+                case `requestBuyer`:{
+                    return getDoc(deals,req.params.id).then(d=>{
+                        if(!d || !d.active) return res.sendStatus(404)
+                        getUser(d.buyer,udb).then(s=>{
+                            sendMessage2({
+                                chat_id: user.id,
+                                parse_mode: `Markdown`,
+                                text: `Держатель книги «${d.bookName}»: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`
+                            },false,process.env.booksToken,messages).then(()=>{
+                                res.json({
+                                    success: true,
+                                    comment: `Я отправил вам сообщение с контактами.`
+                                })
+                            })
+                        })
+                    })
+                }
+                default:{
+                    res.sendStatus(404)
+                }
+            }
+        })
+    })
+})
+router.all(`/api/:method`,(req,res)=>{
+    
+    if (!req.signedCookies.userToken) return res.status(401).send(`Вы кто вообще?`)
+    
+    adminTokens.doc(req.signedCookies.userToken).get().then(doc => {
+        
+        if (!doc.exists) return res.sendStatus(403)
+        
+        let token = handleDoc(doc)
+
+        getUser(token.user,udb).then(user=>{
+            if(!user) return res.sendStatus(403)
+
+            devlog(user)
+            
+            switch(req.params.method){
+
+                case `book`:{
+                    switch(req.method){
+                        case `POST`:{
+                            return datatypes.books.newDoc(req,res,user)
+                        }
+                    }
+                }
+
+                case `deals`:{
+                    switch(req.method){
+                        case `POST`:{
+                            if(!req.body.offer) return res.sendStatus(400)
+                            return bookaBook(req.body.offer,req.body.type || `rent`,false, user, req, res)
+                        }
+                    }
+                }
+
+                case `cities`:{
+                    return cities.get().then(col=>res.json(handleQuery(col,false,true).filter(a=>a.active)))
+                    // res.json(savedCities)
+                }
+                
+                case `profile`:{
+                    let data = [];
+
+                    data.push(
+                        offers
+                            .where(`owner`,'==',+user.id)
+                            // .where(`active`,'==',true)
+                            .get()
+                            .then(col=> handleQuery(col))
+                    )
+
+                    data.push(
+                        deals
+                            .where(`seller`,'==',+user.id)
+                            // .where(`active`,'==',true)
+                            .get()
+                            .then(col=> handleQuery(col))
+                    )
+
+                    data.push(
+                        deals
+                            .where(`buyer`,'==',+user.id)
+                            // .where(`active`,'==',true)
+                            .get()
+                            .then(col=> handleQuery(col))
+                    )
+
+
+                    return Promise.all(data).then(data=>{
+                        res.json({
+                            user:   user,
+                            offers: data[0],
+                            deals:  data[1]
+                        })
+                    }).catch(err=>handleError(err,res))
+
+                }
+
+                case `offers`:{
+                    if(!user.city) return res.status(400).send(`Выберите город!`);
+                    switch(req.method){
+                        case `GET`:{
+                            return offers
+                                .where(`active`,'==',true)
+                                .where(`city`,`==`, req.query.city || user.city)
+                                .get()
+                                .then(col=>{
+                                    
+                                    let data = sanitize(handleQuery(col,true).filter(o=>o.createdBy != +user.id),[`createdBy`])
+
+                                    Object.keys(req.query).forEach(q=>{
+                                        data = data.filter(i=> i[q] == (Number(req.query[q]) ? Number(req.query[q]) : req.query[q]))
+                                    })
+
+                                    res.json(data)
+                                })
+                        }
+                        case `POST`:{
+                            return datatypes.offers.newDoc(req,res,user,true)
+                        }
+                    }
+                    
+                }
+            }
+        })
+    })
+})
+
+
+router.get(`/isbn/:isbn`,(req,res)=>{
+    let isbn = req.params.isbn.replace(/-/g,'')
+    
+    if(isbn.length != 13 && isbn.length != 10) return res.status(400).send(`Извините, ${isbn} не похоже на ISBN`)
+            
+    axios.get(`https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`).then(books=>{
+        if(books.data && books.data.totalItems){
+            let b = books.data.items[0].volumeInfo
+
+            res.json({
+                name:           b.title,
+                description:    b.description,
+                lang:           b.language,
+                author:         b.authors.join(', '),
+                publisher:      b.publisher,
+                year:           b.publishedDate
+            })
+        } else {
+            res.json({})
+        }
+    })
+})
+
+
 router.all(`/admin/:method/:id`,(req,res)=>{
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
@@ -635,6 +934,12 @@ function updateEntity(req,res,ref,admin){
     })
     
 }
+
+
+router.post(`/authWebApp`,(req,res)=>{
+    authWebApp(req,res,token,adminTokens,udb)
+})
+
 
 router.get(`/auth`,(req,res)=>{
     res.render(`${host}/auth`)
@@ -952,6 +1257,32 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
     })
 }
 
+router.get(`/app`,(req,res)=>{
+    if(req.signedCookies.userToken){
+        getDoc(adminTokens,req.signedCookies.userToken).then(proof=>{
+            if(!proof) res.render(`${host}/app`,{
+                authNeeded: true,
+                start: req.query.startapp,
+                cities: savedCities
+            })
+            getUser(proof.user,udb).then(u=>{
+                res.render(`${host}/app`,{
+                    user: u,
+                    start: req.query.startapp,
+                    cities: savedCities
+                })
+            })
+        })
+        
+    } else {
+        res.render(`${host}/app`,{
+            authNeeded: true,
+            start: req.query.startapp,
+            cities: savedCities
+        })
+    }
+    
+})
 
 router.get(`/web`,(req,res)=>{
     
@@ -1131,6 +1462,10 @@ function cancelDeal(reason,ref,deal){
                 status: `cancelledByBuyer`
             }).then(()=>{
                 
+                offers.doc(deal.offer).update({
+                    blocked: false
+                })
+
                 sendMessage2({
                     chat_id: deal.buyer,
                     text: locals.afterCancel
@@ -1201,6 +1536,81 @@ function cancelDeal(reason,ref,deal){
         }
     }
 }
+function bookaBook(offerId, dealType, callback, user, req, res){
+    let offerRef = offers.doc(offerId)
+
+    return getDoc(offers,offerId).then(o=>{
+        
+        getDoc(books, o.book).then(b=>{
+            if(!o || !o.active) {
+                
+                if(callback) return sendMessage2({
+                    callback_query_id: callback.id,
+                    show_alert: true,
+                    text:       locals.noOffer
+                }, 'answerCallbackQuery', token)
+
+                return res.status(400).send(locals.noOffer)
+            }
+            
+            switch(dealType){
+                case `rent`:{
+                    if(o.blocked) {
+                        if(callback) return sendMessage2({
+                            callback_query_id: callback.id,
+                            show_alert: true,
+                            text:       locals.offerBlocked
+                        }, 'answerCallbackQuery', token)
+
+                        return res.status(400).send(locals.offerBlocked)
+                    }
+
+                    if(o.createdBy == +user.id) {
+                        if(callback) return sendMessage2({
+                            callback_query_id: callback.id,
+                            show_alert: true,
+                            text:       locals.cantBuyYourSelf
+                        }, 'answerCallbackQuery', token)
+
+                        return res.status(400).send(locals.cantBuyYourSelf)
+
+                    }
+
+                    return deals
+                        .where(`active`,'==',true)
+                        .where(`offer`,'==',o.id)
+                        .where(`buyer`,'==',+user.id)
+                        .get()
+                        .then(col=>{
+
+                            if(col.docs.length) {
+                                if(callback) return sendMessage2({
+                                    callback_query_id: callback.id,
+                                    show_alert: true,
+                                    text:       locals.alreadyRented
+                                }, 'answerCallbackQuery', token)
+
+                                return res.status(400).send(locals.alreadyRented)
+                            }
+
+                            return rentBook(b,o,user,res)
+                        })
+
+                    
+                }
+                case `view`:{
+                    offerRef.update({
+                        views: FieldValue.increment(1)
+                    })
+
+                    return getDoc(books, o.book).then(b=>{
+                        sendOffer(b,o,u||user)
+                    })
+                }
+            }
+        })
+    })
+}
 
 
 router.post(`/hook`,(req,res)=>{
@@ -1269,6 +1679,22 @@ router.post(`/hook`,(req,res)=>{
 
 
                 switch (req.body.message.text) {
+                    
+                    case `/test`:{
+                        return sendMessage2({
+                            chat_id:    u.id,
+                            text:       `Приложение с теста`,
+                            reply_markup:{
+                                inline_keyboard:[[{
+                                    text: `${ngrok}`,
+                                    web_app:{
+                                        url: `${ngrok}/${host}/app` 
+                                    }
+                                }]]
+                            }
+                        },false,token,messages)
+                    }
+
                     case `/settings`:{
                         return sendMessage2({
                             chat_id: +u.id,
@@ -1483,61 +1909,7 @@ router.post(`/hook`,(req,res)=>{
                     }
                 }
                 case `offer`:{
-                    let offerRef = offers.doc(inc[1])
-
-                    return getDoc(offers,inc[1]).then(o=>{
-                        
-                        getDoc(books, o.book).then(b=>{
-                            if(!o || !o.active) return sendMessage2({
-                                callback_query_id: req.body.callback_query.id,
-                                show_alert: true,
-                                text:       locals.noOffer
-                            }, 'answerCallbackQuery', token)
-                            
-                            switch(inc[2]){
-                                case `rent`:{
-                                    if(o.blocked) return sendMessage2({
-                                        callback_query_id: req.body.callback_query.id,
-                                        show_alert: true,
-                                        text:       locals.offerBlocked
-                                    }, 'answerCallbackQuery', token)
-
-                                    if(o.createdBy == +u.id) return sendMessage2({
-                                        callback_query_id: req.body.callback_query.id,
-                                        show_alert: true,
-                                        text:       locals.cantBuyYourSelf
-                                    }, 'answerCallbackQuery', token)
-
-                                    return deals
-                                        .where(`active`,'==',true)
-                                        .where(`offer`,'==',o.id)
-                                        .where(`buyer`,'==',+u.id)
-                                        .get()
-                                        .then(col=>{
-
-                                            if(col.docs.length) return sendMessage2({
-                                                callback_query_id: req.body.callback_query.id,
-                                                show_alert: true,
-                                                text:       locals.alreadyRented
-                                            }, 'answerCallbackQuery', token)
-
-                                            return rentBook(b,o,u)
-                                        })
-    
-                                    
-                                }
-                                case `view`:{
-                                    offerRef.update({
-                                        views: FieldValue.increment(1)
-                                    })
-            
-                                    return getDoc(books, o.book).then(b=>{
-                                        sendOffer(b,o,u||user)
-                                    })
-                                }
-                            }
-                        })
-                    })
+                    return bookaBook(inc[1], inc[2], req.body.callback_query, u||user)
                 }
                 case `user`:{
                     return userRef.update({
@@ -1814,13 +2186,12 @@ ${cutMe(book.description,500)}`;
     return txt;
 }
 
-function rentBook(book, offer, user){
+function rentBook(book, offer, user, res){
     deals.add({
         createdAt:  new Date(),
         status:     `inReview`,
         active:     true,
         createdBy:  +user.id,
-
         book:       book.id,
         bookName:   book.name,
         offer:      offer.id,
@@ -1829,6 +2200,11 @@ function rentBook(book, offer, user){
         type:       `rent`,
         city:       offer.city
     }).then(rec=>{
+
+        offers.doc(offer.id).update({
+            blocked: true
+        })
+
         sendMessage2({
             chat_id:    user.id,
             text:       locals.rentRequestSent(offer),
@@ -1853,6 +2229,11 @@ function rentBook(book, offer, user){
                 }]]
             }
         },false,token,messages)
+
+        if(res) res.json({
+            success: true,
+            comment: `Я передал вашу заявку. Подробнее — в сообщениях.`
+        })
     })
 
 

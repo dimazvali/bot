@@ -451,7 +451,7 @@ function showEvent(id){
             onclick: function () {
                 edit(`events`, cl.id, `description`, `textarea`, cl.description || null, this)
             }
-        }))
+        },true))
 
         p.append(ce(`p`,false,`hover`,`Вместимость: ${cl.capacity}`,{
             onclick: function () {
@@ -502,7 +502,21 @@ function showEvent(id){
 
         p.append(deleteButton(`events`,cl.id,!cl.active))
 
+        p.append(ce(`h2`,false,false,`Гости:`))
+
+        load(`usersEvents`,false,{event: cl.id}).then(col=>{
+            if(!col.length) p.append(ce(`p`,false,false,`Ни одной записи еще нет.`))
+            col.forEach(t=>{
+                p.append(showTicketLine(t))
+            })
+        })
     })
+}
+
+function showTicketLine(t){
+    let c = listContainer(t,true)
+    if(!t.active) c.classList.remove(`hidden`)
+    return c
 }
 
 function addTrip(date){
@@ -833,44 +847,11 @@ function showUser(id){
 start = start.split('_')
 
 switch(start[0]){
-    case `newOffer`:{
-        console.log(`newOffer_${start[1]}`)
-        if(start[1]){
-            addOffer({book:start[1]})
+    case `events`:{
+        if(start[1]) {
+            showEvent(start[1])
         } else {
-            addOffer()
-        }
-        break;
-    }
-
-    case `books`:{
-        if(start[1]){
-            if(start[1] == `new`) {
-                addBook()
-            } else {
-                showBook(start[1])
-            }
-            
-        } else {
-            showBooks()
-        }
-        break;
-    }
-
-    case `offers`:{
-        if(start[1]){
-            showOffer(start[1])
-        } else {
-            showOffers()
-        }
-        break;
-    }
-
-    case `deals`:{
-        if(start[1]){
-            showDeal(start[1])
-        } else {
-            showDeals()
+            showEvents()
         }
         break;
     }

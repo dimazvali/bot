@@ -13,10 +13,12 @@ function line(tag, values,cb) {
     return l
 }
 
-function selector(col,placeholder,id){
+function selector(col,placeholder,id,user){
     let s = ce('select')
         s.append(ce('option',false,false,placeholder||`выберите`,{value:''}))
-    load(col).then(options=>{
+        let l = user ? userLoad(col) : load(col)
+    l.then(options=>{
+        console.log(options);
         options.filter(o=>o.active).forEach(o=>{
             s.append(ce(`option`,false,false,o.name,{
                 value: o.id,
@@ -218,6 +220,12 @@ function handleError(err) {
     }
     if(!teleAlert) alert(err.response && err.response.data ? err.response.data : (err.data || err.message))
     console.warn(err)
+    try{
+        tg.MainButton.hideProgress()
+        tg.MainButton.hide()
+    } catch(err){
+        console.log(err)
+    }
 }
 
 function showLoader(){
@@ -851,7 +859,7 @@ function shuffle(array) {
   }
   
 
-function toggleCheckBox(collection,id,attr,value,placeholder){
+function toggleCheckBox(collection,id,attr,value,placeholder,passive){
     let cd = ce(`div`,false,`hiddenInput`)
 
     let l = ce(`label`,false,`toggleLabel`,false,{
@@ -860,17 +868,16 @@ function toggleCheckBox(collection,id,attr,value,placeholder){
 
     let cb = ce(`input`,attr,false,false,{
         type:`checkbox`,
+        name: attr,
         checked: value ? true : false
     })
 
-    console.log(`${placeholder} has to be ${value}`)
-    
     cd.append(cb)
     cd.append(l)
 
     l.append(ce(`span`,false,`info`,placeholder))
     
-    cb.onchange=function(){
+    if(!passive) cb.onchange=function(){
         axios.put(`${host ? `/${host}` : ''}/api/${collection}/${id}`,{
             attr: attr,
             value: this.checked
@@ -878,8 +885,10 @@ function toggleCheckBox(collection,id,attr,value,placeholder){
             handleSave(s)
         }).catch(handleError)
     }
+    
 
     l.setAttribute(`for`,attr)
+    
     return cd
 }
 
@@ -1317,7 +1326,12 @@ function handleSave(s) {
     let ctx = `Ура! Пожалуй, стоит обновить страницу.`
 
     if (s.data.hasOwnProperty('success')){
-        alert(`${s.data.success ? sudden.fine() : sudden.sad()} ${s.data.comment || ''}` || ctx)
+        try {
+            tg.showAlert(`${s.data.success ? sudden.fine() : sudden.sad()} ${s.data.comment || ''}` || ctx)
+        } catch(err){
+            alert(`${s.data.success ? sudden.fine() : sudden.sad()} ${s.data.comment || ''}` || ctx)
+        }
+        
     } else {
         alert(ctx)
     }

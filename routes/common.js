@@ -49,6 +49,16 @@ function authTG(req,res,token,adminTokens,udb,registerUser){
     }
 }
 
+function sanitize(arr, toClear){
+    arr.forEach(item=>{
+        toClear.forEach(field=>{
+            delete item[field]
+        })
+    })
+
+    return arr;
+}
+
 function authWebApp(req,res,token,adminTokens,udb){
     data_check_string=Object.keys(req.body)
         .filter(key => key !== 'hash')
@@ -690,6 +700,6 @@ function cutMe(txt, limit) {
 
 
 module.exports = {
-    authTG,authWebApp,interpreteCallBackData,cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
+    sanitize,authTG,authWebApp,interpreteCallBackData,cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
 };
 

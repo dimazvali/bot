@@ -274,7 +274,6 @@ function delist(){
             shimmer(true)
             tg.showAlert(translations[d.data.text][tg.initDataUnsafe.user.language_code] || translations[d.data.text].en)
 
-
             // mcb = clearPopUp;
             // clearPopUp()
             

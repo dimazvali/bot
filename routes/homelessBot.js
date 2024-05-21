@@ -204,6 +204,9 @@ function sendMessage(req,res,admin){
 
 
 const datatypes = {
+    usersEvents:{
+        col: usersEvents
+    },
     userTags:{
         col: userTags,
     },
@@ -939,6 +942,11 @@ router.all(`/api/:method`,(req,res)=>{
                                                 date:       e.date,
                                                 active: true
                                             }).then(rec=>{
+
+                                                events.doc(e.id).update({
+                                                    guests: FieldValue.increment(1)
+                                                })
+
                                                 res.json({
                                                     success:    true,
                                                     id:         rec.id,
@@ -975,6 +983,7 @@ router.all(`/api/:method`,(req,res)=>{
     })
 })
 
+
 router.all(`/admin/:method`,(req,res)=>{
     
     let token = req.signedCookies.adminToken || req.signedCookies.userToken;
@@ -1002,7 +1011,6 @@ router.all(`/admin/:method`,(req,res)=>{
                     return Promise.resolve(userList).then(userList=>{
                         res.json(userList.filter(u=>u.username && !u.username.indexOf(req.query.name)))
                     })
-                    
                 }
                 
 
