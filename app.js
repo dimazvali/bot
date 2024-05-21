@@ -72,6 +72,7 @@ app.use('/books',       require('./routes/booksBot'));
 
 app.use('/homeless',       require('./routes/homelessBot'));
 app.use('/stalker',       require('./routes/stalkerBot'));
+app.use('/reestr',       require('./routes/reestrBot'));
 
 
 // catch 404 and forward to error handler
