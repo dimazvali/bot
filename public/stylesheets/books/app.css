@@ -396,3 +396,18 @@ img.coverS {
     border-bottom: 2px solid var(--tg-theme-destructive-text-color);
     transition: .3;
 }
+
+[data-count]::after {
+    content: attr(data-count);
+    display: inline-block;
+    font-size: x-small;
+    background: var(--tg-theme-hint-color);
+    width: 1.5em;
+    height: 1.5em;
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1.6em;
+    padding: 3px;
+    border-radius: 50%;
+    margin-left: 4px;
+}

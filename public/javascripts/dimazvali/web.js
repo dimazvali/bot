@@ -44,6 +44,185 @@ function showPrograms(){
 }
 
 
+function showReestr(){
+    let p = preparePopupWeb(`reestr`)
+    p.append(ce(`h1`,false,false,`Выписка из реестра`))
+    
+    let inp = ce(`input`,false,false,false,{
+        type: `text`,
+        placeholder: `что-то вроде 50:34:0040239:127`
+    })
+
+
+    let body = ce('div')
+
+    let sb = ce(`button`,false,false,`Проверить`,{
+        onclick:()=>{
+            if(!inp.value) return alert(`я не вижу ваших букв!`)
+            sb.setAttribute(`disabled`,true)
+            body.append(ce(`h3`,false,false,`загружаем`))
+            let id = inp.value.split(':');
+
+            axios
+                .get(`https://pkk.rosreestr.ru/api/features/1/${id.map(p=>+p).join(':')}`)
+                .then(data=>{
+                    body.innerHTML = null;
+                    body.append(ce(`h1`,false,false,`Общие сведения в отношении земельного участка с кадастровым номером ${inp.value}`));
+
+                    let table = ce(`table`)
+                    // JSON.stringify(data.data,null,2)
+                    Object.keys(data.data.feature.attrs).filter(k=>reestr2Miss.indexOf(k)==-1).forEach(k=>{
+                        if(data.data.feature.attrs[k]) {
+                            let line = ce(`tr`)
+                                line.append(ce(`td`,false,false,`<b>${(reestrParser[k] && reestrParser[k].f) ? reestrParser[k].name : (reestrParser[k] || k)}:</b>`))
+                                line.append(ce(`td`,false,false,`${(reestrParser[k] && reestrParser[k].f) ? parseUnit(k, data.data.feature.attrs[k], data.data.feature.attrs) : data.data.feature.attrs[k]}.`))
+                            table.append(line)
+                        }
+                        
+                        
+                        // body.append(ce(`p`,false,false,`
+                        
+                        // `))
+                    })
+                    body.append(table)
+                    body.append(ce(`button`,false,false,`Печать`,{
+                        onclick:()=>{
+                            toPrint(body,table)
+                        }
+                    }))
+                })
+                .catch(handleError)
+                .finally(()=>sb.removeAttribute(`disabled`))
+        }
+    })
+
+    p.append(inp)
+    p.append(sb)
+    p.append(body)
+}
+
+
+function toPrint(el,table) {
+	// var el=document.getElementById("table");
+	table.setAttribute('border', '1px');
+	table.setAttribute('cellpadding', '10');
+	table.setAttribute('class', 'table table-bordered');
+	table.style.borderCollapse='collapse';
+ 
+	newPrint=window.open("");
+	newPrint.document.write(el.outerHTML);
+	newPrint.print();
+	newPrint.close();
+}
+
+let reestr2Miss = [
+    `cad_unit`,
+    `area_type`,
+    `area_unit`,
+]
+let reestrUnits = {
+    "3":"мм",
+    "4":"см",
+    "5":"дм",
+    "6":"м",
+    "8":"км",
+    "9":"Мм",
+    "47":"морск. м.",
+    "50":"кв. мм",
+    "51":"кв. см",
+    "53":"кв. дм",
+    "55":"кв. м",
+    "58":"тыс. кв. м",
+    "59":"га",
+    "61":"кв. км",
+    "109":"а",
+    "359":"сут.",
+    "360":"нед.",
+    "361":"дек.",
+    "362":"мес.",
+    "364":"кварт.",
+    "365":"полугод.",
+    "366":"г.",
+    "383":"руб.",
+    "384":"тыс. руб.",
+    "385":"млн. руб.",
+    "386":"млрд. руб.",
+    "1000":"неопр.",
+    "1001":"отсутств.",
+    "1002":"руб. за кв. м",
+    "1003":"руб. за а",
+    "1004":"руб. за га",
+    "1005":"иные"
+}
+
+function parseUnit(key, value, data){
+    if(key == `cad_cost`)   return reestrParser.cad_cost.f(value,data.cad_unit);
+    if(key == `area_value`)  return reestrParser.area_value.f(value,data.area_type,data.area_unit);
+    
+    return data
+}
+
+let area_types = {
+    "001" : "Площадь застройки",
+    "002" : "Общая площадь",
+    "003" : "Общая площадь без лоджии",
+    "004" : "Общая площадь с лоджией",
+    "005" : "Жилая площадь",
+    "007" : "Основная площадь",
+    "008" : "Декларированная площадь",
+    "009" : "Уточненная площадь",
+    "010" : "Фактическая площадь",
+    "011" : "Вспомогательная площадь",
+    "012" : "Площадь помещений общего пользования без лоджии",
+    "013" : "Площадь помещений общего пользования с лоджией",
+    "014" : "Прочие технические помещения без лоджии",
+    "015" : "Прочие технические помещения с лоджией",
+    "020" : "Застроенная площадь",
+    "021" : "Незастроенная площадь",
+    "022" : "Значение площади отсутствует" 
+}
+
+
+let reestrParser = {
+    cad_cost:{
+        name: `стоимость`,
+        f:(v,cad_unit)=> `${v} ${reestrUnits[+cad_unit]}`
+    },
+    area_value: {
+        name: `Декларированная площадь `,
+        f:(v,type,unit)=> `${v}  ${reestrUnits[+unit.toString()]} (${area_types[type]})`    
+    },
+    actual_date:"Дата обновления атрибутов",
+    adate:"Дата обновления границ",
+    address:"Адрес",
+    area_dev:"Площадь застройки",
+    cad_eng_data:"Кадастровый инженер",
+    date_cost:"Дата внесения кадастровой стоимости",
+    date_create:"Дата постановки на учет",
+    depth:"Глубина",
+    depth_bed:"Глубина залегания",
+    fp:"Форма собственности",
+    util_by_doc: `Разрешенное использование`,
+    height:"Высота",
+    cn: `Кадастровый номер`,
+    kladr:"КЛАДР",
+    kvartal:"Квартал",
+    okrug:"Округ",
+    oks_cadastral_parent:"ЗУ",
+    oks_elements_construct:"Материал стен",
+    oks_floors:"Общая этажность",
+    oks_u_floors:"Подземная этажность",
+    parcel_cn:"Условный номер",
+    parcel_status:"Статус",
+    proj_app:"Проектируемое назначение",
+    purpose:"Назначение",
+    rayon:"Район",
+    right_reg:"Зарегистрированы права (да/нет)",
+    room_type:"Вид жилого помещения",
+    spread:"Протяженность",
+    volume:"Объем",
+}
+
 start = start.split('_')
 switch(start[0]){
     case `landmarks`:{

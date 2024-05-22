@@ -6,6 +6,141 @@ let mcb, mbbc, curLecture, curTicket = null;
 
 const dummyBook = `/images/${host}/blank.png`
 
+
+function scrollBox(deals,name,userRole){
+    let container = ce(`div`,userRole,`container`)
+        container.append(ce(`h3`,false,false,name,{dataset:{count:deals.length}}))
+    let nearest = ce(`div`,false,`h40`)
+        container.append(nearest)
+    let scrollable = ce(`div`,false,`scrollable`)
+        nearest.append(scrollable)
+    deals
+        .sort((a,b)=>dealsStatuses[a.status].sort-dealsStatuses[b.status].sort)
+        .forEach(o=>{
+            scrollable.append(dealBox(o,userRole))
+        })
+    return container
+}
+
+const dealButtons={
+    contact:{}
+}
+
+const dealsStatuses = {
+    inReview:{
+        sort: 1,
+        name: {
+            buyer:  `Ждет одобрения`,
+            seller: `Ждет вашего одобрения`
+        },
+        text:{
+            seller: `Сможете дать почитать эту книгу доброму человеку?..`,
+            buyer:  `Вы оставили заявку на эту книгу.\nЕе владелец еще не подтвердил возможность аренды. Чуть-чуть подождем.`
+        },
+        buttons:{
+            seller: [{
+                text:   `Да, конечно!`,
+                id:     `confirmToRent`
+            },{
+                text:   `Увы, нет.`,
+                id:     `cancelledBySeller`
+            }],
+            buyer:[{
+                text:   `Отменить заявку`,
+                type:   `destructive`,
+                id:     `cancelledByBuyer`
+            }]
+        }
+    },
+    cancelledByBuyer:{
+        sort: 5,
+        name: {
+            buyer:  `Вы отказали`,
+            seller: `Читатель отказался`
+        },
+        text:{
+            seller: `Человек, который попросил у вас эту книгу, успел передумать.`,
+            buyer:  `Вы отменили заявку на эту книгу.`
+        },
+        buttons:{
+            seller: null,
+            buyer:  null
+        }
+    },
+    cancelledBySeller:{
+        sort: 5,
+        name: {
+            buyer:  `Книга недоступна`,
+            seller: `Вы отказали`
+        },
+        text:{
+            seller: `Вы отклонили эту заявку.`,
+            buyer:  `Владелец книги не смог подтвердить ваш запрос.`
+        },
+        buttons:{
+            seller:null,
+            buyer:null
+        }
+    },
+    inProgress:{
+        sort: 2,
+        name: {
+            buyer:  `Ждет встречи`,
+            seller: `Ждет встречи с читателем`
+        },
+        text:{
+            seller: `Я отправил вам контакты владельца. Свяжитесь с ним, договоритесь о встрече, а потом, пожалуйста, подтвердите, что книга передана.`,
+            buyer:  `Я отправил вам контакы читателя. Свяжитесь с ним, договоритесь о встрече, а потом, пожалуйста, подтвердите, что книга передана.`
+        },
+        buttons:{
+            seller:[{
+                text:   `Книга передана`,
+                id:     `deliveredBySeller`
+            }],
+            buyer:[{
+                text:   `Книга передана`,
+                id:     `deliveredByBuyer`
+            }]
+        }
+    },
+    given:{
+        sort: 3,
+        name: {
+            buyer:  `Книга у вас`,
+            seller: `Книга выдана`
+        },
+        text:{
+            seller: `Вы поделились самым дорогим. Вы молодец.\nНе забудьте подтвердить получение книги, когда она к вам вернется.`,
+            buyer:  `Вы получили книгу. Пожалуйста, будьте с ней предельно аккуратны — и забудьте подтвердить возрат книги, когда придет время попроощаться с ней.`
+        },
+        buttons:{
+            seller:[{
+                text:   `Книгу вернули`,
+                id:     `closeDealBySeller`
+            }],
+            buyer:[{
+                text:   `Книга у владельца`,
+                id:     `closeDealByBuyer`
+            }]
+        }
+    },
+    closed:{
+        sort: 4,
+        name: {
+            buyer:  `Вы вернули книгу`,
+            seller: `Книга вернулась`
+        },
+        text:{
+            seller: `Вы получили сообщение с кнопками оценки читателя.`,
+            buyer:  `Надеемся, все прошло хорошо.`
+        },
+        buttons:{
+            seller:null,
+            buyer:null
+        }
+    },
+}
+
 function shimmer(light){
     if(light) return tg.HapticFeedback.impactOccurred('light')
     tg.HapticFeedback.notificationOccurred('success')
@@ -135,7 +270,11 @@ function book(){
     }).then((s)=>{
         handleSave(s)
         tg.MainButton.offClick(book);
-        // curTicket = s.data.id
+        document.querySelector(`#offer_${curOffer}`).dataset.active = false;
+        document
+            .querySelector(`#buyer`)
+            .querySelector(`.scrollable`)
+                .prepend(dealBox(s.data.deal,`buyer`))
     })
     .catch(err=>{
         handleError(err)
@@ -226,10 +365,12 @@ function showOffer(id){
 function updateFresh(){
     c = document.querySelector(`#fresh`);
     c.innerHTML = null;
-    c.append(ce(`h2`,false,false,`Свежие поступления`))
-    c.append(ce(`p`,false,`info`,`Это новые книги, доступные в вашем городе.`))
+    
     userLoad(`offers`)
         .then(offers=>{
+
+            c.append(ce(`h2`,false,false,`Новинки`,{dataset:{count:offers.length}}))
+            c.append(ce(`p`,false,`info`,`Книги, доступные в вашем городе.`))
 
             let nearest = ce(`div`,false,`h40`)
                 c.append(nearest)
@@ -480,6 +621,87 @@ function showCatalogue(){
         
 }
 
+function dealBox(deal, userRole){
+    let book = ce(`div`,`offer_${deal.id}`,`box`,false,{
+        
+        dataset:{
+            deal:   deal.id,
+            book:   deal.book,
+            offer:  deal.offer,
+        },
+
+        onclick:()=>{
+            tg.showPopup({
+                title: dealsStatuses[deal.status].name[userRole],
+                message: dealsStatuses[deal.status].text[userRole],
+                buttons: dealsStatuses[deal.status].buttons[userRole] || [{text: `ok`}]
+            },(e)=>{
+                if(e) {
+                    axios.put(`/${host}/api/deals/${deal.id}`,{
+                        intention: `${userRole}_${e}`
+                    }).then(s=>{
+                        handleSave(s);
+                        book.parentNode.prepend(dealBox(s.data.deal,userRole))
+                        book.remove();
+                    }).catch(handleError)
+                }
+            })
+
+            // switch(userRole){
+            //     case `seller`:{
+                    
+            //         tg.showPopup({
+            //             title: dealsStatuses[deal.status].name[userRole],
+            //             message: dealsStatuses[deal.status].text[userRole],
+            //             buttons: dealsStatuses[deal.status].buttons[userRole]
+            //         },(e)=>{
+            //             if(e) {
+            //                 switch(e){
+            //                     case `contact`:{
+            //                         return axios.get(`/${host}/api/requestBuyer/${e}`).then(handleSave,tg.close()).catch(handleError);
+            //                     }
+            //                     default:{
+            //                         console.log(e)
+            //                     }
+            //                     // case `closeDeal`:{
+            //                     //     tg.showConfirm(`Вы уверены?`,(proof)=>{
+            //                     //         return axios.put(`/${host}/api/deals/${deal.id}`,{
+            //                     //             attr:   `status`,
+            //                     //             value:  `closed`
+            //                     //         }).then(handleSave,tg.close()).catch(handleError)
+            //                     //     })
+            //                     // }
+            //                 }
+                            
+            //             }
+            //         })
+            //         break;
+            //     }
+            //     case `buyer`:{
+            //         tg.showPopup({
+            //             title: `Хотите вернуть?`,
+            //             message: `Свяжитесь с другой стороной, чтобы вернуть ее или попросить еще немного времени. Ему/ей надо будет подтвердить передачу.`,
+            //             buttons: [{
+            //                 text:   `Связаться`,
+            //                 id:     book.id
+            //             },]
+            //         },(e)=>{
+            //             if(e) axios.get(`/${host}/api/requestSeller/${e}`).then(handleSave).catch(handleError);
+            //         })
+            //         break;
+            //     }
+            // }
+        }
+    })
+        
+
+    book.append(ce(`span`,false,`info`,drawDate(deal.createdAt._seconds*1000)))
+    book.append(ce(`p`,false,[`info`,deal.status],dealsStatuses[deal.status].name[userRole]))
+    book.append(ce(`p`,false,false, deal.bookName))
+    
+    return book
+}
+
 Promise
     .resolve(confirmed)
     .then(admin=>{
@@ -528,7 +750,11 @@ Promise
 
             let offers = ce(`div`,`offers`,[`container`,`left`])
 
-                offers.append(ce(`h2`,false,false,`Ваша полка:`))
+                offers.append(ce(`h2`,false,false,`Ваша полка`,{
+                    dataset:{count: data.offers.length}
+                }))
+
+                // offers.append(ce(`div`,false,'upRight',`📖: ${data.offers.length}`))
 
                 offers.append(ce(`p`,false,`info`,`Это книги, которые вы предлагаете купить или взять почитать.`))
 
@@ -564,77 +790,13 @@ Promise
                     onclick:()=>addBook()
                 }))
                 
-                let inRent = data.deals.filter(d=>d.buyer == +data.user.id && d.type == `rent`);
-                let rented = data.deals.filter(d=>d.seller == +data.user.id && d.type == `rent`);
+                let inRent = data.inRent.filter(d=>d.buyer == +data.user.id && d.type == `rent`);
+                let rented = data.rented.filter(d=>d.seller == +data.user.id && d.type == `rent`);
                 
-                if(rented.length) {
-                    let container = ce(`div`,false,`container`)
-                        container.append(ce(`h3`,false,false,`У вас взяли почитать`))
-                    
-                    let nearest = ce(`div`,false,`h40`)
-                        container.append(nearest)
-                    let scrollable = ce(`div`,false,`scrollable`)
-                        nearest.append(scrollable)
-                    rented.forEach(o=>{
-                        let book = ce(`div`,false,`box`,false,{
-                            onclick:()=>{
-                                tg.showPopup({
-                                    title: `Хотите вернуть?`,
-                                    message: `Свяжитесь с другой стороной, чтобы вернуть ее или попросить еще немного времени. Ему/ей надо будет подтвердить передачу.`,
-                                    buttons: [{
-                                        text: `Связаться`,
-                                        id: o.id
-                                    },]
-                                },(e)=>{
-                                    if(e) axios.get(`/${host}/api/requestBuyer/${e}`).then(handleSave).catch(handleError);
-                                })
-                            }
-                        })
-                            scrollable.append(book)
+                if(rented.length) c.append(scrollBox(rented,`У вас взяли почитать`,`seller`))
+                if(inRent.length) c.append(scrollBox(inRent,`Вы взяли почитать`,`buyer`))
 
-                        book.append(ce(`span`,false,`info`,drawDate(o.buyerConfirmed._seconds*1000)))
-                        book.append(ce(`p`,false,false, o.bookName))
-                    })
-                    c.append(container)
-                } 
-                if(inRent.length) {
-                    let container = ce(`div`,false,`container`)
-                    container.append(ce(`h3`,false,false,`Вы взяли почитать::`))
-                    
-                    let nearest = ce(`div`,false,`h40`)
-                        container.append(nearest)
-                    let scrollable = ce(`div`,false,`scrollable`)
-                        nearest.append(scrollable)
-                    inRent.forEach(o=>{
-                        let book = ce(`div`,false,`box`,false,{
-                            onclick:()=>{
-                                tg.showPopup({
-                                    title: `Хотите вернуть?`,
-                                    message: `Свяжитесь с другой стороной, чтобы вернуть ее или попросить еще немного времени. Ему/ей надо будет подтвердить передачу.`,
-                                    buttons: [{
-                                        text: `Связаться`,
-                                        id: o.id
-                                    },]
-                                },(e)=>{
-                                    if(e) axios.get(`/${host}/api/requestSeller/${e}`).then(handleSave).catch(handleError);
-                                })
-                            }
-                        })
-                            scrollable.append(book)
-
-                        book.append(ce(`span`,false,`info`,drawDate(o.sellerConfirmed._seconds*1000)))
-                        book.append(ce(`p`,false,false, o.bookName))
-                    })
-                    c.append(container)
-                } 
-            
-
-
-
-        }).catch(err=>{
-            tg.showAlert(`Изините, вам тут не рады.`)
-            console.log(err)
-        })
+        }).catch(handleError)
 
         if(start) {
             start = start.split(`_`)
@@ -642,9 +804,6 @@ Promise
                 
             }
         }
-        
-        
-        
     })
 
 

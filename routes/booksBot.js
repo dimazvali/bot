@@ -1,5 +1,5 @@
-// let ngrok = process.env.ngrok2 
-let ngrok = process.env.ngrok 
+let ngrok = process.env.ngrok2 
+// let ngrok = process.env.ngrok 
 
 const host = `books`;
 const token = process.env.booksToken;
@@ -540,6 +540,75 @@ router.all(`/api/:method/:id`,(req,res)=>{
             
             switch(req.params.method){
 
+                case `deals`:{
+                    switch(req.method){
+                        case `PUT`:{
+                            if(!req.body.intention) return res.sendStatus(400);
+                            let inc = req.body.intention.split('_');
+                            let ref = deals.doc(req.params.id);
+                            
+                            return getDoc(deals, req.params.id).then(d=>{
+                                if(!d||!d.active) return res.sendStatus(404);
+                                switch(inc[0]){
+                                
+                                    case `seller`:{
+
+                                        if(d.seller !== +user.id) return res.sendStatus(403)
+
+                                        switch(inc[1]){
+                                            case `confirmToRent`:{
+                                                if(d.status != `inReview`) return res.status(400).send(`Недоступно для текущего статуса.`)
+                                                return startDeal(ref, d, res)
+                                            }
+                                            case `cancelledBySeller`:{
+                                                if(d.status != `inReview`) return res.status(400).send(`Недоступно для текущего статуса.`)
+                                                return cancelDeal(`sellerCancel`, ref, d, res)
+                                            }
+
+                                            case `deliveredBySeller`:{
+                                                if(d.sellerConfirmed) return res.status(400).send(`Уже было отмечено.`)
+                                                return transferBook(ref,d,`seller`,res)
+                                            }
+
+                                            case `closeDealBySeller`:{
+                                                if(d.sellerReturned) return res.status(400).send(`Уже было отмечено.`)
+                                                closeDeal(ref,d,`seller`,res)
+                                            }
+                                        }
+                                    }
+    
+                                    case `buyer`:{
+                                        
+                                        if(d.buyer !== +user.id) return res.sendStatus(403)
+                                        
+                                        switch(inc[1]){
+                                            case `cancelledByBuyer`:{
+                                                if(d.status != `inReview`) return res.status(400).send(`Недоступно для текущего статуса.`)
+                                                return cancelDeal(`buyerCancel`, ref, d, res)
+                                            }
+
+                                            case `deliveredByBuyer`:{
+                                                if(d.buyerConfirmed) return res.status(400).send(`Уже было отмечено`)
+                                                return transferBook(ref,d,`buyer`,res)
+                                            }
+                                            case `closeDealByBuyer`:{
+                                                if(d.buyerReturned) return res.status(400).send(`Уже было отмечено`)
+                                                closeDeal(ref,d,`buyer`,res)
+                                            }
+                                        }
+                                    }
+    
+                                    default:{
+                                        return res.sendStatus(404)
+                                    }
+                                }
+                            })
+
+                            
+                        }
+                    }
+                }
+
                 case `books`:{
                     return getDoc(books, req.params.id).then(book=>{
                         if(!book || !book.active) return res.sendStatus(404)
@@ -746,9 +815,10 @@ router.all(`/api/:method`,(req,res)=>{
 
                     return Promise.all(data).then(data=>{
                         res.json({
-                            user:   user,
-                            offers: data[0],
-                            deals:  data[1]
+                            user:       user,
+                            offers:     data[0],
+                            inRent:     data[2],
+                            rented:     data[1]
                         })
                     }).catch(err=>handleError(err,res))
 
@@ -1403,11 +1473,11 @@ router.get(`/web`,(req,res)=>{
     })
 })
 
-function startDeal(ref, deal){
+function startDeal(ref, deal, res){
     ref.update({
-        // active:     false,
-        status:     `inProgress`,
-        started:    new Date()
+        status:         `inProgress`,
+        startedAt:      new Date(),
+        updatedAt:      new Date()
     }).then(()=>{
 
         let users = [];
@@ -1444,22 +1514,34 @@ function startDeal(ref, deal){
                     }]]
                 }
             },false,token,messages)
+
+            if(res) ref.get().then(d=>{
+                res.json({
+                    success: true,
+                    comment: `Спасибо! Я только что отправил вам сообщение с контактами чтеца.`,
+                    deal: handleDoc(d)
+                })
+            })
+
+
         })
         log({
             text:   `${uname(users[1],users[1].id)} подтверждает запрос на книгу ${deal.bookName}`,
             book:   deal.book,
+            deal:   deal.id,
             offer:  deal.offer,
             user:   deal.seller
         })
     })
 }
 
-function cancelDeal(reason,ref,deal){
+function cancelDeal(reason,ref,deal, res){
     switch(reason){
         case 'buyerCancel':{
             ref.update({
-                active: false,
-                status: `cancelledByBuyer`
+                active:     false,
+                status:     `cancelledByBuyer`,
+                updatedAt:  new Date()
             }).then(()=>{
                 
                 offers.doc(deal.offer).update({
@@ -1482,7 +1564,15 @@ function cancelDeal(reason,ref,deal){
                         text:   `${uname(u,u.id)} отменяет свой запрос на книгу ${deal.bookName}`,
                         book:   deal.book,
                         offer:  deal.offer,
-                        user:   deal.buyer
+                        user:   deal.buyer,
+                        deal:   deal.id
+                    })
+                })
+
+                if(res) ref.get().then(d=>{
+                    res.json({
+                        success: false,
+                        deal: handleDoc(d)
                     })
                 })
                 
@@ -1495,7 +1585,8 @@ function cancelDeal(reason,ref,deal){
         case 'sellerCancel':{
             ref.update({
                 active: false,
-                status: `cancelledBySeller`
+                status: `cancelledBySeller`,
+                updatedAt: new Date(),
             }).then(()=>{
                 
                 sendMessage2({
@@ -1525,6 +1616,12 @@ function cancelDeal(reason,ref,deal){
                             text:   `Предложение уходит в архив (вместе с отклоненной заявкой).`,
                             offer:  deal.offer
                         })
+                    })
+                })
+                if(res) ref.get().then(d=>{
+                    res.json({
+                        success: true,
+                        deal: handleDoc(d)
                     })
                 })
                 
@@ -1608,6 +1705,173 @@ function bookaBook(offerId, dealType, callback, user, req, res){
                     })
                 }
             }
+        })
+    })
+}
+
+function evaluateDeal(ref,deal,score,req,res){
+    ref.update({
+        buyerScore: +score,
+        updatedAt: new Date()
+    }).then(()=>{
+        if(req) cba(req,`Спасибо!`)
+        if(res) res.json({success:true})
+        getUser(deal.seller).then(u=>{
+            log({
+                silent: true,
+                deal:   deal.id,
+                user:   deal.seller,
+                text: `${uname(u,u.id)} выставляет ${score} человеку, который взял у него книгу ${deal.bookName}`
+            })
+        })
+    })
+}
+
+function closeDeal(ref, deal, initiator, res){
+    
+    let upd = null;
+
+    switch (initiator){
+        case `seller`:{
+            upd = ref.update({
+                status:         `closed`,
+                closedAt:       new Date(),
+                sellerReturned: new Date()
+            }).then(()=>{
+                
+                offers.doc(deal.offer).update({
+                    blocked: false
+                })
+
+                sendMessage2({
+                    chat_id: deal.buyer,
+                    text: `Спасибо! Хозяин книги «${deal.bookName}» сообщает, что она счастливо вернулась домой. Найдем теперь что-то новое?..`
+                },false,token,messages)
+
+                sendMessage2({
+                    chat_id: deal.seller,
+                    text: `Спасибо!\nА теперь щепетильное: вы порекомендуете другим пользователям сервиса давать книги этому человеку?`,
+                    reply_markup:{
+                        inline_keyboard:[[{
+                            text: `Да`,
+                            callback_data: `deal_${deal.id}_evaluate_2`
+                        },{
+                            text: `хм...`,
+                            callback_data: `deal_${deal.id}_evaluate_1`
+                        },{
+                            text: `Нет`,
+                            callback_data: `deal_${deal.id}_evaluate_0`
+                        }]]
+                    }
+                },false,token,messages)
+
+            })
+            break;
+        }
+        case `buyer`:{
+            upd = ref.update({
+                buyerReturned: new Date()
+            }).then(()=>{
+                sendMessage2({
+                    chat_id: deal.seller,
+                    text: `Человек, который брал у вас книгу «${deal.bookName}», говорит, что уже вернул ее. Подтвердите, пожалуйста.`,
+                    reply_markup:{
+                        inline_keyboard:[[{
+                            text: `Все так`,
+                            callback_data: `deal_${deal.id}_sellerClosed`
+                        }]]
+                    }
+                },false,token,messages)
+            })
+            break;
+        }
+    }
+    Promise.resolve(upd).then(()=>{
+        if(res) ref.get().then(d=>res.json(handleDoc(d)))
+    })
+}
+
+function transferBook(ref, deal, initiator, res){
+    switch(initiator){
+        
+        case `seller`:{
+            if(!deal.buyerConfirmed) sendMessage2({
+                chat_id: d.buyer,
+                text: `${greeting()}! Хозяин книги «${d.bookName}» сообщает, что передача состоялась. Все так?`,
+                reply_markup:{
+                    inline_keyboard:[[{
+                        text:           `Да`,
+                        callback_data:  `deal_${d.id}_buyerConfirmed`
+                    },{
+                        text: `Нет`,
+                        callback_data:  `deal_${d.id}_buyerDenied`
+                    }]]
+                }
+            },false,token,messages)
+
+            return ref.update({
+                sellerConfirmed: new Date()
+            }).then(()=>{
+                getUser(deal.seller,udb).then(u=>{
+                    log({
+                        silent: true,
+                        text:   `${uname(u,u.id)} сообщает, что книга ${deal.bookName} была выдана`,
+                        deal:   deal.id,
+                        offer:  deal.offer,
+                        book:   deal.book,
+                        user:   +u.id
+                    })
+                })
+            })
+        }
+
+        case `buyer`:{
+            if(!deal.sellerConfirmed) sendMessage2({
+                chat_id: deal.seller,
+                text: `${greeting()}! Получатель книги «${deal.bookName}» сообщает, что передача состоялась. Все так?`,
+                reply_markup:{
+                    inline_keyboard:[[{
+                        text:           `Да`,
+                        callback_data:  `deal_${deal.id}_sellerConfirmed`
+                    },{
+                        text: `Нет`,
+                        callback_data:  `deal_${deal.id}_sellerDenied`
+                    }]]
+                }
+            },false,token,messages)
+
+            return ref.update({
+                buyerConfirmed: new Date()
+            }).then(()=>{
+                getUser(deal.buyer,udb).then(u=>{
+                    log({
+                        silent: true,
+                        text:   `${uname(u,u.id)} сообщает, что книга ${deal.bookName} была получена`,
+                        deal:   deal.id,
+                        offer:  deal.offer,
+                        book:   deal.book,
+                        user:   +u.id
+                    })
+                })
+            })
+        }
+    }
+
+    let dealUpdated = null;
+
+    if(initiator == `seller` ? deal.buyerConfirmed : deal.sellerConfirmed){
+        dealUpdated = ref.update({
+            status:     `given`,
+            givenAt:    new Date()
+        }).then(s=> true)
+    }
+
+    return Promise.resolve(dealUpdated).then(()=>{
+        if(res) ref.get().then(d=>{
+            res.json({
+                success: true,
+                deal: handleDoc(d)
+            })
         })
     })
 }
@@ -1975,6 +2239,7 @@ router.post(`/hook`,(req,res)=>{
                     }
                 }
                 case `deal`:{
+
                     let ref = deals.doc(inc[1]);
                     
                     return ref.get().then(d=>{
@@ -1994,6 +2259,15 @@ router.post(`/hook`,(req,res)=>{
                         }, 'answerCallbackQuery', token)
 
                         switch(inc[2]){
+                            case `evaluate`:{
+                                if(d.buyerScore) {
+                                    return cba(req,`Извините, вы уже поставили оценку.`)
+                                }
+                                return evaluateDeal(ref,d, interpreteCallBackData(inc[3]), req)
+                            }
+                            case `sellerClosed`:{
+                                return closeDeal(ref, d, `seller`)
+                            }
 
                             case `buyerConfirmed`:{
                                 if(d.buyerConfirmed) return cba(req,locals.tooLate)
@@ -2001,6 +2275,7 @@ router.post(`/hook`,(req,res)=>{
                                 ref.update({
                                     buyerConfirmed: new Date(),
                                 })
+
                                 if(d.sellerConfirmed){
                                     ref.update({
                                         status:         `given`,
@@ -2021,7 +2296,8 @@ router.post(`/hook`,(req,res)=>{
                                         })
                                     }
 
-                                    cba(req,`Спасибо! Вы молодцы! )`)
+                                    cba(req,`Спасибо! Вы молодцы! )`);
+
                                 } else {
                                     cba(req,`Спасибо! Осталось дождаться подтверждения у второй стороны.`)
 
@@ -2042,10 +2318,13 @@ router.post(`/hook`,(req,res)=>{
                                 break;
                             }
                             case `sellerConfirmed`:{
+                                
                                 if(d.sellerConfirmed) return cba(req,locals.tooLate)
+                                
                                 ref.update({
                                     sellerConfirmed: new Date(),
                                 })
+
                                 if(d.buyerConfirmed) {
 
                                     ref.update({
@@ -2230,10 +2509,16 @@ function rentBook(book, offer, user, res){
             }
         },false,token,messages)
 
-        if(res) res.json({
-            success: true,
-            comment: `Я передал вашу заявку. Подробнее — в сообщениях.`
-        })
+        if(res) {
+            getDoc(deals,rec.id).then(d=>{
+                res.json({
+                    success:    true,
+                    deal:       d,
+                    comment:    `Я передал вашу заявку. Подробнее — в сообщениях.`
+                })
+            })
+            
+        }
     })
 
 
