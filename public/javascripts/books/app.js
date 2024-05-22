@@ -738,7 +738,9 @@ Promise
             profile.append(tagsContainer)
             
             profile.append(ce(`div`,false,`upRight`,`⚙️`,{
-                onclick:()=>showSettings(data.user)
+                onclick:function(){
+                    showSettings(data.user)
+                }
             }))
 
             let fresh = ce(`div`,`fresh`,`container`,[`container`,`left`])
@@ -808,7 +810,7 @@ Promise
 
 
     
-function showSettings(profile){
+function showSettings(profile,button){
     shimmer(true)
     let p = preparePopup(`profile`)
     
@@ -816,41 +818,48 @@ function showSettings(profile){
 
     p.append(ce(`p`,false,`info`,`Краткая информация о том, что тут можно делать...`))
 
-    let city = selector(`cities`,`Выберите город`,profile.city,true)
+    userLoad(`profile`).then(profile=>{
+        
+        profile = profile.user;
 
-    city.onchange = ()=>{
-        axios.put(`/${host}/api/profile/${profile.id}`,{
-            attr: `city`,
-            value: city.value
-        }).then(()=>{
-            updateFresh()
-        })
-    }
+        let city = selector(`cities`,`Выберите город`,profile.city,true)
 
-    p.append(city)
-
-    p.append(ce(`input`,false,false,false,{
-        placeholder: `Адрес`,
-        type: `text`,
-        name: `address`,
-        value: profile.address || null,
-        onchange:function(){
-            if(this.value){
-                localStorage.address = this.value
-                axios.put(`/${host}/api/profile/${profile.id}`,{
-                    attr: `address`,
-                    value: this.value
-                })
-            }
+        city.onchange = ()=>{
+            axios.put(`/${host}/api/profile/${profile.id}`,{
+                attr: `city`,
+                value: city.value
+            }).then(()=>{
+                updateFresh()
+            })
         }
-    }))
 
-    p.append(toggleCheckBox(`profile`,
-        profile.id,
-        `news`,
-        profile.news,
-        `Получать новости`
-    ))
+        p.append(city)
+
+        p.append(ce(`input`,false,false,false,{
+            placeholder: `Адрес`,
+            type: `text`,
+            name: `address`,
+            value: profile.address || null,
+            onchange:function(){
+                if(this.value){
+                    localStorage.address = this.value
+                    axios.put(`/${host}/api/profile/${profile.id}`,{
+                        attr: `address`,
+                        value: this.value
+                    })
+                }
+            }
+        }))
+
+        p.append(toggleCheckBox(`profile`,
+            profile.id,
+            `news`,
+            profile.news,
+            `Получать новости`
+        ))
+    })
+
+    
 }
 
 

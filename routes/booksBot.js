@@ -1,5 +1,5 @@
-// let ngrok = process.env.ngrok2 
-let ngrok = process.env.ngrok 
+let ngrok = process.env.ngrok2 
+// let ngrok = process.env.ngrok 
 
 const host = `books`;
 const token = process.env.booksToken;
@@ -656,6 +656,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                     
                 }
                 case `profile`:{
+
                     
                     if(user.id  !== user.id) return res.sendStatus(403);
 
@@ -765,10 +766,14 @@ router.all(`/api/:method`,(req,res)=>{
             
             switch(req.params.method){
 
-                case `book`:{
+                case `books`:{
                     switch(req.method){
+                        
                         case `POST`:{
-                            return datatypes.books.newDoc(req,res,user)
+                            
+                            devlog(`пост книжки`)
+                            
+                            return addBook(req,res,user)
                         }
                     }
                 }
