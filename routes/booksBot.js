@@ -659,7 +659,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
 
                     let ref = udb.doc(req.params.id);
 
-                    let allowedChanges = [`city`,`news`,`first_name`,`last_name`]
+                    let allowedChanges = [`city`,`news`,`first_name`,`last_name`, `address`]
 
                     if(allowedChanges.indexOf(req.body.attr)>-1) return updateEntity(req,res,ref,user)
                     
