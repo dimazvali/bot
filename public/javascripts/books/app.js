@@ -472,7 +472,7 @@ function addBook(){
     let p = preparePopup(`newBook`)
         p.append(ce(`h1`,false,false,`Добавляем книгу`))
         p.append(ce(`p`,false,`info`,`Человеческое вам спасибо.`))
-        p.append(ce(`p`,false,`info`,`Для начала попробуем найти данные по ISBN — так будет быстрее.`))
+        p.append(ce(`p`,false,`info`,`Для начала попробуем найти данные по ISBN (это уникальный код книги длиной в 10 или 13 символов, его легко найти на странице с выходными данными издания).`))
 
     let isbn = ce(`input`,false,false,false,{
         placeholder: `ISBN`

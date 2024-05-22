@@ -540,6 +540,8 @@ router.all(`/api/:method/:id`,(req,res)=>{
             
             switch(req.params.method){
 
+
+
                 case `deals`:{
                     switch(req.method){
                         case `PUT`:{
@@ -783,6 +785,9 @@ router.all(`/api/:method`,(req,res)=>{
                 case `cities`:{
                     return cities.get().then(col=>res.json(handleQuery(col,false,true).filter(a=>a.active)))
                     // res.json(savedCities)
+                }
+                case `languages`:{
+                    return res.json(langs);
                 }
                 
                 case `profile`:{
