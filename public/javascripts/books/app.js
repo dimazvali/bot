@@ -837,7 +837,7 @@ function showSettings(profile){
         onchange:function(){
             if(this.value){
                 localStorage.address = this.value
-                axios.put(`/${host}/api/profie/${profile.id}`,{
+                axios.put(`/${host}/api/profile/${profile.id}`,{
                     attr: `address`,
                     value: this.value
                 })

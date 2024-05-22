@@ -1,5 +1,5 @@
-let ngrok = process.env.ngrok2 
-// let ngrok = process.env.ngrok 
+// let ngrok = process.env.ngrok2 
+let ngrok = process.env.ngrok 
 
 const host = `books`;
 const token = process.env.booksToken;
@@ -1701,7 +1701,7 @@ function bookaBook(offerId, dealType, callback, user, req, res){
                     })
 
                     return getDoc(books, o.book).then(b=>{
-                        sendOffer(b,o,u||user)
+                        sendOffer(b,o,user)
                     })
                 }
             }
