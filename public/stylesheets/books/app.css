@@ -41,6 +41,7 @@ h1, h2, h3, h4 {
     transition: .3s;
     overflow: hidden;
     box-shadow: 2px 1px 4px -1px var(--tg-theme-hint-color);
+    /* overflow-y: hidden; */
 }
 /* 
 :root{
@@ -141,6 +142,7 @@ img.cover {
 .h40 {
     max-height: 290px;
     overflow: scroll;
+    overflow-y: hidden;
 }
 
 .scrollable {
@@ -150,6 +152,7 @@ img.cover {
 }
 
 .box {
+    position: relative;
     min-width: 90px;
     border-right: 1px solid var(--tg-theme-accent-text-color);
     text-align: left;
@@ -381,6 +384,7 @@ img.coverS {
     position:       sticky;
     top:            0;
     z-index:        -1;
+    transition: .3s;
 }
 
 .bgc{
@@ -410,4 +414,54 @@ img.coverS {
     padding: 3px;
     border-radius: 50%;
     margin-left: 4px;
+}
+
+.sub {
+    margin-top: -15px;
+}
+
+.cut {
+    max-height: 6em;
+    overflow: hidden;
+    position: relative;
+}
+
+.cut::after {
+    content: '';
+    background: linear-gradient(0deg, var(--tg-theme-bg-color) 50%, transparent);
+    height: 2em;
+    width: 100%;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+}
+
+.cut::before {
+    content: 'развернуть';
+    position: absolute;
+    margin: 0 auto;
+    display: inline-block;
+    text-align: center;
+    bottom: 0;
+    z-index: 2;
+    width: 100%;
+    font-size: x-small;
+}
+
+.pad {
+    background: var(--tg-theme-bg-color);
+    padding: 0px 7px 3px 7px;
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+.box[data-closed="true"]::after {
+    content: 'закрыто';
+    position: absolute;
+    color: var(--tg-theme-destructive-text-color);
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-weight: bold;
+    font-size: 1.5em;
 }

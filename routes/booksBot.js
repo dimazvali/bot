@@ -159,7 +159,7 @@ let savedCities = {};
 
 cities.where(`active`,'==',true).get().then(col=>savedCities = objectify(handleQuery(col)))
 
-function addBook(req,res,admin){
+function addBook(req,res,admin, noRedirect){
     
     let b = {
         createdAt:  new Date(),
@@ -179,7 +179,8 @@ function addBook(req,res,admin){
         
         if(req.files && req.files.cover){
             let sampleFile = req.files.cover;
-                let uploadPath = __dirname + '/../public/images/books/' + sampleFile.name
+                
+            let uploadPath = __dirname + '/../public/images/books/'+ sampleFile.name
                 
                 sampleFile.mv(uploadPath, function(err) {
                 
@@ -212,12 +213,11 @@ function addBook(req,res,admin){
             book: rec.id,
             admin: +admin.id
         })
-
-        return res.redirect(`/${host}/web?page=newOffer_${rec.id}`)
-        // res.json({
-        //     success: true,
-        //     id: rec.id
-        // })
+        if(!noRedirect) return res.redirect(`/${host}/web?page=newOffer_${rec.id}`)
+        return res.json({
+            success: true,
+            id: rec.id
+        })
 
     })
 }
@@ -229,8 +229,6 @@ function addOffer(req,res,admin,app){
     getDoc(books, req.body.book)
         .then(b=>{
             if(!b) return res.sendStatus(404)
-
-            
             
             let o = {
                 createdAt:      new Date(),
@@ -276,24 +274,34 @@ function addOffer(req,res,admin,app){
                     devlog(`нет файлов`)
                 }
 
+                if(app){
+                    res.redirect(`/${host}/app?page=offers_${rec.id}`)
+                } else {
+                    res.redirect(`/${host}/web?page=offers_${rec.id}`)
+                }
+
                 if(req.files && req.files.cover){
                     let sampleFile = req.files.cover;
-                        let uploadPath = __dirname + '/../public/images/books/' + sampleFile.name
+
+                        let fname = +new Date()+sampleFile.name
+                        
+                        let uploadPath = __dirname + `/../public/images/books/${fname}`
                         
                         sampleFile.mv(uploadPath, function(err) {
                         
                             if (err) return res.status(500).send(err);
                             
-        
                             s.bucket(`dimazvalimisc`)
                                 .upload(uploadPath)
                                 .then(()=>{
-                                    s.bucket(`dimazvalimisc`).file(sampleFile.name).getSignedUrl({
+                                    s.bucket(`dimazvalimisc`).file(fname).getSignedUrl({
                                         action: `read`,
                                         expires: '03-09-2491'
                                     }).then(link=>{
                                         offers.doc(rec.id).update({
                                             pic: link[0]
+                                        }).then(()=>{
+                                            alertNewOffer(rec.id)
                                         })
                                         fs.unlinkSync(uploadPath)
                                     })
@@ -303,11 +311,9 @@ function addOffer(req,res,admin,app){
                                 })
                         
                         });
-                }   
-                
-                alertNewOffer(rec.id)
-
-                return app  ? res.redirect(`/${host}/app?page=offers_${rec.id}`) :  res.redirect(`/${host}/web?page=offers_${rec.id}`)
+                } else {
+                    alertNewOffer(rec.id)
+                } 
             })
         })
 }
@@ -354,12 +360,12 @@ function alertAdmins(mess) {
         isReply: true
     }
 
-    // udb.where(`admin`, '==', true).get().then(admins => {
-    //     admins.docs.forEach(a => {
-    //         message.chat_id = a.id
-    //         if (mess.type != 'stopLog' || !a.data().stopLog) sendMessage2(message, false, token, messages)
-    //     })
-    // })
+    udb.where(`admin`, '==', true).get().then(admins => {
+        admins.docs.forEach(a => {
+            message.chat_id = a.id
+            if (mess.type != 'stopLog' || !a.data().stopLog) sendMessage2(message, false, token, messages)
+        })
+    })
 }
 
 
@@ -608,6 +614,13 @@ router.all(`/api/:method/:id`,(req,res)=>{
 
                             
                         }
+                        case `GET`:{
+                            return getDoc(deals,req.params.id).then(d=>{
+                                if(!d)  return res.sendStatus(404)
+                                if(d.seller != +user.id) return res.sendStatus(403)
+                                res.json(d)
+                            })
+                        }
                     }
                 }
 
@@ -663,6 +676,18 @@ router.all(`/api/:method/:id`,(req,res)=>{
                     let ref = udb.doc(req.params.id);
 
                     let allowedChanges = [`city`,`news`,`first_name`,`last_name`, `address`]
+
+                    if(req.body.attr == `city` && req.body.value == `newCity`) {
+                        sendMessage2({
+                            chat_id: common.dimazvali,
+                            text: `${uname(user,user.id)} запрашивает новый город.`
+                        },false,process.env.booksToken)
+    
+                        sendMessage2({
+                            chat_id: user.id,
+                            text: `Пожалуйста, напишите, в каком городе вы находитесь — я передам администратору.`
+                        },false,process.env.booksToken)
+                    }
 
                     if(allowedChanges.indexOf(req.body.attr)>-1) return updateEntity(req,res,ref,user)
                     
@@ -773,13 +798,29 @@ router.all(`/api/:method`,(req,res)=>{
                             
                             devlog(`пост книжки`)
                             
-                            return addBook(req,res,user)
+                            return addBook(req,res,user,true)
                         }
                     }
                 }
 
                 case `deals`:{
                     switch(req.method){
+                        case `GET`:{
+                            if(!req.query.offer) return res.status(400).send(`no offer provided`)
+
+                            return getDoc(offers,req.query.offer).then(o=>{
+                                if(!o) return res.sendStatus(404)
+                                if(o.createdBy !== +user.id) return res.sendStatus(403)
+                                deals
+                                    .where(`offer`,'==',req.query.offer)
+                                    .get()
+                                    .then(col=>{
+                                        res.json(handleQuery(col,true))
+                                    })
+                            })
+
+
+                        }
                         case `POST`:{
                             if(!req.body.offer) return res.sendStatus(400)
                             return bookaBook(req.body.offer,req.body.type || `rent`,false, user, req, res)
@@ -803,7 +844,7 @@ router.all(`/api/:method`,(req,res)=>{
                             .where(`owner`,'==',+user.id)
                             // .where(`active`,'==',true)
                             .get()
-                            .then(col=> handleQuery(col))
+                            .then(col=> handleQuery(col,true))
                     )
 
                     data.push(
@@ -811,7 +852,7 @@ router.all(`/api/:method`,(req,res)=>{
                             .where(`seller`,'==',+user.id)
                             // .where(`active`,'==',true)
                             .get()
-                            .then(col=> handleQuery(col))
+                            .then(col=> handleQuery(col,true))
                     )
 
                     data.push(
@@ -819,7 +860,7 @@ router.all(`/api/:method`,(req,res)=>{
                             .where(`buyer`,'==',+user.id)
                             // .where(`active`,'==',true)
                             .get()
-                            .then(col=> handleQuery(col))
+                            .then(col=> handleQuery(col,true))
                     )
 
 
@@ -890,7 +931,9 @@ router.get(`/isbn/:isbn`,(req,res)=>{
 
 
 router.all(`/admin/:method/:id`,(req,res)=>{
+    
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
+    
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
         
         if (!doc.exists) return res.sendStatus(403)
@@ -898,8 +941,6 @@ router.all(`/admin/:method/:id`,(req,res)=>{
         let token = handleDoc(doc)
 
         getUser(token.user,udb).then(admin=>{
-            
-            
             
             switch(req.params.method){
 
@@ -1009,15 +1050,12 @@ function updateEntity(req,res,ref,admin){
                 })
             })
         }
-
-        
     })
-    
 }
 
 
 router.post(`/authWebApp`,(req,res)=>{
-    authWebApp(req,res,token,adminTokens,udb)
+    authWebApp(req,res,token,adminTokens,udb)  
 })
 
 
@@ -1235,7 +1273,7 @@ router.post(`/upload`,(req,res)=>{
 
         let sampleFile = req.files.file;
 
-        let uploadPath = __dirname + '/../public/images/books/' + sampleFile.name
+        let uploadPath = __dirname + '/../public/images/books/misc/' + sampleFile.name
         
         sampleFile.mv(uploadPath, function(err) {
         
@@ -1806,15 +1844,15 @@ function transferBook(ref, deal, initiator, res){
         
         case `seller`:{
             if(!deal.buyerConfirmed) sendMessage2({
-                chat_id: d.buyer,
-                text: `${greeting()}! Хозяин книги «${d.bookName}» сообщает, что передача состоялась. Все так?`,
+                chat_id: deal.buyer,
+                text: `${greeting()}! Хозяин книги «${deal.bookName}» сообщает, что передача состоялась. Все так?`,
                 reply_markup:{
                     inline_keyboard:[[{
                         text:           `Да`,
-                        callback_data:  `deal_${d.id}_buyerConfirmed`
+                        callback_data:  `deal_${deal.id}_buyerConfirmed`
                     },{
                         text: `Нет`,
-                        callback_data:  `deal_${d.id}_buyerDenied`
+                        callback_data:  `deal_${deal.id}_buyerDenied`
                     }]]
                 }
             },false,token,messages)
@@ -2135,7 +2173,7 @@ router.post(`/hook`,(req,res)=>{
                 case `userSettings`:{
                     switch(inc[1]){
                         case `city`:{
-                            return sendMessage2({
+                            sendMessage2({
                                 chat_id: user.id,
                                 text: `Хорошо там, где мы есть:`,
                                 reply_markup:{
@@ -2147,6 +2185,16 @@ router.post(`/hook`,(req,res)=>{
                                     })
                                 }
                             },false,token,messages)
+
+                            if(!u.intro) sendMessage2({
+                                chat_id: u.id,
+                                text: `Что дальше? Все просто: откройте приложение (кнопка в нижнем левом углу экрана) — и посмотрите, какие книги уже есть у ваших соседей. Смело добавляйте свои собственные. Читайте в свое удовольствие.`
+                            },false,token).then(()=>{
+                                udb.doc(u.id.toString()).update({
+                                    intro: new Date()
+                                })
+                            })
+                            break;
                         }
                         case `subscriptions`:{
                             return sendMessage2({
@@ -2491,7 +2539,7 @@ function rentBook(book, offer, user, res){
     }).then(rec=>{
 
         offers.doc(offer.id).update({
-            blocked: true
+            blocked: rec.id
         })
 
         sendMessage2({
@@ -2595,7 +2643,7 @@ const locals = {
     rentRequest: (o)=>              `${sudden.fine()}! Кто-то хочет взять почитать ваше издание «${o.bookName}».\nНажмите «Согласиться» — и мы свяжем вас напрямую.\nЕсли вы не можете им поделиться — не беда. Нажмите «Вежливый отказ». Мы все передадим (и снимем издание с полки).`,
     rentRequestSent:(o)=>           `Отличный выбор! Ваш запрос на книгу «${o.bookName}» отправлен владельцу. После подтверждения мы свяжем вас напрямую.`,
     offerBlocked:   `${sudden.sad()}! Эту книгу сейчас читают...`,
-    greetings:      `${greeting()}! Рады знакомству.\n Чтобы продолжить, выберите город из предложенных ниже. Если вашего города в списке нет — напишите об этом обычным текстовым сообщением.`,
+    greetings:      `${greeting()}! Рады знакомству.\ Чтобы продолжить, выберите город из предложенных ниже. Если вашего города в списке нет — напишите об этом обычным текстовым сообщением.`,
     updateSuccess:  `Настройки обновлены.`,
     noCityProvided: `Извините, но вы все еще не указали свой город. Давайте исправим это:`,
     catalogue:      `Присмотримся...`,
@@ -2680,46 +2728,51 @@ function sendBook(book,user){
 
 function registerUser(u) {
 
-    u.createdAt =       new Date();
-    u.active =          true;
-    u.blocked =         false;
-    u.city =            null;
-    u.score =           0;
-    u[u.language_code] = true; 
-    
-    cities.get().then(col=>{
-        udb.doc(u.id.toString()).set(u).then(() => {
-            sendMessage2({
-                chat_id: +u.id,
-                text:   locals.greetings,
-                reply_markup: {
-                    inline_keyboard:handleQuery(col,false,true).filter(c=>c.active).map(c=>{
-                        return [{
-                            text: c.name,
-                            callback_data: `user_city_${c.id}`
-                        }]
-                    })
-                }
-            }, false, token, messages)
+    udb.get().then(col=>{
+        u.createdAt =       new Date();
+        u.active =          true;
+        u.blocked =         false;
+        u.city =            null;
+        u.score =           0;
+        u.num =             col.docs.length+1;
+        u[u.language_code] = true; 
+        
+        cities.get().then(col=>{
+            udb.doc(u.id.toString()).set(u).then(() => {
+                sendMessage2({
+                    chat_id: +u.id,
+                    text:   locals.greetings,
+                    reply_markup: {
+                        inline_keyboard:handleQuery(col,false,true).filter(c=>c.active).map(c=>{
+                            return [{
+                                text: c.name,
+                                callback_data: `user_city_${c.id}`
+                            }]
+                        })
+                    }
+                }, false, token, messages)
 
-            getAvatar(u.id).then(data=>{
-                if(data && data.ok && data.result.total_count){
-                    
-                    let pic = data.result.photos[0].reverse()[0]
-                    
-                    udb.doc(u.id.toString()).update({
-                        avatar_id: pic.file_id
-                    })
-                }
+                getAvatar(u.id).then(data=>{
+                    if(data && data.ok && data.result.total_count){
+                        
+                        let pic = data.result.photos[0].reverse()[0]
+                        
+                        udb.doc(u.id.toString()).update({
+                            avatar_id: pic.file_id
+                        })
+                    }
+                })
+
+                log({
+                    user: +u.id,
+                    text: `${uname(u,u.id)} регистрируется в боте.`
+                })
+
             })
-
-            log({
-                user: +u.id,
-                text: `${uname(u,u.id)} регистрируется в боте.`
-            })
-
         })
     })
+
+    
 }
 
 module.exports = router;
@@ -2757,3 +2810,28 @@ module.exports = router;
 //         })
 //     })
 // })
+
+
+// udb.get().then(col=>{
+//     handleQuery(col,true).reverse().forEach((u,i)=>{
+//         udb.doc(u.id).update({
+//             num: i+1
+//         })
+//     })
+// })
+
+
+// deals
+//     .where(`active`,'==',true)
+//     .get()
+//     .then(col=>{
+//         handleQuery(col)
+//             .forEach(deal=>{
+//                 deals.doc(deal.id).update({
+//                     active: false
+//                 })
+//                 offers.doc(deal.offer).update({
+//                     blocked: false
+//                 })
+//             })
+//     })

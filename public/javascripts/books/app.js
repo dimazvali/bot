@@ -186,22 +186,35 @@ function offerBox(o,options){
     
     if(!options) options = {};
 
+    let buttons = []
+
     let book = ce(`div`,`offer_${o.id}`,`box`,false,{
         dataset:{
             offer: o.id,
+            closed: !o.active,
             active: o.active ? (o.blocked ? false : true) : false
         },
         onclick:()=>{
 
             if(!options.foreign){
-                let buttons = []
 
-                if(o.active) {
+
+                if(o.active){
+                    
                     buttons.push({
-                        text:   `Снять`,
-                        type:   `destructive`,
-                        id:     `delete`
+                        text:   `Отредактировать`,
+                        id:     `edit`
                     })
+
+                    if(!o.blocked){
+                        buttons.push({
+                            text:   `Снять`,
+                            type:   `destructive`,
+                            id:     `delete`
+                        })
+                    } else {
+
+                    }
                 } else {
                     buttons.push({
                         text:   `Вернуть`,
@@ -211,28 +224,49 @@ function offerBox(o,options){
                 }
 
                 buttons.push({
-                    text:   `Отредактировать`,
-                    id:     `edit`
+                    text:   `История`,
+                    id:     `history`
                 })
+                
 
+                if(!o.blocked){
+                    tg.showPopup({
+                        title:      `Что это у нас?..`,
+                        message:    `Здесь вы можете снять книгу с полки (сделать невидимой для других пользователей) — или отредактировать ее.`,
+                        buttons:    buttons
+                    },(e)=>{
+                        if(e == `history`){
+                            showOfferLog(o.id)
+                        }
+                    })
+                } else {
 
-                tg.showPopup({
-                    title:      `Присмотримся`,
-                    message:    `Здесь вы можете снять книгку с полки (сделать невидимой для других пользователей) — или отредактировать ее`,
-                    buttons:    buttons
-                },(e)=>{
-                    if(e == `delete`){
-                        axios.delete(`/${host}/api/offers/${o.id}`)
-                            .then(handleSave,book.remove())
-                            .catch(handleError)
-                    } else if(e == `edit`){
-                        tg.openLink(`${adminka}/web?page=offers_${o.id}`)
-                    } else if(e == `set`){
-                        axios.put(`/${host}/api/offers/${o.id}`,{attr: `active`,value: true})
-                            .then(handleSave,book.dataset.active = true)
-                            .catch(handleError)
-                    }
-                })
+                    buttons =[{
+                        text:   `История`,
+                        id:     `history`
+                    }]
+                    userLoad(`deals`,o.blocked).then(deal=>{
+                        tg.showPopup({
+                            title:      dealsStatuses[deal.status].name.seller,
+                            message:    `Эту книгу нельзя отредактировать, так как ее у вас кто-то уже попросил.\nПодробнeе — в разделе «У вас взяли почитать».`,
+                            buttons:    buttons
+                        },(e)=>{
+                            if(e == `delete`){
+                                axios.delete(`/${host}/api/offers/${o.id}`)
+                                    .then(handleSave,book.remove())
+                                    .catch(handleError)
+                            } else if(e == `edit`){
+                                tg.openLink(`${adminka}/web?page=offers_${o.id}`)
+                            } else if(e == `set`){
+                                axios.put(`/${host}/api/offers/${o.id}`,{attr: `active`,value: true})
+                                    .then(handleSave,book.dataset.active = true)
+                                    .catch(handleError)
+                            }
+                        })
+                    })
+                }
+
+                
             } else {
                 showOffer(o.id)
             }
@@ -282,6 +316,65 @@ function book(){
     })
 }
 
+function showOfferLog(id){
+    let p = preparePopup(`log_${id}`)
+        let data = [];
+        userLoad(`offers`,id).then(offer=>{
+            p.append(line(
+                ce(`span`,false,[`info`,`pad`],offer.views||`вы первый`,{
+                    dataset:{type:`views`}
+                }),
+                ce(`span`,false,[`info`,`pad`],offer.turns||`вы первый`,{
+                    dataset:{type:`turns`}
+                }),
+            ))
+    
+            let cover = ce(`img`,false,`coverS`,false,{
+                src: offer.pic || offer.bookPic || dummyBook,
+                dataset:{
+                    views: offer.views
+                },
+                alt: `обложка ${offer.bookName}`
+            })
+            
+            p.append(cover)
+    
+            let slidingContainer = ce(`div`,false,`bgc`)
+        
+            p.append(slidingContainer)
+
+            p.parentNode.onscroll = ()=>{
+                let margin = (cover.getBoundingClientRect().height - slidingContainer   .getBoundingClientRect().y)/2;
+                cover.style.top = `-${margin}px`;
+            }
+
+            
+
+            slidingContainer.append(ce(`h1`,false,false,`<span class="info">книга:</span> ${offer.bookName}`))
+            
+            slidingContainer.append(ce(`h2`,false,false,`<span class="info">автор:</span> ${offer.author || `автор не указан`}`))
+
+            slidingContainer.append(ce(`h3`,false,false,`<span class="info">адрес:</span> ${cities[offer.city].name}, ${offer.address}.`))
+            
+            if(offer.description) slidingContainer.append(ce(`p`,false,`info`,offer.description))
+
+            if(offer.bookDescription) {
+                let bc = ce(`p`,false,[`info`,`hidden`],offer.bookDescription)
+                slidingContainer.append(ce(`button`,false,`thin`,`подробнее о книге`,{
+                    onclick:function(){
+                        this.remove();
+                        bc.classList.toggle(`hidden`)
+                    }
+                }))
+                slidingContainer.append(bc)
+            }
+
+            userLoad(`deals`,false,{offer:id}).then(logs=>{
+                if(logs.length) slidingContainer.append(scrollBox(logs,`История`,`seller`))
+            })
+        })
+}
+
 function showOffer(id){
     
     let p = preparePopup(`offer_${id}`)
@@ -291,13 +384,27 @@ function showOffer(id){
 
 
     userLoad(`offers`,id).then(offer=>{
-        if(offer.pic || offer.bookPic) p.append(ce(`img`,false,`coverS`,false,{
-            src: offer.pic || offer.bookPic,
+        p.append(line(
+            ce(`span`,false,[`info`,`pad`],offer.views||`вы первый`,{
+                dataset:{type:`views`}
+            }),
+            ce(`span`,false,[`info`,`pad`],offer.turns||`вы первый`,{
+                dataset:{type:`turns`}
+            }),
+        ))
+
+
+        let cover = ce(`img`,false,`coverS`,false,{
+            src: offer.pic || offer.bookPic || dummyBook,
             dataset:{
                 views: offer.views
             },
             alt: `обложка ${offer.bookName}`
-        })) 
+        })
+        
+        p.append(cover)
+
+        
 
         
 
@@ -308,17 +415,15 @@ function showOffer(id){
         mbbc = book
 
         let slidingContainer = ce(`div`,false,`bgc`)
+
+        p.parentNode.onscroll = ()=>{
+            let margin = (cover.getBoundingClientRect().height - slidingContainer   .getBoundingClientRect().y)/2;
+            cover.style.top = `-${margin}px`;
+        }
         
         p.append(slidingContainer)
 
-        slidingContainer.append(line(
-            ce(`span`,false,`info`,offer.views||`вы первый`,{
-                dataset:{type:`views`}
-            }),
-            ce(`span`,false,`info`,offer.turns||`вы первый`,{
-                dataset:{type:`turns`}
-            }),
-        ))
+        
 
         slidingContainer.append(ce(`h1`,false,false,`<span class="info">книга:</span> ${offer.bookName}`))
         
@@ -370,7 +475,7 @@ function updateFresh(){
         .then(offers=>{
 
             c.append(ce(`h2`,false,false,`Новинки`,{dataset:{count:offers.length}}))
-            c.append(ce(`p`,false,`info`,`Книги, доступные в вашем городе.`))
+            c.append(ce(`p`,false,[`info`,`sub`],`Книги, доступные в вашем городе.`))
 
             let nearest = ce(`div`,false,`h40`)
                 c.append(nearest)
@@ -461,7 +566,12 @@ function addOffer(bookId){
             }))
 
             f.append(ce(`button`,false,false,`Сохранить`,{
-                type: `submit`
+                type: `submit`,
+                onclick:function(){
+                    this.remove();
+                    f.submit()
+                    tg.showAlert(`Загрузка картинки может занять какое-то время`)
+                }
             }))
 
             p.append(f)
@@ -475,13 +585,13 @@ function addBook(){
         p.append(ce(`p`,false,`info`,`Для начала попробуем найти данные по ISBN (это уникальный код книги длиной в 10 или 13 символов, его легко найти на странице с выходными данными издания).`))
 
     let isbn = ce(`input`,false,false,false,{
-        placeholder: `ISBN`
+        placeholder: `ISBN`,
+        type: `number`
     })
 
     p.append(isbn)
 
-    
-    p.append(ce(`button`,false,false,`Проверить`,{
+    let cb = ce(`button`,false,false,`Проверить`,{
         onclick:function(){
             
             if(!isbn.value) {
@@ -503,11 +613,19 @@ function addBook(){
 
                     if(data.id){
                         tg.showAlert(`Отлично, такая книга уже есть в каталоге.\nПродолжим...`)
+                        p.remove();
+                        addOffer(data.id)
                     } else {
                         let name = ce(`input`,false,false,false,{
                             placeholder: `Название книги`,
                             type: `text`,
                             value: data.name || null
+                        })
+
+                        let author =     ce(`input`,false,false,false,{
+                            placeholder: `Автор`,
+                            type: `text`,
+                            value: data.authors ? data.authors.join(', ') : null
                         })
                         
                         let description = ce(`textarea`,false,false,false,{
@@ -532,7 +650,7 @@ function addBook(){
                             value: data.year || null
                         })
                         
-                        let inputs = [name,description,lang,publisher,year]
+                        let inputs = [name,author,description,lang,publisher,year]
                         
                         inputs.forEach(i=>p.append(i));
 
@@ -551,6 +669,7 @@ function addBook(){
                                 
                                 axios.post(`/${host}/api/books`,{
                                     isbn:           isbnData,
+                                    author:         author.value,
                                     name:           name.value,
                                     description:    description.value,
                                     lang:           lang.value,
@@ -566,6 +685,86 @@ function addBook(){
                     
 
                 }).catch(handleError)
+        }
+    })
+
+
+    p.append(cb)
+
+    p.append(ce(`button`,false,`thin`, `У этой книги нет ISBN`,{
+        onclick:function(){
+
+            let data = {};
+
+            this.remove();
+            isbn.remove();
+            cb.remove();
+
+            let name = ce(`input`,false,false,false,{
+                placeholder: `Название книги`,
+                type: `text`,
+                value: data.name || null
+            })
+
+            let author =     ce(`input`,false,false,false,{
+                placeholder: `Автор`,
+                type: `text`,
+                value: data.authors ? data.authors.join(', ') : null
+            })
+            
+            let description = ce(`textarea`,false,false,false,{
+                placeholder: `Описание`,
+                value: data.description || null
+            })
+            
+            let lang = selector(`languages`,`язык`,data.lang,true)
+
+            lang.placeholder = `язык`
+
+            let publisher = ce(`input`,false,false,false,{
+                placeholder: `Издательство`,
+                type: `text`,
+                value: data.publisher || null
+            })
+
+            let year = ce(`input`,false,false,false,{
+                placeholder:    `Год издания`,
+                type:           `number`,
+                min:            0,
+                value: data.year || null
+            })
+            
+            let inputs = [name,author, description,lang,publisher,year]
+            
+            inputs.forEach(i=>p.append(i));
+
+            p.append(ce(`button`,false,false,`Добавиь книгу`,{
+                onclick:()=>{
+                    let passed = true;
+                    let missed = []
+                    inputs.forEach(i=>{
+                        if(!i.value) {
+                            passed = false;
+                            setWarning(i)
+                            missed.push(i.placeholder)
+                        }
+                    })
+                    if(!passed) return tg.showAlert(`Вы пропустили поля: ${missed.join(', ')}.`)
+                    
+                    axios.post(`/${host}/api/books`,{
+                        isbn:           null,
+                        author:         author.value,
+                        name:           name.value,
+                        description:    description.value,
+                        lang:           lang.value,
+                        publisher:      publisher.value,
+                        year:           year.value
+                    }).then(s=>{
+                        p.remove();
+                        addOffer(s.data.id)
+                    }).catch(handleError)
+                }    
+            }))
         }
     }))
 
@@ -628,13 +827,15 @@ function dealBox(deal, userRole){
             deal:   deal.id,
             book:   deal.book,
             offer:  deal.offer,
+            active: deal.active,
+            closed: !deal.active,
         },
 
         onclick:()=>{
             tg.showPopup({
-                title: dealsStatuses[deal.status].name[userRole],
-                message: dealsStatuses[deal.status].text[userRole],
-                buttons: dealsStatuses[deal.status].buttons[userRole] || [{text: `ok`}]
+                title:      dealsStatuses[deal.status].name[userRole],
+                message:    dealsStatuses[deal.status].text[userRole],
+                buttons:    dealsStatuses[deal.status].buttons[userRole] || [{text: `ok`}]
             },(e)=>{
                 if(e) {
                     axios.put(`/${host}/api/deals/${deal.id}`,{
@@ -646,51 +847,6 @@ function dealBox(deal, userRole){
                     }).catch(handleError)
                 }
             })
-
-            // switch(userRole){
-            //     case `seller`:{
-                    
-            //         tg.showPopup({
-            //             title: dealsStatuses[deal.status].name[userRole],
-            //             message: dealsStatuses[deal.status].text[userRole],
-            //             buttons: dealsStatuses[deal.status].buttons[userRole]
-            //         },(e)=>{
-            //             if(e) {
-            //                 switch(e){
-            //                     case `contact`:{
-            //                         return axios.get(`/${host}/api/requestBuyer/${e}`).then(handleSave,tg.close()).catch(handleError);
-            //                     }
-            //                     default:{
-            //                         console.log(e)
-            //                     }
-            //                     // case `closeDeal`:{
-            //                     //     tg.showConfirm(`Вы уверены?`,(proof)=>{
-            //                     //         return axios.put(`/${host}/api/deals/${deal.id}`,{
-            //                     //             attr:   `status`,
-            //                     //             value:  `closed`
-            //                     //         }).then(handleSave,tg.close()).catch(handleError)
-            //                     //     })
-            //                     // }
-            //                 }
-                            
-            //             }
-            //         })
-            //         break;
-            //     }
-            //     case `buyer`:{
-            //         tg.showPopup({
-            //             title: `Хотите вернуть?`,
-            //             message: `Свяжитесь с другой стороной, чтобы вернуть ее или попросить еще немного времени. Ему/ей надо будет подтвердить передачу.`,
-            //             buttons: [{
-            //                 text:   `Связаться`,
-            //                 id:     book.id
-            //             },]
-            //         },(e)=>{
-            //             if(e) axios.get(`/${host}/api/requestSeller/${e}`).then(handleSave).catch(handleError);
-            //         })
-            //         break;
-            //     }
-            // }
         }
     })
         
@@ -707,6 +863,8 @@ Promise
     .then(admin=>{
 
         console.log(`погнали`)
+        
+        tg.requestWriteAccess();
 
         document.body.innerHTML = null;
 
@@ -727,11 +885,16 @@ Promise
             localStorage.address = data.user.address || null;
 
             let uname = `${data.user.first_name||''} ${data.user.last_name||''}`.trim();
+
             if(!uname) uname = data.user.username ? `@${data.user.username}` : data.user.id
 
             profile.append(ce(`h3`,false,false,uname));
 
-            profile.append(ce(`p`,false,`info`,`Место отображения статуса и регалий.`))
+            if(data.user.num) profile.append(ce(`p`,false,[`info`,`sub`],` Читательский билет №${data.user.num}.`))
+
+            profile.append(ce(`div`,false,`tag`, `<span class="info">место действия:</span> <span id="cityName">`+(cities[data.user.city] ? cities[data.user.city].name : `город не определен`)+'</span>.'))
+
+            // profile.append(ce(`p`,false,`info`,`Место отображения статуса и регалий.`))
             
             let tagsContainer = ce(`div`)
             
@@ -756,9 +919,7 @@ Promise
                     dataset:{count: data.offers.length}
                 }))
 
-                // offers.append(ce(`div`,false,'upRight',`📖: ${data.offers.length}`))
-
-                offers.append(ce(`p`,false,`info`,`Это книги, которые вы предлагаете купить или взять почитать.`))
+                offers.append(ce(`p`,false,[`info`,`sub`],`Это книги, которые вы предлагаете купить или взять почитать.`))
 
                 setTimeout(()=>offers.classList.remove(`left`),300)
                 
@@ -808,7 +969,15 @@ Promise
         }
     })
 
-
+function toast(txt){
+    tg.MainButton.setParams({
+        text: txt,
+        is_visible: true
+    })
+    setTimeout(()=>{
+        tg.MainButton.hide()
+    },1500)
+}
     
 function showSettings(profile,button){
     shimmer(true)
@@ -816,24 +985,35 @@ function showSettings(profile,button){
     
     p.append(ce(`h1`,false,false,`Настройки`))
 
-    p.append(ce(`p`,false,`info`,`Краткая информация о том, что тут можно делать...`))
+    p.append(ce(`p`,false,[`info`,`cut`],`Здесь вы можете выставить свой город и обычное место жительства своих книг (впрочем, для каждой из них вы сможете выставить индивидуальный адрес), а также подписку на уведомления о новых поступлениях от ваших соседей.`,{
+        onclick:function(){
+            this.classList.toggle(`cut`)
+        }
+    }))
 
     userLoad(`profile`).then(profile=>{
         
         profile = profile.user;
 
-        let city = selector(`cities`,`Выберите город`,profile.city,true)
+        let city = selector(`cities`,`Выберите город`,profile.city,true,[{
+            name: `Другой`,
+            value: `newCity`
+        }])        
 
         city.onchange = ()=>{
             axios.put(`/${host}/api/profile/${profile.id}`,{
                 attr: `city`,
                 value: city.value
             }).then(()=>{
+                document.querySelector(`#cityName`).innerHTML = cities[city.value] ? cities[city.value].name : `N-ск`;
+                toast(`город обновлен`);
                 updateFresh()
             })
         }
 
         p.append(city)
+
+        // p.append(ce(`p`,false,`info`,`Если вы не нашли свой город в списке — напишите об этом прямо в бот. Администрация постарается исправить ситуацию.`))
 
         p.append(ce(`input`,false,false,false,{
             placeholder: `Адрес`,
@@ -846,6 +1026,8 @@ function showSettings(profile,button){
                     axios.put(`/${host}/api/profile/${profile.id}`,{
                         attr: `address`,
                         value: this.value
+                    }).then(()=>{
+                        toast(`Адрес обновлен`)
                     })
                 }
             }

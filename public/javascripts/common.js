@@ -13,7 +13,7 @@ function line(tag, values,cb) {
     return l
 }
 
-function selector(col,placeholder,id,user){
+function selector(col,placeholder,id,user,extra){
     let s = ce('select')
         s.append(ce('option',false,false,placeholder||`выберите`,{value:''}))
         let l = user ? userLoad(col) : load(col)
@@ -23,6 +23,11 @@ function selector(col,placeholder,id,user){
             s.append(ce(`option`,false,false,o.name,{
                 value: o.id,
                 selected: o.id == id
+            }))
+        })
+        if(extra) extra.forEach(o=>{
+            s.append(ce(`option`,false,false,o.name,{
+                value: o.value,
             }))
         })
     })

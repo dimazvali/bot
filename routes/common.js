@@ -3,6 +3,7 @@ const { default: axios } = require("axios");
 var sha256 =    require('sha256');
 const { createHash,createHmac } = require('node:crypto');
 const { getUser } = require("./methods");
+const { FieldValue } = require("firebase-admin/firestore");
 
 
 function authTG(req,res,token,adminTokens,udb,registerUser){
@@ -99,6 +100,10 @@ function authWebApp(req,res,token,adminTokens,udb){
                         httpOnly: true,
                     }).json({
                         admin: u && u.admin ? true : false
+                    })
+                    udb.doc(req.body.user.id.toString()).update({
+                        entries:    FieldValue.increment(+1),
+                        recent:     new Date()
                     })
                 })
         }).catch(err=>{
