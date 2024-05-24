@@ -180,8 +180,10 @@ function addBook(req,res,admin, noRedirect){
         if(req.files && req.files.cover){
             let sampleFile = req.files.cover;
                 
-            let uploadPath = __dirname + '/../public/images/books/'+ sampleFile.name
-                
+            let fname = +new Date()+sampleFile.name
+                        
+            let uploadPath = __dirname + `/../public/images/books/${fname}`
+                            
                 sampleFile.mv(uploadPath, function(err) {
                 
                     if (err) return res.status(500).send(err);
@@ -190,7 +192,7 @@ function addBook(req,res,admin, noRedirect){
                     s.bucket(`dimazvalimisc`)
                         .upload(uploadPath)
                         .then(()=>{
-                            s.bucket(`dimazvalimisc`).file(sampleFile.name).getSignedUrl({
+                            s.bucket(`dimazvalimisc`).file(fname).getSignedUrl({
                                 action: `read`,
                                 expires: '03-09-2491'
                             }).then(link=>{
@@ -656,7 +658,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                         name:           b.title,
                                         description:    b.description,
                                         lang:           b.language,
-                                        author:         b.authors.join(', '),
+                                        author:         (b.authors||[]).join(', '),
                                         publisher:      b.publisher,
                                         year:           b.publishedDate
                                     })
@@ -1273,8 +1275,10 @@ router.post(`/upload`,(req,res)=>{
 
         let sampleFile = req.files.file;
 
-        let uploadPath = __dirname + '/../public/images/books/misc/' + sampleFile.name
-        
+        let fname = +new Date()+sampleFile.name
+                        
+        let uploadPath = __dirname + `/../public/images/books/${fname}`
+                        
         sampleFile.mv(uploadPath, function(err) {
         
         if (err) return res.status(500).send(err);
@@ -1282,14 +1286,17 @@ router.post(`/upload`,(req,res)=>{
         s.bucket(`dimazvalimisc`)
             .upload(uploadPath)
             .then(()=>{
-                s.bucket(`dimazvalimisc`).file(sampleFile.name).getSignedUrl({
+                s.bucket(`dimazvalimisc`).file(fname).getSignedUrl({
                     action: `read`,
                     expires: '03-09-2500'
                 }).then(link=>{
                     datatypes[req.query.collection].col.doc(req.query.id).update({
-                        pic: link[0],
-                        updatedAt: new Date()
+                        pic:        link[0],
+                        updatedAt:  new Date()
                     })
+                    
+                    fs.unlinkSync(uploadPath)
+
                     res.redirect(`${ngrok}/${host}/web?page=${req.query.collection}_${req.query.id}`)
                 }).catch(err=>{
                     res.status(500).send(err.message)

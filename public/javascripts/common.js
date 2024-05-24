@@ -864,7 +864,7 @@ function shuffle(array) {
   }
   
 
-function toggleCheckBox(collection,id,attr,value,placeholder,passive){
+function toggleCheckBox(collection,id,attr,value,placeholder,passive, toastMe){
     let cd = ce(`div`,false,`hiddenInput`)
 
     let l = ce(`label`,false,`toggleLabel`,false,{
@@ -887,7 +887,7 @@ function toggleCheckBox(collection,id,attr,value,placeholder,passive){
             attr: attr,
             value: this.checked
         }).then(s=>{
-            handleSave(s)
+            toastMe ? toast(s.data.comment || sudden.fine()) : handleSave(s) 
         }).catch(handleError)
     }
     

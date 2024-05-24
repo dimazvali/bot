@@ -570,7 +570,8 @@ function addOffer(bookId){
                 onclick:function(){
                     this.remove();
                     f.submit()
-                    tg.showAlert(`Загрузка картинки может занять какое-то время`)
+                    toast(`Загрузка картинки может занять какое-то время`)
+                    // tg.showAlert()
                 }
             }))
 
@@ -787,7 +788,13 @@ function showCatalogue(){
         let filters = ce(`div`)
         let booksContainer = ce(`div`);
         let onlyNew = toggleCheckBox(false,false,`onlyNew`,false,`только свободные`,true)
-        
+        // let sort = ce(`div`,false,`sorting`);
+        //     sort.append(ce(`button`,false,[`thin`,`active`],`по дате поступления`,{
+        //         onclick:function(){
+        //             sort()
+        //         }
+        //     }))
+
         onlyNew.querySelector(`input`).onchange = ()=>{
             refreshCatalogue(booksContainer,{
                 city:           cityC.value,
@@ -1007,6 +1014,7 @@ function showSettings(profile,button){
             }).then(()=>{
                 document.querySelector(`#cityName`).innerHTML = cities[city.value] ? cities[city.value].name : `N-ск`;
                 toast(`город обновлен`);
+                if(city.value == `newCity`) tg.showAlert(`Издалека долго?.. Пожалуйста, напишите боту, в каком городе вы находитесь — мы обновим спраочник!.`)
                 updateFresh()
             })
         }
@@ -1037,7 +1045,9 @@ function showSettings(profile,button){
             profile.id,
             `news`,
             profile.news,
-            `Получать новости`
+            `Получать новости`,
+            false,
+            true
         ))
     })
 
