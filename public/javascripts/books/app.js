@@ -6,9 +6,53 @@ let mcb, mbbc, curLecture, curTicket = null;
 
 const dummyBook = `/images/${host}/blank.png`
 
+const helperTexts = {
+    offers: {
+        title: `Ваша полка`,
+        text: [
+            `В этом разделе содержатся книги, которые вы представили публике. Пока что только «на почитать», но уже вы сможете выставить тот  или иной том на продажу.`,
+            `Чтобы добавить книгу на полку, нажмите «Добавить книгу». Чтобы сэкономить ваше время, приложение попробует найти ее данные по ISBN. Если такой книги в каталоге еще нет — вы сможете оформить ее полностью.`,
+            `Книги отображаются в порядке добавления (от новых к старым). Полупрозрачными становятся те издания, которые в данный момент находятся на руках у других пользователей (или ждут вашего одобрения).`,
+            `Порядок выдачи прост: кто-то из пользователей находит вашу в каталоге и отправляет запрос. Бот отправит вам соответствующее сообщение. Если книга у вас на руках – вы подтверждаете запрос. Если что-то пошло не так, у вас есть возможность отказаться. После подтверждения запроса обе стороны получают сообщение с контактами друг друга. Вы связываетесь и договариваетесь об удобном месте и времени. После передачи – подтверждаете, что она состоялась. Наконец, после того, как книга вернется к вам, нажмите соответствующую кнопку — сделка будет закрыта и книга снова станет доступной другим читателям.`,
+            `Если что-то пойдет не так, просто напишите боту – администрация свяжется с вами и постарается решить вопрос.`,
+        ]
+    },
+    fresh:{
+        title: `Свежие поступления`,
+        text: [
+            `В этом блоке выставлены книги, которые можно взять почитать в вашем городе (за исключением тех изданий, которые предлагаете вы сами).`,
+            `Тома, находящиеся на руках у других читателей, сделаны полупрозрачными. Если они вам интересны, откройте карточку книги и нажмите «Тоже хочу» — мы уведомим вас, когда они освободятся.`,
+            `Вы будете получать уведомления о новых книгах, если не отключите их в настройках (или кнопкой, сопровождающей каждое новое сообщение).`
+        ]
+    }
+}
+
+function helper(type){
+    let c = ce(`div`,false,`containerHelp`,`?`,{
+        onclick:()=>{
+            let m = ce(`div`,false,[`modal`,(tg.colorScheme=='dark'?`reg`:`light`)])
+                m.append(ce(`h2`,false,false,helperTexts[type].title,{
+                    onclick:()=>m.remove()
+                }))
+            let sub = ce(`div`,false, `vScroll`)
+                helperTexts[type].text.forEach(p=>{
+                    sub.append(ce(`p`,false,`info`,p))
+                })
+
+                sub.append(ce(`button`,false,`thin`,`скрыть`,{
+                    onclick:()=>m.remove()
+                }))
+            m.append(sub)
+            document.body.append(m)
+        }
+    });
+    
+    return c;
+}
 
 function scrollBox(deals,name,userRole){
     let container = ce(`div`,userRole,`container`)
+        
         container.append(ce(`h3`,false,false,name,{dataset:{count:deals.length}}))
     let nearest = ce(`div`,false,`h40`)
         container.append(nearest)
@@ -305,10 +349,15 @@ function book(){
         handleSave(s)
         tg.MainButton.offClick(book);
         document.querySelector(`#offer_${curOffer}`).dataset.active = false;
-        document
-            .querySelector(`#buyer`)
-            .querySelector(`.scrollable`)
+        if(document.querySelector(`#buyer`)){
+            document
+                .querySelector(`#buyer`)
+                .querySelector(`.scrollable`)
                 .prepend(dealBox(s.data.deal,`buyer`))
+        } else {
+            document.querySelector(`.mobile`).append(scrollBox([s.data.deal],`Вы взяли почитать`,`buyer`))
+        }
+        
     })
     .catch(err=>{
         handleError(err)
@@ -350,11 +399,11 @@ function showOfferLog(id){
 
             
 
-            slidingContainer.append(ce(`h1`,false,false,`<span class="info">книга:</span> ${offer.bookName}`))
+            slidingContainer.append(ce(`h1`,false,'spanMargin',`<span class="info">книга:</span> ${offer.bookName}`))
             
-            slidingContainer.append(ce(`h2`,false,false,`<span class="info">автор:</span> ${offer.author || `автор не указан`}`))
+            slidingContainer.append(ce(`h2`,false,'spanMargin',`<span class="info">автор:</span> ${offer.author || `автор не указан`}`))
 
-            slidingContainer.append(ce(`h3`,false,false,`<span class="info">адрес:</span> ${cities[offer.city].name}, ${offer.address}.`))
+            slidingContainer.append(ce(`h3`,false,'spanMargin',`<span class="info">адрес:</span> ${cities[offer.city].name}, ${offer.address}.`))
             
             if(offer.description) slidingContainer.append(ce(`p`,false,`info`,offer.description))
 
@@ -425,11 +474,11 @@ function showOffer(id){
 
         
 
-        slidingContainer.append(ce(`h1`,false,false,`<span class="info">книга:</span> ${offer.bookName}`))
+        slidingContainer.append(ce(`h1`,false,`spanMargin`,`<span class="info">книга:</span> ${offer.bookName}`))
         
-        slidingContainer.append(ce(`h2`,false,false,`<span class="info">автор:</span> ${offer.author || `автор не указан`}`))
+        slidingContainer.append(ce(`h2`,false,`spanMargin`,`<span class="info">автор:</span> ${offer.author || `автор не указан`}`))
 
-        slidingContainer.append(ce(`h3`,false,false,`<span class="info">адрес:</span> ${cities[offer.city].name}, ${offer.address}.`))
+        slidingContainer.append(ce(`h3`,false,`spanMargin`,`<span class="info">адрес:</span> ${cities[offer.city].name}, ${offer.address}.`))
         
         if(offer.description) slidingContainer.append(ce(`p`,false,`info`,offer.description))
 
@@ -475,6 +524,8 @@ function updateFresh(){
         .then(offers=>{
 
             c.append(ce(`h2`,false,false,`Новинки`,{dataset:{count:offers.length}}))
+
+            c.append(helper(`fresh`))
             c.append(ce(`p`,false,[`info`,`sub`],`Книги, доступные в вашем городе.`))
 
             let nearest = ce(`div`,false,`h40`)
@@ -882,7 +933,7 @@ Promise
         let c = ce(`div`,false,`mobile`)
         document.body.append(c);
 
-        let profile = ce(`div`,`profile`,[`container`])
+        let profile = ce(`div`,`profile`,[`container`,(tg.colorScheme=='dark'?`reg`:`light`)])
 
         c.append(profile)
 
@@ -906,22 +957,27 @@ Promise
             let tagsContainer = ce(`div`)
             
             profile.append(tagsContainer)
-            
-            profile.append(ce(`div`,false,`upRight`,`⚙️`,{
+            // ⚙
+            // ⚙️upRight
+            // 
+            profile.append(ce(`div`,false,`containerHelp`,`☰`,{
                 onclick:function(){
                     showSettings(data.user)
                 }
             }))
 
-            let fresh = ce(`div`,`fresh`,`container`,[`container`,`left`])
+            let fresh = ce(`div`,`fresh`,[`container`,(tg.colorScheme=='dark'?`reg`:`light`)],[`container`,`left`])
             c.append(fresh)
+            fresh.append(helper(`fresh`))
             // fresh.append(ce(`h2`,false,false,`Новые поступления`))
 
             updateFresh()
 
+            let offers = ce(`div`,`offers`,[`container`,`left`,(tg.colorScheme=='dark'?`reg`:`light`)])
 
-            let offers = ce(`div`,`offers`,[`container`,`left`])
+                offers.append(helper(`offers`))
 
+                // offers.append()
                 offers.append(ce(`h2`,false,false,`Ваша полка`,{
                     dataset:{count: data.offers.length}
                 }))
@@ -1049,6 +1105,10 @@ function showSettings(profile,button){
             false,
             true
         ))
+
+        p.append(ce(`p`,false,`info`,`Идея и разработка:\nДмитрий Шестаков, @dimazvali.`,{
+            onclick:()=>tg.openTelegramLink(`https://t.me/dimazvali`)
+        }))
     })
 
     
@@ -1107,3 +1167,4 @@ function clearPopUp() {
         mbbc = null
     }
 }
+
