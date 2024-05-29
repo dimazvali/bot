@@ -1,5 +1,5 @@
-let ngrok2 = "https://62a2-87-253-45-124.ngrok-free.app" 
-let ngrok = process.env.ngrok 
+let ngrok2 =    process.env.ngrok2;
+let ngrok =     process.env.ngrok;
 
 let coworkingPrice = 30;
 
@@ -3793,6 +3793,131 @@ function alertSoonMR() {
 }
 
 let users = {}
+
+function bookCoworking(user, hallId, date, req, res) {
+
+    function sorryBut(code) {
+
+        if (res) return res.json({
+            success: false,
+            text: code
+        })
+
+        if (req) return cba(req, translations[code][user.language_code] || translations[code].en)
+
+        return m.sendMessage2({
+            chat_id: user.id,
+            text: translations[code][user.language_code] || translations[code].en
+        }, false, token, messages)
+    }
+
+    if (!date) date = isoDate();
+
+    if (isoDate() > date) return sorryBut(`tooLate`)
+
+    getDoc(halls, hallId).then(hall => {
+        
+        if (!hall || !hall.active || !hall.isCoworking) return sorryBut('hallNotAvailable')
+
+        roomsBlocked
+            .where('active', '==', true)
+            .where('room', '==', hallId)
+            .where('date', '==', date)
+            .get()
+            .then(col => {
+
+                if (col.docs.length && !user.insider) return sorryBut(`roomBlocked`)
+
+                coworking
+                    .where('hall', '==', hallId)
+                    .where('date', '==', date)
+                    .where('active', '==', true)
+                    .get()
+                    .then(col => {
+
+                        let users = common.handleQuery(col).map(r => r.user)
+
+                        if (users.indexOf(+user.id) > -1) return sorryBut(`alreadyBooked`)
+
+                        if (users.length >= hall.capacity) return sorryBut(`noSeatsLeft`)
+
+                        if (!user.occupation) return  sorryBut(`noOccupationProvided`)
+
+                        if (!user.email) return  sorryBut(`noEmailProvided`)
+
+                        coworking.add({
+                            user: +user.id,
+                            hall: hallId,
+                            date: date,
+                            createdAt: new Date(),
+                            active: true,
+                            paymentNeeded: (user.insider || user.admin || user.fellow) ? false : (user.bonus ? false : true),
+                            payed: false
+                        }).then(rec => {
+
+                            let bonusText = false;
+
+                            if (user.bonus) {
+
+                                bonusText = true
+
+                                udb.doc(user.id.toString()).update({
+                                    bonus: false
+                                })
+                            }
+
+                            log({
+                                text: `${uname(user, user.id)} бронирует место в коворкинге ${hall.name} на ${date}.`,
+                                user: user.id,
+                                hall: hallId
+                            })
+
+                            if (res) res.json({
+                                success: true,
+                                text: bonusText ? 'coworkingBookingConfirmedBonus' : 'coworkingBookingConfirmed',
+                                record: rec.id
+                            })
+
+                            if (req) cba(req, `ok`)
+
+
+                            m.sendMessage2({
+                                chat_id: user.id,
+                                caption: translations.coworkingBookingDetails(date, hall.name, user.language_code)[user.language_code] || translations.coworkingBookingDetails(date, hall.name, user.language_code).en,
+                                photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=coworking`,
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [{
+                                            text: translations.coworkingBookingCancel[user.language_code] || translations.coworkingBookingCancel.en,
+                                            callback_data: `ca_cancel_${rec.id}`
+                                        }]
+                                    ]
+                                }
+                            }, 'sendPhoto', token, messages)
+
+                            if (bonusText) {
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    text: translations.coworkingBookingConfirmedBonus[user.language_code] || translations.coworkingBookingConfirmedBonus.en
+                                }, false, token, messages)
+                            }
+                        })
+
+                    })
+
+            })
+    })
+}
+
+function cba(req,txt){
+    
+    m.sendMessage2({
+        callback_query_id: req.body.callback_query.id,
+        show_alert: true,
+        text:       txt
+    }, 'answerCallbackQuery', token)
+}
+
 
 function bookClass(user, classId, res, id) {
 
@@ -7599,8 +7724,6 @@ router.post('/hook', (req, res) => {
                 })
             }
 
-
-
             if (req.body.message.text && req.body.message.text.indexOf('/start promo') == 0) {
                 
                 let campaign = req.body.message.text.split('/start promo_')[1]
@@ -7627,6 +7750,10 @@ router.post('/hook', (req, res) => {
                         }
                     }
                 })
+            }
+
+            if (req.body.message.text && req.body.message.text.indexOf('/start cowork') == 0) {
+                bookCoworking(u.data()||user,req.body.message.text.split('_')[1])
             }
 
             if (req.body.message.text && req.body.message.text.indexOf('/start coworking') == 0) {
@@ -8355,23 +8482,7 @@ router.post('/hook', (req, res) => {
                                                                     hall: inc[2]
                                                                 })
     
-                                                                let pl = {
-                                                                    active: true,
-                                                                    id: rec.id,
-                                                                    intention: 'bookCoworking',
-                                                                    hall: inc[2],
-                                                                    date: inc[3],
-                                                                    user: user.id,
-                                                                    userName: (user.first_name + ' ' + user.last_name),
-                                                                    paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
-                                                                    payed: false
-                                                                }
-    
-                                                                axios.post(sheet, Object.keys(pl).map(k => `${k}=${pl[k]}`).join('&'), {
-                                                                    headers: {
-                                                                        "Content-Type": "application/x-www-form-urlencoded"
-                                                                    }
-                                                                })
+                                                                
     
                                                                 m.sendMessage2({
                                                                     chat_id: user.id,
@@ -10725,6 +10836,7 @@ function rcCheckBefore(){
         .then(col=>{
 
             common.handleQuery(col)
+            
             .forEach((user,i)=>{
                 
                 if(user.randomCoffeePass){
