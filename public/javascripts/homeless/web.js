@@ -76,22 +76,35 @@ function drawBusShedule(records,start){
                     .forEach(e => {
                         let rec = ce('div',false,`recordLine`,false,{
                             // dataset:{hall:e.hall}
-                        })                        
-                            load(`users`,e.user, false, downLoadedUsers).then(u=>{
-                                let b = ce(`button`,false,[`dark`,`dateButton`,false,e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
-                                    // onclick:()=> showUser(u,u.id)
-                                    dataset:{
-                                        active: e.active
-                                    },
-                                    onclick:function(){
-                                        showBusOptions(e,u,trip,this)
-                                    }
-                                });
-                                if(u.avatar_id) load(`images`,u.avatar_id).then(p=>{
-                                    b.prepend(ce(`img`,false,[`avatar`,`xSmall`],false,{src:p.src}))
+                        })     
+                            if(e.user){
+                                load(`users`,e.user, false, downLoadedUsers).then(u=>{
+                                    let b = ce(`button`,false,[`dark`,`dateButton`,false,e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
+                                        // onclick:()=> showUser(u,u.id)
+                                        dataset:{
+                                            active: e.active
+                                        },
+                                        onclick:function(){
+                                            showBusOptions(e,u,trip,this)
+                                        }
+                                    });
+                                    if(u.avatar_id) load(`images`,u.avatar_id).then(p=>{
+                                        b.prepend(ce(`img`,false,[`avatar`,`xSmall`],false,{src:p.src}))
+                                    })
+                                    rec.append(b)
                                 })
-                                rec.append(b)
-                            })
+                            } else {
+                                rec.append(ce(`button`,false,[`dark`,`dateButton`],e.userName,{
+                                    onclick:function(){
+                                        let c = confirm(`уверены?`)
+                                        if(c) axios.delete(`/${host}/admin/bus/${e.id}`)
+                                            .then(handleSave,this.remove())
+                                            .catch(handleError)
+                                    }
+                                }))
+                            }                 
+                            
+
                         day.append(rec)
                     })
                     if(trip) day.append(ce(`button`,false,`addButton`,`Добавить ездока`,{
@@ -208,6 +221,32 @@ function add2Bus(tripId,date){
 
         p.append(inp)
         p.append(suggest)
+        p.append(ce(`button`,false,`addButton`,`Без аккаунта в TG`,{
+            onclick:function(){
+                this.remove();
+                inp.remove();
+                suggest.remove();
+                let uname = ce(`input`,false,false,false,{
+                    type: `text`,
+                    name: `outsider`
+                })
+                p.append(uname);
+                p.append(ce(`button`,false,`saveButton`,`Сохранить`,{
+                    onclick:function(){
+                        if(!uname.value) return alert(`Укажите имя, пожалуйста.`);
+                        this.setAttribute(`disabled`,true)
+                        axios.post(`/${host}/admin/bus`,{
+                            outsider: true,
+                            userName: uname.value,
+                            date: date,
+                            trip: tripId
+                        }).then(handleSave,showBus)
+                        .catch(handleError)
+                    }
+                }))
+            }
+        }))
+
 }
 
 function showTrip(id){
@@ -236,6 +275,12 @@ function showTrip(id){
                 edit(`busTrips`,id,`comment`,`textarea`,trip.start,this)
             }
         }))
+
+        let users = ce(`div`)
+        load(`bus`,false,{trip: id}).then(users=>{
+            if(!users.length) return user.append(ce(`h3`,false,false,`Никто еще не записался`))
+
+        })
     })
 }
 

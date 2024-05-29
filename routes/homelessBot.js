@@ -132,6 +132,7 @@ let adminTokens =       fb.collection(`DIMAZVALIadminTokens`);
 // let udb =               fb.collection(`${host}Users`);
 
 let udb =               fb.collection(`${host}Users`);
+// let outSiders =         fb.collection(`${host}outSiders`);
 let cities =            fb.collection(`${host}Cities`);
 let events =            fb.collection(`${host}Events`);
 let userTypes =         fb.collection(`${host}userTypes`);
@@ -360,61 +361,77 @@ function register2Bus(tripId,u,callback,res){
 
 function addBus(req,res,admin){
     
-    
-    if(!req.body.user)return res.status(400).send(`no user provided`)
-    if(!req.body.date)return res.status(400).send(`no date provided`)
-    if(!+new Date(req.body.date)) return res.status(400).send(`invalid date provided`)
-    if(new Date() > new Date(req.body.date)) return res.status(400).send(`no way back`)
+    if(!req.body.outsider){
+        if(!req.body.user)return res.status(400).send(`no user provided`)
+        if(!req.body.date)return res.status(400).send(`no date provided`)
+        if(!+new Date(req.body.date)) return res.status(400).send(`invalid date provided`)
+        if(new Date() > new Date(req.body.date)) return res.status(400).send(`no way back`)
 
-    getUser(req.body.user,udb).then(u=>{
-        
-        if(!u)          return res.json({success:false,comment: `Такого пользователя в системе нет`})
-        if(!u.active)   return res.json({success:false,comment: `Пользователь заблочил бот`})
-        if(u.blocked)   return res.json({success:false,comment: `Пользователь в ЧС`})
+        getUser(req.body.user,udb).then(u=>{
+            
+            if(!u)          return res.json({success:false,comment: `Такого пользователя в системе нет`})
+            if(!u.active)   return res.json({success:false,comment: `Пользователь заблочил бот`})
+            if(u.blocked)   return res.json({success:false,comment: `Пользователь в ЧС`})
 
-        bus
-            .where(`date`,'==',req.body.date)
-            .where(`user`,'==',+req.body.user)
-            .where(`active`,'==',true)
-            .get()
-            .then(already=>{
-                
-                if(already.docs.length) return res.json({
-                    success: false,
-                    comment: `Пользователь уже записан`
-                })
-
-                bus.add({
-                    active:     true,
-                    createdAt:  new Date(),
-                    admin:      +admin.id,
-                    user:       +req.body.user,
-                    date:       req.body.date,
-                    trip:       req.body.trip || null
-                }).then(rec=>{
-                    log({
-                        text:   `${uname(u,u.id)} добавлен в команду ночного автобуса на ${req.body.date}`,
-                        user:   +u.id,
-                        admin:  +admin.id,
-                        bus:    rec.id
+            bus
+                .where(`date`,'==',req.body.date)
+                .where(`user`,'==',+req.body.user)
+                .where(`active`,'==',true)
+                .get()
+                .then(already=>{
+                    
+                    if(already.docs.length) return res.json({
+                        success: false,
+                        comment: `Пользователь уже записан`
                     })
-                    sendMessage2({
-                        chat_id: u.id,
-                        text: locals.busAccepted({
-                            date:req.body.date
-                        }),
-                        reply_markup: {
-                            inline_keyboard:[[{
-                                text: `Не смогу прийти.`,
-                                callback_data: `bus_leave_${rec.id}`
-                            }]]
-                        }
-                    },false,token,messages)
-                    res.json({success:true})
+
+                    bus.add({
+                        active:     true,
+                        createdAt:  new Date(),
+                        admin:      +admin.id,
+                        user:       +req.body.user,
+                        date:       req.body.date,
+                        trip:       req.body.trip || null
+                    }).then(rec=>{
+                        log({
+                            text:   `${uname(u,u.id)} добавлен в команду ночного автобуса на ${req.body.date}`,
+                            user:   +u.id,
+                            admin:  +admin.id,
+                            bus:    rec.id
+                        })
+                        sendMessage2({
+                            chat_id: u.id,
+                            text: locals.busAccepted({
+                                date:req.body.date
+                            }),
+                            reply_markup: {
+                                inline_keyboard:[[{
+                                    text: `Не смогу прийти.`,
+                                    callback_data: `bus_leave_${rec.id}`
+                                }]]
+                            }
+                        },false,token,messages)
+                        res.json({success:true})
+                    })
                 })
             })
-    })
-    
+    } else {
+        bus.add({
+            active:     true,
+            createdAt:  new Date(),
+            admin:      +admin.id,
+            user:       null,
+            outsider:   true,
+            userName:   req.body.userName || null,
+            date:       req.body.date,
+            trip:       req.body.trip || null
+        }).then(rec=>{
+            res.json({
+                success:    true,
+                id:         rec.id
+            })
+        })
+    }
 }
 
 function sendNews(req,res,col, admin){

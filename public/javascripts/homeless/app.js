@@ -355,7 +355,7 @@ function showAdminBusTrip(tripId){
                     }
                 }))
                 records.forEach(r=>{
-                    load(`users`,r.user).then(u=>{
+                    if(r.user) load(`users`,r.user).then(u=>{
                         let rc = ce(`div`,false,[`sDivided`,r.active?`reg`:`hidden`],false,{dataset:{active:r.active}})
                             rc.append(ce(`p`,false,`info`,`заявка от ${drawDate(r.createdAt._seconds*1000)}`))
                             rc.append(ce(`p`,false,false,uname(u,u.id),{
@@ -412,6 +412,64 @@ function showAdminBusTrip(tripId){
                             
                         uc.append(rc)
                     })
+
+                    if(r.outsider){
+                        let rc = ce(`div`,false,[`sDivided`,r.active?`reg`:`hidden`],false,{dataset:{active:r.active}})
+                            rc.append(ce(`p`,false,`info`,`заявка от ${drawDate(r.createdAt._seconds*1000)}`))
+                            rc.append(ce(`p`,false,false,uname(u,u.id),{
+                                onclick:()=>tg.openTelegramLink(`https://t.me/${r.userName}`)
+                            }))
+                            if(r.active){
+                                let flex = ce(`div`,false,`flex`)
+                                rc.append(flex)
+                                if(r.onplace){
+                                    rc.append(ce(`p`,false,`info`,`на месте с ${drawDate(r.onplace._seconds*1000,false,{time:true})}`))
+                                } else {
+                                    flex.append(ce(`button`,false,`addButton`,`На месте`,{
+                                        onclick:function(){
+                                            this.setAttribute(`disabled`,true)
+                                            tg.showConfirm(`Уверены?`,(e)=>{
+                                                if(e){
+                                                    axios.put(`/${host}/admin/bus/${r.id}`,{
+                                                        attr: `onplace`,
+                                                        value: new Date(),
+                                                        type: `date`
+                                                    }).then((s)=>{
+                                                        handleSave(s)
+                                                        this.remove()
+                                                    })
+                                                    .catch(handleError)
+                                                } else {
+                                                    this.removeAttribute(`disabled`)
+                                                }
+                                            })
+    
+                                        }
+                                    }))
+                                    flex.append(ce(`button`,false,`deleteButton`,`Снять запись`,{
+                                        onclick:function(){
+                                            this.setAttribute(`disabled`,true)
+                                            tg.showConfirm(`Человек не придет?`,(e)=>{
+                                                if(e){
+                                                    axios.delete(`/${host}/admin/bus/${r.id}`)
+                                                    .then((s)=>{
+                                                        handleSave(s)
+                                                        rc.remove()
+                                                    })
+                                                    .catch(handleError)
+                                                } else {
+                                                    this.removeAttribute(`disabled`)
+                                                }
+                                            })
+    
+                                        }
+                                    }))
+                                    
+                                }
+                            }
+                            
+                        uc.append(rc)
+                    }
                 })
             p.append(uc)
             p.append(ce(`hr`))
