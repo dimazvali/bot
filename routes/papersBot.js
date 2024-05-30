@@ -1294,6 +1294,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 },false,token,messages)
     
                                 log({
+                                    filter: `coworking`,
                                     text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${req.body.user}`,
                                     admin: +req.query.id,
                                     user:   req.body.user,
@@ -1586,6 +1587,7 @@ router.all(`/admin/:method`, (req, res) => {
                                                     text: translations.planConfirmed(p)[user.language_code] || translations.planConfirmed(p).en
                                                 },false,token,messages)
                                                 log({
+                                                    filter: `coworking`,
                                                     text: `Админ @id${req.query.id} выдает подписку «${p.name}» (${common.cur(p.price,'GEL')}) пользователю ${uname(user,r.user)}`,
                                                     admin: +req.query.id,
                                                     user:   r.user,
@@ -1735,6 +1737,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 })
 
                                 log({
+                                    filter: `lectures`,
                                     class: r.id,
                                     admin: +user.id,
                                     text: `${uname(user,user.id)} создает мероприятие ${req.body.name}`
@@ -2581,6 +2584,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                         })
     
                                         log({
+                                            filter: `lectures`,
                                             admin: +admin.id,
                                             text: `${uname(admin,admin.id)} стартует админскую рассылку по лекции ${cl.name}. Аудитория: ${line.length}.`,
                                             class: cl.id
@@ -2618,6 +2622,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                         })
     
                                         log({
+                                            filter: `lectures`,
                                             admin: +admin.id,
                                             text: `${uname(admin,admin.id)} стартует рассылку по лекции ${cl.name}. Аудитория: ${line.length}.`,
                                             class: cl.id
@@ -2746,6 +2751,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                             .get()
                                             .then(col=>{
                                                 log({
+                                                    filter: `coworking`,
                                                     text: `${uname(admin,admin.id)} закрывает зал ${h.name} на ${d}. ${col.docs.length ? `Количество затронутых пользователей: ${col.docs.length}`: ''}`,
                                                     admin: +admin.id,
                                                     hall: req.params.id
@@ -2886,6 +2892,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                         comment: `Автор отправлен в архив.`
                                     })
                                     log({
+                                        silent: true,
                                         text:   `автор ${common.handleDoc(author).name} отправляется в архив`,
                                         admin:  +admin.id,
                                         author: req.params.id
@@ -3338,6 +3345,7 @@ function updatePlans(){
             toBeOff.forEach(rec=>{
                 m.getUser(rec.user,udb).then(u=>{
                     log({
+                        filter: `coworking`,
                         text: `Подписка ${rec.name} ${uname(u,u.id)} закончила действие ${drawDate(p.to._seconds*1000)}. Отправлен запрос на продление.`,
                         user: +rec.user,
                     })
@@ -3590,7 +3598,8 @@ function feedBackTimer(){
                 .filter(c=>!c.feedBackSent)
                 .forEach(c=>{
                     log({
-                        silent: true,
+                        filter: `lectures`,
+                        // silent: true,
                         text:   `Автоматический запрос отзывов на лекцию ${c.name}`,
                         class:  c.id
                     })
@@ -3729,6 +3738,7 @@ function alertAdminsCoworking() {
                 })
             } else {
                 alertAdmins({
+                    filter: `coworking`,
                     text: `На сегодня записей в коворкинг нет.`
                 })
             }
@@ -3927,6 +3937,7 @@ function bookCoworking(user, hallId, date, req, res) {
                             }
 
                             log({
+                                filter: `coworking`,
                                 text: `${uname(user, user.id)} бронирует место в коворкинге ${hall.name} на ${date}.`,
                                 user: user.id,
                                 hall: hallId
@@ -4145,6 +4156,7 @@ function bookClass(user, classId, res, id) {
                                                     }
 
                                                     log({
+                                                        filter: `lectures`,
                                                         text: `${uname(user, user.id)} регистрируется на лекцию ${c.data().name}\n${seatsData}`,
                                                         user: user.id,
                                                         class: c.id,
@@ -4180,6 +4192,7 @@ function bookClass(user, classId, res, id) {
                                                 }
 
                                                 log({
+                                                    filter: `lectures`,
                                                     text: `${uname(user, user.id)} НЕ ПОЛУЧАЕТ место на лекцию ${c.data().name}\n${seatsData}`,
                                                     user: user.id,
                                                     class: c.id
@@ -4289,6 +4302,7 @@ function bookClass(user, classId, res, id) {
                                                 }
                                                 
                                                 log({
+                                                    filter: `lectures`,
                                                     text: `${uname(user, user.id)} регистрируется на лекцию ${c.data().name}\n${seatsData}`,
                                                     user: user.id,
                                                     class: c.id,
@@ -4646,7 +4660,11 @@ function alertAdmins(mess) {
     }
 
     udb.where(`admin`, '==', true).get().then(admins => {
-        admins.docs.forEach(a => {
+        
+        admins = common.handleQuery(admins);
+        if(mess.filter) admins = admins.filter(a=>a.alert && a.alert[mess.filter])
+
+        admins.forEach(a => {
             message.chat_id = a.id
             if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, false, token)
         })
@@ -4706,6 +4724,7 @@ function registerUser(u) {
         d.createdAt = new Date().toISOString()
 
         alertAdmins({
+            filter: `users`,
             type: 'newUser',
             text: `Новый пользователь бота:\n${JSON.stringify(u,null,2)}`,
             user_id: u.id
@@ -5450,6 +5469,7 @@ function log(o) {
 
         if(!o.silent){
             alertAdmins({
+                filter: o.filter||null,
                 text:   o.text,
                 type:   (o.class && o.user) ? 'class' : 'logRecord',
                 id:     o.class,
@@ -6431,6 +6451,7 @@ router.post('/slack', (req, res) => {
                                 res.sendStatus(200)
                                 halls.doc(a.block_id.split('_')[0]).get().then(h => {
                                     log({
+                                        filter: `coworking`,
                                         text: `Админ ${data.user.username} закрывает комнату ${h.data().name} на ${a.block_id.split('_')[1]}`
                                     })
                                 })
@@ -6454,6 +6475,7 @@ router.post('/slack', (req, res) => {
                                     res.sendStatus(200)
                                     halls.doc(a.block_id.split('_')[0]).get().then(h => {
                                         log({
+                                            filter: `coworking`,
                                             text: `Админ ${data.user.username} открывает комнату ${h.data().name} на ${a.block_id.split('_')[1]}`
                                         })
                                     })
@@ -6869,6 +6891,7 @@ router.post('/slack', (req, res) => {
                                             }
                                         })
                                         log({
+                                            filter: `users`,
                                             user: u.id,
                                             text: `Админ ${data.user.username} блокирует пользователя ${uname(u.data(),u.id)}`
                                         })
@@ -7508,6 +7531,7 @@ router.post('/slack', (req, res) => {
                         return classes.add(l).then(record => {
 
                             log({
+                                filter: `lectures`,
                                 class: record.id,
                                 text: `На ${l.date} назначена новая лекция: ${l.name}.`
                             })
@@ -7746,6 +7770,7 @@ router.post('/hook', (req, res) => {
                     stopped: null
                 }).then(s=>{
                     log({
+                        filter: `users`,
                         text: `${uname(u.data(),user.id)} возвращается`,
                         user: +user.id
                     })  
@@ -7992,6 +8017,7 @@ router.post('/hook', (req, res) => {
                         if (req.body.message.text.indexOf('/start')) {
 
                             alertAdmins({
+                                filter: `messages`,
                                 text: `${uname(u.data(),u.id)} пишет что-то странное: ${req.body.message.text}`,
                                 type: 'incoming',
                                 user_id: user.id
@@ -8209,6 +8235,7 @@ router.post('/hook', (req, res) => {
                                 }).then(() => {
     
                                     log({
+                                        filter: `users`,
                                         text:   `${userLogName} заблокировал пользователя ${uname(userdata,inc[2])}`,
                                         user:   +inc[2],
                                         admin:  user.id
@@ -8537,6 +8564,7 @@ router.post('/hook', (req, res) => {
                                                                 }
     
                                                                 log({
+                                                                    filter: `coworking`,
                                                                     text: `${userLogName} бронирует место в коворкинге ${hall.name} на ${inc[3]}`,
                                                                     user: user.id,
                                                                     hall: inc[2]
@@ -8619,6 +8647,7 @@ router.post('/hook', (req, res) => {
                                 updatedBy: user.id
                             }).then(() => {
                                 log({
+                                    filter: `coworking`,
                                     text: `${userLogName} отменяет запись в коворкинге на ${record.date}`,
                                     user: +userData.id
                                 })
@@ -8727,6 +8756,7 @@ router.post('/hook', (req, res) => {
                                         rate: +inc[3]
                                     })
                                     log({
+                                        filter: `lectures`,
                                         text: `${userLogName} ставит оценку ${inc[3]} меропориятию ${ticket.className}.`,
                                         user: +user.id,
                                         class: ticket.class
@@ -8768,6 +8798,7 @@ router.post('/hook', (req, res) => {
                         devlog(`Отзыв к коворку`)
     
                         log({
+                            filter: `coworking`,
                             silent: +inc[2] < 4 ? false : true,
                             text: `${userLogName} ставит коворкингу оценку ${inc[2]}.`,
                             user: +user.id,
@@ -8947,7 +8978,7 @@ router.post('/hook', (req, res) => {
                                 m.sendMessage2({
                                     callback_query_id: req.body.callback_query.id,
                                     show_alert: true,
-                                    text: `До скорых встрех!`
+                                    text: `До скорых встреч!`
                                 }, 'answerCallbackQuery', token)
     
                             })
@@ -9040,6 +9071,7 @@ router.post('/hook', (req, res) => {
                     u = common.handleDoc(u)
 
                     log({
+                        filter: `users`,
                         text: `${uname(u,u.id)} блочит бот`,
                         user: +u.id
                     })
@@ -9381,6 +9413,7 @@ router.get(`/api/:type`, (req, res) => {
                     res.json(common.handleQuery(col))
                 }).catch(err => {
                     alertAdmins({
+                        filter: `coworking`,
                         text: `ошибка выгрузки коворкинга ${err.message}`
                     })
                     res.status(500).send(`Извините, сервис временно недоступен`)
@@ -9451,6 +9484,7 @@ function alertClassClosed(cl) {
 
 
     log({
+        filter: `lectures`,
         text: `${eTypes.ru[cl.type]} отменяется (((`,
         class: id
     })
@@ -9519,6 +9553,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                     comment: `Заявка принята! Мы скоро свяжемся с вами.`
                                 })
                                 log({
+                                    filter: `coworking`,
                                     text: `${uname(u,u.id)} подает заявку на тариф ${p.name}.\nНадо связаться с человеком и объяснить правила и платеж.`,
                                     plan: p.id,
                                     user: +u.id
@@ -9602,6 +9637,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                     getDoc(classes,req.body.class).then(c=>{
                                         if(c){
                                             log({
+                                                filter: `lectures`,
                                                 text:   `Новый вопрос к лекции ${c.name}: _${req.body.text}_`,
                                                 user:   +req.body.user,
                                                 class:  req.body.class
@@ -9691,6 +9727,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                 },'sendPhoto',token)
 
                                 alertAdmins({
+                                    alert: `coworking`,
                                     user: +req.query.user,
                                     text: `${uname(u, +req.query.id)} хочет приобрести тариф ${p.name} (${common.cur(p.price,'GEL')}).\nНадо найти человека и взять его деньги!`
                                 })
@@ -9764,6 +9801,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                             id: rec.id
                                         })
                                         log({
+                                            filter: `coworking`,
                                             text: `${uname(u,u.id)} бронирует подкастерскую на ${isoDate(req.body.date)}`
                                         })
                                     })
@@ -9974,6 +10012,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                 reviewed:    new Date()
                             }).then(s=>{
                                 log({
+                                    filter: `lectures`,
                                     text:   `Новая оценка к мероприятию ${req.body.className}: ${req.body.rate}`,
                                     user:   t.user,
                                     class:  t.class,
@@ -9999,6 +10038,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                 reviewed:    new Date()
                             }).then(s=>{
                                 log({
+                                    filter: `lectures`,
                                     text:   `Новый отзыв к мероприятию ${req.body.className}: ${req.body.text}`,
                                     user:   t.user,
                                     class:  t.class,
@@ -10039,6 +10079,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                             })
 
                             log({
+                                filter: `lectures`,
                                 class: record.id,
                                 text: `На ${data.date} назначена новая лекция: ${data.name}.`
                             })
@@ -10332,6 +10373,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                                                 }
 
                                                                 log({
+                                                                    filter: `coworking`,
                                                                     text: `${uname(u.data(), u.id)} бронирует место в коворкинге ${hall.name} на ${req.query.date}`,
                                                                     user: req.query.user,
                                                                     hall: req.params.id
@@ -10395,6 +10437,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                 updatedBy: req.query.user
                             }).then(() => {
                                 log({
+                                    filter: `coworking`,
                                     text: `${uname(u.data(),u.id)} отменяет запись в коворкинге ${record.date}`
                                 })
                                 res.send('appointmentCancelled')
@@ -10830,6 +10873,7 @@ function bookMR(date, time, userid, callback, res) {
                     }).then(rec => {
 
                         log({
+                            filter: `coworking`,
                             silent: true,
                             text: `${uname(user, user.id)} бронирует место в переговорке на ${time} ${date}`,
                             user: user.id,
@@ -11013,6 +11057,7 @@ function unClassUser(ref, user, res, id, callback_query) {
                                 userClasses.doc(ref).get().then(d => {
                                     classes.doc(d.data().class).get().then(c => {
                                         log({
+                                            filter: `lectures`,
                                             text: `${uname(user, user.id)} отказывается от места на лекции  ${c.data().name}`,
                                             user: user.id,
                                             class: d.data().class
@@ -11142,6 +11187,7 @@ function unbookMR(id, userid, callback, res) {
             }).then(() => {
 
                 log({
+                    filter: `coworking`,
                     text: `${uname(user, user.id)} cнял место в переговорке на ${rec.time} ${rec.date}`,
                     user: user.id,
                 })

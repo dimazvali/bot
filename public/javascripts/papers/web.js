@@ -2832,6 +2832,45 @@ function showUser(u, id) {
             }))
         })
 
+        if(u.admin) {
+            let adminLinks = [{
+                attr: `alert.users`,
+                name: `включить уведомления по пользователям`,
+                disname: `снять уведомления по пользователям`
+            }, {
+                attr: `alert.lectures`,
+                name: `включить уведомления по лекциям`,
+                disname: `снять уведомления по лекциям`
+            }, {
+                attr: `alert.messages`,
+                name: `включить уведомления по сообщениям`,
+                disname: `снять уведомления по сообщениям`
+            }, {
+                attr: `alert.coworking`,
+                name: `включить уведомления по коворкингу`,
+                disname: `снять уведомления по коворкингу`
+            }]
+
+            let ac = ce(`div`,false,`flex`)
+            p.append(ac)
+
+            adminLinks.forEach(type => {
+                let a = type.attr.split('.')[0];
+                let b = type.attr.split('.')[1];
+                let cv = u[a] && u[a][b] ? true : false;
+
+                ac.append(ce('button', false, [`dateButton`,`dark`], cv ? type.disname : type.name, {
+                    onclick: () => {
+                        axios.put(`/${host}/admin/users/${u.id}`, {
+                            attr: type.attr,
+                            value: !cv
+                        }).then(handleSave)
+                        .catch(handleError)
+                    }
+                }))
+            })
+        }
+
         // let line = ce(`div`,false,`flex`)
 
         p.append(line(
