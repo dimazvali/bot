@@ -808,21 +808,12 @@ router.all(`/admin/:method`, (req, res) => {
                                 })
                         }
                         case `POST`:{
-                            
-                            randomCoffee(admin)
-                            
-                            log({
-                                silent: true,
-                                text: `${uname(admin,admin.id)} запускает random coffee`,
-                                admin: +admin.id
-                            })
-                            return res.json({
-                                success: true,
-                                comment: `Рулетка запущена!`
-                            })
+                            return randomCoffeePrepare(admin,res)
                         }
                     }
                 }
+
+                
                 case `coworking`:{
                     return coworking
                         .where(`date`,'>=',req.query.start||isoDate())
@@ -2037,11 +2028,34 @@ router.all(`/admin/:method`, (req, res) => {
 })
 
 
-function randomCoffee(admin){
-    randomCoffeeIterations.add({
+function randomCoffeePrepare(admin,res){
+    
+    rcCheckBefore()
+
+    return randomCoffeeIterations.add({
         createdAt: new Date(),
         createdBy: +admin.id
     }).then(rec=>{
+        res.json({
+            success: true,
+            comment: `Предварительные запросы отправлены.\nНе забудьте запустить круг через пару часов!`
+        })
+    })
+}
+
+
+function randomCoffee(admin,id){
+
+        log({
+            silent: true,
+            text: `${uname(admin,admin.id)} запускает random coffee`,
+            admin: +admin.id
+        })
+
+        randomCoffeeIterations.doc(id).update({
+            started: new Date()
+        })
+    
         randomCoffees.get().then(col=>{
         
             before = common.handleQuery(col)
@@ -2067,6 +2081,7 @@ function randomCoffee(admin){
                         let news = users2meet.slice().filter(u=>exs.indexOf(+u.id) == -1)
                         
                         if(news.length){
+                            
                             devlog(`остается ${news.length} новых вариантов`)
                             
                             let randomIndex = Math.floor(Math.random()*news.length)
@@ -2077,12 +2092,16 @@ function randomCoffee(admin){
                             devlog(`${uname(first,first.id)} встретится с ${uname(second,second.id)}`)
                             
                             randomCoffees.add({
-                                iteration:  rec.id,
+                                iteration:  id,
                                 active:     true,
                                 createdAt:  new Date(),
                                 first:      +first.id,
                                 second:     +second.id
                             }).then(r=>{
+
+                                randomCoffeeIterations.doc(id).update({
+                                    couples: FieldValue.increment(1)
+                                })
                                 
                                 let txt1 = translations.rcInvite.ru(first,second) || translations.rcInvite.en(first,second)
                                 let txt2 = translations.rcInvite.ru(second,first) || translations.rcInvite.en(second,first)
@@ -2143,7 +2162,7 @@ function randomCoffee(admin){
                 
             })
         })
-    })
+    
     
 }
 
@@ -2305,6 +2324,47 @@ router.all(`/admin/:method/:id`,(req,res)=>{
             admin = common.handleDoc(admin);
 
             switch(req.params.method){
+
+                case `rcStart`:{
+                    
+                    return getDoc(randomCoffeeIterations,req.params.id).then(i=>{
+                        
+                        if(!i)          return res.status(404).send(`не было такого круга`)
+                        if(!i.started)  return res.status(400).send(`круг уже был запущен`)
+                        
+                        randomCoffee(admin,req.params.id)
+                
+                        return res.json({
+                            success: true,
+                            comment: `Рулетка запущена!`
+                        })    
+                    })
+                    
+                }
+                
+                case `rcFollowUp`:{
+                    switch(req.method){
+                        case `POST`:{
+                            return rcFollowUp(req.params.id)
+                                .then(d=>{
+                                    res.json(d)
+                                }).catch(err=>{
+                                    res.status(400).send(err.message)
+                                })
+                        }
+                        case `GET`:{
+                            
+                            rcResult(req.params.id);
+                            
+                            return res.json({
+                                success: true,
+                                comment: `Результаты придут в телеграм.`
+                            })
+                        }
+                    }
+
+                    
+                }
 
                 case `usersNews`:{
                     return messages.where(`news`,'==',req.params.id).get().then(col=>res.json(common.handleQuery(col,true)))
@@ -10854,7 +10914,7 @@ function rcCheckBefore(){
 
                 setTimeout(()=>{
                     let txt = `Привет! Через пару часов мы запустим очередную серию встреч в формате random coffee. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас».${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
-                    // let txt = `Привет еще раз! У нас произошел небольшой технический сбой. Если вы не готовы участвовать в random coffee на этой неделе, пожалуйста, нажмите кнопку «Пас» еще раз. Через час мы запустим очередную серию встреч между подписчиками бота.`
+                    
                     let keyBoard = [[{
                         text:           `Пас`,
                         callback_data:  `random_pass`
@@ -11166,47 +11226,70 @@ function rcResult(id){
 }
 
 function rcFollowUp(id){
-    randomCoffees
-        .where(`iteration`,'==',id)
-        .get()
-        .then(col=>{
-            common.handleQuery(col)
-                // .filter(c=>c.id == `nuKIH5Fj9uvSemBYQilG`)
-                .forEach(couple=>{
-                m.sendMessage2({
-                    chat_id: couple.first,
-                    text: `Привет! Как вам кофе? Удалось ли пообщаться?`,
-                    reply_markup:{
-                        inline_keyboard:[[{
-                            text: `Да`,
-                            callback_data: `random_confirm_${couple.id}`
-                        },{
-                            text: `Нет`,
-                            callback_data: `random_deny_${couple.id}`
-                        }],[{
-                            text: `Нет, но планирую`,
-                            callback_data: `random_later_${couple.id}`
-                        }]]
-                    }
-                },false,token,messages)
-                m.sendMessage2({
-                    chat_id: couple.second,
-                    text: `Привет! Как вам кофе? Удалось ли пообщаться?`,
-                    reply_markup:{
-                        inline_keyboard:[[{
-                            text: `Да`,
-                            callback_data: `random_confirm_${couple.id}`
-                        },{
-                            text: `Нет`,
-                            callback_data: `random_deny_${couple.id}`
-                        }],[{
-                            text: `Нет, но планирую`,
-                            callback_data: `random_later_${couple.id}`
-                        }]]
-                    }
-                },false,token,messages)
-            })
+    return new Promise((data,err)=>{
+        
+        getDoc(randomCoffeeIterations,id).then(i=>{
+        
+            devlog(i);
+    
+            if(!i)          return err(new Error(`Не было такого круга`));
+            if(i.followUp)  return err(new Error(`Запрос уже был отправлен ${drawDate(i.followUp._seconds*1000,false,{time: true})}`))
+            
+            randomCoffees
+                .where(`iteration`,'==',id)
+                .get()
+                .then(col=>{
+                    common.handleQuery(col)
+                        .forEach((couple,delay)=>{
+                            setTimeout(()=>{
+                                m.sendMessage2({
+                                    chat_id: couple.first,
+                                    text: `Привет! Как вам кофе? Удалось ли пообщаться?`,
+                                    reply_markup:{
+                                        inline_keyboard:[[{
+                                            text: `Да`,
+                                            callback_data: `random_confirm_${couple.id}`
+                                        },{
+                                            text: `Нет`,
+                                            callback_data: `random_deny_${couple.id}`
+                                        }],[{
+                                            text: `Нет, но планирую`,
+                                            callback_data: `random_later_${couple.id}`
+                                        }]]
+                                    }
+                                },false,token,messages)
+                                m.sendMessage2({
+                                    chat_id: couple.second,
+                                    text: `Привет! Как вам кофе? Удалось ли пообщаться?`,
+                                    reply_markup:{
+                                        inline_keyboard:[[{
+                                            text: `Да`,
+                                            callback_data: `random_confirm_${couple.id}`
+                                        },{
+                                            text: `Нет`,
+                                            callback_data: `random_deny_${couple.id}`
+                                        }],[{
+                                            text: `Нет, но планирую`,
+                                            callback_data: `random_later_${couple.id}`
+                                        }]]
+                                    }
+                                },false,token,messages)
+                            },delay*200)
+                        
+                    })
+                    randomCoffeeIterations.doc(id).update({
+                        followUp: new Date()
+                    })
+                    data({
+                        success: true,
+                        comment: `Запросы уходят на ${col.docs.length} пар.`
+                    })
+                })
         })
+    })
+    
+
+    
 }
 
 function requestCoworkingFeedback(){
@@ -11351,3 +11434,17 @@ function getAvatar(id){
 // })
 
 
+
+// randomCoffees.get().then(col=>{
+//     let data = common.handleQuery(col);
+//     let iterations = [... new Set(data.map(r=>r.iteration))]
+//     iterations
+//         .filter(i=>i)
+//         .forEach(i=>{
+//             let dataset = data.filter(c=>c.iteration == i) 
+//             randomCoffeeIterations.doc(i).update({
+//                 couples:    dataset.length,
+//                 meets:      dataset.filter(c=>c.proof && (c.proof.first || c.proof.second)).length
+//             })
+//         })
+// })

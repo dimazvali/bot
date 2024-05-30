@@ -2046,7 +2046,7 @@ function showRC(){
     let usersC = ce('div')
     let listing = ce('div')
     
-    p.append(ce('button',false,buttonStyle,`Запустить`,{
+    p.append(ce('button',false,buttonStyle,`Запустить подготовку`,{
         onclick:function(){
             let sure = confirm(`Уверены?`)
             if(sure) {
@@ -2062,7 +2062,6 @@ function showRC(){
     p.append(listing)
 
     listing.append(ce(`h2`,false,false,`Список встреч:`))
-
 
     load(`rcParticipants`).then(users=>{
         usersC.append(ce('h3',false,false,`Участников: ${users.length}`))
@@ -2087,8 +2086,8 @@ function showRC(){
 
 function rcIterationLine(i){
     let c = listContainer(i,true,{
-        couples: `пар`,
-        meets: `встреч`
+        couples:    `пар`,
+        meets:      `встреч`
     })
     
     if(!i.active) c.classList.remove(`hidden`);
@@ -2103,9 +2102,47 @@ function rcIterationLine(i){
 
 function showRCIteration(id){
     let p = preparePopupWeb(`rc_${id}`,false,false,true);
+    
     load(`rcIterations`,id).then(i=>{
-        
+
         p.append(ce(`h2`,false,false,drawDate(i.createdAt._seconds*1000)))
+
+        if(!i.started){
+            p.append(ce(`button`,false,[`dateButton`,`dark`],`Стартовать круг`,{
+                onclick:function(){
+                    this.remove()
+                    axios.post(`/${host}/admin/rcStart/${id}`)
+                        .then(handleSave)
+                        .catch(handleError)
+                }
+            }))
+        } else {
+            if(i.followUp) {
+                p.append(ce(`p`,false,false,`Запрос на отзывы отправлен ${drawDate(i.followUp._seconds*1000)}`))
+                
+                p.append(ce(`button`,false,[`dateButton`,`dark`],`Запросить статистику`,{
+                    onclick:function(){
+                        this.remove()
+                        axios.get(`/${host}/admin/rcFollowUp/${id}`)
+                            .then(handleSave)
+                            .catch(handleError)
+                    }
+                }))
+
+            } else {
+                p.append(ce(`button`,false,[`dateButton`,`dark`],`Отправить запрос на отзывы`,{
+                    onclick:function(){
+                        this.remove()
+                        axios.post(`/${host}/admin/rcFollowUp/${id}`)
+                            .then(handleSave)
+                            .catch(handleError)
+                    }
+                }))
+            }
+        }
+        
+
+        
 
         load(`rc`,false,{iteration:id}).then(coffees=>{
             p.append(ce(`h3`,false,false,`Встречи`))
