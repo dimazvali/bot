@@ -1,5 +1,5 @@
 let ngrok2 =    process.env.ngrok2;
-let ngrok =     process.env.ngrok;
+let ngrok =     process.env.ngrok2;
 
 let coworkingPrice = 30;
 
@@ -7778,26 +7778,55 @@ router.post('/hook', (req, res) => {
             }
 
             if (req.body.message.text && req.body.message.text.indexOf('/start randomcoffee') == 0) {
-                udb.doc(user.id.toString()).update({
-                    randomCoffee: true
-                }).then(()=>{
-                    log({
-                        silent: true,
-                        user: user.id,
-                        text: `${uname(user,user.id)} включает randomCoffee`,
-                    })
-                    m.sendMessage2({
-                        chat_id: user.id,
-                        text: `${common.greeting()}! Вы подключились к участию в нетворкинге random coffee. Чтобы начать, нужно оформить профиль. Пожалуйста, укажите свою сферу деятельности и напишите пару слов о себе. Так вашему собеседнику будет проще начать разговор.`,
-                        reply_markup:{
-                            inline_keyboard:[[{
-                                text: `Заполнить профиль`,
-                                url: `https://t.me/paperstuffbot/app?startapp=profile`
-                            }]]
-                        }
-                    },false,token,messages)
-                    
+                m.getUser(user.id,udb).get().then(u=>{
+                    if(u) {
+                        udb.doc(user.id.toString()).update({
+                            randomCoffee: true
+                        }).then(()=>{
+                            log({
+                                silent: true,
+                                user: user.id,
+                                text: `${uname(user,user.id)} включает randomCoffee`,
+                            })
+                            m.sendMessage2({
+                                chat_id: user.id,
+                                text: `${common.greeting()}! Вы подключились к участию в нетворкинге random coffee. Чтобы начать, нужно оформить профиль. Пожалуйста, укажите свою сферу деятельности и напишите пару слов о себе. Так вашему собеседнику будет проще начать разговор.`,
+                                reply_markup:{
+                                    inline_keyboard:[[{
+                                        text: `Заполнить профиль`,
+                                        url: `https://t.me/paperstuffbot/app?startapp=profile`
+                                    }]]
+                                }
+                            },false,token,messages)
+                            
+                        }) 
+                    } else {
+                        registerUser(user)
+                        setTimeout(()=>{
+                            udb.doc(user.id.toString()).update({
+                                randomCoffee: true
+                            }).then(()=>{
+                                log({
+                                    silent: true,
+                                    user: user.id,
+                                    text: `${uname(user,user.id)} включает randomCoffee`,
+                                })
+                                m.sendMessage2({
+                                    chat_id: user.id,
+                                    text: `${common.greeting()}! Вы подключились к участию в нетворкинге random coffee. Чтобы начать, нужно оформить профиль. Пожалуйста, укажите свою сферу деятельности и напишите пару слов о себе. Так вашему собеседнику будет проще начать разговор.`,
+                                    reply_markup:{
+                                        inline_keyboard:[[{
+                                            text: `Заполнить профиль`,
+                                            url: `https://t.me/paperstuffbot/app?startapp=profile`
+                                        }]]
+                                    }
+                                },false,token,messages)
+                                
+                            }) 
+                        },2000)    
+                    }
                 })
+                
 
             }
 
