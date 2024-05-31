@@ -1429,6 +1429,8 @@ function showClass(cl, id) {
                     }
                 }
             }))
+        } else {
+            p.append(ce(`p`,false,`alert`,`Мероприятие прошло, рассылки недоступны`))
         }
         
         let picDiv= ce('div',false,`flex`)

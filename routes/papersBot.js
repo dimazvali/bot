@@ -2333,7 +2333,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                     return getDoc(randomCoffeeIterations,req.params.id).then(i=>{
                         
                         if(!i)          return res.status(404).send(`не было такого круга`)
-                        if(!i.started)  return res.status(400).send(`круг уже был запущен`)
+                        if(i.started)   return res.status(400).send(`круг уже был запущен`)
                         
                         randomCoffee(admin,req.params.id)
                 
