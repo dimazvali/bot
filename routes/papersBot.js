@@ -1284,6 +1284,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 active:     true,
                                 plan:       req.body.plan
                             }).then(s=>{
+                                
                                 res.send(`Подписка оформлена`)
     
                                 common.devlog(user)
@@ -2380,7 +2381,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         res.json({
                             src: `https://api.telegram.org/file/bot${token}/${s.data.result.file_path}`
                         })
-                    })
+                    }).catch(err=>handleError(err,res))
                 }
                 
                 case `settings`:{
