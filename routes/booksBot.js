@@ -139,6 +139,7 @@ let logs =              fb.collection(`${host}Logs`);
 let cities =            fb.collection(`${host}Cities`);
 let shops =             fb.collection(`${host}Shops`);
 let offers =            fb.collection(`${host}Offers`);
+let alerts =            fb.collection(`${host}Alerts`);
 
 
 let langs = [{
@@ -321,7 +322,7 @@ function addOffer(req,res,admin,app){
 }
 
 function alertNewOffer(id){
-    getDoc(offers,id).then(o=>{
+    if(!process.env.develop) getDoc(offers,id).then(o=>{
         getDoc(books,o.book).then(b=>{
             udb
                 .where(`city`,'==',o.city)
@@ -384,11 +385,11 @@ function sendMessage(req,res,admin){
 
 const datatypes = {
     messages:{
-        col: messages,
+        col:    messages,
         newDoc: sendMessage,
     },
     offers:{
-        col: offers,
+        col:    offers,
         newDoc: addOffer
     },
     books: {
@@ -437,6 +438,7 @@ function newEntity(req,res,admin,extra){
 }
 
 router.all(`/admin/:method`,(req,res)=>{
+    
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
     
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
@@ -548,11 +550,60 @@ router.all(`/api/:method/:id`,(req,res)=>{
             
             switch(req.params.method){
 
+                case `offersByOffer`:{
+                    return getDoc(offers,req.params.id)
+                        .then(o=>{
+                            getDoc(udb, o.owner).then(u=>{
+                                if(!u || !u.active || u.blocked) return res.sendStatus(404)
+                                if(!u.public) res.status(400).send(`Извините, это непубличный автор.`)
+                                common.ifBefore(offers,{active:true,owner: o.owner})
+                                    .then(offers=>{
+                                        res.json({
+                                            user: {
+                                                username: u.username,
+                                                name:     ((u.first_name)||''+' '+(u.last_name)||'').trim(),
+                                            },
+                                            offers: offers
+                                        })
+                                    })
+                            })
+                        })
+                        .catch(err=>{
+                            handleError(err,res)
+                        })
+                }
 
+                case `alerts`:{
+                    switch(req.method){
+                        case `GET`:{
+                            return getDoc(alerts,req.params.id).then(a=>{
+                                if(!a || !a.active) return res.sendStatus(404)
+                                if(a.user != +user.id) return res.sendStatus(403)
+                                res.json(a);
+                            })
+                        }
+
+                        case `DELETE`:{
+                            return getDoc(alerts,req.params.id).then(a=>{
+                                if(!a || !a.active) return res.sendStatus(404)
+                                if(a.user != +user.id) return res.sendStatus(403)
+                                alerts.doc(req.params.id).update({
+                                    active: false
+                                }).then(()=>{
+                                    res.json({
+                                        success: true,
+                                        comment: `Вы сняли уведомление`
+                                    })
+                                })
+                            })
+                        }
+                    }
+                }
 
                 case `deals`:{
                     switch(req.method){
                         case `PUT`:{
+
                             if(!req.body.intention) return res.sendStatus(400);
                             let inc = req.body.intention.split('_');
                             let ref = deals.doc(req.params.id);
@@ -566,6 +617,27 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                         if(d.seller !== +user.id) return res.sendStatus(403)
 
                                         switch(inc[1]){
+                                            case `remindOfDelivery`:{
+                                                if(d.status != `inProgress`) return res.status(400).send(`Недоступно для текущего статуса.`)
+                                                return sendMessage2({
+                                                    chat_id: d.buyer,
+                                                    text: `Владелец книги «${d.bookName}» просит подтвердить, что вы получили книгу. Все верно?..`,
+                                                    reply_markup:{
+                                                        inline_keyboard:[[{
+                                                            text:           `Да`,
+                                                            callback_data:  `deal_${d.id}_buyerConfirmed`
+                                                        },{
+                                                            text: `Нет`,
+                                                            callback_data:  `deal_${d.id}_buyerDenied`
+                                                        }]]
+                                                    }
+                                                },false,token,messages).then(()=>{
+                                                    res.json({
+                                                        success: true,
+                                                        comment: `Спасибо! Запрос отправлен читателю`
+                                                    })
+                                                })
+                                            }
                                             case `confirmToRent`:{
                                                 if(d.status != `inReview`) return res.status(400).send(`Недоступно для текущего статуса.`)
                                                 return startDeal(ref, d, res)
@@ -619,7 +691,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                         case `GET`:{
                             return getDoc(deals,req.params.id).then(d=>{
                                 if(!d)  return res.sendStatus(404)
-                                if(d.seller != +user.id) return res.sendStatus(403)
+                                if(d.seller != +user.id && d.buyer != +user.id) return res.sendStatus(403)
                                 res.json(d)
                             })
                         }
@@ -677,7 +749,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
 
                     let ref = udb.doc(req.params.id);
 
-                    let allowedChanges = [`city`,`news`,`first_name`,`last_name`, `address`]
+                    let allowedChanges = [`city`,`news`,`first_name`,`last_name`, `address`,`public`]
 
                     if(req.body.attr == `city` && req.body.value == `newCity`) {
                         sendMessage2({
@@ -697,6 +769,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
 
                 }
                 case `offers`:{
+                    
                     let ref = offers.doc(req.params.id);
 
                     return getDoc(offers,req.params.id).then(o=>{
@@ -707,9 +780,15 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                 ref.update({
                                     views: FieldValue.increment(1)
                                 })
-                                delete o.createdBy
-                                delete o.owner
-                                return res.json(o)
+                                
+
+                                return getUser(o.owner,udb).then(u=>{
+                                    if(u.public) o.publicAuthor = true;
+                                    delete o.createdBy
+                                    delete o.owner
+                                    return res.json(o)
+                                })
+                                
                             }
                             case `PUT`:{
                                 if (o.createdBy != +user.id) return res.sendStatus(403);
@@ -793,6 +872,67 @@ router.all(`/api/:method`,(req,res)=>{
             
             switch(req.params.method){
 
+                case `alerts`:{
+                    switch(req.method){
+                        case `POST`:{
+                            if(!req.body.offer) return res.sendStatus(400)
+                            return alerts
+                                .where(`user`,'==',+user.id)
+                                .where(`active`,'==',true)
+                                .where(`offer`,'==',req.body.offer)
+                                .get()
+                                .then(col=>{
+                                    if(col.docs[0]) return res.status(400).send(`Вы уже записались.`)
+                                    
+                                    getDoc(offers,req.body.offer)
+                                        .then(offer=>{
+                                            if(!offer || !offer.active) return res.status(404).send(`Извините, это предложение недоступно.`)
+                                            alerts.add({
+                                                createdAt:  new Date(),
+                                                active:     true,
+                                                user:       +user.id,
+                                                offer:      offer.id,
+                                                bookName:   offer.bookName
+                                            }).then(rec=>{
+                                                res.json({
+                                                    success:    true,
+                                                    comment:    `Спасибо! Вы получите уведомление, как только книга освободится.`,
+                                                    id:         rec.id
+                                                })
+                                            }).catch(err=>handleError(err,res))
+                                        })
+
+                                    
+                                })
+                        }
+                        case `GET`:{
+                            if(req.query.offer || req.query.user){
+                                if(req.query.offer) return alerts
+                                    .where(`user`,'==',+user.id)
+                                    .where(`active`,'==',true)
+                                    .where(`offer`,'==',req.query.offer)
+                                    .get()
+                                    .then(col=>{
+                                        if(!col.docs.length) return res.sendStatus(404)
+                                        res.json({
+                                            id: handleQuery(col)[0].id
+                                        })
+                                    })
+                                if(req.query.user) return alerts
+                                    .where(`user`,'==',+user.id)
+                                    .where(`active`,'==',true)
+                                    .get()
+                                    .then(col=>{
+                                        res.json(handleQuery(col,true))
+                                    })
+                            } else {
+                                return res.sendStatus(400)
+                            }
+                        }
+                    }
+                    
+                }
+
                 case `books`:{
                     switch(req.method){
                         
@@ -834,6 +974,7 @@ router.all(`/api/:method`,(req,res)=>{
                     return cities.get().then(col=>res.json(handleQuery(col,false,true).filter(a=>a.active)))
                     // res.json(savedCities)
                 }
+
                 case `languages`:{
                     return res.json(langs);
                 }
@@ -1042,7 +1183,8 @@ function updateEntity(req,res,ref,admin){
                 updatedBy: +admin.id
             }).then(s=>{
                 res.json({
-                    success: true
+                    success: true,
+                    comment: req.params.method == `profile` ? `Настройки обновлены.` : null
                 })
                 log({
                     silent: true,
@@ -1262,7 +1404,10 @@ router.get(`/offers`,(req,res)=>{
 
 router.post(`/upload`,(req,res)=>{
     
+    devlog(`обновление`)
     devlog(req.files)
+
+    console.log(`вызов методоа обновления`);
 
     // res.sendStatus(200)
 
@@ -1305,8 +1450,9 @@ router.post(`/upload`,(req,res)=>{
             .catch(err=>{
                 console.log(err)
             })
-        
         });
+    }).catch(err=>{
+        handleError(err,res)
     })
 })
 
@@ -1528,6 +1674,26 @@ router.get(`/web`,(req,res)=>{
     })
 })
 
+deals.get().then(col=>{
+    handleQuery(col).forEach(deal=>{
+        if(deal.status != `cancelledByBuyer` && deal.status != `cancelledBySeller`){
+            let users = [];
+                users.push(getUser(deal.buyer,udb))
+                users.push(getUser(deal.seller,udb))
+
+            Promise.all(users).then(users=>{
+
+                deals.doc(deal.id).update({
+                    buyerUserName:  users[0].username,
+                    buyerName:      ((users[0].first_name||'')+' '+(users[0].last_name)||'').trim(),
+                    sellerUserName: users[1].username,
+                    sellerName:     ((users[1].first_name)||''+' '+(users[1].last_name)||'').trim(),
+                })
+            })
+        }
+    })
+})
+
 function startDeal(ref, deal, res){
     ref.update({
         status:         `inProgress`,
@@ -1540,6 +1706,14 @@ function startDeal(ref, deal, res){
             users.push(getUser(deal.seller,udb))
 
         Promise.all(users).then(users=>{
+
+            ref.update({
+                buyerUserName:  users[0].username || null,
+                buyerName:      ((users[0].first_name||'')+' '+(users[0].last_name)||'').trim(),
+                sellerUserName: users[1].username || null,
+                sellerName:     ((users[1].first_name)||''+' '+(users[1].last_name)||'').trim(),
+            })
+
             sendMessage2({
                 chat_id:        deal.buyer,
                 text:           locals.dealConfirmed2Buyer(deal,users[1]),
@@ -1931,6 +2105,21 @@ function transferBook(ref, deal, initiator, res){
     })
 }
 
+if(process.env.develop){
+    router.post(`/news`,(req,res)=>{
+        udb.where(`active`,'==',true).get().then(col=>{
+            let list = handleQuery(col) 
+            list.forEach((u,i)=>{
+                setTimeout(()=>{
+                    req.body.chat_id = u.id;
+                    sendMessage2(req.body,false,token,messages)
+                },i*200)
+            })
+            res.json(list)
+        })
+    })
+}
+
 
 router.post(`/hook`,(req,res)=>{
     
@@ -2275,7 +2464,7 @@ router.post(`/hook`,(req,res)=>{
 
                         if(inc[1] == `city`) sendMessage2({
                             chat_id:    +user.id,
-                            text:       `Что дальше? Пока сайт находися в разработке, вы можете воспользоваться поиском непосредственно в боте (для этого отправьте мне /offers — или введите @shelfCareBot и название книги через пробел).\nВы также можете добавить свои книги: выставить их на продажу, в подарок или в режиме "Дам почитать". Для этого вам понадобится перейти в [админку](https://dimazvali-a43369e5165f.herokuapp.com/books/auth).\nПолный список доступных команд доступен в меню.`,
+                            text:       `Что дальше? Откройте приложение (кнопка в левом нижнем углу экрана). Там вы найдете книги, доступные в вашем городе — и сможете предложить свои.`,
                             parse_mode: `Markdown`,
                         },false,token,messages)
                     }).catch(err=>{
@@ -2842,3 +3031,13 @@ module.exports = router;
 //                 })
 //             })
 //     })
+
+
+// offers.where(`book`,'==','4oYxe3oTxvPdUA2R8qJ3').get().then(col=>{
+//     handleQuery(col).forEach(o=>{
+//         offers.doc(o.id).update({
+//             pic: `https://storage.googleapis.com/dimazvalimisc/1716540929199pm.webp?GoogleAccessId=firebase-adminsdk-4iwd4%40dimazvalimisc.iam.gserviceaccount.com&Expires=16731003600&Signature=jstCogCfhUD86B4Nst%2Bahe7V3FpVvxApmmWrwwiFSjHUeRDFvY0sNB632i1FHI1F%2BgKWoN6mOCP%2BusSrVPvrGJUK2%2Fh4T4y2S76f2iplmE14NpSZCbbUfBtaRHvP4IaEoM%2FgK%2BOxRaAjaa2xJHdXnMG%2Bi%2F%2FMJVXmu4T5NFUO4q8vDzE4d4RE57hJt7IGmLk%2FdPSAliFGYsP4u9tjEkLtAMRSU1JxR3aAl%2BOnDUa9UHMwdwKdpWdliY4xTZ%2BLJyBKqepykyW9tU4j1OaXReG0Pzdk%2BSAAP2flH4sbgghedLYoAEkuGBvdm6AtOU6CXA7dEKwGU48BOrvidSQy5PTveA%3D%3D`
+//         })
+//     })
+// })
+

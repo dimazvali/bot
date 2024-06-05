@@ -93,6 +93,16 @@ div#left>h3 {
         line-height: 50px;
         font-size: 2em;
     }
+    span.closeMe {
+        right: 20px;
+        position: absolute;
+    }
+    
+    .popupWeb {
+        width: 100vw;
+        padding-top: 40px;
+        margin-left: 0px; 
+    }
 
 }
 

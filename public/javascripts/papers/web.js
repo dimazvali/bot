@@ -438,12 +438,13 @@ function showPlan(id){
                                             axios.patch(`/${host}/admin/subscribe/`,{
                                                 plan: r.plan,
                                                 user: r.user,
+                                                request: r.id
                                             })
-                                                .then(s=>{
-                                                    handleSave(s)
-                                                    this.remove()
-                                                })
-                                                .catch(handleError)
+                                            .then(s=>{
+                                                handleSave(s)
+                                                this.remove()
+                                            })
+                                            .catch(handleError)
                                         }
                                     }
                                 }))
@@ -481,10 +482,12 @@ function showPlan(id){
 
 function planUseLine(line,butUser){
     let c = listContainer(line,true,{
-        to: `до`,
+        to:         `до`,
         visitsLeft: `посещений`,
         eventsLeft: `мероприятий`
     })
+
+    c.dataset.id = line.id
     if(!line.active) c.classList.remove(`hidden`)
     let bc = ce(`div`,false,`flex`)
     c.append(bc)

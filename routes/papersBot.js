@@ -1,5 +1,5 @@
 let ngrok2 =    process.env.ngrok2;
-let ngrok =     process.env.ngrok2;
+let ngrok =     process.env.ngrok;
 
 let coworkingPrice = 30;
 
@@ -1048,7 +1048,7 @@ router.all(`/admin/:method`, (req, res) => {
                         ]
                         let message = {
                             chat_id: -1002103011599,
-                            text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                            text: `${common.drawDate(h.date,false,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
                             parse_mode: 'HTML',
                             reply_markup: {
                                 inline_keyboard: kbd
@@ -1284,6 +1284,12 @@ router.all(`/admin/:method`, (req, res) => {
                                 active:     true,
                                 plan:       req.body.plan
                             }).then(s=>{
+
+                                if(req.body.request) getDoc(plansRequests,req.body.request).then(r=>{
+                                    if(r) plansRequests.doc(req.body.request).update({
+                                        active: false,
+                                    })
+                                })
                                 
                                 res.send(`Подписка оформлена`)
     
@@ -1891,12 +1897,13 @@ router.all(`/admin/:method`, (req, res) => {
     
                                 actors.push(udb.doc(req.body.user.toString()).get().then(u => u.data()))
                                 actors.push(udb.doc(req.query.id.toString()).get().then(u => u.data()))
+
                                 Promise.all(actors).then(actors => {
     
                                     log({
-                                        text: `Админ @${actors[1].username} ${interprete(req.body.field,req.body.value)} @${actors[0].username || req.body.user}`,
-                                        user: req.body.user,
-                                        admin: +req.query.id
+                                        text:   `Админ @${uname(actors[1],actors[1].id)} ${interprete(req.body.field,req.body.value)} @${actors[0].username || req.body.user}`,
+                                        user:   +req.body.user,
+                                        admin:  +actors[1].id
                                     })
     
                                     if (req.body.value) {
@@ -2261,7 +2268,7 @@ function updateEntity(req, res, ref, adminId,callback) {
 }
 
 function classDescription(h, lang, newsId){
-    return `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`
+    return `${common.drawDate(h.date,false,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`
 }
 
 function sendClass(h,u,newsId){
@@ -5508,7 +5515,7 @@ function sendUserClasses(id, lang, past) {
                     data.forEach(h => {
                         let message = {
                             chat_id: id,
-                            text: `${common.drawDate(h.date(),false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                            text: `${common.drawDate(h.date(),false,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
                             parse_mode: 'HTML',
                             reply_markup: {
                                 inline_keyboard: [
@@ -5553,7 +5560,7 @@ function sendClasses(id, lang) {
 
                 let message = {
                     chat_id: id,
-                    text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                    text: `${common.drawDate(h.date,false,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
                     parse_mode: 'HTML',
                     reply_markup: {
                         inline_keyboard: [
@@ -5904,7 +5911,7 @@ router.get('/alertClass/:class', (req, res) => {
 
                     let message = {
                         chat_id: u.id,
-                        text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                        text: `${common.drawDate(h.date,false,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
                         parse_mode: 'HTML',
                         reply_markup: {
                             inline_keyboard: kbd
@@ -7255,7 +7262,7 @@ router.post('/slack', (req, res) => {
 
                                                     let message = {
                                                         chat_id: u.id,
-                                                        text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                                                        text: `${common.drawDate(h.date,false,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
                                                         parse_mode: 'HTML',
                                                         reply_markup: {
                                                             inline_keyboard: kbd
@@ -7315,7 +7322,7 @@ router.post('/slack', (req, res) => {
 
                                                         let message = {
                                                             chat_id: u.id,
-                                                            text: `${common.drawDate(h.date,false,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                                                            text: `${common.drawDate(h.date,false,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
                                                             parse_mode: 'HTML',
                                                             reply_markup: {
                                                                 inline_keyboard: kbd
@@ -7916,7 +7923,7 @@ router.post('/hook', (req, res) => {
 
                     let message = {
                         chat_id: user.id,
-                        text: `${drawDate(h.date,lang,{time:true})}, ${h.duration} ${translations.minutes[lang] ||  translations.minutes.en}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description.slice(0,800)}\n${h.price? `${translations.fee[lang] ||  translations.fee.en}: ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
+                        text: `${drawDate(h.date,lang,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description.slice(0,800)}\n${h.price? `${translations.fee[lang] ||  translations.fee.en}: ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`,
                         parse_mode: 'HTML',
                         reply_markup: {
                             inline_keyboard: [
@@ -9569,26 +9576,39 @@ router.all(`/api/:data/:id`, (req, res) => {
                         if(!p || !p.active) return res.sendStatus(404)
                         
                         getDoc(udb,req.query.id).then(u=>{
+
                             if(!u || u.blocked) return res.sendStatus(400)
                             
-                            plansRequests.add({
-                                createdAt:  new Date(),
-                                user:       +req.query.id,
-                                plan:       req.params.id,
-                                active:     true
-                            }).then(record=>{
-                                res.json({
-                                    success: true,
-                                    id: record.id,
-                                    comment: `Заявка принята! Мы скоро свяжемся с вами.`
+                            common.ifBefore(plansRequests,{user:+req.query.id,active:true}).then(before=>{
+                                
+                                if(before.length) return res.json({
+                                    success: false,
+                                    comment: `Вы уже оставили заявку. Пожалуйста, подождите еще немного.`
                                 })
-                                log({
-                                    filter: `coworking`,
-                                    text: `${uname(u,u.id)} подает заявку на тариф ${p.name}.\nНадо связаться с человеком и объяснить правила и платеж.`,
-                                    plan: p.id,
-                                    user: +u.id
+
+                                plansRequests.add({
+                                    createdAt:  new Date(),
+                                    user:       +req.query.id,
+                                    plan:       req.params.id,
+                                    active:     true
+                                }).then(record=>{
+                                    
+                                    res.json({
+                                        success: true,
+                                        id: record.id,
+                                        comment: `Заявка принята! Мы скоро свяжемся с вами.`
+                                    })
+    
+                                    log({
+                                        filter: `coworking`,
+                                        text: `${uname(u,u.id)} подает заявку на тариф ${p.name}.\nНадо связаться с человеком и объяснить правила и платеж.`,
+                                        plan: p.id,
+                                        user: +u.id
+                                    })
                                 })
                             })
+
+                            
                         })
                     })
                 }
@@ -9722,6 +9742,7 @@ router.all(`/api/:data/:id`, (req, res) => {
             switch (req.method){
                 case 'PUT':{
                     if(!req.query.user) return res.sendStatus(400)
+                    
                     return plans.doc(req.params.id).get().then(p=>{
                         if(!p.exists) return res.sendStatus(404)
                         p = p.data()
@@ -11515,12 +11536,31 @@ function getAvatar(id){
 //     let data = common.handleQuery(col);
 //     let iterations = [... new Set(data.map(r=>r.iteration))]
 //     iterations
-//         .filter(i=>i)
-//         .forEach(i=>{
-//             let dataset = data.filter(c=>c.iteration == i) 
-//             randomCoffeeIterations.doc(i).update({
-//                 couples:    dataset.length,
-//                 meets:      dataset.filter(c=>c.proof && (c.proof.first || c.proof.second)).length
-//             })
+// //         .filter(i=>i)
+// //         .forEach(i=>{
+// //             let dataset = data.filter(c=>c.iteration == i) 
+// //             randomCoffeeIterations.doc(i).update({
+// //                 couples:    dataset.length,
+// //                 meets:      dataset.filter(c=>c.proof && (c.proof.first || c.proof.second)).length
+// //             })
+// //         })
+// // })
+
+ 
+// common.ifBefore(plansRequests).then(col=>{
+//     col.forEach(r=>{
+        
+//         devlog(r.id)
+
+//         plansRequests.doc(r.id).update({
+//             active: false
 //         })
+//     })
+// })
+
+// logs.get().then(col=>{
+//     common.handleQuery(col).forEach(rec=>{
+//         if(rec.user && typeof(rec.user) == `string`) logs.doc(rec.id).update({user: +rec.user})
+//         if(rec.admin &&  typeof(rec.admin) == `string`) logs.doc(rec.id).update({admin: +rec.admin})
+//     })
 // })

@@ -573,6 +573,17 @@ function uname(u,id){
     return `${u.admin? `админ` : (u.insider ? 'сотрудник' : (u.fellow ? 'fellow' : 'гость'))} ${u.username ? `@${u.username}` : `id ${id}` } (${u.first_name||''} ${u.last_name||''})`
 }
 
+function ifBefore(col,params){
+    
+    if(!params) params = {active:true};
+    let q = col;
+    Object.keys(params).forEach(key=>{
+        q = q.where(key,'==',params[key])
+    })
+    return q.get().then(col=>{
+        return handleQuery(col,true)
+    })
+}
 
 function drawDate(d,l,o){
     let options = {
@@ -706,6 +717,9 @@ function cutMe(txt, limit) {
 
 
 module.exports = {
-    sanitize,authTG,authWebApp,interpreteCallBackData,cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
+    ifBefore,
+    sanitize,
+    authTG,
+    authWebApp,interpreteCallBackData,cutMe,objectify,clearTags,handleError,shuffle,getDoc,handleDoc,sudden,deleteMessage,checkObscene,emotions,alertMe,letterize,letterize2,dimazvali,greeting,cur,handleQuery,uname,drawDate,devlog,getNewUsers
 };
 

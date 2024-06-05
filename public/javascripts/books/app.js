@@ -2,7 +2,7 @@
 let tg = window.Telegram.WebApp;
 const host = `books`
 const adminka = `https://dimazvali-a43369e5165f.herokuapp.com/books`;
-let mcb, mbbc, curLecture, curTicket = null;
+let mcb, mbbc, curLecture, curTicket, curAlert = null;
 
 const dummyBook = `/images/${host}/blank.png`
 
@@ -50,7 +50,7 @@ function helper(type){
     return c;
 }
 
-function scrollBox(deals,name,userRole){
+function scrollBox(deals,name,userRole,callback){
     let container = ce(`div`,userRole,`container`)
         
         container.append(ce(`h3`,false,false,name,{dataset:{count:deals.length}}))
@@ -58,11 +58,19 @@ function scrollBox(deals,name,userRole){
         container.append(nearest)
     let scrollable = ce(`div`,false,`scrollable`)
         nearest.append(scrollable)
-    deals
+    if(!callback){
+        deals
         .sort((a,b)=>dealsStatuses[a.status].sort-dealsStatuses[b.status].sort)
         .forEach(o=>{
             scrollable.append(dealBox(o,userRole))
         })
+    } else {
+        deals
+        .forEach(o=>{
+            if(callback) scrollable.append(offerBox(o,{foreign:true}))
+        })
+    }
+    
     return container
 }
 
@@ -74,22 +82,22 @@ const dealsStatuses = {
     inReview:{
         sort: 1,
         name: {
-            buyer:  `Ждет одобрения`,
-            seller: `Ждет вашего одобрения`
+            buyer: (d)=>`Ждет одобрения`,
+            seller: (d)=>`Ждет вашего одобрения`
         },
         text:{
-            seller: `Сможете дать почитать эту книгу доброму человеку?..`,
-            buyer:  `Вы оставили заявку на эту книгу.\nЕе владелец еще не подтвердил возможность аренды. Чуть-чуть подождем.`
+            seller: (d)=>`Сможете дать почитать эту книгу доброму человеку?..`,
+            buyer: (d)=>`Вы оставили заявку на эту книгу в ${drawDate(d.createdAt._seconds*1000)}.\nЕе владелец еще не подтвердил возможность аренды. Чуть-чуть подождем.`
         },
         buttons:{
-            seller: [{
+            seller:(d)=>[{
                 text:   `Да, конечно!`,
                 id:     `confirmToRent`
             },{
                 text:   `Увы, нет.`,
                 id:     `cancelledBySeller`
             }],
-            buyer:[{
+            buyer:(d)=>[{
                 text:   `Отменить заявку`,
                 type:   `destructive`,
                 id:     `cancelledByBuyer`
@@ -99,50 +107,61 @@ const dealsStatuses = {
     cancelledByBuyer:{
         sort: 5,
         name: {
-            buyer:  `Вы отказали`,
-            seller: `Читатель отказался`
+            buyer: (d)=>`Вы отказались`,
+            seller: (d)=>`Читатель отказался`
         },
         text:{
-            seller: `Человек, который попросил у вас эту книгу, успел передумать.`,
-            buyer:  `Вы отменили заявку на эту книгу.`
+            seller: (d)=>`Человек, который попросил у вас эту книгу, успел передумать.`,
+            buyer: (d)=>`Вы отменили заявку на эту книгу.`
         },
         buttons:{
-            seller: null,
-            buyer:  null
+            seller:(d)=>null,
+            buyer:(d)=>null
         }
     },
     cancelledBySeller:{
         sort: 5,
         name: {
-            buyer:  `Книга недоступна`,
-            seller: `Вы отказали`
+            buyer: (d)=>`Книга недоступна`,
+            seller: (d)=>`Вы отказали`
         },
         text:{
-            seller: `Вы отклонили эту заявку.`,
-            buyer:  `Владелец книги не смог подтвердить ваш запрос.`
+            seller: (d)=>`Вы отклонили эту заявку.`,
+            buyer: (d)=>`Владелец книги не смог подтвердить ваш запрос.`
         },
         buttons:{
-            seller:null,
-            buyer:null
+            seller:(d)=>null,
+            buyer:(d)=>null
         }
     },
     inProgress:{
         sort: 2,
         name: {
-            buyer:  `Ждет встречи`,
-            seller: `Ждет встречи с читателем`
+            buyer: (d)=>`Ждет встречи`,
+            seller: (d)=>d.sellerConfirmed ? `Ждет подтверждения читателя` :`Ждет встречи с читателем`
         },
         text:{
-            seller: `Я отправил вам контакты владельца. Свяжитесь с ним, договоритесь о встрече, а потом, пожалуйста, подтвердите, что книга передана.`,
-            buyer:  `Я отправил вам контакы читателя. Свяжитесь с ним, договоритесь о встрече, а потом, пожалуйста, подтвердите, что книга передана.`
+            seller: (d)=> d.sellerConfirmed ? 
+                `${d.buyerName || `@${d.buyerUserName}`} еще не подтвердил(-а) получение книги.` :  
+                `Читатель: ${`@${d.buyerUserName}` || d.buyerName}.\nСвяжитесь с ним, договоритесь о встрече, а потом, пожалуйста, подтвердите, что книга передана.`,
+            buyer:  (d)=>`Я отправил вам контакы владельца. Свяжитесь с ним, договоритесь о встрече, а потом, пожалуйста, подтвердите, что книга передана.`
         },
         buttons:{
-            seller:[{
+            seller:(d)=>d.sellerConfirmed ? [{
+                text:   `Напомнить о книге`,
+                id:     `remindOfDelivery`
+            }] : [{
+                text:   `Открыть чат`,
+                id:     `chat_${d.buyerUserName}`
+            },{
                 text:   `Книга передана`,
                 id:     `deliveredBySeller`
             }],
-            buyer:[{
-                text:   `Книга передана`,
+            buyer:(d)=>[{
+                text:   `Открыть чат`,
+                id:     `chat_${d.sellerUserName}`
+            },{
+                text:   `Книга получена`,
                 id:     `deliveredByBuyer`
             }]
         }
@@ -150,19 +169,19 @@ const dealsStatuses = {
     given:{
         sort: 3,
         name: {
-            buyer:  `Книга у вас`,
-            seller: `Книга выдана`
+            buyer: (d)=>`Книга у вас`,
+            seller: (d)=>`Книга выдана`
         },
         text:{
-            seller: `Вы поделились самым дорогим. Вы молодец.\nНе забудьте подтвердить получение книги, когда она к вам вернется.`,
-            buyer:  `Вы получили книгу. Пожалуйста, будьте с ней предельно аккуратны — и забудьте подтвердить возрат книги, когда придет время попроощаться с ней.`
+            seller: (d)=>`Вы поделились самым дорогим. Вы молодец.\nНе забудьте подтвердить получение книги, когда она к вам вернется.`,
+            buyer: (d)=>`Вы получили книгу. Пожалуйста, будьте с ней предельно аккуратны — и забудьте подтвердить возрат книги, когда придет время попроощаться с ней.`
         },
         buttons:{
-            seller:[{
+            seller:(d)=>[{
                 text:   `Книгу вернули`,
                 id:     `closeDealBySeller`
             }],
-            buyer:[{
+            buyer:(d)=>[{
                 text:   `Книга у владельца`,
                 id:     `closeDealByBuyer`
             }]
@@ -171,16 +190,16 @@ const dealsStatuses = {
     closed:{
         sort: 4,
         name: {
-            buyer:  `Вы вернули книгу`,
-            seller: `Книга вернулась`
+            buyer: (d)=>`Вы вернули книгу`,
+            seller: (d)=>`Книга вернулась`
         },
         text:{
-            seller: `Вы получили сообщение с кнопками оценки читателя.`,
-            buyer:  `Надеемся, все прошло хорошо.`
+            seller: (d)=>`Вы получили сообщение с кнопками оценки читателя.`,
+            buyer: (d)=>`Надеемся, все прошло хорошо.`
         },
         buttons:{
-            seller:null,
-            buyer:null
+            seller:(d)=>null,
+            buyer:(d)=>null
         }
     },
 }
@@ -203,9 +222,14 @@ let confirmed = false;
 // }
 
 function userLoad(collection, id, extra) {
-    return axios.get(`/${host}/api/${collection}${id?`/${id}`:''}${extra?`?${Object.keys(extra).map(k=>`${k}=${extra[k]}`).join(`&`)}`:''}`).then(data => {
-        return data.data
-    })
+    return axios.get(`/${host}/api/${collection}${id?`/${id}`:''}${extra?`?${Object.keys(extra).map(k=>`${k}=${extra[k]}`).join(`&`)}`:''}`)
+        .then(data => {
+            return data.data
+        })
+        // .catch(err=>{
+        //     console.log(err)
+        //     return new Error()
+        // })
 }
 
 function listOfferBox(o){
@@ -218,7 +242,7 @@ function listOfferBox(o){
     })
 
     book.append(ce(`img`,false,`bookCover`, false,{src: o.pic || o.bookPic || dummyBook}))
-    let details = ce(`div`)
+    let details = ce(`div`,false,`bookDesc`)
     book.append(details)
     details.append(ce(`p`,false,`mtopless`, o.bookName))
     details.append(ce(`p`,false,`info`, o.description ? cutMe(o.description,100) : (cutMe(o.bookDescription,100) || `без описания`)))
@@ -230,8 +254,6 @@ function offerBox(o,options){
     
     if(!options) options = {};
 
-    let buttons = []
-
     let book = ce(`div`,`offer_${o.id}`,`box`,false,{
         dataset:{
             offer: o.id,
@@ -239,6 +261,8 @@ function offerBox(o,options){
             active: o.active ? (o.blocked ? false : true) : false
         },
         onclick:()=>{
+
+            let buttons = []
 
             if(!options.foreign){
 
@@ -282,6 +306,18 @@ function offerBox(o,options){
                         if(e == `history`){
                             showOfferLog(o.id)
                         }
+                        if(e == `delete`){
+                            axios.delete(`/${host}/api/offers/${o.id}`)
+                                .then(handleSave,book.remove())
+                                .catch(handleError)
+                        } else if(e == `edit`){
+                            // tg.openLink(`${adminka}/web?page=offers_${o.id}`)
+                            editOffer(o.id)
+                        } else if(e == `set`){
+                            axios.put(`/${host}/api/offers/${o.id}`,{attr: `active`,value: true})
+                                .then(handleSave,book.dataset.active = true)
+                                .catch(handleError)
+                        }
                     })
                 } else {
 
@@ -289,9 +325,10 @@ function offerBox(o,options){
                         text:   `История`,
                         id:     `history`
                     }]
+
                     userLoad(`deals`,o.blocked).then(deal=>{
                         tg.showPopup({
-                            title:      dealsStatuses[deal.status].name.seller,
+                            title:      dealsStatuses[deal.status].name.seller(deal),
                             message:    `Эту книгу нельзя отредактировать, так как ее у вас кто-то уже попросил.\nПодробнeе — в разделе «У вас взяли почитать».`,
                             buttons:    buttons
                         },(e)=>{
@@ -319,7 +356,10 @@ function offerBox(o,options){
     })
 
     if(options.date) book.append(ce(`span`,false,[`info`,`mb`],drawDate(o.createdAt._seconds*1000),{dataset:{margin:`10px`}}))
-    if(!options.butPicure) book.append(ce(`img`,false,`bookCover`, false,{src: o.pic || o.bookPic || dummyBook}))
+    if(!options.butPicure) {
+        book.append(ce(`img`,false,`bookCover`, false,{src: o.pic || o.bookPic || dummyBook}))
+        if(o.lang && o.lang !== `ru`) book.append(ce(`div`,false,`lang`,o.lang))
+    }
     if(!options.address) {
         book.append(ce(`p`,false,false, o.bookName))
     } else {
@@ -336,6 +376,32 @@ function showLoad(){
         is_visible: true
     })
     tg.MainButton.showProgress()
+}
+
+
+function setAlert(){
+    showLoad();
+    axios.post(`/${host}/api/alerts`,{
+        offer:curOffer, 
+    }).then(s=>{
+        handleSave(s);
+        curAlert = s.data.id
+        tg.MainButton.offClick(mbbc);
+
+        tg.MainButton.setText(`Снять запись.`)
+        tg.MainButton.onClick(removeAlert)
+        tg.MainButton.show()
+        mbbc = removeAlert
+    }).catch(handelError)
+}
+
+function removeAlert(){
+    showLoad();
+
+    axios
+        .delete(`/${host}/api/alerts/${curAlert}`)
+        .then(handleSave)
+        .catch(handelError)
 }
 
 
@@ -424,8 +490,38 @@ function showOfferLog(id){
         })
 }
 
+
+function editOffer(id){
+    tg.expand();
+    userLoad(`offers`,id).then(o=>{
+        let p = preparePopup(`offer_${id}`);
+        let coverContainer = ce(`div`,false,`coverContainer`)
+        if(o.pic) {
+            p.append(coverContainer)
+            coverContainer.append(ce(`img`,false,false,false,{
+                src: o.pic
+            }))
+        }
+        let upd = ce(`input`,false,`upload`,`Добавить фото`,{
+            type: `file`,
+            onchange:function(){
+                let body = new FormData();
+                body.append("file", this.files[0]);
+                axios
+                    .post(`/${host}/upload?collection=offers&id=${id}`,body)
+                    .then(handleSave)
+                    .catch(handleError)
+            }
+        })
+        p.append(upd)
+        // upd.onchange=function(){}
+    })
+}
+
 function showOffer(id){
     
+    tg.expand();
+
     let p = preparePopup(`offer_${id}`)
 
     curOffer = id;
@@ -433,6 +529,7 @@ function showOffer(id){
 
 
     userLoad(`offers`,id).then(offer=>{
+        if(offer.blocked) p.append(ce(`div`,false,`blockAlert`,`Книга на руках`))
         p.append(line(
             ce(`span`,false,[`info`,`pad`],offer.views||`вы первый`,{
                 dataset:{type:`views`}
@@ -453,15 +550,41 @@ function showOffer(id){
         
         p.append(cover)
 
-        
+        if(!offer.blocked){
+            tg.MainButton.setText(`Взять почитать`)
+            tg.MainButton.show()
+            tg.MainButton.onClick(book)
+            
+            mbbc = book
+        } else {
+            userLoad(`deals`,offer.blocked)
+                .then(alert=>{
+                    // curAlert = alert.id
+                    tg.MainButton.setText(`Эта книга уже у вас.`)
+                    // tg.MainButton.onClick(removeAlert)
+                    tg.MainButton.show()
+                    // mbbc = removeAlert
+                })
+                .catch(err=>{
+                    userLoad(`alerts`,false,{offer:id})
+                        .then(alert=>{
+                            curAlert = alert.id
+                            tg.MainButton.setText(`Снять запись.`)
+                            tg.MainButton.onClick(removeAlert)
+                            tg.MainButton.show()
+                            mbbc = removeAlert
+                        })
+                        .catch(()=>{
+                            tg.MainButton.setText(`Записаться`)
+                            tg.MainButton.onClick(setAlert)
+                            tg.MainButton.show()
+
+                            mbbc = setAlert
+                        })
+                })
+        }
 
         
-
-        tg.MainButton.setText(`Взять почитать`)
-        tg.MainButton.show()
-        tg.MainButton.onClick(book)
-        
-        mbbc = book
 
         let slidingContainer = ce(`div`,false,`bgc`)
 
@@ -496,6 +619,18 @@ function showOffer(id){
         slidingContainer.append(ce(`button`,false,`thin`,`Добавить свою копию`,{
             onclick:()=>addOffer(offer.book)
         }))
+
+
+        if(offer.publicAuthor){
+            userLoad(`offersByOffer`,id).then(data=>{
+                if(data.offers.length) slidingContainer.append(scrollBox(
+                    data.offers,
+                    (`Еще от `+(data.user.username?`@${data.user.username}`:data.user.name)),
+                    `buyer`,
+                    true
+                ))
+            })
+        }
 
         userLoad(`offers`,false,{book:offer.book}).then(options=>{
             options = options.filter(o=>o.id !== id)
@@ -891,18 +1026,23 @@ function dealBox(deal, userRole){
 
         onclick:()=>{
             tg.showPopup({
-                title:      dealsStatuses[deal.status].name[userRole],
-                message:    dealsStatuses[deal.status].text[userRole],
-                buttons:    dealsStatuses[deal.status].buttons[userRole] || [{text: `ok`}]
+                title:      dealsStatuses[deal.status].name[userRole](deal),
+                message:    dealsStatuses[deal.status].text[userRole](deal),
+                buttons:    dealsStatuses[deal.status].buttons[userRole](deal) || [{text: `ok`}]
             },(e)=>{
                 if(e) {
-                    axios.put(`/${host}/api/deals/${deal.id}`,{
-                        intention: `${userRole}_${e}`
-                    }).then(s=>{
-                        handleSave(s);
-                        book.parentNode.prepend(dealBox(s.data.deal,userRole))
-                        book.remove();
-                    }).catch(handleError)
+                    if(!e.indexOf(`chat_`)){
+                        tg.openTelegramLink(`https://t.me/${e.split('_')[1]}`)
+                    } else {
+                        axios.put(`/${host}/api/deals/${deal.id}`,{
+                            intention: `${userRole}_${e}`
+                        }).then(s=>{
+                            handleSave(s);
+                            book.parentNode.prepend(dealBox(s.data.deal,userRole))
+                            book.remove();
+                        }).catch(handleError)
+                    }
+                    
                 }
             })
         }
@@ -910,7 +1050,7 @@ function dealBox(deal, userRole){
         
 
     book.append(ce(`span`,false,`info`,drawDate(deal.createdAt._seconds*1000)))
-    book.append(ce(`p`,false,[`info`,deal.status],dealsStatuses[deal.status].name[userRole]))
+    book.append(ce(`p`,false,[`info`,deal.status],dealsStatuses[deal.status].name[userRole](deal)))
     book.append(ce(`p`,false,false, deal.bookName))
     
     return book
@@ -1106,12 +1246,19 @@ function showSettings(profile,button){
             true
         ))
 
-        p.append(ce(`p`,false,`info`,`Идея и разработка:\nДмитрий Шестаков, @dimazvali.`,{
+        p.append(toggleCheckBox(`profile`,
+            profile.id,
+            `public`,
+            profile.public,
+            `Публичный профиль`,
+            false,
+            true
+        ))
+
+        p.append(ce(`p`,false,`info`,`Идея и разработка:<br>Дмитрий Шестаков, @dimazvali.`,{
             onclick:()=>tg.openTelegramLink(`https://t.me/dimazvali`)
         }))
     })
-
-    
 }
 
 

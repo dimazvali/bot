@@ -143,6 +143,7 @@ img.cover {
     max-height: 290px;
     overflow: scroll;
     overflow-y: hidden;
+    margin-bottom: 10px;
 }
 
 .scrollable {
@@ -535,7 +536,7 @@ img.coverS {
 }
 
 .containerHelp:hover {
-    border-radius: 20px !important;
+    border-bottom-left-radius: 20px !important;
     transition: .3s;
     cursor: pointer;
 }
@@ -551,3 +552,38 @@ img.coverS {
     border-radius: 20px;       /* закругления плашки */
     border: 3px solid orange;  /* padding вокруг плашки */
   }
+  .lang {
+    position: absolute;
+    top: 0;
+    background: var(--tg-theme-accent-text-color);
+    color: var(--tg-theme-button-text-color);
+    padding: 2px 5px;
+    left: 0;
+    border-bottom-right-radius: 4px;
+}
+
+.bookDesc {
+    flex-basis: 70vw;
+}
+
+img.bookCover {
+    flex-basis: 30vw;
+}
+
+.blockAlert {
+    background: var(--tg-theme-destructive-text-color);
+    color: var(--tg-theme-button-text-color);
+    text-align: center;
+    height: 40px;
+    line-height: 40px;
+    margin-left: -20px;
+    width: calc(100% + 40px);
+    position: sticky;
+    top: 0;
+}
+
+.coverContainer>img {
+    width: 100%;
+    max-height: 50vh;
+    object-fit: cover;
+}
