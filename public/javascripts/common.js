@@ -864,7 +864,7 @@ function shuffle(array) {
   }
   
 
-function toggleCheckBox(collection,id,attr,value,placeholder,passive, toastMe){
+function toggleCheckBox(collection,id,attr,value,placeholder, passive, toastMe){
     let cd = ce(`div`,false,`hiddenInput`)
 
     let l = ce(`label`,false,`toggleLabel`,false,{

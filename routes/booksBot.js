@@ -251,7 +251,7 @@ function addOffer(req,res,admin,app){
                 owner:          +req.body.owner || +admin.id || null,
                 state:          req.body.state || null,
                 city:           req.body.city || admin.city || null,
-                address:        req.body.address,
+                address:        req.body.address || admin.address || null,
             }
 
             devlog(o)

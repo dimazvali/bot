@@ -8,7 +8,7 @@ var requestLanguage = require('express-request-language');
 var vhost = require('vhost');
 var subdomain = require('express-subdomain');
 
-const { devlog } = require('./routes/common');
+const { devlog, alertMe } = require('./routes/common');
 
 require('dotenv').config()
 
@@ -69,6 +69,7 @@ app.use('/cyprus',      require('./routes/cyprus'));
 app.use('/ps',          require('./routes/psBot'));
 app.use('/vz',          require('./routes/vzBot'));
 app.use('/books',       require('./routes/booksBot'));
+app.use('/autoshell',       require('./routes/autoShellBot'));
 
 app.use('/homeless',       require('./routes/homelessBot'));
 // app.use('/stalker',       require('./routes/stalkerBot'));
@@ -101,6 +102,10 @@ app.use(function(err, req, res, next) {
 // - External: ${memoryUsage.external} bytes
 // - Array Buffers: ${memoryUsage.arrayBuffers} bytes`);
 // }, 10000);
+
+process.on('exit', function(code){ 
+  return alertMe(`Exiting with code ${code}`); 
+});
 
 
 module.exports = app;
