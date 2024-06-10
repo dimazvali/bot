@@ -392,7 +392,7 @@ window.addEventListener('keydown', (e) => {
     }
 )
 
-function edit(entity, id, attr, type, value, container) {
+function edit(entity, id, attr, type, value, container,layer) {
 
     let attrTypes = {
         description: `описание`,
@@ -445,7 +445,7 @@ function edit(entity, id, attr, type, value, container) {
     edit.append(ce('button', false, false, `Сохранить`, {
         onclick: function () {
             if (f.value) {
-                axios.put(`/${host}/admin/${entity}/${id}`, {
+                axios.put(`/${host}/${layer||`admin`}/${entity}/${id}`, {
                         attr: attr,
                         value: type == `date` ? new Date(f.value) : f.value
                     }).then((d)=>{
@@ -462,7 +462,7 @@ function edit(entity, id, attr, type, value, container) {
         onclick: function () {
             let sure = confirm(`вы уверены?..`)
             if (sure) {
-                axios.put(`/${host}/admin/${entity}/${id}`, {
+                axios.put(`/${host}/${layer||`admin`}/${entity}/${id}`, {
                         attr:   attr,
                         value:  null
                     }).then((d)=>{
@@ -474,4 +474,35 @@ function edit(entity, id, attr, type, value, container) {
         }
     }))
     document.body.append(edit)
+}
+
+function setSettings(settings,shop){
+    Object.keys(settings).sort((a,b)=>settings[b].sort-settings[a].sort).forEach(sku=>{
+        document.querySelector(`#content`).append(settingsLine(settings[sku],sku,shop))
+    })
+}
+
+function settingsLine(s,id,shop){
+    let c = listContainer(s,true)
+        c.classList.remove(`hidden`)
+        let line = ce(`div`,false,`inline`)
+        c.append(ce(`h3`,false,false,s.id||id))
+        line.append(toggleButton(`shopSettings`,shop,`${id}.active`,s.active,`скрыть`,`показать`,false,`api`))
+        c.append(line)
+        
+        line.append(ce('p', false, `editable`, `${s.name || `Добавьте название`}`, {
+            title: `название`,
+            onclick: function () {
+                edit(`shopSettings`, shop, `${id}.name`, `text`, s.name, this, `api`)
+            }
+        }))
+
+        line.append(ce('p', false, `editable`, `Значение для сортировки: ${s.sort  || 0}`, {
+            title: `значение для сортировки`,
+            onclick: function () {
+                edit(`shopSettings`, shop, `${id}.sort`, `number`, s.sort, this, `api`)
+            }
+        }))
+
+    return c;
 }

@@ -1141,7 +1141,7 @@ function listContainer(e,detailed,extra,dataset,alerts){
 
     if(detailed){
         let details = ce('div',false,[`details`,`flex`])
-            details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000,false,{time:true})))
+            if(e.createdAt) details.append(ce('span',false,`info`,drawDate(e.createdAt._seconds*1000,false,{time:true})))
             if(e.edited) details.append(ce('span',false,`info`,`отредактировано ${drawDate(e.edited._seconds*1000)}`))
             if(e.deleted) details.append(ce('span',false,`info`,`удалено ${drawDate(e.deleted._seconds*1000)}`))
             details.append(ce('span',false,[`info`,(e.views?`reg`:`hidden`)],e.views?`просмотров: ${e.views}`:''))
