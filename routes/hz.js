@@ -147,225 +147,6 @@ router.all(`/api/:method/:id`,(req,res)=>{
     }
 })
 
-router.get(`/:shop/:page`, (req, resp) => {
-
-    if(process.env.adminToken && !req.signedCookies.adminToken) req.signedCookies.adminToken = process.env.adminToken
-
-    if (!req.signedCookies.adminToken && !req.signedCookies.userToken) return resp.redirect(`/${host}/userAuth?token=userToken&ep=${encodeURIComponent(`${req.params.shop}/report`)}`)
-
-    getDoc(adminTokens, (req.signedCookies.adminToken || req.signedCookies.userToken)).then(t => {
-        devlog(`подгрузили токен`)
-
-        if (!t || !t.active) return resp.redirect(`/${host}/userAuth?token=userToken`)
-        
-        getDoc(udb, t.user).then(u => {
-            devlog(`подгрузили пользователя`)
-            if (!u.active) return resp.status(403).send(`Простите, вам сюда нельзя.`);
-            
-            ifBefore(shopsUsers, {
-                user: +u.id,
-                active: true
-            }).then(userShops => {
-
-                devlog(`подгрузили пользователя`)
-
-                if (!u.admin && userShops.map(s => s.shop).indexOf(req.params.shop) == -1) return resp.status(403).send(`Простите, вам сюда нельзя.`);
-                
-                getDoc(shops, req.params.shop).then(s => {
-
-                    if (!s) return resp.sendStatus(404);
-
-                    getDoc(shopSettings,req.params.shop).then(settings=>{
-                        switch (req.params.page) {
-                            case `report`: {
-    
-                                devlog(`загрузка отчета`)
-    
-                                let from =  new Date(new Date().setHours(0, 0) - ((+req.query.days || 32) * 24 * 60 * 60 * 1000)).toISOString();
-                                let to =    new Date().toISOString();
-    
-                                let uploads = [];
-    
-                                uploads.push(axios.post(`https://api-seller.ozon.ru/v2/posting/fbo/list`, {
-                                    "dir": "ASC",
-                                    "filter": {
-                                        "since":    from,
-                                        "to":       to
-                                    },
-                                    "limit": 1000,
-                                    "with": {
-                                        "analytics_data": true,
-                                        "financial_data": true
-                                    }
-                                }, {
-                                    headers: {
-                                        'Api-key':      s.apiSecret,
-                                        'Client-Id':    s.apiId,
-                                    }
-                                }).then(d => {
-                                    console.log(`загрузили отгрузки`)
-                                    return d.data
-                                }).catch(err=>{
-                                    devlog(err.message)
-                                }))
-    
-                                
-    
-                                uploads.push(axios.post(`https://api-seller.ozon.ru/v2/analytics/stock_on_warehouses`, {
-                                    "limit":    1000,
-                                    "offset":   0,
-                                    "warehouse_type": "ALL"
-                                }, {
-                                    headers: {
-                                        'Api-key':      s.apiSecret,
-                                        'Client-Id':    s.apiId,
-                                    }
-                                }).then(d => {
-                                    console.log(`загрузили остатки`)
-                                    return d.data
-                                }).catch(err=>{
-                                    devlog(err.message)
-                                }))
-    
-    
-                                
-    
-                                return Promise.all(uploads).then(data => {
-    
-                                    shops.doc(req.params.shop).update({
-                                        reports: FieldValue.increment(1)
-                                    })
-    
-                                    log({
-                                        silent: true,
-                                        text: `${uname(u,u.id)} формирует отчет для магазина ${s.name}`,
-                                        shop: s.id,
-                                        user: +u.id
-                                    })
-    
-                                    let r = data[0].result.filter(o => o.status != `cancelled`);
-    
-                                    let uniqueSKU = [...new Set(r.map(rec => rec.products.map(p => p.sku)).flat())]
-                                        .filter(sku => Object.keys(settings)
-                                            .filter(s=> settings[s] && settings[s].active)
-                                            .indexOf(sku.toString())
-                                            >-1)
-                                        .sort((a,b)=> (settings[b] ? settings[b].sort: 0) - (settings[a] ? settings[a].sort: 0))
-    
-                                    let res = {};
-    
-                                    devlog(uniqueSKU);
-    
-                                        
-                                        let settingsRef = shopSettings.doc(req.params.shop);
-                                        
-                                        let pause = null
-    
-                                        if(!settings || settings == {}) pause = settingsRef.set({});
-                                        
-                                        Promise.resolve(pause).then(()=>{
-    
-                                            uniqueSKU.forEach((sku,i) => {
-                                                devlog(sku);
-    
-                                                if(!settings[sku]) {
-    
-                                                    settingsRef.update({
-                                                        [sku]: {
-                                                            // name:       tpd.name,
-                                                            active:     true,
-                                                            sort:       i
-                                                        }
-                                                    }).then(d=>{
-                                                        devlog(`set ${sku}`)
-                                                    })
-                                                }
-    
-                                                let data = [];
-            
-                                                r.forEach(sell => {
-                                                    sell.products.forEach((p) => {
-                                                        
-                                                        if (p.sku == sku) {
-                                                            data.push({
-                                                                created_at: sell.created_at,
-                                                                sku:    p.sku,
-                                                                name:   p.name,
-                                                                price: +p.price,
-                                                                quantity: p.quantity,
-                                                                offer_id: p.offer_id,
-                                                                region: sell.analytics_data.region,
-                                                                city: sell.analytics_data.city,
-                                                                wh: sell.analytics_data.warehouse_name,
-                                                                cluster_from: sell.financial_data.cluster_from,
-                                                                cluster_to: sell.financial_data.cluster_to,
-                                                            })
-                                                        }
-                                                    })
-                                                })
-            
-                                                let tonight = new Date(new Date().setHours(0, 0)).toISOString()
-                                                let lastnight = new Date(new Date().setHours(0, 0) - (24 * 60 * 60 * 1000)).toISOString()
-                                                let lastnight2 = new Date(new Date().setHours(0, 0) - (2 * 24 * 60 * 60 * 1000)).toISOString()
-                                                let lastweek = new Date(new Date().setHours(0, 0) - (8 * 24 * 60 * 60 * 1000)).toISOString()
-                                                let month = new Date(new Date(+new Date().setDate(1)).setHours(0,0,0))
-                                                // console.log(tonight,lastnight,lastweek)
-            
-            
-                                                res[sku] = {
-                                                    month:      data.filter(p => new Date(p.created_at).toISOString() > month),
-                                                    data:       data,
-                                                    today:      data.filter(p => new Date(p.created_at).toISOString() > tonight),
-                                                    yesterday:  data.filter(p => new Date(p.created_at).toISOString() > lastnight && new Date(p.created_at).toISOString() < tonight),
-                                                    week:       data.filter(p => new Date(p.created_at).toISOString() > lastweek && new Date(p.created_at).toISOString() < tonight),
-                                                    // total:      []
-                                                };
-            
-                                            })
-            
-                                            resp.render(`${host}/hz`, {
-                                                shop:   s,
-                                                data:   res,
-                                                shops:  userShops,
-                                                lefts:  data[1].result.rows,
-                                                cur: (p) => cur(p)
-                                            })
-                                        })
-    
-                                        
-    
-                                    
-                                }).catch(err=>{
-                                    devlog(err.message)
-                                })
-                            }
-    
-    
-    
-                            case `settings`:{
-                                devlog(`загрузка настроек`)
-                                
-                                delete settings.id;
-                                delete settings.updatedAt;
-                                delete settings.updatedBy;
-                                
-                                return resp.render(`${host}/settings`,{
-                                    settings:   settings,
-                                    shop:       s
-                                })
-                            }
-                        }
-                    })
-
-                    
-
-                })
-            })
-        })
-    })
-
-
-})
 
 function log(o) {
 
@@ -657,7 +438,7 @@ router.post(`/hook`, (req, res) => {
 
 router.all(`/admin/:method`, (req, res) => {
 
-    let token = req.signedCookies.adminToken || req.signedCookies.userToken;
+    let token = req.signedCookies.adminToken || req.signedCookies.userToken || process.env.develop == `true`? process.env.adminToken : false;
 
     if (!token) return res.status(401).send(`Вы кто вообще?`)
 
@@ -711,7 +492,9 @@ router.all(`/admin/:method`, (req, res) => {
 })
 
 router.all(`/admin/:method/:id`, (req, res) => {
-    let token = req.signedCookies.adminToken || req.signedCookies.userToken;
+    
+    let token = req.signedCookies.adminToken || req.signedCookies.userToken || process.env.develop == `true`? process.env.adminToken : false;
+
     if (!token) return res.status(401).send(`Вы кто вообще?`)
 
     adminTokens.doc(token).get().then(doc => {
@@ -770,6 +553,227 @@ router.all(`/admin/:method/:id`, (req, res) => {
     })
 })
 
+
+
+router.get(`/:shop/:page`, (req, resp) => {
+
+    if(process.env.adminToken && !req.signedCookies.adminToken) req.signedCookies.adminToken = process.env.adminToken
+
+    if (!req.signedCookies.adminToken && !req.signedCookies.userToken) return resp.redirect(`/${host}/userAuth?token=userToken&ep=${encodeURIComponent(`${req.params.shop}/report`)}`)
+
+    getDoc(adminTokens, (req.signedCookies.adminToken || req.signedCookies.userToken)).then(t => {
+        devlog(`подгрузили токен`)
+
+        if (!t || !t.active) return resp.redirect(`/${host}/userAuth?token=userToken`)
+        
+        getDoc(udb, t.user).then(u => {
+            devlog(`подгрузили пользователя`)
+            if (!u.active) return resp.status(403).send(`Простите, вам сюда нельзя.`);
+            
+            ifBefore(shopsUsers, {
+                user: +u.id,
+                active: true
+            }).then(userShops => {
+
+                devlog(`подгрузили пользователя`)
+
+                if (!u.admin && userShops.map(s => s.shop).indexOf(req.params.shop) == -1) return resp.status(403).send(`Простите, вам сюда нельзя.`);
+                
+                getDoc(shops, req.params.shop).then(s => {
+
+                    if (!s) return resp.sendStatus(404);
+
+                    getDoc(shopSettings,req.params.shop).then(settings=>{
+                        switch (req.params.page) {
+                            case `report`: {
+    
+                                devlog(`загрузка отчета`)
+    
+                                let from =  new Date(new Date().setHours(0, 0) - ((+req.query.days || 32) * 24 * 60 * 60 * 1000)).toISOString();
+                                let to =    new Date().toISOString();
+    
+                                let uploads = [];
+    
+                                uploads.push(axios.post(`https://api-seller.ozon.ru/v2/posting/fbo/list`, {
+                                    "dir": "ASC",
+                                    "filter": {
+                                        "since":    from,
+                                        "to":       to
+                                    },
+                                    "limit": 1000,
+                                    "with": {
+                                        "analytics_data": true,
+                                        "financial_data": true
+                                    }
+                                }, {
+                                    headers: {
+                                        'Api-key':      s.apiSecret,
+                                        'Client-Id':    s.apiId,
+                                    }
+                                }).then(d => {
+                                    console.log(`загрузили отгрузки`)
+                                    return d.data
+                                }).catch(err=>{
+                                    devlog(err.message)
+                                }))
+    
+                                
+    
+                                uploads.push(axios.post(`https://api-seller.ozon.ru/v2/analytics/stock_on_warehouses`, {
+                                    "limit":    1000,
+                                    "offset":   0,
+                                    "warehouse_type": "ALL"
+                                }, {
+                                    headers: {
+                                        'Api-key':      s.apiSecret,
+                                        'Client-Id':    s.apiId,
+                                    }
+                                }).then(d => {
+                                    console.log(`загрузили остатки`)
+                                    return d.data
+                                }).catch(err=>{
+                                    devlog(err.message)
+                                }))
+    
+    
+                                
+    
+                                return Promise.all(uploads).then(data => {
+    
+                                    shops.doc(req.params.shop).update({
+                                        reports: FieldValue.increment(1)
+                                    })
+    
+                                    log({
+                                        silent: true,
+                                        text: `${uname(u,u.id)} формирует отчет для магазина ${s.name}`,
+                                        shop: s.id,
+                                        user: +u.id
+                                    })
+    
+                                    let r = data[0].result.filter(o => o.status != `cancelled`);
+    
+                                    let uniqueSKU = [...new Set(r.map(rec => rec.products.map(p => p.sku)).flat())]
+                                        .filter(sku => Object.keys(settings)
+                                            .filter(s=> settings[s] && settings[s].active)
+                                            .indexOf(sku.toString())
+                                            >-1)
+                                        .sort((a,b)=> (settings[b] ? settings[b].sort: 0) - (settings[a] ? settings[a].sort: 0))
+    
+                                    let res = {};
+    
+                                    devlog(uniqueSKU);
+    
+                                        
+                                        let settingsRef = shopSettings.doc(req.params.shop);
+                                        
+                                        let pause = null
+    
+                                        if(!settings || settings == {}) pause = settingsRef.set({});
+                                        
+                                        Promise.resolve(pause).then(()=>{
+    
+                                            uniqueSKU.forEach((sku,i) => {
+                                                devlog(sku);
+    
+                                                if(!settings[sku]) {
+    
+                                                    settingsRef.update({
+                                                        [sku]: {
+                                                            // name:       tpd.name,
+                                                            active:     true,
+                                                            sort:       i
+                                                        }
+                                                    }).then(d=>{
+                                                        devlog(`set ${sku}`)
+                                                    })
+                                                }
+    
+                                                let data = [];
+            
+                                                r.forEach(sell => {
+                                                    sell.products.forEach((p) => {
+                                                        
+                                                        if (p.sku == sku) {
+                                                            data.push({
+                                                                created_at: sell.created_at,
+                                                                sku:    p.sku,
+                                                                name:   p.name,
+                                                                price: +p.price,
+                                                                quantity: p.quantity,
+                                                                offer_id: p.offer_id,
+                                                                region: sell.analytics_data.region,
+                                                                city: sell.analytics_data.city,
+                                                                wh: sell.analytics_data.warehouse_name,
+                                                                cluster_from: sell.financial_data.cluster_from,
+                                                                cluster_to: sell.financial_data.cluster_to,
+                                                            })
+                                                        }
+                                                    })
+                                                })
+            
+                                                let tonight = new Date(new Date().setHours(0, 0)).toISOString()
+                                                let lastnight = new Date(new Date().setHours(0, 0) - (24 * 60 * 60 * 1000)).toISOString()
+                                                let lastnight2 = new Date(new Date().setHours(0, 0) - (2 * 24 * 60 * 60 * 1000)).toISOString()
+                                                let lastweek = new Date(new Date().setHours(0, 0) - (8 * 24 * 60 * 60 * 1000)).toISOString()
+                                                let month = new Date(new Date(+new Date().setDate(1)).setHours(0,0,0))
+                                                // console.log(tonight,lastnight,lastweek)
+            
+            
+                                                res[sku] = {
+                                                    month:      data.filter(p => new Date(p.created_at).toISOString() > month),
+                                                    data:       data,
+                                                    today:      data.filter(p => new Date(p.created_at).toISOString() > tonight),
+                                                    yesterday:  data.filter(p => new Date(p.created_at).toISOString() > lastnight && new Date(p.created_at).toISOString() < tonight),
+                                                    week:       data.filter(p => new Date(p.created_at).toISOString() > lastweek && new Date(p.created_at).toISOString() < tonight),
+                                                    // total:      []
+                                                };
+            
+                                            })
+            
+                                            resp.render(`${host}/hz`, {
+                                                shop:   s,
+                                                data:   res,
+                                                shops:  userShops,
+                                                lefts:  data[1].result.rows,
+                                                cur: (p) => cur(p)
+                                            })
+                                        })
+    
+                                        
+    
+                                    
+                                }).catch(err=>{
+                                    devlog(err.message)
+                                })
+                            }
+    
+    
+    
+                            case `settings`:{
+                                devlog(`загрузка настроек`)
+                                
+                                delete settings.id;
+                                delete settings.updatedAt;
+                                delete settings.updatedBy;
+                                
+                                return resp.render(`${host}/settings`,{
+                                    settings:   settings,
+                                    shop:       s
+                                })
+                            }
+                        }
+                    })
+
+                    
+
+                })
+            })
+        })
+    })
+
+
+})
 
 function updateEntity(req, res, ref, admin) {
     ref.get().then(d => {
@@ -904,9 +908,9 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
 router.get(`/web`, (req, res) => {
     devlog(req.signedCookies.adminToken)
 
-    if (!req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/${host}/auth`)
+    if (!process.env.develop && !req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/${host}/auth`)
 
-    getDoc(adminTokens, req.signedCookies.adminToken).then(t => {
+    getDoc(adminTokens, req.signedCookies.adminToken || process.env.adminToken).then(t => {
 
         devlog(t)
 
