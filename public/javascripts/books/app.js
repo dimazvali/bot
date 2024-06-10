@@ -841,7 +841,7 @@ function addBook(){
                         
                         inputs.forEach(i=>p.append(i));
 
-                        p.append(ce(`button`,false,false,`Добавиь книгу`,{
+                        p.append(ce(`button`,false,false,`Добавить книгу`,{
                             onclick:()=>{
                                 let passed = true;
                                 let missed = []
@@ -925,7 +925,7 @@ function addBook(){
             
             inputs.forEach(i=>p.append(i));
 
-            p.append(ce(`button`,false,false,`Добавиь книгу`,{
+            p.append(ce(`button`,false,false,`Добавить книгу`,{
                 onclick:()=>{
                     let passed = true;
                     let missed = []
@@ -1271,14 +1271,20 @@ function preparePopup(type) {
         document.querySelector(`[data-type="${type}"]`).remove()
     }
 
+    let index = Math.floor(Math.random()*4)+1
+
     mcb = clearPopUp
     let popup = ce('div', false, 'popup', false, {
         dataset: {
             type: type
         }
     })
+
+    
     document.body.append(popup)
     let content = ce('div')
+    // content.style.backgroundImage = `url(/images/books/bg/xray${index}.png)`
+    // content.style.animation = `bgRise 1s forwards`
     popup.append(content)
 
     tg.MainButton.hide()

@@ -35,11 +35,13 @@ function selector(col,placeholder,id,user,extra){
 }
 
 
-function onTelegramAuth(user,host) {
+function onTelegramAuth(user,host, post, ep) {
+    
     console.log(user)
-    axios.post(`${host?`/${host}`:``}/auth`,user)
+    
+    axios.post(`${host?`/${host}`:``}/${post||'auth'}`,user)
         .then(ok=>{
-            window.location.pathname = `${host?`/${host}`:``}/web`
+            window.location.pathname = `${host?`/${host}`:``}/${ep||`web`}`
         }).catch(err=>{
             alert(err.message)
         })

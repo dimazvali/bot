@@ -71,6 +71,7 @@ app.use('/vz',          require('./routes/vzBot'));
 app.use('/books',       require('./routes/booksBot'));
 app.use('/autoshell',       require('./routes/autoShellBot'));
 
+app.use('/hz',       require('./routes/hz'));
 app.use('/homeless',       require('./routes/homelessBot'));
 // app.use('/stalker',       require('./routes/stalkerBot'));
 // app.use('/reestr',       require('./routes/reestrBot'));

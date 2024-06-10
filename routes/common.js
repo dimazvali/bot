@@ -6,7 +6,7 @@ const { getUser } = require("./methods");
 const { FieldValue } = require("firebase-admin/firestore");
 
 
-function authTG(req,res,token,adminTokens,udb,registerUser){
+function authTG(req,res,token,adminTokens,udb,registerUser,tokenName){
 
     data_check_string=Object.keys(req.body)
         .filter(key => key !== 'hash')
@@ -23,29 +23,30 @@ function authTG(req,res,token,adminTokens,udb,registerUser){
         .digest('hex');
 
     if(req.body.hash == hmac){
-
+        devlog(`проверка пройдена`)
         getUser(req.body.id,udb).then(u=>{
 
-            if(!u) registerUser(req.body)
+            if(!u) {
+                registerUser(req.body)
+                u = req.body
+            }
+            
+            if(u.blocked) return res.sendStatus(403)
 
-
-            u = req.body
-                
-                if(u.blocked) return res.sendStatus(403)
-
-                adminTokens.add({
-                    createdAt:  new Date(),
-                    user:       +req.body.id,
-                    active:     true 
-                }).then(c=>{
-                    res.cookie('adminToken', c.id, {
-                        maxAge: 7 * 24 * 60 * 60 * 1000,
-                        signed: true,
-                        httpOnly: true,
-                    }).sendStatus(200)
-                })
+            adminTokens.add({
+                createdAt:  new Date(),
+                user:       +req.body.id,
+                active:     true 
+            }).then(c=>{
+                res.cookie((tokenName||'adminToken'), c.id, {
+                    maxAge: 7 * 24 * 60 * 60 * 1000,
+                    signed: true,
+                    httpOnly: true,
+                }).sendStatus(200)
+            })
         })
     } else {
+        devlog(`проверка не пройдена`)
         res.sendStatus(403)
     }
 }
