@@ -361,6 +361,7 @@ router.post(`/userAuth`, (req, res) => {
 })
 
 router.post(`/auth`, (req, res) => {
+    console.log(`запрос авторизации`)
     authTG(req, res, token, adminTokens, udb, registerUser)
 })
 
@@ -906,11 +907,12 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
 }
 
 router.get(`/web`, (req, res) => {
-    devlog(req.signedCookies.adminToken)
+    
+    console.log(req.signedCookies.adminToken)
 
     if (!process.env.develop && !req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/${host}/auth`)
 
-    getDoc(adminTokens, req.signedCookies.adminToken || process.env.adminToken).then(t => {
+    getDoc(adminTokens, (req.signedCookies.adminToken || process.env.adminToken)).then(t => {
 
         devlog(t)
 
@@ -929,12 +931,16 @@ router.get(`/web`, (req, res) => {
                 .then(col => {
 
                     res.render(`${host}/web`, {
-                        user: u,
-                        wysykey: process.env.wysykey,
-                        start: req.query.page,
-                        logs: handleQuery(col),
+                        user:       u,
+                        wysykey:    process.env.wysykey,
+                        start:      req.query.page,
+                        logs:       handleQuery(col),
                     })
                 })
+            return res.render(`${host}/error`,{
+                error: 403,
+                text: `Извините, но это закрытая часть сайта. Если вы уверены, что у вас должен быть доступ, напишите в телеграм @dimazvali.`
+            })
 
         })
 

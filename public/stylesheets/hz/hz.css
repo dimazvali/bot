@@ -73,3 +73,21 @@ tr.third>td:nth-child(1):before {
     display: inline !important;
     margin-left: 20px;
 }
+
+h1.giant {
+    font-size: 10vw;
+    text-align: center;
+}
+
+.center{
+    text-align: center;
+}
+
+@media all and (max-width: 600px) {
+    div#content{
+        margin:  0 auto !important; 
+    }
+    .giant{
+        font-size: 50vw;
+    }
+}
