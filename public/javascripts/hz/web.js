@@ -482,13 +482,50 @@ function setSettings(settings,shop){
     })
 }
 
+let dragged = null;
+let dragOver = null;
+
 function settingsLine(s,id,shop){
     let c = listContainer(s,true)
+        c.id = id;
+        c.cl
+        c.dataset.shop = shop
+        
+        c.draggable = true;
+
         c.classList.remove(`hidden`)
-        let line = ce(`div`,false,`inline`)
-        c.append(ce(`h3`,false,false,s.id||id))
+        let line = ce(`div`,false,`flex`)
+
+        
+        
+        line.append(ce(`h3`,false,false,s.id||id))
         line.append(toggleButton(`shopSettings`,shop,`${id}.active`,s.active,`скрыть`,`показать`,false,`api`))
         c.append(line)
+
+        c.addEventListener(`dragstart`,(e)=>{
+            console.log(e);
+            dragged = e.target;
+            // c.remove()
+        })
+
+        c.addEventListener(`dragenter`,(e)=>{
+            console.log(`попали на`, c)
+            dragOver = e.target;
+        })
+
+        c.addEventListener(`dragend`,(e)=>{
+            console.log(`прекратили тащить`,id, c)
+            e.target.parentNode.removeChild(dragged)
+            dragOver.parentNode.insertBefore(dragged,dragOver)
+            rescorePositions(dragOver.parentNode)
+            dragged,dragOver = null;
+            
+        })
+
+        c.addEventListener(`drop`,(e)=>{
+            console.log(`бросили`,id, c)
+        })
+
         
         line.append(ce('p', false, `editable`, `${s.name || `Добавьте название`}`, {
             title: `название`,
@@ -497,12 +534,27 @@ function settingsLine(s,id,shop){
             }
         }))
 
-        line.append(ce('p', false, `editable`, `Значение для сортировки: ${s.sort  || 0}`, {
-            title: `значение для сортировки`,
-            onclick: function () {
-                edit(`shopSettings`, shop, `${id}.sort`, `number`, s.sort, this, `api`)
-            }
-        }))
+        // line.append(ce('p', false, `editable`, `Значение для сортировки: ${s.sort  || 0}`, {
+        //     title: `значение для сортировки`,
+        //     onclick: function () {
+        //         edit(`shopSettings`, shop, `${id}.sort`, `number`, s.sort, this, `api`)
+        //     }
+        // }))
 
     return c;
 }
+
+function rescorePositions(container){
+    let row = container.querySelectorAll(`.sDivided`) 
+    row.forEach((el,i)=>{
+        axios.put(`/${host}/api/shopSettings/${el.dataset.shop}`,{
+            attr:   `${el.id}.sort`,
+            value:  row.length-i
+        })
+    })
+}
+
+// dragstart:  $parent.sd,
+// dragenter:  $parent.de,
+// dragend:    $parent.ed,
+// drop:       $parent.reorder

@@ -854,3 +854,15 @@ p.footer {
 div#map {
     height: 50vh;
 }
+
+.inlinef {
+    display: flex !important;
+}
+
+tr {
+    border-bottom: 1px solid;
+}
+
+td {
+    border-right: 1px solid;
+}

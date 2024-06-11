@@ -24,6 +24,7 @@ block content
                         th.sep(colspan=2) вчера
                         th.sep(colspan=2) за неделю
                         th.sep(colspan=2) с начала месяца
+                        th.sep(colspan=2) за 32 дня
                 tbody 
                     tr
                         td Всего
@@ -45,6 +46,9 @@ block content
 
                         td.sep!=val.month.reduce((a,b)=>a+b.quantity,0)+' шт.'
                         td!=cur(val.month.reduce((a,b)=>a+b.price,0))
+
+                        td.sep!=val.data.reduce((a,b)=>a+b.quantity,0)+' шт.'
+                        td!=cur(val.data.reduce((a,b)=>a+b.price,0))
                     for cluster in [...new Set(val.data.map(s=>s.cluster_to))]
                         tbody
                             tr.second
@@ -54,7 +58,7 @@ block content
                                 td
                                 td
 
-                                td.sep!=val.month.filter(s=>s.cluster_to == cluster).filter(s=> s.cluster_to != s.cluster_from).length
+                                td.sep!=val.data.filter(s=>s.cluster_to == cluster).filter(s=> s.cluster_to != s.cluster_from).length
 
                                 td.sep!=val.today.filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                 td!=cur(val.today.filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.price,0))
@@ -67,15 +71,18 @@ block content
 
                                 td.sep!=val.month.filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                 td!=cur(val.month.filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.price,0))
-                            for wh in [...new Set(val.month.filter(s=>s.cluster_to == cluster).map(s=>s.wh))]
+
+                                td.sep!=val.data.filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
+                                td!=cur(val.data.filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.price,0))
+                            for wh in [...new Set(val.data.filter(s=>s.cluster_to == cluster).map(s=>s.wh))]
                                 tr.third
                                     td!=wh
 
-                                    td.sep!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].free_to_sell_amount : `нет`
-                                    td!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].reserved_amount : `нет`
-                                    td!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].promised_amount : `нет`
+                                    td.sep!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].free_to_sell_amount : `0`
+                                    td!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].reserved_amount : `0`
+                                    td!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].promised_amount : `0`
 
-                                    td.sep!=val.month.filter(s=>s.cluster_to == cluster && s.cluster_to != s.cluster_from && s.wh == wh).length
+                                    td.sep!=val.data.filter(s=>s.cluster_to == cluster && s.cluster_to != s.cluster_from && s.wh == wh).length
 
                                     td.sep!=val.today.filter(s=>s.wh == wh).filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                     td!=cur(val.today.filter(s=>s.wh == wh).filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.price,0))
@@ -88,3 +95,6 @@ block content
 
                                     td.sep!=val.month.filter(s=>s.wh == wh).filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                     td!=cur(val.month.filter(s=>s.wh == wh).filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.price,0))
+
+                                    td.sep!=val.data.filter(s=>s.wh == wh).filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
+                                    td!=cur(val.data.filter(s=>s.wh == wh).filter(s=>s.cluster_to == cluster).reduce((a,b)=>a+b.price,0))
