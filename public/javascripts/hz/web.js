@@ -482,8 +482,33 @@ function setSettings(settings,shop){
     })
 }
 
+
+function setHouses(houses, shop){
+    Object.keys(houses).sort((a,b)=>a>b?1:-1).forEach(id=>{
+        document.querySelector(`#content`).append(houseLine(houses[id],id,shop))
+    })
+}
+
 let dragged = null;
 let dragOver = null;
+
+function houseLine(h, id, shop){
+    let c = listContainer(s,true)
+        c.classList.remove(`hidden`)
+        c.append(ce(`h3`,false,false,id))
+        c.append(ce(`p`,false,`editable`,`Литробонусы: ${h.lb}`,{
+            onclick: function () {
+                edit(`shopHouses`, shop, `${id}.lb`, `text`, h.lb, this, `api`)
+            }
+        }))
+
+        c.append(ce(`p`,false,`editable`,`Доставка: ${h.delivery}`,{
+            onclick: function () {
+                edit(`shopHouses`, shop, `${id}.delivery`, `text`, h.delivery, this, `api`)
+            }
+        }))
+        return c
+}   
 
 function settingsLine(s,id,shop){
     let c = listContainer(s,true)
