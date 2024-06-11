@@ -653,17 +653,14 @@ router.get(`/:shop/:page`, (req, resp) => {
                                     })
     
                                     let r = data[0].result.filter(o => o.status != `cancelled`);
+
+                                    devlog(settings)
     
                                     let uniqueSKU = [...new Set(r.map(rec => rec.products.map(p => p.sku)).flat())]
-                                        .filter(sku => Object.keys(settings)
-                                            .filter(s=> settings[s] && settings[s].active)
-                                            .indexOf(sku.toString())
-                                            >-1)
-                                        .sort((a,b)=> (settings[b] ? settings[b].sort: 0) - (settings[a] ? settings[a].sort: 0))
+                                        .filter(sku => settings[sku] && settings[sku].active)
+                                        .sort((a,b)=> settings[b].sort < settings[a].sort ? 1 : -1)
     
                                     let res = {};
-    
-                                    devlog(uniqueSKU);
     
                                         
                                         let settingsRef = shopSettings.doc(req.params.shop);
@@ -675,7 +672,6 @@ router.get(`/:shop/:page`, (req, resp) => {
                                         Promise.resolve(pause).then(()=>{
     
                                             uniqueSKU.forEach((sku,i) => {
-                                                devlog(sku);
     
                                                 if(!settings[sku]) {
     
@@ -731,12 +727,15 @@ router.get(`/:shop/:page`, (req, resp) => {
                                                 };
             
                                             })
-            
+                                            
+                                            devlog(uniqueSKU);
+
                                             resp.render(`${host}/hz`, {
-                                                shop:   s,
-                                                data:   res,
-                                                shops:  userShops,
-                                                lefts:  data[1].result.rows,
+                                                shop:       s,
+                                                data:       res,
+                                                shops:      userShops,
+                                                settings:   settings,
+                                                lefts:      data[1].result.rows,
                                                 cur: (p) => cur(p)
                                             })
                                         })
@@ -913,8 +912,6 @@ router.get(`/web`, (req, res) => {
     if (!process.env.develop && !req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/${host}/auth`)
 
     getDoc(adminTokens, (req.signedCookies.adminToken || process.env.adminToken)).then(t => {
-
-        devlog(t)
 
         if (!t || !t.active) return res.sendStatus(403)
 

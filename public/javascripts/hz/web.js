@@ -510,7 +510,7 @@ function settingsLine(s,id,shop){
 
         c.addEventListener(`dragenter`,(e)=>{
             console.log(`попали на`, c)
-            dragOver = e.target;
+            dragOver = c
         })
 
         c.addEventListener(`dragend`,(e)=>{
@@ -545,7 +545,7 @@ function settingsLine(s,id,shop){
 }
 
 function rescorePositions(container){
-    let row = container.querySelectorAll(`.sDivided`) 
+    let row = document.querySelector(`#content`).querySelectorAll(`.sDivided`) 
     row.forEach((el,i)=>{
         axios.put(`/${host}/api/shopSettings/${el.dataset.shop}`,{
             attr:   `${el.id}.sort`,

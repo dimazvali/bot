@@ -1,7 +1,7 @@
 extends site
 
 block style
-    link(rel='stylesheet', href='/stylesheets/dimazvali/hz.css')
+    link(rel='stylesheet', href='/stylesheets/hz/hz.css')
 block content
     h1!=shop.name
     script!=`${JSON.stringify(shop)}`
@@ -10,8 +10,10 @@ block content
     if shops.length>1
         for s in shops
             a(href!=`/hz/${s.id}/report`)!=s.shopName
-    each val, key in data
+    - upl = Object.keys(data).sort((a,b)=>settings[b].sort-settings[a].sort);
+    each key in upl
         div(id!=key)
+            - let val = data[key]
             h2(title!=`sku ${key}`)!=`${val.data[0].offer_id}`
             //- h3!=`${val.data[0].offer_id}`
             table
