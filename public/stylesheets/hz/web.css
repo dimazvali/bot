@@ -849,6 +849,10 @@ p.footer {
     font-family: 'oi';
     letter-spacing: 2px;
     font-weight: 100;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
 }
 
 div#map {

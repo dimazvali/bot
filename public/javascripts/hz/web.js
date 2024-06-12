@@ -489,6 +489,26 @@ function setHouses(houses, shop){
     })
 }
 
+function setHouses2(houses,shop){
+    let curShop = shop;
+    
+    console.log(houses)
+    
+    
+
+    let dataM = new page({
+        houses: Object.keys(houses).sort((a,b)=>a<b?-1:1).map(key=>{
+            let t = houses[key]
+            t.id = key
+    
+            return t
+        })
+    });
+
+    ko.applyBindings(dataM, document.querySelector('#content'));
+
+}
+
 let dragged = null;
 let dragOver = null;
 
@@ -508,7 +528,7 @@ function houseLine(h, id, shop){
             }
         }))
         return c
-}   
+}
 
 function settingsLine(s,id,shop){
     let c = listContainer(s,true)
@@ -524,7 +544,23 @@ function settingsLine(s,id,shop){
         
         
         line.append(ce(`h3`,false,false,s.id||id))
+        
         line.append(toggleButton(`shopSettings`,shop,`${id}.active`,s.active,`скрыть`,`показать`,false,`api`))
+        
+        line.append(ce('p', false, `editable`, `${s.name || `Добавьте название`}`, {
+            title: `название`,
+            onclick: function () {
+                edit(`shopSettings`, shop, `${id}.name`, `text`, s.name, this, `api`)
+            }
+        }))
+
+        line.append(ce('p', false, `editable`, `${s.price ? cur(s.price||0) : `Добавьте стоимость`}`, {
+            title: `название`,
+            onclick: function () {
+                edit(`shopSettings`, shop, `${id}.price`, `number`, s.price, this, `api`)
+            }
+        }))
+        
         c.append(line)
 
         c.addEventListener(`dragstart`,(e)=>{
@@ -552,19 +588,7 @@ function settingsLine(s,id,shop){
         })
 
         
-        line.append(ce('p', false, `editable`, `${s.name || `Добавьте название`}`, {
-            title: `название`,
-            onclick: function () {
-                edit(`shopSettings`, shop, `${id}.name`, `text`, s.name, this, `api`)
-            }
-        }))
-
-        // line.append(ce('p', false, `editable`, `Значение для сортировки: ${s.sort  || 0}`, {
-        //     title: `значение для сортировки`,
-        //     onclick: function () {
-        //         edit(`shopSettings`, shop, `${id}.sort`, `number`, s.sort, this, `api`)
-        //     }
-        // }))
+        
 
     return c;
 }
@@ -579,7 +603,58 @@ function rescorePositions(container){
     })
 }
 
-// dragstart:  $parent.sd,
-// dragenter:  $parent.de,
-// dragend:    $parent.ed,
-// drop:       $parent.reorder
+function addShop(){
+    let p = modal();
+    p.append(`Новый магазин`)
+
+    let name = ce(`input`,false,false,false,{
+        placeholder: `название магазина`,
+        type: `text`
+    })
+    p.append(name)
+    
+    let apiId = ce(`input`,false,false,false,{
+        placeholder: `client id`,
+        type: `text`
+    })
+    p.append(apiId)
+
+    let apiSecret = ce(`input`,false,false,false,{
+        placeholder: `API key`,
+        type: `text`
+    })
+    p.append(apiSecret)
+
+    p.append(ce(`button`,false,false,`Сохранить`,{
+        onclick:function(){
+            if(!name.value) return alert(`вы пропустили название магазина`)
+            if(!apiId.value) return alert(`вы пропустили client id`)
+            if(!apiSecret.value) return alert(`вы пропустили API key`)
+            this.setAttribute(`disabled`,true)
+            axios.post(`/${host}/api/shops`,{
+                name: name.value,
+                apiId: apiId.value,
+                apiSecret: apiSecret.value,
+            }).then(s=>{
+                window.location.reload()
+            }).catch(handleError)
+        }
+    }))
+}
+
+function updateCreds(b){
+    let c =         b.parentNode;
+    let apiId =     c.querySelector(`[name="apiId"]`)
+    let apiSecret = c.querySelector(`[name="apiSecret"]`)
+
+    if(apiId.value && apiSecret.value){
+        axios.patch(`/${host}/api/shops/${c.id}`,{
+            apiId: apiId.value,
+            apiSecret: apiSecret.value
+        }).then(handleSave)
+        .catch(handleError)
+    } else {
+        alert(`Вы пропустили одно из полей.`)
+    }
+    
+}

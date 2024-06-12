@@ -35,7 +35,7 @@ function selector(col,placeholder,id,user,extra){
 }
 
 
-function onTelegramAuth(user,host, post, ep) {
+function onTelegramAuth(user, host, post, ep) {
     
     console.log(user)
     

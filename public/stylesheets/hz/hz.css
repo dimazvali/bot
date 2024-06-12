@@ -98,3 +98,49 @@ td {
     border-top: 1px solid;
     border-right: 1px solid;
 }
+
+td.f60 {
+    width: 50px;
+}
+
+.shop {
+    background: var(--dark);
+    padding: 20px;
+    box-sizing: content-box;
+    border-radius: 20px;
+}
+
+.shop>h2 {
+    position: initial;
+    background: no-repeat;
+    color: var(--light);
+    margin-top: 0;
+}
+
+.shop>input {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 4px;
+    line-height: 40px;
+    margin-bottom: 10px;
+    padding: 0px 10px;
+    box-sizing: border-box;
+}
+
+
+.shop>button {
+    background-color: var(--light);
+    color: black;
+}
+
+.shop {
+    margin-bottom: 20px;
+}
+
+.shop>a {
+    color: white;
+    margin-top: -10px;
+    display: block;
+    margin-bottom: 20px;
+}

@@ -133,29 +133,99 @@ let shopHouses = fb.collection(`${host}ShopHouses`);
 
 
 router.all(`/api/:method/:id`,(req,res)=>{
-    switch(req.params.method){
-        case `shopSettings`:{
-            switch (req.method){
-                case `PUT`:{
-                    ref = shopSettings.doc(req.params.id)
-                    return updateEntity(req,res,ref)
+
+    let token = req.signedCookies.userToken;
+    
+    if (!token) return res.status(401).send(`Вы кто вообще?`)
+    
+    adminTokens.doc(token).get().then(doc => {
+
+        if (!doc.exists) return res.sendStatus(403)
+
+        let token = handleDoc(doc)
+
+        getUser(token.user, udb).then(user => {
+
+            if (!user) return res.sendStatus(403)
+
+            devlog(req.body)
+
+            switch(req.params.method){
+                case `shops`:{
+                    switch(req.method){
+                        case `PUT`:{
+                            return getDoc(shops,req.params.id).then(s=>{
+                        
+                                if(s.createdBy != +user.id) return res.sendStatus(403);
+                                
+                                updateEntity(req,res,ref,user)
+                            })
+                        }
+                        case `PATCH`:{
+                            return getDoc(shops,req.params.id).then(s=>{
+                                if(s.createdBy != +user.id) return res.sendStatus(403);
+                                if(!req.body.apiId || !req.body.apiSecret) return res.status(400).send(`Пропущен одно из полей`)
+                                
+                                axios.post(`https://api-seller.ozon.ru/v2/analytics/stock_on_warehouses`, {
+                                    "limit":            1000,
+                                    "offset":           0,
+                                    "warehouse_type":   "ALL"
+                                }, {
+                                    headers: {
+                                        'Api-key':      req.body.apiSecret,
+                                        'Client-Id':    req.body.apiId,
+                                    }
+                                }).then(s=>{
+                                    res.json({
+                                        success: true,
+                                        comment: `Спасибо! Данные обновлены`
+                                    })
+                                    shops.doc(req.params.id).update({
+                                        apiSecret:  req.body.apiSecret,
+                                        apiId:      req.body.apiId,
+                                        updatedAt:  new Date(),
+                                        updatedBy:  +user.id
+                                    }).then(()=>{
+                                        log({
+                                            user: +user.id,
+                                            shop: req.params.id,
+                                            text: `${uname(user,user.id)} обновляет данные своего магазина ${s.name}.`
+                                        })
+                                    })
+
+                                }).catch(err=>{
+                                    res.status(400).send(`Предоставленные данные невалидны.`)
+                                })
+                            })
+                        }
+                    }
+                    
+                }
+                case `shopSettings`:{
+                    switch (req.method){
+                        case `PUT`:{
+                            ref = shopSettings.doc(req.params.id)
+                            return updateEntity(req,res,ref)
+                        }
+                    }
+                }
+        
+                case `shopHouses`:{
+                    switch (req.method){
+                        case `PUT`:{
+                            ref = shopHouses.doc(req.params.id)
+                            return updateEntity(req,res,ref)
+                        }
+                    }
+                }
+        
+                default:{
+                    res.sendStatus(404)
                 }
             }
-        }
-
-        case `shopHouses`:{
-            switch (req.method){
-                case `PUT`:{
-                    ref = shopHouses.doc(req.params.id)
-                    return updateEntity(req,res,ref)
-                }
-            }
-        }
-
-        default:{
-            res.sendStatus(404)
-        }
-    }
+        })
+    })
+    
 })
 
 
@@ -256,32 +326,41 @@ function alertAdmins(mess) {
     })
 }
 
-function addShop(req, res, admin) {
+function addShop(req, res, admin, link) {
 
     devlog(req.body);
 
-    if (!req.body.apiId) return res.status(400).send(`нет id`)
-    if (!req.body.apiSecret) return res.status(400).send(`нет ключа`)
-    if (!req.body.name) return res.status(400).send(`нет названия`)
+    if (!req.body.apiId)        return res.status(400).send(`нет id`)
+    if (!req.body.apiSecret)    return res.status(400).send(`нет ключа`)
+    if (!req.body.name)         return res.status(400).send(`нет названия`)
 
     return ifBefore(shops, {
         id: req.body.apiId
     }).then(col => {
         if (col.length) return res.status(400).send(`магазин с таким ключом уже создан: ${col.map(s=>s.name).join(', ')}.`);
         shops.add({
-            createdAt: new Date(),
-            createdBy: +admin.id,
-            name: req.body.name,
-            apiId: req.body.apiId,
-            apiSecret: req.body.apiSecret,
-            active: true
+            createdAt:  new Date(),
+            createdBy:  +admin.id,
+            name:       req.body.name,
+            apiId:      req.body.apiId,
+            apiSecret:  req.body.apiSecret,
+            active:     true
         }).then(s => {
             log({
                 shop: s.id,
                 admin: +admin.id,
                 text: `${uname(admin,admin.id)} создает магазин с названием ${req.body.name}`
             })
-            res.redirect(`/${host}/web?page=shops_${s.id}`)
+
+            if(!link) return res.redirect(`/${host}/web?page=shops_${s.id}`)
+
+            return add2Shop({
+                body:{
+                    shop: s.id,
+                    user: admin.id,
+                }
+            },res,admin)
+
         })
     })
 }
@@ -367,6 +446,45 @@ router.get(`/userAuth`, (req, res) => {
     })
 })
 
+router.get(`/`,(req,res)=>{
+    res.render(`${host}/landing.pug`)
+})
+
+router.get(`/cabinet`,(req,res)=>{
+    
+    if (!req.signedCookies.userToken) return res.redirect(`/${host}/?token=userToken`)
+
+    getDoc(adminTokens, req.signedCookies.userToken).then(t => {
+        devlog(`подгрузили токен`)
+
+        if (!t || !t.active) return res.redirect(`/${host}/?token=userToken`)
+        
+        getDoc(udb, t.user).then(u => {
+            
+            devlog(`подгрузили пользователя`)
+            
+            if (!u.active) return resp.status(403).send(`Простите, вам сюда нельзя.`);
+            
+            ifBefore(shopsUsers, {
+                user:   +u.id,
+                active: true
+            }).then(userShops => {
+                let shopsData = [];
+                userShops.forEach(s=>{
+                    shopsData.push(getDoc(shops,s.shop))
+                })
+                Promise.all(shopsData).then(shops=>{
+                    res.render(`${host}/cabinet`,{
+                        user:   u,
+                        shops:  shops 
+                    })
+                })
+                
+            })
+        })
+    })
+})
+
 router.post(`/userAuth`, (req, res) => {
     authTG(req, res, token, adminTokens, udb, registerUser, `userToken`)
 })
@@ -447,6 +565,37 @@ router.post(`/hook`, (req, res) => {
     }
 })
 
+
+
+router.all(`/api/:method`, (req, res) => {
+    
+    let token = req.signedCookies.userToken;
+    
+    if (!token) return res.status(401).send(`Вы кто вообще?`)
+        adminTokens.doc(token).get().then(doc => {
+
+            if (!doc.exists) return res.sendStatus(403)
+    
+            let token = handleDoc(doc)
+    
+            getUser(token.user, udb).then(user => {
+    
+                if (!user) return res.sendStatus(403)
+    
+                devlog(req.body)
+    
+                switch (req.params.method) {
+                    case `shops`:{
+                        switch(req.method){
+                            case `POST`: {
+                                return addShop(req,res,user,true)
+                            }
+                        }
+                    }
+                }
+            })
+        })
+})
 
 router.all(`/admin/:method`, (req, res) => {
 
@@ -608,13 +757,13 @@ router.get(`/:shop/:page`, (req, resp) => {
                 
                     switch (req.params.page) {
                         case `houses`:{
-                            
+
                             delete houses.id;
                             delete houses.createdAt;
                             delete houses.updatedAt;
                             delete houses.updatedBy;
                              
-                            return resp.render(`${host}/houses`,{
+                            return resp.render(`${host}/houses${req.query.ver?req.query.ver:''}`,{
                                 houses: houses,
                                 shop:   s
                             })
@@ -646,6 +795,7 @@ router.get(`/:shop/:page`, (req, resp) => {
                                 }
                             }).then(d => {
                                 console.log(`загрузили отгрузки`)
+                                devlog(d.data)
                                 return d.data
                             }).catch(err=>{
                                 devlog(err.message)
@@ -680,15 +830,23 @@ router.get(`/:shop/:page`, (req, resp) => {
 
                                 log({
                                     silent: true,
-                                    text: `${uname(u,u.id)} формирует отчет для магазина ${s.name}`,
-                                    shop: s.id,
-                                    user: +u.id
+                                    text:   `${uname(u,u.id)} формирует отчет для магазина ${s.name}`,
+                                    shop:   s.id,
+                                    user:   +u.id
                                 })
 
                                 let r = data[0].result.filter(o => o.status != `cancelled`);
 
-                                let uniqueSKU = [...new Set(r.map(rec => rec.products.map(p => p.sku)).flat())]
-                                    .filter(sku => settings[sku] && settings[sku].active)
+                                let uniqueSKU = [...new Set(r.map(rec => rec.products.map(p => p.sku)).flat())];
+
+                                uniqueSKU.forEach(sku=>{
+                                    if(!settings[sku]) settings[sku] = {
+                                        active: true,
+                                        sort: 0
+                                    }
+                                })
+                                    
+                                uniqueSKU = uniqueSKU.filter(sku => settings[sku] && settings[sku].active)
                                     .sort((a,b)=> settings[b].sort < settings[a].sort ? 1 : -1)
 
                                 let res = {};
@@ -726,12 +884,22 @@ router.get(`/:shop/:page`, (req, resp) => {
                                                     if(!houses[sell.analytics_data.warehouse_name]){
                                                         houses[sell.analytics_data.warehouse_name] = {
                                                             lb: null,
-                                                            delivery: null
+                                                            delivery: null,
+                                                            pallet: null,
+                                                            xl: null,
+                                                            l: null,
+                                                            m: null,
+                                                            s: null,
                                                         };
                                                         housesRef.update({
                                                             [sell.analytics_data.warehouse_name]:{
                                                                 lb: null,
-                                                                delivery: null
+                                                                delivery: null,
+                                                                pallet: null,
+                                                                xl: null,
+                                                                l: null,
+                                                                m: null,
+                                                                s: null,
                                                             }
                                                         })
                                                     }                                           
