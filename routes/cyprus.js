@@ -523,11 +523,16 @@ router.post('/hook', (req, res) => {
             if (req.body.message.photo) {
                 udb.where('admin','==',true).get().then(col=>{
                     common.handleQuery(col).forEach(a=>{
+                            // m.sendMessage2({
+                            //     chat_id: a.id,
+                            //     caption: `фото от ${uname(u.data(),u.id)}`,
+                            //     photo: req.body.message.photo[0].file_id
+                            // }, 'sendPhoto', token)
                             m.sendMessage2({
                                 chat_id: a.id,
-                                caption: `фото от ${uname(u.data(),u.id)}`,
-                                photo: req.body.message.photo[0].file_id
-                            }, 'sendPhoto', token)
+                                from_chat_id: user.id,
+                                message_id: req.body.message.message_id
+                            }, 'forwardMessage', token)
                         })
                 })
             }
