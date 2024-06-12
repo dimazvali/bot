@@ -723,9 +723,10 @@ router.get(`/:shop/:page`, (req, resp) => {
     if (!req.signedCookies.adminToken && !req.signedCookies.userToken) return resp.redirect(`/${host}/userAuth?token=userToken&ep=${encodeURIComponent(`${req.params.shop}/report`)}`)
 
     getDoc(adminTokens, (req.signedCookies.adminToken || req.signedCookies.userToken)).then(t => {
+        
         devlog(`подгрузили токен`)
 
-        if (!t || !t.active) return resp.redirect(`/${host}/userAuth?token=userToken`)
+        if (!t || !t.active) return resp.redirect(`/${host}/userAuth?token=userToken&ep=${encodeURIComponent(`${req.params.shop}/report`)}`)
         
         getDoc(udb, t.user).then(u => {
             devlog(`подгрузили пользователя`)
