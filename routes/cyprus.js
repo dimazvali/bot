@@ -520,7 +520,7 @@ router.post('/hook', (req, res) => {
 
             }
 
-            if (req.body.message.photo) {
+            if (req.body.message.photo || req.body.message.video) {
                 udb.where('admin','==',true).get().then(col=>{
                     common.handleQuery(col).forEach(a=>{
                             // m.sendMessage2({
