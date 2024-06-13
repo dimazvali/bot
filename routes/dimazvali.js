@@ -1178,7 +1178,7 @@ router.get(`/neva/:program`, (req, res) => {
 })
 
 
-router.post(`/tgStatsg`,(req,res)=>{
+router.post(`/tgStats`,(req,res)=>{
     
     devlog(JSON.stringify(req.body));
 
