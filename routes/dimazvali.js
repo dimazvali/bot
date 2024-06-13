@@ -1193,7 +1193,7 @@ router.post(`/tgStat`,(req,res)=>{
                 parsed: true
             })
 
-            res.send(`TGSTAT_VERIFY_CODE_93461024`)
+            res.send(`TGSTAT_VERIFY_CODE_48410463`)
         })
         .catch(err=>handleError(err,res))
     })
