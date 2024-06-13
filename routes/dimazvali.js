@@ -1178,9 +1178,11 @@ router.get(`/neva/:program`, (req, res) => {
 })
 
 
-router.post(`/tgStats`,(req,res)=>{
+router.post(`/tgStatsg`,(req,res)=>{
     
     devlog(JSON.stringify(req.body));
+
+    res.send(`TGSTAT_VERIFY_CODE_48410463`)
     
     tgStat.add(req.body).then(rec=>{
         axios
@@ -1193,9 +1195,8 @@ router.post(`/tgStats`,(req,res)=>{
                 parsed: true
             })
 
-            res.send(`TGSTAT_VERIFY_CODE_48410463`)
+            
         })
-        .catch(err=>handleError(err,res))
     })
 
     
