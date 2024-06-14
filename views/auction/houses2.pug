@@ -1,0 +1,47 @@
+extends site
+
+block style
+    link(rel='stylesheet', href='/stylesheets/hz/hz.css')
+    script!=`let start = ''`
+    script!=`let curShop = "${shop.id}"`
+    script(src="/javascripts/hz/classes.js") 
+    script(src="/javascripts/hz/web.js") 
+    script(src="/javascripts/ko.js") 
+block content
+    h1!=`Склады для магазина ${shop.name}`
+    if(!houses)
+        p Похоже, у нас еще нет данных. Пожалуйста, составьте отчет по своему магазину.
+    else
+        table
+            thead 
+                tr
+                    th регион
+                    th склад
+                    th Pallet
+                    
+                    th XL
+                    th L
+                    th M
+                    
+                    th S
+                    th Литробонусы
+                    th Срок поставки
+            tbody(data-bind!=`foreach:houses`)
+                tr(data-bind!=`visible: $parent.hidden.indexOf(region)==-1`)
+                    td(data-bind!=`text:region`)
+                    td(data-bind!=`text:id`)
+                    td.f60(data-bind!=`text:pallet,click:()=>edit('pallet')`)
+                    
+                    td.f60(data-bind!=`text:xl,click:()=>edit('xl')`)
+                    td.f60(data-bind!=`text:l,click:()=>edit('l')`)
+                    td.f60(data-bind!=`text:m,click:()=>edit('m')`)
+                    
+                    td.f60(data-bind!=`text:s,click:()=>edit('s')`)
+                    td(data-bind!=`text:lb,click:()=>edit('lb')`)
+                    td(data-bind!=`text:delivery,event:{click:()=>edit('delivery')}`)
+                    
+                    
+                    
+
+        script!=`setHouses2(${JSON.stringify(houses)},"${shop.id}")`
+        

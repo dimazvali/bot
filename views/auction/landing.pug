@@ -1,0 +1,10 @@
+extends site
+
+block style
+    link(rel='stylesheet', href='/stylesheets/hz/hz.css')
+    script!=`let start = ''`
+block content
+    h1!=`Добро пожаловать в проект без названия`
+    p Судя по всему, тут можно будет в удобном виде агрегировать данные по своим продажам на маркетплейсе Ozon (для начала).
+    p Чтобы начать, вам надо авторизоваться через telegram. Это легко и вполне безопасно. В дальнейшем наш бот сможет отправлять вам полезные сообщения.
+    script(src='https://telegram.org/js/telegram-widget.js?22' data-size="large" data-onauth="onTelegramAuth(user,'hz','userAuth','cabinet')" data-telegram-login="ozonStatsBot")  

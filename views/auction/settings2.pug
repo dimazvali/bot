@@ -1,0 +1,41 @@
+extends site
+
+block style
+    link(rel='stylesheet', href='/stylesheets/hz/hz.css')
+    script!=`let start = ''`
+    script!=`let curShop = "${shop.id}"`
+    script(src="/javascripts/hz/classes.js") 
+    script(src="/javascripts/hz/web.js") 
+    script(src="/javascripts/ko.js") 
+block content
+    h1!=`Товары для магазина ${shop.name}`
+    if(!houses)
+        p Похоже, у нас еще нет данных. Пожалуйста, составьте отчет по своему магазину.
+    else
+        table
+            thead 
+                tr
+                    td Артикул
+                    td Ozon SKU ID
+                    td Название
+                    td Себестоимость
+                    td Отображать в отчете
+            tbody(data-bind!=`foreach:sku`)
+                tr(data-bind!=`visible: $parent.hidden.indexOf(region)==-1`)
+                    td(data-bind!=`text:id`)
+                    td(data-bind!=`text:sku`)
+                    td(data-bind!=`text:name`)
+                    
+                    td.f60(data-bind!=`text:price,click:()=>edit('price')`)
+                    td.f60(data-bind!=`text:l,click:()=>edit('l')`)
+                    td.f60(data-bind!=`text:m,click:()=>edit('m')`)
+                    
+                    td.f60(data-bind!=`text:s,click:()=>edit('s')`)
+                    td(data-bind!=`text:lb,click:()=>edit('lb')`)
+                    td(data-bind!=`text:delivery,event:{click:()=>edit('delivery')}`)
+                    
+                    
+                    
+
+        script!=`setHouses2(${JSON.stringify(houses)},"${shop.id}")`
+        

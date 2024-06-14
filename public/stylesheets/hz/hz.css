@@ -144,3 +144,9 @@ td.f60 {
     display: block;
     margin-bottom: 20px;
 }
+
+img.avatar {
+    border-radius: 50%;
+    height: 80px;
+    margin-right: 20px;
+}

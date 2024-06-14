@@ -392,7 +392,7 @@ function setAlert(){
         tg.MainButton.onClick(removeAlert)
         tg.MainButton.show()
         mbbc = removeAlert
-    }).catch(handelError)
+    }).catch(handleError)
 }
 
 function removeAlert(){
@@ -401,7 +401,7 @@ function removeAlert(){
     axios
         .delete(`/${host}/api/alerts/${curAlert}`)
         .then(handleSave)
-        .catch(handelError)
+        .catch(handleError)
 }
 
 
@@ -514,7 +514,29 @@ function editOffer(id){
             }
         })
         p.append(upd)
-        // upd.onchange=function(){}
+        let about = ce(`textarea`,false,false,o.description,{
+            placeholder: `Ваше описание`
+        })
+        p.append(about);
+        p.append(ce(`button`,false,false,`Обновить описание`,{
+            onclick:function(){
+                if(!about.value) {
+                    tg.showAlert(`Я не вижу ваших букв`)
+                    setWarning(about)
+                } else {
+                    this.setAttribute(`disabled`,true)
+                    axios.put(`/${host}/api/offers/${id}`,{
+                        attr:`description`,
+                        value: about.value
+                    }).then(s=>{
+                        toast(s.data.comment||'ok')
+                    })
+                    .catch(handleError)
+                    .finally(this.removeAttribute(`disabled`))
+                }
+                
+            }
+        }))
     })
 }
 
@@ -1038,7 +1060,7 @@ function dealBox(deal, userRole){
                             intention: `${userRole}_${e}`
                         }).then(s=>{
                             handleSave(s);
-                            book.parentNode.prepend(dealBox(s.data.deal,userRole))
+                            book.parentNode.prepend(dealBox((s.data.deal||s.data),userRole))
                             book.remove();
                         }).catch(handleError)
                     }
@@ -1088,7 +1110,8 @@ Promise
 
             profile.append(ce(`h3`,false,false,uname));
 
-            if(data.user.num) profile.append(ce(`p`,false,[`info`,`sub`],` Читательский билет №${data.user.num}.`))
+            if(data.user.num)       profile.append(ce(`p`,false,[`info`,`sub`],` Читательский билет №${data.user.num}.`))
+            if(data.user.photo_url) profile.append(ce(`img`,false,`bgImg`,false,{src: data.user.photo_url}))
 
             profile.append(ce(`div`,false,`tag`, `<span class="info">место действия:</span> <span id="cityName">`+(cities[data.user.city] ? cities[data.user.city].name : `город не определен`)+'</span>.'))
 

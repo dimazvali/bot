@@ -1,0 +1,16 @@
+extends site
+
+block style
+    link(rel='stylesheet', href='/stylesheets/hz/hz.css')
+    script!=`let start = ''`
+    
+    script(src="/javascripts/hz/web.js") 
+block content
+    h1!=`Настройки магазина ${shop.name}`
+    #apiData
+    script!=`let sdata = ${JSON.stringify(settings)}`
+    if(!settings)
+        p Похоже, у нас еще нет данных. Пожалуйста, составьте отчет по своему магазину.
+    else
+        script!=`setSettings(${JSON.stringify(settings)},"${shop.id}")`
+        

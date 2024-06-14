@@ -599,7 +599,7 @@ function cutMe(txt, limit) {
     return r
 }
 
-function addScreen(collection,name,o){
+function addScreen(collection,name,o,callback){
     let p = preparePopupWeb(`${collection}_new`,false,false,true)
     
     p.append(ce('h1', false, false, name))
@@ -689,6 +689,10 @@ function addScreen(collection,name,o){
     f.append(ce(`button`,false,false,`Сохранить`,{
         type: `submit`
     }))
+
+    if(f.callback){
+        f.onsubmit = () => callback
+    }
 
     return p
 

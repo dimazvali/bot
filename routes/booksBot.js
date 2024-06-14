@@ -605,11 +605,14 @@ router.all(`/api/:method/:id`,(req,res)=>{
                         case `PUT`:{
 
                             if(!req.body.intention) return res.sendStatus(400);
+                            
                             let inc = req.body.intention.split('_');
                             let ref = deals.doc(req.params.id);
                             
                             return getDoc(deals, req.params.id).then(d=>{
+                                
                                 if(!d||!d.active) return res.sendStatus(404);
+                                
                                 switch(inc[0]){
                                 
                                     case `seller`:{
@@ -631,7 +634,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                                             callback_data:  `deal_${d.id}_buyerDenied`
                                                         }]]
                                                     }
-                                                },false,token,messages).then(()=>{
+                                                },false,process.env.booksToken,messages).then(()=>{
                                                     res.json({
                                                         success: true,
                                                         comment: `Спасибо! Запрос отправлен читателю`
@@ -654,7 +657,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
 
                                             case `closeDealBySeller`:{
                                                 if(d.sellerReturned) return res.status(400).send(`Уже было отмечено.`)
-                                                closeDeal(ref,d,`seller`,res)
+                                                return closeDeal(ref,d,`seller`,res)
                                             }
                                         }
                                     }
@@ -675,7 +678,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                             }
                                             case `closeDealByBuyer`:{
                                                 if(d.buyerReturned) return res.status(400).send(`Уже было отмечено`)
-                                                closeDeal(ref,d,`buyer`,res)
+                                                return closeDeal(ref,d,`buyer`,res)
                                             }
                                         }
                                     }
@@ -965,7 +968,8 @@ router.all(`/api/:method`,(req,res)=>{
                         }
                         case `POST`:{
                             if(!req.body.offer) return res.sendStatus(400)
-                            return bookaBook(req.body.offer,req.body.type || `rent`,false, user, req, res)
+
+                            return bookaBook(req.body.offer,(req.body.type || `rent`),false, user, req, res)
                         }
                     }
                 }
@@ -1531,11 +1535,14 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
 router.get(`/app`,(req,res)=>{
     if(req.signedCookies.userToken){
         getDoc(adminTokens,req.signedCookies.userToken).then(proof=>{
-            if(!proof) res.render(`${host}/app`,{
+            if(!proof) return res.render(`${host}/app`,{
                 authNeeded: true,
                 start: req.query.startapp,
                 cities: savedCities
             })
+            
+            devlog(proof)
+
             getUser(proof.user,udb).then(u=>{
                 res.render(`${host}/app`,{
                     user: u,
@@ -1694,6 +1701,62 @@ deals.get().then(col=>{
     })
 })
 
+function abortDeal(ref,deal,initiator, req, res){
+    if(deal.status != `inProgress`) {
+        if(req) cba(req,locals.tooLate)
+        if(res) res.status(400).send(locals.tooLate)
+    } else {
+        ref.update({
+            active:     false,
+            status:     initiator == `seller` ? `cancelledBySeller` : `cancelledByBuyer`,
+            updatedAt:  new Date()
+        }).then(()=>{
+
+            offers.doc(deal.offer).update({
+                blocked: null
+            })
+
+            getUser((initiator == `seller` ? deal.seller : deal.buyer),udb).then(u=>{
+                log({
+                    offer:  deal.offer,
+                    deal:   deal.id,
+                    user:   +u.id,
+                    text: `${uname(u,u.id)} обрывает передачу книги ${deal.bookName}.`
+                })
+            })
+
+            clearButtons(deal,`seller`,`preconfirm`)
+            clearButtons(deal,`buyer`,`preconfirm`)
+            
+            if(req) cba(req,locals.onAbort)
+            
+            if(res) res.json({
+                success:    true,
+                comment:    locals.onAbort
+            })
+
+            switch(initiator){
+                case `buyer`:{
+                    sendMessage2({
+                        chat_id: deal.seller,
+                        text: locals.buyersExcuse(deal)
+                    },false,token)
+
+                    break;
+                }
+                case `seller`:{                    
+                    sendMessage2({
+                        chat_id: deal.buyer,
+                        text: locals.sellersExcuse(deal)
+                    },false,token)
+                    break;
+                }
+            }
+        })
+
+    }
+}
+
 function startDeal(ref, deal, res){
     ref.update({
         status:         `inProgress`,
@@ -1724,10 +1787,28 @@ function startDeal(ref, deal, res){
                         callback_data: `deal_${deal.id}_buyerConfirmed`
                     }],[{
                         text: `Галя, у нас отмена`,
-                        callback_data: `deal_${deal.id}_buyerCancelled`
+                        callback_data: `deal_${deal.id}_buyerAbort`
                     }]]
                 }
-            },false,token,messages)
+            },false,token,messages).then(m=>{
+                if(m.ok) ref.update({
+                    'messages.buyer.preconfirm': m.result.message_id
+                })
+            })
+
+            if(deal.messages.buyer.request) sendMessage2({
+                chat_id:        deal.buyer,
+                message_id:     deal.messages.buyer.request,
+                reply_markup:   {}
+            },`editMessageReplyMarkup`,token)
+
+            
+            if(deal.messages.seller.request) sendMessage2({
+                chat_id:        deal.seller,
+                message_id:     deal.messages.seller.request,
+                caption:        `Спасибо за ответ!`
+            },`editMessageCaption`,token)
+
     
             sendMessage2({
                 chat_id:        deal.seller,
@@ -1739,10 +1820,14 @@ function startDeal(ref, deal, res){
                         callback_data: `deal_${deal.id}_sellerConfirmed`
                     }],[{
                         text: `Галя, у нас отмена`,
-                        callback_data: `deal_${deal.id}_sellerCancelled`
+                        callback_data: `deal_${deal.id}_sellerAbort`
                     }]]
                 }
-            },false,token,messages)
+            },false,token,messages).then(m=>{
+                if(m.ok) ref.update({
+                    'messages.seller.preconfirm': m.result.message_id
+                })
+            })
 
             if(res) ref.get().then(d=>{
                 res.json({
@@ -1752,19 +1837,39 @@ function startDeal(ref, deal, res){
                 })
             })
 
+            log({
+                silent: true,
+                text:   `${uname(users[1],users[1].id)} подтверждает запрос на книгу ${deal.bookName}`,
+                book:   deal.book,
+                deal:   deal.id,
+                offer:  deal.offer,
+                user:   deal.seller
+            })
 
         })
-        log({
-            text:   `${uname(users[1],users[1].id)} подтверждает запрос на книгу ${deal.bookName}`,
-            book:   deal.book,
-            deal:   deal.id,
-            offer:  deal.offer,
-            user:   deal.seller
-        })
+        
     })
 }
 
-function cancelDeal(reason,ref,deal, res){
+function clearButtons(deal, side, type){
+    if(deal.messages && deal.messages[side] && deal.messages[side][type]) {
+        sendMessage2({
+            chat_id:        deal[side],
+            message_id:     deal.messages[side][type],
+            reply_markup:   {}
+        },`editMessageReplyMarkup`,token)
+    } else {
+        console.log(`нет ноды ${side}.${type} в`,deal)
+    }
+
+}
+
+function cancelDeal(reason, ref, deal, res){
+    
+    offers.doc(deal.offer).update({
+        blocked: null
+    })
+
     switch(reason){
         case 'buyerCancel':{
             ref.update({
@@ -1772,19 +1877,29 @@ function cancelDeal(reason,ref,deal, res){
                 status:     `cancelledByBuyer`,
                 updatedAt:  new Date()
             }).then(()=>{
-                
-                offers.doc(deal.offer).update({
-                    blocked: false
-                })
+
+                if(deal.messages.buyer.request){
+                    sendMessage2({
+                        chat_id:        deal.buyer,
+                        message_id:     deal.messages.buyer.request,
+                        text:           locals.afterCancel
+                    },`editMessageText`,token)
+                } else {
+                    sendMessage2({
+                        chat_id:    deal.buyer,
+                        text: locals.afterCancel
+                    },false,token,messages)
+                }
+
+                if(deal.messages.seller.request) sendMessage2({
+                    chat_id:        deal.seller,
+                    message_id:     deal.messages.seller.request,
+                    caption:        locals.rentCancelled(deal)
+                },`editMessageCaption`,token)
 
                 sendMessage2({
-                    chat_id: deal.buyer,
-                    text: locals.afterCancel
-                },false,token,messages)
-
-                sendMessage2({
-                    chat_id: deal.seller,
-                    text: locals.rentCancelled(deal)
+                    chat_id:    deal.seller,
+                    text:       locals.rentCancelled(deal)
                 },false,token,messages)
 
                 getUser(deal.buyer,udb).then(u=>{
@@ -1801,7 +1916,7 @@ function cancelDeal(reason,ref,deal, res){
                 if(res) ref.get().then(d=>{
                     res.json({
                         success: false,
-                        deal: handleDoc(d)
+                        deal:   handleDoc(d)
                     })
                 })
                 
@@ -1818,10 +1933,22 @@ function cancelDeal(reason,ref,deal, res){
                 updatedAt: new Date(),
             }).then(()=>{
                 
+                if(deal.messages.buyer.request) sendMessage2({
+                    chat_id:        deal.buyer,
+                    message_id:     deal.messages.buyer.request,
+                    reply_markup:   {}
+                },`editMessageReplyMarkup`,token)
+                
                 sendMessage2({
                     chat_id:    deal.buyer,
                     text:       locals.rentCancelledByOwner(deal)
                 },false,token,messages)
+
+                if(deal.messages.seller.request) sendMessage2({
+                    chat_id:        deal.seller,
+                    message_id:     deal.messages.seller.request,
+                    reply_markup:   {}
+                },`editMessageReplyMarkup`,token)
 
                 sendMessage2({
                     chat_id: deal.seller,
@@ -1838,7 +1965,8 @@ function cancelDeal(reason,ref,deal, res){
                     })
 
                     offers.doc(deal.offer).update({
-                        active: false
+                        active: false,
+                        blocked: null
                     }).then(()=>{
                         log({
                             silent: true,
@@ -1863,6 +1991,7 @@ function cancelDeal(reason,ref,deal, res){
     }
 }
 function bookaBook(offerId, dealType, callback, user, req, res){
+    
     let offerRef = offers.doc(offerId)
 
     return getDoc(offers,offerId).then(o=>{
@@ -1939,13 +2068,16 @@ function bookaBook(offerId, dealType, callback, user, req, res){
 }
 
 function evaluateDeal(ref,deal,score,req,res){
+
+    clearButtons(deal, `seller`, `evaluateRequest`)
+
     ref.update({
         buyerScore: +score,
         updatedAt: new Date()
     }).then(()=>{
         if(req) cba(req,`Спасибо!`)
         if(res) res.json({success:true})
-        getUser(deal.seller).then(u=>{
+        getUser(deal.seller,udb).then(u=>{
             log({
                 silent: true,
                 deal:   deal.id,
@@ -1958,10 +2090,15 @@ function evaluateDeal(ref,deal,score,req,res){
 
 function closeDeal(ref, deal, initiator, res){
     
+    clearButtons(deal, `seller`, `closeRequest`)
+    clearButtons(deal, `buyer`, `closeRequest`)
+
     let upd = null;
 
     switch (initiator){
         case `seller`:{
+            
+
             upd = ref.update({
                 status:         `closed`,
                 closedAt:       new Date(),
@@ -1992,7 +2129,11 @@ function closeDeal(ref, deal, initiator, res){
                             callback_data: `deal_${deal.id}_evaluate_0`
                         }]]
                     }
-                },false,token,messages)
+                },false,token,messages).then(m=>{
+                    if(m.ok) ref.update({
+                        'messages.seller.evaluateRequest': m.result.message_id
+                    })
+                })
 
             })
             break;
@@ -2010,7 +2151,11 @@ function closeDeal(ref, deal, initiator, res){
                             callback_data: `deal_${deal.id}_sellerClosed`
                         }]]
                     }
-                },false,token,messages)
+                },false,token,messages).then(m=>{
+                    if(m.ok) ref.update({
+                        'messages.buyer.closeRequest': m.result.message_id
+                    })
+                })
             })
             break;
         }
@@ -2021,26 +2166,45 @@ function closeDeal(ref, deal, initiator, res){
 }
 
 function transferBook(ref, deal, initiator, res){
+
+    clearButtons(deal,`buyer`,`preconfirm`);
+    clearButtons(deal,`seller`,`preconfirm`);
+
     switch(initiator){
         
         case `seller`:{
-            if(!deal.buyerConfirmed) sendMessage2({
-                chat_id: deal.buyer,
-                text: `${greeting()}! Хозяин книги «${deal.bookName}» сообщает, что передача состоялась. Все так?`,
-                reply_markup:{
-                    inline_keyboard:[[{
-                        text:           `Да`,
-                        callback_data:  `deal_${deal.id}_buyerConfirmed`
-                    },{
-                        text: `Нет`,
-                        callback_data:  `deal_${deal.id}_buyerDenied`
-                    }]]
-                }
-            },false,token,messages)
+            if(!deal.buyerConfirmed) {
 
-            return ref.update({
+                sendMessage2({
+                    chat_id: deal.buyer,
+                    text: `${greeting()}! Хозяин книги «${deal.bookName}» сообщает, что передача состоялась. Все так?`,
+                    reply_markup:{
+                        inline_keyboard:[[{
+                            text:           `Да`,
+                            callback_data:  `deal_${deal.id}_buyerConfirmed`
+                        },{
+                            text: `Нет`,
+                            callback_data:  `deal_${deal.id}_buyerDenied`
+                        }]]
+                    }
+                },false,token,messages).then(m=>{
+                    if(m.ok) ref.update({
+                        'messages.buyer.confirmRequest':m.result.message_id
+                    })
+                })
+
+                
+
+                sendMessage2({
+                    chat_id:    deal.seller,
+                    text:       locals.sellerConfirmed,
+                },false,token)
+            }
+
+            ref.update({
                 sellerConfirmed: new Date()
             }).then(()=>{
+
                 getUser(deal.seller,udb).then(u=>{
                     log({
                         silent: true,
@@ -2051,25 +2215,34 @@ function transferBook(ref, deal, initiator, res){
                         user:   +u.id
                     })
                 })
+                
             })
+            break;
         }
 
         case `buyer`:{
-            if(!deal.sellerConfirmed) sendMessage2({
-                chat_id: deal.seller,
-                text: `${greeting()}! Получатель книги «${deal.bookName}» сообщает, что передача состоялась. Все так?`,
-                reply_markup:{
-                    inline_keyboard:[[{
-                        text:           `Да`,
-                        callback_data:  `deal_${deal.id}_sellerConfirmed`
-                    },{
-                        text: `Нет`,
-                        callback_data:  `deal_${deal.id}_sellerDenied`
-                    }]]
-                }
-            },false,token,messages)
+            if(!deal.sellerConfirmed) {
+                
+                sendMessage2({
+                    chat_id: deal.seller,
+                    text: `${greeting()}! Получатель книги «${deal.bookName}» сообщает, что передача состоялась. Все так?`,
+                    reply_markup:{
+                        inline_keyboard:[[{
+                            text:           `Да`,
+                            callback_data:  `deal_${deal.id}_sellerConfirmed`
+                        },{
+                            text: `Нет`,
+                            callback_data:  `deal_${deal.id}_sellerDenied`
+                        }]]
+                    }
+                },false,token,messages).then(m=>{
+                    if(m.ok) ref.update({
+                        'messages.seller.confirmRequest':m.result.message_id
+                    })
+                })
+            }
 
-            return ref.update({
+            ref.update({
                 buyerConfirmed: new Date()
             }).then(()=>{
                 getUser(deal.buyer,udb).then(u=>{
@@ -2083,19 +2256,59 @@ function transferBook(ref, deal, initiator, res){
                     })
                 })
             })
+            break;
         }
     }
 
     let dealUpdated = null;
 
-    if(initiator == `seller` ? deal.buyerConfirmed : deal.sellerConfirmed){
+    if((initiator == `seller` && deal.buyerConfirmed) || (initiator == `buyer` && deal.sellerConfirmed)){
+        
+        devlog(`звезды сошлись`)
+
         dealUpdated = ref.update({
             status:     `given`,
             givenAt:    new Date()
         }).then(s=> true)
+
+        clearButtons(deal,`buyer`,`confirmRequest`);
+        clearButtons(deal,`seller`,`confirmRequest`);
+
+        sendMessage2({
+            chat_id:    deal.seller,
+            text:       locals.closeRequest,
+            reply_markup: {
+                inline_keyboard: [[{
+                    text: `Книга вернулась`,
+                    callback_data: `deal_${deal.id}_sellerClosed`
+                }]]
+            }
+        },false,token,messages).then(m=>{
+            if(m.ok) ref.update({
+                'messages.seller.closeRequest': m.result.message_id
+            })
+        }).then(()=>{
+            sendMessage2({
+                chat_id:    deal.buyer,
+                text:       locals.closeRequest,
+                reply_markup: {
+                    inline_keyboard: [[{
+                        text: `Книга вернулась`,
+                        callback_data: `deal_${deal.id}_sellerClosed`
+                    }]]
+                }
+            },false,token,messages).then(m=>{
+                if(m.ok) ref.update({
+                    'messages.buyer.closeRequest': m.result.message_id
+                })
+            })
+        })
+        
+    } else {
+        devlog(`звезды не сошлись: ${deal.buyerConfirmed} / ${deal.sellerConfirmed}`)
     }
 
-    return Promise.resolve(dealUpdated).then(()=>{
+    Promise.resolve(dealUpdated).then(()=>{
         if(res) ref.get().then(d=>{
             res.json({
                 success: true,
@@ -2103,6 +2316,8 @@ function transferBook(ref, deal, initiator, res){
             })
         })
     })
+
+    
 }
 
 if(process.env.develop){
@@ -2117,6 +2332,15 @@ if(process.env.develop){
             })
             res.json(list)
         })
+    })
+}
+
+
+if(process.env.develop){
+    
+    router.get(`/test`,(req,res)=>{
+        res.sendStatus(200)
+        if(req.query.user) clearTestRecords(req.query.user)
     })
 }
 
@@ -2513,12 +2737,30 @@ router.post(`/hook`,(req,res)=>{
                         }, 'answerCallbackQuery', token)
 
                         switch(inc[2]){
+
+                            case `sellerAbort`:{
+                                return abortDeal(ref, d, `seller`, req)
+                            } 
+                            case `buyerAbort`:{
+                                return abortDeal(ref, d, `seller`, req)
+                            } 
+
                             case `evaluate`:{
                                 if(d.buyerScore) {
                                     return cba(req,`Извините, вы уже поставили оценку.`)
                                 }
                                 return evaluateDeal(ref,d, interpreteCallBackData(inc[3]), req)
                             }
+
+                            case `sellerAccept`:{
+                                return startDeal(ref,d)
+                            }
+
+                            
+                            case `buyerClosed`:{
+                                return closeDeal(ref, d, `buyer`)
+                            }
+
                             case `sellerClosed`:{
                                 return closeDeal(ref, d, `seller`)
                             }
@@ -2526,6 +2768,8 @@ router.post(`/hook`,(req,res)=>{
                             case `buyerConfirmed`:{
                                 if(d.buyerConfirmed) return cba(req,locals.tooLate)
                                 
+                                return transferBook(ref,d,`buyer`)
+
                                 ref.update({
                                     buyerConfirmed: new Date(),
                                 })
@@ -2571,10 +2815,12 @@ router.post(`/hook`,(req,res)=>{
                                 }
                                 break;
                             }
-                            case `sellerConfirmed`:{
+                            case `sellerConfirmed`:{                                
                                 
                                 if(d.sellerConfirmed) return cba(req,locals.tooLate)
                                 
+                                return transferBook(ref,d,`seller`)
+
                                 ref.update({
                                     sellerConfirmed: new Date(),
                                 })
@@ -2622,6 +2868,7 @@ router.post(`/hook`,(req,res)=>{
                                 }
                                 break;
                             }
+
                             case `buyerCancel`:{
 
                                 if(d.status == `inReview` ) return cancelDeal(inc[2],ref,d)
@@ -2642,10 +2889,7 @@ router.post(`/hook`,(req,res)=>{
                                     text:       locals.tooLate
                                 }, 'answerCallbackQuery', token)
                             }
-
-                            case `sellerAccept`:{
-                                return startDeal(ref,d)
-                            }
+                            
                         }
 
                     })
@@ -2747,9 +2991,13 @@ function rentBook(book, offer, user, res){
                     callback_data: `deal_${rec.id}_buyerCancel`
                 }]]
             }
-        },false,token,messages)
+        },false,token,messages).then(m=>{
+            if(m.ok) deals.doc(rec.id).update({
+                'messages.buyer.request':m.result.message_id
+            })
+        })
         
-        sendMessage2({
+        let msg = {
             chat_id:    offer.createdBy,
             text:       locals.rentRequest(offer, user),
             reply_markup: {
@@ -2761,7 +3009,18 @@ function rentBook(book, offer, user, res){
                     callback_data: `deal_${rec.id}_sellerCancel`
                 }]]
             }
-        },false,token,messages)
+        }
+
+        if(offer.pic || offer.bookPic) {
+            msg.photo = offer.pic || offer.bookPic,
+            msg.caption = msg.text
+        }
+
+        sendMessage2(msg,((offer.pic || offer.bookPic)?`sendPhoto`:false),token,messages).then(m=>{
+            if(m.ok) deals.doc(rec.id).update({
+                'messages.seller.request':m.result.message_id
+            })
+        })
 
         if(res) {
             getDoc(deals,rec.id).then(d=>{
@@ -2823,6 +3082,11 @@ ${offer.price ? `Стоимость: ${cur(offer.price)}` : (offer.rent ? `Кн�
 }
 
 const locals = {
+    sellersExcuse:(d)=>     `${sudden.sad()}! Владелец книги должен был экстренно отказаться от обещания дать вам ${d.bookName}. Полагаем, причины были весомыми...`,
+    buyersExcuse:(d)=>      `${sudden.sad()}! Ваш почитатель вынужден был экстренно отказаться от запроса на ${d.bookName}. Полагаем, причины были весомыми...`,
+    onAbort:                `${sudden.sad()}! Я сейчас предупрежду вторую сторону. Пожалуйста, расскажите, что пошло не так...`,
+    closeRequest:           `Ура! Мы рады, что все получилось! Пожалуйста, не забудьте подтвердить, что книга вернулась хозяину.`,
+    sellerConfirmed:        `Спасибо! Осталось дождаться подтверждения второй стороны.`,
     settingsDescription:    `Что именно вам хотелось бы изменить?..`,
     subscriptionDisclaimer: `\nВы получили это сообщение, так как подписаны на все новинки в своем городе. Чтобы отписаться, нажмите последнюю кнопку под сообщением.`,
     noBooksAvailable: `${sudden.sad()}! Кажется, в вашем городе нет доступных книг. Может быть, вы сможете добавить парочку?..`,
@@ -3041,3 +3305,30 @@ module.exports = router;
 //     })
 // })
 
+function clearTestRecords(id){
+    
+    if(!id) id = common.dimazvali;
+    
+    common.ifBefore(deals,{seller:+id}).then(col=>{
+        col.forEach(d=>{
+            deals.doc(d.id).update({
+                active: false
+            }).then(()=>{
+                offers.doc(d.offer).update({
+                    blocked: null
+                })
+            })
+        })
+    })
+    common.ifBefore(deals,{buyer:+id}).then(col=>{
+        col.forEach(d=>{
+            deals.doc(d.id).update({
+                active: false
+            }).then(()=>{
+                offers.doc(d.offer).update({
+                    blocked: null
+                })
+            })
+        })
+    })
+}

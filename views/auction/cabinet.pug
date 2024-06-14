@@ -1,0 +1,33 @@
+extends site
+
+block style
+    link(rel='stylesheet', href='/stylesheets/hz/hz.css')
+    script!=`let start = ''`
+    //- script!=`let curShop = "${shop.id}"`/
+    script(src="/javascripts/hz/classes.js") 
+    script(src="/javascripts/hz/web.js") 
+    script(src="/javascripts/ko.js") 
+block content
+    #user
+        .flex
+            img.avatar(src!=user.photo_url)
+            h1!=user.username?`@${user.username}`:user.id
+        if(user.blocked)
+            h2 Ваш аккаунт заблокирован
+        if(user.to)
+            p!=`Ваш аккаунт оплачен до ${drawDate(user.to)}`
+    #shops
+        h1 Ваши магазины
+        for shop in shops
+            div.shop(id!=shop.id)
+                h2!=shop.name
+                a(target="_report" href!=`/hz/${shop.id}/report`) Открыть отчет
+                input(name="apiId" placeholder='CLIENT ID'   value!=shop.apiId)
+                input(name="apiSecret" placeholder='API key'     value!=shop.apiSecret)
+                button(onclick="updateCreds(this)") Сохранить / проверить
+                label
+                    input(type="checkbox")
+                        //- отправлять информацию в телеграм
+        if !shops.length
+            p Кажется, вы еще не добавляли магазины. Но это легко испарвить
+        button(onclick="addShop()") Добавить магазин

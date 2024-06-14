@@ -695,8 +695,11 @@ async function getDoc(col,id){
 
 
 function handleError(err,res){
+    
     console.log(err)
+    
     if(res) res.status(500).send(err.message)
+    
     alertMe({
         text: `Ошибка! ${err.message}`
     })

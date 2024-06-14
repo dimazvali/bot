@@ -1,0 +1,39 @@
+
+doctype html
+html
+  head
+    title!=(name ? `${name} | ` : '')+  `autoshell.dimazvali.com`
+    meta(property='og:title' content!=(name || `autoshell.dimazvali.com`))
+    
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    
+    meta(name='description' content!=(description || 'Давайте дружить.'))
+    meta(property='og:description' content!=(description || 'Давайте дружить.'))
+    block head 
+    link(rel='icon', type="image/x-icon", href='/images/autoshell/favicon.ico')
+    block style
+    if (image)
+      meta(property='og:image' content!=image)
+    
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script(src='/javascripts/common.js')
+    
+    link(rel='stylesheet', href='/stylesheets/autoshell/web.css')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Oi:wght@100;200;400;700;900&family=Oswald:wght@200;400;700;900&display=swap")
+
+    //- script(src='https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js')
+    //- script(src='https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js')
+
+    script(type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js")
+    script(type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
+    script(type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js")
+    script(type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+    script(src='/javascripts/knockout.js')
+    script(src='/javascripts/autoshell/classes.js')
+    
+    script(type="module" src='/javascripts/autoshell/web.js')
+  body
+    #table
+    #test

@@ -1,0 +1,152 @@
+th {
+    text-align: left;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+tr.third {
+    text-transform: lowercase;
+    font-size: small;
+    font-weight: 100;
+}
+
+div#content {
+    padding: 0 20px;
+    max-width: 1200px !important;
+    margin: 0 auto 0 10vw;
+}
+
+th.sep,
+td.sep {
+    border-left: 1px solid;
+    padding-left: 5px;
+}
+
+h2 {
+    position: sticky;
+    top: 0;
+    background: var(--light);
+}
+
+thead {
+    position: sticky;
+    top: 2em;
+    background: var(--light);
+}
+
+tr.second {
+    position: sticky;
+    top: 3.4em;
+    background: var(--light);
+}
+
+tbody {
+    margin-top: 20px;
+}
+
+tr:hover {
+    border-bottom: 1px solid;
+    filter: brightness(0.9) !important;
+    background: var(--light);
+}
+
+tr {
+    border-bottom: 1px solid transparent;
+    transition: .3s;
+}
+
+
+tr.third>td:nth-child(1):before {
+    content: ' ';
+    display: inline-block;
+    width: 10px;
+}
+
+[data-active="false"] {
+    filter: opacity(0.5);
+}
+
+.inline > * {
+    display: inline !important;
+    margin-left: 20px;
+}
+
+h1.giant {
+    font-size: 10vw;
+    text-align: center;
+}
+
+.center{
+    text-align: center;
+}
+
+@media all and (max-width: 600px) {
+    div#content{
+        margin:  0 auto !important; 
+    }
+    .giant{
+        font-size: 50vw;
+    }
+}
+
+td {
+    border-bottom: 1px solid;
+    border-left: 1px solid;
+    border-top: 1px solid;
+    border-right: 1px solid;
+}
+
+td.f60 {
+    width: 50px;
+}
+
+.shop {
+    background: var(--dark);
+    padding: 20px;
+    box-sizing: content-box;
+    border-radius: 20px;
+}
+
+.shop>h2 {
+    position: initial;
+    background: no-repeat;
+    color: var(--light);
+    margin-top: 0;
+}
+
+.shop>input {
+    display: block;
+    width: 100%;
+    border: none;
+    border-radius: 4px;
+    line-height: 40px;
+    margin-bottom: 10px;
+    padding: 0px 10px;
+    box-sizing: border-box;
+}
+
+
+.shop>button {
+    background-color: var(--light);
+    color: black;
+}
+
+.shop {
+    margin-bottom: 20px;
+}
+
+.shop>a {
+    color: white;
+    margin-top: -10px;
+    display: block;
+    margin-bottom: 20px;
+}
+
+img.avatar {
+    border-radius: 50%;
+    height: 80px;
+    margin-right: 20px;
+}

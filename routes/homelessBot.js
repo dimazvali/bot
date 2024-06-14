@@ -1,5 +1,9 @@
-// let ngrok = process.env.ngrok2 
+// TODO
+// прислать ДА список сообщений
+
+
 let ngrok = process.env.ngrok;
+// let ngrok = process.env.ngrok2 
 
 const host = `homeless`;
 const token = process.env.homelessToken;
@@ -155,6 +159,96 @@ let savedUserTypes = {
 }
 
 
+const locals = {
+    overBooking:            `${sudden.sad()}! Места уже закончились...`,
+    busAccepted: (b) =>     `${sudden.fine()}! Вы записаны в команду ночного автобуса. До встречи ${b.date}.`,
+    eventEntered:(e)=>      `${sudden.fine()}! Вы записались на мероприятие ${e.name}. До встречи!`,
+    alreadyBooked:          `Вы уже записаны.`,
+
+    citySelector:   `Хорошо там, где мы есть:`,
+    
+    eventCancelled:         `${sudden.sad()}, это меропрятие отменено`,
+    futureEvents:           `Посмотрим, что у нас есть...`,
+    nothingYet:             `Кажется, для вас ничего нет...`,
+    greetings:              `${greeting()}! Тут должен быть текст приветствия, который можно будет настроить через админку. А пока что укажите, кем вы захотели стать, когда выросли:`,
+
+    settingsDescription:    `Что именно вам хотелось бы изменить?..`,
+    
+    commandUnknown: `Извините, я еще не выучил такую команду`,
+    
+    ok:(plus)=> `Спасибо! ${plus||''}`,
+    seeYouSoon: `Спасибо и до скорой встречи!`,
+    sadButTrue: `Очень жаль. До новых встреч!`,
+
+    inside:{
+        errors: {
+            noDate:             `Без даты никак.`,
+            already:            `Этот день уже внесен!`,
+            alreadyRemoved:     `Запись уже отменена`,
+            alreadyDeleted:     `уже удалено`,
+            noSuchUser:         `Такого пользователя в системе нет`,
+            userLeft:           `Пользователь заблочил бот`,
+            userBlackListed:    `Пользователь в ЧС`,
+            userAlreadyListed:  `Пользователь уже записан`,
+            noAuth:             `Вы кто вообще?`,
+            duplicate:          `такая запись уже есть`,
+            noRecord:           `такой записи нет`,
+            missing:(v)=>       `не хватает ${v}`,
+        },
+        reports:{
+
+            users: {
+                comeback:(u) => `${uname(user,u.id)} возвращается`
+            },
+
+            events: {
+                added: (user, e)=>      `${uname(user,user.id)} регистрируется на мероприятие ${e.name}.`,
+                removed: (user,e) =>    `${uname(user,user.id)} отказывается от места на мероприятии ${(e.eventName||e.name)}.`
+            },
+
+            bus:{    
+                removed: (user,ride)=> `${uname(user,user.id)} снимается с рейса ${ride.date}`,
+                userAdded2Bus:(u, d) => `${uname(u,u.id)} добавлен в команду ночного автобуса на ${d}`,
+            },
+            
+            news:{
+                sent:(col)=> `Рассылка создана и расходится на ${col.length} пользователей.`,
+                started: (admin,req)=>`${uname(admin,admin.id)} стартует рассылку с названием «${req.body.name}».`
+            },
+
+            tags:{
+                removed: `Тег снят`,
+                adminRemode:(admin,t)=> `${uname(admin,admin.id)} снимает тег ${t.name} пользователю с id ${t.user}`
+            },
+
+            messages:{
+                removed: `Сообщение удалено.`
+            },
+
+            archive:(admin,req,e)=>`${uname(admin,admin.id)} архивирует ${req.params.data} ${e.name || e.id}.`,
+
+        },
+        
+        successFulUpdate: `Сообщение обновлено.`,
+
+        upd: (req,d)=> `Обновлен ${req.params.method} / ${d.name || req.params.id}.\n${req.body.attr} стало ${req.body.value} (было ${d[req.body.attr || null]})`,
+
+        tags:{
+            added:(user,tag)=>`${uname(user,user.id)} добавляет себе тег ${tag.name}`,
+            removed: (user,tag)=>`${uname(user,user.id)} снимает тег ${tag.name}`
+        },
+        profile:{
+            upd: (user,req, possible)=>`${uname(user,user.id)} обновляет профиль: ${possible[req.body.attr]} становится ${req.body.value}.`
+        }
+    },
+
+    buttons:{
+        busLeave:   `Не смогу прийти.`,
+        enlist:     `Записаться`
+    }
+}
+
+
 
 let userList = udb.get().then(col=>common.handleQuery(col))
 
@@ -172,7 +266,6 @@ function log(o) {
                 text:   o.text
             })
         }
-
     })
 }
 
@@ -250,13 +343,13 @@ const datatypes = {
 }
 
 function addtrip(req,res,admin){
-    if(!req.body.date) return res.json({success:false,comment:`Без даты никак.`})
+    if(!req.body.date) return res.json({success:false,comment:locals.inside.errors.noDate})
     busTrips
         .where(`date`,`==`,req.body.date)
         .where(`active`,`==`,true)
         .get()
         .then(col=>{
-            if(col.docs.length) return res.json({success:false,comment:`Этот день уже внесен!`})
+            if(col.docs.length) return res.json({success:false,comment:locals.inside.errors.already})
             busTrips.add({
                 createdAt:  new Date(),
                 active:     true,
@@ -344,7 +437,7 @@ function register2Bus(tripId,u,callback,res){
                         text: locals.busAccepted(trip),
                         reply_markup:{
                             inline_keyboard:[[{
-                                text: `Не смогу прийти.`,
+                                text:           locals.buttons.busLeave,
                                 callback_data: `bus_leave_${rec.id}`
                             }]]
                         }
@@ -369,9 +462,9 @@ function addBus(req,res,admin){
 
         getUser(req.body.user,udb).then(u=>{
             
-            if(!u)          return res.json({success:false,comment: `Такого пользователя в системе нет`})
-            if(!u.active)   return res.json({success:false,comment: `Пользователь заблочил бот`})
-            if(u.blocked)   return res.json({success:false,comment: `Пользователь в ЧС`})
+            if(!u)          return res.json({success:false,comment: locals.inside.errors.noSuchUser})
+            if(!u.active)   return res.json({success:false,comment: locals.inside.errors.userLeft})
+            if(u.blocked)   return res.json({success:false,comment: locals.inside.errors.userBlackListed})
 
             bus
                 .where(`date`,'==',req.body.date)
@@ -382,7 +475,7 @@ function addBus(req,res,admin){
                     
                     if(already.docs.length) return res.json({
                         success: false,
-                        comment: `Пользователь уже записан`
+                        comment: locals.inside.errors.userAlreadyListed
                     })
 
                     bus.add({
@@ -394,7 +487,7 @@ function addBus(req,res,admin){
                         trip:       req.body.trip || null
                     }).then(rec=>{
                         log({
-                            text:   `${uname(u,u.id)} добавлен в команду ночного автобуса на ${req.body.date}`,
+                            text:   locals.inside.reports.bus.userAdded2Bus(u,req.body.date),
                             user:   +u.id,
                             admin:  +admin.id,
                             bus:    rec.id
@@ -406,7 +499,7 @@ function addBus(req,res,admin){
                             }),
                             reply_markup: {
                                 inline_keyboard:[[{
-                                    text: `Не смогу прийти.`,
+                                    text:           locals.buttons.busLeave,
                                     callback_data: `bus_leave_${rec.id}`
                                 }]]
                             }
@@ -447,13 +540,13 @@ function sendNews(req,res,col, admin){
         res.json({
             success:    true,
             id:         rec.id,
-            comment:    `Рассылка создана и расходится на ${col.length} пользователей.`
+            comment:    locals.inside.reports.news.sent(col)
         })
         
         log({
             silent: true,
-            text:  `${uname(admin,admin.id)} стартует рассылку с названием «${req.body.name}».`,
-            admin: +admin.id
+            text:   locals.inside.reports.news.started(admin,req),
+            admin:  +admin.id
         })
 
         col
@@ -635,7 +728,7 @@ function isoDate(){
 
 router.all(`/api/:method/:id`,(req,res)=>{
     
-    if (!req.signedCookies.userToken) return res.status(401).send(`Вы кто вообще?`)
+    if (!req.signedCookies.userToken) return res.status(401).send(locals.inside.errors.noAuth)
     
     adminTokens.doc(req.signedCookies.userToken).get().then(doc => {
         
@@ -669,7 +762,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                 let already = handleQuery(col);
                                 
                                 if(req.body.value){
-                                    if(already.length) return res.status(400).send(`уже записано`)
+                                    if(already.length) return res.status(400).send(locals.inside.errors.duplicate)
                                     userTags.add({
                                         tag:        req.body.attr,
                                         createdAt:  new Date(),
@@ -682,17 +775,17 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                         })
                                         res.json({
                                             success: true,
-                                            comment: `Спасибо!`
+                                            comment: locals.ok()
                                         })
                                         log({
                                             silent: true,
                                             tag: tag.id,
                                             user: +user.id,
-                                            text: `${uname(user,user.id)} добавляет себе тег ${tag.name}`
+                                            text: locals.inside.tags.added(user,tag)
                                         })
                                     })
                                 } else {
-                                    if(!already.length) return res.status(400).send(`нечего удалять...`)
+                                    if(!already.length) return res.status(400).send(locals.inside.errors.noRecord)
                                     already.forEach(record=>{
                                         userTags.doc(record.id).update({
                                             active: false
@@ -704,12 +797,12 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                             silent: true,
                                             tag: tag.id,
                                             user: +user.id,
-                                            text: `${uname(user,user.id)} снимает тег ${tag.name}`
+                                            text: locals.inside.tags.removed(user,tag)
                                         })
                                     })
                                     res.json({
                                         success: true,
-                                        comment: `Спасибо!`
+                                        comment: locals.ok()
                                     })
                                 }
                             })
@@ -733,7 +826,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                     
                                     log({
                                         user: +user.id,
-                                        text: `${uname(user,user.id)} обновляет профиль: ${possible[req.body.attr]} становится ${req.body.value}.`
+                                        text: locals.inside.profile.upd(user,req,possible)
                                     })
                                 })
                             }
@@ -755,7 +848,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                 })
                             }
                             case `DELETE`:{
-                                if(!ride.active) return res.status(400).send(`Запись уже отменена`);
+                                if(!ride.active) return res.status(400).send(locals.inside.errors.alreadyRemoved);
                                 return ref.update({
                                     active: false,
                                 }).then(()=>{
@@ -766,7 +859,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                         bus: req.params.id,
                                         busTrip: ride.trip,
                                         user: +user.id,
-                                        text: `${uname(user,user.id)} снимается с рейса ${ride.date}`
+                                        text: locals.inside.reports.bus.removed(user,ride)
                                     })
                                     res.json({
                                         success: true
@@ -790,13 +883,13 @@ router.all(`/api/:method/:id`,(req,res)=>{
                             })
                             res.json({
                                 success: true,
-                                comment: `Очень жаль. До новых встреч!`
+                                comment: locals.sadButTrue
                             })
                             log({
                                 silent: true,
-                                text: `${uname(user,user.id)} отказывается от места на мероприятии ${e.eventName}.`,
-                                event: req.params.id,
-                                user: +user.id
+                                text:   locals.inside.reports.events.removed(user,e),
+                                event:  req.params.id,
+                                user:   +user.id
                             })
                         })
                     })
@@ -823,7 +916,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
 
 router.all(`/api/:method`,(req,res)=>{
     
-    if (!req.signedCookies.userToken) return res.status(401).send(`Вы кто вообще?`)
+    if (!req.signedCookies.userToken) return res.status(401).send(locals.inside.errors.noAuth)
     
     adminTokens.doc(req.signedCookies.userToken).get().then(doc => {
         
@@ -943,14 +1036,14 @@ router.all(`/api/:method`,(req,res)=>{
                             return getDoc(events, req.body.event)
                                 .then(e=>{
                                     if(!e || !e.active) return res.status(404).send(`no such event`)
-                                    if(e.capacity && e.capacity <= e.guests) return res.status(400).send(`Извините, но свободных мест больше нет.`)
+                                    if(e.capacity && e.capacity <= e.guests) return res.status(400).send(locals.overBooking)
                                     usersEvents
                                         .where(`event`,'==',e.id)
                                         .where(`active`,'==',true)
                                         .where(`user`,'==',+user.id)
                                         .get()
                                         .then(col=>{
-                                            if(col.docs[0]) return res.status(400).send(`Извините, но вы уже зарегистрированы.`)
+                                            if(col.docs[0]) return res.status(400).send(locals.alreadyBooked)
                                             usersEvents.add({
                                                 createdAt:  new Date(),
                                                 event:      e.id,
@@ -967,11 +1060,11 @@ router.all(`/api/:method`,(req,res)=>{
                                                 res.json({
                                                     success:    true,
                                                     id:         rec.id,
-                                                    comment:    `Спасибо и до скорой встречи!`
+                                                    comment:    locals.seeYouSoon
                                                 })
                                                 log({
                                                     silent: true,
-                                                    text:   `${uname(user,user.id)} регистрируется на мероприятие ${e.name}.`,
+                                                    text:   locals.inside.reports.events.added(user,e),
                                                     event:  req.body.event,
                                                     user:   +user.id
                                                 })
@@ -1005,7 +1098,7 @@ router.all(`/admin/:method`,(req,res)=>{
     
     let token = req.signedCookies.adminToken || req.signedCookies.userToken;
 
-    if (!token) return res.status(401).send(`Вы кто вообще?`)
+    if (!token) return res.status(401).send(locals.inside.errors.noAuth)
     
     adminTokens.doc(token).get().then(doc => {
         
@@ -1015,13 +1108,12 @@ router.all(`/admin/:method`,(req,res)=>{
 
         getUser(token.user,udb).then(admin=>{
 
+            devlog(req.body);
+
             if(!admin) return res.sendStatus(403)
 
-            devlog(admin)
 
             switch(req.params.method){
-
-
 
                 case `userSearch`:{
                     if(!req.query.name) return res.sendStatus(400)
@@ -1060,7 +1152,7 @@ router.all(`/admin/:method`,(req,res)=>{
 
 router.all(`/admin/:method/:id`,(req,res)=>{
     let token = req.signedCookies.adminToken || req.signedCookies.userToken;
-    if (!token) return res.status(401).send(`Вы кто вообще?`)
+    if (!token) return res.status(401).send(locals.inside.errors.noAuth)
     
     adminTokens.doc(token).get().then(doc => {
         
@@ -1109,8 +1201,8 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                                 name:       t.name
                                             }).then(rec=>{
                                                 res.json({
-                                                    comment: `Тег добавлен`,
-                                                    id: rec.id
+                                                    comment:    locals.ok(`Тег добавлен.`),
+                                                    id:         rec.id
                                                 })
                                                 tags.doc(req.body.tag).update({
                                                     cnt: FieldValue.increment(1)
@@ -1136,13 +1228,13 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                                     active: false
                                 }).then(s=>{
                                     res.json({
-                                        comment: `Тег снят`
+                                        comment: locals.inside.reports.tags.removed
                                     })
                                     tags.doc(t.tag).update({
                                         cnt: FieldValue.increment(-1)
                                     })
                                     log({
-                                        text:   `${uname(admin,admin.id)} снимает тег ${t.name} пользователю с id ${t.user}`,
+                                        text:   locals.inside.reports.tags.adminRemode(admin,t),
                                         admin:  +admin.id,
                                         tag:    t.tag,
                                         user:   +t.user
@@ -1217,8 +1309,8 @@ function updateEntity(req,res,ref,admin){
         if(req.params.method == `messages`){
             let mess = d;
             
-            if(mess.deleted || mess.edited)       return res.status(400).send(`уже удалено`);
-            if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
+            if(mess.deleted || mess.edited)         return res.status(400).send(locals.inside.errors.alreadyDeleted);
+            if(!mess.messageId)                     return res.status(400).send(locals.inside.errors.missing(`id`));
             
             sendMessage2({
                 chat_id:    mess.user,
@@ -1228,7 +1320,7 @@ function updateEntity(req,res,ref,admin){
                 if(resp.ok) {
                     res.json({
                         success: true,
-                        comment: `Сообщение обновлено.`
+                        comment: locals.inside.successFulUpdate
                     })
                     ref.update({
                         text:       req.body.value,
@@ -1253,7 +1345,7 @@ function updateEntity(req,res,ref,admin){
                     silent: true,
                     admin: +admin.id,
                     [req.params.method]: req.params.id,
-                    text: `Обновлен ${req.params.method} / ${d.name || req.params.id}.\n${req.body.attr} стало ${req.body.value} (было ${d[req.body.attr || null]})`
+                    text: locals.inside.upd(req,d)
                 })
 
                 if(req.params.method == `settings`){
@@ -1278,8 +1370,8 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
             
             mess = data;
 
-            if(mess.deleted)       return res.status(400).send(`уже удалено`);
-            if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
+            if(mess.deleted)       return res.status(400).send(locals.inside.errors.alreadyDeleted);
+            if(!mess.messageId)    return res.status(400).send(locals.inside.errors.missing(`id сообщения`));
             
             sendMessage2({
                 chat_id:    mess.user,
@@ -1288,7 +1380,7 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
                 if(resp.ok) {
                     res.json({
                         success: true,
-                        comment: `Сообщение удалено.`
+                        comment: locals.inside.reports.messages.removed
                     })
                     ref.update({
                         deleted:    new Date(),
@@ -1301,7 +1393,7 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
         } else {
             if (!data[attr || 'active']) return res.json({
                 success: false,
-                comment: `Вы опоздали. Запись уже удалена.`
+                comment: locals.inside.errors.alreadyDeleted
             })
     
     
@@ -1313,7 +1405,7 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
                 log({
                     [req.params.data]: req.params.id,
                     admin: +admin.id,
-                    text: `${uname(admin,admin.id)} архивирует ${req.params.data} ${e.name || e.id}.`
+                    text: locals.inside.reports.archive(admin,req,e)
                 })
     
                 res.json({
@@ -1321,7 +1413,6 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
                 })
     
                 if (typeof (callback) == 'function') {
-                    console.log(`Запускаем коллбэк`)
                     callback()
                 }
             }).catch(err => {
@@ -1387,19 +1478,9 @@ router.get(`/web`,(req,res)=>{
     
     getDoc(adminTokens, (req.signedCookies.adminToken || process.env.adminToken)).then(t=>{
 
-        devlog(t)
-
-        // if(!req.signedCookies.adminToken && (process.env.develop == `true`)) return res.cookie('adminToken', req.query.adminToken || process.env.adminToken, {
-        //     maxAge: 24 * 60 * 60 * 1000,
-        //     signed: true,
-        //     httpOnly: true,
-        // })
-
         if(!t || !t.active) return res.sendStatus(403)
 
         getUser(t.user,udb).then(u=>{
-
-            devlog(`пользватель получен`)
 
             if(u.blocked) return res.sendStatus(403)
             
@@ -1421,10 +1502,6 @@ router.get(`/web`,(req,res)=>{
                         settings:   savedSettings
                     })
                 }) 
-        
-        
-
-            
 
             if(u.admin && !req.query.stopAdmin) return logs
                 .orderBy(`createdAt`,'desc')
@@ -1530,7 +1607,7 @@ router.post(`/hook`,(req,res)=>{
                 log({
                     silent:     true,
                     user:       +user.id,
-                    text:       `Пользователь id ${user.id} возвращается`
+                    text:       locals.inside.reports.users.comeback(u)       
                 })
             })
 
@@ -1717,7 +1794,7 @@ router.post(`/hook`,(req,res)=>{
                         }
                         case `leave`:{
                             return getDoc(bus,inc[2]).then(busRecord=>{
-                                if(!busRecord || !busRecord.active) return acbq(req,`Запись уже отменена`)
+                                if(!busRecord || !busRecord.active) return acbq(req,locals.inside.errors.alreadyRemoved)
 
                                 bus.doc(inc[2]).update({
                                     active: false
@@ -1727,13 +1804,13 @@ router.post(`/hook`,(req,res)=>{
                                     })
 
                                     log({
-                                        text:       `${uname(u,u.id)} снимается с рейса ${busRecord.date}`,
+                                        text:       locals.inside.reports.bus.removed(u,busRecord),
                                         busTrip:    busRecord.trip || null,
                                         bus:        inc[2],
                                         user:       +u.id 
                                     })
                                     
-                                    acbq(req,`Запись отменена`)
+                                    acbq(req,locals.inside.errors.alreadyRemoved)
                                 })
 
                             })
@@ -1768,7 +1845,7 @@ router.post(`/hook`,(req,res)=>{
                                         photo:      event.pic||null,
                                         reply_markup: event.capacity ? {
                                             inline_keyboard:[[{
-                                                text: reserve ? `Не приду` : `Записаться`,
+                                                text: reserve ? locals.buttons.busLeave : locals.buttons.enlist,
                                                 callback_data: reserve ? `event_${inc[1]}_leave_${reserve}` : `event_${inc[1]}_join`
                                             }]]
                                         } : null
@@ -1802,7 +1879,7 @@ router.post(`/hook`,(req,res)=>{
                                             text:   locals.eventEntered(event),
                                             reply_markup:{
                                                 inline_keyboard:[[{
-                                                    text: `Снять запись`,
+                                                    text: locals.buttons.busLeave,
                                                     callback_data: `event_${inc[1]}_leave_${rec.id}`
                                                 }]]
                                             }
@@ -1815,14 +1892,14 @@ router.post(`/hook`,(req,res)=>{
                                     if(reserve) return usersEvents.doc(reserve).update({
                                         active: false
                                     }).then(()=>{
-                                        acbq(req,`Спасибо, ваша запись снята`)
+                                        acbq(req,locals.sadButTrue)
                                         
                                         eventRef.update({
                                             guests: FieldValue.increment(-1)
                                         })
 
                                         log({
-                                            text:       `${uname(u,u.id)} снимает запись на мероприятие ${event.name}`,
+                                            text:       locals.inside.reports.events.removed(u,event),
                                             user:       +u.id,
                                             event:      event.id,
                                             userEvent:  reserve
@@ -1839,7 +1916,7 @@ router.post(`/hook`,(req,res)=>{
                         case `city`:{
                             return sendMessage2({
                                 chat_id: user.id,
-                                text: `Хорошо там, где мы есть:`,
+                                text: locals.citySelector,
                                 reply_markup:{
                                     inline_keyboard: Object.keys(savedCities).map(c=>{
                                         return [{
@@ -2077,44 +2154,11 @@ function registerUser(u) {
 
 
 
-const locals = {
-    overBooking:    `${sudden.sad()}! Места уже закончились...`,
-    busAccepted: (b) => `${sudden.fine()}! Вы записаны в команду ночного автобуса. До встречи ${b.date}.`,
-    eventEntered:(e)=> `${sudden.fine()}! Вы записались на мероприятие ${e.name}. До встречи!`,
-    alreadyBooked:  `Вы уже записаны.`,
-    eventCancelled: `${sudden.sad()}, это меропрятие отменено`,
-    futureEvents:   `Посмотрим, что у нас есть...`,
-    nothingYet:     `Кажется, для вас ничего нет...`,
-    greetings:      `${greeting()}! Тут должен быть текст приветствия, который можно будет настроить через админку. А пока что укажите, кем вы захотели стать, когда выросли:`,
-
-    settingsDescription:    `Что именно вам хотелось бы изменить?..`,
-    subscriptionDisclaimer: `\nВы получили это сообщение, так как подписаны на все новинки в своем городе. Чтобы отписаться, нажмите последнюю кнопку под сообщением.`,
-    noBooksAvailable: `${sudden.sad()}! Кажется, в вашем городе нет доступных книг. Может быть, вы сможете добавить парочку?..`,
-    dealConfirmed2Buyer:(d,s)=>     `${sudden.fine()}! Книга «${d.bookName}» без малого ваша. А вот ее хозяин: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`,
-    rentConfirmed2Seller:(d,s)=>    `${sudden.fine()}! А вот и человек, который хотел бы получить книгу «${d.bookName}»: [@${s.username||s.first_name||s.last_name}](tg://user?id=${s.id})`,
-    rentCancelledByOwner: (d) =>    `${sudden.sad()}! Хозяин книги «${d.bookName}» не сможет ей поделиться. Такое бывает. Давайте найдем что-нибудь еще?..`,
-    rentCancelled:(d)=>             `${sudden.sad()}! Запрос на книгу «${d.bookName}» был отменен.`,
-    afterCancel:    `Ваш запрос отменен`,
-    tooLate:        `Извинте, уже не получится`,
-    dealNotActive:  `Этот запрос уже закрыт. Вы не можете его обновить.`,
-    noDeal:         `Очень странные дела... Нет такой записи...`,
-    alreadyRented:  `Вы уже взяли эту книгу. Оставьте ее в покое.`,
-    cantBuyYourSelf: `Простите, но это ваша собственная книга.`,
-    rentRequest: (o)=>              `${sudden.fine()}! Кто-то хочет взять почитать ваше издание «${o.bookName}».\nНажмите «Согласиться» — и мы свяжем вас напрямую.\nЕсли вы не можете им поделиться — не беда. Нажмите «Вежливый отказ». Мы все передадим (и снимем издание с полки).`,
-    rentRequestSent:(o)=>           `Отличный выбор! Ваш запрос на книгу «${o.bookName}» отправлен владельцу. После подтверждения мы свяжем вас напрямую.`,
-    offerBlocked:   `${sudden.sad()}! Эту книгу сейчас читают...`,
-    
-    updateSuccess:  `Настройки обновлены.`,
-    noCityProvided: `Извините, но вы все еще не указали свой город. Давайте исправим это:`,
-    catalogue:      `Присмотримся...`,
-    commandUnknown: `Извините, я еще не выучил такую команду`,
-    noOffer:        `${sudden.sad()}! Это предложение уже недоступно...`
-}
 
 let savedSettings = {
-    defaultStartPlace: {value:`Дворцовая площадь, 1`},
-    defaultStartTime: {value:`18:45`},
-    defaultGreetings: {value:locals.greetings}
+    defaultStartPlace:  {value:`Дворцовая площадь, 1`},
+    defaultStartTime:   {value:`18:45`},
+    defaultGreetings:   {value:locals.greetings}
 }
 
 

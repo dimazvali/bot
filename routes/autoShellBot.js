@@ -266,27 +266,27 @@ function alertAdmins(mess) {
 router.post(`/api/:method`,(req,res)=>{
     switch(req.params.method){
         
-        case `pair`:{
-            devlog(`новая пара`)
-            let data = req.body.data;
-            data.parsed = false;
+        // case `pair`:{
+        //     devlog(`новая пара`)
+        //     let data = req.body.data;
+        //     data.parsed = false;
 
-            devlog(data)
-            if(data['BFB'] + data.rater.solRate + data.rater.directRate + data.rater.singleTransactionBuyRate + data.rater.buyersTransferRate + data.rater.cexTransferRate){
-                return rtb.ref(`/${host}/inc`).push(data)
-                .then(raw=>{
-                    devlog(`положили`);
-                    let token = data.pairData.tokenA.indexOf(`So11`) ? data.pairData.tokenA : data.pairData.tokenB;
-                    parseAndSet(false, token, data, raw)
-                    return res.sendStatus(201)
-                }).catch(err=>{
-                    devlog(err);
-                })
-            } else {
-                return res.status(200).send(`read, but not registered`)
-            }
+        //     devlog(data)
+        //     if(data['BFB'] + data.rater.solRate + data.rater.directRate + data.rater.singleTransactionBuyRate + data.rater.buyersTransferRate + data.rater.cexTransferRate){
+        //         return rtb.ref(`/${host}/inc`).push(data)
+        //         .then(raw=>{
+        //             devlog(`положили`);
+        //             let token = data.pairData.tokenA.indexOf(`So11`) ? data.pairData.tokenA : data.pairData.tokenB;
+        //             parseAndSet(false, token, data, raw)
+        //             return res.sendStatus(201)
+        //         }).catch(err=>{
+        //             devlog(err);
+        //         })
+        //     } else {
+        //         return res.status(200).send(`read, but not registered`)
+        //     }
             
-        }
+        // }
         default:{
             res.sendStatus(404)
         }

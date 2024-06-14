@@ -77,9 +77,10 @@ div#popup {
     box-sizing: border-box;
     animation: slideRight .5s forwards;
     filter: opacity(.3);
-    background-size: cover;
+    background-size: 50%;
     background-position: 50%;
     z-index: 10;
+    transition: 1s;
 }
 
 img#logo {
@@ -558,8 +559,8 @@ img.coverS {
     background: var(--tg-theme-accent-text-color);
     color: var(--tg-theme-button-text-color);
     padding: 2px 5px;
-    left: 0;
-    border-bottom-right-radius: 4px;
+    right: 0;
+    border-bottom-left-radius: 4px;
 }
 
 .bookDesc {
@@ -586,4 +587,23 @@ img.bookCover {
     width: 100%;
     max-height: 50vh;
     object-fit: cover;
+}
+
+@keyframes bgRise {
+    0%{
+        background-size: 50%;
+    }
+    100%{
+        background-size: 100%;
+    }
+
+}
+
+img.bgImg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    filter: opacity(0.3);
+    transform: translate(0px, -30%);
 }

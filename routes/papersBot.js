@@ -1247,7 +1247,15 @@ router.all(`/admin/:method`, (req, res) => {
                                                         }),
                                                         protect_content: req.body.safe?true:false,
                                                         disable_notification: req.body.silent?true:false,
-                                                    },`sendMediaGroup`,token,messages)
+                                                    },`sendMediaGroup`,token,messages).then(d=>{
+                                                        // if(d.ok) {
+                                                        //     m.sendMessage2({
+                                                        //         message_id:     d.result.message_id,
+                                                        //         parse_mode:     `HTML`,
+                                                        //         caption: req.body.text 
+                                                        //     },`editMessageCaption`,token)
+                                                        // }
+                                                    })
                                                 }
                                             },i*200)
                                         })
@@ -11564,3 +11572,10 @@ function getAvatar(id){
 //         if(rec.admin &&  typeof(rec.admin) == `string`) logs.doc(rec.id).update({admin: +rec.admin})
 //     })
 // })
+
+
+// m.sendMessage2({
+//     chat_id: 153982541,
+//     parse_mode: `Markdown`,
+//     text: `[человек](tg://user?id=${819380165})`
+// },false,token)

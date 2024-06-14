@@ -1,0 +1,59 @@
+
+doctype html
+html
+  head
+    title auction
+    script(src='https://telegram.org/js/telegram-web-app.js')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0,user-scalable=no')
+    meta(name='description' content='Попробуйте — вам понравится.')
+    //- <meta name="viewport" content="width=device-width, user-scalable=no" />
+    script(src='/javascripts/knockout.js')
+    script(type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js")
+    script(type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js")
+    script(type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js")
+    script(type="module" src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js")
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script!=`userId="${user}"`
+    script!=`intention=${start ? `"${start}"` : false }`
+    script(src='/javascripts/common.js')
+    script(type="module" src='/javascripts/auction/classes.js')
+    script!=`${start?`let start="${start}"`:'let start=null'}`
+    script(src="https://cdn.jsdelivr.net/jsbarcode/3.3.20/JsBarcode.all.min.js") 
+    link(rel='stylesheet', href='/stylesheets/auction/app.css')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap")
+    //- link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap")
+    
+  body#b
+    script!=`let authNeeded=${authNeeded}`
+    script!=`let cities=${JSON.stringify(cities)}`
+    //- if(authNeeded)
+    //-     .modal!=`Авторизация...`
+    
+        
+    .popup(data-bind="hidden:active()!='lobby',attr:{shown:active()!='lobby',class:active()!='lobby'?`hidden`:`reg`}")
+        div
+            h1 Аукционы
+            div.container.auction(data-bind="foreach:iterations")
+                h3(data-bind="text:name")
+                div.pool(data-bind="text: stake")
+                //- p(data-bind="text: `ставка: ${`")
+                p.info(data-bind="text: `до окончания: ${left()}`")
+                button.stakeButton(data-bind="attr:{disabled:stakeHolder()==$parent.hash()},click:$root.stake,text:stakeHolder()==$parent.hash()?'вы ведете':`сделать ставку (${base()} звезд)`")
+    .popup(data-bind="hidden:active()!='current',attr:{shown:active()!='current',class:active()!='current'?`hidden`:`reg`}")
+        div
+            //- h1 Текучка
+    .popup(data-bind="hidden:active()!='profile',attr:{shown:active()!='profile',class:active()!='profile'?`hidden`:`reg`}")
+        div
+            //- h1 Профиль
+            .flexLeft
+                img.ava(data-bind="attr:{src:avatar}")
+                h3(data-bind="text:username")
+            div
+                h2(data-bind="text:balance")
+    #footer.flex
+        #lobby(data-bind="event:{click:()=>sactive('lobby')}") лобби
+        #active(data-bind="event:{click:()=>sactive('current')}") текучка
+        #profile(data-bind="event:{click:()=>sactive('profile')}") профиль
+  script(type="module" src='/javascripts/auction/app.js')
