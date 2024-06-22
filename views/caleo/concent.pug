@@ -1,0 +1,16 @@
+extends site
+
+block style
+    link(rel='stylesheet', href='/stylesheets/books/admin.css')
+
+block  content
+    img(src="/images/books/logo.png" class="cover round")
+    h2!=greetings()
+    p Если вы согласны с условиями, которые нам еще предстоит написать, пожалуйста, нажмите заветную кнопку чуть ниже.
+    form(action ="/books/sellerConcent" method="POST") 
+        select(name="city" required="true")
+            option(value="") Выберите город 
+            for c in cities
+                    option(value!=c.id)!=c.name
+        input(type="text" name="address" placeholder="ваш адрес" required="true")
+        button(type="submit") Зарегистрироваться 

@@ -95,6 +95,7 @@ function authWebApp(req,res,token,adminTokens,udb){
                     user:       +req.body.user.id,
                     active:     true 
                 }).then(c=>{
+                    
                     res.cookie((req.query.token||'adminToken'), c.id, {
                         maxAge: 7 * 24 * 60 * 60 * 1000,
                         signed: true,
@@ -102,6 +103,7 @@ function authWebApp(req,res,token,adminTokens,udb){
                     }).json({
                         admin: u && u.admin ? true : false
                     })
+
                     udb.doc(req.body.user.id.toString()).update({
                         entries:    FieldValue.increment(+1),
                         recent:     new Date()

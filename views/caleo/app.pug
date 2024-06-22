@@ -1,0 +1,30 @@
+
+doctype html
+html
+  head
+    title caleo
+    script(src='https://telegram.org/js/telegram-web-app.js')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0,user-scalable=no')
+    meta(name='description' content='Попробуйте — вам понравится.')
+    //- <meta name="viewport" content="width=device-width, user-scalable=no" />
+
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script!=`userId="${user}"`
+    script!=`let catalogue = ${JSON.stringify(catalogue)}`
+    script!=`intention=${start ? `"${start}"` : false }`
+    script(src='/javascripts/common.js')
+    script!=`${start?`let start="${start}"`:'let start=null'}`
+    script(src="https://cdn.jsdelivr.net/jsbarcode/3.3.20/JsBarcode.all.min.js") 
+    link(rel='stylesheet', href='/stylesheets/caleo/app.css')
+    link(rel="preconnect", href="https://fonts.googleapis.com")
+    link(rel="preconnect", href="https://fonts.gstatic.com")
+    link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap")
+    //- link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap")
+    
+  body
+    script!=`let authNeeded=${authNeeded}`
+    script!=`let cities=${JSON.stringify(cities)}`
+    if(authNeeded)
+        .modal!=`Авторизация...`
+            
+  script(src='/javascripts/caleo/app.js')

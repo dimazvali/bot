@@ -1,0 +1,14 @@
+doctype html
+html
+  head
+    title books.dimazvali.com web admin
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(name='description' content='Попробуйте — вам понравится.')
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
+    script(src='/javascripts/common.js')
+    link(rel='stylesheet', href='/stylesheets/books/web.css')
+    
+  body.mobile.start
+  h1(style="color:var(--dark);text-align:center;") Давайте знакомиться...
+  script(src='https://telegram.org/js/telegram-widget.js?22' data-size="large" data-onauth="onTelegramAuth(user,'books')" data-telegram-login="shelfCareBot")    
+    script!=`function onTelegramAuth(user) {alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');}`

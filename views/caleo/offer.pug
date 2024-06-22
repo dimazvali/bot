@@ -1,0 +1,24 @@
+extends site
+
+block content
+    #l
+        h1!=offer.bookName
+        p!=`${(book.publisher ? `${book.publisher}, ` : ``)} ${book.year||''}.`
+        p!=`Состояние: ${offer.state}.`
+        p!=`${cities[offer.city].name}, ${offer.address}.`
+        p!=offer.description || offer.bookDescription
+        //- #catalogue
+        button.full(onclick!=`window.open('https://t.me/shelfCareBot?start=offer_${offer.id}_view')`)!=offer.price ? `Купить` : `Взять`
+
+    #r 
+        #opener(onclick=`this.parentNode.classList.toggle('opened')`) ≡
+        //- img.logo.small(src="/images/books/logo.png")
+        if(offer.pic||offer.bookPic)
+            img.coverBig(src!=offer.pic||offer.bookPic)
+        if(offers.length)
+            .mTop
+                h4 Все варианты:
+                for offer in offers
+                    .sDivided.flex
+                        img.smallestLogo(src!=offer.pic||offer.bookPic||dummyBook)
+                        p!=`${cities[offer.city].name}: ${offer.price ? cur(offer.price, cities[offer.city].currency) : `бесплатно`}`

@@ -1,0 +1,31 @@
+extends site
+
+block content
+    #l
+        h1!=name
+        p!=description
+        #catalogue
+            for book in books
+                include bookWidget
+            button.full(onclick=`window.location.search = ''`) Сбросить фильтры
+    #r 
+        #opener(onclick=`this.parentNode.classList.toggle('opened')`) ≡
+        img.logo.small(src="/images/books/logo.png")
+        form(action="/books/offers")
+            input(type="text" placeholder="название" name="bookName" value!=q.bookName||null)
+            div.mTop
+                for c in cities
+                    label
+                        input(type="radio" name="city" value!=c.id checked!=(c.id==city))
+                        !=c.name
+            button.full(type="submit") Найти
+
+            .flex.spread
+                a.petite(href=`/books/web`) Предложить книгу
+                a.petite(href=`/books/about`) О проекте
+                a.petite(href=`/books/contacts`) Контакты
+
+            if(seller)
+                a(href=`/books/web`) Перейти в админку
+            if(admin)
+                a(href=`/books/web`) Перейти в админку
