@@ -1,5 +1,5 @@
 const ngrok2 = process.env.ngrok2;
-const ngrok = process.env.ngrok2;
+const ngrok = process.env.ngrok;
 const host = `caleo`
 const token = process.env.caleoToken;
 
