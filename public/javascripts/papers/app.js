@@ -475,6 +475,8 @@ function showProfile(el){
                 }
             })
 
+
+
             let rclabel = ce('label',false,false,`Random Coffee`,{
                 dataset:{
                     chekable: true,
@@ -496,8 +498,12 @@ function showProfile(el){
             
             
 
-            content.append(sublabel)
-            content.append(rclabel)
+            // content.append(sublabel)
+            // content.append(rclabel)
+
+            content.append(toggleCheckBox(`profile`,userid,'randomCoffee',user.randomCoffee,`random coffee`))
+            content.append(toggleCheckBox(`profile`,userid,'noSpam',user.noSpam,`отписаться от новостей`))
+
 
             content.append(ce('button',false,'dateButton',translations.save[userLang] || translations.save.en,{
                 onclick:()=>{

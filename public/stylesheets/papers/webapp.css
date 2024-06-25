@@ -565,3 +565,56 @@ div.headerSlider>h2 {
     display: flex;
     flex-wrap: nowrap;
 }
+
+label.toggleLabel {
+    display: block;
+    /* line-height: 40px; */
+}
+
+label.toggleLabel>.info{
+    filter: opacity(1);
+}
+
+label.toggleLabel::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    border: 2.5px solid var(--light);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--dark);
+    transition: .3s;
+    margin-right: 20px;
+    margin-bottom: -5px;
+}
+
+.hiddenInput>input {
+    display: none;
+}
+
+input:checked+label.toggleLabel::before {
+    background: var(--light);
+    content: '✓';
+    font-size: 18px;
+    text-align: center;
+    line-height: 20px;
+    display: inline-grid;
+}
+
+.toast {
+    position: sticky;
+    bottom: 20px;
+    left: 50% !important;
+    transform: translate(-50%);
+    width: 600px;
+    max-width: 80vw;
+    color: var(--accent);
+    z-index: 100;
+    background: var(--light);
+    padding: 10px 50px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    box-shadow: 2px 2px 3px 0px var(--dark);
+    animation: slideRight 1s;
+}
