@@ -1,0 +1,979 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+      "title": "Caleo 1C-Bitrix Api Draft",
+      "description": "Предложение по рефакторингу апи для работы магазина Caleo",
+      "version": "0.0.1",
+      "contact": {
+        "email": "dimazvali@gmail.com"
+      }
+    },
+    "servers": [
+      {
+        "url": "https://motionai.ru/api2",
+        "description": "Проектируемая версия"
+      },
+      {
+        "url": "https://motionai.ru/api",
+        "description": "Текущая версия"
+      }
+    ],
+    "paths": {
+      "/login": {
+        "post": {
+          "tags": [
+            "login"
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userName": {
+                      "type": "string",
+                      "example": "admin"
+                    },
+                    "password": {
+                      "type": "string",
+                      "example": "password"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok"
+            }
+          }
+        }
+      },
+      "/sections": {
+        "get": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "sections"
+          ],
+          "summary": "Получить разделы",
+          "description": "В сущности, нам достаточно одного метода.\n\nВ get-параметры можно будет со временем добавлять всякие красивые фильтры и/или сортировки.",
+          "parameters": [
+            {
+              "name": "parentId",
+              "in": "query",
+              "description": "родительский раздел (без него возвращаются верхнеуровневые)",
+              "schema": {
+                "type": "string",
+                "example": 666
+              }
+            },
+            {
+              "name": "name",
+              "in": "query",
+              "description": "поиск по названию",
+              "schema": {
+                "type": "string",
+                "example": "тряпочки"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/SectionListing"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Нужна авторизация"
+            }
+          }
+        }
+      },
+      "/carts": {
+        "get": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "carts"
+          ],
+          "summary": "Получить корзины",
+          "parameters": [
+            {
+              "name": "userId",
+              "in": "query",
+              "schema": {
+                "type": "string",
+                "example": 144489840
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Cart"
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Нужна авторизация"
+            }
+          }
+        },
+        "post": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "carts"
+          ],
+          "summary": "Создать корзину",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "clientId": {
+                      "type": "string",
+                      "example": 144489840
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/Cart"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Нужна авторизация"
+            }
+          }
+        }
+      },
+      "/carts/{cartId}": {
+        "put": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "carts"
+          ],
+          "summary": "Обновить корзину",
+          "description": "Добавляем/удаляем (см. intention) товары, указывая их id/optionId.",
+          "parameters": [
+            {
+              "name": "cartId",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "example": 1
+              }
+            }
+          ],
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "productId",
+                    "optionId",
+                    "intention"
+                  ],
+                  "properties": {
+                    "productId": {
+                      "type": "string",
+                      "example": 1
+                    },
+                    "optionId": {
+                      "type": "string",
+                      "example": 1
+                    },
+                    "intention": {
+                      "type": "string",
+                      "enum": [
+                        "add",
+                        "remove"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/Cart"
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Ошибка",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "comment": {
+                        "type": "string",
+                        "enum": [
+                          "Такого товара нет",
+                          "Товар недоступен",
+                          "Другая человекочитаемая ошибка"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Ошибка указания корзины",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "comment": {
+                        "type": "string",
+                        "enum": [
+                          "Корзина уже закрыта",
+                          "Такой корзины не существует"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "delete": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "carts"
+          ],
+          "summary": "Сбросить корзину",
+          "description": "Деактивирует текущую корзину, создает новую и возвращает ее ключ.",
+          "parameters": [
+            {
+              "name": "cartId",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "example": 1
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "cartId": {
+                        "type": "string",
+                        "example": 2,
+                        "description": "ключ вновь созданной корзины"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Ошибка",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "comment": {
+                        "type": "string",
+                        "example": [
+                          "Корзина уже закрыта",
+                          "Другая человекочитаемая ошибка"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Нужна авторизация"
+            },
+            "404": {
+              "description": "Ошибка указания корзины",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "comment": {
+                        "type": "string",
+                        "enum": [
+                          "Такой корзины не существует"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "/orders": {
+        "get": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "orders"
+          ],
+          "summary": "Получить заказы",
+          "parameters": [
+            {
+              "name": "userId",
+              "in": "query",
+              "schema": {
+                "type": "string",
+                "example": 144489840
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/OrderListing"
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Нужна авторизация"
+            }
+          }
+        },
+        "post": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "orders"
+          ],
+          "summary": "Создать заказ",
+          "requestBody": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "userId",
+                    "cartId"
+                  ],
+                  "properties": {
+                    "userId": {
+                      "type": "string",
+                      "example": 144489840
+                    },
+                    "cartId": {
+                      "type": "string",
+                      "example": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/OrderListing"
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Нужна авторизация"
+            }
+          }
+        }
+      },
+      "/orders/{orderId}": {
+        "parameters": [
+          {
+            "name": "orderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": 666
+            }
+          }
+        ],
+        "get": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "orders"
+          ],
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/OrderListing"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "products": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/ProductCart"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "delete": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "orders"
+          ],
+          "summary": "Отменить заказ",
+          "description": "Если заказ еще не оплачен, его наверняка несложно отменить.\n\nДадим пользователю такую возможность.\nПусть себе отменяет, сколько влезет.",
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "$ref": "#/components/schemas/OrderListing"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Заказ отменить невозможно"
+            },
+            "404": {
+              "description": "Откуда вообще такие заказы на свет берутся..."
+            }
+          }
+        }
+      },
+      "/products": {
+        "get": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "products"
+          ],
+          "summary": "Получить товары",
+          "description": "В get-параметры можно будет со временем добавлять всякие красивые фильтры и/или сортировки.\n\nПо уму в ответ надо включать офсет, лимит и общее количество товаров, соответствующих запросу. Это очень полезно для больших каталогов. При таком формате ответов пользователь апи всегда будет понимать, нужно ему что-то еще подгружать или нет.\n\nАльтернативный вариант — передавать эти значения в хэдерах ответа.",
+          "parameters": [
+            {
+              "name": "sectionId",
+              "in": "query",
+              "description": "поиск по разделу",
+              "schema": {
+                "type": "string",
+                "example": 123
+              }
+            },
+            {
+              "name": "name",
+              "in": "query",
+              "description": "поиск по названию",
+              "schema": {
+                "type": "string",
+                "example": "Полезная фича для длинных каталогов"
+              }
+            },
+            {
+              "name": "showArchive",
+              "in": "query",
+              "description": "показывать недоступные товары, при отсутствии интерпретировать как false",
+              "schema": {
+                "type": "boolean",
+                "example": true
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "ok": {
+                        "type": "boolean",
+                        "example": true
+                      },
+                      "products": {
+                        "type": "array",
+                        "items": {
+                          "$ref": "#/components/schemas/ProductListing"
+                        }
+                      },
+                      "offset": {
+                        "type": "number",
+                        "example": 0
+                      },
+                      "limit": {
+                        "type": "number",
+                        "example": 100
+                      },
+                      "total": {
+                        "type": "number",
+                        "example": 1
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Нужна авторизация"
+            }
+          }
+        }
+      },
+      "/products/{id}": {
+        "get": {
+          "security": [
+            {
+              "Bearer": []
+            }
+          ],
+          "tags": [
+            "products"
+          ],
+          "summary": "Получить товар",
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "example": 666
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "ok",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/ProductListing"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "gallery": {
+                            "type": "array",
+                            "items": {
+                              "$ref": "#/components/schemas/Pic"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "401": {
+              "description": "Нужна авторизация"
+            },
+            "404": {
+              "description": "Товара нет или он недоступен"
+            },
+            "500": {
+              "description": "Ошибка на сервере"
+            }
+          }
+        }
+      }
+    },
+    "tags": [
+      {
+        "name": "login",
+        "description": "Авторизация"
+      },
+      {
+        "name": "sections",
+        "description": "Разделы"
+      },
+      {
+        "name": "products",
+        "description": "Товары"
+      },
+      {
+        "name": "carts",
+        "description": "Корзина"
+      },
+      {
+        "name": "orders",
+        "description": "Заказы"
+      }
+    ],
+    "components": {
+      "securitySchemes": {
+        "Bearer": {
+          "type": "http",
+          "scheme": "bearer",
+          "bearerFormat": "JWT"
+        }
+      },
+      "schemas": {
+        "Cart": {
+          "description": "Объект корзины",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            },
+            "userId": {
+              "type": "string",
+              "example": 144489840
+            },
+            "active": {
+              "type": "boolean",
+              "example": true
+            },
+            "createdAt": {
+              "type": "string",
+              "example": "2024-05-24T08:15:09.050Z"
+            },
+            "updatedAt": {
+              "type": "string",
+              "example": "2024-05-24T09:15:09.050Z"
+            },
+            "closedAt": {
+              "nullable": true,
+              "type": "string",
+              "example": "2024-06-24T08:15:09.050Z"
+            },
+            "itemsCount": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            }
+          }
+        },
+        "ProductProperty": {
+          "description": "Особенность товара",
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string",
+              "example": "wattage"
+            },
+            "name": {
+              "type": "string",
+              "example": "мощность"
+            },
+            "value": {
+              "type": "string",
+              "example": 123
+            }
+          }
+        },
+        "Description": {
+          "type": "string",
+          "example": "Полезное и насыщенное описание.",
+          "description": "text, не HTML"
+        },
+        "Pic": {
+          "type": "string",
+          "example": "https://cataas.com/cat?width=600&height=400",
+          "description": "Фотография"
+        },
+        "SectionListing": {
+          "description": "Раздел для отрисовки каталога",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            },
+            "active": {
+              "type": "boolean",
+              "example": true
+            },
+            "name": {
+              "type": "string",
+              "example": "Полезные тряпочки"
+            },
+            "image": {
+              "nullable": true,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Pic"
+                }
+              ]
+            },
+            "description": {
+              "nullable": true,
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Description"
+                }
+              ]
+            }
+          }
+        },
+        "ProductDefault": {
+          "description": "Базовый класс товара",
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "boolean",
+              "example": true
+            },
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            },
+            "name": {
+              "type": "string",
+              "example": "Полезная тряпочка"
+            },
+            "image": {
+              "type": "string",
+              "example": "https://cataas.com/cat?width=600&height=400"
+            },
+            "parentSection": {
+              "$ref": "#/components/schemas/SectionListing"
+            }
+          }
+        },
+        "ProductListing": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/ProductDefault"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "minPrice": {
+                  "type": "number",
+                  "format": "int64",
+                  "example": 100.01,
+                  "description": "Минимальная стоимость"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductOption"
+                  }
+                }
+              }
+            }
+          ],
+          "description": "Продукт для отрисовки каталога"
+        },
+        "ProductCart": {
+          "description": "Товар для корзины",
+          "type": "object",
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/ProductDefault"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "quantity": {
+                  "type": "number",
+                  "example": 10
+                },
+                "price": {
+                  "type": "number",
+                  "example": 100
+                },
+                "total": {
+                  "type": "number",
+                  "example": 100
+                }
+              }
+            },
+            {
+              "type": "object",
+              "properties": {
+                "selectedOptions": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductOption"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "ProductOption": {
+          "description": "Опция товара",
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "boolean",
+              "example": true
+            },
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "example": 1
+            },
+            "price": {
+              "type": "integer",
+              "format": "int64",
+              "example": 101.1
+            },
+            "left": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10
+            },
+            "properties": {
+              "type": "array",
+              "items": {
+                "$ref": "#/components/schemas/ProductProperty"
+              }
+            }
+          }
+        },
+        "OrderListing": {
+          "description": "Заказ для отрисовки списка",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "format": "int64",
+              "example": 666
+            },
+            "userId": {
+              "type": "string",
+              "example": 144489840
+            },
+            "createdAt": {
+              "type": "string",
+              "example": "2024-05-24T08:15:09.050Z"
+            },
+            "closedAt": {
+              "type": "string",
+              "example": "2024-06-24T08:15:09.050Z"
+            },
+            "totalPrice": {
+              "type": "integer",
+              "format": "int64",
+              "example": 10000
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "toBePayed",
+                "processing",
+                "shipping",
+                "delivered",
+                "canceled"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }

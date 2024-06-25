@@ -118,6 +118,7 @@ let views =                 fb.collection(`${host}Views`);
 
 
 let authToken = null;
+
 let catalogue = []
 
 class catalogueSection {
@@ -857,6 +858,11 @@ router.all(`/admin/:method`, (req, res) => {
     })
 })
 
+router.get(`/syncCatalogue`,(req,res)=>{
+    return res.sendStatus(200)
+    syncCatalogue()
+})
+
 router.get(`/app`,(req,res)=>{
     res.render(`${host}/app`,{
         start:      req.query.startapp,
@@ -1104,5 +1110,13 @@ router.get(`/web`, (req, res) => {
 
     })
 })
+
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./caleoSwagger.json');
+const swaggerDocument2 = require('./caleoSwagger.json');
+
+router.use('/swagger', swaggerUi.serve);
+router.get('/swagger', swaggerUi.setup(swaggerDocument));
+
 
 module.exports = router;

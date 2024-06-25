@@ -1,0 +1,41 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+      "title": "Caleo 1C-Bitrix Api Draft",
+      "version": "0.0.1",
+      "contact": {}
+    },
+    "servers": [
+      {
+        "url": "https://motionai.ru/"
+      }
+    ],
+    "paths": {
+      "/carts":{
+        "get":{
+            "tags":[
+                "carts"
+            ],
+            "summary": "G"
+        }
+      }
+    },
+    "tags": [
+      {
+        "name": "carts",
+        "description": "Корзина"
+      },
+      {
+        "name": "orders",
+        "description": "Заказы"
+      },
+      {
+        "name": "sections",
+        "description": "Разделы"
+      },
+      {
+        "name": "products",
+        "description": "Товары"
+      }
+    ]
+  }
