@@ -68,6 +68,7 @@
               "in": "query",
               "description": "родительский раздел (без него возвращаются верхнеуровневые)",
               "schema": {
+                
                 "type": "string",
                 "example": 666
               }
@@ -88,7 +89,10 @@
               "content": {
                 "application/json": {
                   "schema": {
-                    "$ref": "#/components/schemas/SectionListing"
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/SectionListing"
+                    }
                   }
                 }
               }
