@@ -358,6 +358,8 @@ function showProfile(el){
     axios
         .get(`/paper/api/userData?user=${userid}`)
         .then(d=>{
+
+
             
             loader.remove()
             shimmer(true)
@@ -456,54 +458,10 @@ function showProfile(el){
 
             content.append(lcode)
 
-            let sublabel = ce('label',false,false,translations.notifications[userLang] || translations.notifications.en,{
-                dataset:{
-                    chekable: true,
-                    checked: !user.noSpam
-                },
-                onclick: function(){
-                    axios.put(`/paper/api/profile/${userid}`,{
-                        noSpam: !user.noSpam
-                    }).then(()=>{
-                        user.noSpam = !user.noSpam;
-                        this.dataset.checked = !user.noSpam;
-                        shimmer(true)
-                    }).catch(err=>{
-                        shimmer()
-                        tg.showAlert(err.message)
-                    })
-                }
-            })
 
 
-
-            let rclabel = ce('label',false,false,`Random Coffee`,{
-                dataset:{
-                    chekable: true,
-                    checked: !user.randomCoffee
-                },
-                onclick: function(){
-                    axios.put(`/paper/api/profile/${userid}`,{
-                        randomCoffee: !user.randomCoffee
-                    }).then(()=>{
-                        user.randomCoffee = !user.randomCoffee;
-                        this.dataset.checked = !user.randomCoffee;
-                        shimmer(true)
-                    }).catch(err=>{
-                        shimmer()
-                        tg.showAlert(err.message)
-                    })
-                }
-            })
-            
-            
-
-            // content.append(sublabel)
-            // content.append(rclabel)
-
-            content.append(toggleCheckBox(`profile`,userid,'randomCoffee',user.randomCoffee,`random coffee`))
-            content.append(toggleCheckBox(`profile`,userid,'noSpam',user.noSpam,`отписаться от новостей`))
-
+            content.append(toggleCheckBox(`profile`,userid,'randomCoffee',ud.randomCoffee,`random coffee`))
+            content.append(toggleCheckBox(`profile`,userid,'noSpam',ud.noSpam,`отписаться от новостей`))
 
             content.append(ce('button',false,'dateButton',translations.save[userLang] || translations.save.en,{
                 onclick:()=>{

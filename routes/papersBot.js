@@ -1,5 +1,5 @@
 let ngrok2 =    process.env.ngrok2;
-let ngrok =     process.env.ngrok;
+let ngrok =     process.env.ngrok2;
 
 let coworkingPrice = 30;
 
@@ -7955,8 +7955,6 @@ router.post('/hook', (req, res) => {
 
             }
 
-
-
             if (req.body.message.text) {
                 messages.add({
                     user: user.id,
@@ -9954,11 +9952,14 @@ router.all(`/api/:data/:id`, (req, res) => {
                             devlog(type)
 
                             if (req.body.hasOwnProperty(type)) {
+                                
                                 devlog(`${type}: ${req.body[type]}`)
+                                
                                 udb.doc(req.params.id).update({
                                     [type]: req.body[type],
                                     updatedAt: new Date()
                                 })
+
                                 if (type == 'language_code') {
                                     axios.post(`https://api.telegram.org/bot${token}/setChatMenuButton`, {
                                         "chat_id": req.params.id,
@@ -9971,10 +9972,19 @@ router.all(`/api/:data/:id`, (req, res) => {
                                         }
                                     })
                                 }
+                            } else if (req.body.attr == type){
+                                devlog(`jобвноляем ${req.body.attr}`)
+                                udb.doc(req.params.id).update({
+                                    [req.body.attr]: req.body.value,
+                                    updatedAt: new Date()
+                                })
                             }
                         })
 
-                        return res.sendStatus(200)
+                        return res.json({
+                            success: true,
+                            comment: `данные обновлены`
+                        })
 
                     })
                     break;
