@@ -337,7 +337,8 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                 if(i.stakeHolder) ifBefore(udb,{hash:i.stakeHolder}).then(winners=>{
                                     sendMessage2({
                                         chat_id: winners[0].id,
-                                        text: userLang(locals.users.stakeHolderChanged(i),user.language_code),
+                                        photo: `${ngrok}/images/${host}/beated/${Math.floor(Math.random()*10)}.png`,
+                                        caption: userLang(locals.users.stakeHolderChanged(i),user.language_code),
                                         reply_markup:{
                                             inline_keyboard: [[{
                                                 text: userLang(locals.termsAndButtons.open,user.language_code),
@@ -346,7 +347,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                                 }
                                             }]]
                                         }
-                                    },false,process.env.auctionToken,messages)
+                                    },`sendPhoto`,process.env.auctionToken,messages)
                                 })
 
                                 score(user,+i.base*-1, i, userLang(locals.termsAndButtons.stake,user.language_code));
