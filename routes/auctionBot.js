@@ -1,5 +1,5 @@
 const ngrok2 = process.env.ngrok2;
-const ngrok = process.env.ngrok2;
+const ngrok = process.env.ngrok;
 const host = `auction`
 const token = process.env.auctionToken;
 
