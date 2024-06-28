@@ -138,7 +138,7 @@ ifBefore(auctionsIterations).then(col=>{
             stopIteration(i)
         } else {
             iterations[i] = setTimeout(()=>{
-                getDoc(iterations,i.id).then(iteration=>{
+                getDoc(auctionsIterations,i.id).then(iteration=>{
                     stopIteration(iteration)
                 })
             },i.timer._seconds*1000 - +new Date())
