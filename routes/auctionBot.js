@@ -141,7 +141,7 @@ ifBefore(auctionsIterations).then(col=>{
                 getDoc(iterations,i.id).then(iteration=>{
                     stopIteration(iteration)
                 })
-            },col.timer._seconds*1000 - +new Date())
+            },i.timer._seconds*1000 - +new Date())
         }
     })
     
