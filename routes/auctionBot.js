@@ -507,6 +507,8 @@ function registerUser(u) {
     u.active = true;
     u.blocked = false;
     u.score = 0;
+
+    if(!u.photo_url) u.photo_url = `/images/${host}/avatars/${Math.floor(Math.random()*11)}.png`
     u[u.language_code] = true;
 
     udb.doc(u.id.toString()).set(u).then(() => {
