@@ -20,6 +20,7 @@ import {
     query,
     orderByChild,
     onChildChanged,
+    equalTo,
     onValue
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -28,19 +29,44 @@ let app = initializeApp(firebaseConfig);
 let db = getDatabase(app)
 
 class Page{
-    constructor(d,tg,handleError,host){
+    constructor(d,tg,handleError,host,userLoad,drawDate){
+        this.showAlert = (txt) => tg.showAlert(txt);
         this.active =       ko.observable(`lobby`)
         this.sactive= (v)=> {
             this.active(v)
-            console.log(`переключились на ${v}`)
+            if(v == `profile`){
+                this.transactions([])
+                userLoad(`transactions`).then(transactions=>{
+                    transactions.forEach(t => {
+                        this.transactions.push({
+                            comment:    t.comment || 'обновление',
+                            amount:     t.amount,
+                            date:       drawDate(t.createdAt._seconds*1000,false,{time:true})
+                        })    
+                    });
+                    
+                })
+            }
         }
+        this.transactions =  ko.observableArray([])
         this.auctions =     ko.observableArray(d.auctions.map(a=>new Auction(a)))
         this.balance =      ko.observable(d.profile.score)
-        this.iterations =   ko.observableArray(d.iterations.map(i=>new Iteration(i,tg,this.balance())))
+        // this.iterations =   ko.observableArray(d.iterations.map(i=>new Iteration(i,tg,this.balance())))
+        this.iterations =   ko.observableArray([])
         this.username =     ko.observable(d.profile.username)
         this.avatar =       ko.observable(d.profile.photo_url)
         this.hash =         ko.observable(d.profile.hash)
         
+        this.requestPayment = (amount) =>{
+            axios.post(`/${host}/api/refill`,{
+                amount: +amount
+            }).then(s=>{
+                
+                tg.openInvoice(s.data.invoice);
+
+            }).catch(handleError)
+        }
+
         this.stake = (i) => {
             i.active(false)
             axios
@@ -48,21 +74,48 @@ class Page{
                 .then(s=>{
                     tg.showAlert(s.data)
                 })
-                .catch(handleError)
+                .catch(err=>{
+ 
+                    if(err.response.data.invoice){
+                        console.log(`УДАЛИТЬ инвойс`)
+                        tg.showAlert(err.response.data.comment)
+                        tg.openInvoice(err.response.data.invoice)
+                    } else {
+                        tg.showAlert(err.message)
+                    }
+                })
                 .finally(i.active(true))
         }
 
         onValue(ref(db,`auction/users/${d.profile.hash}`),a=>{
-            console.log(`обновился юзер}`)
-            
+            console.log(`обновился юзер`)
             a = a.val();
             if(a){
                 this.balance(a.score)
             }
-            
-            
         })
+
+        onChildAdded(
+            query(ref(db,`auction/iterations`), orderByChild(`active`),equalTo(true)),
+            a=>{
+                console.log(a.val())
+                let n = new Iteration(a.val(),tg,this.balance())
+                if(this.iterations.indexOf(n)==-1){
+                    this.iterations.push(n)
+                }
+            }
+        )
+
+        
     }
+}
+
+function requestPayment(amount){
+    axios.post(`/${host}/refill`,{
+        amount: +amount
+    }).then(s=>{
+        tg.openInvoice(s.data.invoice)
+    }).catch(handleError)
 }
 
 function z(v){
@@ -76,7 +129,7 @@ function time2(v){
     let m = Math.floor((v-hs) / (60*1000))
     let ms = m*60*1000
     let s = Math.floor((v-hs-ms) / 1000)
-    return `${h}:${z(m)}:${z(s)}`
+    return `${h?`${h}:`:''}${z(m)}:${z(s)}`
 }
 
 class Iteration{
@@ -88,9 +141,11 @@ class Iteration{
         this.base =         ko.observable(a.base),
         this.stake =        ko.observable(a.stake),
         this.stakeHolder =  ko.observable(a.stakeHolder),
-        this.timer =        ko.observable(a.timer)
-        this.left =         ko.observable(time2(+new Date(a.timer._seconds*1000) - new Date()))
+        this.timer =        ko.observable(a.timer._seconds ? a.timer._seconds*1000 : a.timer)
+        this.left =         ko.observable(time2(+new Date(a.timer._seconds ? a.timer._seconds*1000 : a.timer) - new Date()))
         
+        this.ava =          ko.observable(null);
+
         this.pushStake = (v) =>{
             console.log(balance)
             console.log(+this.base())
@@ -101,20 +156,33 @@ class Iteration{
                 tg.showAlert(`нет денег`)
             }
         }
-        setInterval(()=>{
-            this.left(time2(+new Date(a.timer._seconds*1000) - new Date()))
 
+        this.setAva = (pic) => {
+            this.ava(pic)
+            // setTimeout(()=>{
+            //     this.ava(null)
+            // },1000)
+        }
+
+        setInterval(()=>{
+            this.left(time2(+new Date(this.timer()) - new Date()))
         },1000)  
+
         onValue(ref(db,`auction/iterations/${a.id}`),a=>{
+            
             console.log(`обновилась итерация аукциона ${this.name()}`)
             
             a = a.val();
+            
+            console.log(a)
+            
             if(a){
                 this.name(a.auctionName)
-                this.active(a.active)
+                this.active(a.active || false)
                 this.base(a.base)
                 this.stake(a.stake)
                 this.stakeHolder(a.stakeHolder)
+                this.setAva(a.stakeHolderAva || null)
                 this.timer(a.timer)
             }
             

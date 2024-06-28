@@ -151,6 +151,13 @@ let confirmed = false;
 
 let pageData;
 
+function requestPayment(amount){
+    axios.post(`/${host}/refill`,{
+        amount: +amount
+    }).then(s=>{
+        tg.openInvoice(s.data.invoice)
+    }).catch(handleError)
+}
 
 
 function userLoad(collection, id, extra) {
@@ -191,7 +198,7 @@ Promise
                 auctions:   data[0],
                 iterations: data[1],
                 profile:    data[2]
-            },tg,handleError,host)
+            },tg,handleError,host,userLoad,drawDate)
             ko.applyBindings(pageData,document.querySelector(`#b`))
         })
         

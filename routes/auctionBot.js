@@ -31,6 +31,7 @@ const {
     authTG,
     ifBefore,
     authWebApp,
+    alertMe,
 } = require('./common.js')
 
 
@@ -117,18 +118,138 @@ setTimeout(function () {
 
 
 
-let adminTokens =           fb.collection(`${host}AdminTokens`);
-let udb =                   fb.collection(`${host}Users`);
-let auctions =              fb.collection(`${host}Auctions`);
-let auctionsIterations =    fb.collection(`${host}AuctionsIterations`);
-let auctionsBets =          fb.collection(`${host}AuctionsBets`);
-let messages =              fb.collection(`${host}UsersMessages`);
-let logs =                  fb.collection(`${host}Logs`);
-let transactions =          fb.collection(`${host}Transactions`);
-let hashes =                fb.collection(`${host}UsersHashes`);
-let invoices =              fb.collection(`${host}Invoices`);
+let adminTokens =               fb.collection(`${host}AdminTokens`);
+let udb =                       fb.collection(`${host}Users`);
+let auctions =                  fb.collection(`${host}Auctions`);
+let auctionsIterations =        fb.collection(`${host}AuctionsIterations`);
+let auctionsIterationsUsers =   fb.collection(`${host}AuctionsIterationsUsers`);
+let auctionsBets =              fb.collection(`${host}AuctionsBets`);
+let messages =                  fb.collection(`${host}UsersMessages`);
+let logs =                      fb.collection(`${host}Logs`);
+let transactions =              fb.collection(`${host}Transactions`);
+let hashes =                    fb.collection(`${host}UsersHashes`);
+let invoices =                  fb.collection(`${host}Invoices`);
+
+let iterations = {}
+
+ifBefore(auctionsIterations).then(col=>{
+    col.forEach(i=>{
+        if(i.timer._seconds*1000 < new Date()) {
+            stopIteration(i)
+        } else {
+            iterations[i] = setTimeout(()=>{
+                getDoc(iterations,i.id).then(iteration=>{
+                    stopIteration(iteration)
+                })
+            },col.timer._seconds*1000 - +new Date())
+        }
+    })
+    
+})
+
+
+const datatypes = {
+    transactions:{
+        col:    transactions,
+        newDoc: transactionsAdd,
+    },
+    auctions:{
+        newDoc: auctionsAdd,
+        col:    auctions
+    },
+    auctionsBets:{
+        newDoc: auctionsBetsAdd,
+        col:    auctionsBets
+    },
+    auctionsIterations:{
+        newDoc:     auctionsIterationsAdd,
+        col:        auctionsIterations,
+        callback:   stopIteration
+    },
+    messages:{
+        newDoc: sendMessage,
+        col:    messages
+    },
+    users:{
+        col: udb
+    }
+}
+
+function userLang(txt,lang){
+    if(!lang) lang = `ru`;
+    if(txt[lang]) return txt[lang]
+    alertMe({
+        text: `Нет перевода ${lang} для ${txt.ru || txt}`
+    })
+    return txt.ru || txt
+}
+
+function accessError(res,access){
+    
+    alertAdmins({
+        text: `Кто-то без полномочий пытается воспользоваться методом ${access}.`
+    })
+    
+    res.status(401).send(`Вы кто вообще?`)
+}
 
 const locals = {
+    termsAndButtons:{
+        win: {
+            ru: `Выигрыш`,
+        },
+        open:{
+            ru: `Открыть аукцион`
+        },
+        stake: {
+            ru: `Ставка`
+        },
+        staked:{
+            ru: `ставка сделана`
+        },
+        priceLabel:{
+            ru: `Оплата`
+        },
+        scoreUpdate:{
+            ru: `пополнение счета` 
+        }
+    },
+    errors: {
+        noSuchAuction: {
+            ru: `Такого аукциона нет`
+        },
+        notEnoughStars: {
+            ru: `Вам не хватает звезд!`
+        }
+    },
+    users:{
+        welcome: {
+            ru: `Я текст приветствия, который можно будет настроить в админке.`
+        },
+        scoreUpdated: (payment) => {
+            return {
+                ru: `Ваш счет пополнен на ${payment.total_amount} звезд.`
+            }
+        },
+        toPayDesc:{
+            ru: `Столько не хватает для следующей ставки`
+        },
+        stakeHolderChanged:(i)=>{
+            return {
+                ru:  `Ваша ставка бита! Скорее! Вы еще можете выиграть ${i.stake + Number(i.base)} звезд!`
+            }
+        },
+        iterationOver:(iteration)=>{
+            return {
+                ru: `Розыгрыш аукциона ${iteration.auctionName} закончился.\nВ этот раз ваша ставка не сыграла. Попробуем снова?..`
+            }
+        },
+        congrats: (iteration)=> {
+            return {
+                ru: `Поздравляем! Вы выиграли ${iteration.stake} звезд!`,
+            }
+        }
+    },
     accountCharged:(a)=>{
         return {
             ru: `Ура! Ваш баланс полонен на ${a} звезд. Используйте их с умом!`,
@@ -137,11 +258,63 @@ const locals = {
     }
 }
 
+
+
+function stopIteration(iteration,user){
+
+    auctionsIterations.doc(iteration.id).update({
+        active: false
+    })
+
+    rtb.ref(`/${host}/iterations/${iteration.id}`).update({
+        active:         false
+    })
+
+    getDoc(auctions,iteration.auction).then(a=>{
+        if(a.active) auctionsIterationsAdd({body:{
+            auction: a.id,
+            till: +new Date()+60*60*1000
+        }},false,false)
+    })
+    
+    if(iteration.stakeHolder){
+        
+        ifBefore(udb,{hash:iteration.stakeHolder}).then(winners=>{
+            
+            sendMessage2({
+                chat_id:    winners[0].id,
+                text:       userLang(locals.users.congrats(iteration),winners[0].language_code)
+            },false,token,messages)
+            
+            score(winners[0], iteration.stake, iteration, userLang(locals.termsAndButtons.win,winners[0].language_code))
+
+            ifBefore(auctionsBets,{auctionsIteration: iteration.id}).then(bets=>{
+            
+                let users = [... new Set(bets.map(b=>b.user))].filter(u=>+u != +winners[0].id)
+                
+                devlog(users);
+    
+                users.forEach(u=>{
+                    sendMessage2({
+                        chat_id:    u,
+                        text:       userLang(locals.users.iterationOver(iteration),u.language_code)
+                    },false,token)
+                })
+            })
+
+        })
+
+        
+    }
+
+    
+}
+
 router.all(`/api/:method/:id`,(req,res)=>{
 
     let token = req.signedCookies.userToken;
     
-    if (!token) return res.status(401).send(`Вы кто вообще?`)
+    if (!token) return accessError(res,`${req.method} ${req.params.method}/${req.params.id}`)
     
     adminTokens.doc(token).get().then(doc => {
 
@@ -152,60 +325,129 @@ router.all(`/api/:method/:id`,(req,res)=>{
         getUser(token.user, udb).then(user => {
 
             if (!user) return res.sendStatus(403)
+                
                 switch(req.params.method){
 
                     case `stake`:{
                         return getDoc(auctionsIterations,req.params.id).then(i=>{
-                            if(!i || !i.active) return res.status(400).send(`Такого аукциона нет`)
+                            if(!i || !i.active) return res.status(400).send(userLang(locals.errors.noSuchAuction,user.language_code))
                             devlog(user.score,i.base)
-                            if(+user.score > +i.base){
-                                
-                                transactions.add({
+                            if(+user.score >= +i.base){
+
+                                if(i.stakeHolder) ifBefore(udb,{hash:i.stakeHolder}).then(winners=>{
+                                    sendMessage2({
+                                        chat_id: winners[0].id,
+                                        text: userLang(locals.users.stakeHolderChanged(i),user.language_code),
+                                        reply_markup:{
+                                            inline_keyboard: [[{
+                                                text: userLang(locals.termsAndButtons.open,user.language_code),
+                                                web_app: {
+                                                    url: `${ngrok}/${host}/app`
+                                                }
+                                            }]]
+                                        }
+                                    },false,process.env.auctionToken,messages)
+                                })
+
+                                score(user,+i.base*-1, i, userLang(locals.termsAndButtons.stake,user.language_code));
+
+                                auctionsBets.add({
                                     auctionsIteration:  i.id,
                                     user:               +user.id,
                                     createdAt:          new Date()
                                 })
-
 
                                 auctionsIterations.doc(req.params.id).update({
                                     stake:          FieldValue.increment(+i.base),
                                     stakeHolder:    user.hash
                                 })
 
+                                let timerCorrection = null;
+
+                                let left = (+i.timer - +new Date())
+
+                                devlog(left/1000)
+
+                                if(left < 5*60*1000) {
+                                    devlog(`остается меньше 5 минут`)
+                                    timerCorrection = 5*60*1000
+                                } else if (left < 10*60*1000){
+                                    devlog(`остается меньше 10 минут`)
+                                    timerCorrection = 10*60*1000
+                                }
+
+                                
+                                if(timerCorrection){
+
+                                    devlog(i.timer)
+                                    devlog(+i.timer)
+                                    
+                                    devlog(`надо накинуть ${timerCorrection/1000}`)
+
+                                    let newDate = new Date(i.timer._seconds*1000 + timerCorrection)
+
+                                    devlog(`получится ${newDate}`)
+
+                                    auctionsIterations.doc(req.params.id).update({
+                                        timer: newDate
+                                    })
+
+                                    rtb.ref(`/${host}/iterations/${i.id}`).update({
+                                        timer:         +newDate
+                                    })
+                                    
+                                    clearInterval(iterations[req.params.id])
+
+                                    iterations[req.params.id] = setTimeout(()=>{
+                                        getDoc(auctionsIterations,req.params.id).then(iteration=>{
+                                            if(iteration.active) stopIteration(iteration)
+                                        })
+                                    },+newDate - +new Date())
+                                }
+
+
+
                                 rtb.ref(`${host}/iterations/${i.id}`).update({
                                     stake:          database.ServerValue.increment(+i.base),
-                                    stakeHolder:    user.hash
+                                    stakeHolder:    user.hash,
+                                    stakeHolderAva: user.photo_url || null
                                 })
 
+                                res.send(userLang(locals.termsAndButtons.staked,user.language_code))
 
-                                udb.doc(user.id).update({
-                                    score: FieldValue.increment(+i.base*-1)
-                                })
 
-                                rtb.ref(`${host}/users/${user.hash}`).update({
-                                    score:          database.ServerValue.increment(-i.base)
-                                })
-
-                                res.send(`ставка сделана`)
                             } else {
+
+                                let toPay = +i.base - +user.score;
+
                                 invoices.add({
                                     user:       +user.id,
                                     iteration:  req.params.id,
-                                    amount:     +i.base
+                                    amount:     toPay
                                 }).then(s=>{
-                                    m.sendMessage2({
+                                    sendMessage2({
                                         "chat_id": user.id,
-                                        "title": `${i.base} звезд`,
-                                        "description": `Столько не хватает для следующей ставки`,
+                                        "title": `${toPay} звезд`,
+                                        "description": userLang(locals.users.toPayDesc,user.language_code),
                                         "payload": s.id,
                                         "currency": "XTR",
-                                    }, 'createInvoiceLink', token).then(d=>{
-                                        devlog(d.data)
+                                        "prices": [{
+                                            "label":    userLang(locals.termsAndButtons.priceLabel,user.language_code),
+                                            "amount":   toPay
+                                        }]
+                                    }, 'createInvoiceLink', process.env.auctionToken).then(d=>{
+                                        devlog(d.result)
+                                        
+                                        res.status(400).json({
+                                            success: false,
+                                            comment: userLang(locals.errors.notEnoughStars,user.language_code),
+                                            invoice:  d.result
+                                        })
                                     })
                                 })
                                 
 
-                                res.status(400).send(`у вас не хватает звезд`)
+                                
                             }
                         }).catch(err=>{
                             handleError(err,res)
@@ -224,6 +466,25 @@ router.all(`/api/:method/:id`,(req,res)=>{
     })
     
 })
+
+function score(user, delta, iteration, comment){
+
+    if(iteration) transactions.add({
+        auctionsIteration:  iteration.id,
+        user:               +user.id,
+        createdAt:          new Date(),
+        amount:             delta,
+        comment:            comment || null
+    })
+
+    udb.doc(user.id).update({
+        score: FieldValue.increment(delta)
+    })
+
+    rtb.ref(`${host}/users/${user.hash}`).update({
+        score:  database.ServerValue.increment(delta)
+    })
+}
 
 
 function log(o) {
@@ -288,38 +549,45 @@ function alertAdmins(mess) {
 
 
 
-const datatypes = {
-    transactions:{
-        col:    transactions,
-        newDoc: transactionsAdd,
-    },
-    auctions:{
-        newDoc: auctionsAdd,
-        col:    auctions
-    },
-    auctionsBets:{
-        newDoc: auctionsBetsAdd,
-        col:    auctionsBets
-    },
-    auctionsIterations:{
-        newDoc: auctionsIterationsAdd,
-        col:    auctionsIterations
-    },
-    messages:{
-        newDoc: sendMessage,
-        col:    messages
-    },
-    users:{
-        col: udb
-    }
-    
-}
+
 
 
 router.post(`/authWebApp`,(req,res)=>{
     authWebApp(req,res,token,adminTokens,udb)  
 })
 
+
+function recievePayment(user, payment){
+    transactions.add({
+
+        createdAt:  new Date(),
+        createdBy:  +user.id,
+        active:     true,
+
+        user:       +user.id,
+        amount:     payment.total_amount,
+        paymentId:  payment.telegram_payment_charge_id,
+
+        comment:    userLang(locals.termsAndButtons.scoreUpdate,user.language_code)
+    }).then(p=>{
+        
+        udb.doc(user.id.toString()).update({
+            score: FieldValue.increment(payment.total_amount)
+        }).then(upd=>{
+            getUser(user.id,udb).then(u=>{
+                rtb.ref(`auction/users/${u.hash}`).update({
+                    score: u.score
+                })
+            })
+        })
+
+        sendMessage2({
+            chat_id: user.id,
+            text: userLang(locals.users.scoreUpdated(payment),user.language_code)
+        },false,token,messages)
+
+    })
+}
 
 function transactionsAdd(req,res,admin){
     let required = {
@@ -389,6 +657,7 @@ function auctionsAdd(req,res,admin){
         base: `Ставка`
     }
     let missed = Object.keys(required).filter(k=>!req.body[k])
+
     if(missed.length) return res.status(400).send(`${missed.join(', ')} missing`)
     
     auctions.add({
@@ -418,14 +687,18 @@ function auctionsIterationsAdd(req,res,admin){
         till:       `Срок окончания`
     }
     let missed = Object.keys(required).filter(k=>!req.body[k])
+    
     if(missed.length) return res.status(400).send(`${missed.join(', ')} missing`)
 
     getDoc(auctions, req.body.auction).then(a=>{
-        if(!a || !a.active) return res.status(400).send(`аукцион недоступен`)
+        if(!a || !a.active) {
+            if(res) return res.status(400).send(`аукцион недоступен`)
+            return false;
+        }
 
         auctionsIterations.add({
             createdAt:  new Date(),
-            createdBy:  +admin.id,
+            createdBy:  admin ? +admin.id : null,
             active:     true,
             
             auction:        req.body.auction,
@@ -441,10 +714,19 @@ function auctionsIterationsAdd(req,res,admin){
                 auctionName:    a.name,
                 base:           a.base,
                 stake:          a.start,
-                timer:          new Date(req.body.till)
+                timer:          +new Date(req.body.till)
             })
 
-            res.redirect(`/${host}/web?page=auctionsIterations_${s.id}`)
+            iterations[s.id] = setTimeout(()=>{
+                getDoc(auctionsIterations,s.id).then(i=>{
+                    if(i.active) {
+                        clearTimeout(iterations[s.id])
+                        stopIteration(i,admin)
+                    }
+                })
+            },+new Date(req.body.till) - +new Date())
+
+            if(res) res.redirect(`/${host}/web?page=auctionsIterations_${s.id}`)
             
             // TBD уведомления пользователям
 
@@ -482,21 +764,44 @@ router.get(`/`,(req,res)=>{
 
 router.get(`/test`,(req,res)=>{
     res.sendStatus(200)
-    sendMessage2({
-        "chat_id": dimazvali,
-        "title": `1 звезда`,
-        "description": `Столько не хватает для следующей ставки`,
-        "payload": +new Date(),
-        "currency": "XTR",
-        "prices": [{
-            "label": "Оплата",
-            "amount": 1
-        }]
-    }, 'createInvoiceLink', token).then(d=>{
-        console.log(d.result)
-    }).catch(err=>{
-        console.log(err)
-    })
+
+    withDraw()
+    
+    // sendMessage2({
+    //     "chat_id": dimazvali,
+    //     "title": `1 звезда`,
+    //     "description": `Столько не хватает для следующей ставки`,
+    //     "payload": +new Date(),
+    //     "currency": "XTR",
+    //     "prices": [{
+    //         "label": "Оплата",
+    //         "amount": 1
+    //     }]
+    // }, 'createInvoiceLink', token).then(d=>{
+
+    //     console.log(d.result)
+
+    //     sendMessage2({
+    //         "chat_id": dimazvali,
+    //         "title": `1 звезда`,
+    //         "description": `Столько не хватает для следующей ставки`,
+    //         "payload": +new Date(),
+    //         "currency": "XTR",
+    //         "prices": [{
+    //             "label": "Оплата",
+    //             "amount": 1
+    //         }]
+    //     }, 'sendInvoice', token)
+
+    // }).catch(err=>{
+    //     console.log(err)
+    // })
+
+    // sendMessage2({
+    //     offset: 0
+    // },`getStarTransactions`,token).then(d=>{
+    //     console.log(JSON.stringify(d.result.transactions))
+    // })
 })
 
 router.post(`/userAuth`, (req, res) => {
@@ -538,6 +843,8 @@ router.post(`/hook`, (req, res) => {
             })
         }
     }
+
+
     if (req.body.message && req.body.message.from) {
         user = req.body.message.from;
 
@@ -580,7 +887,7 @@ router.post(`/hook`, (req, res) => {
                 } else if (req.body.message.text == `/start`) {
                     return sendMessage2({
                         chat_id: user.id,
-                        text: `Я текст приветствия, который можно будет настроить в админке.`
+                        text: userLang(locals.users.welcome,user.language_code)
                     }, false, token,messages)
                 } else {
 
@@ -592,11 +899,13 @@ router.post(`/hook`, (req, res) => {
                     })
                 }
             }
+            if(req.body.message.successful_payment){
+                recievePayment(u,req.body.message.successful_payment)
+            }
         })
     }
 
     if (req.body.pre_checkout_query){
-        console.log('это платеж')
         sendMessage2({
             ok: true,
             pre_checkout_query_id: req.body.pre_checkout_query.id
@@ -614,7 +923,8 @@ router.all(`/api/:method`, (req, res) => {
     
     let token = req.signedCookies.userToken;
     
-    if (!token) return res.status(401).send(`Вы кто вообще?`)
+    if (!token) return accessError(res,`${req.method} ${req.params.method}`)
+
         adminTokens.doc(token).get().then(doc => {
 
             if (!doc.exists) return res.sendStatus(403)
@@ -628,6 +938,28 @@ router.all(`/api/:method`, (req, res) => {
                 devlog(req.body)
     
                 switch (req.params.method) {
+                    case `refill`:{
+                        return sendMessage2({
+                            "chat_id":      user.id,
+                            "title":        `${req.body.amount} звезд`,
+                            "description":  userLang(locals.users.toPayDesc,user.language_code),
+                            "payload": new Date(),
+                            "currency": "XTR",
+                            "prices": [{
+                                "label": userLang(locals.termsAndButtons.priceLabel,user.language_code),
+                                "amount": req.body.amount
+                            }]
+                        }, 'createInvoiceLink', process.env.auctionToken).then(d=>{
+                            
+                            res.json({
+                                success: false,
+                                invoice:  d.result
+                            })
+                        })
+                    }
+                    case `transactions`:{
+                        return ifBefore(transactions,{user: +user.id}).then(col=>res.json(col))
+                    }
                     case `profile`:{
                         return res.json(user)
                     }
@@ -651,7 +983,7 @@ router.all(`/admin/:method`, (req, res) => {
 
     let token = req.signedCookies.adminToken || req.signedCookies.userToken || process.env.develop == `true`? process.env.adminToken : false;
 
-    if (!token) return res.status(401).send(`Вы кто вообще?`)
+    if (!token) return accessError(res, `${req.method} ${req.params.method}`)
 
     adminTokens.doc(token).get().then(doc => {
 
@@ -712,7 +1044,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
     
     let token = req.signedCookies.adminToken || req.signedCookies.userToken || process.env.develop == `true`? process.env.adminToken : false;
 
-    if (!token) return res.status(401).send(`Вы кто вообще?`)
+    if (!token) return accessError(res,`${req.method} ${req.params.id}.`)
 
     adminTokens.doc(token).get().then(doc => {
 
@@ -756,7 +1088,8 @@ router.all(`/admin/:method/:id`, (req, res) => {
                         })
 
                         if (req.method == `PUT`) return updateEntity(req, res, ref, admin)
-                        if (req.method == `DELETE`) return deleteEntity(req, res, ref, admin)
+                        
+                        if (req.method == `DELETE`) return deleteEntity(req, res, ref, admin, false, ()=>datatypes[req.params.method].callback(d,admin))
 
                         return res.sendStatus(404)
 
@@ -881,7 +1214,7 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
                 log({
                     [req.params.data]: req.params.id,
                     admin: +admin.id,
-                    text: `${uname(admin,admin.id)} архивирует ${req.params.data} ${e.name || e.id}.`
+                    text: `${uname(admin,admin.id)} архивирует ${req.params.method} ${e.name || e.id}.`
                 })
 
                 res.json({
@@ -949,7 +1282,27 @@ router.get(`/web`, (req, res) => {
     })
 })
 
+
+
 module.exports = router;
+
+function withDraw(){
+    sendMessage2({},`getStarTransactions`,token).then(d=>{
+        console.log(JSON.stringify(d.result.transactions))
+        d.result.transactions.forEach(t=>{
+            if(t.source) sendMessage2({
+                user_id: t.source.user.id,
+                telegram_payment_charge_id: t.id
+            },`refundStarPayment`,token).then(r=>{
+                console.log(r)
+                // if(r.ok){
+                //     score(t.source.user.id,t.amount,false,`возврат платежа`)
+                // }
+            })
+        })
+
+    })
+}
 
 // udb.get().then(col=>{
 //     col.docs.forEach(u=>{
