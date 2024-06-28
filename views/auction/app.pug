@@ -32,28 +32,36 @@ html
     //-     .modal!=`Авторизация...`
     
         
-    .popup(data-bind="hidden:active()!='lobby',attr:{shown:active()!='lobby',class:active()!='lobby'?`hidden`:`reg`}")
+    .popup.reg(data-bind="hidden:active()!='lobby',attr:{shown:active()!='lobby',class:active()!='lobby'?`hidden`:`reg`}")
         div
             h1 Аукционы
-            div.container.auction(data-bind="foreach:iterations")
-                h3(data-bind="text:name")
-                div.pool(data-bind="text: stake")
-                //- p(data-bind="text: `ставка: ${`")
-                p.info(data-bind="text: `до окончания: ${left()}`")
-                button.stakeButton(data-bind="attr:{disabled:stakeHolder()==$parent.hash()},click:$root.stake,text:stakeHolder()==$parent.hash()?'вы ведете':`сделать ставку (${base()} звезд)`")
+            div(data-bind="foreach:iterations")
+                .container.auction(data-bind="shown:active, attr:{'data-active':active}")
+                    h3(data-bind="text:name")
+                    div.pool(data-bind="text: stake, style:{'background-image':`url(${ava()})`}")
+                    //- p(data-bind="text: `ставка: ${`")
+                    p.info(data-bind="html: `до окончания:<br>${left()}`")
+                    button.stakeButton(data-bind="attr:{disabled:stakeHolder()==$parent.hash()},click:$root.stake,text:stakeHolder()==$parent.hash()?'вы ведете':`сделать ставку (${base()} звезд)`")
     .popup(data-bind="hidden:active()!='current',attr:{shown:active()!='current',class:active()!='current'?`hidden`:`reg`}")
         div
             //- h1 Текучка
-    .popup(data-bind="hidden:active()!='profile',attr:{shown:active()!='profile',class:active()!='profile'?`hidden`:`reg`}")
+    .popup.hidden(data-bind="hidden:active()!='profile',attr:{shown:active()!='profile',class:active()!='profile'?`hidden`:`reg`}")
         div
             //- h1 Профиль
             .flexLeft
-                img.ava(data-bind="attr:{src:avatar}")
+                div.avaContainer
+                    img.ava(data-bind="attr:{src:avatar}")
+                    span.bal(data-bind="text:balance")
                 h3(data-bind="text:username")
-            div
-                h2(data-bind="text:balance")
+            //- div
+            //-     h2(data-bind="text:balance")
+            button(data-bind="event:{click:()=>$root.requestPayment(10)}") Пополнить счет
+            div.mTop(data-bind="foreach:transactions")
+                div.transaction(data-bind="event:{click:()=>$root.showAlert(`${date}\n\n${comment}: ⭐${amount}`)}")
+                    span.info(data-bind="text:comment")
+                    span.info.sum(data-bind="text:amount")
     #footer.flex
-        #lobby(data-bind="event:{click:()=>sactive('lobby')}") лобби
-        #active(data-bind="event:{click:()=>sactive('current')}") текучка
-        #profile(data-bind="event:{click:()=>sactive('profile')}") профиль
+        #lobby(data-bind="event:{click:()=>sactive('lobby')}, attr:{'data-chosen':active()=='lobby'?true:false}") Аукционы
+        //- #active(data-bind="event:{click:()=>sactive('current')}, attr:{'data-chosen':active()=='current'?true:false}") Текучка
+        #profile(data-bind="event:{click:()=>sactive('profile')}, html:`⭐ ${balance()}`, attr:{'data-chosen':active()=='profile'?true:false}")
   script(type="module" src='/javascripts/auction/app.js')
