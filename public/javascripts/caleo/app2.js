@@ -876,7 +876,7 @@ function showItem(i){
                 imgC.append(scroll)
                 c.append(imgC)
 
-                if(i.description) c.append(ce(`p`, false, [`info`,`cut`], i.description,{
+                if(item.description) c.append(ce(`p`, false, [`info`,`cut`], item.description,{
                     onclick:function(){
                         this.classList.toggle(`cut`)
                     }
