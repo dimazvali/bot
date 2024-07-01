@@ -77,6 +77,8 @@ app.use('/homeless',        require('./routes/homelessBot'));
 
 app.use('/caleo',         require('./routes/caleoBot2'));
 
+app.use('/svanidze',         require('./routes/svanidzeBot'));
+
 
 // app.use('/stalker',       require('./routes/stalkerBot'));
 // app.use('/reestr',       require('./routes/reestrBot'));
