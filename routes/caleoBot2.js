@@ -641,7 +641,7 @@ router.all(`/api/:method`,(req,res)=>{
                     alertAdmins({
                         text: `Ошибка метода GET /cart: ${err.message}`
                     })
-                    devlog(err.message)
+                    console.log(err)
                     return res.sendStatus(500)
                 })
                 }
@@ -700,7 +700,7 @@ router.all(`/api/:method`,(req,res)=>{
                             res.json(o.data)
                         })    
                     }).catch(err=>{
-                        devlog(err.message)
+                        console.log(err)
                         alertAdmins({
                             text: `Ошибка метода /inorder: ${err.message}`
                         })
@@ -744,7 +744,7 @@ router.all(`/api/:method`,(req,res)=>{
                                 }
                                 
                             }).catch(err=>{
-                                devlog(err.message)
+                                console.log(err)
                                 alertAdmins({
                                     text: `Ошибка /getbasket: ${err.message}`
                                 })
@@ -777,7 +777,7 @@ router.all(`/api/:method`,(req,res)=>{
                                 devlog(s.data)
                                 return res.sendStatus(200)
                             }).catch(err=>{
-                                devlog(err.message)
+                                console.log(err)
                                 alertAdmins({
                                     text: `Ошибка /inbasket: ${err.message}`
                                 })
@@ -805,7 +805,7 @@ router.all(`/api/:method`,(req,res)=>{
                                 alertAdmins({
                                     text: `Ошибка метода outbasket: ${err.message}`
                                 })
-                                devlog(err.message)
+                                console.log(err)
                                 return res.sendStatus(500)
                             })
                         }
@@ -850,7 +850,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                 alertAdmins({
                                     text: `Ошибка метода GET /cart: ${err.message}`
                                 })
-                                devlog(err.message)
+                                console.log(err)
                                 return res.sendStatus(500)
                             })
                         }                        
@@ -882,7 +882,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                 alertAdmins({
                                     text: `Ошибка метода /cart: ${err.message}`
                                 })
-                                devlog(err.message)
+                                console.log(err)
                                 return res.sendStatus(500)
                             })
                         }
@@ -904,7 +904,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                         alertAdmins({
                             text: `Ошибка метода GET /cart: ${err.message}`
                         })
-                        devlog(err.message)
+                        console.log(err)
                         return res.sendStatus(500)
                     })
 
