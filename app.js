@@ -73,9 +73,9 @@ app.use('/books',       require('./routes/booksBot'));
 
 app.use('/hz',              require('./routes/hz'));
 app.use('/homeless',        require('./routes/homelessBot'));
-app.use('/auction',         require('./routes/auctionBot'));
+// app.use('/auction',         require('./routes/auctionBot'));
 
-app.use('/caleo',         require('./routes/caleoBot'));
+app.use('/caleo',         require('./routes/caleoBot2'));
 
 
 // app.use('/stalker',       require('./routes/stalkerBot'));

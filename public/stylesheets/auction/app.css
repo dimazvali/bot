@@ -649,6 +649,7 @@ img.ava {
     font-weight: 900;
     background-size: contain;
     background-blend-mode: luminosity;
+    color: var(--tg-theme-button-text-color);
 }
 
 .container.auction {

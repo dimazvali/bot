@@ -1092,7 +1092,7 @@ function sortBlock(sortTypes,container,array,callback,style){
     })
 
     return c;
-}
+}   
 
 function line(){
     // console.log(this.args)

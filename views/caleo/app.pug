@@ -11,6 +11,8 @@ html
     script(src='https://cdnjs.cloudflare.com/ajax/libs/axios/0.20.0/axios.js')
     script!=`userId="${user}"`
     script!=`let catalogue = ${JSON.stringify(catalogue)}`
+    script!=`let sectionsList = ${JSON.stringify(sectionsList)}`
+    script!=`let itemsList = ${JSON.stringify(itemsList)}`
     script!=`intention=${start ? `"${start}"` : false }`
     script(src='/javascripts/common.js')
     script!=`${start?`let start="${start}"`:'let start=null'}`
@@ -27,4 +29,4 @@ html
     if(authNeeded)
         .modal!=`Авторизация...`
             
-  script(src='/javascripts/caleo/app.js')
+  script(src='/javascripts/caleo/app2.js')

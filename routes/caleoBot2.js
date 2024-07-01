@@ -2,6 +2,7 @@ const ngrok2 = process.env.ngrok2;
 const ngrok = process.env.ngrok2;
 const host = `caleo`
 const token = process.env.caleoToken;
+const apiHost = `https://motionai.ru/api2`
 
 var express =   require('express');
 var router =    express.Router();
@@ -122,11 +123,13 @@ let authToken = null;
 let catalogue = []
 
 class catalogueSection {
-    constructor(id,s,before){
-        this.id =       id,
-        this.name =     s
+    constructor(s,before){
+        this.id =       s.id,
+        this.name =     s.name
         this.sub =      [];
         this.items =    [];
+        this.description = s.description || null;
+
         this.parents =  before || [];
         
         this.parents.push({
@@ -134,48 +137,47 @@ class catalogueSection {
             name:   this.name
         })
 
-        getSection(id).then(sub=>{
-            if(!sub) sub = {};
-            if(Object.keys(sub).length){
-                devlog(`Загружаем подкаталог ${s}`)
-                this.sub = Object.keys(sub).map(id=>new catalogueSection(id,sub[id],JSON.parse(JSON.stringify(this.parents))))
-            } else {
-                getProducts(id).then(products=>{
-                    if(!Object.keys(products).length) {
-                        // alertAdmins({
-                        //     text: `Пустой раздел ${s}: (${this.parents.map(i=>`${i.name} (${i.id})`).join('=>')})` 
-                        // })
-                    } else {
-                        this.items = Object.keys(products).map(id=>new catalogueProduct(id,products[id]))
-                    }
-                })
-            }
+        sectinonsList.push(s)
+
+        getSectionSubs(s.id).then(subsections=>{
+
+            this.sub = subsections.map(item => new catalogueSection(item,JSON.parse(JSON.stringify(this.parents))))
+
+            if(!subsections.length) getProducts(s.id).then(products=>{
+                
+                devlog(s.id);
+                devlog(products);
+
+                this.products = products.map(p=>new catalogueProduct(p))
+            })
+
         })
     }
 }
 
 class catalogueProduct {
-    constructor(id,s){
-        this.id =           id,
-        this.name =         s.name
-        this.sections =     s.sections||null;
-        this.image =        s.image
-        this.description =  s.description
+    constructor(p){
+        this.id =           p.id,
+        this.name =         p.name
+        this.minPrice =     p.minPrice,
+        this.image =        p.image
+        this.description =  p.description
+        this.options =      p.options
+
+        itemsList.push(p)
     }
 }
 
 
-
-function getSection(id){
-    devlog(`подгружаем секцию ${id}`)
-    return axios.get(`https://motionai.ru/api/sections`,{
+function getSectionSubs(id){
+    devlog(`подгружаем секции ${id}`)
+    return axios.get(`${apiHost}/sections?parentId=${id}`,{
         headers: { 
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': `application/json`
-        },
-        data: JSON.stringify({section_id:id})
+        }
     }).then(d=>{
-        return d.data.block_sections
+        return d.data.data
     }).catch(err=>{
         alertAdmins({
             text: `Ошибка метода /sections: ${err.message}`
@@ -183,33 +185,37 @@ function getSection(id){
     })
 }
 
+
 function getProducts(id){
+    
     devlog(`подгружаем товары категории ${id}`)
-    return axios.get(`https://motionai.ru/api/products`,{
+    
+    return axios.get(`${apiHost}/products?sectionId=${id}`,{
         headers: { 
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': `application/json`
-        },
-        data: JSON.stringify({section_id:id})
+        }
     }).then(d=>{
-        return d.data.products
+        return d.data.data
     }).catch(err=>{
-        alertAdmins({
-            text: `Ошибка метода /products: ${err.message}`
+        
+        if(!process.env.develop) alertAdmins({
+            text: `Ошибка метода /products?sectionId=${id}: ${err.message}`
         })
+
+        return [];
     })
 }
 
 function getItem(id){
-    devlog(`подгружаем товора ${id}`)
-    return axios.get(`https://motionai.ru/api/product`,{
+    devlog(`подгружаем товар ${id}`)
+    return axios.get(`${apiHost}/products/${id}`,{
         headers: { 
             'Authorization': `Bearer ${authToken}`,
             'Content-Type': `application/json`
-        },
-        data: JSON.stringify({product_id:id})
+        }
     }).then(d=>{
-        return d.data.products
+        return d.data
     }).catch(err=>{
         alertAdmins({
             text: `Ошибка метода /product: ${err.message}`
@@ -218,23 +224,26 @@ function getItem(id){
 }
 
 
+let sectinonsList = [];
+let itemsList = [];
+
 function syncCatalogue(){
-    axios.post(`https://motionai.ru/api/login`,{
+    axios.post(`${apiHost}/login`,{
         "userName": "admin",
         "password": "admin123456**"
     }).then(data=>{
         authToken = data.data.token;
-        axios.get(`https://motionai.ru/api/catalog`,{
+        axios.get(`${apiHost}/sections`,{
             headers: { 
                 'Authorization': `Bearer ${authToken}`
             }
         }).then(d=>{
-            Object.keys(d.data.catalog).forEach(id=>{
-                catalogue.push(new catalogueSection(id,d.data.catalog[id]))            
+            d.data.data.forEach(s=>{
+                catalogue.push(new catalogueSection(s))
             })
         }).catch(err=>{
             alertAdmins({
-                text: `Ошибка метода /catalog: ${err.message}`
+                text: `Ошибка метода /sections: ${err.message}`
             })
         })
     }).catch(err=>{
@@ -279,7 +288,7 @@ function registerUser(u) {
     u.active = true;
     u.blocked = false;
     u.score = 0;
-    u[u.language_code] = true;
+    if(u.language_code) u[u.language_code] = true;
 
     udb.doc(u.id.toString()).set(u).then(() => {
 
@@ -312,7 +321,9 @@ function alertAdmins(mess) {
     }
 
     udb.where(`admin`, '==', true).get().then(admins => {
-        admins.docs.forEach(a => {
+        admins = handleQuery(admins)
+        if(process.env.develop) admins = admins.filter(a=>+a.id == dimazvali)
+        admins.forEach(a => {
             message.chat_id = a.id
             if (mess.type != 'stopLog' || !a.data().stopLog) sendMessage2(message, false, token, messages)
         })
@@ -608,11 +619,31 @@ router.all(`/api/:method`,(req,res)=>{
             devlog(user)
             
             switch(req.params.method){
+                case `search`:{
+
+                }
                 case `views`:{
                     return ifBefore(views,{user: +user.id}).then(col=>res.json(col))
                 }
                 case `orders`:{
-                    return ifBefore(orders,{user: +user.id}).then(col=>res.json(col))
+                    // return ifBefore(orders,{user: +user.id}).then(col=>res.json(col))
+                    return axios.get(`${apiHost}/orders?userId=${user.id}`,
+                    {
+                        headers:{ 
+                            'Authorization':    `Bearer ${authToken}`,
+                            'Content-Type':     `application/json`
+                        }
+                    }
+                ).then(s=>{
+                    // devlog(s.data)
+                    return res.json(s.data.data)
+                }).catch(err=>{
+                    alertAdmins({
+                        text: `Ошибка метода GET /cart: ${err.message}`
+                    })
+                    devlog(err.message)
+                    return res.sendStatus(500)
+                })
                 }
                 case `userTypes`:{
                     return res.json([{
@@ -646,39 +677,37 @@ router.all(`/api/:method`,(req,res)=>{
                 }
 
                 case `order`:{
-                    return axios.post(`https://motionai.ru/api/inorder`,
-                                {
-                                    client_id: user.id,
-                                    basket_id: user.id
-                                },
-                                {
-                                    headers:{ 
-                                        'Authorization': `Bearer ${authToken}`,
-                                        'Content-Type': `application/json`
-                                    }
-                                }
-                            ).then(s=>{
-                                devlog(s.data)
-                                
-                                s.data.createdAt = new Date();
-                                s.data.user = +user.id
+                    
+                    devlog({
+                        userId: user.id,
+                        cartId: req.body.cartId
+                    })
 
-                                orders.add(s.data).then(r=>{
-                                     res.json({
-                                        id:     r.id,
-                                        success: true,
-                                        comment: `Отлично! Заказ создан!`
-                                    })
-                                })
+                    return axios.post(`${apiHost}/orders`,{
+                        userId: user.id,
+                        cartId: req.body.cartId
+                    },{
+                        headers:{ 
+                            'Authorization': `Bearer ${authToken}`,
+                            'Content-Type': `application/json`
+                        }
+                    }).then(o=>{
+                        o.data.user = +user.id;
 
-                            }).catch(err=>{
-                                devlog(err.message)
-                                alertAdmins({
-                                    text: `Ошибка метода /inorder: ${err.message}`
-                                })
-                                return res.sendStatus(500)
-                            })
+                        o.data.createdAt = new Date();
+
+                        orders.add(o.data).then(r=>{
+                            res.json(o.data)
+                        })    
+                    }).catch(err=>{
+                        devlog(err.message)
+                        alertAdmins({
+                            text: `Ошибка метода /inorder: ${err.message}`
+                        })
+                        return res.sendStatus(500)
+                    })
                 }
+
                 case `cart`:{
                     
                     req.body.client_id = user.id;
@@ -686,11 +715,7 @@ router.all(`/api/:method`,(req,res)=>{
                     switch(req.method){
 
                         case `GET`:{
-                            return axios.post(`https://motionai.ru/api/getbasket`,
-                                {
-                                    "client_id": user.id,
-                                    "basket_id": user.id
-                                },
+                            return axios.get(`${apiHost}/carts?userId=${user.id}`,
                                 {
                                     headers:{ 
                                         'Authorization': `Bearer ${authToken}`,
@@ -698,8 +723,26 @@ router.all(`/api/:method`,(req,res)=>{
                                     }
                                 }
                             ).then(s=>{
+
                                 devlog(s.data)
-                                return res.json(s.data[user.id])
+
+                                if(s.data.data.filter(c=>c.active).length){
+                                    return res.json(s.data.data.filter(c=>c.active)[0])
+                                } else {
+                                    axios.post(`${apiHost}/carts`,{
+                                            clientId: user.id
+                                        },
+                                        {
+                                            headers:{ 
+                                                'Authorization': `Bearer ${authToken}`,
+                                                'Content-Type': `application/json`
+                                            }
+                                        }
+                                    ).then(d=>{
+                                        res.json(d.data)
+                                    })
+                                }
+                                
                             }).catch(err=>{
                                 devlog(err.message)
                                 alertAdmins({
@@ -708,9 +751,21 @@ router.all(`/api/:method`,(req,res)=>{
                                 return res.sendStatus(500)
                             })
                         }
-                        
+                        case `PUT`:{
+                            axios.put(`${apiHost}/carts/${req.body.cart}`,
+                                req.body,
+                                {
+                                    headers:{ 
+                                        'Authorization': `Bearer ${authToken}`,
+                                        'Content-Type': `application/json`
+                                    }
+                                }
+                            ).then(s=>{
+                                res.json({success:true})
+                            })
+                        }
                         case `POST`:{
-                            return axios.post(`https://motionai.ru/api/inbasket`,
+                            return axios.post(`${apiHost}/inbasket`,
                                 req.body,
                                 {
                                     headers:{ 
@@ -735,7 +790,7 @@ router.all(`/api/:method`,(req,res)=>{
                             
                             devlog(req.body);
                             
-                            return axios.post(`https://motionai.ru/api/outbasket`,
+                            return axios.post(`${apiHost}/outbasket`,
                                 req.body,
                                 {
                                     headers:{ 
@@ -777,7 +832,83 @@ router.all(`/api/:method/:id`,(req,res)=>{
             devlog(user)
             
             switch(req.params.method){
+                case `cart`:{
+                    switch(req.method){
+
+                        case `GET`:{
+                            return axios.get(`${apiHost}/carts/${req.params.id}`,
+                                {
+                                    headers:{ 
+                                        'Authorization':    `Bearer ${authToken}`,
+                                        'Content-Type':     `application/json`
+                                    }
+                                }
+                            ).then(s=>{
+                                // devlog(s.data)
+                                return res.json(s.data)
+                            }).catch(err=>{
+                                alertAdmins({
+                                    text: `Ошибка метода GET /cart: ${err.message}`
+                                })
+                                devlog(err.message)
+                                return res.sendStatus(500)
+                            })
+                        }                        
+
+                        case `PUT`:{
+
+                            devlog({
+                                productId:  req.body.product_id,
+                                optionId:   req.body.section_id,
+                                intention:  req.body.intention
+                            })
+    
+                            return axios.put(`${apiHost}/carts/${req.params.id}`,
+                                {
+                                    productId:  req.body.product_id,
+                                    optionId:   req.body.section_id,
+                                    intention:  req.body.intention
+                                },
+                                {
+                                    headers:{ 
+                                        'Authorization': `Bearer ${authToken}`,
+                                        'Content-Type': `application/json`
+                                    }
+                                }
+                            ).then(s=>{
+                                devlog(s.data)
+                                return res.sendStatus(200)
+                            }).catch(err=>{
+                                alertAdmins({
+                                    text: `Ошибка метода /cart: ${err.message}`
+                                })
+                                devlog(err.message)
+                                return res.sendStatus(500)
+                            })
+                        }
+                    }
+                }
                 case `orders`:{
+
+                    return axios.get(`${apiHost}/orders/${req.params.id}`,
+                        {
+                            headers:{ 
+                                'Authorization':    `Bearer ${authToken}`,
+                                'Content-Type':     `application/json`
+                            }
+                        }
+                    ).then(s=>{
+                        // devlog(s.data)
+                        return res.json(s.data)
+                    }).catch(err=>{
+                        alertAdmins({
+                            text: `Ошибка метода GET /cart: ${err.message}`
+                        })
+                        devlog(err.message)
+                        return res.sendStatus(500)
+                    })
+
+
                     return getDoc(orders,req.params.id).then(o=>{
                         if(!o) return res.sendStatus(404)
                         if(o.user != +user.id) return res.sendStatus(403)
@@ -786,6 +917,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                 }
                 case `items`:{
                     return getItem(req.params.id).then(i=>{
+                        
                         res.json(i)
                         
                         views.add({
@@ -865,8 +997,10 @@ router.get(`/syncCatalogue`,(req,res)=>{
 
 router.get(`/app`,(req,res)=>{
     res.render(`${host}/app`,{
-        start:      req.query.startapp,
-        catalogue:  catalogue
+        start:          req.query.startapp,
+        catalogue:      catalogue,
+        sectinonsList:  sectinonsList,
+        itemsList:      itemsList
     })
 })
 
@@ -1114,6 +1248,7 @@ router.get(`/web`, (req, res) => {
 const swaggerUi = require('swagger-ui-express');
 const swaggerDocument = require('./caleoSwagger.json');
 const swaggerDocument2 = require('./caleoSwagger.json');
+const { admin } = require('googleapis/build/src/apis/admin/index.js');
 
 router.use('/swagger', swaggerUi.serve);
 router.get('/swagger', swaggerUi.setup(swaggerDocument));
