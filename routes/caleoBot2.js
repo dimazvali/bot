@@ -117,11 +117,15 @@ let logs =                  fb.collection(`${host}Logs`);
 let hashes =                fb.collection(`${host}UsersHashes`);
 let orders =                fb.collection(`${host}Orders`);
 let views =                 fb.collection(`${host}Views`);
-
+let settings =              fb.collection(`${host}Settings`);
 
 let authToken = null;
 
 let catalogue = []
+
+getDoc(settings,`data`).then(c=>{
+    if(c && c.data) catalogue = c.data;
+})
 
 class catalogueSection {
     constructor(s,before){
@@ -233,6 +237,9 @@ function syncCatalogue(){
         "userName": "admin",
         "password": "admin123456**"
     }).then(data=>{
+        
+        catalogue = [];
+
         authToken = data.data.token;
         axios.get(`${apiHost}/sections`,{
             headers: { 
@@ -375,6 +382,15 @@ router.post(`/userAuth`, (req, res) => {
 router.post(`/auth`, (req, res) => {
     console.log(`запрос авторизации`)
     authTG(req, res, token, adminTokens, udb, registerUser)
+})
+
+router.get(`/json`,(req,res)=>{
+    
+    settings.doc(`data`).set({
+        data: JSON.parse(JSON.stringify(catalogue)) 
+    })
+
+    res.json(catalogue)
 })
 
 router.post(`/hook`, (req, res) => {
@@ -992,7 +1008,6 @@ router.all(`/admin/:method`, (req, res) => {
 })
 
 router.get(`/syncCatalogue`,(req,res)=>{
-    return res.sendStatus(200)
     syncCatalogue()
 })
 
