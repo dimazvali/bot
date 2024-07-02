@@ -55,6 +55,7 @@ function checkPayment(p){
     return alerts
 }
 
+
 function paymentLine(p){
     let c = listContainer(p,true,{till:`till`},false,checkPayment(p));
         if(p.active) c.append(ce(`button`,false,`deleteButton`,`Withdraw`,{
@@ -144,7 +145,8 @@ function messageLine(m){
 }
 
 
-function showUser(id){
+function showUser(id,uid){
+    if(!id && uid) id = uid
     let p = preparePopupWeb(`user_${id}`,false,false,true)
     load(`users`,id).then(u=>{
         

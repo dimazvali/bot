@@ -3,6 +3,7 @@ let ngrok = process.env.ngrok
 
 const host = `svanidze`;
 const token = process.env.svanidzeToken;
+const group = process.env.svanidzeGroup;
 
 var express =   require('express');
 var router =    express.Router();
@@ -87,6 +88,12 @@ let logs =                  fb.collection(`${host}Logs`);
 let payments =              fb.collection(`${host}Payments`)
 
 
+if (!process.env.develop) {
+
+    cron.schedule(`0 7 * * *`, () => {
+        deActivate()
+    })
+}
 
 
 setTimeout(function () {
@@ -145,12 +152,14 @@ function alertAdmins(mess) {
         isReply: true
     }
 
+    if(mess.reply_markup) message.reply_markup = mess.reply_markup
+
     udb.where(`admin`, '==', true).get().then(admins => {
         admins = handleQuery(admins)
         // if(process.env.develop) admins = admins.filter(a=>+a.id == dimazvali)
         admins.forEach(a => {
             message.chat_id = a.id
-            if (mess.type != 'stopLog' || !a.data().stopLog) sendMessage2(message, false, token, messages)
+            if (mess.type != 'stopLog' || !a.stopLog) sendMessage2(message, false, token, messages)
         })
     })
 }
@@ -166,20 +175,25 @@ router.post(`/auth`, (req, res) => {
 })
 
 const translations = {
-    urBlocked: `Sorry, your subscription was blocked. Do something` 
+    sorryNotPayed:      `Sorry, you have no subscription`,
+    welcomeLinkName:    `Welcome on board`,
+    urBlocked:          `Sorry, your subscription has expired. Do something` 
 }
 
 function deActivate(){
     payments
         .where(`active`,'==',true)
-        .where(`till`,'<=',new Date().toISOString().split('T')[0])
+        // .where(`till`,'<=',new Date().toISOString().split('T')[0])
         .get()
         .then(col=>{
+            col = handleQuery(col).filter(rec=>rec.till <=  new Date().toISOString().split('T')[0])
             if(col.length){
+
                 alertAdmins({
                     text: `Deactivated users:\n${col.map(u=>`id${u.user}`).join(`\n`)}`
                 })
-                handleQuery(col).forEach(rec=>{
+
+                col.forEach(rec=>{
                     blockSubscription(rec);
                 })
             }
@@ -187,18 +201,40 @@ function deActivate(){
 }
 
 function blockSubscription(rec){
+
+    payments.doc(rec.id).update({
+        active: false,
+        updatedAt: new Date()
+    })
+    
     sendMessage2({
         chat_id: rec.user,
-        text: translations.urBlocked
+        text: translations.urBlocked,
+        reply_markup:{
+            inline_keyboard:[[{
+                text: `I have payed`,
+                callback_data: `payed`
+            }]]
+        }
     },false,token,messages)
 
-    payments.doc(u.id).update({active: false})
+
+    sendMessage2({
+        user_id: rec.user,
+        chat_id: group,
+    },`banChatMember`,token).then(d=>{
+        devlog(d)
+    })
+
+
+
+
     
     // TBD group action
 }
 
 if(process.env.develop) router.get(`/test`,(req,res)=>{
-    checkExpiring(req.query.days? +req.query.days : 7)
+    deActivate()
     res.sendStatus(200)
 })
 
@@ -284,7 +320,13 @@ function addPayment(req,res,admin){
     
     devlog(req.body)
 
-    if(!req.body.user || !req.body.till) return res.sendStatus(400);
+    if(!req.body.user || !req.body.till) {
+        if(res) {
+            return res.sendStatus(400)
+        } else {
+            return false
+        }
+    };
 
     payments.add({
         active:     true,
@@ -297,7 +339,10 @@ function addPayment(req,res,admin){
         udb.doc(req.body.user.toString()).update({
             payed: true
         })
-        res.redirect(`/${host}/web?page=users_${req.body.user}`)
+        
+        invite2Chat(req.body.user)
+
+        if(res) res.redirect(`/${host}/web?page=users_${req.body.user}`)
     }).catch(err=>{
         handleError(err,res)
     })
@@ -313,6 +358,40 @@ function sendMessage(req,res,admin){
     sendMessage2(t, false, token, messages,{admin: +admin.id})
     
     if(res) res.sendStatus(200);
+}
+
+function invite2Chat(userId){
+    sendMessage2({
+        chat_id: group,
+        user_id: userId
+    },`getChatMember`,token).then(d=>{
+        if(d.ok && d.result.status == `kicked`){
+            
+            devlog(`user was kicked`)
+
+            sendMessage2({
+                chat_id: group,
+                user_id: userId,
+            },`unbanChatMember`,token)
+
+            // sendMessage2({
+            //     chat_id: userId,
+            //     text: `${translations.welcomeLinkName}`
+            // },false,token,messages)
+        } 
+        sendMessage2({
+            chat_id:    group,
+            name:       translations.welcomeLinkName,
+            creates_join_request: true,
+        },`createChatInviteLink`,token).then(d=>{
+            devlog(d)
+            sendMessage2({
+                chat_id: userId,
+                text: `${translations.welcomeLinkName}\n${d.result.invite_link}`
+            },false,token,messages)
+        })
+    })
+    
 }
 
 router.all(`/admin/:method`,(req,res)=>{
@@ -334,6 +413,22 @@ router.all(`/admin/:method`,(req,res)=>{
             devlog(admin)
 
             switch(req.params.method){
+
+                case `chat`:{
+                    switch(req.method){
+                        case `POST`:{
+                            if(!req.body.user) return  res.sendStatus(400);
+                            return getUser(req.body.user,udb).then(u=>{
+                                if(!u) return res.sendStatus(404);
+                                invite2Chat(req.body.user)
+                                    .then(s=>{
+                                        res.json({success:true,link:s})
+                                    })
+                            })
+
+                        }
+                    }
+                }
                 
 
                 default:{
@@ -676,8 +771,47 @@ TBC ბანკზე:
 
                     return alertAdmins({
                         text: `${uname(u,u.id)} says, that (s)he had already payed for subscription.`,
+                        reply_markup:{
+                            inline_keyboard:[
+                                [{
+                                    text:`1 month`,
+                                    callback_data: `confirm_1_${u.id}`
+                                },{
+                                    text:`3 months`,
+                                    callback_data: `confirm_3_${u.id}`
+                                },{
+                                    text:`6 month`,
+                                    callback_data: `confirm_6_${u.id}`
+                                }],
+                                [{
+                                    text: `admin`,
+                                    url: `${ngrok}/${host}/web`
+                                }]
+                            ]
+                        },
                         user: user.id
                     })
+                }
+                default:{
+                    let inc = req.body.callback_query.data.split('_')
+                    switch (inc[0]){
+                        case `confirm`:{
+                            let nDate = new Date(+new Date() + +inc[1]*30*24*60*60*1000).toISOString().split('T')[0]
+                            if(u.admin){
+                                addPayment({
+                                    body:{
+                                        user: inc[2],
+                                        till: nDate
+                                    },
+                                },false,u)
+                                sendMessage2({
+                                    chat_id:    u.id,
+                                    message_id: req.body.callback_query.message.message_id,
+                                    text:       `Subscription for user ${inc[2]} set untill ${nDate}`,
+                                },`editMessageText`,token)
+                            }
+                        }
+                    }
                 }
             }
         })   
@@ -693,6 +827,30 @@ TBC ბანკზე:
             console.log(s.data)
         }).catch(err=>{
             console.log(err)
+        })
+    }
+
+    if(req.body.chat_join_request){
+        return getUser(req.body.chat_join_request.from.id,udb).then(u=>{
+            if(u && u.payed && !u.blocked){
+                sendMessage2({
+                    chat_id: group,
+                    user_id: req.body.chat_join_request.from.id
+                },`approveChatJoinRequest`,token)
+                sendMessage2({
+                    chat_id: req.body.chat_join_request.from.id,
+                    text: translations.welcomeLinkName
+                },false,token,messages)
+            } else {
+                sendMessage2({
+                    chat_id: group,
+                    user_id: req.body.chat_join_request.from.id
+                },`declineChatJoinRequest`,token)
+                sendMessage2({
+                    chat_id: req.body.chat_join_request.from.id,
+                    text:   translations.sorryNotPayed
+                },false,token,messages)
+            }   
         })
     }
 })

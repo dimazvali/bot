@@ -194,66 +194,100 @@ function accessError(res,access){
 }
 
 const locals = {
+    bet: {
+        ru: `Сделать ставку`,
+        en: `Bet`
+    },
+    lead: {
+        ru: `Вы ведете`,
+        en: `You a winning`
+    },
+    auctions: {
+        ru: `Аукционы`,
+        en: `Auctions`
+    },
+    refill: {
+        ru: `Пополнить счет`,
+        en: `Top up`
+    },
+    toTheEnd:{
+        ru: `До конца розыгрыша: `,
+        en: `Time to end: `
+    },
     termsAndButtons:{
         win: {
             ru: `Выигрыш`,
+            en: `Winning`
         },
         open:{
-            ru: `Открыть аукцион`
+            ru: `Открыть аукцион`,
+            en: `Open the auction`
         },
         stake: {
-            ru: `Ставка`
+            ru: `Ставка`,
+            en: `Bid`
         },
         staked:{
-            ru: `ставка сделана`
+            ru: `ставка сделана`,
+            en: `Bid placed`
         },
         priceLabel:{
-            ru: `Оплата`
+            ru: `Оплата`,
+            en: `Payment`
         },
         scoreUpdate:{
-            ru: `пополнение счета` 
+            ru: `пополнение счета` ,
+            en: `top up balance`
         }
     },
     errors: {
         noSuchAuction: {
-            ru: `Такого аукциона нет`
+            ru: `Такого аукциона нет`,
+            en: `There is no such auction`
         },
         notEnoughStars: {
-            ru: `Вам не хватает звезд!`
+            ru: `Вам не хватает звезд!`,
+            en: `Not enough stars!`
         }
     },
     users:{
         welcome: {
-            ru: `Я текст приветствия, который можно будет настроить в админке.`
+            ru: `Добро пожаловать в Аукцион, тут вы можете легко выиграть Звезды от Телеграм`,
+            en: `Welcome to the Auction, here you can easily win stars from Telegram`
         },
         scoreUpdated: (payment) => {
             return {
-                ru: `Ваш счет пополнен на ${payment.total_amount} звезд.`
+                ru: `Ваш счет пополнен на ${payment.total_amount} звезд.`,
+                en: `Your account has been funded with ${payment.total_amount} stars.`
             }
         },
         toPayDesc:{
-            ru: `Столько не хватает для следующей ставки`
+            ru: `Столько не хватает для следующей ставки`,
+            en: `So much is missing for the next bid`
         },
         stakeHolderChanged:(i)=>{
             return {
-                ru:  `Ваша ставка бита! Скорее! Вы еще можете выиграть ${i.stake + Number(i.base)} звезд!`
+                ru:  `Ваша ставка бита! Скорее! Вы еще можете выиграть ${i.stake + Number(i.base)} звезд!`,
+                en:  `Your bid is beaten! Hurry up! You can still win ${i.stake + Number(i.base)} stars!`
             }
         },
         iterationOver:(iteration)=>{
             return {
-                ru: `Розыгрыш аукциона ${iteration.auctionName} закончился.\nВ этот раз ваша ставка не сыграла. Попробуем снова?..`
+                ru: `Розыгрыш аукциона ${iteration.auctionName} закончился.\nВ этот раз ваша ставка не сыграла. Попробуем снова?`,
+                en: `The ${iteration.auctionName} auction has ended. Your bid failed this time. Shall we try again?`
             }
         },
         congrats: (iteration)=> {
             return {
                 ru: `Поздравляем! Вы выиграли ${iteration.stake} звезд!`,
+                en: `Congratulations! You have won ${iteration.stake} stars!`,
             }
         }
     },
     accountCharged:(a)=>{
         return {
-            ru: `Ура! Ваш баланс полонен на ${a} звезд. Используйте их с умом!`,
-            en: `Owesome! You've got ${a} more stars!`
+            ru: `Ура! Ваш баланс пополнен на ${a} звезд. Удачной игры!`,
+            en: `Yay! Your balance has been replenished with ${a} stars. Good luck!`
         }
     }
 }
@@ -1039,7 +1073,9 @@ router.all(`/admin/:method`, (req, res) => {
 
 router.get(`/app`,(req,res)=>{
     res.render(`${host}/app`,{
-        start: req.query.startapp,
+        start:  req.query.startapp,
+        translations: locals,
+        lang:   `ru`
     })
 })
 
