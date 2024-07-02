@@ -30,8 +30,8 @@ html
     #left
         .userData
           h3!= user.username ? `@${user.username}` : `${user.first_name} ${user.last_name}`.trim() 
-        h3(onclick="s(this),showUsers()")         Пользователи
-        h3(onclick="s(this),showPayments()")       Подписки
+        h3(onclick="s(this),showUsers()")     Users
+        h3(onclick="s(this),showPayments()")  Subscriptions
         
     
     #menu(onclick="left.classList.toggle('active')")

@@ -5,6 +5,11 @@ let botLink = `https://t.me/dimazvalibot`
 let buttonStyle = []
 
 
+
+function uname(u,id){
+    return `${u.admin? `admin` : (u.insider ? 'associate' : (u.fellow ? 'fellow' : `user`))} ${u.username ? `@${u.username}` : `id ${id}` } (${u.first_name||''} ${u.last_name||''})`
+}
+
 if(start){
     switch(start[0]){
         case `users`:{
@@ -18,19 +23,22 @@ if(start){
 }
 
 function showPayments(){
-    showScreen(`Подписки`,`payments`,paymentLine)
-}
-
-function showCities(){
-    showScreen(`Города`,`cities`,showCityLine,addCity)
+    showScreen(`Subscriptions`,`payments`,paymentLine)
 }
 
 function showUsers(){
-    showScreen(`Пользователи`,`users`,showUserLine,false)
+    showScreen(`Users`,`users`,showUserLine,false)
+}
+
+function checkUser(u){
+    let alerts = [];
+    if(!u.payed) alerts.push(`not subscribed`)
+    if(u.blocked) alerts.push(`blocked`)
+    return alerts
 }
 
 function showUserLine(u){
-    let c = listContainer(u,true,{deals: `сделок`, offers:`книг`});
+    let c = listContainer(u,true,{language_code:`lang`,payed: `subscription`},false,checkUser(u));
         c.append(ce(`h3`,false,false,uname(u, u.id),{
             onclick:()=>showUser(u.id)
         }))
@@ -38,11 +46,26 @@ function showUserLine(u){
 }
 
 
+function checkPayment(p){
+    let alerts = [];
+    
+    if(p.till > new Date().toISOString()) {
+        if(+new Date(p.till) - +new Date() < 7*24*60*60*1000) alerts.push(`expires in a week`)
+    } 
+    return alerts
+}
+
 function paymentLine(p){
-    let c = listContainer(p,true,{till:`до`});
-        // c.append(ce(`h3`,false,false,uname(u, u.id),{
-        //     onclick:()=>showUser(u.id)
-        // }))
+    let c = listContainer(p,true,{till:`till`},false,checkPayment(p));
+        if(p.active) c.append(ce(`button`,false,`deleteButton`,`Withdraw`,{
+            onclick: () =>{
+                axios.delete(`/${host}/admin/payments/${p.id}`)
+                    .then(s=>{
+                        c.dataset.active = false;
+                    })
+                    .catch(handleError)
+            }
+        }))
     return c;
 }
 
@@ -60,26 +83,26 @@ function messageLine(m){
 
     if(!m.active) c.classList.remove(`hidden`)
 
-    c.append(ce(`p`,false,false,m.text || `без текста`))
+    c.append(ce(`p`,false,false,m.text || `w/o text`))
 
-    if(m.textInit) c.append(ce(`p`,false,false,`Исходный текст: ${m.textInit}`))
+    if(m.textInit) c.append(ce(`p`,false,false,`original text: ${m.textInit}`))
 
     let bc = ce(`div`,false,`flex`)
         c.append(bc)
 
     if(m.messageId && !m.deleted  && (+new Date() - new Date(m.createdAt._seconds*1000 < 48*60*60*1000))){
         bc.append(deleteButton(`messages`,m.id,false,[`active`,`dark`,`dateButton`],()=>message.remove()))
-        if(!m.edited) bc.append(ce(`button`,false,buttonStyle,`редактировать`,{
+        if(!m.edited) bc.append(ce(`button`,false,buttonStyle,`edit`,{
             onclick:()=>{
                 let ew = modal()
                     let txt = ce(`textarea`,false,false,false,{
-                        placeholder: `вам слово`,
+                        placeholder: `write something`,
                         value: m.text || null
                     })
                      
                     ew.append(txt);
 
-                    ew.append(ce(`button`,false,false,`Сохранить`,{
+                    ew.append(ce(`button`,false,false,`Save`,{
                         onclick:()=>{
                             if(txt.value) axios.put(`/${host}/admin/messages/${m.id}`,{
                                 attr: `text`,
@@ -93,14 +116,14 @@ function messageLine(m){
     }
 
     if(!m.isReply){
-        bc.append(ce(`button`,false,buttonStyle,`Ответить`,{
+        bc.append(ce(`button`,false,buttonStyle,`Answer`,{
             onclick:()=>{
                 let b = modal()
-                let txt = ce(`textarea`,false,false,false,{placeholder: `Вам слово`})
+                let txt = ce(`textarea`,false,false,false,{placeholder: `Write something`})
                     b.append(txt)
-                    b.append(ce(`button`,false,buttonStyle,`Написать`,{
+                    b.append(ce(`button`,false,buttonStyle,`Send`,{
                         onclick:function(){
-                            if(!txt.value) return alert(`Я не вижу ваших букв`)
+                            if(!txt.value) return alert(`No letters provided`)
                             this.setAttribute(`disabled`,true)
                             axios.post(`/${host}/admin/messages`,{
                                 text: txt.value,
@@ -120,44 +143,6 @@ function messageLine(m){
     return c
 }
 
-function showDeal(id){
-    let p = preparePopupWeb(`deal_${id}`,false,false,true);
-    load(`deals`,id).then(deal=>{
-        p.append(ce(`h1`,false,false,deal.bookName,{
-            onclick:()=>showBook(deal.book)
-        }))
-        p.append(detailsContainer(deal))
-        
-        let uc = ce(`div`)
-        
-        p.append(uc)
-
-        load(`users`,deal.seller,downLoadedUsers).then(seller=>{
-            load(`users`,deal.buyer,downLoadedUsers).then(buyer=>{
-                uc.append(line(
-                    ce(`button`,false,false,uname(seller,seller.id),{
-                        onclick:()=>showUser(seller.id)
-                    }),
-                    ce(`button`,false,false,uname(buyer,buyer.id),{
-                        onclick:()=>showUser(buyer.id)
-                    })
-                ))
-                // uc.append(deal.address)
-            })
-        })
-
-        load(`offers`,deal.offer).then(o=>{
-            uc.append(ce(`p`,false,false,o.address))
-        })
-
-        p.append(line(
-            ce(`p`,false,`mrRight`,`Статус: ${deal.status}`),
-            ce(`p`,false,false,`Тип: ${deal.type}`)
-        ))
-
-        p.append(deleteButton(`deals`,id))
-    })
-}
 
 function showUser(id){
     let p = preparePopupWeb(`user_${id}`,false,false,true)
@@ -166,16 +151,16 @@ function showUser(id){
         p.append(ce(`h1`,false,false,uname(u, u.id)))
 
         p.append(line(
-            toggleButton(`users`,u.id,`blocked`,u.blocked||false,`Разблокировать`,`Заблокировать`,[`dateButton`,`dark`]),
-            toggleButton(`users`,u.id,`admin`,u.admin||false,`Снять админство`,`сделать админом`,[`dateButton`,`dark`]),
-            toggleButton(`users`,u.id,`admin`,u.admin||false,`Снять платность`,`сделать платным`,[`dateButton`,`dark`]),
+            toggleButton(`users`,u.id,`blocked`,u.blocked||false,`Unblock`,`Block`,[`dateButton`,`dark`]),
+            toggleButton(`users`,u.id,`admin`,u.admin||false,`Withdrow admin rights`,`Make an admin`,[`dateButton`,`dark`]),
+            toggleButton(`users`,u.id,`payed`,u.payed||false,`Withdraw payed status`,`Mark as payed`,[`dateButton`,`dark`]),
         ))
         
         let payments = ce(`div`)
         p.append(payments)
-        payments.append(ce(`h2`,false,false,`Платежи`))
+        payments.append(ce(`h2`,false,false,`Payments`))
         load(`payments`,false,{user: id}).then(list=>{
-            payments.append(ce(`button`,false,false,`Внести оплату`,{
+            payments.append(ce(`button`,false,false,`Register payment`,{
                 onclick: ()=>addPayment(id)
             }))
             list.forEach(l=>{
@@ -189,19 +174,19 @@ function showUser(id){
             
             p.append(messenger)
     
-            messenger.append(ce(`button`,false,buttonStyle,`Открыть переписку`,{
+            messenger.append(ce(`button`,false,buttonStyle,`Open chat`,{
                 onclick:function(){
                     this.remove()
-                    messenger.append(ce(`h2`,false,false,`Переписка:`))
+                    messenger.append(ce(`h2`,false,false,`Chat:`))
                     load(`messages`,false,{user:id}).then(messages=>{
                         let mc = ce(`div`,false,`messenger`)
                         messenger.append(mc)
                         messages.forEach(m=>{
                             mc.prepend(messageLine(m))
                         })
-                        let txt = ce('textarea',false,false,false,`вам слово`)
+                        let txt = ce('textarea',false,false,false,`Write something`)
                         messenger.append(txt)
-                        messenger.append(ce(`button`,false,buttonStyle,`Отправить`,{
+                        messenger.append(ce(`button`,false,buttonStyle,`Send`,{
                             onclick:()=>{
                                 if(txt.value){
                                     axios.post(`/${host}/admin/messages`,{
@@ -209,7 +194,7 @@ function showUser(id){
                                         user: u.id
                                     }).then(s=>{
                                         
-                                        alert(`ушло!`)
+                                        alert(`sent!`)
                                         let message = ce('div',false,false,false,{dataset:{reply:true}})
                                             message.append(ce(`span`,false,`info`,drawDate(new Date(),false,{time:true})))
                                             message.append(ce(`p`,false,false,txt.value))
@@ -283,8 +268,8 @@ function showDeals(){
 
 
 function addPayment(id){
-    addScreen(`payments`,`Платеж для пользователя ${id}`,{
-        user:           {hidden:true,value: id},
+    addScreen(`payments`,`Payment for the user ${id}`,{
+        user:           {type: `hidden`,hidden:true,value: id},
         till:           {type: `date`},
     })
 }

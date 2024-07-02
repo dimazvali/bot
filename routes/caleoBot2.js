@@ -1,7 +1,7 @@
-const ngrok2 = process.env.ngrok2;
-const ngrok = process.env.ngrok2;
-const host = `caleo`
-const token = process.env.caleoToken;
+const ngrok2 =  process.env.ngrok2;
+const ngrok =   process.env.ngrok;
+const host =    `caleo`
+const token =   process.env.caleoToken;
 const apiHost = `https://motionai.ru/api2`
 
 var express =   require('express');
@@ -86,6 +86,7 @@ var FormData = require('form-data');
 const {
     ObjectStreamToJSON
 } = require('sitemap');
+
 const { database } = require('firebase-admin');
 
 
@@ -253,7 +254,7 @@ function syncCatalogue(){
     })
 }
 
-syncCatalogue()
+// syncCatalogue()
 
 setTimeout(function () {
     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(() => {
@@ -919,8 +920,8 @@ router.all(`/api/:method/:id`,(req,res)=>{
                     return getItem(req.params.id).then(i=>{
                         
                         res.json(i)
-                        
-                        views.add({
+
+                        if(i) views.add({
                             createdAt:      new Date(),
                             catalogue_id:   req.params.id || null,
                             user:           +user.id || null,
@@ -1204,8 +1205,6 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
 }
 
 router.get(`/web`, (req, res) => {
-    
-    console.log(req.signedCookies.adminToken)
 
     if (!process.env.develop && !req.signedCookies.adminToken) return res.redirect(`${process.env.ngrok}/${host}/auth`)
 

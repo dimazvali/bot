@@ -771,3 +771,7 @@ span.checkoutHeader {
     border-radius: 50%;
     cursor: pointer;
 }
+
+[disabled="true"]>.bControls {
+    display: none;
+}

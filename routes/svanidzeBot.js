@@ -165,6 +165,65 @@ router.post(`/auth`, (req, res) => {
     authTG(req, res, token, adminTokens, udb, registerUser)
 })
 
+const translations = {
+    urBlocked: `Sorry, your subscription was blocked. Do something` 
+}
+
+function deActivate(){
+    payments
+        .where(`active`,'==',true)
+        .where(`till`,'<=',new Date().toISOString().split('T')[0])
+        .get()
+        .then(col=>{
+            if(col.length){
+                alertAdmins({
+                    text: `Deactivated users:\n${col.map(u=>`id${u.user}`).join(`\n`)}`
+                })
+                handleQuery(col).forEach(rec=>{
+                    blockSubscription(rec);
+                })
+            }
+        })
+}
+
+function blockSubscription(rec){
+    sendMessage2({
+        chat_id: rec.user,
+        text: translations.urBlocked
+    },false,token,messages)
+
+    payments.doc(u.id).update({active: false})
+    
+    // TBD group action
+}
+
+if(process.env.develop) router.get(`/test`,(req,res)=>{
+    checkExpiring(req.query.days? +req.query.days : 7)
+    res.sendStatus(200)
+})
+
+function checkExpiring(days){
+
+    let checkDate = new Date(+new Date()+days*24*60*60*1000).toISOString().split('T')[0]
+    
+    devlog(checkDate)
+
+    payments
+        .where(`active`,'==',true)
+        // .where(`till`,'<=',checkDate)
+        .get()
+        .then(col=>{
+            col = handleQuery(col).filter(rec=>rec.till <= checkDate)
+            if(col.length){
+                alertAdmins({
+                    text: `Users to be deactivated until ${checkDate}:\n\n${col.map(u=>`id ${u.user}`).join(`\n`)}`
+                })
+                // handleQuery(col).forEach(rec=>{
+                //     blockSubscription(rec);
+                // })
+            }
+        })
+}
 
 router.get(`/web`, (req, res) => {
 
@@ -183,6 +242,7 @@ router.get(`/web`, (req, res) => {
             if (u.blocked) return res.sendStatus(403)
 
             devlog(`все ок`)
+
             if (u.admin && !req.query.stopAdmin) return logs
                 .orderBy(`createdAt`, 'desc')
                 .limit(100)
@@ -226,7 +286,6 @@ function addPayment(req,res,admin){
 
     if(!req.body.user || !req.body.till) return res.sendStatus(400);
 
-
     payments.add({
         active:     true,
         createdAt:  new Date(),
@@ -234,6 +293,7 @@ function addPayment(req,res,admin){
         user:       +req.body.user,
         till:       req.body.till
     }).then(s=>{
+
         udb.doc(req.body.user.toString()).update({
             payed: true
         })
@@ -257,6 +317,8 @@ function sendMessage(req,res,admin){
 
 router.all(`/admin/:method`,(req,res)=>{
     
+    if(process.env.develop && !req.signedCookies.adminToken) req.signedCookies.adminToken = process.env.adminToken  
+
     if (!req.signedCookies.adminToken) return res.status(401).send(`who are you?`)
     
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
@@ -301,7 +363,9 @@ router.all(`/admin/:method`,(req,res)=>{
 
 
 router.all(`/admin/:method/:id`,(req,res)=>{
-    
+
+    if(process.env.develop && !req.signedCookies.adminToken) req.signedCookies.adminToken = process.env.adminToken  
+
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
     
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
@@ -545,7 +609,7 @@ router.post(`/hook`, (req, res) => {
                 })
             })
 
-            if (req.body.message.photo) {
+            if (req.body.message.photo && !req.body.message.chat.is_forum) {
                 udb.where('admin','==',true).get().then(col=>{
                     handleQuery(col).forEach(a=>{
                             sendMessage2({
