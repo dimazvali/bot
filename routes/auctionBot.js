@@ -132,7 +132,8 @@ let invoices =                  fb.collection(`${host}Invoices`);
 
 let iterations = {}
 
-ifBefore(auctionsIterations).then(col=>{
+
+if(!process.env.develop) ifBefore(auctionsIterations).then(col=>{
     col.forEach(i=>{
         if(i.timer._seconds*1000 < new Date()) {
             stopIteration(i)
@@ -178,9 +179,11 @@ const datatypes = {
 function userLang(txt,lang){
     if(!lang) lang = `ru`;
     if(txt[lang]) return txt[lang]
+    
     alertMe({
         text: `Нет перевода ${lang} для ${txt.ru || txt}`
     })
+    
     return txt.ru || txt
 }
 
@@ -1364,3 +1367,10 @@ function withDraw(){
 //     telegram_payment_charge_id:     "F7380379248521067520U5326429B7396872880A1I5434113367314801068"
 // },'refundStarPayment',token)
 //     .then(d=>console.log(d))
+
+
+// auctionsIterations.where(`active`,'==',true).get().then(col=>{
+//     handleQuery(col).forEach(i=>{
+//         stopIteration(i)
+//     })
+// })
