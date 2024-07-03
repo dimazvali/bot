@@ -177,7 +177,7 @@ router.post(`/auth`, (req, res) => {
 const translations = {
     sorryNotPayed:      `Sorry, you have no subscription`,
     welcomeLinkName:    `Welcome on board`,
-    urBlocked:          `Sorry, your subscription has expired. Do something` 
+    urBlocked:          `სამწუხაროდ თქვენი აბონიმენტი ამოიწურა და არხზე წვდომა დაკარგეთ.` 
 }
 
 function deActivate(){
