@@ -328,23 +328,32 @@ function addPayment(req,res,admin){
         }
     };
 
-    payments.add({
-        active:     true,
-        createdAt:  new Date(),
-        createdBy:  +admin.id,
-        user:       +req.body.user,
-        till:       req.body.till
-    }).then(s=>{
-
-        udb.doc(req.body.user.toString()).update({
-            payed: true
-        })
+    ifBefore(payments,{user:+req.body.user,active:true}).then(col=>{
         
-        invite2Chat(req.body.user)
+        col.forEach(sub=>{
+            payments.doc(sub.id).update({
+                active:false
+            })
+        })
 
-        if(res) res.redirect(`/${host}/web?page=users_${req.body.user}`)
-    }).catch(err=>{
-        handleError(err,res)
+        payments.add({
+            active:     true,
+            createdAt:  new Date(),
+            createdBy:  +admin.id,
+            user:       +req.body.user,
+            till:       req.body.till
+        }).then(s=>{
+    
+            udb.doc(req.body.user.toString()).update({
+                payed: true
+            })
+            
+            invite2Chat(req.body.user)
+    
+            if(res) res.redirect(`/${host}/web?page=users_${req.body.user}`)
+        }).catch(err=>{
+            handleError(err,res)
+        })
     })
 }
 
@@ -842,13 +851,30 @@ TBC ბანკზე:
                     text: translations.welcomeLinkName
                 },false,token,messages)
             } else {
+                
                 sendMessage2({
                     chat_id: group,
                     user_id: req.body.chat_join_request.from.id
                 },`declineChatJoinRequest`,token)
+
                 sendMessage2({
                     chat_id: req.body.chat_join_request.from.id,
-                    text:   translations.sorryNotPayed
+                    parse_mode: `Markdown`,
+                    text: `👾როგორ გავხდე პრემიუმ წევრი? 
+🏛️წევრობის ფასია თვეში 20 ლარი.
+გადმორიცხე თანხა საქართველოს ბანკზე: \`GE29BG0000000549896877\` 
+ან 
+TBC ბანკზე: 
+\`GE39TB7301745064300064\` 
+გადარიცხვის დროს მიუთითე სახელი რომელიც ტელეგრამზე გაწერია. თუ მითითება არ შეგიძლია, გადმორიცხვის შემდეგ ქვითარი/სქრინი გამოაგზავნე მეილზე: nsvanidze.info@gmail.com.
+
+⚠️ თუ უკვე შეასრულე გადახდა, ჩატში დააჭირე ღილაკს “გადავიხადე”`,
+                    reply_markup:{
+                        inline_keyboard: [[{
+                            text: `გადავიხადე`,
+                            callback_data: `payed`
+                        }]]
+                    }
                 },false,token,messages)
             }   
         })
