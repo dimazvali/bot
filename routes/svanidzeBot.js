@@ -62,6 +62,24 @@ const {
 } = require('firebase-admin/firestore');
 
 
+let gcpnew = initializeApp({
+    credential: cert({
+        "type": "service_account",
+        "project_id": "svanidzebot",
+        "private_key_id": "88aa43003c4e51c44ba4fc093c0c725880cfd822",
+        "private_key": process.env.svanidzeGCP.replace(/\\n/g, '\n'),
+        "client_email": "firebase-adminsdk-ezur2@svanidzebot.iam.gserviceaccount.com",
+        "client_id": "115008469346253018171",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-ezur2%40svanidzebot.iam.gserviceaccount.com",
+        "universe_domain": "googleapis.com"
+      }),
+    // databaseURL: "https://dimazvalimisc-default-rtdb.europe-west1.firebasedatabase.app"
+}, host);
+
+
 let gcp = initializeApp({
     credential: cert({
         "type":             "service_account",
@@ -175,6 +193,12 @@ router.post(`/auth`, (req, res) => {
 })
 
 const translations = {
+    subscriptionExpired: (date) => `Your subscription expired on ${date}. Do something`,
+    subscriptionInfo: (date) => `Your subscription expires on ${date}.`,
+
+    // when user asks for his status, but has no subscription
+    noSubscriptionAtAll: `You have no subscription, do something`,
+
     sorryNotPayed:      `Sorry, you have no subscription`,
     welcomeLinkName:    `Welcome on board`,
     urBlocked:          `სამწუხაროდ თქვენი აბონიმენტი ამოიწურა და არხზე წვდომა დაკარგეთ.` 
@@ -187,11 +211,21 @@ function deActivate(){
         .get()
         .then(col=>{
             col = handleQuery(col).filter(rec=>rec.till <=  new Date().toISOString().split('T')[0])
+            
             if(col.length){
 
-                alertAdmins({
-                    text: `Deactivated users:\n${col.map(u=>`id${u.user}`).join(`\n`)}`
+                let userData = [];
+
+                col.forEach(r=>{
+                    userData.push(getUser(r.user,udb))
                 })
+
+                Promise.all(userData).then(userData=>{
+                    alertAdmins({
+                        text: `Deactivated users:\n${userData.map(u=>uname(u,u.id)).join(`\n`)}`
+                    })
+                })
+                
 
                 col.forEach(rec=>{
                     blockSubscription(rec);
@@ -737,7 +771,26 @@ router.post(`/hook`, (req, res) => {
             if (req.body.message.text && !req.body.message.chat.is_forum) {
 
                 
+                if (req.body.message.text == `/status`) {
+                    return ifBefore(payments,{user:+u.id}).then(subs=>{
+                        let text = ``
+                        
+                        if(!subs.length){
+                            text = translations.noSubscriptionAtAll
+                        }
 
+                        if(subs.filter(s=>s.active).length){
+                            text = translations.subscriptionInfo(subs.filter(s=>s.active)[0].till)
+                        } else {
+                            text = translations.subscriptionExpired(subs.sort((a,b)=>b.till<a.till?-1:1)[0].till)
+                        }
+
+                        sendMessage2({
+                            chat_id: u.id,
+                            text: text,
+                        },false,token,messages)
+                    })
+                }
                 if (req.body.message.text == `/start`) {
                     return sendMessage2({
                         chat_id: user.id,
