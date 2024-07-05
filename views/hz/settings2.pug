@@ -9,33 +9,42 @@ block style
     script(src="/javascripts/ko.js") 
 block content
     h1!=`Товары для магазина ${shop.name}`
-    if(!houses)
-        p Похоже, у нас еще нет данных. Пожалуйста, составьте отчет по своему магазину.
-    else
-        table
-            thead 
-                tr
-                    td Артикул
-                    td Ozon SKU ID
-                    td Название
-                    td Себестоимость
-                    td Отображать в отчете
-            tbody(data-bind!=`foreach:sku`)
-                tr(data-bind!=`visible: $parent.hidden.indexOf(region)==-1`)
-                    td(data-bind!=`text:id`)
-                    td(data-bind!=`text:sku`)
-                    td(data-bind!=`text:name`)
-                    
-                    td.f60(data-bind!=`text:price,click:()=>edit('price')`)
-                    td.f60(data-bind!=`text:l,click:()=>edit('l')`)
-                    td.f60(data-bind!=`text:m,click:()=>edit('m')`)
-                    
-                    td.f60(data-bind!=`text:s,click:()=>edit('s')`)
-                    td(data-bind!=`text:lb,click:()=>edit('lb')`)
-                    td(data-bind!=`text:delivery,event:{click:()=>edit('delivery')}`)
-                    
-                    
-                    
+    a(href!=`/hz/${shop.id}/report`) Отчет
+    a.block(href!=`/hz/${shop.id}/houses`) Товары
+    table
+        thead 
+            tr
+                th Артикул
+                th Ozon SKU ID
+                th Отображение
+                th Себестоимость
+                th Сортировка
+                
+        tbody(data-bind!=`foreach:settings`)
+            tr
+                td(data-bind!=`text:name`)
+                td(data-bind!=`text:id`)
+                //- td(data-bind!=`text:active`)
+                td  
+                    span.toggler(data-bind="click:toggle,checked:active,attr:{'data-has':active}")
+                    //- input(type="checkbox"  )
+                    //- label(data-bind="event:{click:toggle}")
+                
+                
+                
+                td.f60(data-bind!=`text:price,click:()=>edit('price')`)
+                td.f60
+                    span(data-bind!=`event:{click:$parent.up}`) ⬆️ 
+                    span(data-bind!=`event:{click:$parent.down}`) ⬇️
+                //- td.f60(data-bind!=`text:sort,click:()=>edit('sort')`)
+                //- td.f60(data-bind!=`text:m,click:()=>edit('m')`)
+                
+                //- td.f60(data-bind!=`text:s,click:()=>edit('s')`)
+                //- td(data-bind!=`text:lb,click:()=>edit('lb')`)
+                //- td(data-bind!=`text:delivery,event:{click:()=>edit('delivery')}`)
+                
+                
+                
 
-        script!=`setHouses2(${JSON.stringify(houses)},"${shop.id}")`
+    script!=`setSettings2(${JSON.stringify(settings)},"${shop.id}")`
         

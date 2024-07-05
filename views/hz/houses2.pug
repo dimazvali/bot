@@ -9,6 +9,10 @@ block style
     script(src="/javascripts/ko.js") 
 block content
     h1!=`Склады для магазина ${shop.name}`
+    a(href!=`/hz/${shop.id}/report`) Отчет
+    a.block(href!=`/hz/${shop.id}/settings`) Товары
+    
+
     if(!houses)
         p Похоже, у нас еще нет данных. Пожалуйста, составьте отчет по своему магазину.
     else

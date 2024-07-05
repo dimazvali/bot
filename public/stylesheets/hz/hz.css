@@ -150,3 +150,13 @@ img.avatar {
     height: 80px;
     margin-right: 20px;
 }
+
+
+span.toggler::after {
+    content: 'включить';
+}
+
+
+span.toggler[data-has="true"]::after  {
+    content: 'выключить';
+}

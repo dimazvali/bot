@@ -3,7 +3,7 @@ extends site
 block style
     link(rel='stylesheet', href='/stylesheets/hz/hz.css')
 block content
-    h1!=shop.name
+    h1!=`Отчет магазина ${shop.name}`
     script!=`${JSON.stringify(shop)}`
     a.block(href!=`/hz/${shop.id}/settings`) Товары
     a(href!=`/hz/${shop.id}/houses`) Склады

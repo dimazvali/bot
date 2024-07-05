@@ -482,6 +482,25 @@ function setSettings(settings,shop){
     })
 }
 
+function setSettings2(settings,shop){
+    
+    let curShop = shop;
+    
+    console.log(settings)
+
+    let dataM = new settingsPage({
+        settings: Object.keys(settings)
+            .sort((a,b)=>settings[a].sort<settings[b].sort?1:-1)
+            .map(key=>{
+                let t = settings[key]
+                t.id = key
+                return t
+            })
+    });
+
+    ko.applyBindings(dataM, document.querySelector('#content'));
+}
+
 
 function setHouses(houses, shop){
     Object.keys(houses).sort((a,b)=>a>b?1:-1).forEach(id=>{
@@ -490,6 +509,7 @@ function setHouses(houses, shop){
 }
 
 function setHouses2(houses,shop){
+    
     let curShop = shop;
     
     console.log(houses)
@@ -506,7 +526,6 @@ function setHouses2(houses,shop){
     });
 
     ko.applyBindings(dataM, document.querySelector('#content'));
-
 }
 
 let dragged = null;

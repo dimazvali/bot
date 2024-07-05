@@ -134,7 +134,7 @@ let shopHouses = fb.collection(`${host}ShopHouses`);
 
 router.all(`/api/:method/:id`,(req,res)=>{
 
-    let token = req.signedCookies.userToken;
+    let token = req.signedCookies.userToken || req.signedCookies.adminToken || (process.env.develop ? process.env.adminToken : false );
     
     if (!token) return res.status(401).send(`Вы кто вообще?`)
     
@@ -764,7 +764,7 @@ router.get(`/:shop/:page`, (req, resp) => {
                             delete houses.updatedAt;
                             delete houses.updatedBy;
                              
-                            return resp.render(`${host}/houses${req.query.ver?req.query.ver:''}`,{
+                            return resp.render(`${host}/houses2`,{
                                 houses: houses,
                                 shop:   s
                             })
@@ -974,7 +974,9 @@ router.get(`/:shop/:page`, (req, resp) => {
                             delete settings.updatedAt;
                             delete settings.updatedBy;
                             
-                            return resp.render(`${host}/settings`,{
+                            devlog(settings)
+
+                            return resp.render(`${host}/settings2`,{
                                 settings:   settings,
                                 shop:       s
                             })
