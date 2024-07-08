@@ -1740,7 +1740,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 admins:         req.body.admins || null,
                                 fellows:        req.body.fellows || null,
                                 noRegistration: req.body.noRegistration || null,
-                                price:          req.body.price || null,
+                                price:          +req.body.price || null,
                                 pic:            req.body.pic || null,
                                 clearPic:       req.body.clearPic || null
                             }).then(r=>{
@@ -10132,11 +10132,11 @@ router.all(`/api/:data/:id`, (req, res) => {
                             date: req.body[2],
                             type: req.body[3],
                             hall: req.body[4],
-                            hallName: req.body[5],
-                            name: req.body[6],
-                            author: req.body[7],
-                            duration: req.body[8],
-                            price: req.body[9],
+                            hallName:   req.body[5],
+                            name:       req.body[6],
+                            author:     req.body[7],
+                            duration:   req.body[8],
+                            price:      +req.body[9],
                             description: req.body[10],
                             pic: req.body[12],
                             createdAt: new Date()
@@ -10227,7 +10227,7 @@ router.all(`/api/:data/:id`, (req, res) => {
                                 name: req.body[6],
                                 author: req.body[7],
                                 duration: req.body[8],
-                                price: req.body[9],
+                                price: +req.body[9],
                                 description: req.body[10],
                                 pic: req.body[12],
                                 createdAt: new Date()
