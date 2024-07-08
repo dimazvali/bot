@@ -86,7 +86,7 @@ function authWebApp(req,res,token,adminTokens,udb){
 
         getUser(req.body.user.id,udb).then(u=>{
         
-            if(u.blocked) return res.sendStatus(403)
+            if(u && u.blocked) return res.sendStatus(403)
 
             if(!u) registerUser(req.body.user)
                 

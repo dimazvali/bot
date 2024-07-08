@@ -4682,7 +4682,11 @@ function alertAdmins(mess) {
 
         admins.forEach(a => {
             message.chat_id = a.id
-            if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, false, token)
+            if(mess.type == `newUser`){
+                message.photo = `${ngrok}/images/papers/ava/${Math.floor(Math.random()*61)+1}.jpg`
+                message.caption = message.text
+            }
+            if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, message.photo?`sendPhoto`:false, token)
         })
     })
 }
@@ -5328,9 +5332,35 @@ const translations = {
         ka: 'განრიგის ნახვა'
     },
     intro: {
-        ru: `Добро пожаловать в пространство PAPERS от Paper Kartuli. Тут можно забронировать место в коворкинге или переговорке, посмотреть расписание лекций, — или сразу пройти в бар.\nУдобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка внизу (или в нижнем левом углу).Вы можете записаться на бесплатный тестовый день в коворкинге. Следующие дни — по стандартному тарифу (${coworkingPrice} GEL в день, оплата на месте). Для аренды переговорки или ивент-пространства, напишите прямо в наш чат-бот, и наш администратор вам ответит.`,
-        en: `Welcome to the PAPERS space by Paper Kartuli. Here you can book a place in a coworking or meeting room, see the lecture schedule, or go straight to the bar.\nThe most convenient way to use the bot is through the application: this button is at the bottom (or in the lower left corner). You can sign up for a free test day in a coworking space. The following days - at the standard rate (${coworkingPrice} GEL per day, payable locally). To rent a meeting room or event space, write directly to our chatbot, and our administrator will answer you.`,
-        ka: `კეთილი იყოს თქვენი მობრძანება Paper Kartuli-ის PAPERS სივრცეში, აქ შეგიძლიათ დაჯავშნოთ ადგილი კოვორკინგში ან შეხვედრების ოთახში, ნახოთ ლექციების განრიგი ან პირდაპირ ბარში ჩაბრძანდეთ. ბოტის გამოყენების ყველაზე მოსახერხებელი გზაა აპლიკაციის საშუალებით: ეს არის ქვედა ღილაკი (ან ქვედა მარცხენა კუთხეში) შეგიძლიათ დარეგისტრირდეთ უფასო ტესტის დღეს კოვორკინგის სივრცეში. მომდევნო დღეებში - სტანდარტული ღირებულობით (დღეში ${coworkingPrice} ლარი, გადასახდელი ადგილობრივად). შეხვედრების ოთახის ან ღონისძიების სივრცის დასაქირავებლად მოგვწერეთ პირდაპირ ჩვენს ჩატბოტში და ჩვენი ადმინისტრატორი გიპასუხებთ.`
+        ru: `Добро пожаловать в пространство PAPERS от Paper Kartuli. Тут можно:  
+
+— забронировать место в коворкинге или переговорке;
+— посмотреть расписание лекций; 
+— арендовать бар или подкастерскую. 
+
+Удобнее всего пользоваться ботом с помощью приложения: вот эта кнопочка внизу (или в нижнем левом углу). 
+
+Пробный день в коворкинге — 15 GEL. Следующие дни — по стандартному тарифу 30 GEL в день, оплата на месте). Для аренды бара или подкастерcкой напишите прямо в наш чат-бот, и наш администратор вам ответит.`,
+        en: `Welcome to the Papers space by Paper Kartuli. Here you can:
+
+— Book a place in the coworking space or meeting room; 
+— Check the lecture schedule; 
+— Rent a bar or podcast studio.
+
+The most convenient way to use the bot is through the app: press the button at the bottom (or in the lower left corner).
+
+A trial day in the coworking space costs 15 GEL. Subsequent days are at the standard rate of 30 GEL per day, with payment on site. To rent the bar or podcast studio, write directly to the bot, and our administrator will respond to you.
+`,
+        ka: `კეთილი იყოს თქვენი მობრძანება PAPERS-ში. აქ შეძლებთ:
+
+— ადგილის დაჯავშნას ქოვორქინგსა და სათათბიროში; 
+— ლექციების განრიგის ნახვას;
+— ბარისა და პოდკასტ-სტუდიის ქირაობას.
+
+ყველაზე მოსახერხებელი აპლიკაციის ბოტით სარგებლობაა: აი, ეს ღილაკი ქვემოთ (ან ქვედა მარცხენა კუთხეში). 
+
+ქოვორქინგში საცდელი დღის გატარაების ღირებულება 15 ლარია. მომდევნო დღეებში სტანდარტული ტარიფი იმოქმედებს: 30 ლარი დღეში, ადგილზე ანგარიშსწორებით. ბარისა და პოდკასტ-სტუდიის ქირაობის თაობაზე მოგვწერეთ ჩათ-ბოტში და ჩვენი ადმინისტრატორი გიპასუხებთ. 
+`
     },
     introButton: {
         ru: `Открыть приложение`,

@@ -870,12 +870,3 @@ tr {
 td {
     border-right: 1px solid;
 }
-
-span.toggler::after {
-    content: 'включить';
-}
-
-
-span.toggler[data-has="true"] {
-    content: 'выключить';
-}
