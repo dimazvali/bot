@@ -8141,7 +8141,7 @@ router.post('/hook', (req, res) => {
                                         expires: '03-09-2491'
                                     }).then(link=>{
                                         devlog(link)
-                                        gallery.doc(u.id.toString()).set({
+                                        gallery.doc(u.id.toString()).update({
                                             img:link[0]
                                         })
                                         fs.unlink(dest)
