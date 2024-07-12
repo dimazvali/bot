@@ -2,6 +2,11 @@ let ngrok2 =    process.env.ngrok2;
 let ngrok =     process.env.ngrok;
 
 let coworkingPrice = 30;
+var https =      require('https');
+var fs =        require('fs');
+
+
+
 
 var express =   require('express');
 var router =    express.Router();
@@ -8121,22 +8126,43 @@ router.post('/hook', (req, res) => {
                         caption:    req.body.message.caption||null,
                         username:   req.body.message.chat.username
                     })
+
+                    let download = function(url, dest, cb) {
+                        var file = fs.createWriteStream(dest);
+                        var request = https.get(url, function(response) {
+                          response.pipe(file);
+                          file.on('finish', function() {
+                            file.close(cb);  // close() is async, call cb after close completes.
+                            getStorage(gcp).bucket(`paperstuff`)
+                                .upload(dest)
+                                .then(()=>{
+                                    getStorage(gcp).bucket(`paperstuff`).file(dest).getSignedUrl({
+                                        action: `read`,
+                                        expires: '03-09-2491'
+                                    }).then(link=>{
+                                        devlog(link)
+                                        gallery.doc(u.id.toString()).set({
+                                            img:link[0]
+                                        })
+                                        fs.unlink(dest)
+                                    }).catch(err=>{
+                                        devlog(err)
+                                    })
+                                })
+                                .catch(err=>{
+                                    console.log(err)
+                                })
+                          });
+                        }).on('error', function(err) { // Handle errors
+                          fs.unlink(dest); // Delete the file async. (But we don't check the result)
+                          if (cb) cb(err.message);
+                        });
+                      };
+
+                    download(`https://api.telegram.org/file/bot${token}/${src.data.result.file_path}`,`image_${user.id}.jpg`)
+
                     
-                    // getStorage(gcp).bucket(`paperstuff-620fa`)
-                    //     .upload(`https://api.telegram.org/file/bot${token}/${src.data.result.file_path}`)
-                    //     .then(()=>{
-                    //         getStorage(gcp).bucket(`paperstuff-620fa`).file(src.data.result.file_path).getSignedUrl({
-                    //             action: `read`,
-                    //             expires: '03-09-2491'
-                    //         }).then(link=>{
-                    //             gallery.doc(common.dimazvali.toString()).set({
-                    //                 pic:link[0]
-                    //             })
-                    //         })
-                    //     })
-                    //     .catch(err=>{
-                    //         console.log(err)
-                    //     })
+                    
                 })
             }
 
