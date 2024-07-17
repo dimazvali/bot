@@ -8466,7 +8466,19 @@ router.post('/hook', (req, res) => {
                         sendMeetingRoom(user)
                     }
                     case 'date': {
-    
+                        
+                        if(!inc[2]) {
+                            m.sendMessage2({
+                                callback_query_id: req.body.callback_query.id,
+                                show_alert: true,
+                                text: `date error`
+                            }, 'answerCallbackQuery', token)
+
+                            return common.alertMe({
+                                text: req.body
+                            })
+                        }
+
                         return mra
                             .where('active', '==', true)
                             .where('date', '==', inc[2])
