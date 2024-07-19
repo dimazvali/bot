@@ -24,27 +24,12 @@ block content
             tr
                 td(data-bind!=`text:name`)
                 td(data-bind!=`text:id`)
-                //- td(data-bind!=`text:active`)
                 td  
                     span.toggler(data-bind="click:toggle,checked:active,attr:{'data-has':active}")
-                    //- input(type="checkbox"  )
-                    //- label(data-bind="event:{click:toggle}")
-                
-                
-                
                 td.f60(data-bind!=`text:price,click:()=>edit('price')`)
                 td.f60
                     span(data-bind!=`event:{click:$parent.up}`) ⬆️ 
                     span(data-bind!=`event:{click:$parent.down}`) ⬇️
-                //- td.f60(data-bind!=`text:sort,click:()=>edit('sort')`)
-                //- td.f60(data-bind!=`text:m,click:()=>edit('m')`)
-                
-                //- td.f60(data-bind!=`text:s,click:()=>edit('s')`)
-                //- td(data-bind!=`text:lb,click:()=>edit('lb')`)
-                //- td(data-bind!=`text:delivery,event:{click:()=>edit('delivery')}`)
-                
-                
-                
 
     script!=`setSettings2(${JSON.stringify(settings)},"${shop.id}")`
         

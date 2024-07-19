@@ -11,11 +11,30 @@ block content
     h1!=`Склады для магазина ${shop.name}`
     a(href!=`/hz/${shop.id}/report`) Отчет
     a.block(href!=`/hz/${shop.id}/settings`) Товары
+    script!=`let inithdata=${JSON.stringify(houses)}`
+    
+    if(clusters)
+        table 
+            thead   
+                tr
+                    th Регион
+                    th Отображение
+                    th Сортировка
+            tbody(data-bind!=`foreach:clusters`)
+                tr
+                    td(data-bind!=`text:id`)
+                    td 
+                        span.toggler(data-bind="click:toggle,checked:active,attr:{'data-has':active}")
+                    td.f60
+                        span(data-bind!=`event:{click:$root.up}`) ⬆️ 
+                        span(data-bind!=`event:{click:$root.down}`) ⬇️
     
 
     if(!houses)
         p Похоже, у нас еще нет данных. Пожалуйста, составьте отчет по своему магазину.
     else
+
+        //- - let regions = [... new Set(houses.map(h=>h.region))]
         table
             thead 
                 tr
@@ -47,5 +66,5 @@ block content
                     
                     
 
-        script!=`setHouses2(${JSON.stringify(houses)},"${shop.id}")`
+        script!=`setHouses2( ${JSON.stringify(houses)}, ${JSON.stringify(clusters)}, "${shop.id}")`
         

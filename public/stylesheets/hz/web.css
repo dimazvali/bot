@@ -627,10 +627,16 @@ img.cover {
 }
 
 #chartdiv{
-    width: 100%;
-    height: 500px;
+    width: 80%;
+    height: 80vh;
     max-width: 100%;
+    position: fixed;
     background-color: white;
+    top: 10px;
+    margin: 0 auto;
+    left: 0;
+    right: 0;
+    box-shadow: 90px 70px 310px 0px black;
 }
 
 
@@ -849,24 +855,33 @@ p.footer {
     font-family: 'oi';
     letter-spacing: 2px;
     font-weight: 100;
-    position: absolute;
+    /* position: absolute;
     bottom: 0;
     left: 0;
-    right: 0;
+    right: 0; */
 }
 
 div#map {
     height: 50vh;
 }
 
-.inlinef {
-    display: flex !important;
+span.closeChartdiv {
+    position: fixed;
+    top: 90vh;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    display: inline-block;
+    background: #BF360C;
+    text-align: center;
+    color: white;
+    width: fit-content;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
 }
 
-tr {
-    border-bottom: 1px solid;
-}
-
-td {
-    border-right: 1px solid;
+.chartContainer {
+    width: 100%;
+    height: 500px;
 }

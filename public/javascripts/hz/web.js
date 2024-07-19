@@ -508,11 +508,11 @@ function setHouses(houses, shop){
     })
 }
 
-function setHouses2(houses,shop){
+function setHouses2(houses,clusters,shop){
     
     let curShop = shop;
     
-    console.log(houses)
+    console.log(clusters)
     
     
 
@@ -522,10 +522,18 @@ function setHouses2(houses,shop){
             t.id = key
     
             return t
+        }),
+
+        clusters: Object.keys(clusters).sort((a,b)=>a<b?-1:1).map(key=>{
+            let t = clusters[key]
+            t.id = key
+    
+            return t
         })
     });
 
     ko.applyBindings(dataM, document.querySelector('#content'));
+
 }
 
 let dragged = null;

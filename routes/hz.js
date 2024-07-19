@@ -121,14 +121,15 @@ setTimeout(function () {
 
 
 
-let adminTokens = fb.collection(`${host}adminTokens`);
-let udb = fb.collection(`${host}Users`);
-let shops = fb.collection(`${host}Shops`);
-let shopsUsers = fb.collection(`${host}ShopsUsers`);
-let logs = fb.collection(`${host}Logs`);
-let messages = fb.collection(`${host}Messages`);
-let shopSettings = fb.collection(`${host}ShopSettings`);
-let shopHouses = fb.collection(`${host}ShopHouses`);
+let adminTokens =   fb.collection(`${host}adminTokens`);
+let udb =           fb.collection(`${host}Users`);
+let shops =         fb.collection(`${host}Shops`);
+let shopsUsers =    fb.collection(`${host}ShopsUsers`);
+let logs =          fb.collection(`${host}Logs`);
+let messages =      fb.collection(`${host}Messages`);
+let shopSettings =  fb.collection(`${host}ShopSettings`);
+let shopHouses =    fb.collection(`${host}ShopHouses`);
+let shopClusters =    fb.collection(`${host}ShopClusters`);
 
 
 
@@ -205,6 +206,15 @@ router.all(`/api/:method/:id`,(req,res)=>{
                     switch (req.method){
                         case `PUT`:{
                             ref = shopSettings.doc(req.params.id)
+                            return updateEntity(req,res,ref)
+                        }
+                    }
+                }
+
+                case `shopClusters`:{
+                    switch (req.method){
+                        case `PUT`:{
+                            ref = shopClusters.doc(req.params.id)
                             return updateEntity(req,res,ref)
                         }
                     }
@@ -328,8 +338,6 @@ function alertAdmins(mess) {
 
 function addShop(req, res, admin, link) {
 
-    devlog(req.body);
-
     if (!req.body.apiId)        return res.status(400).send(`нет id`)
     if (!req.body.apiSecret)    return res.status(400).send(`нет ключа`)
     if (!req.body.name)         return res.status(400).send(`нет названия`)
@@ -367,6 +375,9 @@ function addShop(req, res, admin, link) {
 
 
 const datatypes = {
+    shopClusters:{
+        col: shopClusters
+    },
     shopSettings:{
         col:shopSettings
     },
@@ -582,8 +593,6 @@ router.all(`/api/:method`, (req, res) => {
     
                 if (!user) return res.sendStatus(403)
     
-                devlog(req.body)
-    
                 switch (req.params.method) {
                     case `shops`:{
                         switch(req.method){
@@ -612,8 +621,6 @@ router.all(`/admin/:method`, (req, res) => {
         getUser(token.user, udb).then(admin => {
 
             if (!admin) return res.sendStatus(403)
-
-            devlog(req.body)
 
             switch (req.params.method) {
 
@@ -746,11 +753,13 @@ router.get(`/:shop/:page`, (req, resp) => {
                 data.push(getDoc(shops,         req.params.shop))
                 data.push(getDoc(shopSettings,  req.params.shop))
                 data.push(getDoc(shopHouses,    req.params.shop))
+                data.push(getDoc(shopClusters,  req.params.shop))
                 
                 Promise.all(data).then(d=>{
                     let s =         d[0];
                     let settings =  d[1];
                     let houses =    d[2];
+                    let clusters =  d[3] || {};
 
                     if(houses) delete houses.id
 
@@ -759,19 +768,34 @@ router.get(`/:shop/:page`, (req, resp) => {
                     switch (req.params.page) {
                         case `houses`:{
 
+
+                            console.log(clusters)
+
                             delete houses.id;
                             delete houses.createdAt;
                             delete houses.updatedAt;
                             delete houses.updatedBy;
+
+                            delete clusters.id;
+                            delete clusters.createdAt;
+                            delete clusters.updatedAt;
+                            delete clusters.updatedBy;
+
+                            
                              
                             return resp.render(`${host}/houses2`,{
-                                houses: houses,
-                                shop:   s
+                                houses:     houses,
+                                clusters:   clusters,
+                                shop:       s
                             })
                         }
                         case `report`: {
 
-                            devlog(`загрузка отчета`)
+                            delete clusters.id;
+                            delete clusters.createdAt;
+                            delete clusters.updatedAt;
+                            delete clusters.updatedBy;
+
 
                             let from =  new Date(new Date().setHours(0, 0) - ((+req.query.days || 32) * 24 * 60 * 60 * 1000)).toISOString();
                             let to =    new Date().toISOString();
@@ -795,8 +819,6 @@ router.get(`/:shop/:page`, (req, resp) => {
                                     'Client-Id':    s.apiId,
                                 }
                             }).then(d => {
-                                console.log(`загрузили отгрузки`)
-                                devlog(d.data)
                                 return d.data
                             }).catch(err=>{
                                 devlog(err.message)
@@ -847,13 +869,23 @@ router.get(`/:shop/:page`, (req, resp) => {
                                     }
                                 })
                                     
-                                uniqueSKU = uniqueSKU.filter(sku => settings[sku] && settings[sku].active)
+                                uniqueSKU = uniqueSKU
+                                    .filter(sku => settings[sku] && settings[sku].active)
                                     .sort((a,b)=> settings[b].sort < settings[a].sort ? 1 : -1)
 
                                 let res = {};
                                     
                                 let settingsRef =   shopSettings.doc(req.params.shop);
                                 let housesRef =     shopHouses.doc(req.params.shop);
+                                let clustersRef =   shopClusters.doc(req.params.shop);
+
+                                clustersRef.get().then(d=>{
+                                    if(!d.exists){
+                                        clustersRef.set({
+                                            createdAt: new Date()
+                                        })
+                                    }
+                                })
                                 
                                 let pause = null
 
@@ -867,14 +899,11 @@ router.get(`/:shop/:page`, (req, resp) => {
                                         uniqueSKU.forEach((sku,i) => {
 
                                             if(!settings[sku]) {
-    
                                                 settingsRef.update({
                                                     [sku]: {
                                                         active:     true,
                                                         sort:       i
                                                     }
-                                                }).then(d=>{
-                                                    devlog(`set ${sku}`)
                                                 })
                                             }
     
@@ -882,6 +911,9 @@ router.get(`/:shop/:page`, (req, resp) => {
         
                                             r.forEach(sell => {
                                                 sell.products.forEach((p) => {
+
+                                                    devlog(`регион ${sell.analytics_data.region}`)
+
                                                     if(!houses[sell.analytics_data.warehouse_name]){
                                                         houses[sell.analytics_data.warehouse_name] = {
                                                             lb: null,
@@ -891,6 +923,7 @@ router.get(`/:shop/:page`, (req, resp) => {
                                                             l: null,
                                                             m: null,
                                                             s: null,
+                                                            region: sell.financial_data.cluster_from
                                                         };
                                                         housesRef.update({
                                                             [sell.analytics_data.warehouse_name]:{
@@ -901,9 +934,40 @@ router.get(`/:shop/:page`, (req, resp) => {
                                                                 l: null,
                                                                 m: null,
                                                                 s: null,
+                                                                region: sell.financial_data.cluster_from
                                                             }
                                                         })
-                                                    }                                           
+                                                    }
+                                                    
+                                                    if(!clusters[sell.financial_data.cluster_to]){
+                                                        devlog(`не было кластера ${sell.financial_data.cluster_to}`)
+                                                        
+                                                        clusters[sell.financial_data.cluster_to] = {
+                                                            active: true,
+                                                            index: Object.keys(clusters).length
+                                                        };
+                                                        
+
+                                                        try{
+                                                            clustersRef.update({
+                                                                [sell.financial_data.cluster_to]: {
+                                                                    active: true,
+                                                                    index: Object.keys(clusters).length
+                                                                }
+                                                            })
+                                                        } catch(err){
+                                                            clustersRef.set({
+                                                                [sell.financial_data.cluster_to]: {
+                                                                    active: true,
+                                                                    index: Object.keys(clusters).length
+                                                                }
+                                                            })
+                                                        }
+                                                        
+                                                    } else {
+                                                        devlog(`cluster ${sell.financial_data.cluster_to} was ready`)
+                                                    }
+                                                    
                                                     if (p.sku == sku) {
                                                         data.push({
                                                             created_at:     sell.created_at,
@@ -922,11 +986,11 @@ router.get(`/:shop/:page`, (req, resp) => {
                                                 })
                                             })
         
-                                            let tonight = new Date(new Date().setHours(0, 0)).toISOString()
-                                            let lastnight = new Date(new Date().setHours(0, 0) - (24 * 60 * 60 * 1000)).toISOString()
-                                            let lastnight2 = new Date(new Date().setHours(0, 0) - (2 * 24 * 60 * 60 * 1000)).toISOString()
-                                            let lastweek = new Date(new Date().setHours(0, 0) - (8 * 24 * 60 * 60 * 1000)).toISOString()
-                                            let month = new Date(new Date(+new Date().setDate(1)).setHours(0,0,0))
+                                            let tonight =       new Date(new Date().setHours(0, 0)).toISOString()
+                                            let lastnight =     new Date(new Date().setHours(0, 0) - (24 * 60 * 60 * 1000)).toISOString()
+                                            let lastnight2 =    new Date(new Date().setHours(0, 0) - (2 * 24 * 60 * 60 * 1000)).toISOString()
+                                            let lastweek =      new Date(new Date().setHours(0, 0) - (8 * 24 * 60 * 60 * 1000)).toISOString()
+                                            let month =         new Date(new Date(+new Date().setDate(1)).setHours(0,0,0))
                                             // console.log(tonight,lastnight,lastweek)
         
         
@@ -941,8 +1005,8 @@ router.get(`/:shop/:page`, (req, resp) => {
         
                                         })
                                         
-                                        devlog(uniqueSKU);
-    
+                                        devlog(clusters);
+
                                         resp.render(`${host}/hz`, {
                                             shop:       s,
                                             data:       res,
@@ -950,11 +1014,12 @@ router.get(`/:shop/:page`, (req, resp) => {
                                             settings:   settings,
                                             lefts:      data[1].result.rows,
                                             houses:     houses,
+                                            clusters:   clusters,
                                             cur: (p) => cur(p)
                                         })
-                                    })
 
-                                    
+                                        devlog(clusters)
+                                    })
                                 })
 
                                     
@@ -973,8 +1038,6 @@ router.get(`/:shop/:page`, (req, resp) => {
                             delete settings.id;
                             delete settings.updatedAt;
                             delete settings.updatedBy;
-                            
-                            devlog(settings)
 
                             return resp.render(`${host}/settings2`,{
                                 settings:   settings,
