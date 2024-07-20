@@ -69,17 +69,13 @@ app.use('/cyprus',      require('./routes/cyprus'));
 app.use('/ps',          require('./routes/psBot'));
 app.use('/vz',          require('./routes/vzBot'));
 app.use('/books',       require('./routes/booksBot'));
-// app.use('/autoshell',       require('./routes/autoShellBot'));
 
 app.use('/hz',              require('./routes/hz'));
 app.use('/homeless',        require('./routes/homelessBot'));
-// app.use('/auction',         require('./routes/auctionBot'));
-
-// app.use('/caleo',         require('./routes/caleoBot2'));
-
-// app.use('/svanidze',         require('./routes/svanidzeBot'));
 
 
+// app.use(`/dash`,            require('./routes/dashBot'))
+// app.use('/autoshell',       require('./routes/autoShellBot'));
 // app.use('/stalker',       require('./routes/stalkerBot'));
 // app.use('/reestr',       require('./routes/reestrBot'));
 
@@ -99,17 +95,6 @@ app.use(function(err, req, res, next) {
   res.status(err.status || 500);
   res.render('error');
 });
-
-
-// setInterval(() => {
-//   const memoryUsage = process.memoryUsage();
-//   console.log(`Memory Usage:
-// - RSS: ${memoryUsage.rss} bytes
-// - Heap Total: ${memoryUsage.heapTotal} bytes
-// - Heap Used: ${memoryUsage.heapUsed} bytes
-// - External: ${memoryUsage.external} bytes
-// - Array Buffers: ${memoryUsage.arrayBuffers} bytes`);
-// }, 10000);
 
 process.on('exit', function(code){ 
   return alertMe(`Exiting with code ${code}`); 

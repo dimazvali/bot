@@ -65,6 +65,7 @@ const {
 const {
     ObjectStreamToJSON
 } = require('sitemap');
+const { texts } = require('./dimazvaliTexts.js');
 
 let gcp = initializeApp({
     credential: cert({
@@ -361,52 +362,6 @@ router.post(`/hook`, (req, res) => {
 
     devlog(JSON.stringify(req.body))
 
-    if (req.body.message) {
-
-        user = req.body.message.from
-
-        // udb.doc(user.id.toString()).get().then(u => {
-
-        //     if (!u.exists) registerUser(user)
-
-        //     u = handleDoc(u);
-
-        //     if(req.body.message.text){
-        //         let txt = req.body.message.text;
-        //         if(!txt.indexOf(`/tours`)) sendTours(u.id)
-        //         // if(!txt.indexOf(`/near`)) sendTours(u.id)
-
-        //     }
-
-
-
-        //     if(req.body.message.voice && u.admin){
-        //         // devlog(`Это голосовое`)
-        //         sendMessage2({
-        //             chat_id: u.id,
-        //             parse_mode: `Markdown`,
-        //             text: '```'+req.body.message.voice.file_id+'```'
-        //         },false,token,messages).then(d=>console.log(d))
-        //     }
-
-        //     if(req.body.message.text){
-        //         if(!req.body.message.text.indexOf(`/start`)){
-        //             let inc = req.body.message.text.split(' ')
-        //             if(inc[1]){
-        //                 let attr = inc[1].split('_');
-        //                 if(attr[0] == `tour`){
-        //                     getDoc(tours,attr[1]).then(t=>{
-        //                         if(t && t.active){
-        //                             sendTour(user, t)
-        //                         }
-        //                     })
-        //                 }
-        //             }
-        //         }
-        //     }
-        // })
-    }
-
     if (req.body.edited_message && req.body.edited_message.location) {
         handleLocation(req.body.edited_message.from.id, req.body.edited_message.location)
     }
@@ -452,6 +407,53 @@ router.post(`/hook`, (req, res) => {
             }
         }
     }
+
+    if(req.body.inline_query){
+        let q = req.body.inline_query
+        
+        sendMessage2({
+            inline_query_id:q.id,
+            results: [{
+                type:       `article`,
+                id:         `pets`,
+                title:      `Pet-projects`,
+                description: `Занятные шутки моего производства.`,
+                input_message_content: {
+                    parse_mode: `Markdown`,
+                    message_text: texts.pets
+                }
+            },{
+                type:       `article`,
+                id:         `banks`,
+                title:      `Реквизиты`,
+                description: `Хотите заплатить мне? Без проблем!`,
+                input_message_content: {
+                    parse_mode: `Markdown`,
+                    message_text: texts.banks
+                }
+            },{
+                type:               `article`,
+                id:                 `SMZ`,
+                title:              `СМЗ`,
+                description:        `Для приличной бухгалтерии с российской пропиской.`,
+                input_message_content: {
+                    parse_mode:     `Markdown`,
+                    message_text:   texts.smz
+                }
+            },{
+                type:               `article`,
+                id:                 `links`,
+                title:              `Следы присутствия`,
+                description:        `Соцсети и не только.`,
+                input_message_content: {
+                    parse_mode:     `Markdown`,
+                    message_text:   texts.links
+                }
+            }]
+        },`answerInlineQuery`,token)
+    }
+
+
 })
 
 function sendTour(user, tour, res) {
@@ -1188,14 +1190,9 @@ router.post(`/tgStats`,(req,res)=>{
         axios
         .post(`https://script.google.com/macros/s/AKfycbzH0XoahcMjrhdn3gHnEGbnZJgYrmatkf1iPCwW7dZ9aiHISpCRnsWJli8wwQWJuFaP6Q/exec`,req.body)
         .then(s=>{
-            
-            devlog(s.data)
-            
             tgStat.doc(rec.id).update({
                 parsed: true
             })
-
-            
         })
     })
 
