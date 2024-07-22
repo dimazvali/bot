@@ -6,6 +6,9 @@ block content
     script!=`let initdata=${JSON.stringify(data)}`
     h1!=`Отчет магазина ${shop.name}`
     script!=`${JSON.stringify(shop)}`
+    script!=`let testData = ${JSON.stringify(data)}`
+    script!=`let leftsData = ${JSON.stringify(lefts)}`
+    script!=`let clusters = ${JSON.stringify(clusters)}`
     a.block(href!=`/hz/${shop.id}/settings`) Товары
     a(href!=`/hz/${shop.id}/houses`) Склады
     br
@@ -60,18 +63,18 @@ block content
                         //- td.sep!=val.data.reduce((a,b)=>a+b.quantity,0)+' шт.'
                         //- td!=cur(val.data.reduce((a,b)=>a+b.price,0))
                     - let index = Object.keys(clusters).sort((a,b)=>clusters[b].index - clusters[a].index)
-                    script!=`let clRow=${JSON.stringify(index)}`
+                    //- script!=`let clRow=${JSON.stringify(index)}`
                     - let clusterRow = [...new Set(val.data.map(s=>s.cluster_from))].sort((a,b)=>index.indexOf(a) - index.indexOf(b))
                     for cluster in clusterRow
-                        - let vhUnique = [...new Set(val.data.filter(s=>s.cluster_from == cluster).map(s=>s.wh))]
-                        //- - let vhUnique = [...new Set(Object.values(data).map(v=>v.data).flat().filter(s=>s.cluster_from == cluster).map(s=>s.wh))]
+                        //- - let vhUnique = [...new Set(val.data.filter(s=>s.cluster_from == cluster).map(s=>s.wh))]
+                        - let vhUnique = [...new Set(Object.values(data).map(v=>v.data).flat().filter(s=>s.cluster_from == cluster).map(s=>s.wh))]
                         tbody
                             tr.second
                                 td!=cluster
         
-                                td.sep!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0].free_to_sell_amount : `нет`
-                                td!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0].reserved_amount : `нет`
-                                td!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0].promised_amount : `нет`
+                                td.sep!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key).reduce((a,b)=>a+b.free_to_sell_amount,0) : `нет`
+                                td!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key).reduce((a,b)=>a+b.reserved_amount,0) : `нет`
+                                td!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key).reduce((a,b)=>a+b.promised_amount,0) : `нет`
 
                                 //- td.sep!=val.data.filter(s=>s.cluster_from == cluster).filter(s=> s.cluster_from != s.cluster_from).length
 
