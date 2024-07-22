@@ -64,7 +64,7 @@ block content
                     - let clusterRow = [...new Set(val.data.map(s=>s.cluster_from))].sort((a,b)=>index.indexOf(a) - index.indexOf(b))
                     for cluster in clusterRow
                         - let vhUnique = [...new Set(val.data.filter(s=>s.cluster_from == cluster).map(s=>s.wh))]
-
+                        //- - let vhUnique = [...new Set(Object.values(data).map(v=>v.data).flat().filter(s=>s.cluster_from == cluster).map(s=>s.wh))]
                         tbody
                             tr.second
                                 td!=cluster
@@ -92,7 +92,10 @@ block content
 
                                 //- td.sep!=val.data.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                 //- td!=cur(val.data.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
-                            for wh in [...new Set(val.data.filter(s=>s.cluster_from == cluster).map(s=>s.wh).sort((a,b)=>a<b?-1:1))]
+                            //- for wh in [...new Set(val.data.filter(s=>s.cluster_from == cluster).map(s=>s.wh).sort((a,b)=>a<b?-1:1))]
+                            for wh in [...new Set(Object.values(data).map(v=>v.data).flat().filter(s=>s.cluster_from == cluster).map(s=>s.wh).sort((a,b)=>a<b?-1:1))]
+                            
+                            
                                 tr.third
                                     td!=wh
 
