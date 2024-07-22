@@ -1248,9 +1248,17 @@ router.all(`/admin/:method/:id`, (req, res) => {
                 return res.sendStatus(404)
             }
         }
+    }).catch(err=>{
+        handleError(err, res)
     })
 })
 
+
+
+function handleError(err,res) {
+    console.log(err);
+    if(res) res.status(500).send(err.message)
+}
 
 function removeTasks(taskId) {
 
