@@ -27,22 +27,33 @@ block content
                 thead
                     tr
                         th Склад
-                        th.sep(colspan=3) остатки
+                        
+                        th.sep в наличии
+                        th в резерве
+                        th в пути
+
                         //- th.sep импорт
                         th.sep ЛБ
                         //- th.sep логистика
                         th.sep(colspan=2) сегодня
                         th.sep(colspan=2) вчера
-                        th.sep(colspan=2) за неделю
+                        th.sep(colspan=2) 7 дней
                         th.sep(colspan=2) с первого числа
                         //- th.sep(colspan=2) за 32 дня
+                        th.sep Ранг
+                        th.sep(colspan=2) Остатки
+                        
                 tbody 
                     tr
                         td Всего
 
-                        td.sep в наличии
-                        td в резерве
-                        td в пути
+                        //- td.sep в наличии
+                        //- td в резерве
+                        //- td в пути
+
+                        td.sep!=lefts.filter(l=> +l.sku == +key).reduce((a,b)=>a+b.free_to_sell_amount,0)
+                        td!=lefts.filter(l=> +l.sku == +key).reduce((a,b)=>a+b.reserved_amount,0)
+                        td!=lefts.filter(l=> +l.sku == +key).reduce((a,b)=>a+b.promised_amount,0)
                         
                         //- td.sep 
                         td.sep 
@@ -60,19 +71,33 @@ block content
                         td.sep!=val.month.reduce((a,b)=>a+b.quantity,0)+' шт.'
                         td!=cur(val.month.reduce((a,b)=>a+b.price,0))
 
+                        td.sep
+
+                        td.sep На неделю
+                        td.sep На 14 дней
+
+
                         //- td.sep!=val.data.reduce((a,b)=>a+b.quantity,0)+' шт.'
                         //- td!=cur(val.data.reduce((a,b)=>a+b.price,0))
-                    - let index = Object.keys(clusters).sort((a,b)=>clusters[b].index - clusters[a].index)
                     //- script!=`let clRow=${JSON.stringify(index)}`
+
+                    - let index = Object.keys(clusters).sort((a,b)=>clusters[b].index - clusters[a].index)
                     - let clusterRow = [...new Set(val.data.map(s=>s.cluster_from))].sort((a,b)=>index.indexOf(a) - index.indexOf(b))
+                    - let salesIndex = [...new Set(clusterRow.map(cluster => val.week.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)).sort((a,b)=>b-a))]
                     for cluster in clusterRow
                         //- - let vhUnique = [...new Set(val.data.filter(s=>s.cluster_from == cluster).map(s=>s.wh))]
                         - let vhUnique = [...new Set(Object.values(data).map(v=>v.data).flat().filter(s=>s.cluster_from == cluster).map(s=>s.wh))]
                         tbody
                             tr.second
+
+                                - let weekSales = val.week.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)
+                                - let curLeftOver = lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key).reduce((a,b)=>a+b.free_to_sell_amount,0)
+                                - let toCome = curLeftOver-weekSales
+                                - let toCome2 = curLeftOver-(weekSales*2)
+
                                 td!=cluster
         
-                                td.sep!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key).reduce((a,b)=>a+b.free_to_sell_amount,0) : `нет`
+                                td.sep!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? curLeftOver : `нет`
                                 td!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key).reduce((a,b)=>a+b.reserved_amount,0) : `нет`
                                 td!=lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key)[0] ? lefts.filter(l=>vhUnique.indexOf(l.warehouse_name)>-1 && +l.sku == +key).reduce((a,b)=>a+b.promised_amount,0) : `нет`
 
@@ -80,29 +105,48 @@ block content
 
                                 td.sep
                                 //- td.sep
-
+                                
                                 td.sep!=val.today.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                 td!=cur(val.today.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
                                 
                                 td.sep!=val.yesterday.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                 td!=cur(val.yesterday.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
                                 
-                                td.sep!=val.week.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
+                                td.sep!=weekSales+' шт.'
                                 td!=cur(val.week.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
 
                                 td.sep!=val.month.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                 td!=cur(val.month.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
 
+                                td.sep!=salesIndex.indexOf(val.week.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0))
+
+                                if toCome > 0
+                                    td.sep хватает
+                                else if toCome == 0
+                                    td.sep.warning 0:0
+                                else 
+                                    td.sep.hazard!=toCome
+                                if toCome2 > 0
+                                    td.sep хватает
+                                else if toCome2 == 0
+                                    td.sep.warning 0:0
+                                else 
+                                    td.sep.hazard!=toCome2
+
                                 //- td.sep!=val.data.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                 //- td!=cur(val.data.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
                             //- for wh in [...new Set(val.data.filter(s=>s.cluster_from == cluster).map(s=>s.wh).sort((a,b)=>a<b?-1:1))]
                             for wh in [...new Set(Object.values(data).map(v=>v.data).flat().filter(s=>s.cluster_from == cluster).map(s=>s.wh).sort((a,b)=>a<b?-1:1))]
-                            
-                            
+                                
+                                - let whSalesWeek = val.week.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0);
+                                - let whLeftOvers = (lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0]||{free_to_sell_amount:0}).free_to_sell_amount;
+                                - let whToCome = whLeftOvers-whSalesWeek
+                                - let whToCome2 = whLeftOvers-(whSalesWeek*2)
+                                
                                 tr.third
                                     td!=wh
 
-                                    td.sep!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].free_to_sell_amount : `0`
+                                    td.sep!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? whLeftOvers : `0`
                                     td!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].reserved_amount : `0`
                                     td!=lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0] ? lefts.filter(l=>l.warehouse_name == wh && +l.sku == +key)[0].promised_amount : `0`
 
@@ -117,11 +161,26 @@ block content
                                     td.sep!=val.yesterday.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                     td!=cur(val.yesterday.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
                                     
-                                    td.sep!=val.week.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
+                                    td.sep!=whSalesWeek+' шт.'
                                     td!=cur(val.week.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
 
                                     td.sep!=val.month.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                     td!=cur(val.month.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
+
+                                    td.sep!=weekSales?((whSalesWeek/weekSales)*100).toFixed(1)+'%':`-`
+
+                                    if whToCome > 0
+                                        td.sep хватает
+                                    else if whToCome == 0
+                                        td.sep.warning 0:0
+                                    else 
+                                        td.sep.hazard!=whToCome
+                                    if whToCome2 > 0
+                                        td.sep хватает
+                                    else if whToCome2 == 0
+                                        td.sep.warning 0:0
+                                    else 
+                                        td.sep.hazard!=whToCome2
 
                                     //- td.sep!=val.data.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                     //- td!=cur(val.data.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))

@@ -160,3 +160,11 @@ span.toggler::after {
 span.toggler[data-has="true"]::after  {
     content: 'выключить';
 }
+
+.warning {
+    background: #FFA000;
+}
+
+.hazard {
+    background: #e91d1d;
+}
