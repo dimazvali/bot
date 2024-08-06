@@ -1188,18 +1188,19 @@ router.post(`/tgStats`,(req,res)=>{
     res.send(`TGSTAT_VERIFY_CODE_48410463`)
     
     tgStat.add(req.body).then(rec=>{
-
-        ifBefore(tgStat,{text: req.body.text}).then(b=>{
-            if(!b || !b.length){
-                axios
-                    .post(`https://script.google.com/macros/s/AKfycbzH0XoahcMjrhdn3gHnEGbnZJgYrmatkf1iPCwW7dZ9aiHISpCRnsWJli8wwQWJuFaP6Q/exec`,req.body)
-                    .then(s=>{
-                        tgStat.doc(rec.id).update({
-                            parsed: true
-                        })
-                    })
-            }
+        axios.post(`https://script.google.com/macros/s/AKfycbzH0XoahcMjrhdn3gHnEGbnZJgYrmatkf1iPCwW7dZ9aiHISpCRnsWJli8wwQWJuFaP6Q/exec`,req.body)
+        .then(s=>{
+            tgStat.doc(rec.id).update({
+                parsed: true
+            })
         })
+
+        // ifBefore(tgStat,{text: req.body.text}).then(b=>{
+        //     if(!b || !b.length){
+        //         axios
+                
+        //     }
+        // })
 
         
     })
