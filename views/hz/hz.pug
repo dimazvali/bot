@@ -11,6 +11,7 @@ block content
     script!=`let clusters = ${JSON.stringify(clusters)}`
     a.block(href!=`/hz/${shop.id}/settings`) Товары
     a(href!=`/hz/${shop.id}/houses`) Склады
+    script!=`let initData=${JSON.stringify(initData)}`
     br
     button(onclick="switch2Charts()") показать / скрыть графики
     if shops.length>1
@@ -118,7 +119,7 @@ block content
                                 td.sep!=val.month.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                 td!=cur(val.month.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
 
-                                td.sep!=salesIndex.indexOf(val.week.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0))
+                                td.sep!=salesIndex.indexOf(val.week.filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0))+1
 
                                 if toCome > 0
                                     td.sep хватает

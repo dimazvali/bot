@@ -149,8 +149,6 @@ router.all(`/api/:method/:id`,(req,res)=>{
 
             if (!user) return res.sendStatus(403)
 
-            devlog(req.body)
-
             switch(req.params.method){
                 case `shops`:{
                     switch(req.method){
@@ -722,8 +720,60 @@ router.all(`/admin/:method/:id`, (req, res) => {
 })
 
 
+function loadSells(s, from, to, offset){
+    devlog(`загружаем ${from} ${to} ${offset}`)
+    return axios.post(`https://api-seller.ozon.ru/v2/posting/fbo/list`, {
+            "dir": "ASC",
+            "filter": {
+                "since":    from,
+                "to":       to
+            },
+            "limit": 1000,
+            "offset": offset,
+            "with": {
+                "analytics_data": true,
+                "financial_data": true
+            }
+        }, {
+            headers: {
+                'Api-key':      s.apiSecret,
+                'Client-Id':    s.apiId,
+            }
+        }).then(d => {
+            return d.data
+        }).catch(err=>{
+            devlog(err.message)
+        })
+}
 
-router.get(`/:shop/:page`, (req, resp) => {
+function getSells(s, from, to, offset){
+    return new Promise(async (res,rej)=>{        
+        
+        let d = [];
+
+        i=0;
+        let c = true;
+        while(c){
+            
+            let t = await loadSells(s, from, to, offset)
+            offset += 1000
+            console.log(`offset`,offset)
+            d.push(t.result)
+            if(t.result.length != 1000){
+                c = false;
+            }
+        }
+        
+        res(d.flat())
+        
+        
+    }) 
+    
+    
+}
+
+
+router.get(`/:shop/:page`, async (req, resp) => {
 
     if(process.env.adminToken && !req.signedCookies.adminToken) req.signedCookies.adminToken = process.env.adminToken
 
@@ -736,7 +786,9 @@ router.get(`/:shop/:page`, (req, resp) => {
         if (!t || !t.active) return resp.redirect(`/${host}/userAuth?token=userToken&ep=${encodeURIComponent(`${req.params.shop}/report`)}`)
         
         getDoc(udb, t.user).then(u => {
+            
             devlog(`подгрузили пользователя`)
+
             if (!u.active) return resp.status(403).send(`Простите, вам сюда нельзя.`);
             
             ifBefore(shopsUsers, {
@@ -744,7 +796,7 @@ router.get(`/:shop/:page`, (req, resp) => {
                 active: true
             }).then(userShops => {
 
-                devlog(`подгрузили пользователя`)
+                devlog(`подгрузили магазины`)
 
                 if (!u.admin && userShops.map(s => s.shop).indexOf(req.params.shop) == -1) return resp.status(403).send(`Простите, вам сюда нельзя.`);
                 
@@ -755,7 +807,8 @@ router.get(`/:shop/:page`, (req, resp) => {
                 data.push(getDoc(shopHouses,    req.params.shop))
                 data.push(getDoc(shopClusters,  req.params.shop))
                 
-                Promise.all(data).then(d=>{
+                Promise.all(data).then(async d=>{
+                    
                     let s =         d[0];
                     let settings =  d[1];
                     let houses =    d[2];
@@ -767,9 +820,6 @@ router.get(`/:shop/:page`, (req, resp) => {
                 
                     switch (req.params.page) {
                         case `houses`:{
-
-
-                            console.log(clusters)
 
                             delete houses.id;
                             delete houses.createdAt;
@@ -802,29 +852,7 @@ router.get(`/:shop/:page`, (req, resp) => {
 
                             let uploads = [];
 
-                            uploads.push(axios.post(`https://api-seller.ozon.ru/v2/posting/fbo/list`, {
-                                "dir": "ASC",
-                                "filter": {
-                                    "since":    from,
-                                    "to":       to
-                                },
-                                "limit": 1000,
-                                "with": {
-                                    "analytics_data": true,
-                                    "financial_data": true
-                                }
-                            }, {
-                                headers: {
-                                    'Api-key':      s.apiSecret,
-                                    'Client-Id':    s.apiId,
-                                }
-                            }).then(d => {
-                                return d.data
-                            }).catch(err=>{
-                                devlog(err.message)
-                            }))
-
-                            
+                            uploads.push(getSells(s, from, to, 0))
 
                             uploads.push(axios.post(`https://api-seller.ozon.ru/v2/analytics/stock_on_warehouses`, {
                                 "limit":    1000,
@@ -858,9 +886,11 @@ router.get(`/:shop/:page`, (req, resp) => {
                                     user:   +u.id
                                 })
 
-                                let r = data[0].result.filter(o => o.status != `cancelled`);
+                                let r = data[0].filter(o => o.status != `cancelled`);
 
                                 let uniqueSKU = [...new Set(r.map(rec => rec.products.map(p => p.sku)).flat())];
+
+
 
                                 uniqueSKU.forEach(sku=>{
                                     if(!settings[sku]) settings[sku] = {
@@ -990,7 +1020,7 @@ router.get(`/:shop/:page`, (req, resp) => {
                                             let lastnight =     new Date(new Date().setHours(0, 0) - (24 * 60 * 60 * 1000)).toISOString()
                                             let lastnight2 =    new Date(new Date().setHours(0, 0) - (2 * 24 * 60 * 60 * 1000)).toISOString()
                                             let lastweek =      new Date(new Date().setHours(0, 0) - (8 * 24 * 60 * 60 * 1000)).toISOString()
-                                            let month =         new Date(new Date(+new Date().setDate(1)).setHours(0,0,0))
+                                            let month =         new Date(new Date(+new Date().setDate(1)).setHours(0,0,0)).toISOString()
                                             // console.log(tonight,lastnight,lastweek)
         
         
@@ -1005,9 +1035,9 @@ router.get(`/:shop/:page`, (req, resp) => {
         
                                         })
                                         
-                                        devlog(clusters);
 
                                         resp.render(`${host}/hz`, {
+                                            initData:   r,
                                             shop:       s,
                                             data:       res,
                                             shops:      userShops,
@@ -1018,7 +1048,6 @@ router.get(`/:shop/:page`, (req, resp) => {
                                             cur: (p) => cur(p)
                                         })
 
-                                        devlog(clusters)
                                     })
                                 })
 
