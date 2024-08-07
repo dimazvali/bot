@@ -5046,8 +5046,8 @@ const translations = {
         en: `You won't get any messages about upcoming events. If can turn them on again in Profile section of the built-in app.`
     },
     toKnow: {
-        en: `${coworkingPrice} GEL per day. The first day is for free.`,
-        ru: `Стоимость — ${coworkingPrice} лари в день, первый тестовый день — бесплатно.`
+        en: `${coworkingPrice} GEL per day. The first day is 15 GEL.`,
+        ru: `Стоимость — ${coworkingPrice} лари в день, первый тестовый день — 15.`
     },
     iliani: {
         en: '1/10 Veriko Anjaparidze St, Tbilisi, Georgia',
@@ -5747,6 +5747,7 @@ function checkUser(id) {
         alertAdmins({
             text: `ошибка проверки пользователя: ${err.message}`
         })
+        
         return false;
 
     })
@@ -10983,13 +10984,13 @@ function bookMR(date, time, userid, callback, res) {
                         m.sendMessage2({
                             callback_query_id: callback.id,
                             show_alert: true,
-                            text: translations.noSeatsLeft[user.language_code] || translations.noSeatsLeft.en
+                            text: translations.alreadyBooked[user.language_code] || translations.alreadyBooked.en
                         }, 'answerCallbackQuery', token)
                     }
                     if (res) {
                         return res.json({
                             success: false,
-                            text: 'noSeatsLeft'
+                            text: 'alreadyBooked'
                         })
                     }
 
