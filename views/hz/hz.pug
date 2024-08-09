@@ -18,6 +18,38 @@ block content
         for s in shops
             a(href!=`/hz/${s.id}/report`)!=s.shopName
     - upl = Object.keys(data).sort((a,b)=>settings[b].sort-settings[a].sort);
+    
+    table 
+        tr
+            th товар
+            
+            th.sep в наличии
+            th в резерве
+            th в пути
+            
+            th.sep(colspan=2) сегодня
+            th.sep(colspan=2) вчера
+            th.sep(colspan=2) 7 дней
+            th.sep(colspan=2) с первого числа
+        tr
+            td все
+
+            td.sep!=lefts.reduce((a,b)=>a+b.free_to_sell_amount,0)
+            td!=lefts.reduce((a,b)=>a+b.reserved_amount,0)
+            td!=lefts.reduce((a,b)=>a+b.promised_amount,0)
+
+            td.sep!=Object.keys(data).reduce((a,id)=>a+data[id].today.reduce((x,b)=>x+b.quantity,0),0)+' шт.'
+            td!=cur(Object.keys(data).reduce((a,id)=>a+data[id].today.reduce((x,b)=>x+b.price,0),0))
+            
+            td.sep!=Object.keys(data).reduce((a,id)=>a+data[id].yesterday.reduce((x,b)=>x+b.quantity,0),0)+' шт.'
+            td!=cur(Object.keys(data).reduce((a,id)=>a+data[id].yesterday.reduce((x,b)=>x+b.price,0),0))
+            
+            td.sep!=Object.keys(data).reduce((a,id)=>a+data[id].week.reduce((x,b)=>x+b.quantity,0),0)+' шт.'
+            td!=cur(Object.keys(data).reduce((a,id)=>a+data[id].week.reduce((x,b)=>x+b.price,0),0))
+
+            td.sep!=Object.keys(data).reduce((a,id)=>a+data[id].month.reduce((x,b)=>x+b.quantity,0),0)+' шт.'
+            td!=cur(Object.keys(data).reduce((a,id)=>a+data[id].month.reduce((x,b)=>x+b.price,0),0))
+
     each key in upl
         div(id!=key)
             - let val = data[key]
@@ -156,14 +188,14 @@ block content
                                     td.sep!=houses[wh].lb
                                     //- td.sep!=houses[wh].delivery
 
-                                    td.sep!=val.today.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
-                                    td!=cur(val.today.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
+                                    td.g.sep!=val.today.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
+                                    td.g!=cur(val.today.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
                                     
                                     td.sep!=val.yesterday.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                     td!=cur(val.yesterday.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
                                     
-                                    td.sep!=whSalesWeek+' шт.'
-                                    td!=cur(val.week.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
+                                    td.g.sep!=whSalesWeek+' шт.'
+                                    td.g!=cur(val.week.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))
 
                                     td.sep!=val.month.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.quantity,0)+' шт.'
                                     td!=cur(val.month.filter(s=>s.wh == wh).filter(s=>s.cluster_from == cluster).reduce((a,b)=>a+b.price,0))

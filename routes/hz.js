@@ -464,13 +464,10 @@ router.get(`/cabinet`,(req,res)=>{
     if (!req.signedCookies.userToken) return res.redirect(`/${host}/?token=userToken`)
 
     getDoc(adminTokens, req.signedCookies.userToken).then(t => {
-        devlog(`подгрузили токен`)
 
         if (!t || !t.active) return res.redirect(`/${host}/?token=userToken`)
         
         getDoc(udb, t.user).then(u => {
-            
-            devlog(`подгрузили пользователя`)
             
             if (!u.active) return resp.status(403).send(`Простите, вам сюда нельзя.`);
             
@@ -746,9 +743,18 @@ function loadSells(s, from, to, offset){
         })
 }
 
+let cachedData = null;
+
+
+// setInterval(()=>{
+//     getSells()
+// },60*60*1000)
+
 function getSells(s, from, to, offset){
     return new Promise(async (res,rej)=>{        
         
+        // if(cachedData) return res(cachedData);
+
         let d = [];
 
         i=0;
@@ -757,12 +763,13 @@ function getSells(s, from, to, offset){
             
             let t = await loadSells(s, from, to, offset)
             offset += 1000
-            console.log(`offset`,offset)
             d.push(t.result)
             if(t.result.length != 1000){
                 c = false;
             }
         }
+
+        // cachedData = d.flat();
         
         res(d.flat())
         
@@ -781,13 +788,10 @@ router.get(`/:shop/:page`, async (req, resp) => {
 
     getDoc(adminTokens, (req.signedCookies.adminToken || req.signedCookies.userToken)).then(t => {
         
-        devlog(`подгрузили токен`)
-
         if (!t || !t.active) return resp.redirect(`/${host}/userAuth?token=userToken&ep=${encodeURIComponent(`${req.params.shop}/report`)}`)
         
         getDoc(udb, t.user).then(u => {
             
-            devlog(`подгрузили пользователя`)
 
             if (!u.active) return resp.status(403).send(`Простите, вам сюда нельзя.`);
             
@@ -796,7 +800,6 @@ router.get(`/:shop/:page`, async (req, resp) => {
                 active: true
             }).then(userShops => {
 
-                devlog(`подгрузили магазины`)
 
                 if (!u.admin && userShops.map(s => s.shop).indexOf(req.params.shop) == -1) return resp.status(403).send(`Простите, вам сюда нельзя.`);
                 
@@ -942,8 +945,6 @@ router.get(`/:shop/:page`, async (req, resp) => {
                                             r.forEach(sell => {
                                                 sell.products.forEach((p) => {
 
-                                                    devlog(`регион ${sell.analytics_data.region}`)
-
                                                     if(!houses[sell.analytics_data.warehouse_name]){
                                                         houses[sell.analytics_data.warehouse_name] = {
                                                             lb: null,
@@ -970,7 +971,6 @@ router.get(`/:shop/:page`, async (req, resp) => {
                                                     }
                                                     
                                                     if(!clusters[sell.financial_data.cluster_to]){
-                                                        devlog(`не было кластера ${sell.financial_data.cluster_to}`)
                                                         
                                                         clusters[sell.financial_data.cluster_to] = {
                                                             active: true,
@@ -1062,7 +1062,6 @@ router.get(`/:shop/:page`, async (req, resp) => {
 
 
                         case `settings`:{
-                            devlog(`загрузка настроек`)
                             
                             delete settings.id;
                             delete settings.updatedAt;
@@ -1223,8 +1222,6 @@ router.get(`/web`, (req, res) => {
         if (!t || !t.active) return res.sendStatus(403)
 
         getUser(t.user, udb).then(u => {
-
-            devlog(`пользватель получен`)
 
             if (u.blocked) return res.sendStatus(403)
 

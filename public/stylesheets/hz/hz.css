@@ -21,7 +21,7 @@ div#content {
 
 th.sep,
 td.sep {
-    border-left: 1px solid;
+    border-left: 3px solid;
     padding-left: 5px;
 }
 
@@ -40,8 +40,13 @@ thead {
 tr.second {
     position: sticky;
     top: 3.4em;
-    background: var(--light);
+    background: #FFC107;
 }
+
+tr>td:first-child {
+    text-align: left;
+}
+
 
 tbody {
     margin-top: 20px;
@@ -56,6 +61,7 @@ tr:hover {
 tr {
     border-bottom: 1px solid transparent;
     transition: .3s;
+    text-align: center;
 }
 
 
@@ -167,4 +173,8 @@ span.toggler[data-has="true"]::after  {
 
 .hazard {
     background: #e91d1d;
+}
+
+td.g {
+    background: #8BC34A;
 }
