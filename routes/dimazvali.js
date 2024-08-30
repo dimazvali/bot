@@ -1193,6 +1193,8 @@ router.post(`/tgStats`,(req,res)=>{
             tgStat.doc(rec.id).update({
                 parsed: true
             })
+        }).catch(err=>{
+            console.log(err)
         })
 
         // ifBefore(tgStat,{text: req.body.text}).then(b=>{
