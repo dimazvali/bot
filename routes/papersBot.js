@@ -1807,14 +1807,18 @@ router.all(`/admin/:method`, (req, res) => {
 
                 case 'classWL': {
                     if (!req.query.class) return res.sendStatus(404)
+                    
                     return userClassesWL
                         .where('active', '==', true)
                         .where('class', '==', req.query.class)
                         .get()
                         .then(col => {
                             col = common.handleQuery(col)
+                            
                             let usersData = [];
+
                             let usersToCome = col.map(r=>r.user)
+                            
                             usersToCome.forEach(u=>{
                                 usersData.push(m.getUser(u,udb))
                             })
@@ -1822,7 +1826,7 @@ router.all(`/admin/:method`, (req, res) => {
                             Promise.all(usersData).then(usersData=>{
                                 res.json(col.map(r=>{
                                     let t = r;
-                                    t.user = usersData.filter(u=>u.id == t.user)[0]
+                                    t.user = usersData.filter(u =>u && u.id == t.user)[0]
                                     return t;
                                 }))
                             })
