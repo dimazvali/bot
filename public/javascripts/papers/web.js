@@ -1708,7 +1708,7 @@ function showClass(cl, id) {
 
                     d.data.sort((a, b) => a.createdAt._seconds - b.createdAt._seconds).forEach(rec => {
                         let line = ce('tr')
-                        line.append(ce(`td`, false, false, uname(rec.user, rec.user.id)))
+                        if(rec.user) line.append(ce(`td`, false, false, uname(rec.user, rec.user.id)))
                         line.append(ce(`td`, false, false, drawDate(rec.createdAt._seconds * 1000, `ru`, {
                             time: true
                         })))
