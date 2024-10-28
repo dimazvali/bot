@@ -2939,7 +2939,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                             case `DELETE`:{
                                 // cl = cl.data();
                                 if(!cl.data().active) return res.status(400).send(`Уже отменено!`);
-                                deleteEntity(req,res,ref,+admin.id,false,()=>{
+                                return deleteEntity(req,res,ref,+admin.id,false,()=>{
                                     alertClassClosed(cl);
                                 })
                             }
