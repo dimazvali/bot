@@ -25,6 +25,7 @@ const web = `https://papers.dimazvali.com`
 
 
 if(start){
+
     start = start.split('_')
 
     switch(start[0]){
@@ -1403,7 +1404,11 @@ function showClass(cl, id) {
         
         if(new Date()<new Date(cl.date)){
             let mBox = ce(`div`,false,`flex`)
+                
                 p.append(mBox)
+
+            mBox.append(deleteButton(`classes`,cl.id||id,!cl.active,[`active`,`dateButton`,`dark`]))
+
             
             mBox.append(ce(`button`,false,buttonStyle,`Отправить себе`,{
                 onclick:()=>{
@@ -1436,7 +1441,8 @@ function showClass(cl, id) {
             p.append(ce(`p`,false,`alert`,`Мероприятие прошло, рассылки недоступны`))
         }
         
-        let picDiv= ce('div',false,`flex`)
+        let picDiv= ce('div',false,`flex`);
+
         p.append(picDiv)
 
         picDiv.append(ce(`img`, false, `cover`, false, {
@@ -1471,6 +1477,7 @@ function showClass(cl, id) {
                 href: cl.slides,
             }))
         }
+
         p.append(ce('p', false, false, cl.slides ? `ссылка на презентацию: ${cl.slides}`: `добавьте ссылку на презентацию`,{
             onclick: function () {
                 edit(`classes`, cl.id, `slides`, `text`, cl.slides || null, this)

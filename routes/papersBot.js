@@ -2935,6 +2935,14 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                     return ref.get().then(cl => {
                         if (!cl.exists) return res.sendStatus(404)
                         switch (req.method) {
+                            
+                            case `DELETE`:{
+                                // cl = cl.data();
+                                if(!cl.data().active) return res.status(400).send(`Уже отменено!`);
+                                deleteEntity(req,res,ref,+admin.id,false,()=>{
+                                    alertClassClosed(cl);
+                                })
+                            }
                             case `PUT`:{
 
                                 if(req.body.attr != `date`){
@@ -5229,9 +5237,9 @@ const translations = {
     },
     classClosed: (c) => {
         return {
-            en: `We are sorry to inform you, that ${eTypes[c.type].en} ${c.name} was cancelled. Stay tuned, we're gonna come up with even better events.`,
-            ru: `Случилось страшное: ${eTypes[c.type].ru} «${c.name}» отменяется.\nНадеемся увидеть вас на других мероприятиях. Остаемся на связи.`,
-            ka: `ბოდიშს გიხდით გაცნობებთ, რომ ${eTypes[c.type].ka} ${c.name} გაუქმდა. თვალყური ადევნეთ, ჩვენ კიდევ უფრო კარგ მოვლენებს მოვაწყობთ`
+            en: `We are sorry to inform you, that ${c.type ? eTypes[c.type].en : ''} ${c.name} was cancelled. Stay tuned, we're gonna come up with even better events.`,
+            ru: `К сожалению, ${c.type ? eTypes[c.type].ru : ''} «${c.name}» отменяется.\nНадеемся увидеть вас на других мероприятиях. Остаемся на связи.`,
+            ka: `ბოდიშს გიხდით გაცნობებთ, რომ ${c.type ? eTypes[c.type].ka : ''} ${c.name} გაუქმდა. თვალყური ადევნეთ, ჩვენ კიდევ უფრო კარგ მოვლენებს მოვაწყობთ`
         }
     },
     yourCode: {
@@ -9593,7 +9601,7 @@ router.get(`/api/:type`, (req, res) => {
     }
 })
 
-function alertClassClosed(cl) {
+async function alertClassClosed(cl) {
 
     let id = cl.id;
     cl = cl.data();
@@ -9622,6 +9630,24 @@ function alertClassClosed(cl) {
 
             })
         })
+    
+    let waitingList = await common.ifBefore(userClassesQ,{active: true, class:id});
+
+    waitingList.forEach(record=>{
+        m.getUser(record.user,udb).then(ud=>{
+            
+            m.sendMessage2({
+                chat_id: record.user,
+                text: translations.classClosed(cl)[ud.language_code] || translations.classClosed(cl).en
+            }, false, token, messages)
+            
+            userClassesQ.doc(record.id).update({
+                active: false
+            })
+        })
+        
+    })
+    
 }
 
 router.all(`/api/:data/:id`, (req, res) => {
