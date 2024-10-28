@@ -3160,7 +3160,9 @@ function coworkingReason(record,reason){
 
 
 function deleteEntity(req, res, ref, admin, attr, callback, extra) {
-    devlog(`удаляем нечто`)
+    
+    devlog(`удаляем нечто`);
+
     entities = {
         mr:{
             log:(name)=> `запись в переговорку была снята`,
@@ -3187,6 +3189,7 @@ function deleteEntity(req, res, ref, admin, attr, callback, extra) {
             attr: `plan`
         }
     }
+
     return ref.get().then(e => {
         
         let data = common.handleDoc(e)
@@ -9603,13 +9606,17 @@ router.get(`/api/:type`, (req, res) => {
 
 async function alertClassClosed(cl) {
 
+
     let id = cl.id;
+
+    devlog(id)
+
     cl = cl.data();
 
 
     log({
         filter: `lectures`,
-        text: `${eTypes.ru[cl.type]} отменяется (((`,
+        text: `Лекция ${cl.name} отменяется (((`,
         class: id
     })
 
@@ -9622,9 +9629,11 @@ async function alertClassClosed(cl) {
                 udb.doc(appointment.user.toString()).get().then(ud => {
                     ud = ud.data();
 
+                    devlog(ud)
+
                     m.sendMessage2({
                         chat_id: appointment.user,
-                        text: translations.classClosed(cl)[ud.language_code] || translations.classClosed(cl).en
+                        text:   translations.classClosed(cl)[ud.language_code] || translations.classClosed(cl).en
                     }, false, token, messages)
                 })
 
