@@ -618,3 +618,12 @@ input:checked+label.toggleLabel::before {
     box-shadow: 2px 2px 3px 0px var(--dark);
     animation: slideRight 1s;
 }
+
+img.ticket {
+    position: absolute;
+    right: 30px;
+    width: 100px;
+    z-index: 100;
+    top: 20px;
+    border-radius: 10px;
+}

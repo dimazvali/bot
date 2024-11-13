@@ -731,6 +731,7 @@ function showStatic(id){
                 src: page   .pic
             }))
             p.append(ce(`div`,false,false,page.description))
+            if(page.html) p.append(ce(`div`,false,false,page.html))
         })
 }
 
@@ -1267,6 +1268,11 @@ function drawLecturePopup(c){
         let popup = ce('div',false,'popup')
             let content = ce('div')
             let h = ce('div',false,'header')
+
+                if(c.appointmentId) content.append(ce(`img`,false,`ticket`,false,{
+                    src: `/paper/qr?id=${c.appointmentId}&entity=userClasses`
+                }))
+
                 h.append(ce('h3',false,false,`${drawDate(c.date)}<br>${new Date(c.date).toLocaleTimeString('ru-RU', {timeZone: 'Asia/Tbilisi', hour: '2-digit', minute:'2-digit'})}`))
                 h.append(ce('h5',false,false,c.author))
                 h.append(ce('h5',false,false,`@${c.hallName}`))
