@@ -30,6 +30,19 @@ try{
 
 tg.requestWriteAccess();
 
+if(tg.platform != `tdesktop`) {
+    try {
+        tg.disableVerticalSwipes()
+        tg.expand()
+        tg.requestFullscreen();
+        document.querySelector('.mobile').style.paddingTop = '100px'    
+    } catch (error) {
+        
+    }
+}
+
+
+
 translations.bookOn = (d)=>{
     return {
         ru: `Забронировать на ${d}`,

@@ -46,6 +46,7 @@ body {
 
 body.mobile{
     padding: 20px;
+    transition: .5s;
 }
 
 .fade{
