@@ -1,0 +1,39 @@
+.line {
+    display: flex;
+}
+
+.tile.flex {
+    display: flex;
+}
+
+
+::-webkit-scrollbar-thumb {
+    display: none;
+}
+
+
+::-webkit-scrollbar {
+    display: none;
+}
+
+#v{
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: red;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+div#viewBox {
+    width: fit-content;
+}
+
+img {
+    padding: 20px;
+}
+
+body {
+    background: #002855;
+}
