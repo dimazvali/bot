@@ -7,7 +7,8 @@ let scrollBlockY,
     scrollBlockX,
     removeLine,
     scrolling, 
-    startRemoved  = false;
+    startRemoved,
+    mouseDown  = false;
 
 
 function toggleStart(){    
@@ -36,6 +37,30 @@ window.onload=()=>{
         left:   sizes.x + ((sizes.x-window.innerWidth)/2),
         top:    sizes.y + ((sizes.y-window.innerHeight)/2)
     })
+
+    document.onmousedown=(e)=>{
+        e.preventDefault();
+        mouseDown = true;
+        console.log(`вниз`)
+    }
+
+    document.onmouseup=(e)=>{
+        mouseDown = false;
+        console.log(`вверх`)
+    }
+
+    // document.onmouseleave=(e)=>{
+    //     mouseDown = true;
+    //     console.log(`вверх`)
+    // }
+
+    document.onmousemove = (e)=>{
+        if(mouseDown) window.scrollBy({
+            left:   -e.movementX,
+            top:    -e.movementY
+        })
+    }
+
 
     setTimeout(()=>{
         window.onscroll=(e)=>{
@@ -160,9 +185,7 @@ function scrollEnd(){
     }
 
     try {
-        console.log(document.querySelectorAll(`.fl`).length)
         document.querySelectorAll(`.fl`).forEach((e,i)=>{
-            console.log(i);
             if(i>2) e.remove();
         })    
     } catch (error) {
