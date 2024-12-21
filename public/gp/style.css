@@ -1,5 +1,6 @@
 .line {
     display: flex;
+    justify-content: space-between;
 }
 
 .tile.flex {
@@ -30,10 +31,57 @@ div#viewBox {
     width: fit-content;
 }
 
-img {
-    padding: 20px;
+.card {
+    margin: 20px;
+    box-shadow: 0px 0px 20px -10px #FF8A65;
+    transition: .3s;
+    cursor: pointer;
 }
+
+.card:hover {
+    box-shadow: 0px 0px 20px 20px #FF8A65;
+}
+
+
 
 body {
     background: #002855;
+}
+
+div#hover {
+    background: #002855;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    transition: .3s;
+    filter: opacity(1);
+}
+
+.hidden{
+    display: none;
+}
+
+div#start {
+    /* margin: 20px; */
+    width: 508px;
+    height: 705px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+img.closer {
+    margin: 40px 0;
+    cursor: pointer;
+}
+
+div#start::before {
+    content: url(/images/cards/drag.png);
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform: translate(-50%, 0%);
 }

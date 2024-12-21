@@ -6,10 +6,25 @@ let sizes = {
 let scrollBlockY, 
     scrollBlockX,
     removeLine,
-    scrolling  = false;
+    scrolling, 
+    startRemoved  = false;
 
+
+function toggleStart(){    
+    startRemoved = true;
+    start.remove()
+    document.querySelectorAll(`.hidden`).forEach(i=>{
+        i.classList.toggle(`hidden`)
+    })
+
+}
 
 window.onload=()=>{
+
+    hover.style.filter = 'opacity(0)'
+    setTimeout(()=>{
+        hover.remove()
+    },300)
     
     sizes.y = viewBox.getBoundingClientRect().height/3
     sizes.x = viewBox.getBoundingClientRect().width/3
@@ -18,12 +33,16 @@ window.onload=()=>{
     let cpx = window.pageXOffset;
 
     window.scrollTo({
-        left:   sizes.x,
-        top:    sizes.y
+        left:   sizes.x + ((sizes.x-window.innerWidth)/2),
+        top:    sizes.y + ((sizes.y-window.innerHeight)/2)
     })
 
     setTimeout(()=>{
         window.onscroll=(e)=>{
+
+            if(!startRemoved){
+                toggleStart()
+            }
     
             scrolling = true;
             
