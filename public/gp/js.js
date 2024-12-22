@@ -8,15 +8,37 @@ let scrollBlockY,
     removeLine,
     scrolling, 
     startRemoved,
+    scrolled,
     mouseDown  = false;
 
 
+function popup(e){
+    console.log(mouseDown)
+    if(!scrolled) alert(e)
+}
+
 function toggleStart(){    
+
     startRemoved = true;
-    start.remove()
-    document.querySelectorAll(`.hidden`).forEach(i=>{
-        i.classList.toggle(`hidden`)
-    })
+    
+    start.style.filter = 'opacity(0)';
+
+    setTimeout(()=>{
+        
+        start.remove();
+        
+        document.querySelectorAll(`.hidden`).forEach(i=>{
+            i.style.display = `initial`
+        })
+
+        setTimeout(()=>{
+            document.querySelectorAll(`.hidden`).forEach(i=>{
+                i.classList.toggle(`hidden`)
+            })
+        },100)
+        
+    },300)
+    
 
 }
 
@@ -41,7 +63,19 @@ window.onload=()=>{
     document.onmousedown=(e)=>{
         e.preventDefault();
         mouseDown = true;
-        console.log(`вниз`)
+        console.log(`вниз`);
+    }
+
+    document.onclick=(e)=>{
+        setTimeout(()=>{
+            scrolled = false;
+            // console.log(`сменили мышь на ${false}`)
+        },300)
+        
+        console.log(e)
+        e.cancelBubble = true;
+        e.preventDefault();
+        return false;
     }
 
     document.onmouseup=(e)=>{
@@ -49,16 +83,14 @@ window.onload=()=>{
         console.log(`вверх`)
     }
 
-    // document.onmouseleave=(e)=>{
-    //     mouseDown = true;
-    //     console.log(`вверх`)
-    // }
-
     document.onmousemove = (e)=>{
-        if(mouseDown) window.scrollBy({
-            left:   -e.movementX,
-            top:    -e.movementY
-        })
+        if(mouseDown) {
+            scrolled = true;
+            window.scrollBy({
+                left:   -e.movementX,
+                top:    -e.movementY
+            })
+        }
     }
 
 
@@ -70,14 +102,13 @@ window.onload=()=>{
             }
     
             scrolling = true;
-            
         
         
-            let left =  window.pageXOffset- sizes.x*2;
-            let top =   window.pageYOffset - sizes.y*2;
+            let left =  window.pageXOffset- sizes.x;
+            let top =   window.pageYOffset - sizes.y;
             
             if(top < -1*(sizes.y/1) && !scrollBlockY){
-                    
+                console.log(`назад`)        
                 scrollBlockY = true;
         
                 let line = document.querySelector(`.line`)
@@ -91,21 +122,25 @@ window.onload=()=>{
             }
         
             if(top > 0 && !scrollBlockY){
+
+                console.log(`вниз`)
                     
                 scrollBlockY = true;
         
-                let line = document.querySelector(`.line`)
-                let newline = line.cloneNode(true);
+                let line =          document.querySelector(`.line`)
+                let newline =       line.cloneNode(true);
                 line.parentElement.append(newline);
         
                 setTimeout(()=>{
-                    scrollBlockY = false;
+                    scrollBlockY =  false;
                 },300)
                 
             }
             
             if(left < -1*(sizes.x/2) && !scrollBlockX){
                 
+                console.log(`влево`)
+
                 scrollBlockX = true;
 
                 let line = document.querySelector(`.tile`)
@@ -120,6 +155,9 @@ window.onload=()=>{
             }
 
             if(left > 0 && !scrollBlockX){
+
+                console.log(`вправо`)
+
                 scrollBlockX = true;
 
                 let line = document.querySelector(`.tile`)
@@ -154,11 +192,6 @@ window.onload=()=>{
     },100)
     
 }
-
-
-
-
-
 
 function scrollEnd(){
 

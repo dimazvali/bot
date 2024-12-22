@@ -1,15 +1,104 @@
-html{
-    font-size: 10px;  
-  }
-  
-  @media only screen and (max-width : 192rem){
-    html{font-size: calc(10vw / 1920 * 100);}
-  }
-  @media only screen and (max-width : 800px){
-    html{
-      font-size: calc(10vw / 800 * 100);
+:root {
+    --leftWidth: 46.1rem;
+}
+
+html {
+    font-size: 10px;
+}
+
+@media only screen and (max-width : 192rem) {
+    html {
+        font-size: calc(10vw / 1920 * 100);
     }
-  }
+}
+
+@media only screen and (max-width : 800px) {
+    html {
+        font-size: calc(10vw / 800 * 100);
+    }
+}
+
+img.startText {
+    width: 38.7rem;
+}
+
+
+
+.c0 {
+    width: 30.6rem;
+    height: 43.0rem;
+}
+
+.c1 {
+    width: 66.7rem;
+    height: 43.0rem;
+}
+
+.c2 {
+    width: 30.3rem;
+    height: 43.0rem;
+}
+
+.c3 {
+    width: 60.5rem;
+    height: 43.0rem;
+}
+
+.c4 {
+    width: 47.9rem;
+    height: 65.4rem;
+}
+
+.c5 {
+    width: 48.7rem;
+    height: 65.2rem;
+}
+
+.c6 {
+    width: 45.5rem;
+    height: 31.4rem;
+}
+
+.c7 {
+    width: 45.7rem;
+    height: 30.3rem;
+}
+
+.c8 {
+    width: 46.4rem;
+    height: 65.4rem;
+}
+
+.c9 {
+    width: 75rem;
+    height: 53.3rem;
+}
+
+.c10 {
+    width: 38rem;
+    height: 53.3rem;
+}
+
+.c11 {
+    width: 80.8rem;
+    height: 53.3rem;
+    ;
+}
+
+.c12 {
+    width: var(--leftWidth);
+    height: auto;
+}
+
+.c13 {
+    width: var(--leftWidth);
+    height: auto;
+}
+
+.c14 {
+    width: var(--leftWidth);
+    height: auto;
+}
 
 .line {
     display: flex;
@@ -25,12 +114,11 @@ html{
     display: none;
 }
 
-
 ::-webkit-scrollbar {
     display: none;
 }
 
-#v{
+#v {
     position: fixed;
     top: 1rem;
     left: 1rem;
@@ -46,13 +134,15 @@ div#viewBox {
 
 .card {
     margin: 2rem;
-    box-shadow: 0 0 2rem -0.5rem #FF8A65;
+    box-shadow: 0 0 1rem -0.5rem white;
     transition: .3s;
     cursor: pointer;
+    filter: opacity(1);
 }
 
 .card:hover {
-    box-shadow: 0 0 2rem 2rem #FF8A65;
+    box-shadow: 0 0 7rem 3rem color(srgb 1 1 1 / 0.26);
+    z-index: -1;
 }
 
 body {
@@ -70,18 +160,21 @@ div#hover {
     filter: opacity(1);
 }
 
-.hidden{
-    display: none;
+.hidden {
+    /* display: none; */
+    filter: opacity(0);
 }
 
 div#start {
-    /* margin: 2rem; */
-    width: 50.8rem;
-    height: 70.5rem;
+    margin: 2rem;
+    width: 45.5rem;
+    height: 65.2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
+    filter: opacity(1);
+    transition: .3s;
 }
 
 img.closer {
