@@ -49,9 +49,40 @@ window.onbeforeunload = function () {
     })
 }
 
+async function setdataurl(){
+    for (let index = 0; index < 15; index++) {
+        const element = index;
+        console.log(element)
+        await fetch('/images/cards/'+element+'.webp')
+            .then((res) => res.blob())
+            .then((blob) => {
+                // Read the Blob as DataURL using the FileReader API
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                reader.onloadend = () => {
+                    document.querySelectorAll(`.c${element}`).forEach(i=>i.src = reader.result)
+                    // console.log(reader.result);
+                    // i++
+                };
+            });    
+        
+    }
+}
+
+setdataurl()
+
 window.onload = () => {
 
     hover.style.filter = 'opacity(0)'
+
+    // window.ontouchend = (e)=>{
+    //     // alert(`stp`)
+    //     window.scroll({
+    //         left: window.pageXOffset,
+    //         top: window.pageYOffset
+    //     })
+    // }
+
 
     setTimeout(() => {
         hover.remove();
@@ -109,6 +140,7 @@ window.onload = () => {
 
         setTimeout(() => {
             window.onscroll = (e) => {
+                // e.preventDefault();
 
 
                 if (!startRemoved) {
@@ -136,7 +168,7 @@ window.onload = () => {
 
                     setTimeout(() => {
                         scrollBlockY = false;
-                    }, 300)
+                    }, 500)
 
                 } else if(top > (sizes.y/2) && !scrollBlockY && (lastY && (lastY-window.pageYOffset)<0)){
 
@@ -150,7 +182,7 @@ window.onload = () => {
 
                     setTimeout(()=>{
                         scrollBlockY =  false;
-                    },300)
+                    },500)
 
                 }
 
@@ -170,7 +202,7 @@ window.onload = () => {
 
                             setTimeout(() => {
                                 scrollBlockX = false;
-                            }, 300)
+                            }, 500)
                         }
                     } else if (lastX < 0) {
                         if (left > 0 && !scrollBlockX) {
@@ -187,7 +219,7 @@ window.onload = () => {
 
                             setTimeout(() => {
                                 scrollBlockX = false;
-                            }, 300)
+                            }, 500)
                         }
                     }
                 }
@@ -212,7 +244,7 @@ window.onload = () => {
                         cpx = window.pageXOffset
                     }
                 }
-            }, 300)
+            }, 500)
         }, 100)
     }, 1000)
 
