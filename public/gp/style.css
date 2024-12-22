@@ -2,11 +2,15 @@
     --leftWidth: 46.1rem;
 }
 
+body {
+    touch-action: pan-x pan-y;
+}
 
-body{
+/* body {
     width: 100vw;
     height: 100vh;
-}
+} */
+
 html {
     font-size: 10px;
     /* -webkit-overflow-scrolling: auto; */
@@ -24,12 +28,25 @@ html {
     }
 }
 
+
+
 @media (pointer:fine) {
     html {
         width: 100vw;
         height: 100vh;
         overflow: hidden;
-    }       
+    }
+}
+
+@media (pointer:coarse) {
+    html {
+        /* width: 100vw;
+        height: 100vh; */
+        /* overflow: hidden; */
+        /* -webkit-o */
+        /* -webkit-overflow-scrolling:hidden; */
+
+    }
 }
 
 
@@ -144,7 +161,7 @@ img.startText {
 div#viewBox {
     width: fit-content;
     cursor: grab;
-    
+
     /* -webkit-overflow-scrolling: auto; */
 }
 

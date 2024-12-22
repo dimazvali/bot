@@ -1,6 +1,6 @@
 let sizes = {
-    x: 2399,
-    y: 1627
+    x: 0,
+    y: 0
 }
 
 let scrollBlockY,
@@ -13,7 +13,6 @@ let scrollBlockY,
 
 
 function popup(e) {
-    console.log(mouseDown)
     if (!scrolled) alert(e)
 }
 
@@ -49,58 +48,71 @@ window.onbeforeunload = function () {
     })
 }
 
-async function setdataurl(){
+try {
+    window.onpagehide = function () {
+        window.scrollTo({
+            left: sizes.x + ((sizes.x - window.innerWidth) / 2),
+            top: sizes.y + ((sizes.y - window.innerHeight) / 2)
+        })
+    }
+} catch (error) {
+    
+}
+
+async function setdataurl() {
     for (let index = 0; index < 15; index++) {
         const element = index;
-        console.log(element)
-        await fetch('/images/cards/'+element+'.webp')
+        await fetch('/images/cards/' + element + '.webp')
             .then((res) => res.blob())
             .then((blob) => {
-                // Read the Blob as DataURL using the FileReader API
                 const reader = new FileReader();
                 reader.readAsDataURL(blob);
                 reader.onloadend = () => {
-                    document.querySelectorAll(`.c${element}`).forEach(i=>i.src = reader.result)
-                    // console.log(reader.result);
-                    // i++
+                    document.querySelectorAll(`.c${element}`).forEach(i => i.src = reader.result)
                 };
-            });    
-        
+            });
+
     }
 }
+
+// window.ontouchmove = (e) => {
+//     e.preventDefault();
+// }
 
 setdataurl()
 
 window.onload = () => {
 
     hover.style.filter = 'opacity(0)'
+    
+    sizes.y = viewBox.getBoundingClientRect().height / 3
+    sizes.x = viewBox.getBoundingClientRect().width / 3
 
-    // window.ontouchend = (e)=>{
-    //     // alert(`stp`)
-    //     window.scroll({
-    //         left: window.pageXOffset,
-    //         top: window.pageYOffset
-    //     })
-    // }
-
+    
+    setTimeout(()=>{
+        window.scrollTo({
+            behavior: 'smooth',
+            left:   sizes.x + ((sizes.x - window.innerWidth) / 2),
+            top:    sizes.y + ((sizes.y - window.innerHeight) / 2)
+        })
+    },1)
 
     setTimeout(() => {
+
         hover.remove();
-        sizes.y = viewBox.getBoundingClientRect().height / 3
-        sizes.x = viewBox.getBoundingClientRect().width / 3
+
+        
+
+        
 
         let cpy = window.pageYOffset;
         let cpx = window.pageXOffset;
 
-        window.scrollTo({
-            left: sizes.x + ((sizes.x - window.innerWidth) / 2),
-            top: sizes.y + ((sizes.y - window.innerHeight) / 2)
-        })
+
 
         document.onmousedown = (e) => {
             e.preventDefault();
             mouseDown = true;
-            console.log(`вниз`);
         }
 
         document.onmouseover = (e) => {
@@ -110,10 +122,8 @@ window.onload = () => {
         document.onclick = (e) => {
             setTimeout(() => {
                 scrolled = false;
-                // console.log(`сменили мышь на ${false}`)
             }, 300)
 
-            console.log(e)
             e.cancelBubble = true;
             e.preventDefault();
             return false;
@@ -121,7 +131,6 @@ window.onload = () => {
 
         document.onmouseup = (e) => {
             mouseDown = false;
-            console.log(`вверх`)
         }
 
         document.onmousemove = (e) => {
@@ -134,6 +143,75 @@ window.onload = () => {
                 })
             }
         }
+
+        let previousTouch = null;
+        let curTouch = null;
+
+        document.ontouchstart = (e) => {
+            previousTouch = e.touches[0]
+            mouseDown = true;
+            e.preventDefault();
+        }
+
+        document.ontouchend = (e) => {
+            // const touch = curTouch;
+            // if (previousTouch) {
+            //     console.log(touch.pageX - previousTouch.pageX)
+            //     // window.scrollBy({
+            //     //     left: -(touch.pageX - previousTouch.pageX),
+            //     //     top: -(touch.pageY - previousTouch.pageY)
+            //     // })
+            //     console.log(`window.scrollTo({
+            //         left: ${touch.pageX-touch.clientX},
+            //         top: ${touch.pageY -touch.clientY}
+            //     })`)
+            //     window.scrollBy({
+            //         behavior:   "smooth",
+            //         left:   -(touch.clientX-previousTouch.clientX),
+            //         top:    -(touch.clientY -previousTouch.clientY)
+            //     })
+            // }
+
+            previousTouch = null;
+            mouseDown = false;
+            scrolled = false;
+        }
+
+        // document.ontouchmove = (e) => {
+        //     e.preventDefault()
+        //     curTouch = e.touches[0];
+        //     try {
+        //         console.log(mouseDown)
+        //         if (mouseDown) {
+        //             const touch = e.touches[0];
+        //             scrolled = true;
+        //             console.log(e.touches)
+        //             if (previousTouch) {
+        //                 console.log(touch.pageX - previousTouch.pageX)
+        //                 // window.scrollBy({
+        //                 //     left: -(touch.pageX - previousTouch.pageX),
+        //                 //     top: -(touch.pageY - previousTouch.pageY)
+        //                 // })
+        //                 console.log(`window.scrollTo({
+        //                     left: ${touch.pageX-touch.clientX},
+        //                     top: ${touch.pageY -touch.clientY}
+        //                 })`)
+        //                 // alert(touch.clientX-previousTouch.clientX);
+        //                 window.scrollBy({
+        //                     // behavior:"smooth",
+        //                     left: -(touch.clientX-previousTouch.clientX),
+        //                     top: -  (touch.clientY -previousTouch.clientY)
+        //                 })
+        //             }
+
+
+        //             previousTouch = touch;
+        //         }
+        //     } catch (err) {
+        //         alert(err)
+        //     }
+
+        // }
 
         let lastY = 0;
         let lastX = 0
@@ -149,17 +227,13 @@ window.onload = () => {
 
                 scrolling = true;
 
-                console.log(lastX, lastY)
 
                 let left = window.pageXOffset - sizes.x;
                 let top = window.pageYOffset - sizes.y;
 
-                console.log(window.pageXOffset, window.pageYOffset);
 
-                if (window.pageYOffset/sizes.y < 1 && !scrollBlockY && (lastY && (lastY-window.pageYOffset)>0)) {
+                if (window.pageYOffset / sizes.y < 1 && !scrollBlockY && (lastY && (lastY - window.pageYOffset) > 0)) {
 
-
-                    console.log(`добавляем сверху`)
                     scrollBlockY = true;
 
                     let line = document.querySelector(`.line`)
@@ -170,19 +244,18 @@ window.onload = () => {
                         scrollBlockY = false;
                     }, 500)
 
-                } else if(top > (sizes.y/2) && !scrollBlockY && (lastY && (lastY-window.pageYOffset)<0)){
+                } else if (top > (sizes.y / 2) && !scrollBlockY && (lastY && (lastY - window.pageYOffset) < 0)) {
 
-                    console.log(`вниз`)
 
                     scrollBlockY = true;
 
-                    let line =          document.querySelector(`.line`)
-                    let newline =       line.cloneNode(true);
+                    let line = document.querySelector(`.line`)
+                    let newline = line.cloneNode(true);
                     line.parentElement.append(newline);
 
-                    setTimeout(()=>{
-                        scrollBlockY =  false;
-                    },500)
+                    setTimeout(() => {
+                        scrollBlockY = false;
+                    }, 500)
 
                 }
 
@@ -190,7 +263,6 @@ window.onload = () => {
                     if (lastX > 0) {
                         if (left < -1 * (sizes.x / 2) && !scrollBlockX) {
 
-                            console.log(`влево`)
 
                             scrollBlockX = true;
 
@@ -206,8 +278,6 @@ window.onload = () => {
                         }
                     } else if (lastX < 0) {
                         if (left > 0 && !scrollBlockX) {
-
-                            console.log(`вправо`)
 
                             scrollBlockX = true;
 
@@ -231,26 +301,25 @@ window.onload = () => {
             }
             setInterval(() => {
                 if (scrolling) {
-                    if (cpy == window.pageYOffset) {
+                    if (cpy == window.pageYOffset && cpx == window.pageXOffset) {
                         scrollEnd();
                         scrolling = false;
                     } else {
-                        cpy = window.pageYOffset
+                        cpy = window.pageYOffset;
+                        cpx = window.pageXOffset;
                     }
-                    if (cpx == window.pageXOffset) {
-                        scrollEnd();
-                        scrolling = false;
-                    } else {
-                        cpx = window.pageXOffset
-                    }
+                    // if (cpx == window.pageXOffset) {
+                    //     scrollEnd();
+                    //     scrolling = false;
+                    // } else {
+                    //     cpx = window.pageXOffset
+                    // }
                 }
             }, 500)
         }, 100)
     }, 1000)
-
-
-
 }
+
 
 function scrollEnd() {
 
