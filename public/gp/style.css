@@ -4,6 +4,7 @@
 
 html {
     font-size: 10px;
+    -webkit-overflow-scrolling: auto;
 }
 
 @media only screen and (max-width : 192rem) {
@@ -138,6 +139,7 @@ img.startText {
 div#viewBox {
     width: fit-content;
     cursor: grab;
+    -webkit-overflow-scrolling: auto;
 }
 
 .card {
