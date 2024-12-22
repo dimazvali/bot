@@ -18,11 +18,18 @@ html {
     }
 }
 
-img.startText {
-    width: 38.7rem;
+@media (pointer:fine) {
+    html {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+    }       
 }
 
 
+img.startText {
+    width: 38.7rem;
+}
 
 .c0 {
     width: 30.6rem;
@@ -156,8 +163,9 @@ div#hover {
     left: 0;
     width: 100vw;
     height: 100vh;
-    transition: .3s;
+    transition: 1s;
     filter: opacity(1);
+    z-index: 20;
 }
 
 .hidden {
@@ -180,12 +188,20 @@ div#start {
 img.closer {
     margin: 4rem 0;
     cursor: pointer;
+    width: 10.9rem;
+    height: 10.9rem;
 }
 
 div#start::before {
-    content: url(/images/cards/drag.png);
+    content: '';
     position: absolute;
     left: 0;
     top: 0;
     transform: translate(-50%, 0%);
+    width: 20rem;
+    height: 20.2rem;
+    object-fit: cover;
+    background: url(/images/cards/drag.png);
+    background-size: contain;
+    background-repeat: no-repeat;
 }

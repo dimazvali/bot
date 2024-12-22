@@ -42,20 +42,20 @@ function toggleStart(){
 
 }
 
+window.onbeforeunload = function() {
+    window.scrollTo({
+        left:   sizes.x + ((sizes.x-window.innerWidth)/2),
+        top:    sizes.y + ((sizes.y-window.innerHeight)/2)
+    })
+}
+
 window.onload=()=>{
 
-    window.onbeforeunload = function() {
-        window.scrollTo({
-            left:   sizes.x + ((sizes.x-window.innerWidth)/2),
-            top:    sizes.y + ((sizes.y-window.innerHeight)/2)
-        })
-    }
-    
-
     hover.style.filter = 'opacity(0)'
+    
     setTimeout(()=>{
         hover.remove()
-    },300)
+    },1000)
     
     sizes.y = viewBox.getBoundingClientRect().height/3
     sizes.x = viewBox.getBoundingClientRect().width/3
@@ -106,9 +106,12 @@ window.onload=()=>{
         }
     }
 
+    let lastY = 0;
+    let lastX = 0
 
     setTimeout(()=>{
         window.onscroll=(e)=>{
+
 
             if(!startRemoved){
                 toggleStart()
@@ -116,73 +119,83 @@ window.onload=()=>{
     
             scrolling = true;
         
-        
+            console.log(lastX,lastY)
+
             let left =  window.pageXOffset- sizes.x;
             let top =   window.pageYOffset - sizes.y;
             
-            if(top < -1*(sizes.y/1) && !scrollBlockY){
-                console.log(`назад`)        
-                scrollBlockY = true;
-        
-                let line = document.querySelector(`.line`)
-                let newline = line.cloneNode(true);
-                line.parentElement.prepend(newline);
-        
-                setTimeout(()=>{
-                    scrollBlockY = false;
-                },300)
-                
-            }
-        
-            if(top > 0 && !scrollBlockY){
+            console.log(window.pageXOffset,window.pageYOffset);
 
-                console.log(`вниз`)
+            // if (window.pageYOffset/sizes.y < 1 && !scrollBlockY && (lastY && (lastY-window.pageYOffset)>0)) {
+
+                
+            //     console.log(`добавляем сверху`)
+            //     scrollBlockY = true;
+
+            //     let line = document.querySelector(`.line`)
+            //     let newline = line.cloneNode(true);
+            //     viewBox.prepend(newline);
+
+            //     setTimeout(() => {
+            //         scrollBlockY = false;
+            //     }, 300)
+
+            // } else if(top > (sizes.y/2) && !scrollBlockY && (lastY && (lastY-window.pageYOffset)<0)){
+
+            //     console.log(`вниз`)
                     
-                scrollBlockY = true;
+            //     scrollBlockY = true;
         
-                let line =          document.querySelector(`.line`)
-                let newline =       line.cloneNode(true);
-                line.parentElement.append(newline);
+            //     let line =          document.querySelector(`.line`)
+            //     let newline =       line.cloneNode(true);
+            //     line.parentElement.append(newline);
         
-                setTimeout(()=>{
-                    scrollBlockY =  false;
-                },300)
+            //     setTimeout(()=>{
+            //         scrollBlockY =  false;
+            //     },300)
                 
-            }
+            // }
             
-            if(left < -1*(sizes.x/2) && !scrollBlockX){
+            if(lastX){
+                if(lastX>0){
+                    if(left < -1*(sizes.x/2) && !scrollBlockX){
                 
-                console.log(`влево`)
-
-                scrollBlockX = true;
-
-                let line = document.querySelector(`.tile`)
-
-                let newline = [line.cloneNode(true),line.cloneNode(true),line.cloneNode(true)];
-                
-                document.querySelectorAll(`.fl`).forEach((c,i)=>c.prepend(newline[i]));
+                        console.log(`влево`)
         
-                setTimeout(()=>{
-                    scrollBlockX = false;
-                },300)
+                        scrollBlockX = true;
+        
+                        let line = document.querySelector(`.tile`)
+        
+                        let newline = [line.cloneNode(true),line.cloneNode(true),line.cloneNode(true)];
+                        
+                        document.querySelectorAll(`.fl`).forEach((c,i)=>c.prepend(newline[i]));
+                
+                        setTimeout(()=>{
+                            scrollBlockX = false;
+                        },300)
+                    }
+                } else if(lastX<0) {
+                    if (left > 0 && !scrollBlockX){
+
+                        console.log(`вправо`)
+        
+                        scrollBlockX = true;
+        
+                        let line = document.querySelector(`.tile`)
+        
+                        let newline = [line.cloneNode(true),line.cloneNode(true),line.cloneNode(true)];
+                        
+                        document.querySelectorAll(`.fl`).forEach((c,i)=>c.append(newline[i]));
+                
+                        setTimeout(()=>{
+                            scrollBlockX = false;
+                        },300)
+                    }
+                }
             }
 
-            if(left > 0 && !scrollBlockX){
-
-                console.log(`вправо`)
-
-                scrollBlockX = true;
-
-                let line = document.querySelector(`.tile`)
-
-                let newline = [line.cloneNode(true),line.cloneNode(true),line.cloneNode(true)];
-                
-                document.querySelectorAll(`.fl`).forEach((c,i)=>c.append(newline[i]));
-        
-                setTimeout(()=>{
-                    scrollBlockX = false;
-                },300)
-            }
+            lastY = window.pageYOffset;
+            lastX = window.pageXOffset;
         
             // document.querySelector(`#v`).innerHTML = `${window.pageXOffset}<br>${window.pageYOffset}<br>${sizes.y}`
         }
