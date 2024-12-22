@@ -130,6 +130,7 @@ img.startText {
 
 div#viewBox {
     width: fit-content;
+    cursor: grab;
 }
 
 .card {
@@ -142,7 +143,6 @@ div#viewBox {
 
 .card:hover {
     box-shadow: 0 0 7rem 3rem color(srgb 1 1 1 / 0.26);
-    z-index: -1;
 }
 
 body {

@@ -44,6 +44,14 @@ function toggleStart(){
 
 window.onload=()=>{
 
+    window.onbeforeunload = function() {
+        window.scrollTo({
+            left:   sizes.x + ((sizes.x-window.innerWidth)/2),
+            top:    sizes.y + ((sizes.y-window.innerHeight)/2)
+        })
+    }
+    
+
     hover.style.filter = 'opacity(0)'
     setTimeout(()=>{
         hover.remove()
@@ -66,6 +74,10 @@ window.onload=()=>{
         console.log(`вниз`);
     }
 
+    document.onmouseover = (e) => {
+        e.preventDefault()
+    }
+
     document.onclick=(e)=>{
         setTimeout(()=>{
             scrolled = false;
@@ -84,6 +96,7 @@ window.onload=()=>{
     }
 
     document.onmousemove = (e)=>{
+        e.preventDefault();
         if(mouseDown) {
             scrolled = true;
             window.scrollBy({
