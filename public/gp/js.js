@@ -124,35 +124,35 @@ window.onload = () => {
 
                 console.log(window.pageXOffset, window.pageYOffset);
 
-                // if (window.pageYOffset/sizes.y < 1 && !scrollBlockY && (lastY && (lastY-window.pageYOffset)>0)) {
+                if (window.pageYOffset/sizes.y < 1 && !scrollBlockY && (lastY && (lastY-window.pageYOffset)>0)) {
 
 
-                //     console.log(`добавляем сверху`)
-                //     scrollBlockY = true;
+                    console.log(`добавляем сверху`)
+                    scrollBlockY = true;
 
-                //     let line = document.querySelector(`.line`)
-                //     let newline = line.cloneNode(true);
-                //     viewBox.prepend(newline);
+                    let line = document.querySelector(`.line`)
+                    let newline = line.cloneNode(true);
+                    viewBox.prepend(newline);
 
-                //     setTimeout(() => {
-                //         scrollBlockY = false;
-                //     }, 300)
+                    setTimeout(() => {
+                        scrollBlockY = false;
+                    }, 300)
 
-                // } else if(top > (sizes.y/2) && !scrollBlockY && (lastY && (lastY-window.pageYOffset)<0)){
+                } else if(top > (sizes.y/2) && !scrollBlockY && (lastY && (lastY-window.pageYOffset)<0)){
 
-                //     console.log(`вниз`)
+                    console.log(`вниз`)
 
-                //     scrollBlockY = true;
+                    scrollBlockY = true;
 
-                //     let line =          document.querySelector(`.line`)
-                //     let newline =       line.cloneNode(true);
-                //     line.parentElement.append(newline);
+                    let line =          document.querySelector(`.line`)
+                    let newline =       line.cloneNode(true);
+                    line.parentElement.append(newline);
 
-                //     setTimeout(()=>{
-                //         scrollBlockY =  false;
-                //     },300)
+                    setTimeout(()=>{
+                        scrollBlockY =  false;
+                    },300)
 
-                // }
+                }
 
                 if (lastX) {
                     if (lastX > 0) {
