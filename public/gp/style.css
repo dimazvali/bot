@@ -208,13 +208,18 @@ div#start {
     position: relative;
     filter: opacity(1);
     transition: .3s;
+    background: #173c61;
+    border: 1rem solid white;
+    box-sizing: border-box;
 }
 
 img.closer {
     margin: 4rem 0;
     cursor: pointer;
-    width: 10.9rem;
-    height: 10.9rem;
+    width: 7.4rem;
+    height: 7rem;
+    display: block;
+    margin: 4rem auto -1rem 37rem;
 }
 
 div#start::before {
@@ -222,11 +227,21 @@ div#start::before {
     position: absolute;
     left: 0;
     top: 0;
-    transform: translate(-50%, 0%);
+    transform: translate(-60%, 0%);
     width: 20rem;
     height: 20.2rem;
     object-fit: cover;
     background: url(/images/cards/drag.png);
     background-size: contain;
     background-repeat: no-repeat;
+}
+
+div#back {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-image: url(/images/cards/bg.png);
+    background-size: contain;
 }
