@@ -85,6 +85,9 @@ window.onload = () => {
 
     hover.style.filter = 'opacity(0)'
     
+
+
+
     sizes.y = viewBox.getBoundingClientRect().height / 3
     sizes.x = viewBox.getBoundingClientRect().width / 3
 
@@ -101,9 +104,51 @@ window.onload = () => {
 
         hover.remove();
 
-        
 
-        
+        let keyScroll = {
+            y: null,
+            x: null
+        };
+
+        window.onkeyup=(e)=>{
+            if(e.code == `ArrowLeft` || e.code == `ArrowRight`){
+                keyScroll.x =clearInterval(keyScroll.x)
+            }
+            if(e.code == `ArrowUp` || e.code == `ArrowDown`){
+                keyScroll.y = clearInterval(keyScroll.y)
+            }
+        }
+
+        window.onkeydown=(e)=>{
+
+            const movement = 3;
+            
+            let scrolls = {
+                'ArrowUp': {
+                    axis:       `y`,
+                    top:        -movement,
+                },
+                'ArrowDown': {
+                    axis:       `y`,
+                    top:        movement,
+                },
+                'ArrowLeft':{
+                    axis:       `x`,
+                    left:       -movement,
+                },
+                'ArrowRight': {
+                    axis:       `x`,
+                    left:       movement,
+                }
+
+            }
+
+            if(scrolls[e.code]){
+                if(!keyScroll[scrolls[e.code].axis]) keyScroll[scrolls[e.code].axis] = setInterval(()=>{
+                    window.scrollBy(scrolls[e.code])
+                },10)
+            }
+        }
 
         let cpy = window.pageYOffset;
         let cpx = window.pageXOffset;
