@@ -109,10 +109,9 @@ img.startText {
     height: 53.3rem;
 }
 
-.c11 {
+.c13 {
     width: 80.8rem;
     height: 53.3rem;
-    ;
 }
 
 .c12 {
@@ -120,7 +119,7 @@ img.startText {
     height: auto;
 }
 
-.c13 {
+.c11 {
     width: var(--leftWidth);
     height: auto;
 }
@@ -161,19 +160,27 @@ img.startText {
 div#viewBox {
     width: fit-content;
     cursor: grab;
-
+    transition: .2s;
     /* -webkit-overflow-scrolling: auto; */
 }
 
-.card {
+.g-card {
     margin: 2rem;
     box-shadow: 0 0 1rem -0.5rem white;
     transition: .3s;
     cursor: pointer;
     filter: opacity(1);
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    
 }
 
-.card:hover {
+.g-card:hover {
     box-shadow: 0 0 7rem 3rem color(srgb 1 1 1 / 0.26);
 }
 
@@ -243,5 +250,11 @@ div#back {
     width: 100vw;
     height: 100vh;
     background-image: url(/images/cards/traces2.webp);
-    background-size: contain;
+    background-size: cover;
+}
+
+.col {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
 }

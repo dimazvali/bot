@@ -119,6 +119,11 @@ window.onload = () => {
             }
         }
 
+
+        window.onscrollend = (e)=>{
+            scrollEnd()
+        }
+
         window.onkeydown=(e)=>{
 
             const movement = 3;
@@ -259,7 +264,7 @@ window.onload = () => {
         // }
 
         let lastY = 0;
-        let lastX = 0
+        let lastX = 0;
 
         setTimeout(() => {
             window.onscroll = (e) => {
@@ -279,7 +284,7 @@ window.onload = () => {
 
                 if (window.pageYOffset / sizes.y < 1 && !scrollBlockY && (lastY && (lastY - window.pageYOffset) > 0)) {
 
-                    scrollBlockY = true;
+                    // scrollBlockY = true;
 
                     let line = document.querySelector(`.line`)
                     let newline = line.cloneNode(true);
@@ -292,7 +297,7 @@ window.onload = () => {
                 } else if (top > (sizes.y / 2) && !scrollBlockY && (lastY && (lastY - window.pageYOffset) < 0)) {
 
 
-                    scrollBlockY = true;
+                    // scrollBlockY = true;
 
                     let line = document.querySelector(`.line`)
                     let newline = line.cloneNode(true);
@@ -309,7 +314,7 @@ window.onload = () => {
                         if (left < -1 * (sizes.x / 2) && !scrollBlockX) {
 
 
-                            scrollBlockX = true;
+                            // scrollBlockX = true;
 
                             let line = document.querySelector(`.tile`)
 
@@ -324,7 +329,7 @@ window.onload = () => {
                     } else if (lastX < 0) {
                         if (left > 0 && !scrollBlockX) {
 
-                            scrollBlockX = true;
+                            // scrollBlockX = true;
 
                             let line = document.querySelector(`.tile`)
 
@@ -397,4 +402,9 @@ function scrollEnd() {
     } catch (error) {
         // alert(error)
     }
+
+    // viewBox.style.opacity = `0.3`
+    // setTimeout(()=>{
+    //     viewBox.style.opacity = `1`
+    // },200)
 }
