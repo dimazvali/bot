@@ -3,7 +3,7 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger =      require('morgan');
-var bodyParser =  require('body-parser')
+var bodyParser =  require('body-parser');
 var requestLanguage = require('express-request-language');
 var vhost = require('vhost');
 var subdomain = require('express-subdomain');
@@ -39,7 +39,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let auRouter = require('./routes/auditoriaBot')
 
-app.use('/wine/',       require('./routes/wineBot'));
+// app.use('/wine/',       require('./routes/wineBot'));
 app.use('/igrik',       require('./routes/igrikBot'));
 
 app.use('/paper',       require('./routes/papersBot'));
@@ -61,7 +61,7 @@ app.use(vhost(`au.localhost`,   require('./routes/auditoriaBot')))
 
 
 
-app.use('/sss',         require('./routes/sss'));
+// app.use('/sss',         require('./routes/sss'));
 app.use('/kaha',        require('./routes/kaha'));
 app.use('/wtg',         require('./routes/wtgBot'));
 app.use('/test',        require('./routes/test'));
@@ -70,7 +70,7 @@ app.use('/ps',          require('./routes/psBot'));
 app.use('/vz',          require('./routes/vzBot'));
 app.use('/books',       require('./routes/booksBot'));
 
-app.use('/hz',              require('./routes/hz'));
+// app.use('/hz',              require('./routes/hz'));
 app.use('/homeless',        require('./routes/homelessBot'));
 
 
