@@ -157,6 +157,20 @@ let settings=           fb.collection('settings');
 let books =             fb.collection('books');
 
 
+function getSingularVisits(){
+    coworking.where(`createdAt`,'>=',new Date(`2024-01-01`)).get().then(col=>{
+        col = common.handleQuery(col);
+        let users = [...new Set(col.map(r=>r.user))]
+        users.forEach(id=>{
+            let visits = col.filter(r=>r.user == id);
+            console.log(id, visits.length,new Date(visits.sort((a,b)=>a.createdAt._seconds-b.createdAt._seconds)[0].createdAt._seconds*1000));
+        })
+    })
+}
+
+// getSingularVisits()
+
+
 let gallery =             fb.collection('gallery');
 
 
@@ -4711,6 +4725,7 @@ function alertAdmins(mess) {
     })
 }
 
+
 function registerUser(u) {
 
     u.createdAt = new Date();
@@ -5317,10 +5332,15 @@ const translations = {
         en: 'Book a place',
         ka: 'ჩაწერვა'
     },
+    // noFee: {
+    //     ru: 'Вход бесплатный ',
+    //     en: 'Free admittance',
+    //     ka: 'უფასო შესვლა'
+    // },
     noFee: {
-        ru: 'Вход бесплатный ',
-        en: 'Free admittance',
-        ka: 'უფასო შესვლა'
+        ru: '',
+        en: '',
+        ka: ''
     },
     fee: {
         ru: 'Стоимость ',
