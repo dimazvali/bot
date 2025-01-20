@@ -2058,12 +2058,16 @@ function showRC(){
     let usersC = ce('div')
     let listing = ce('div')
     
+    let customText = ce(`textarea`,false,false,false,{placeholder:`Место для кастомного текста рассылки с уведомлениями (можно пропустить).`})
+    p.append(customText)
     p.append(ce('button',false,buttonStyle,`Запустить подготовку`,{
         onclick:function(){
+            
+            // this.parentNode.insertBefore(customText,this)
             let sure = confirm(`Уверены?`)
             if(sure) {
                 this.setAttribute(`disabled`,true)
-                axios.post(`/${host}/admin/rc`)
+                axios.post(`/${host}/admin/rc`,{text: customText.value})
                     .then(handleSave)
                     .catch(handleError)
             }
@@ -2118,6 +2122,9 @@ function showRCIteration(id){
     load(`rcIterations`,id).then(i=>{
 
         p.append(ce(`h2`,false,false,drawDate(i.createdAt._seconds*1000)))
+
+        if(i.text) p.append(ce(`p`,false,false,i.text))
+
 
         if(!i.started){
             p.append(ce(`button`,false,[`dateButton`,`dark`],`Стартовать круг`,{

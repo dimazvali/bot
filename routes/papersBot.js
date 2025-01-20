@@ -827,7 +827,7 @@ router.all(`/admin/:method`, (req, res) => {
                                 })
                         }
                         case `POST`:{
-                            return randomCoffeePrepare(admin,res)
+                            return randomCoffeePrepare(admin,res,req)
                         }
                     }
                 }
@@ -2070,13 +2070,14 @@ router.all(`/admin/:method`, (req, res) => {
 })
 
 
-function randomCoffeePrepare(admin,res){
+function randomCoffeePrepare(admin,res,req){
     
-    rcCheckBefore()
+    rcCheckBefore(req.body.text)
 
     return randomCoffeeIterations.add({
-        createdAt: new Date(),
-        createdBy: +admin.id
+        createdAt:  new Date(),
+        createdBy:  +admin.id,
+        text:       req.body.text || null
     }).then(rec=>{
         res.json({
             success: true,
@@ -11129,7 +11130,7 @@ function bookMR(date, time, userid, callback, res) {
 
 
 
-function rcCheckBefore(){
+function rcCheckBefore(text){
     udb
         .where(`randomCoffee`,'==',true)
         .where(`active`,'==',true)
@@ -11154,7 +11155,7 @@ function rcCheckBefore(){
                 devlog(`${uname(user,user.id)}: ${issues.length? issues.join(', ') :`готов`}`)
 
                 setTimeout(()=>{
-                    let txt = `Привет! Через пару часов мы запустим очередную серию встреч в формате random coffee. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас».${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
+                    let txt = text || `Привет! Через пару часов мы запустим очередную серию встреч в формате random coffee. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас».${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
                     
                     let keyBoard = [[{
                         text:           `Пас`,
