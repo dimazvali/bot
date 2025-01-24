@@ -42,8 +42,14 @@ let auRouter = require('./routes/auditoriaBot')
 // app.use('/wine/',       require('./routes/wineBot'));
 app.use('/igrik',       require('./routes/igrikBot'));
 
-app.use('/paper',       require('./routes/papersBot'));
-app.use(vhost(`papers.*.*`,require('./routes/papersBot')));
+app.use(require('./routes/papers/crons'));
+app.use('/paper/slack',       require('./routes/papers/slack'));
+app.use('/paper/admin',       require('./routes/papers/admin'));
+app.use('/paper/api',         require('./routes/papers/api'));
+app.use('/paper',             require('./routes/papersBot').router);
+
+
+app.use(vhost(`papers.*.*`,require('./routes/papersBot').router));
 
 
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))

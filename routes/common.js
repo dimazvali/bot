@@ -5,6 +5,10 @@ const { createHash,createHmac } = require('node:crypto');
 const { getUser } = require("./methods");
 const { FieldValue } = require("firebase-admin/firestore");
 
+function isoDate(){
+    return new Date().toISOString().split('T')[0]
+}
+
 
 function authTG(req,res,token,adminTokens,udb,registerUser,tokenName){
 
@@ -67,10 +71,6 @@ function authWebApp(req,res,token,adminTokens,udb){
         .sort()
         .map(key=>`${key}=${req.body[key]}`)
         .join('\n')
-
-    // const secretKey = createHash('sha256')
-    //     .update(token)
-    //     .digest();
 
     const secretKey = createHmac('sha256','WebAppData')
         .update(token)
@@ -723,6 +723,7 @@ function cutMe(txt, limit) {
 
 
 module.exports = {
+    isoDate,
     ifBefore,
     sanitize,
     authTG,

@@ -2658,7 +2658,6 @@ let modals = {
     }
 }
 
-
 module.exports = {
     modals
 };

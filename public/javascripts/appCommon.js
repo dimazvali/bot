@@ -232,16 +232,18 @@ function letterize(v, word) {
             return v + ' разделов'
 
         case 'гость':
-            if (v < 11 || v > 14) {
-                var l = v.toString().slice(-1);
-                if (l > 4) {
-                    return v + ' гостей';
-                }
-                if (l > 1) {
+            if (v > 4 && v < 21) {
+                return v + ' гостей';
+            } else {
+                var ll = +v.toString().slice(-1);
+                
+                if (ll == 1) {
+                    return v + ' гость';
+                } else if (ll > 1 && ll < 5) {
                     return v + ' гостя';
                 }
+                return v + ' гостей';
             }
-            return v + ' гостей'
 
         case 'дата':
             if (v > 4 && v < 21) {

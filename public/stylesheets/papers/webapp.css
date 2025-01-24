@@ -188,6 +188,7 @@ h1.viv {
 
 .story {
     font-family: 'StapelL';
+    white-space: break-spaces;
 }
 
 

@@ -1524,6 +1524,10 @@ function showClass(cl, id) {
             }))
         }
 
+        if (cl.authorName) {
+            p.append(ce(`p`,false,false,`автор: ${cl.authorName}`))
+        }
+
 
         if (!cl.feedBackSent && new Date()>new Date(cl.date)) {
             p.append(ce(`button`, false, buttonStyle, `Отправить запрос на отзывы`, {
