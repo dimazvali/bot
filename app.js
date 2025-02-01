@@ -36,6 +36,8 @@ app.use(bodyParser.json({limit: '50mb'}))
 bodyParser.json({limit: '50mb'})
 app.use(express.static(path.join(__dirname, 'public')));
 
+process.on('warning', e => console.warn(e.stack));
+
 
 let auRouter = require('./routes/auditoriaBot')
 

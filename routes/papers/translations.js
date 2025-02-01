@@ -1,6 +1,6 @@
 const { drawDate, cur, letterize, shuffle, handleQuery } = require("../common")
-const { coworkingPrice, localTime } = require("../papersBot")
 const { eventTypes } = require("./cols")
+const { coworkingPrice, localTime } = require("./store")
 
 let eTypes = {}
 
@@ -668,5 +668,8 @@ function rcQuestionsPapersEdition(){
 
     return shuffle(types)[0].map(q=>`— ${q}`).join(`\n`)
 }
+
+
+
 
 module.exports = translations;

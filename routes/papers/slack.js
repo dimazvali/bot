@@ -5,292 +5,280 @@ var router =    express.Router();
 var axios =     require('axios').default;
 const { modals } = require('../modals');
 const { halls, classes, polls, udb, userTags, pollsAnswers, messages, coworking, userClasses, plansUsers, roomsBlocked, mra } = require('./cols');
-const { handleQuery, devlog, cur, uname, handleError, dimazvali, isoDate, drawDate } = require('../common');
+const { handleQuery, devlog, cur, uname, handleError, dimazvali, isoDate, drawDate, ifBefore } = require('../common');
 const { log, token, appLink } = require('../papersBot');
 const { FieldValue } = require('firebase-admin/firestore');
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
+const { classMethods } = require('./logics');
 
 
-router.post(`/slack/loader`, (req, res) => {
+router.post(`/:type`,async (req,res)=>{
+    
     let data = JSON.parse(req.body.payload)
 
-    devlog(data);
-
-    switch (data.block_id) {
-        case 'hall': {
-            halls.where('active', '==', true).get().then(h => {
-
-                res.json({
-                    options: handleQuery(h).map(hall => {
-                        return {
-                            "text": {
-                                "type": "plain_text",
-                                "text": hall.name.toString()
-                            },
-                            "value": hall.id
-                        }
-                    })
-                })
-            })
-            break;
-        }
-        case 'lectures': {
-            classes
-                .where('active', '==', true)
-                .where('date', '>=', new Date())
-                .get()
-                .then(col => {
+    switch(req.params.type){
+        case `loader`:{
+            switch (data.block_id) {
+                case 'hall': {
+                    let data  = await ifBefore(halls)
                     res.json({
-                        options: handleQuery(col).map(lecture => {
+                        options: data.map(hall => {
                             return {
                                 "text": {
                                     "type": "plain_text",
-                                    "text": lecture.name
+                                    "text": hall.name.toString()
                                 },
-                                "value": lecture.id
+                                "value": hall.id
                             }
                         })
                     })
-                    // handleQuery(col).forEach(record => {
-                    //     remindOfClass(record)
-                    // })
-                }).catch(err => {
-                    console.log(err)
-                })
+                    break;
+                }
+                case 'lectures': {
+                    return classes
+                        .where('active', '==', true)
+                        .where('date', '>=', new Date())
+                        .get()
+                        .then(col => {
+                            res.json({
+                                options: handleQuery(col).map(lecture => {
+                                    return {
+                                        "text": {
+                                            "type": "plain_text",
+                                            "text": lecture.name
+                                        },
+                                        "value": lecture.id
+                                    }
+                                })
+                            })
+                        }).catch(err => {
+                            console.log(err)
+                        })
+                }
+                default: {
+                    return res.json({
+                        options: []
+                    })
+                }
+            }
             break;
         }
-        default: {
-            return res.json({
-                options: []
+        case `q`:{
+            res.status(200).send()
+            axios.post(
+                'https://slack.com/api/views.open', {
+                    trigger_id: req.body.trigger_id,
+                    view: modals.newQ
+                }, {
+                    headers: {
+                        'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                        'Content-Type': 'application/json',
+                    }
+                }
+            ).then(s => {
+                devlog(s.data)
+            }).catch(err => {
+                console.log(err.message)
             })
+            break;
+        }
+        case `qs`:{
+            res.status(200).send()
+            polls.get().then(col => {
+                return axios.post(
+                    'https://slack.com/api/views.open', {
+                        trigger_id: req.body.trigger_id,
+                        view: modals.qList(handleQuery(col))
+                    }, {
+                        headers: {
+                            'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                            'Content-Type': 'application/json',
+                        }
+                    }
+                ).then(s => {
+                    if (process.env.develop == 'true') console.log(s.data)
+                }).catch(err => {
+                    console.log(err.message)
+                })
+            })
+            break;
+        }
+        case `lecture`:{
+            res.status(200).send()
+            return axios.post(
+                'https://slack.com/api/views.open', {
+                    trigger_id: req.body.trigger_id,
+                    view: modals.newLecture
+                }, {
+                    headers: {
+                        'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                        'Content-Type': 'application/json',
+                    }
+                }
+            ).then(s => {
+                if (process.env.develop == 'true') console.log(s.data)
+            }).catch(err => {
+                console.log(err.message)
+            })
+            break;
+        }
+        case `users`:{
+            res.status(200).send()
+            udb.get().then(u => {
+                return axios.post(
+                    'https://slack.com/api/views.open', {
+                        trigger_id: req.body.trigger_id,
+                        view: modals.users(handleQuery(u))
+                    }, {
+                        headers: {
+                            'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                            'Content-Type': 'application/json',
+                        }
+                    }
+                ).then(s => {
+                    if (process.env.develop == 'true') console.log(s.data)
+                }).catch(err => {
+                    console.log(err.message)
+                })
+            })
+            break;
+        }
+        case `mr`:{
+            res.status(200).send()
+            return axios.post(
+                'https://slack.com/api/views.open', {
+                    trigger_id: req.body.trigger_id,
+                    view: modals.mrDate()
+                }, {
+                    headers: {
+                        'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                        'Content-Type': 'application/json',
+                    }
+                }
+            ).then(s => {
+                if (process.env.develop == 'true') console.log(s.data)
+            }).catch(err => {
+                console.log(err.message)
+            })
+            break;
+        }
+        case `tags`:{
+            res.status(200).send(`Загружаем теги...`)
+            userTags.get().then(col => {
+                return axios.post(
+                    'https://slack.com/api/views.open', {
+                        trigger_id: req.body.trigger_id,
+                        view: modals.tags(handleQuery(col))
+                    }, {
+                        headers: {
+                            'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                            'Content-Type': 'application/json',
+                        }
+                    }
+                ).then(s => {
+                    if (process.env.develop == 'true') console.log(s.data)
+                }).catch(err => {
+                    console.log(err.message)
+                })
+            })
+            break;
+        }
+        case `campaign`:{
+            res.status(200).send()
+            return axios.post(
+                'https://slack.com/api/views.open', {
+                    trigger_id: req.body.trigger_id,
+                    view: modals.campaign
+                }, {
+                    headers: {
+                        'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                        'Content-Type': 'application/json',
+                    }
+                }
+            ).then(s => {
+                if (process.env.develop == 'true') console.log(s.data)
+            }).catch(err => {
+                console.log(err.message)
+            })
+            break;
+        }
+        case `lecturesList`:{
+            res.status(200).send()
+            return axios.post(
+                'https://slack.com/api/views.open', {
+                    trigger_id: req.body.trigger_id,
+                    view: modals.lectures
+                }, {
+                    headers: {
+                        'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                        'Content-Type': 'application/json',
+                    }
+                }
+            ).then(s => {
+                if (process.env.develop == 'true') console.log(s.data)
+            }).catch(err => {
+                console.log(err.message)
+            })
+        }
+        case `lectures`:{
+            res.sendStatus(200);
+            return classes
+                .where(`active`, '==', true)
+                // .where('date', '>=', new Date().toISOString())
+                .orderBy('date', 'desc')
+                .limit(20)
+                .get().then(col => {
+
+                    return axios.post(
+                        'https://slack.com/api/views.open', {
+                            trigger_id: req.body.trigger_id,
+                            view: modals.lecturesList(handleQuery(col))
+                        }, {
+                            headers: {
+                                'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                                'Content-Type': 'application/json',
+                            }
+                        }
+                    ).then(s => {
+                        if (process.env.develop == 'true') console.log(s.data)
+                    }).catch(err => {
+                        console.log(err.message)
+                    })
+
+                })
+        }
+        case `coworking`:{
+            res.send(`Сейчас откроется коворкинг...`);
+            halls
+                .where(`isCoworking`, '==', true)
+                .where('active', '==', true)
+                .orderBy('name', 'asc')
+                .get().then(col => {
+
+                    return axios.post(
+                        'https://slack.com/api/views.open', {
+                            trigger_id: req.body.trigger_id,
+                            view: modals.coworking(handleQuery(col))
+                        }, {
+                            headers: {
+                                'Authorization': 'Bearer ' + process.env.paperSlackToken,
+                                'Content-Type': 'application/json',
+                            }
+                        }
+                    ).then(s => {
+                        if (process.env.develop == 'true') console.log(s.data)
+                    }).catch(err => {
+                        console.log(err.message)
+                    })
+
+                })
+            break;
         }
     }
 })
 
-router.post(`/slack/q`, (req, res) => {
-    res.status(200).send()
-    return axios.post(
-        'https://slack.com/api/views.open', {
-            trigger_id: req.body.trigger_id,
-            view: modals.newQ
-        }, {
-            headers: {
-                'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                'Content-Type': 'application/json',
-            }
-        }
-    ).then(s => {
-        if (process.env.develop == 'true') console.log(s.data)
-    }).catch(err => {
-        console.log(err.message)
-    })
-})
-
-router.post(`/slack/qs`, (req, res) => {
-    res.status(200).send()
-    polls.get().then(col => {
-        return axios.post(
-            'https://slack.com/api/views.open', {
-                trigger_id: req.body.trigger_id,
-                view: modals.qList(handleQuery(col))
-            }, {
-                headers: {
-                    'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                    'Content-Type': 'application/json',
-                }
-            }
-        ).then(s => {
-            if (process.env.develop == 'true') console.log(s.data)
-        }).catch(err => {
-            console.log(err.message)
-        })
-    })
-
-
-})
-
-router.post(`/slack/lecture`, (req, res) => {
-    res.status(200).send()
-    // @ts-ignore
-    return axios.post(
-        'https://slack.com/api/views.open', {
-            trigger_id: req.body.trigger_id,
-            view: modals.newLecture
-        }, {
-            headers: {
-                'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                'Content-Type': 'application/json',
-            }
-        }
-    ).then(s => {
-        if (process.env.develop == 'true') console.log(s.data)
-    }).catch(err => {
-        console.log(err.message)
-    })
-})
-
-router.post(`/slack/users`, (req, res) => {
-    res.status(200).send()
-    udb.get().then(u => {
-        return axios.post(
-            'https://slack.com/api/views.open', {
-                trigger_id: req.body.trigger_id,
-                view: modals.users(handleQuery(u))
-            }, {
-                headers: {
-                    'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                    'Content-Type': 'application/json',
-                }
-            }
-        ).then(s => {
-            if (process.env.develop == 'true') console.log(s.data)
-        }).catch(err => {
-            console.log(err.message)
-        })
-    })
-
-})
-
-router.post(`/slack/mr`, (req, res) => {
-    res.status(200).send()
-    console.log(modals.mr())
-    return axios.post(
-        'https://slack.com/api/views.open', {
-            trigger_id: req.body.trigger_id,
-            view: modals.mrDate()
-        }, {
-            headers: {
-                'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                'Content-Type': 'application/json',
-            }
-        }
-    ).then(s => {
-        if (process.env.develop == 'true') console.log(s.data)
-    }).catch(err => {
-        console.log(err.message)
-    })
-
-})
-
-router.post(`/slack/tags`, (req, res) => {
-    res.status(200).send(`Загружаем теги...`)
-    userTags.get().then(col => {
-        return axios.post(
-            'https://slack.com/api/views.open', {
-                trigger_id: req.body.trigger_id,
-                view: modals.tags(handleQuery(col))
-            }, {
-                headers: {
-                    'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                    'Content-Type': 'application/json',
-                }
-            }
-        ).then(s => {
-            if (process.env.develop == 'true') console.log(s.data)
-        }).catch(err => {
-            console.log(err.message)
-        })
-    })
-
-})
-
-router.post('/slack/campaign', (req, res) => {
-    res.status(200).send()
-    return axios.post(
-        'https://slack.com/api/views.open', {
-            trigger_id: req.body.trigger_id,
-            view: modals.campaign
-        }, {
-            headers: {
-                'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                'Content-Type': 'application/json',
-            }
-        }
-    ).then(s => {
-        if (process.env.develop == 'true') console.log(s.data)
-    }).catch(err => {
-        console.log(err.message)
-    })
-})
-
-router.post(`/slack/lecturesList`, (req, res) => {
-    res.status(200).send()
-    return axios.post(
-        'https://slack.com/api/views.open', {
-            trigger_id: req.body.trigger_id,
-            view: modals.lectures
-        }, {
-            headers: {
-                'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                'Content-Type': 'application/json',
-            }
-        }
-    ).then(s => {
-        if (process.env.develop == 'true') console.log(s.data)
-    }).catch(err => {
-        console.log(err.message)
-    })
-})
-
-router.post(`/slack/lectures`, (req, res) => {
-    res.sendStatus(200);
-    classes
-        .where(`active`, '==', true)
-        // .where('date', '>=', new Date().toISOString())
-        .orderBy('date', 'desc')
-        .limit(20)
-        .get().then(col => {
-
-            return axios.post(
-                'https://slack.com/api/views.open', {
-                    trigger_id: req.body.trigger_id,
-                    view: modals.lecturesList(handleQuery(col))
-                }, {
-                    headers: {
-                        'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                        'Content-Type': 'application/json',
-                    }
-                }
-            ).then(s => {
-                if (process.env.develop == 'true') console.log(s.data)
-            }).catch(err => {
-                console.log(err.message)
-            })
-
-        })
-
-})
-
-router.post(`/slack/coworking`, (req, res) => {
-    res.send(`Сейчас откроется коворкинг...`);
-    halls
-        .where(`isCoworking`, '==', true)
-        .where('active', '==', true)
-        .orderBy('name', 'asc')
-        .get().then(col => {
-
-            return axios.post(
-                'https://slack.com/api/views.open', {
-                    trigger_id: req.body.trigger_id,
-                    view: modals.coworking(handleQuery(col))
-                }, {
-                    headers: {
-                        'Authorization': 'Bearer ' + process.env.paperSlackToken,
-                        'Content-Type': 'application/json',
-                    }
-                }
-            ).then(s => {
-                if (process.env.develop == 'true') console.log(s.data)
-            }).catch(err => {
-                console.log(err.message)
-            })
-
-        })
-
-})
-
-router.post('/slack', (req, res) => {
+router.post('/', (req, res) => {
     let data = {}
 
     if (req.body.payload) {
@@ -299,7 +287,7 @@ router.post('/slack', (req, res) => {
         data = req.body
     }
 
-    if (process.env.develop == 'true') console.log(req.body.payload)
+    devlog(req.body.payload)
 
     switch (data.type) {
         case "block_actions": {
@@ -557,34 +545,7 @@ router.post('/slack', (req, res) => {
                 case 'ticket': {
                     switch (inc[1]) {
                         case 'used':{
-                            return userClasses.doc(a.value).update({
-                                status: 'used'
-                            }).then(() => {
-
-                                userClasses.doc(a.value).get().then(doc=>{
-                                    
-                                    let user = doc.data().user;
-
-                                    udb.doc(user.toString()).update({
-                                        classes: FieldValue.increment(1),
-                                        classesVisits: FieldValue.increment(1)
-                                    })
-
-                                    plansUsers
-                                        .where('user','==',+user)
-                                        .where('active','==',true)
-                                        .get().then(col=>{
-                                            let plan = handleQuery(col)[0]
-                                            if(plan && plan.eventsLeft){
-                                                
-                                                plansUsers.doc(plan.id).update({
-                                                    eventsLeft: FieldValue.increment(-1)
-                                                })
-                                            }
-                                        })
-                                })
-                                res.send('ok')
-                            })
+                            classMethods.acceptTicket(a.value,res,{id: `slack`})
                         }
                         case 'comment': {
                             return userClasses.doc(a.block_id).update({

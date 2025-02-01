@@ -1405,10 +1405,37 @@ function showClass(cl, id) {
         if(new Date()<new Date(cl.date)){
             let mBox = ce(`div`,false,`flex`)
                 
-                p.append(mBox)
+            p.append(mBox)
 
             mBox.append(deleteButton(`classes`,cl.id||id,!cl.active,[`active`,`dateButton`,`dark`]))
 
+            mBox.append(ce(`button`,false,buttonStyle,`Отправить предложение участвовать в randomcoffee`,{
+                onclick:()=>{
+                    let txt = prompt(`Пожалуйста, укажите текст`);
+
+                    if(txt){
+                        axios.post(`/${host}/admin/classRCInit/${cl.id}`,{
+                            text: txt
+                        })
+                        .then(handleSave)
+                        .catch(handleError)
+                    }
+                }
+            }))
+
+            mBox.append(ce(`button`,false,buttonStyle,`Запустить randomcoffee`,{
+                onclick:()=>{
+                    let txt = prompt(`Пожалуйста, укажите текст`);
+
+                    if(txt){
+                        axios.post(`/${host}/admin/classRCStart/${cl.id}`,{
+                            text: txt
+                        })
+                        .then(handleSave)
+                        .catch(handleError)
+                    }
+                }
+            }))
             
             mBox.append(ce(`button`,false,buttonStyle,`Отправить себе`,{
                 onclick:()=>{

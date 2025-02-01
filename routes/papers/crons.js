@@ -4,14 +4,15 @@ var express =   require('express');
 var router =    express.Router();
 
 var cron =      require('node-cron');
-const { nowShow,alertSoonMR, alertAdminsCoworking, countUserEntries, classMethods, coworking } = require('./logics');
+const { nowShow,alertSoonMR, alertAdminsCoworking, classMethods, coworking } = require('./logics');
 const { log } = require('debug');
 
-const { devlog, drawDate, uname, getNewUsers, handleQuery, ifBefore, handleDoc, isoDate, getDoc } = require('../common');
-const { udb, plansUsers, messages, views, classes, authors, halls } = require('./cols');
+const { devlog, drawDate, uname, getNewUsers, handleQuery, ifBefore, handleDoc, isoDate, getDoc, letterize } = require('../common');
+const { udb, plansUsers, messages, views, classes, authors, halls, userEntries } = require('./cols');
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
-const { token } = require('../papersBot');
+
+let token =         process.env.papersToken;
 
 let siteSectionsTypes = {
     classes:{
@@ -76,6 +77,19 @@ if(!process.env.develop){
             })
         })
     })
+}
+
+
+function countUserEntries(days){
+    userEntries
+        .where(`createdAt`,'>=',new Date(+new Date()-days*24*60*60*1000))
+        .get()
+        .then(col=>{
+            let users = handleQuery(col)
+            log({
+                text: `За последние сутки ${letterize([... new Set(users.map(r=>r.user))].length,`гость`)} ${letterize(users.length,`раз`)} открывали приложение.`
+            })
+        })
 }
 
 function feedBackTimer(){

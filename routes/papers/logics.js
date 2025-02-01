@@ -4,6 +4,8 @@ const express = require('express');
 const router =  express.Router();
 var axios =     require('axios');
 
+let token =         process.env.papersToken;
+
 const { 
     books, 
     wineList,
@@ -22,17 +24,172 @@ const {
     userClassesWL,
     news,
     userClassesQ,
+    plans,
+    plansRequests,
+    authors,
 } = require('./cols');
 
 const coworkingCol = require('./cols').coworking;
 
-const { log, token, coworkingPrice, localTime, alertAdmins, cba } = require('../papersBot');
 const { getUser, sendMessage2 } = require('../methods');
-const { isoDate, uname, cur, handleQuery, devlog, ifBefore, dimazvali, drawDate, getDoc, letterize, handleDoc } = require('../common');
+const { isoDate, uname, cur, handleQuery, devlog, ifBefore, dimazvali, drawDate, getDoc, letterize, handleDoc, consistencyCheck, checkEntity, shuffle } = require('../common');
 const translations = require('./translations');
 const { FieldValue } = require('firebase-admin/firestore');
 const { modals } = require('../modals');
-const { admin } = require('googleapis/build/src/apis/admin');
+const { newPlanRecord, Author, classRecord } = require('./classes');
+const { coworkingPrice, log, localTime, alertAdmins, cba } = require('./store');
+
+
+function deleteEntity(req, res, ref, admin, attr, callback, extra) {
+    
+    devlog(`удаляем нечто`);
+
+    let entities = {
+        mr:{
+            log:(name)=> `запись в переговорку была снята`,
+            attr: `mr`
+        },
+        plansUsers:{
+            log:(name)=> `подписка на тариф ${name} (${ref.id}) была архивирован`,
+            attr: `plansUsers`
+        },
+        courses: {
+            log: (name) => `курс ${name} (${ref.id}) был архивирован`,
+            attr: `course`
+        },
+        users: {
+            log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
+            attr: `user`
+        },
+        streams: {
+            log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
+            attr: `stream`
+        },
+        plans: {
+            log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
+            attr: `plan`
+        }
+    }
+
+    return ref.get().then(e => {
+        
+        let data = handleDoc(e)
+
+        devlog(data)
+
+        if (!data[attr || 'active']) return res.json({
+            success: false,
+            comment: `Вы опоздали. Запись уже удалена.`
+        })
+        ref.update({
+            [attr || 'active']: false,
+            updatedBy: admin
+        }).then(s => {
+
+            if(entities[req.params.data]){
+                let logObject ={
+                    admin: admin.id ? +admin.id : +id,
+                    text: entities[req.params.data].log(data.name),
+                    [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
+                }
+
+                if(extra){
+                    Object.keys(extra).forEach(key=>{
+                        logObject[key] = extra[key]
+                    })
+                }
+    
+                log(logObject)
+            }
+            
+            
+
+            res.json({
+                success: true
+            })
+
+            if (typeof (callback) == 'function') {
+                console.log(`Запускаем коллбэк`)
+                callback()
+            }
+        }).catch(err => {
+            
+            console.log(err)
+
+            res.json({
+                success: false,
+                comment: err.message
+            })
+        })
+    })
+}
+
+function updateEntity(req, res, ref, adminId,callback) {
+    
+    devlog(`обновление`);
+
+    return ref.update({
+        updatedAt: new Date(),
+        updatedBy: adminId,
+        [req.body.attr]: (req.body.attr == `date`||req.body.type == `date`) ? new Date(req.body.value) : req.body.value
+    }).then(s => {
+        
+
+        if(callback){
+            callback()
+        }
+
+        if(req.body.attr == `randomCoffee`){
+            if(req.body.value) {
+                rcMethods.welcome2RC(ref.id)
+            }
+        }
+
+        if(req.body.value == `used` && req.params.method == `userClasses`) return classMethods.acceptTicket(req.params.id, res, {id:+adminId})
+
+        if (req.body.attr == `authorId`) {
+            getDoc(authors, req.body.value).then(a => {
+                ref.update({
+                    authorName: a.name
+                })
+            })
+        }
+
+        if (req.body.attr == `courseId`) {
+            getDoc(courses, req.body.value).then(a => {
+                ref.update({
+                    course: a.name
+                })
+            })
+        }
+
+        if (req.body.attr == `bankId`) {
+            getDoc(banks, req.body.value).then(a => {
+                ref.update({
+                    bankName: a.name,
+                    bankCreds: a.creds
+                })
+            })
+        }
+
+        if (req.body.attr == `planId`) {
+            getDoc(plans, req.body.value).then(a => {
+                ref.update({
+                    plan: a.name
+                })
+            })
+        }
+
+        res.json({
+            success: true
+        })
+
+    }).catch(err => {
+        console.log(err)
+        res.status(500).send(err.message)
+    })
+}
+
 
 
 
@@ -68,9 +225,38 @@ function addBook(req,res,admin){
     })
 }
 
-
-
 const wine = {
+    consume: async(recordId,admin)=>{
+        return new Promise(async(resolve, reject)=>{
+            try {
+                let d = await getDoc(wineList,recordId); 
+                if(!d || !d.left || d.left < 1) reject({message: `Этому больше не наливать`});
+                let upd = await wineList.doc(recordId).update({
+                    left:       FieldValue.increment(-1),
+                    updatedAt:  new Date(),
+                    statusBy:   +admin.id
+                })
+                
+                sendMessage2({
+                    photo: process.env.ngrok + `/paper/qr?id=${recordId}&entity=wineList`,
+                    chat_id: d.user,
+                    caption: d.left-1 
+                        ? `Ваш депозит убыл. На балансе ${letterize(d.left-1, 'ходка')}`
+                        : `Приплыли. Депозит на нуле. Пора домой.`
+                }, 'sendPhoto', token, messages)   
+                
+                resolve({
+                    success: true,
+                    comment: `Остаток: ${letterize(d.left-1, 'ходка')}`
+                }) 
+            } catch (error) {
+                
+            }
+            
+
+        })
+        
+    },
     add: async (data, admin)=>{
         return  new Promise((resolve,reject)=>{
             wineList.add({
@@ -124,9 +310,9 @@ function alertWithdrawal(user, id, sum, reason) {
 }
 
 const rcMethods = {
-    randomCoffeePrepare:(admin,res,req)=>{
+    randomCoffeePrepare(admin,res,req){
     
-        rcCheckBefore(req.body.text)
+        this.rcCheckBefore(req.body.text)
     
         return new Promise((resolve,reject)=>{
             randomCoffeeIterations.add({
@@ -219,195 +405,183 @@ const rcMethods = {
             coffees:        FieldValue.increment(1),
             coffeeScore:    Number(((u.coffeeScore||0*u.coffees+score)/(u.coffees+1)).toFixed(2))
         })
-    }
-}
-
-
-function rcCheckBefore(text){
-    udb
-        .where(`randomCoffee`,'==',true)
-        .where(`active`,'==',true)
-        .get()
-        .then(col=>{
-
-            handleQuery(col).forEach((user,i)=>{
-                
-                if(user.randomCoffeePass){
-                    udb.doc(user.id).update({
-                        randomCoffeePass:null
-                    })
-                }
-                
-                let issues = []
-
-                if(!user.about) issues.push(`не заполнено описание "О себе"`)
-                if(!user.occupation) issues.push(`не заполнено поле "Сфера деятельности"`)
-
-
-                setTimeout(()=>{
-                    let txt = text || `Привет! Через пару часов мы запустим очередную серию встреч в формате random coffee. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас».${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
-                    
-                    let keyBoard = [[{
-                        text:           `Пас`,
-                        callback_data:  `random_pass`
-                    }]]
-
-                    if(issues.length){
-                        // @ts-ignore
-                        keyBoard.push([{
-                            text: `Заполнить профиль`,
-                            url: `https://t.me/paperstuffbot/app?startapp=profile`
-                        }])
-                    }
-                    
-                    sendMessage2({
-                        chat_id: user.id,
-                        // chat_id: dimazvali,
-                        text: txt,
-                        reply_markup:{
-                            inline_keyboard:keyBoard
-                        }
-                    },false,token,messages)
-                },i*200)
-            })
-        })
-}
-
-async function randomCoffee(admin,id){
-
-    log({
-        silent: true,
-        text: `${uname(admin,admin.id)} запускает random coffee`,
-        admin: +admin.id
-    })
-
-    randomCoffeeIterations.doc(id).update({
-        started: new Date()
-    })
-
-    let before = await ifBefore(randomCoffees,{})
+    },
+    welcome2RC(id){
     
-    udb
-        .where(`randomCoffee`,'==',true)
-        .where(`active`,'==',true)
-        .get()
-        .then(col=>{
-            
-            let users2meet = handleQuery(col)
-                .filter(u => u.occupation && u.about)
-                .filter(u => !u.randomCoffeePass)
-
-            while(users2meet.length > 1){
-                let first = users2meet.splice(0,1)[0]
-                let exs = before
-                    .filter(couple => couple.first == +first.id || couple.second == +first.id)
-                    .map(couple=>couple.first == +first.id ? couple.second : couple.first)
-                
-                let news = users2meet.slice().filter(u=>exs.indexOf(+u.id) == -1)
-                
-                if(news.length){
-                    
-                    let randomIndex = Math.floor(Math.random()*news.length)
-                    let secondId = news[randomIndex].id
-                    let spliceIndex = users2meet.map(u=>u.id).indexOf(secondId)
-                    let second = users2meet.splice(spliceIndex,1)[0]
-                    
-                    randomCoffees.add({
-                        iteration:  id,
-                        active:     true,
-                        createdAt:  new Date(),
-                        first:      +first.id,
-                        second:     +second.id
-                    }).then(r=>{
-
-                        randomCoffeeIterations.doc(id).update({
-                            couples: FieldValue.increment(1)
-                        })
-                        
-                        let txt1 = translations.rcInvite.ru(first,second) || translations.rcInvite.en(first,second)
-                        let txt2 = translations.rcInvite.ru(second,first) || translations.rcInvite.en(second,first)
-                        
-                        sendMessage2({
-                            chat_id:    first.id,
-                            text:       txt1,
-                            parse_mode: `Markdown`,
-                        },false,token,messages)
-
-                        sendMessage2({
-                            chat_id:    second.id,
-                            text:       txt2,
-                            parse_mode: `Markdown`,
-                        },false,token,messages)
-                    })
-                } else {
-                    devlog(`${uname(first,first.id)} перевстречался со всеми`)
-                }
-            }
-
-            if(users2meet.length){
-                
-                let lastOne = users2meet[0];
-
-                sendMessage2({
-                    chat_id: lastOne.id,
-                    text: `Простите великодушно. Знаете, как это бывает, когда на десять девчонок... В общем, у нас было нечетное количество участников, поэтому вам в собеседники достается разработчик приложения: Дмитрий @dimazvali.`
-                },false,token)
-
-                sendMessage2({
-                    chat_id: dimazvali,
-                    text: `Поcледний кофейный герой: ${uname(lastOne,lastOne.id)}.`
-                },false,token)
-
-            }
-
-            handleQuery(col)
-                .filter(u => !u.occupation || !u.about)
-                .forEach((u,x)=>{
-                    setTimeout(()=>{
-                        sendMessage2({
-                            chat_id: u.id,
-                            text: `Добрый вечер! К сожалению, этот круг random coffee вы пропускаете. Пожалуйста, заполните профиль.`,
-                            reply_markup:{
-                                inline_keyboard:[[{
-                                    text: `Заполнить профиль`,
-                                    url: `https://t.me/paperstuffbot/app?startapp=profile`
-                                }]]
-                            }
-                        },false,token,messages)
-                    },x*200)
-                })
-    })
-}
-
-
-function welcome2RC(id){
-    let u = getUser(id,udb);
-    
-    sendMessage2({
-        chat_id: id,
-        text: translations.welcome2RC[u.language_code] || translations.welcome2RC.en
-    },false,token,messages)
-    
-    if(!u.about || !u.occupation){
+        let u = getUser(id,udb);
+        
         sendMessage2({
             chat_id: id,
-            text: translations.rcMissingDetails[u.language_code] || translations.rcMissingDetails.en,
-            reply_markup:{
-                inline_keyboard:[[{
-                    text: translations.profile[u.language_code] || translations.profile.en,
-                    web_app:{
-                        url: process.env.ngrok+'/paper/app?start=profile'
-                    }
-                }]]
-            }
+            text: translations.welcome2RC[u.language_code] || translations.welcome2RC.en
         },false,token,messages)
+        
+        if(!u.about || !u.occupation){
+            sendMessage2({
+                chat_id: id,
+                text: translations.rcMissingDetails[u.language_code] || translations.rcMissingDetails.en,
+                reply_markup:{
+                    inline_keyboard:[[{
+                        text: translations.profile[u.language_code] || translations.profile.en,
+                        web_app:{
+                            url: process.env.ngrok+'/paper/app?start=profile'
+                        }
+                    }]]
+                }
+            },false,token,messages)
+        }
+    },
+    rcCheckBefore(text){
+        udb
+            .where(`randomCoffee`,'==',true)
+            .where(`active`,'==',true)
+            .get()
+            .then(col=>{
+    
+                handleQuery(col).forEach((user,i)=>{
+                    
+                    if(user.randomCoffeePass){
+                        udb.doc(user.id).update({
+                            randomCoffeePass:null
+                        })
+                    }
+                    
+                    let issues = []
+    
+                    if(!user.about) issues.push(`не заполнено описание "О себе"`)
+                    if(!user.occupation) issues.push(`не заполнено поле "Сфера деятельности"`)
+    
+    
+                    setTimeout(()=>{
+                        let txt = text || `Привет! Через пару часов мы запустим очередную серию встреч в формате random coffee. Если вы не в Тбилиси (или просто не готовы ни с кем знакомиться на этой неделе) нажмите «Пас».${issues.length ?`\nНапоминаем, что для участия вам понадобится заполнить профиль. Кажется, у вас ${issues.join('\n')}.` : ``}`
+                        
+                        let keyBoard = [[{
+                            text:           `Пас`,
+                            callback_data:  `random_pass`
+                        }]]
+    
+                        if(issues.length){
+                            // @ts-ignore
+                            keyBoard.push([{
+                                text: `Заполнить профиль`,
+                                url: `https://t.me/paperstuffbot/app?startapp=profile`
+                            }])
+                        }
+                        
+                        sendMessage2({
+                            chat_id: user.id,
+                            // chat_id: dimazvali,
+                            text: txt,
+                            reply_markup:{
+                                inline_keyboard:keyBoard
+                            }
+                        },false,token,messages)
+                    },i*200)
+                })
+            })
+    },
+    async randomCoffee(admin,id){
+
+        log({
+            silent: true,
+            text: `${uname(admin,admin.id)} запускает random coffee`,
+            admin: +admin.id
+        })
+    
+        randomCoffeeIterations.doc(id).update({
+            started: new Date()
+        })
+    
+        let before = await ifBefore(randomCoffees,{})
+        
+        let users = await ifBefore(udb, {randomCoffee: true, active: true})
+
+        let users2meet = users
+            .filter(u => u.occupation && u.about)
+            .filter(u => !u.randomCoffeePass)
+
+        while(users2meet.length > 1){
+            let first = users2meet.splice(0,1)[0]
+            let exs = before
+                .filter(couple => couple.first == +first.id || couple.second == +first.id)
+                .map(couple=>couple.first == +first.id ? couple.second : couple.first)
+            
+            let news = users2meet.slice().filter(u=>exs.indexOf(+u.id) == -1)
+            
+            if(news.length){
+                
+                let randomIndex =   Math.floor(Math.random()*news.length)
+                let secondId =      news[randomIndex].id
+                let spliceIndex =   users2meet.map(u=>u.id).indexOf(secondId)
+                let second =        users2meet.splice(spliceIndex,1)[0]
+                
+                randomCoffees.add({
+                    iteration:  id,
+                    active:     true,
+                    createdAt:  new Date(),
+                    first:      +first.id,
+                    second:     +second.id
+                }).then(r=>{
+
+                    randomCoffeeIterations.doc(id).update({
+                        couples: FieldValue.increment(1)
+                    })
+                    
+                    let txt1 = translations.rcInvite.ru(first,second) || translations.rcInvite.en(first,second)
+                    let txt2 = translations.rcInvite.ru(second,first) || translations.rcInvite.en(second,first)
+                    
+                    sendMessage2({
+                        chat_id:    first.id,
+                        text:       txt1,
+                        parse_mode: `Markdown`,
+                    },false,token,messages)
+
+                    sendMessage2({
+                        chat_id:    second.id,
+                        text:       txt2,
+                        parse_mode: `Markdown`,
+                    },false,token,messages)
+                })
+            } else {
+                devlog(`${uname(first,first.id)} перевстречался со всеми`)
+            }
+        }
+
+        if(users2meet.length){
+            
+            let lastOne = users2meet[0];
+
+            sendMessage2({
+                chat_id: lastOne.id,
+                text: `Простите великодушно. Знаете, как это бывает, когда на десять девчонок... В общем, у нас было нечетное количество участников, поэтому вам в собеседники достается разработчик приложения: Дмитрий @dimazvali.`
+            },false,token)
+
+            sendMessage2({
+                chat_id: dimazvali,
+                text: `Поcледний кофейный герой: ${uname(lastOne,lastOne.id)}.`
+            },false,token)
+
+        }
+        users.filter(u => !u.occupation || !u.about)
+            .forEach((u,x)=>{
+                setTimeout(()=>{
+                    sendMessage2({
+                        chat_id: u.id,
+                        text: `Добрый вечер! К сожалению, этот круг random coffee вы пропускаете. Пожалуйста, заполните профиль.`,
+                        reply_markup:{
+                            inline_keyboard:[[{
+                                text: `Заполнить профиль`,
+                                url: `https://t.me/paperstuffbot/app?startapp=profile`
+                            }]]
+                        }
+                    },false,token,messages)
+                },x*200)
+            })
     }
 }
 
 function classDescription(h, lang, newsId){
     return `${drawDate(h.date,false,{time:true})}.\n<b>${h.name}</b>\n<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author || h.authorName}\n<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n\n${h.description}\n${h.price? `${translations.fee[lang] ||  translations.fee.en} ${cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}`
 }
-
 
 function sendClass(h,u,newsId){
     
@@ -446,6 +620,46 @@ function sendClass(h,u,newsId){
 }
 
 const coworking = {
+    check: async(id)=>{
+        let data = await getDoc(coworkingCol,id);
+        
+        if(!data) return false;
+        
+        let result = {
+            data: data,
+            alert: ''
+        }
+        let user = await getUser(data.user, udb);
+        
+        if(user.blocked) {
+            result.alert = `Пользователь в черном списке!`
+            return result;
+        }
+
+        result.user = user;
+
+        result.data.hall = await getDoc(halls, data.hall);
+
+        let plan = await ifBefore(plansUsers,{active:true,user: +user.id})[0];
+
+        result.plan = plan || null;
+
+        if(plan && plan.visitsLeft) result.alert = `Гость на подписке (у него еще ${plan.visitsLeft} посещений)`;
+
+        return result;
+    },
+    closeRoom: async (roomID,date,res)=>{
+        let hall = await getDoc(halls,roomID);
+        
+        if(!hall || !hall.active) return res.status(404).send(`no such room`);
+        
+        let already = await ifBefore(roomsBlocked,{active:true,date:date,room:roomID})
+        
+        if(already.length) return res.json({
+            success: false,
+            comment: `Дата уже закрыта${already.length?`, причем несколько раз...`:''}`
+        })
+    },
     sendCoworking:async(user)=>{
         let hallsData = await ifBefore(halls,{active:true,isCoworking:true,isMeetingRoom:false})
         sendMessage2({
@@ -629,6 +843,46 @@ const coworking = {
 }
 
 const plan = {
+    getRequest:(id)=>{
+        return new Promise(async(resolve,reject)=>{
+            try {
+                let d = await getDoc(plansRequests,id);
+                if(!d) reject({
+                    message: `Нет такой заявки.` 
+                }) 
+                if(!d.active) reject({
+                    message: `Заявка дективирована.` 
+                })
+                let plan = await getDoc(plans,d.plan);
+                let user = await getUser(d.user, udb);
+                resolve({
+                    data:{
+                        user: user,
+                        plan: plan
+                    }
+                })    
+            } catch (error) {
+                reject({
+                    message: error.message
+                })
+            }
+            
+        })
+        
+    },
+    approveRequest(id,admin){
+        return new Promise(async(resolve,reject)=>{
+            try {
+                let data = await this.getRequest(id).then(d=>d.data);
+                data = data;
+                let plan = new newPlanRecord()
+            } catch (error) {
+                reject({
+                    message: error.message
+                })
+            }
+        })   
+    },
     alertDisposal:(p)=>{
         sendMessage2({
             chat_id: p.user,
@@ -703,13 +957,11 @@ function alertAdminsCoworking() {
             
             if (records.length) {
                 let hallsData = [];
+                
                 [...new Set(records.map(r => r.hall))].forEach(id => {
-                    hallsData.push(halls.doc(id).get().then(h => {
-                        let t = h.data()
-                        t.id = h.id;
-                        return t
-                    }))
+                    hallsData.push(getDoc(halls,id))
                 })
+
                 Promise.all(hallsData).then(hd => {
 
                     let users = [];
@@ -717,7 +969,6 @@ function alertAdminsCoworking() {
                     [...new Set(records.map(r => r.user))].forEach(id => {
                         users.push(getUser(id,udb))
                     })
-
 
 
                     let hallsReady = {};
@@ -755,18 +1006,7 @@ function alertAdminsCoworking() {
         })
 }
 
-function countUserEntries(days){
-    userEntries
-        // @ts-ignore
-        .where(`createdAt`,'>=',new Date(new Date()-days*24*60*60*1000))
-        .get()
-        .then(col=>{
-            col = handleQuery(col)
-            log({
-                text: `За последние сутки ${letterize([... new Set(col.map(r=>r.user))].length,`гость`)} ${letterize(col.length,`раз`)} открывали приложение.`
-            })
-        })
-}
+
 
 const classMethods = {
     remind: async (rec) => {
@@ -965,8 +1205,9 @@ const classMethods = {
 
         let d = []
         records.forEach(record => {
+            
             d.push(classes.doc(record.class).get().then(cl => {
-                let t = cl.data()
+                let t = cl.data() || {};
                 t.id = cl.id;
                 t.appointment = record.id
                 return t
@@ -1085,7 +1326,7 @@ const classMethods = {
         }
         
     },
-    acceptTicket:async(ticketId,res)=>{
+    acceptTicket:async(ticketId,res,admin)=>{
 
         let t = await getDoc(userClasses,ticketId);
 
@@ -1108,6 +1349,17 @@ const classMethods = {
             classesVisits: FieldValue.increment(1)
         })
 
+        
+
+        let cl = await getDoc(classes,t.class);
+
+        userClasses.doc(ticketId).update({
+            status:     'used',
+            known:      true,
+            updatedAt:  new Date(),
+            statusBy:   +admin.id
+        })
+
         sendMessage2({
             chat_id: user.id,
             text: translations.welcomeOnPremise[user.language_code] || translations.welcomeOnPremise.en,
@@ -1124,8 +1376,6 @@ const classMethods = {
             
         }, false, token, messages)
 
-        let cl = await getDoc(classes,t.class);
-
         if(cl.welcome) sendMessage2({
             chat_id: user.id,
             text: cl.welcome
@@ -1135,6 +1385,34 @@ const classMethods = {
             success: true,
             comment: `Билет засчитан.${planned?` Посещение вычтено из тарифа.`:``}`
         })
+    },
+    async getTicket(id){
+        return new Promise(async(resolve,reject)=>{
+            try {
+                let ticket = await getDoc(userClasses,id);
+                if(!ticket || !ticket.active) reject({
+                    comment: `Нет такого билета.`
+                })
+                let alert = ticket.alert || '';
+                let cl = await getDoc(classes,ticket.class);
+                if(!cl || !cl.active) reject({comment:`Мероприятие не существует (или было отменено).`})
+                ticket.date = drawDate(cl.date,`ru`,{time:true});
+                ticket.hall = cl.hallName;
+                let userPlan = await ifBefore(plansUsers,{active:true,user:+ticket.user})[0];
+                if(userPlan.eventsLeft) alert += ` Посещение по подписке (осталось ${plan.eventsLeft-1})`
+                resolve({
+                    alert: alert,
+                    success: true,
+                    data: ticket
+                })    
+            } catch (error) {
+                reject({
+                    comment: error.message
+                })
+            }
+            
+        })
+        
     },
     alertClassClosed:async(id)=>{
         let cl = await getDoc(classes,id);
@@ -1173,8 +1451,127 @@ const classMethods = {
             
         })
         
-    }
+    },
+    async add(data,admin){
+        return new Promise(async(resolve,reject)=>{
+            try {
+                if(!consistencyCheck(data,[
+                    `name`,
+                    `description`,
+                    `date`
+                ])) reject({comment: `fields missing`})
+                
+                let c = new classRecord(data).js;
+                let record = await classes.add(c);
 
+                resolve({
+                    success:    true,
+                    comment:    `Мероприятие создано`,
+                    id:         record.id
+                })
+
+                log({
+                    filter: `lectures`,
+                    class:  record.id,
+                    admin:  +admin.id,
+                    text:   `${uname(admin,admin.id)} создает мероприятие ${c.name}.`
+                })
+
+                if(data.author){
+                    getDoc(authors,data.author).then(a=>{
+                        if(!a || !a.active) classes.doc(record.id).update({
+                            author: null
+                        })
+                    })
+                }
+
+                if(data.hall){
+                    getDoc(halls,data.hall).then(a=>{
+                        if(!a || !a.active) {
+                            classes.doc(record.id).update({
+                                hall: null
+                            }) 
+                        } else {
+                            classes.doc(record.id).update({
+                                hallName: a.name
+                            })
+                        }
+
+                    })
+                }
+            } catch(err){
+                reject({
+                    comment: err.message
+                })
+            }
+        })
+    },
+    async prepareRC(id,text){
+        let tickets = await ifBefore(userClasses,{class:id,status: `used`});
+        tickets = shuffle(tickets.filter(t=>!t.pass));
+        tickets.forEach((t,i)=>{
+            setTimeout(()=>{
+                sendMessage2({
+                    chat_id: t.user,
+                    text: text,
+                    reply_markup:{
+                        inline_keyboard: [[{
+                            text:           `Пас`,
+                            callback_data:  `randomLecturePass_${t.id}`
+                        }]]
+                    }
+                        
+                },false,token,messages)
+            },i*200)
+        })
+        return tickets.length
+    },
+    async startRC(id,text){
+        let tickets = await ifBefore(userClasses,{class:id,status: `used`});
+        tickets = shuffle(tickets.filter(t=>!t.pass));
+        let q = tickets.length.toString();
+
+        while(tickets.length > 1){
+            let couple = tickets.splice(0,2);
+            let firstUser = await getUser(couple[0].user,udb);
+            let secondUser = await getUser(couple[1].user,udb);
+            await sendMessage2({
+                chat_id: firstUser.id,
+                text: `Это рэндом-кофе. Вашей парой становится @${secondUser.username}. ${text||''}`
+            },false,token,messages)
+            await sendMessage2({
+                chat_id: secondUser.id,
+                text: `Это рэндом-кофе. Вашей парой становится @${firstUser.username}. ${text||''}`
+            },false,token,messages)
+        }
+        return q
+    }
+}
+
+const authorMethods = {
+    add:(data,admin)=>{
+        return new Promise(async (resolve,reject)=>{
+            try {
+                if(!consistencyCheck(data,[`name`,`description`])) reject({message:`data missing`});
+                
+                let author = new Author(data,admin).js;
+                let record = await authors.add(author)
+                
+                log({
+                    text: `${uname(admin,admin.id)} создает автора ${author.name}.`,
+                    author: record.id
+                })
+
+                resolve({
+                    success: true,
+                    id: record.id,
+                    comment: `Автор ${data.name} создан. Можно добавить еще.`
+                })    
+            } catch (err) {
+                reject(err.message)
+            }
+        })
+    }
 }
 
 const mrMethods = {
@@ -1232,13 +1629,15 @@ const mrMethods = {
 
             if(callback) cba(callback,translations.onIt[user.language_code])
             
-            let rec = await mra.add({
+            let d = {
                 user:       +user.id,
                 date:       date,
                 time:       time,
                 active:     true,
                 createdAt:  new Date()
-            })
+            }
+
+            let rec = await mra.add(d)
 
             if (callback) {
                 sendMessage2({
@@ -1277,9 +1676,11 @@ const mrMethods = {
                 }, false, token, messages)
 
                 res.json({
-                    success: true,
-                    text: 'coworkingBookingConfirmed',
-                    rec: rec.id
+                    success:    true,
+                    text:       'coworkingBookingConfirmed',
+                    rec:        rec.id,
+                    id:         rec.id,
+                    data:       d
                 })
 
             }
@@ -1476,9 +1877,114 @@ const newsMethods = {
     }
 }
 
+const methods = {
+    deposits:{
+        add: async(admin, data, res)=>{
+            if(!consistencyCheck(data,[
+                `amount`,
+                `user`
+            ])) return;
+
+            let user = await getUser(data.user,udb);
+
+            if(!user) return res.status(404).send(`no such user`);
+            
+            deposits.add({
+                createdAt:  new Date(),
+                createdBy:  +admin.id,
+                amount:     Number(data.amount),
+                user:       data.user,
+                description: data.description
+            }).then(rec=>{
+                udb.doc(data.user.toString()).update({
+                    deposit: FieldValue.increment(Number(data.amount))
+                }).then(()=>{
+                    let newDeposit = (+user.deposit || 0)+Number(data.amount)
+                    res.json({
+                        success:    true,
+                        comment:    `Баланс обновлен.`,
+                        total:      newDeposit
+                    })
+                    log({
+                        admin: +admin.id,
+                        deposit: rec.id,
+                        user: data.user,
+                        text: `${uname(admin,admin.id)} обновляет баланс пользователя ${uname(user,user.id)} на ${data.amount}\n(${data.description||'без лишних слов'})`
+                    })
+                    sendMessage2({
+                        chat_id: user.id,
+                        text: translations.deposited(newDeposit)[user.language_code] || translations.deposited(newDeposit).en
+                    },false,token,messages)
+                })
+
+            }).catch(err=>{
+                res.status(500).send(err.message)
+            })
+
+
+        }
+    },
+    plans:{
+        add:(admin, data, res)=>{
+
+            return new Promise(async (resolve,reject)=>{
+                try {
+                    if(!consistencyCheck(data,[
+                        `plan`,
+                        `user`
+                    ],res)) return reject({send: true});
+                    
+                    let plan = await getDoc(plans,data.plan);
+                    
+                    if(!checkEntity(`plan`, plan, res)) return reject({send: true});
+                    
+                    let user = await getUser(data.user, udb);
+        
+                    if(!checkEntity(`user`, user, res)) return reject({send: true});
+        
+                    if(data.request) {
+                        let request = await getDoc(plansRequests,data.request)
+                        if(!checkEntity(`request`, request, res)) return reject({send: true});
+                    }
+                    
+                    let rec =  await plansUsers.add(new newPlanRecord(plan, admin, user).js)
+        
+                    if(data.request) plansRequests.doc(data.request).update({
+                        active: false,
+                    })
+        
+                    sendMessage2({
+                        chat_id: user.id,
+                        text: translations.planConfirmed(plan)[user.language_code] || translations.planConfirmed(plan).en
+                    },false,token,messages)
+        
+                    log({
+                        filter: `coworking`,
+                        text: `${uname(admin, admin.id)} выдает подписку «${plan.name}» (${cur(plan.price,'GEL')}) пользователю ${uname(user, user.id)}`,
+                        admin:  +admin.id,
+                        user:   +user.id,
+                        silent: true
+                    })
+    
+                    resolve({
+                        success:    true,
+                        comment:    `Подписка оформлена.`,
+                        od:         rec.id
+                    })
+                } catch (error) {
+                    reject({message:error.message})
+                }
+                
+            })
+        }
+    },
+}
+
 
 
 module.exports = {
+    authorMethods,
+    methods,
     rcMethods,
     addBook,
     alertAdminsCoworking,
@@ -1486,14 +1992,13 @@ module.exports = {
     alertWithdrawal,
     classDescription,
     classMethods,
-    countUserEntries,
     coworking,
     mrMethods,
     newsMethods,
     nowShow,
     plan,
-    randomCoffee,
     sendClass,
-    welcome2RC,
     wine,
+    deleteEntity,
+    updateEntity
 }

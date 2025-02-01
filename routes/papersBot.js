@@ -1,11 +1,10 @@
 let ngrok2 =    process.env.ngrok2;
 let ngrok =     process.env.ngrok;
 
-let coworkingPrice =    30;
+let token =         process.env.papersToken;
+
 var https =             require('https');
 var fs =                require('fs');
-
-
 
 
 var express =   require('express');
@@ -22,6 +21,8 @@ var modals =    require('./modals.js').modals
 const qs =      require('qs');
 const { createHash,createHmac } = require('node:crypto');
 const appLink = `https://t.me/paperstuffbot/app`
+
+
 
 const {
     isoDate,
@@ -87,10 +88,8 @@ let gcp = initializeApp({
 }, 'paper2');
 
 
-let token =         process.env.papersToken;
-let paymentToken =  process.env.papersPaymentToken;
 
-let sheet = process.env.papersSheet
+let paymentToken =  process.env.papersPaymentToken;
 
 setTimeout(function(){
     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
@@ -158,17 +157,14 @@ const {
     wineList,
 } = require(`./papers/cols.js`);
 
-const { addBook, wine, alertWithdrawal, rcMethods, randomCoffee, welcome2RC, classDescription, sendClass, plan, classMethods, mrMethods, newsMethods, } = require('./papers/logics.js');
+const {wine, rcMethods, classMethods, mrMethods, newsMethods } = require('./papers/logics.js');
 
 const coworkingMethods = require('./papers/logics.js').coworking;
 const translations = require('./papers/translations.js');
+const {alertAdmins, log, cba } = require('./papers/store.js');
 
 
-let userList = [];
 
-async()=>{
-    await common.ifBefore(udb,{})
-}
 
 coworkingRules.get().then(col => {
     col.docs.forEach(l => {
@@ -179,7 +175,6 @@ coworkingRules.get().then(col => {
 router.post(`/invite`,(req,res)=>{
     if(!req.body.occupation)        return res.status(400).send(`occupation is missing`)
     if(!req.body.about)             return res.status(400).send(`about is missing`)
-    // if(!req.body.plan)             return res.status(400).send(`about is missing`)
 
     return invites.add({
         createdAt:  new Date(),
@@ -383,157 +378,6 @@ router.post(`/sendMe/:type`, (req, res) => {
     }
 })
 
-
-
-function updateEntity(req, res, ref, adminId,callback) {
-    return ref.update({
-        updatedAt: new Date(),
-        updatedBy: adminId,
-        [req.body.attr]: (req.body.attr == `date`||req.body.type == `date`) ? new Date(req.body.value) : req.body.value
-    }).then(s => {
-        
-
-        if(callback){
-            callback()
-        }
-
-        if(req.body.attr == `randomCoffee`){
-            if(req.body.value) {
-                welcome2RC(ref.id)
-            }
-        }
-
-        if(req.body.value == `used` && req.params.method == `userClasses`) return classMethods.acceptTicket(req.params.id, res)
-
-        if (req.body.attr == `authorId`) {
-            getDoc(authors, req.body.value).then(a => {
-                ref.update({
-                    authorName: a.name
-                })
-            })
-        }
-
-        if (req.body.attr == `courseId`) {
-            getDoc(courses, req.body.value).then(a => {
-                ref.update({
-                    course: a.name
-                })
-            })
-        }
-
-        if (req.body.attr == `bankId`) {
-            getDoc(banks, req.body.value).then(a => {
-                ref.update({
-                    bankName: a.name,
-                    bankCreds: a.creds
-                })
-            })
-        }
-
-        if (req.body.attr == `planId`) {
-            getDoc(plans, req.body.value).then(a => {
-                ref.update({
-                    plan: a.name
-                })
-            })
-        }
-
-        res.json({
-            success: true
-        })
-
-    }).catch(err => {
-        console.log(err)
-        res.status(500).send(err.message)
-    })
-}
-
-
-
-function deleteEntity(req, res, ref, admin, attr, callback, extra) {
-    
-    devlog(`удаляем нечто`);
-
-    entities = {
-        mr:{
-            log:(name)=> `запись в переговорку была снята`,
-            attr: `mr`
-        },
-        plansUsers:{
-            log:(name)=> `подписка на тариф ${name} (${ref.id}) была архивирован`,
-            attr: `plansUsers`
-        },
-        courses: {
-            log: (name) => `курс ${name} (${ref.id}) был архивирован`,
-            attr: `course`
-        },
-        users: {
-            log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
-            attr: `user`
-        },
-        streams: {
-            log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
-            attr: `stream`
-        },
-        plans: {
-            log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
-            attr: `plan`
-        }
-    }
-
-    return ref.get().then(e => {
-        
-        let data = common.handleDoc(e)
-
-        devlog(data)
-
-        if (!data[attr || 'active']) return res.json({
-            success: false,
-            comment: `Вы опоздали. Запись уже удалена.`
-        })
-        ref.update({
-            [attr || 'active']: false,
-            updatedBy: admin
-        }).then(s => {
-
-            if(entities[req.params.data]){
-                let logObject ={
-                    admin: admin.id ? +admin.id : +id,
-                    text: entities[req.params.data].log(data.name),
-                    [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
-                }
-
-                if(extra){
-                    Object.keys(extra).forEach(key=>{
-                        logObject[key] = extra[key]
-                    })
-                }
-    
-                log(logObject)
-            }
-            
-            
-
-            res.json({
-                success: true
-            })
-
-            if (typeof (callback) == 'function') {
-                console.log(`Запускаем коллбэк`)
-                callback()
-            }
-        }).catch(err => {
-            
-            console.log(err)
-
-            res.json({
-                success: false,
-                comment: err.message
-            })
-        })
-    })
-}
-
 router.get('/qr', async (req, res) => {
     if (req.query.class) {
         let n = +new Date()
@@ -647,353 +491,7 @@ router.get(`/`,(req,res)=>{
         })
 })
 
-
-function localTime(plusMinutes,date){
-    return (date || new Date(+new Date()+(plusMinutes||0)*60*1000)).toLocaleTimeString(false,{timeZone:'Asia/Tbilisi',hour:`2-digit`,minute:`2-digit`})
-}
-
 let users = {}
-
-function cba(req,txt){
-    m.sendMessage2({
-        callback_query_id: req.body.callback_query.id,
-        show_alert: true,
-        text:       txt
-    }, 'answerCallbackQuery', token)
-}
-
-function alertAdmins(mess) {
-    let message = {
-        text: mess.text
-    }
-
-    let slack = []
-    
-
-    if (mess.type == 'incoming') {
-        slack.push({
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": `Что-то непонятное`,
-                "emoji": true
-            }
-        })
-
-        slack.push({
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: mess.text
-            }
-        })
-
-        slack.push({
-            "dispatch_action": true,
-            "type": "input",
-            "element": {
-                "type": "plain_text_input",
-                "action_id": "message_" + mess.user_id
-            },
-            "label": {
-                "type": "plain_text",
-                "text": "Быстрый ответ",
-                "emoji": true
-            }
-        })
-
-        slack.push({
-            "type": "actions",
-            "elements": [{
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Заблокировать",
-                    "emoji": true
-                },
-                "value": mess.user_id.toString(),
-                "action_id": "user_block"
-            }, {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": `открыть профиль`,
-                    "emoji": true
-                },
-                "value": mess.user_id.toString(),
-                "action_id": "userDetails"
-            }]
-        })
-
-
-        axios.post(process.env.papersHook, {
-            blocks: slack
-        }).then(s => {
-            if (process.env.develop == 'true') console.log(s.data)
-        }).catch(err => {
-            console.log(`ошибка отправки сообщения в слак`)
-            console.log(err)
-        })
-    } else if (mess.type == 'newUser') {
-        slack.push({
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": `Новый пользователь!`,
-                "emoji": true
-            }
-        })
-
-        slack.push({
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: mess.text
-            }
-        })
-
-        slack.push({
-            "dispatch_action": true,
-            "type": "input",
-            "element": {
-                "type": "plain_text_input",
-                "action_id": "message_" + mess.user_id
-            },
-            "label": {
-                "type": "plain_text",
-                "text": "Быстрый ответ",
-                "emoji": true
-            }
-        })
-
-        slack.push({
-            "type": "actions",
-            "elements": [{
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Заблокировать",
-                    "emoji": true
-                },
-                "value": mess.user_id.toString(),
-                "style": "danger",
-                "action_id": "user_block"
-            }, {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Сделать сотрудником",
-                    "emoji": true
-                },
-                "value": mess.user_id.toString(),
-                "action_id": "user_insider"
-            }, {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Сделать админом",
-                    "emoji": true
-                },
-                "style": "primary",
-                "value": mess.user_id.toString(),
-                "action_id": "user_admin"
-            }, {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Сделать fellows",
-                    "emoji": true
-                },
-                "value": mess.user_id.toString(),
-                "style": "primary",
-                "action_id": "user_fellow"
-            }, {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Сделать знакомым",
-                    "emoji": true
-                },
-                "value": mess.user_id.toString(),
-                "style": "primary",
-                "action_id": "user_known"
-            }, {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Снять бонус на коворкинг",
-                    "emoji": true
-                },
-                "value": mess.user_id.toString(),
-                "action_id": "user_unBonus"
-            }]
-        })
-
-
-        axios.post(process.env.papersHook, {
-            blocks: slack
-        }).then(s => {
-            if (process.env.develop == 'true') console.log(s.data)
-        }).catch(err => {
-            console.log(err)
-        })
-
-        message.reply_markup = {
-            inline_keyboard: [
-                [{
-                    text: 'Заблокировать',
-                    callback_data: `user_block_${mess.user_id}`
-                }],
-                [{
-                    text: `Включить в fellows`,
-                    callback_data: `user_fellow_${mess.user_id}`
-                }],
-                [{
-                    text: `Сделать сотрудником`,
-                    callback_data: `user_insider_${mess.user_id}`
-                }],
-                [{
-                    text: `Сделать админом`,
-                    callback_data: `user_admin_${mess.user_id}`
-                }],
-                [{
-                    text: `Снять бонус на коворкинг`,
-                    callback_data: `user_bonus_${mess.user_id}`
-                }]
-            ]
-        }
-    } else if (mess.type == 'logRecord') {
-
-        slack.push({
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: mess.text
-            }
-        })
-
-        if (mess.user) {
-            slack.push({
-                "dispatch_action": true,
-                "type": "input",
-                "element": {
-                    "type": "plain_text_input",
-                    "action_id": "message_" + mess.user
-                },
-                "label": {
-                    "type": "plain_text",
-                    "text": "Быстрый ответ",
-                    "emoji": true
-                }
-            })
-
-            slack.push({
-                "type": "actions",
-                "elements": [{
-                    "type": "button",
-                    "text": {
-                        "type": "plain_text",
-                        "text": `открыть профиль`,
-                        "emoji": true
-                    },
-                    "value": mess.user.toString(),
-                    "action_id": "userDetails"
-                }]
-            })
-        }
-
-
-        axios.post(process.env.papersHook, {
-            blocks: slack
-        }).then(s => {
-            if (process.env.develop == 'true') console.log(s.data)
-        }).catch(err => {
-            console.log(err)
-        })
-
-        message.reply_markup = {
-            inline_keyboard: [
-                [{
-                    text: 'Отписаться от уведомлений',
-                    callback_data: `admin_log_unsubscribe`
-                }]
-            ]
-        }
-    } else if (mess.type == 'class') {
-        slack.push({
-            "type": "header",
-            "text": {
-                "type": "plain_text",
-                "text": `Занятия`,
-                "emoji": true
-            }
-        })
-        slack.push({
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: mess.text
-            }
-        })
-
-        slack.push({
-            "type": "actions",
-            "elements": [{
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "Открыть лекцию",
-                    "emoji": true
-                },
-                "value": mess.id.toString(),
-                "style": "primary",
-                "action_id": "lectureDetails"
-            }, {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": `открыть профиль`,
-                    "emoji": true
-                },
-                "value": mess.user.toString(),
-                "action_id": "userDetails"
-            }, {
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": `открыть билет`,
-                    "emoji": true
-                },
-                "value": mess.ticket,
-                "action_id": "ticketDetails"
-            }]
-        })
-
-
-        axios.post(process.env.papersHook, {
-            blocks: slack
-        }).then(s => {
-            if (process.env.develop == 'true') console.log(s.data)
-        }).catch(err => {
-            console.log(err)
-        })
-    }
-
-    udb.where(`admin`, '==', true).get().then(admins => {
-        
-        admins = common.handleQuery(admins);
-        if(mess.filter) admins = admins.filter(a=>a.alert && a.alert[mess.filter])
-
-        admins.forEach(a => {
-            message.chat_id = a.id
-            if(mess.type == `newUser`){
-                message.photo = `${ngrok}/images/papers/ava/${Math.floor(Math.random()*61)+1}.jpg`
-                message.caption = message.text
-            }
-            if (mess.type != 'stopLog' || !a.data().stopLog) m.sendMessage2(message, message.photo?`sendPhoto`:false, token)
-        })
-    })
-}
 
 function registerUser(u) {
 
@@ -1108,25 +606,6 @@ function sendHalls(id, lang) {
         })
 }
 
-function log(o) {
-
-    o.createdAt = new Date()
-
-    logs.add(o).then(r => {
-
-        if(!o.silent){
-            alertAdmins({
-                filter: o.filter||null,
-                text:   o.text,
-                type:   (o.class && o.user) ? 'class' : 'logRecord',
-                id:     o.class,
-                user:   o.user || o.user_id || null,
-                ticket: o.ticket
-            })
-        }
-        
-    })
-}
 
 function sendClasses(id, lang) {
     classes
@@ -1172,21 +651,7 @@ function showBookings(id) {
 
 }
 
-function interprete(field, value) {
-    switch (field) {
-        case 'admin': {
-            return value ? `делает админом` : `снимает админство с`
-        }
-        case 'insider':
-            return value ? `делает сотрудником` : `убирает из сотрудников`
-        case 'blocked':
-            return value ? `добавляет в ЧС` : `убирает из бана`
-        case 'fellow':
-            return value ? `включает в программу fellows` : `убирает из fellows`
-        default:
-            return `делает что-то необычно: поле ${field} становится ${value}`
-    }
-}
+
 
 router.post(`/news`, (req, res) => {
     isAdmin(req.query.id).then(async p => {
@@ -1696,7 +1161,7 @@ router.post('/hook', (req, res) => {
     if (req.body.callback_query) {
 
     
-        m.getUser(req.body.callback_query.from.id,udb).then(userData => {
+        m.getUser(req.body.callback_query.from.id,udb).then(async userData => {
             
             let userRef = udb.doc(userData.id.toString())
             
@@ -2687,6 +2152,20 @@ router.post('/hook', (req, res) => {
                 })
     
             }
+
+            if(inc[0] == `randomLecturePass`){
+                let t = await getDoc(userClasses,inc[1]);
+                if(t){
+                    userClasses.doc(inc[1]).update({
+                        pass: true
+                    })
+                }
+                return m.sendMessage2({
+                    callback_query_id: req.body.callback_query.id,
+                    show_alert: true,
+                    text: `Спасибо и до новых встреч!`
+                }, 'answerCallbackQuery', token)
+            }
         })
     
     
@@ -3116,18 +2595,10 @@ function getAvatar(id){
 
 
 module.exports = {
-    alertAdmins,
+    
     appLink,
     cba,
-    coworkingPrice,
-    localTime,
-    log,
     router,
-    token,
-    userList,
-    updateEntity,
-    deleteEntity,
-    interprete,
     getAvatar,
     registerUser,
     isAdmin
