@@ -35,9 +35,15 @@ async function auth(req,res,next){
         res.locals.admin = user;
         next();
     } else if (req.query.id) {
-        alertMe({
-            text: `Некто пробивается в админку без токена`
-        })
+        let user = await getUser(req.query.id,udb);
+        if(!user || !user.admin) {
+            alertMe({
+                text: `Некто пробивается в админку без токена`
+            })
+            return res.sendStatus(403);
+        } 
+        res.locals.admin = user;
+        next();
     }
 }
 
