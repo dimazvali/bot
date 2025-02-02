@@ -10,6 +10,21 @@ function isoDate(){
 }
 
 
+function consistencyCheck(data,fields,res){
+    let missing = [];
+
+    fields.forEach(f=>{
+        if(!data.hasOwnProperty(f)) missing.push(f)
+    })
+
+    if(missing.length) {
+        if(res) res.status(400).send(`fields missing: ${missing.join(', ')}.`)
+        return false;
+    }
+
+    return true
+}
+
 function authTG(req,res,token,adminTokens,udb,registerUser,tokenName){
 
     data_check_string=Object.keys(req.body)
@@ -707,6 +722,17 @@ function handleError(err,res){
     })
 }
 
+function checkEntity(name, data, res){
+    if(!data)  {
+        if(res)res.status(404).send(`${name} not found`);
+        return false;
+    };
+    if(!data.active) {
+        if(res)res.status(400).send(`${name} inactive`);
+        return false;
+    }
+    return true
+}
 
 function cutMe(txt, limit) {
     let t = txt.split('. ')
@@ -723,6 +749,8 @@ function cutMe(txt, limit) {
 
 
 module.exports = {
+    checkEntity,
+    consistencyCheck,
     isoDate,
     ifBefore,
     sanitize,
