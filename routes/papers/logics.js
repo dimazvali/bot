@@ -1399,11 +1399,11 @@ const classMethods = {
                 ticket.date = drawDate(cl.date,`ru`,{time:true});
                 ticket.hall = cl.hallName;
                 let userPlan = await ifBefore(plansUsers,{active:true,user:+ticket.user})[0];
-                if(userPlan.eventsLeft) alert += ` Посещение по подписке (осталось ${plan.eventsLeft-1})`
+                if(userPlan && userPlan.eventsLeft) alert += ` Посещение по подписке (осталось ${plan.eventsLeft-1})`
                 resolve({
-                    alert: alert,
-                    success: true,
-                    data: ticket
+                    alert:      alert,
+                    success:    true,
+                    data:       ticket
                 })    
             } catch (error) {
                 reject({

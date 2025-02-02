@@ -685,8 +685,9 @@ router.all(`/:method`, auth, async (req, res) => {
         case `qr`: {
             if (!req.query.data) return res.sendStatus(404)
             // @ts-ignore
+            devlog(`qr`)
             let inc = (req.query.data||'').split('_')
-            
+            devlog(inc[1]);
             if(inc.length < 2) return res.sendStatus(400);
     
             if (inc[1] == 'coworking') {
@@ -827,13 +828,16 @@ router.all(`/:method`, auth, async (req, res) => {
                 }
                 
             } else {
+                devlog(`ticket`)
                 switch (req.method) {
                     case 'GET': {
                         classMethods.getTicket(inc[0])
                             .then(s=>{
+                                devlog(s)
                                 res.json(s)
                             })
                             .catch(err=>{
+                                console.log(err);
                                 res.json({
                                     success: false,
                                     comment: err.message 
