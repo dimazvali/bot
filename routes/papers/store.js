@@ -13,8 +13,10 @@ let coworkingPrice =    30;
 function localTime(plusMinutes,date){
     return (date || new Date(+new Date()+(plusMinutes||0)*60*1000)).toLocaleTimeString(false,{timeZone:'Asia/Tbilisi',hour:`2-digit`,minute:`2-digit`})
 }
+
+
 function cba(req,txt){
-    m.sendMessage2({
+    sendMessage2({
         callback_query_id: req.body.callback_query.id,
         show_alert: true,
         text:       txt
