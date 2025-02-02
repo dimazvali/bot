@@ -391,7 +391,7 @@ function alertAdmins(mess) {
             if (process.env.develop == 'true') console.log(s.data)
         }).catch(err => {
             console.log(err)
-        })g
+        })
     }
 
     let audience = JSON.parse(JSON.stringify(admins))
