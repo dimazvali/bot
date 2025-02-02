@@ -1272,7 +1272,7 @@ const classMethods = {
                 text: code
             })
     
-            if (callback_query) return cba(callback_query, translations[code][user.language_code] || translations[code].en)
+            if (callback_query) return cba({body:callback_query}, translations[code][user.language_code] || translations[code].en)
     
             return sendMessage2({
                 chat_id:    user.id,
