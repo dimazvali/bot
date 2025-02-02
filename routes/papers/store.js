@@ -16,6 +16,9 @@ function localTime(plusMinutes,date){
 
 
 function cba(req,txt){
+    
+    devlog(req);
+
     sendMessage2({
         callback_query_id: req.body.callback_query.id,
         show_alert: true,
