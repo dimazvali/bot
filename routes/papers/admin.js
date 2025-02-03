@@ -1407,8 +1407,8 @@ router.all(`/:method/:id`,(req,res)=>{
                             
                         } else {
                             
-                            if(cl.admins) cl.filter = `admin`
-                            if(cl.fellows) cl.filter = `fellow`
+                            if(cl.admins)   cl.filter = `admin`
+                            if(cl.fellows)  cl.filter = `fellow`
 
                             try {
                                 let record = await newsMethods.add({

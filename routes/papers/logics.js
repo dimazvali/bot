@@ -1773,7 +1773,9 @@ const newsMethods = {
             try {
                 let message = await getDoc(news, id);
                 if(!message) return false;
+                
                 let users = await ifBefore(udb, { active: true, noSpam: false });
+                
                 if(message.filter){
                     let field = message.filter.split(`_`)[0];
                     users = users.filter(u=>u[field]) 

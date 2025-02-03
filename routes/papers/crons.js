@@ -138,6 +138,7 @@ function alertSoonCoworking() {
             console.log(err)
         })
 }
+
 async function remindOfCoworking(rec) {
     let user = await getUser(rec.user,udb);
     let hall = await getDoc(halls,rec.hall);
@@ -182,8 +183,12 @@ function updatePlans(){
     })
 }
 
-function alertMiniStats(days){
+async function alertMiniStats(days){
     
+    if(!days) days = 7;
+
+    let admins = await ifBefore(udb, {admin:true})
+
     let ndate = new Date(+new Date() - days*24*60*60*1000)
      
     views
@@ -207,30 +212,25 @@ function alertMiniStats(days){
 
                 Object.keys(sections).filter(type=>siteSectionsTypes[type]).forEach(type=>{
                     
-                    devlog(type)
-
                     let data = [];
+                    
                     Object.keys(sections[type]).forEach(id=>{
-                        
-                        devlog(id)
-
                         data.push(siteSectionsTypes[type].data.doc(id).get().then(d=>handleDoc(d)))
                     })
+
                     Promise.all(data).then(data=>{
                         
-                        udb.where(`admin`, '==', true).get().then(admins => {
-                            admins.docs.forEach(a => {
-                                sendMessage2({
-                                    chat_id: a.id,
-                                    parse_mode: 'HTML',
-                                    text: `<b>${siteSectionsTypes[type].title}</b>:\n\n${
-                                        Object.keys(sections[type])
-                                            .sort((a,b)=>sections[type][b]-sections[type][a])
-                                            .map(id=>`${data.filter(r=>r.id == id)[0] ? data.filter(r=>r.id == id)[0].name : id}: ${sections[type][id]}`)
-                                            .join('\n')
-                                    }`
-                                },false,token)
-                            })
+                        admins.forEach(a => {
+                            sendMessage2({
+                                chat_id: a.id,
+                                parse_mode: 'HTML',
+                                text: `<b>Статистика просмотров раздела ${siteSectionsTypes[type].title} за ${days} дней</b>:\n\n${
+                                    Object.keys(sections[type])
+                                        .sort((a,b)=>sections[type][b]-sections[type][a])
+                                        .map(id=>`${data.filter(r=>r.id == id)[0] ? data.filter(r=>r.id == id)[0].name : id}: ${sections[type][id]}`)
+                                        .join('\n')
+                                }`
+                            },false,token)
                         })
 
                         
