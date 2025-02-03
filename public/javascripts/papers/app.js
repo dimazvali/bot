@@ -991,13 +991,16 @@ function slotme(){
 
             showMR(mr.querySelector('h2'))
 
+            tg.showAlert(translations.coworkingBookingConfirmed[tg.initDataUnsafe.user.language_code] || translations.coworkingBookingConfirmed.en)
+
+
             // mrSlot = d.data.id;
             // tg.MainButton.offClick(slotme)
             // mbbc = unSlot
             // document.querySelector(`[data-time="${mrTime}"]`).dataset.booked = true;
             // document.querySelector(`[data-time="${mrTime}"]`).innerHTML+=`<br>(${translations.enlisted[userLang] || translations.enlisted.en})`
             // document.querySelector(`[data-time="${mrTime}"]`).dataset.self = true;
-            // tg.showAlert(translations.coworkingBookingConfirmed[tg.initDataUnsafe.user.language_code] || translations.coworkingBookingConfirmed.en)
+            
             // tg.MainButton.setText(translations.coworkingBookingCancel[[tg.initDataUnsafe.user.language_code]] || translations.coworkingBookingCancel.en)
             // tg.MainButton.onClick(unSlot)
         } else {

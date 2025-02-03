@@ -10,9 +10,9 @@ let token =         process.env.papersToken;
 const { FieldValue } = require('firebase-admin/firestore');
 const { Parser } = require('json2csv');
 const { devlog, getDoc, uname, isoDate, handleError, letterize, handleDoc, handleQuery, drawDate, cur, alertMe, ifBefore, consistencyCheck } = require('../common');
-const { adminTokens, udb, userClassesQ, randomCoffeeIterations, messages, books, mra, userClasses, classes, deposits, standAlone, invoices, randomCoffees, coworking, halls, authors, news, plans, plansUsers, plansRequests, userClassesWL, subscriptions, logs, wineList, settings, roomsBlocked, courses, fb } = require('./cols');
+const { adminTokens, udb, userClassesQ, randomCoffeeIterations, messages, books, mra, userClasses, classes, deposits, standAlone, invoices, randomCoffees, coworking, halls, authors, news, plans, plansUsers, plansRequests, userClassesWL, subscriptions, logs, wineList, settings, roomsBlocked, courses, fb, promos } = require('./cols');
 
-const { addBook, classMethods, rcMethods, newsMethods, alertWithdrawal, wine, plan, sendClass, classDescription, mrMethods, methods, authorMethods, updateEntity, deleteEntity } = require('./logics');
+const { addBook, classMethods, rcMethods, newsMethods, alertWithdrawal, wine, plan, sendClass, classDescription, mrMethods, methods, authorMethods, updateEntity, deleteEntity, roomMethods } = require('./logics');
 
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
@@ -163,41 +163,39 @@ router.all(`/:method`, auth, async (req, res) => {
             switch (req.method){
                 case `POST`:{
                     if(req.body.name){
-                        let free = true;
-                        if(req.body.slug) free = standAlone.doc(req.body.slug.toString()).get().then(d=>handleDoc(d))
-                        return Promise.resolve(free).then(p=>{
-                            if(p) return res.status(400).send(`slug уже занят`)
-                            let page = {
-                                createdAt:      new Date(),
-                                active:         true,
-                                createdBy:      +admin.id,
-                                name:           req.body.name,
-                                description:    req.body.description || null,
-                                html:           req.body.html || null,
-                                views:          0,
-                                slug:           req.body.slug || null
-                            }
-                            if(req.body.slug){
-                                standAlone.doc(req.body.slug).set(page).then(s=>{
-                                    res.json({
-                                        success: true,
-                                        id: req.body.slug
-                                    })
+                        let p = true;
+                        if(req.body.slug) p = await getDoc(standAlone,req.body.slug.toString())
+                        if(p) return res.status(400).send(`slug уже занят`)
+                        let page = {
+                            createdAt:      new Date(),
+                            active:         true,
+                            createdBy:      +admin.id,
+                            name:           req.body.name,
+                            description:    req.body.description || null,
+                            html:           req.body.html || null,
+                            views:          0,
+                            slug:           req.body.slug || null
+                        }
+                        if(req.body.slug){
+                            standAlone.doc(req.body.slug).set(page).then(s=>{
+                                res.json({
+                                    success: true,
+                                    id: req.body.slug
                                 })
-                            } else {
-                                standAlone.add(page).then(rec=>{
-                                    res.json({
-                                        success: true,
-                                        id: rec.id
-                                    })
-                                    standAlone.doc(rec.id).update({
-                                        slug: rec.id
-                                    })
-    
+                            })
+                        } else {
+                            standAlone.add(page).then(rec=>{
+                                res.json({
+                                    success: true,
+                                    id: rec.id
                                 })
-                            }
+                                standAlone.doc(rec.id).update({
+                                    slug: rec.id
+                                })
+
+                            })
+                        }
                             
-                        })
                     }
                 }
                 case `GET`:{
@@ -267,13 +265,7 @@ router.all(`/:method`, auth, async (req, res) => {
             })
         }
         case `rcParticipants`:{
-            return udb
-                .where(`randomCoffee`,'==',true)
-                .where(`active`,'==',true)
-                .get()
-                .then(col=>{
-                    res.json(handleQuery(col))
-                })
+            return res.json(await ifBefore(udb,{active:true, randomCoffee:true}))
         }
         case `rc`:{
             switch(req.method){
@@ -330,6 +322,14 @@ router.all(`/:method`, auth, async (req, res) => {
                     return halls.get().then(col=>{
                         res.json(handleQuery(col,false,true))
                     })
+                }
+                case `POST`:{
+                    return roomMethods.create(req.body,admin)
+                        .then(s=>{
+                            res.json(s)
+                        }).catch(err=>{
+                            handleError(err,res)
+                        })
                 }
             }
         }
@@ -549,21 +549,6 @@ router.all(`/:method`, auth, async (req, res) => {
             sendMessage2(message, (c.pic ? 'sendPhoto' : false), token)
             break;
         }
-        // case `ticket`:{
-            
-        //     if(!req.query.ticket) return res.sendStatus(400)
-    
-        //     return userClasses.doc(req.query.ticket).get().then(t=>{
-        //         if(!t.exists) return res.sendStatus(404)
-        //         userClasses.doc(req.query.ticket).update({
-        //             [req.body.attr]: req.body.value
-        //         }).then(s=>{
-        //             res.sendStatus(200)
-        //         }).catch(err=>{
-        //             res.status(500).send(err.message)
-        //         })
-        //     })
-        // }
         case `announce`:{
             
             let list = userClasses.where(`class`,`==`,req.body.class);
@@ -684,10 +669,7 @@ router.all(`/:method`, auth, async (req, res) => {
         }
         case `qr`: {
             if (!req.query.data) return res.sendStatus(404)
-            // @ts-ignore
-            devlog(`qr`)
-            let inc = (req.query.data||'').split('_')
-            devlog(inc[1]);
+            let inc = req.query.data.toString().split('_')
             if(inc.length < 2) return res.sendStatus(400);
     
             if (inc[1] == 'coworking') {
@@ -762,43 +744,39 @@ router.all(`/:method`, auth, async (req, res) => {
                 break;
     
             } else if (inc[1] == 'promos') {
-                fb.collection(inc[1]).doc(inc[0]).get().then(d => {
+                // let d = getDoc()
+                let d = await getDoc(promos,inc[0])
     
-                    if (!d.exists) return res.sendStatus(404)
-    
-                    d = d.data();
-    
-    
-                    switch (req.method) {
-                        case 'GET': {
-                            devlog(d)
-                            res.json({data:d})
-                            break;
-                        }
-                        case 'POST': {
-                            if (d.left) {
-                                fb.collection(inc[1])
-                                    .doc(inc[0])
-                                    .update({
-                                        left: FieldValue.increment(-1),
-                                        updatedAt: new Date(),
-                                        statusBy: req.query.id
-                                    }).then(() => {
-                                        res.sendStatus(200)
-    
-                                    }).catch(err => {
-                                        console.log(err)
-                                        res.sendStatus(500).send(err.message)
-                                    })
-                            } else {
-                                res.status(403).send(`Этому больше не наливать`)
-                            }
-                            break;
-    
-                        }
+                if (!d) return res.sendStatus(404)
+
+                switch (req.method) {
+                    case 'GET': {
+                        res.json({data:d})
+                        break;
                     }
+                    case 'POST': {
+                        if (d.left) {
+                            fb.collection(inc[1])
+                                .doc(inc[0])
+                                .update({
+                                    left:       FieldValue.increment(-1),
+                                    updatedAt:  new Date(),
+                                    statusBy:   req.query.id
+                                }).then(() => {
+                                    res.sendStatus(200)
+
+                                }).catch(err => {
+                                    console.log(err)
+                                    res.sendStatus(500).send(err.message)
+                                })
+                        } else {
+                            res.status(403).send(`Этому больше не наливать`)
+                        }
+                        break;
+
+                    }
+                }
     
-                })
     
             } else if (inc[1] == `planRequests`) {
     
@@ -858,7 +836,6 @@ router.all(`/:method`, auth, async (req, res) => {
         case 'check': {
             return res.json(admin)
         }
-    
         case 'classes': {
             switch(req.method){
                 case 'GET':{
@@ -883,7 +860,6 @@ router.all(`/:method`, auth, async (req, res) => {
             }
             
         }
-    
         case 'class': {
             if (!req.query.class) return res.sendStatus(404)
             return userClasses
@@ -897,32 +873,24 @@ router.all(`/:method`, auth, async (req, res) => {
     
         case 'classWL': {
             if (!req.query.class) return res.sendStatus(404)
-            
-            return userClassesWL
-                .where('active', '==', true)
-                .where('class', '==', req.query.class)
-                .get()
-                .then(col => {
-                    col = handleQuery(col)
-                    
-                    let usersData = [];
-    
-                    let usersToCome = col.map(r=>r.user)
-                    
-                    usersToCome.forEach(u=>{
-                        usersData.push(getUser(u,udb))
-                    })
-    
-                    Promise.all(usersData).then(usersData=>{
-                        res.json(col.map(r=>{
-                            let t = r;
-                            t.user = usersData.filter(u =>u && u.id == t.user)[0]
-                            return t;
-                        }))
-                    })
-    
-                    
-                })
+            let waitingList = await ifBefore(userClassesWL, {active:true,class:req.query.class})
+            let usersToCome = waitingList.map(r=>r.user)
+            let usersData = [];                    
+            usersToCome.forEach(u=>{
+                usersData.push(getUser(u,udb))
+            })
+
+            Promise.all(usersData).then(usersData=>{
+                res.json(waitingList.map(r=>{
+                    let t = r;
+                    t.user = usersData.filter(u =>u && u.id == t.user)[0]
+                    return t;
+                }))
+            }).catch(err=>{
+                res.status(400).send(err.message)
+            })
+
+            break;
         }
     
         case 'user': {
@@ -969,10 +937,14 @@ router.all(`/:method`, auth, async (req, res) => {
         case 'users': {
             switch (req.method) {
                 case 'GET': {
-    
+                    if(!req.query.order) req.query.order = 'createdAt';
+                    let direction = String(req.query.direction?req.query.direction:'asc')
+
                     let data = [];
+
                     data.push(udb
-                        .orderBy((req.query.order || 'createdAt'), (req.query.direction || 'ASC'))
+                        // @ts-ignore
+                        .orderBy(req.query.order.toString(), direction)
                         .get()
                         .then(d => handleQuery(d)))
     
@@ -999,43 +971,39 @@ router.all(`/:method`, auth, async (req, res) => {
                         [req.body.field]: req.body.value,
                         updatedAt: new Date(),
                         updatedBy: +admin.id
-                    }).then(() => {
+                    }).then(async() => {
                         let actors = []
+                        actors[0] = await getUser(req.body.user,udb);
+                        actors[1] = admin;
     
-                        actors.push(udb.doc(req.body.user.toString()).get().then(u => u.data()))
-                        actors.push(udb.doc(admin.id.toString()).get().then(u => u.data()))
-    
-                        Promise.all(actors).then(actors => {
-    
-                            log({
-                                text:   `Админ @${uname(actors[1],actors[1].id)} ${interprete(req.body.field,req.body.value)} @${actors[0].username || req.body.user}`,
-                                user:   +req.body.user,
-                                admin:  +actors[1].id
-                            })
-    
-                            if (req.body.value) {
-                                if (req.body.field == 'insider') {
-                                    sendMessage2({
-                                        chat_id: req.body.user,
-                                        text: translations.congrats[actors[0].language_code] || translations.congrats.en
-                                    }, false, token, messages)
-                                }
-    
-                                if (req.body.field == 'admin') {
-                                    sendMessage2({
-                                        chat_id: req.body.user,
-                                        text: `Поздравляем, вы зарегистрированы как админ приложения.`
-                                    }, false, token, messages)
-                                }
-    
-                                if (req.body.field == 'fellow') {
-                                    sendMessage2({
-                                        chat_id: req.body.user,
-                                        text: translations.fellow[actors[0].language_code] || translations.fellow.en
-                                    }, false, token, messages)
-                                }
-                            }
+                        log({
+                            text:   `Админ @${uname(actors[1],actors[1].id)} ${interprete(req.body.field,req.body.value)} @${actors[0].username || req.body.user}`,
+                            user:   +req.body.user,
+                            admin:  +actors[1].id
                         })
+
+                        if (req.body.value) {
+                            if (req.body.field == 'insider') {
+                                sendMessage2({
+                                    chat_id: req.body.user,
+                                    text: translations.congrats[actors[0].language_code] || translations.congrats.en
+                                }, false, token, messages)
+                            }
+
+                            if (req.body.field == 'admin') {
+                                sendMessage2({
+                                    chat_id: req.body.user,
+                                    text: `Поздравляем, вы зарегистрированы как админ приложения.`
+                                }, false, token, messages)
+                            }
+
+                            if (req.body.field == 'fellow') {
+                                sendMessage2({
+                                    chat_id: req.body.user,
+                                    text: translations.fellow[actors[0].language_code] || translations.fellow.en
+                                }, false, token, messages)
+                            }
+                        }
                     })
                 }
     
@@ -1092,36 +1060,12 @@ router.all(`/:method`, auth, async (req, res) => {
                     })
                 }
                 case `POST`:{
-    
-                    if(!req.body.name) return res.status(400).send(`name is missing`)
-                    if(!req.body.desc) return res.status(400).send(`desc is missing`)
-                    if(!req.body.days) return res.status(400).send(`days is missing`)
-                    if(!req.body.visits) return res.status(400).send(`visits is missing`)
-                    if(!req.body.events) return res.status(400).send(`events is missing`)
-                    if(!req.body.price) return res.status(400).send(`price is missing`)
-    
-                    return plans.add({
-                        active: true,
-                        createdAt:  new Date(),
-                        createdBy:  +admin.id,
-                        name:   req.body.name,
-                        description:   req.body.desc,
-                        days:   +req.body.days,
-                        visits: +req.body.visits,
-                        events: +req.body.events,
-                        price:  +req.body.price,
-                    }).then(rec=>{
-                        log({
-                            text: `${uname(admin,admin.id)} создает тариф ${req.body.name}`,
-                            admin: +admin.id,
-                            plan:   rec.id
-                        })
-                        res.json({
-                            success:    true,
-                            comment:    `Тариф создан.`,
-                            id:         rec.id
-                        })
-                    }).catch(err=>{
+                    
+                    return plan.create(req.body,admin)
+                    .then(s=>{
+                        res.json(s)
+                    })
+                    .catch(err=>{
                         handleError(err)
                     })
                 }
@@ -1134,780 +1078,655 @@ router.all(`/:method`, auth, async (req, res) => {
 
 })
 
-router.all(`/:method/:id`,(req,res)=>{
-    if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
-    adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
-        if (!doc.exists) return res.sendStatus(403)
-        doc = handleDoc(doc)
+router.all(`/:method/:id`,auth,async(req,res)=>{
+    let admin = res.locals.admin;
+    
+    switch(req.params.method){
 
-        if (!doc.active) return res.sendStatus(403)
+        case `rcStart`:{
+            let i =         await getDoc(randomCoffeeIterations,req.params.id);
 
-        udb.doc(doc.user.toString()).get().then(async admin => {
-
-            admin = handleDoc(admin);
-
-            switch(req.params.method){
-
-                case `rcStart`:{
-                    
-                    return getDoc(randomCoffeeIterations,req.params.id).then(i=>{
-                        
-                        if(!i)          return res.status(404).send(`не было такого круга`)
-                        if(i.started)   return res.status(400).send(`круг уже был запущен`)
-                        
-                        rcMethods.randomCoffee(admin,req.params.id)
-                
-                        return res.json({
-                            success: true,
-                            comment: `Рулетка запущена!`
-                        })    
-                    })
-                    
+            if(!i)          return res.status(404).send(`не было такого круга`)
+            if(i.started)   return res.status(400).send(`круг уже был запущен`)
+            
+            rcMethods.randomCoffee(admin,req.params.id)
+    
+            return res.json({
+                success: true,
+                comment: `Рулетка запущена!`
+            })            
+        }
+        
+        case `rcFollowUp`:{
+            switch(req.method){
+                case `POST`:{
+                    return rcMethods.rcFollowUp(req.params.id)
+                        .then(d=>{
+                            res.json(d)
+                        }).catch(err=>{
+                            res.status(400).send(err.message)
+                        })
                 }
-                
-                case `rcFollowUp`:{
+                case `GET`:{
+                    
+                    rcMethods.rcResult(req.params.id);
+                    
+                    return res.json({
+                        success: true,
+                        comment: `Результаты придут в телеграм.`
+                    })
+                }
+            }
+
+            
+        }
+
+        case `usersNews`:{
+            return messages.where(`news`,'==',req.params.id).get().then(col=>res.json(handleQuery(col,true)))
+        }
+
+        case `images`: {
+            return axios.post(`https://api.telegram.org/bot${token}/getFile`, {
+                file_id: req.params.id
+            }).then(s => {
+                res.json({
+                    src: `https://api.telegram.org/file/bot${token}/${s.data.result.file_path}`
+                })
+            }).catch(err=>handleError(err,res))
+        }
+        
+        case `settings`:{
+            switch(req.method){
+                case `POST`:{
+                    devlog(req.params.id);
+                    devlog(req.body.value);
+                    return settings.doc(req.params.id).set({help:req.body.value}).then(s=>{
+                        res.json({
+                            success: true
+                        })
+                    }).catch(err=>{
+                        res.status(500).send(err)
+                    })
+                }
+                case `GET`:{
+                    return getDoc(settings,req.params.id).then(d=>res.json(d))
+                }
+                case `PUT`:{
+                    return updateEntity(req,res,settings.doc(req.params.id),+admin.id)
+                }
+            }
+        }
+        case `rcIterations`:{
+            return randomCoffeeIterations
+                .doc(req.params.id)
+                .get()
+                .then(doc=>res.json(handleDoc(doc)))
+        }
+
+
+        case `mr`:{
+            
+            let ref = mra.doc(req.params.id);
+            
+            return ref.get().then(p=>{
+                switch(req.method){
+                    case `DELETE`:{
+                        return deleteEntity(req,res,ref,+admin.id,false,()=>mrMethods.alertCancel(p.data()))
+                    }
+                }
+            })
+            
+        }
+
+        case `books`:{
+            let ref = books.doc(req.params.id);
+                return ref.get().then(p=>{
+                    if(!p.exists) return res.sendStatus(404)
                     switch(req.method){
-                        case `POST`:{
-                            return rcMethods.rcFollowUp(req.params.id)
-                                .then(d=>{
-                                    res.json(d)
-                                }).catch(err=>{
-                                    res.status(400).send(err.message)
-                                })
+                        case `DELETE`:{
+                            return deleteEntity(req,res,ref,+admin.id)
                         }
-                        case `GET`:{
-                            
-                            rcMethods.rcResult(req.params.id);
-                            
-                            return res.json({
-                                success: true,
-                                comment: `Результаты придут в телеграм.`
-                            })
+                        case `PUT`:{
+                            return updateEntity(req,res,ref,+admin.id)
                         }
                     }
+                })   
+        }
 
-                    
+        case `plansUsers`:{
+            let ref = plansUsers.doc(req.params.id);
+            let record = await getDoc(plansUsers,req.params.id)
+            if(!record) return res.sendStatus(404)
+            
+            switch(req.method){
+                case `DELETE`:{
+                    return deleteEntity(req,res,ref,+admin.id,false,()=>plan.alertDisposal(record),{
+                        user: record.user,
+                        plan: record.plan
+                    })
                 }
-
-                case `usersNews`:{
-                    return messages.where(`news`,'==',req.params.id).get().then(col=>res.json(handleQuery(col,true)))
-                }
-
-                case `images`: {
-                    return axios.post(`https://api.telegram.org/bot${token}/getFile`, {
-                        file_id: req.params.id
-                    }).then(s => {
+            }
+        }
+        case `plansRequests`:{
+            let ref = plansRequests.doc(req.params.id);
+            let cl = await getDoc(plansRequests,req.params.id);
+            if(!cl) return res.sendStatus(404)
+            
+            switch (req.method) {
+                case `DELETE`:{
+                    return ref.update({
+                        active: false
+                    }).then(s=>{
                         res.json({
-                            src: `https://api.telegram.org/file/bot${token}/${s.data.result.file_path}`
+                            success: true,
+                            comment: `Заявка архивирована.`
                         })
-                    }).catch(err=>handleError(err,res))
+                    }).catch(err=>{
+                        handleError(err,res)
+                    })
+                }                            
+            }
+        }
+        case `plansUses`:{
+            return plansUsers
+                .where(`plan`,'==',req.params.id)
+                .get()
+                .then(col=>{
+                    res.json(handleQuery(col,true))
+                })
+        }
+        case `plansByUser`:{
+            switch(req.method){
+                case `GET`:{
+                    return plansUsers
+                        .where(`user`,'==',+req.params.id)
+                        .get()
+                        .then(col=>{
+                            res.json(handleQuery(col,true))
+                        })
                 }
+            }
+        }
+
+        case `requestsByPlan`:{
+            return plansRequests.get().then(col=>{
+                res.json(handleQuery(col,true))
+            })
+        }
+
+        case `plans`:{
+            let ref = plans.doc(req.params.id);
+
+            return ref.get().then(cl => {
+                if (!cl.exists) return res.sendStatus(404)
+                switch (req.method) {
+                    case `GET`:{
+                        return res.json(handleDoc(cl))
+                    }
+                    case `DELETE`:{
+                        return deleteEntity(req,res,ref,+admin.id,false,false,{
+                            plan: req.params.id
+                        })
+                    }
+                    case `PUT`:{
+                        return updateEntity(req,res,ref,+admin.id)
+                    }
+                }
+            })
+        }
+
+        case `classRCInit`:{
+            if (!consistencyCheck(req.body,[`text`],res)) return;
+            let sent = await classMethods.prepareRC(req.params.id,req.body.text)
+            return res.json({
+                success: true,
+                comment: `Рассылка уходит на ${sent} пользователей.`
+            })
+        }
+
+        case `classRCStart`:{
+            if (!consistencyCheck(req.body,[`text`],res)) return;
+            let sent = await classMethods.startRC(req.params.id,req.body.text);
+            return res.json({
+                success: true,
+                comment: `Рассылка уходит на ${sent} пользователей.`
+            })
+        }
+
+        case `alertClass`:{
+            return getDoc(classes,req.params.id).then(async cl=>{
                 
-                case `settings`:{
-                    switch(req.method){
-                        case `POST`:{
-                            devlog(req.params.id);
-                            devlog(req.body.value);
-                            return settings.doc(req.params.id).set({help:req.body.value}).then(s=>{
+                if(!cl || !cl.active) return res.sendStatus(404)
+
+                if(req.query.self){
+                    
+                    sendClass(cl,admin)
+                        
+                    res.json({
+                        success: true,
+                        comment: `Го в тележку`
+                    })
+
+                } else if(req.query.admins){
+                    try {
+                        let record = await newsMethods.add({
+                            name:       `Рассылка по админам по лекции ${cl.name}`,
+                            text:       classDescription(cl,`ru`),
+                            filter:     `admin`
+                        },admin)
+                        
+                        let result = await newsMethods.startNews(record.id)
+                        
+                        return res.json({
+                            success: true,
+                            comment: `Рассылка уходит на ${letterize(result.success,'юзер')}.`
+                        })    
+                    } catch (error) {
+                        res.json({
+                            success: false,
+                            comment: error.message
+                        })
+                    }
+                    
+                    
+                } else {
+                    
+                    if(cl.admins)   cl.filter = `admin`
+                    if(cl.fellows)  cl.filter = `fellow`
+
+                    try {
+                        let record = await newsMethods.add({
+                            name:       `Рассылка по лекции ${cl.name}`,
+                            text:       classDescription(cl,`ru`),
+                            filter:     cl.filter || null,
+                            class:      cl.id
+                        },admin)
+
+                        let result = await newsMethods.startNews(record.id);
+                        
+                        res.json({
+                            success: true,
+                            comment: `Рассылка уходит на ${letterize(result.success,'юзер')}.`
+                        })    
+                    } catch (error) {
+                        res.json({
+                            success: false,
+                            comment: error.message
+                        })
+                    }
+                }
+            })
+        }
+        case `standAlone`:{
+            let ref = standAlone.doc(req.params.id)
+            return ref.get().then(doc=>{
+                if(!doc.exists) return res.sendStatus(404)
+                switch(req.method){
+                    case `GET`:{
+                        return res.json(handleDoc(doc))
+                    }
+                    case `DELETE`:{
+                        return deleteEntity(req,res,ref,+admin.id)
+                    }
+                    case `PUT`:{
+                        return updateEntity(req,res,ref,+admin.id)
+                    }
+                }
+            })
+        }
+        case `userClasses`:{
+            let ref = userClasses.doc(req.params.id);
+
+            return ref.get().then(cl => {
+                if (!cl.exists) return res.sendStatus(404)
+                switch (req.method) {
+                    case `GET`:{
+                        return res.json(handleDoc(cl))
+                    }
+                    case `PUT`:{
+                        return updateEntity(req,res,ref,+admin.id)
+                    }
+                    case `DELETE`:{
+                        return deleteEntity(req,res,ref,+admin.id)
+                    }
+                }
+            })
+        }
+        case `userInvoices`:{
+            switch (req.method) {
+                case 'GET': {
+                    return invoices
+                        .where(`user`, '==', +req.params.id)
+                        .get()
+                        .then(col => {
+                            res.json(handleQuery(col,true))
+                        })
+                }
+            }
+        }
+        case `coworking`:{
+            let ref = coworking.doc(req.params.id);
+
+            return ref.get().then(cl => {
+                if (!cl.exists) return res.sendStatus(404)
+                switch (req.method) {
+                    case `PUT`:{
+                        return updateEntity(req,res,ref,+admin.id,()=>{
+                            
+                            coworking.doc(req.params.id).update({
+                                payed: new Date()
+                            })
+
+                            coworkingMethods.withDrawal(cl.data(),req.body.by)
+                        })
+                    }
+                    case `DELETE`:{
+                        return deleteEntity(req,res,ref,+admin.id,false,()=>{coworkingMethods.alertCancel(cl.data())})
+                    }
+                }
+            })
+        }
+        case `coworkingByUser`:{
+            return coworking
+                .where(`user`,'==',+req.params.id)
+                .get()
+                .then(col=>{
+                    res.json(handleQuery(col).sort((a,b)=>a.date<b.date?-1:1))
+                })
+        }
+        case `roomsBlockedAdd`:{
+            return coworkingMethods.closeRoom(req.params.id,req.body.date || isoDate(),admin)
+                .then(d=>{
+                    res.json(d)
+                }).catch(err=>{
+                    res.status(400).send(err.message)
+                })
+            
+        }
+        case `roomsBlockedByHall`:{
+            return roomsBlocked
+                .where(`room`,'==',req.params.id)
+                .where(`active`,'==',true)
+                .where(`date`,'>',new Date().toISOString().split(`T`)[0])
+                .get()
+                .then(col=>{
+                    res.json(handleQuery(col,true))
+                })
+        }
+        case `roomsBlocked`:{
+            let ref = roomsBlocked.doc(req.params.id)
+            return ref.get().then(author => {
+                if (!author.exists) return res.sendStatus(404)
+                switch (req.method) {
+                    case `DELETE`:{
+                        deleteEntity(req,res,ref,admin.id)
+                    }
+                }
+            })
+        }
+        case `coworkingHalls`:{
+            let days = []
+            let shift = 0;
+            
+            while (shift<7){
+                let date = new Date(+new Date()+shift*24*60*60*1000).toISOString().split('T')[0]
+                let hall = req.params.id
+                days.push(coworking.where(`hall`,'==',hall).where(`date`,'==',date).get().then(col=>{
+                    return {
+                        date: date,
+                        records: handleQuery(col)
+                    }
+                }))
+                shift++
+            }
+            return Promise.all(days).then(days=>{
+                res.json(days)
+            })
+        }
+        case `coworkingDays`:{
+            let days = []
+            let shift = 0;
+            while (shift<7){
+                let date = new Date(+new Date(req.params.id)+shift*24*60*60*1000).toISOString().split('T')[0]
+                days.push(coworking.where(`date`,'==',date).get().then(col=>{
+                    return {
+                        date: date,
+                        records: handleQuery(col)
+                    }
+                }))
+                shift++
+            }
+            return Promise.all(days).then(days=>{
+                res.json(days)
+            })
+        }
+        
+
+        case `authors`:{
+            let ref = authors.doc(req.params.id)
+            return ref.get().then(author => {
+                if (!author.exists) return res.sendStatus(404)
+                switch (req.method) {
+                    case 'GET': {
+                        return authorMethods.get(req.params.id)
+                            .then(d=>{
+                                res.json(d)
+                            })
+                            .catch(err=>{
+                                res.status(400).send(err.message)
+                            })
+                    }
+                    case 'PUT': {
+                        return updateEntity(req,res,ref,admin.id)
+                    }
+
+                    case 'DELETE': {
+                        return deleteEntity(req,res,ref,admin);
+                    }
+                }
+            })
+        }
+
+        case `classes`:{
+            
+            let ref = classes.doc(req.params.id);
+
+            return ref.get().then(cl => {
+                if (!cl.exists) return res.sendStatus(404)
+                switch (req.method) {
+                    
+                    case `DELETE`:{
+                        let c = cl.data() || {};
+                        if(!c.active) return res.status(400).send(`Уже отменено!`);
+                        return deleteEntity(req,res,ref,+admin.id,false,()=>{
+                            classMethods.alertClassClosed(req.params.id);
+                        })
+                    }
+                    case `PUT`:{
+
+                        if(req.body.attr != `date`){
+                            return updateEntity(req,res,ref,+admin.id)
+                        } else {
+                            return ref.update({
+                                updatedBy:  +admin.id,
+                                updatedAt:  new Date(),
+                                date:       req.body.value
+                            }).then(s=>{
                                 res.json({
                                     success: true
                                 })
-                            }).catch(err=>{
-                                res.status(500).send(err)
                             })
                         }
-                        case `GET`:{
-                            return getDoc(settings,req.params.id).then(d=>res.json(d))
-                        }
-                        case `PUT`:{
-                            return updateEntity(req,res,settings.doc(req.params.id),+admin.id)
-                        }
-                    }
-                }
-                case `rcIterations`:{
-                    return randomCoffeeIterations
-                        .doc(req.params.id)
-                        .get()
-                        .then(doc=>res.json(handleDoc(doc)))
-                }
-
-
-                case `mr`:{
-                    
-                    let ref = mra.doc(req.params.id);
-                    return ref.get().then(p=>{
-                        switch(req.method){
-                            case `DELETE`:{
-                                return deleteEntity(req,res,ref,+admin.id,false,()=>plan.alertDisposal(handleDoc(p)),{
-                                    user: p.data().user,
-                                })
-                            }
-                        }
-                    })
-                    
-                }
-
-                case `books`:{
-                    let ref = books.doc(req.params.id);
-                        return ref.get().then(p=>{
-                            
-                            if(!p.exists) return res.sendStatus(404)
-
-                            switch(req.method){
-                                case `DELETE`:{
-                                    return deleteEntity(req,res,ref,+admin.id)
-                                }
-                                case `PUT`:{
-                                    return updateEntity(req,res,ref,+admin.id)
-                                }
-                            }
-
-                        })   
-                }
-
-                case `plansUsers`:{
-                    let ref = plansUsers.doc(req.params.id);
-                        return ref.get().then(p=>{
-                            if(!p.exists) return res.sendStatus(404)
-
-                            switch(req.method){
-                                case `DELETE`:{
-                                    return deleteEntity(req,res,ref,+admin.id,false,()=>plan.alertDisposal(handleDoc(p)),{
-                                        user: p.data().user,
-                                        plan: p.data().plan
-                                    })
-                                }
-                            }
-
-                        })
-                    
-                }
-                case `plansRequests`:{
-                    let ref = plansRequests.doc(req.params.id);
-
-                    return ref.get().then(cl => {
-                        if (!cl.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            case `DELETE`:{
-                                return ref.update({
-                                    active: false
-                                }).then(s=>{
-                                    res.json({
-                                        success: true,
-                                        comment: `Заявка архивирована.`
-                                    })
-                                }).catch(err=>{
-                                    handleError(err)
-                                })
-                            }                            
-                        }
-                    })
-                }
-                case `plansUses`:{
-                    return plansUsers
-                        .where(`plan`,'==',req.params.id)
-                        .get()
-                        .then(col=>{
-                            res.json(handleQuery(col,true))
-                        })
-                }
-                case `plansByUser`:{
-                    switch(req.method){
-                        case `GET`:{
-                            return plansUsers
-                                .where(`user`,'==',+req.params.id)
-                                .get()
-                                .then(col=>{
-                                    res.json(handleQuery(col,true))
-                                })
-                        }
-                    }
-                }
-
-                case `requestsByPlan`:{
-                    return plansRequests.get().then(col=>{
-                        res.json(handleQuery(col,true))
-                    })
-                }
-
-                case `plans`:{
-                    let ref = plans.doc(req.params.id);
-
-                    return ref.get().then(cl => {
-                        if (!cl.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            case `GET`:{
-                                return res.json(handleDoc(cl))
-                            }
-                            case `DELETE`:{
-                                return deleteEntity(req,res,ref,+admin.id,false,false,{
-                                    plan: req.params.id
-                                })
-                            }
-                            case `PUT`:{
-                                return updateEntity(req,res,ref,+admin.id)
-                            }
-                        }
-                    })
-                }
-
-                case `classRCInit`:{
-                    if (!consistencyCheck(req.body,[`text`],res)) return;
-                    let sent = await classMethods.prepareRC(req.params.id,req.body.text)
-                    return res.json({
-                        success: true,
-                        comment: `Рассылка уходит на ${sent} пользователей.`
-                    })
-                }
-
-                case `classRCStart`:{
-                    if (!consistencyCheck(req.body,[`text`],res)) return;
-                    let sent = await classMethods.startRC(req.params.id,req.body.text);
-                    return res.json({
-                        success: true,
-                        comment: `Рассылка уходит на ${sent} пользователей.`
-                    })
-                }
-
-                case `alertClass`:{
-                    return getDoc(classes,req.params.id).then(async cl=>{
                         
-                        if(!cl || !cl.active) return res.sendStatus(404)
-
-                        if(req.query.self){
-                            
-                            sendClass(cl,admin)
-                                
-                            res.json({
-                                success: true,
-                                comment: `Го в тележку`
-                            })
-
-                        } else if(req.query.admins){
-                            try {
-                                let record = await newsMethods.add({
-                                    name:       `Рассылка по админам по лекции ${cl.name}`,
-                                    text:       classDescription(cl,`ru`),
-                                    filter:     `admin`
-                                },admin)
-                                
-                                let result = await newsMethods.startNews(record.id)
-                                
-                                return res.json({
-                                    success: true,
-                                    comment: `Рассылка уходит на ${letterize(result.success,'юзер')}.`
-                                })    
-                            } catch (error) {
-                                res.json({
-                                    success: false,
-                                    comment: error.message
-                                })
-                            }
-                            
-                            
-                        } else {
-                            
-                            if(cl.admins)   cl.filter = `admin`
-                            if(cl.fellows)  cl.filter = `fellow`
-
-                            try {
-                                let record = await newsMethods.add({
-                                    name:       `Рассылка по лекции ${cl.name}`,
-                                    text:       classDescription(cl,`ru`),
-                                    filter:     cl.filter || null,
-                                    class:      cl.id
-                                },admin)
-    
-                                let result = await newsMethods.startNews(record.id);
-                                
-                                res.json({
-                                    success: true,
-                                    comment: `Рассылка уходит на ${letterize(result.success,'юзер')}.`
-                                })    
-                            } catch (error) {
-                                res.json({
-                                    success: false,
-                                    comment: error.message
-                                })
-                            }
-                        }
-                    })
-                }
-                case `standAlone`:{
-                    let ref = standAlone.doc(req.params.id)
-                    return ref.get().then(doc=>{
-                        if(!doc.exists) return res.sendStatus(404)
-                        switch(req.method){
-                            case `GET`:{
-                                return res.json(handleDoc(doc))
-                            }
-                            case `DELETE`:{
-                                return deleteEntity(req,res,ref,+admin.id)
-                            }
-                            case `PUT`:{
-                                return updateEntity(req,res,ref,+admin.id)
-                            }
-                        }
-                    })
-                }
-                case `userClasses`:{
-                    let ref = userClasses.doc(req.params.id);
-
-                    return ref.get().then(cl => {
-                        if (!cl.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            case `GET`:{
-                                return res.json(handleDoc(cl))
-                            }
-                            case `PUT`:{
-                                return updateEntity(req,res,ref,+admin.id)
-                            }
-                            case `DELETE`:{
-                                return deleteEntity(req,res,ref,+admin.id)
-                            }
-                        }
-                    })
-                }
-                case `userInvoices`:{
-                    switch (req.method) {
-                        case 'GET': {
-                            return invoices
-                                .where(`user`, '==', +req.params.id)
-                                .get()
-                                .then(col => {
-                                    res.json(handleQuery(col,true))
-                                })
-                        }
+                    }
+                    case `GET`:{
+                        return res.json(handleDoc(cl))
                     }
                 }
-                case `coworking`:{
-                    let ref = coworking.doc(req.params.id);
+            })
+        }
 
-                    return ref.get().then(cl => {
-                        if (!cl.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            case `PUT`:{
-                                return updateEntity(req,res,ref,+admin.id,()=>{
-                                    
-                                    coworking.doc(req.params.id).update({
-                                        payed: new Date()
-                                    })
+        case `classReviews`:{
 
-                                    coworkingMethods.withDrawal(cl.data(),req.body.by)
-                                })
-                            }
-                            case `DELETE`:{
-                                return deleteEntity(req,res,ref,+admin.id,false,()=>{coworkingMethods.alertCancel(cl.data())})
-                            }
-                        }
-                    })
-                }
-                case `coworkingByUser`:{
-                    return coworking
-                        .where(`user`,'==',+req.params.id)
-                        .get()
-                        .then(col=>{
-                            res.json(handleQuery(col).sort((a,b)=>a.date<b.date?-1:1))
+            let c = await getDoc(classes,req.params.id);
+
+            if (!c) return res.sendStatus(404)
+            
+            switch (req.method) {
+                case `POST`:{
+                    return classMethods.feedBackRequest(req.params.id).then(s=>{
+                        res.json({
+                            success: true,
+                            comment: `Количество рассылаемых запросов: ${s}.`
                         })
-                }
-                case `roomsBlockedAdd`:{
-                    return halls
-                        .doc(req.params.id)
-                        .get()
-                        .then(h=>{
-                            if(!h.exists) return res.sendStatus(404)
-                            h = handleDoc(h)
-                            let d = req.body.date || isoDate()
-
-                            roomsBlocked
-                                .where(`active`,'==',true)
-                                .where(`date`,`==`,d)
-                                .where(`room`,'==',req.params.id)
-                                .get()
-                                .then(col=>{
-                                    if(col.docs.length) return res.json({
-                                        success: false,
-                                        comment: `Дата уже закрыта`
-                                    })
-
-                                    roomsBlocked.add({
-                                        createdAt:  new Date(),
-                                        createdBy:  +admin.id,
-                                        active:     true,
-                                        date:       d,
-                                        room:       req.params.id
-                                    }).then(rec=>{
-                                        
-                                        res.json({
-                                            success: true,
-                                            comment: `Дата закрыта`,
-                                            id:     rec.id
-                                        })
-
-                                        coworking
-                                            .where(`active`,'==',true)
-                                            .where(`date`,`==`,d)
-                                            .where(`hall`,'==',req.params.id)
-                                            .get()
-                                            .then(col=>{
-                                                log({
-                                                    filter: `coworking`,
-                                                    text: `${uname(admin,admin.id)} закрывает зал ${h.name} на ${d}. ${col.docs.length ? `Количество затронутых пользователей: ${col.docs.length}`: ''}`,
-                                                    admin: +admin.id,
-                                                    hall: req.params.id
-                                                })
-                                                col.docs.forEach((cwr,i)=>{
-                                                    setTimeout(()=>{
-                                                        coworking.doc(cwr.id).update({
-                                                            active:false
-                                                        }).then(()=>{
-                                                            let txt = `Простите, вашу запись в коворкинг на ${d} пришлось отменить по непредвиденным причинам. Пожалуйста, выберите другое время. Приносим извинения за неудобства.`
-                                                            sendMessage2({
-                                                                chat_id: cwr.data().user,
-                                                                text: txt
-                                                            },false,token,messages)
-                                                        })
-                                                    },i+200)
-                                                })
-                                            })
-                                    })
-                                })
-
-                            
-                        })
-                }
-                case `roomsBlockedByHall`:{
-                    return roomsBlocked
-                        .where(`room`,'==',req.params.id)
-                        .where(`active`,'==',true)
-                        .where(`date`,'>',new Date().toISOString().split(`T`)[0])
-                        .get()
-                        .then(col=>{
-                            res.json(handleQuery(col,true))
-                        })
-                }
-
-                case `roomsBlocked`:{
-                    let ref = roomsBlocked.doc(req.params.id)
-                    return ref.get().then(author => {
-                        if (!author.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            case `DELETE`:{
-                                deleteEntity(req,res,ref,admin.id)
-                            }
-                        }
-                    })
-                }
-
-                case `coworkingHalls`:{
-                    let days = []
-                    let shift = 0;
-                    
-                    while (shift<7){
-                        let date = new Date(+new Date()+shift*24*60*60*1000).toISOString().split('T')[0]
-                        let hall = req.params.id
-                        days.push(coworking.where(`hall`,'==',hall).where(`date`,'==',date).get().then(col=>{
-                            return {
-                                date: date,
-                                records: handleQuery(col)
-                            }
-                        }))
-                        shift++
-                    }
-                    return Promise.all(days).then(days=>{
-                        res.json(days)
-                    })
-                }
-
-                case `coworkingDays`:{
-                    let days = []
-                    let shift = 0;
-                    while (shift<7){
-                        let date = new Date(+new Date(req.params.id)+shift*24*60*60*1000).toISOString().split('T')[0]
-                        days.push(coworking.where(`date`,'==',date).get().then(col=>{
-                            return {
-                                date: date,
-                                records: handleQuery(col)
-                            }
-                        }))
-                        shift++
-                    }
-                    return Promise.all(days).then(days=>{
-                        res.json(days)
-                    })
-                }
-                
-
-                case `authors`:{
-                    let ref = authors.doc(req.params.id)
-                    return ref.get().then(author => {
-                        if (!author.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            case 'GET': {
-                                let data = []
-                                data.push(classes.where(`authorId`, '==', req.params.id).get().then(col => handleQuery(col)))
-                                data.push(subscriptions.where(`author`, '==', req.params.id).where(`active`, '==', true).get().then(col => handleQuery(col)))
-                                data.push(courses.where(`authorId`, '==', req.params.id).where(`active`, '==', true).get().then(col => handleQuery(col)))
-                                // data.push(views.where(`entity`,'==','author').where(`id`,'==',req.params.id).get().then(handleQuery))
-                                return Promise.all(data).then(data => {
-                                    res.json({
-                                        author:         handleDoc(author),
-                                        classes:        data[0],
-                                        subscriptions:  data[1],
-                                        courses:        data[2],
-                                        // views:          data[3]
-                                    })
-                                })
-                            }
-                            case 'PUT': {
-                                return ref.update({
-                                    [req.body.attr]: req.body.value,
-                                    updatedBy: doc.user
-                                }).then(s => {
-                                    log({
-                                        silent: true,
-                                        text: `автор ${handleDoc(author).name} был обновлен`,
-                                        admin: +admin.id,
-                                        author: req.params.id
-                                    })
-                                    res.json({
-                                        success: true,
-                                        comment: `Автор обновлен`
-                                    })
-                                }).catch(err => {
-                                    res.json({
-                                        success: false,
-                                        comment: err.message
-                                    })
-                                })
-                            }
-
-                            case 'DELETE': {
-                                return ref.update({
-                                    active:     false,
-                                    updatedBy:  +admin.id
-                                }).then(s => {
-                                    res.json({
-                                        success: true,
-                                        comment: `Автор отправлен в архив.`
-                                    })
-                                    log({
-                                        silent: true,
-                                        text:   `автор ${handleDoc(author).name} отправляется в архив`,
-                                        admin:  +admin.id,
-                                        author: req.params.id
-                                    })
-                                })
-                            }
-                        }
-                    })
-                }
-
-                case `classes`:{
-                    
-                    let ref = classes.doc(req.params.id);
-
-                    return ref.get().then(cl => {
-                        if (!cl.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            
-                            case `DELETE`:{
-                                // cl = cl.data();
-                                if(!cl.data().active) return res.status(400).send(`Уже отменено!`);
-                                return deleteEntity(req,res,ref,+admin.id,false,()=>{
-                                    classMethods.alertClassClosed(req.params.id);
-                                })
-                            }
-                            case `PUT`:{
-
-                                if(req.body.attr != `date`){
-                                    return updateEntity(req,res,ref,+admin.id)
-                                } else {
-                                    return ref.update({
-                                        updatedBy: +admin.id,
-                                        updatedAt: new Date(),
-                                        date: req.body.value
-                                    }).then(s=>{
-                                        res.json({
-                                            success: true
-                                        })
-                                    })
-                                }
-                                
-                            }
-                            case `GET`:{
-                                return res.json(handleDoc(cl))
-                            }
-                        }
-                    })
-                }
-
-                case `classReviews`:{
-
-                    let ref = classes.doc(req.params.id);
-
-                    return ref.get().then(c => {
-                        if (!c.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            case `POST`:{
-                                return classMethods.feedBackRequest(req.params.id).then(s=>{
-                                    res.json({
-                                        success: true,
-                                        comment: `Количество рассылаемых запросов: ${s}.`
-                                    })
-                                })
-                            }
-                        }
-                    })
-                }
-
-                case `halls`:{
-                    
-                    let ref = halls.doc(req.params.id);
-
-                    return ref.get().then(cl => {
-                        if (!cl.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            case `GET`:{
-                                return res.json(handleDoc(cl))
-                            }
-                            case `PUT`:{
-                                return updateEntity(req,res,ref,+admin.id)
-                            }
-                            case `DELETE`:{
-                                return deleteEntity(req,res,ref,+admin.id)
-                            }
-                        }
-                    })
-                }
-                
-
-                case `logs`:{
-                    
-                    let q = req.params.id.split('_')
-                    
-                    return logs
-                        .where(q[0],'==',Number(q[1])?+q[1]:q[1])
-                        // .orderBy(`createdAt`,`desc`)
-                        .get()
-                        .then(col=>{
-                            res.json(handleQuery(col,true))
-                        })
-                }
-
-                case `users`:{
-                    let ref = udb.doc(req.params.id);
-
-                    return ref.get().then(cl => {
-                        if (!cl.exists) return res.sendStatus(404)
-                        switch (req.method) {
-                            
-                            case `PUT`:{
-                                return updateEntity(req,res,ref,+admin.id)
-                            }
-
-                            case `GET`:{
-                                return res.json(handleDoc(cl))
-                            }
-                        }
-                    })
-                }
-
-                case `messages`: {
-                    switch (req.method){
-                        case `GET`:{
-                            return messages
-                                .where(`user`, '==', +req.params.id)
-                                .orderBy(`createdAt`, 'asc')
-                                .get()
-                                .then(col => {
-                                    res.json(handleQuery(col))
-                                })
-                        }
-                        case `PUT`:{
-                            let ref = messages.doc(req.params.id);
-
-                            return ref.get().then(mess=>{
-                                if(!mess.exists) return res.sendStatus(404);
-                                mess = handleDoc(mess);
-                                if(mess.deleted || mess.edited)       return res.status(400).send(`уже удалено`);
-                                if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
-                                
-                                sendMessage2({
-                                    chat_id:    mess.user,
-                                    message_id: mess.messageId,
-                                    text:       req.body.value
-                                },`editMessageText`,token).then(resp=>{
-                                    if(resp.ok) {
-                                        res.json({
-                                            success: true,
-                                            comment: `Сообщение обновлено.`
-                                        })
-                                        ref.update({
-                                            text:       req.body.value,
-                                            textInit:   mess.text,
-                                            editedBy:   +admin.id,
-                                            edited:     new Date()
-                                        })
-                                    } else {
-                                        res.sendStatus(500)
-                                    }
-                                })
-                            })
-                        }
-                        case `DELETE`:{
-                            let ref = messages.doc(req.params.id);
-                            return ref.get().then(mess=>{
-                                if(!mess.exists) return res.sendStatus(404);
-                                mess = handleDoc(mess);
-                                if(mess.deleted)       return res.status(400).send(`уже удалено`);
-                                if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
-                                
-                                sendMessage2({
-                                    chat_id:    mess.user,
-                                    message_id: mess.messageId
-                                },`deleteMessage`,token).then(resp=>{
-                                    if(resp.ok) {
-                                        res.json({
-                                            success: true,
-                                            comment: `Сообщение удалено.`
-                                        })
-                                        ref.update({
-                                            deleted:    new Date(),
-                                            deletedBy:  +admin.id
-                                        })
-                                    } else {
-                                        res.sendStatus(500)
-                                    }
-                                })
-                            })
-                        }
-                    }
-                    
-                }
-
-                case `news`:{
-                    return news.doc(req.params.id).get().then(n=>{
-                        if(!n.exists) return res.sendStatus(404)
-                        return res.json(handleDoc(n))
-                    })
-                }
-
-                case `wineByUser`:{
-                    return wineList
-                        .where(`user`,'==',+req.params.id)
-                        .get()
-                        .then(col=>{
-                            res.json(handleQuery(col,true))
-                        })
-                }
-
-                default:{
-                    return res.sendStatus(404)
+                    }).catch(err=>handleError(err,res))
                 }
             }
-        })
-    })
+        }
+
+        case `halls`:{
+            
+            let ref = halls.doc(req.params.id);
+
+            return ref.get().then(cl => {
+                if (!cl.exists) return res.sendStatus(404)
+                switch (req.method) {
+                    case `GET`:{
+                        return res.json(handleDoc(cl))
+                    }
+                    case `PUT`:{
+                        return updateEntity(req,res,ref,+admin.id)
+                    }
+                    case `DELETE`:{
+                        return deleteEntity(req,res,ref,+admin.id)
+                    }
+                }
+            })
+        }
+        
+
+        case `logs`:{
+            
+            let q = req.params.id.split('_')
+            
+            return logs
+                .where(q[0],'==',Number(q[1])?+q[1]:q[1])
+                .get()
+                .then(col=>{
+                    res.json(handleQuery(col,true))
+                })
+        }
+
+        case `users`:{
+            let ref = udb.doc(req.params.id);
+
+            return ref.get().then(cl => {
+                if (!cl.exists) return res.sendStatus(404)
+                switch (req.method) {
+                    
+                    case `PUT`:{
+                        return updateEntity(req,res,ref,+admin.id)
+                    }
+
+                    case `GET`:{
+                        return res.json(handleDoc(cl))
+                    }
+                }
+            })
+        }
+
+        case `messages`: {
+            switch (req.method){
+                case `GET`:{
+                    return messages
+                        .where(`user`, '==', +req.params.id)
+                        .orderBy(`createdAt`, 'asc')
+                        .get()
+                        .then(col => {
+                            res.json(handleQuery(col))
+                        })
+                }
+                case `PUT`:{
+                    let ref = messages.doc(req.params.id);
+                    let mess = await getDoc(messages,req.params.id);
+                    if(!mess)   return res.sendStatus(404);
+                    if(mess.deleted || mess.edited) return res.status(400).send(`уже удалено`);
+                    if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
+                    
+                    sendMessage2({
+                        chat_id:    mess.user,
+                        message_id: mess.messageId,
+                        text:       req.body.value
+                    },`editMessageText`,token).then(resp=>{
+                        if(resp.ok) {
+                            res.json({
+                                success: true,
+                                comment: `Сообщение обновлено.`
+                            })
+                            ref.update({
+                                text:       req.body.value,
+                                textInit:   mess.text,
+                                editedBy:   +admin.id,
+                                edited:     new Date()
+                            })
+                        } else {
+                            res.sendStatus(500)
+                        }
+                    })
+                    break;
+                }
+                case `DELETE`:{
+                    let ref = messages.doc(req.params.id);
+                    let mess = await getDoc(messages,req.params.id);
+                    if(!mess)   return res.sendStatus(404);
+
+                    if(mess.deleted)       return res.status(400).send(`уже удалено`);
+                    if(!mess.messageId)    return res.status(400).send(`нет id сообщения`);
+                    
+                    sendMessage2({
+                        chat_id:    mess.user,
+                        message_id: mess.messageId
+                    },`deleteMessage`,token).then(resp=>{
+                        if(resp.ok) {
+                            res.json({
+                                success: true,
+                                comment: `Сообщение удалено.`
+                            })
+                            ref.update({
+                                deleted:    new Date(),
+                                deletedBy:  +admin.id
+                            })
+                        } else {
+                            res.sendStatus(500)
+                        }
+                    })
+
+                    break;
+                }
+            }
+            
+        }
+
+        case `news`:{
+            return news.doc(req.params.id).get().then(n=>{
+                if(!n.exists) return res.sendStatus(404)
+                return res.json(handleDoc(n))
+            })
+        }
+
+        case `wineByUser`:{
+            return wineList
+                .where(`user`,'==',+req.params.id)
+                .get()
+                .then(col=>{
+                    res.json(handleQuery(col,true))
+                })
+        }
+
+        default:{
+            return res.sendStatus(404)
+        }
+    }
 })
 
 module.exports = router;

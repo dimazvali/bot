@@ -7,9 +7,33 @@ class entity{
         this.createdAt =    new Date();
         this.createdBy =    admin ? +admin.id : null;
         this.name =         o.name ? o.name : null;
+        this.description =  o.description || o.desc || null;
+
     }
     get js(){
         return JSON.parse(JSON.stringify(this))
+    }
+}
+
+class Hall extends entity{
+    constructor(data,admin){
+        super(data,admin)
+        this.floor =            +data.floor;
+        this.capacity =         +data.capacity;
+        this.pics =             data.pics;
+        this.price =            +data.price;
+        this.isCoworking =      data.isCoworking || false;
+        this.isMeetingRoom =    data.isMeetingRoom || false;
+    }
+}
+
+class Plan extends entity {
+    constructor(data,admin){
+        super(data,admin);
+        this.price =    +data.price;
+        this.events =   +data.events;
+        this.visits =   +data.visits;
+        this.days =     +data.days
     }
 }
 
@@ -57,6 +81,8 @@ class classRecord extends entity{
 }
 
 module.exports = {
+    Hall,
+    Plan,
     classRecord,
     Author,
     entity,

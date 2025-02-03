@@ -6,7 +6,7 @@ const { sendMessage2 } = require("../methods");
 const { logs, udb } = require("./cols");
 let token =         process.env.papersToken;
 let ngrok =     process.env.ngrok;
-
+const hook = process.env.papersHook || ''; 
 
 let coworkingPrice =    30;
 
@@ -144,7 +144,7 @@ function alertAdmins(mess) {
         })
 
 
-        axios.post(process.env.papersHook, {
+        axios.post(hook, {
             blocks: slack
         }).then(s => {
             if (process.env.develop == 'true') console.log(s.data)
@@ -248,7 +248,7 @@ function alertAdmins(mess) {
         })
 
 
-        axios.post(process.env.papersHook, {
+        axios.post(hook, {
             blocks: slack
         }).then(s => {
             if (process.env.develop == 'true') console.log(s.data)
@@ -321,7 +321,7 @@ function alertAdmins(mess) {
         }
 
 
-        axios.post(process.env.papersHook, {
+        axios.post(hook, {
             blocks: slack
         }).then(s => {
             if (process.env.develop == 'true') console.log(s.data)
@@ -388,7 +388,7 @@ function alertAdmins(mess) {
         })
 
 
-        axios.post(process.env.papersHook, {
+        axios.post(hook, {
             blocks: slack
         }).then(s => {
             if (process.env.develop == 'true') console.log(s.data)

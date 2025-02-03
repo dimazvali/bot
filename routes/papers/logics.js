@@ -27,6 +27,9 @@ const {
     plans,
     plansRequests,
     authors,
+    subscriptions,
+    courses,
+    views,
 } = require('./cols');
 
 const coworkingCol = require('./cols').coworking;
@@ -36,7 +39,7 @@ const { isoDate, uname, cur, handleQuery, devlog, ifBefore, dimazvali, drawDate,
 const translations = require('./translations');
 const { FieldValue } = require('firebase-admin/firestore');
 const { modals } = require('../modals');
-const { newPlanRecord, Author, classRecord } = require('./classes');
+const { newPlanRecord, Author, classRecord, Plan, Hall, entity } = require('./classes');
 const { coworkingPrice, log, localTime, alertAdmins, cba } = require('./store');
 
 
@@ -88,7 +91,7 @@ function deleteEntity(req, res, ref, admin, attr, callback, extra) {
 
             if(entities[req.params.data]){
                 let logObject ={
-                    admin: admin.id ? +admin.id : +id,
+                    admin: admin.id ? +admin.id : null,
                     text: entities[req.params.data].log(data.name),
                     [entities[req.params.data].attr]: Number(ref.id) ? Number(ref.id) : ref.id
                 }
@@ -159,15 +162,6 @@ function updateEntity(req, res, ref, adminId,callback) {
             getDoc(courses, req.body.value).then(a => {
                 ref.update({
                     course: a.name
-                })
-            })
-        }
-
-        if (req.body.attr == `bankId`) {
-            getDoc(banks, req.body.value).then(a => {
-                ref.update({
-                    bankName: a.name,
-                    bankCreds: a.creds
                 })
             })
         }
@@ -648,17 +642,38 @@ const coworking = {
 
         return result;
     },
-    closeRoom: async (roomID,date,res)=>{
+    async closeRoom (roomID, date, admin){
         let hall = await getDoc(halls,roomID);
         
-        if(!hall || !hall.active) return res.status(404).send(`no such room`);
+        if(!hall || !hall.active) throw new Error(`no such room`)
         
         let already = await ifBefore(roomsBlocked,{active:true,date:date,room:roomID})
         
-        if(already.length) return res.json({
-            success: false,
-            comment: `Дата уже закрыта${already.length?`, причем несколько раз...`:''}`
+        if(already.length) throw new Error(`already closed`)
+
+        let record = await roomsBlocked.add({
+            createdAt:  new Date(),
+            createdBy:  +admin.id,
+            active:     true,
+            date:       date,
+            room:       roomID
         })
+
+        let affected = await ifBefore(coworkingCol,{active:true,date:date,hall:roomID});
+
+        log({
+            filter: `coworking`,
+            text:   `${uname(admin,admin.id)} закрывает зал ${hall.name} на ${date}. ${affected.length ? `Количество затронутых пользователей: ${affected.length}`: ''}`,
+            admin:  +admin.id,
+            hall:   roomID
+        })
+
+        affected.forEach(r=>this.alertCancel(r))
+
+        return {
+            id: record.id,
+            comment: `Комната закрыта, снято ${affected.length} записей.`
+        };
     },
     sendCoworking:async(user)=>{
         let hallsData = await ifBefore(halls,{active:true,isCoworking:true,isMeetingRoom:false})
@@ -839,10 +854,42 @@ const coworking = {
                 }, false, token, messages)
             }
         })    
+    },
+    async cancel(id,userId){
+        let record = await getDoc(coworking,id);
+        if(!checkEntity(`record`,record)) throw new Error(`noAppointment`);
+        if(record.user !== +userId) throw new Error(`unAuthorized`);
+        let user = getUser(userId,udb);
+
+        let upd = await coworking.doc(id).update({
+            active: false,
+            updatedAt: new Date(),
+            updatedBy: +userId
+        })
+
+        log({
+            filter: `coworking`,
+            text: `${uname(user,user.id)} отменяет запись в коворкинге ${record.date}`
+        })
+        return 'appointmentCancelled'
+
     }
 }
 
 const plan = {
+    create:async(data,admin)=>{
+        
+        if(!consistencyCheck(data,[`price`,`visits`,`events`,`days`])) return;
+        let record = await plans.add(new Plan(data,admin).js);
+        log({
+            text: `Админ ${uname(admin,admin.id)} создает подписку «${data.name}» (${cur(data.price)}).`,
+            admin: +admin.id
+        })
+        return {
+            success: true,
+            id: record.id
+        }
+    },
     getRequest:(id)=>{
         return new Promise(async(resolve,reject)=>{
             try {
@@ -888,6 +935,44 @@ const plan = {
             chat_id: p.user,
             text: `Ваша подписка на тарифный план ${p.name} была аннулирована.`
         },false,token,messages)
+    },
+    request:async(userId,planId)=>{
+        let user = await getUser(userId,udb);
+        if(!checkEntity(`user`,user)) throw new Error(`user invalid`);
+        let plan = await getDoc(plans, planId)
+        if(!checkEntity(`plan`,plan)) throw new Error(`plan invalid`);
+        
+        let before = await ifBefore(plansRequests,{user:+userId, active:true, plan: planId});
+        if(before.length) throw new Error(`already booked`);
+
+        let alreadyBooked = await ifBefore(plansUsers,{user:+userId,active:true,plan: planId});
+        if(alreadyBooked.length) throw new Error(`plan in progress`);
+        
+        let record = await plansRequests.add({
+            createdAt:  new Date(),
+            user:       +userId,
+            plan:       planId,
+            active:     true
+        })
+
+        log({
+            filter: `coworking`,
+            text: `${uname(user,user.id)} подает заявку на тариф ${plan.name}.\nНадо связаться с человеком и объяснить правила и платеж.`,
+            plan: plan.id,
+            user: +user.id
+        })
+
+        sendMessage2({
+            chat_id:        userId,
+            photo:          `${process.env.ngrok}/paper/qr?id=${record.id}&entity=planRequests`,
+            caption:       `Вы запросили подключение тарифа ${plan.name}.\nПросто покажите администратору этот код — он сможет подключить тариф в пару кликов.`
+        },'sendPhoto',token,messages)
+
+        return {
+            success: true,
+            id: record.id,
+            comment: `Заявка принята! Мы скоро свяжемся с вами.`
+        }
     }
 }
 
@@ -1007,6 +1092,21 @@ function alertAdminsCoworking() {
 }
 
 
+function registerView(d,userId, entity, col){
+    views.add({
+        createdAt:  new Date(),
+        name:       d.name || null,
+        id:         d.id || null,
+        user:       userId || null,
+        entity:     d.entity || null
+    }).then(()=>{
+        if(col){
+            col.doc(d.id).update({
+                views: FieldValue.increment(1)
+            })
+        }
+    })
+}
 
 const classMethods = {
     remind: async (rec) => {
@@ -1545,6 +1645,20 @@ const classMethods = {
             },false,token,messages)
         }
         return q
+    },
+    async get(id,userId){
+        let c = await getDoc(classes,id);
+        if(!checkEntity(`ticket`,c)) throw new Error(`no such event`);
+        if(userId){
+            registerView(c, userId, `classes`, classes);
+            let ticket = await ifBefore(userClasses,{active:true,user:+userId,class:id})[0];
+            if(ticket){
+                c.booked =  ticket.id;
+                c.used =    ticket.status;
+                c.status =  ticket.status;
+            }
+        }
+        return c
     }
 }
 
@@ -1571,6 +1685,19 @@ const authorMethods = {
                 reject(err.message)
             }
         })
+    },
+    get: async(id)=>{
+        let author = await getDoc(authors,id);
+        if(!author) throw new Error(`no such author`);
+        let classesList =       await ifBefore(classes,{authorId:id});
+        let subs =              await ifBefore(subscriptions,{author: id,active:true});
+        let coursesList =       await ifBefore(courses,{active:true,authorId:id});
+        return {
+            author:         author,
+            classes:        classesList,
+            subscriptions:  subs,
+            courses:        coursesList
+        }
     }
 }
 
@@ -1618,7 +1745,6 @@ const mrMethods = {
 
         try {
             
-    
             if (user.blocked)       return sorryBut(`youArBanned`)
             if (!user.email)        return sorryBut(`noEmailProvided`)
             if (!user.occupation)   return sorryBut(`noOccupationProvided`)
@@ -1764,6 +1890,12 @@ const mrMethods = {
             })
         }
         
+    },
+    alertCancel:(record)=>{
+        sendMessage2({
+            chat_id: record.user,
+            text: `Простите, ваша запись в переговорку на ${record.time} была снята.`
+        },false,token, messages)
     }
 }
 
@@ -1879,6 +2011,25 @@ const newsMethods = {
     }
 }
 
+const roomMethods = {
+    async create(data,admin){
+        if(!consistencyCheck(data,[`floor`,`capacity`,`price`])) return;
+        
+        let record = await halls.add(new Hall(data,admin))   
+
+        log({
+            text:   `${uname(admin,admin.id)} создает зал ${data.name}.`,
+            admin:  +admin.id,
+            hall:   record.id
+        })
+
+        return {
+            success: true,
+            id: record.id
+        }
+    }
+}
+
 const methods = {
     deposits:{
         add: async(admin, data, res)=>{
@@ -1978,6 +2129,16 @@ const methods = {
                 }
                 
             })
+        },
+        get:async(id, userId)=>{
+            let plan = await getDoc(plans,id);
+            if(!checkEntity(`plan`,plan)) throw new Error(`no such plan`);
+            if(userId){
+                let already = await ifBefore(plansUsers,{plan: id, active:true, user: +userId})
+                if(already[0]) plan.inUse = already[0];
+            }
+            registerView(plan, userId, `plans`, plans);
+            return plan;
         }
     },
 }
@@ -1985,22 +2146,23 @@ const methods = {
 
 
 module.exports = {
-    authorMethods,
-    methods,
-    rcMethods,
     addBook,
     alertAdminsCoworking,
     alertSoonMR,
     alertWithdrawal,
+    authorMethods,
     classDescription,
     classMethods,
     coworking,
+    deleteEntity,
+    methods,
     mrMethods,
     newsMethods,
     nowShow,
     plan,
+    rcMethods,
+    roomMethods,
     sendClass,
+    updateEntity,
     wine,
-    deleteEntity,
-    updateEntity
 }

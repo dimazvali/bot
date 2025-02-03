@@ -4,13 +4,19 @@ var express =   require('express');
 var router =    express.Router();
 var axios =     require('axios').default;
 
+let token =         process.env.papersToken;
+
 const { FieldValue } = require('firebase-admin/firestore');
-const { handleQuery, isoDate, getDoc, ifBefore, uname, cur, devlog, handleDoc } = require('../common');
-const { alertAdmins, log, token, registerUser, isAdmin } = require('../papersBot');
+const { handleQuery, isoDate, getDoc, ifBefore, uname, cur, devlog, handleDoc, handleError, checkEntity } = require('../common');
+const { registerUser, isAdmin } = require('../papersBot');
 const { plans, userClassesQ, polls, pollsAnswers, udb, userEntries, classes, userClasses, coworking, mra, halls, plansUsers, plansRequests, invites, authors, messages, coworkingRules, standAlone, eventTypes, views, roomsBlocked } = require('./cols');
-const { classMethods, mrMethods } = require('./logics');
+const { classMethods, mrMethods, plan, methods } = require('./logics');
+const coworkingMethods  = require('./logics').coworking;
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
+const { alertAdmins, log } = require('./store');
+
+
 
 
 router.get(`/:type`, (req, res) => {
@@ -107,8 +113,8 @@ router.get(`/:type`, (req, res) => {
             }).then(() => {
 
                 udb.doc(req.query.id).update({
-                    appOpens: FieldValue.increment(1),
-                    appLastOpened: new Date()
+                    appOpens:       FieldValue.increment(1),
+                    appLastOpened:  new Date()
                 }).then(() => {
 
                 }).catch(err => {
@@ -165,14 +171,14 @@ router.get(`/:type`, (req, res) => {
                     Promise.all(data).then(data => {
                         return res.json({
                             warning: warning,
-                            admin: u.admin,
-                            insider: u.insider,
-                            fellow: u.fellow,
-                            noSpam: u.noSpam,
-                            classes: data[0],
+                            admin:      u.admin,
+                            insider:    u.insider,
+                            fellow:     u.fellow,
+                            noSpam:     u.noSpam,
+                            classes:    data[0],
                             userClasses: data[1],
-                            coworking: data[2],
-                            mr: data[3],
+                            coworking:  data[2],
+                            mr:         data[3],
                             questions: data[4] || null,
                             answers: data[5] || null,
                             
@@ -334,7 +340,7 @@ router.get(`/:type`, (req, res) => {
 })
 
 
-router.all(`/:data/:id`, (req, res) => {
+router.all(`/:data/:id`, async (req, res) => {
 
     switch (req.params.data) {
 
@@ -343,115 +349,63 @@ router.all(`/:data/:id`, (req, res) => {
 
             switch(req.method){
                 case `GET`:{
-                    return getDoc(plans,req.params.id).then(t=>{
-                        if(!t || !t.active) return res.sendStatus(404)
-                        plansUsers
-                            .where(`plan`,'==',req.params.id)
-                            .where(`active`,'==',true)
-                            .where(`user`,'==',+req.query.id)
-                            .get()
-                            .then(col=>{
-                                t.inUse = handleQuery(col)[0]
-                                res.json(t)
-                                plans.doc(req.params.id).update({
-                                    views: FieldValue.increment(1)
-                                })
-                            })
-                    })
+                    return methods.plans.get(req.params.id,req.query.id)
+                        .then(s=>res.json(s))
+                        .catch(err=>handleError(err.res))
                 }
                 case `POST`:{
-                    return getDoc(plans,req.params.id).then(p=>{
-                        
-                        if(!p || !p.active) return res.sendStatus(404)
-                        
-                        getDoc(udb,req.query.id).then(u=>{
-
-                            if(!u || u.blocked) return res.sendStatus(400)
-                            
-                            ifBefore(plansRequests,{user:+req.query.id,active:true}).then(before=>{
-                                
-                                if(before.length) return res.json({
-                                    success: false,
-                                    comment: `Вы уже оставили заявку. Пожалуйста, подождите еще немного.`
-                                })
-
-                                plansRequests.add({
-                                    createdAt:  new Date(),
-                                    user:       +req.query.id,
-                                    plan:       req.params.id,
-                                    active:     true
-                                }).then(record=>{
-                                    
-                                    res.json({
-                                        success: true,
-                                        id: record.id,
-                                        comment: `Заявка принята! Мы скоро свяжемся с вами.`
-                                    })
-    
-                                    log({
-                                        filter: `coworking`,
-                                        text: `${uname(u,u.id)} подает заявку на тариф ${p.name}.\nНадо связаться с человеком и объяснить правила и платеж.`,
-                                        plan: p.id,
-                                        user: +u.id
-                                    })
-                                })
+                    return plan.request(req.query.id,req.params.id)
+                        .then(s=>{
+                            res.json(s)
+                        }).catch(err=>{
+                            res.json({
+                                success: false,
+                                comment: err.message
                             })
-
-                            
                         })
-                    })
                 }
             }
             
         }
         case `invite`:{
-            return invites.doc(req.params.id).get().then(i=>{
-                if(!req.query.user) return res.sendStatus(400)
-                if(!i.exists) return res.sendStatus(404)
-                i = i.data()
-                // if(!i.active) return res.json({success: false, comment: `Данное приглашение уже было использовано.`})
-                getUser(req.query.user,udb).then(u=>{
+            if(!req.query.user) return res.sendStatus(400)
+            let i = await getDoc(invites, req.params.id);
+            if(!checkEntity(`invite`,i,res)) return;
+            let u = await getUser(req.query.user,udb)
                     
-                    if(!u) return res.json({
-                        success: false,
-                        comment: `Мы не знаем такого юзера.`
-                    })
+            if(!u) return res.json({
+                success: false,
+                comment: `Мы не знаем такого юзера.`
+            })
 
-                    udb.doc(req.query.user).update({
-                        occupation: i.occupation,
-                        about:      i.about || null
-                    }).then(rec=>{
+            udb.doc(u.id.toString()).update({
+                occupation: i.occupation,
+                about:      i.about || null
+            }).then(rec=>{
 
-                        res.json({
-                            success: true,
-                            plans: i.plan
-                        })
+                res.json({
+                    success: true,
+                    plans: i.plan
+                })
 
-                        invites.doc(req.params.id).update({
-                            active: false,
-                            updatedAt: new Date()
-                        })
-                    }).catch(err=>{
-                        res.status(500).send(err.message)
-                    })
-
-
+                invites.doc(req.params.id).update({
+                    active: false,
+                    updatedAt: new Date()
                 })
             }).catch(err=>{
-                console.log(err)
-            })
+                res.status(500).send(err.message)
+            })            
         }
         case `q`:{
             switch (req.method){
                 case `GET`:{
-                    return userClassesQ.doc(req.params.id).get().then(q=>{
-                        if(!q.exists) return res.sendStatus(404)
-                        q = q.data()
-                        getUser(q.user,udb).then(user=>{
-                            q.userData = user;
-                            res.json(q)
-                        })
+                    let q = await getDoc(userClassesQ,req.params.id);
+                    if(!q) return res.sendStatus(404)
+                    getUser(q.user,udb).then(user=>{
+                        q.userData = user;
+                        res.json(q)
                     })
+                    break;
                 }
                 case `POST`:{
                     return getUser(req.body.user,udb).then(u=>{
@@ -524,81 +478,17 @@ router.all(`/:data/:id`, (req, res) => {
                 case 'PUT':{
                     if(!req.query.user) return res.sendStatus(400)
                     
-                    return plans.doc(req.params.id).get().then(p=>{
-                        if(!p.exists) return res.sendStatus(404)
-                        p = p.data()
-                        if(!p.active) return res.json({
+                    return plan.request(req.query.user, req.params.id).then(s=>{
+                        res.json(s)
+                    }).catch(err=>{
+                        res.json({
                             success: false,
-                            comment: `Извините, этот тариф уже недоступен.`
-                        })
-                        getUser(req.query.user,udb).then(u=>{
-                            if(!u) return res.json({
-                                success: false,
-                                comment: `Извините, мы вас не знаем.`
-                            })
-
-                            if(u.blocked) return res.json({
-                                success: false,
-                                comment: `Извините, вам тут не рады.`
-                            }) 
-
-                            plansRequests.add({
-                                user:       +req.query.user,
-                                plan:       req.params.id,
-                                createdAt:  new Date(),
-                                active:     true
-                            }).then(request=>{
-                                res.json({
-                                    success: true
-                                })
-
-                                sendMessage2({
-                                    chat_id:    +req.query.user,
-                                    photo:      `${process.env.ngrok}/paper/qr?id=${request.id}&entity=planRequests`,
-                                    caption:       `Вы запросили подключение тарифа ${p.name}.\nПросто покажите администратору этот код — он сможет подключить тариф в пару кликов.`
-                                },'sendPhoto',token)
-
-                                alertAdmins({
-                                    alert: `coworking`,
-                                    user: +req.query.user,
-                                    text: `${uname(u, +req.query.id)} хочет приобрести тариф ${p.name} (${cur(p.price,'GEL')}).\nНадо найти человека и взять его деньги!`
-                                })
-                            })
+                            comment: err.message
                         })
                     })
                 }
                 case 'POST':{
-                    isAdmin(req.query.id).then(proof=>{
-                        if(proof){
-                            return plans.add({
-                                name:           req.body.name,
-                                description:    req.body.description,
-                                price:          +req.body.price,
-                                visits:         +req.body.visits,
-                                events:         +req.body.events,
-                                createdBy:      +req.query.id,
-                                days:           +req.body.days || 30,
-                                createdAt:      new Date(),
-                                active:         true
-                            }).then(s=>{
-                                res.json({
-                                    id: s.id
-                                })
-
-                                log({
-                                    text: `Админ @id${req.query.id} создает подписку «${req.body.name}» (${cur(req.body.price)}).`,
-                                    admin: +req.query.id,
-                                    silent: true
-                                })
-
-
-                            }).catch(err=>{
-                                res.status(500).send(err.message)
-                            })
-                        } else {
-                            return res.sendStatus(403)
-                        }
-                    })
+                    return res.status(403).send(`method removed`);
                 }
                 default:{
                     return res.sendStatus(404)
@@ -658,45 +548,23 @@ router.all(`/:data/:id`, (req, res) => {
 
                 }
                 case 'POST': {
-
-                    console.log('это ответ на вопрос')
-
-                    if (req.body.fellow) {
-                        return udb.doc(req.body.fellow.toString()).get().then(user => {
-                            if (user.exists) {
-                                user = user.data();
-                                if (user.fellow) {
-                                    polls.doc(req.params.id).get().then(poll => {
-                                        if (poll.exists) {
-                                            return pollsAnswers.add({
-                                                createdAt: new Date(),
-                                                user: req.body.fellow,
-                                                q: req.params.id,
-                                                text: req.body.text
-                                            }).then(() => {
-                                                console.log('ответ записан')
-                                                return res.sendStatus(200)
-                                            }).catch(err => {
-                                                console.log(err)
-
-                                                return res.status(500).send(err.message)
-                                            })
-                                        } else {
-                                            console.log('Нет такого опроса')
-                                            res.sendStatus(404)
-                                        }
-                                    })
-                                } else {
-                                    res.sendStatus(403)
-                                }
-                            } else {
-                                res.status(404).send('no such user')
-                            }
-                        })
-                    } else {
-                        return res.status(400).send('no fellow provided')
-                    }
-                    break;
+                    if (!req.body.fellow) return res.status(400).send('no fellow provided')
+                    let user = await getUser(req.body.fellow,udb);
+                    if(!user) res.status(404).send('no such user')
+                    if (!user.fellow) return res.sendStatus(403)
+                    let poll = await getDoc(polls, req.params.id) 
+                    if(!poll)  return res.sendStatus(403)
+                    return pollsAnswers.add({
+                        createdAt:  new Date(),
+                        user:       +req.body.fellow,
+                        q:          req.params.id,
+                        text:       req.body.text || null
+                    }).then(() => {
+                        return res.sendStatus(200)
+                    }).catch(err => {
+                        return res.status(500).send(err.message)
+                    })
+                    
                 }
             }
 
@@ -792,56 +660,15 @@ router.all(`/:data/:id`, (req, res) => {
                 ru: req.body[1],
                 nom: req.body[2]
             }).then(d => {
-                res.send(d.id)
+                res.send(req.params.id)
             }).catch(err => {
                 res.status(400).send(err.message)
             })
         }
-        case 'halls': {
-            switch (req.method) {
-                case 'POST': {
-                    let data = {
-                        active: req.body[1],
-                        name: req.body[2],
-                        floor: req.body[3],
-                        description: req.body[4],
-                        capacity: req.body[5],
-                        pics: req.body[6],
-                        price: req.body[7],
-                        isCoworking: req.body[8],
-                        isMeetingRoom: req.body[9],
-                        createdAt: new Date()
-                    }
-                    return halls.add(data).then(record => {
-                        res.json({
-                            id: record.id
-                        })
-
-
-
-                    }).catch(err => {
-                        res.status(500).send(err.message)
-                    })
-                }
-                case 'PUT': {
-                    return halls.doc(req.params.id).update({
-                        active: req.body[1],
-                        name: req.body[2],
-                        floor: req.body[3],
-                        description: req.body[4],
-                        capacity: req.body[5],
-                        pics: req.body[6],
-                        price: req.body[7],
-                        isCoworking: req.body[8],
-                        isMeetingRoom: req.body[9],
-                        updatedAt: new Date()
-                    }).then(() => res.sendStatus(200))
-                }
-                default:
-                    return res.status(400)
-            }
-        }
+        
         case 'classes': {
+            if(!req.query.user) return res.sendStatus(400)
+
             switch (req.method) {
                 case 'POST': {
                     if (req.query.intention == 'book') {
@@ -896,181 +723,22 @@ router.all(`/:data/:id`, (req, res) => {
                                 console.log(err)
                             })
                         })
-                        return res.sendStatus(200)
+
                     } else {
-
-                        if (!req.body[2]) return res.status(400).send(`вы не указали дату`)
-                        if (!req.body[4]) return res.status(400).send(`вы не указали зал`)
-                        if (!req.body[6]) return res.status(400).send(`вы не указали название`)
-                        if (!req.body[10]) return res.status(400).send(`вы не указали описание`)
-
-                        let data = {
-                            active: req.body[1],
-                            date: req.body[2],
-                            type: req.body[3],
-                            hall: req.body[4],
-                            hallName:   req.body[5],
-                            name:       req.body[6],
-                            author:     req.body[7],
-                            duration:   req.body[8],
-                            price:      +req.body[9],
-                            description: req.body[10],
-                            pic: req.body[12],
-                            createdAt: new Date()
-                        }
-
-                        return classes.add(data).then(record => {
-                            res.json({
-                                id: record.id
-                            })
-
-                            log({
-                                filter: `lectures`,
-                                class: record.id,
-                                text: `На ${data.date} назначена новая лекция: ${data.name}.`
-                            })
-
-                            if (req.query.alert) {
-                                udb.get().then(col => {
-                                    let users = handleQuery(col)
-                                    users.forEach(u => {
-                                        if ((process.env.develop == 'true' && u.tester) || process.env.develop != 'true') {
-                                            if (data.pic) {
-                                                sendMessage2({
-                                                    chat_id: u.id,
-                                                    photo: data.pic,
-                                                    caption: translations.newLecture(data)[u.language_code] || translations.newLecture(data).en,
-                                                    reply_markup: {
-                                                        inline_keyboard: [
-                                                            [{
-                                                                text: translations.book[u.language_code] || translations.book.en,
-                                                                callback_data: `class_${record.id}`
-                                                            }],
-                                                            [{
-                                                                text: translations.tellMeMore[u.language_code] || translations.tellMeMore.en,
-                                                                web_app: {
-                                                                    url: process.env.ngrok + '/paper/app?start=classes'
-                                                                }
-                                                            }]
-                                                        ]
-                                                    }
-                                                }, 'sendPhoto', token, messages)
-                                            } else {
-                                                sendMessage2({
-                                                    chat_id: u.id,
-                                                    text: translations.newLecture(data)[u.language_code] || translations.newLecture(data).en,
-                                                    reply_markup: {
-                                                        inline_keyboard: [
-                                                            [{
-                                                                text: translations.book[u.language_code] || translations.book.en,
-                                                                callback_data: `class_${record.id}`
-                                                            }],
-                                                            [{
-                                                                text: translations.tellMeMore[u.language_code] || translations.tellMeMore.en,
-                                                                web_app: {
-                                                                    url: process.env.ngrok + '/paper/app?start=classes'
-                                                                }
-                                                            }]
-                                                        ]
-                                                    }
-                                                }, false, token, messages)
-                                            }
-                                        }
-
-
-
-                                    })
-                                })
-                            }
-                        }).catch(err => {
-                            res.status(500).send(err.message)
-                        })
+                        return res.status(403).send(`method removed`)
                     }
 
                 }
                 case 'PUT': {
-
-                    classes.doc(req.params.id).get().then(cl => {
-                        if (!cl.exists) return res.status(404).send('нет такой записи...')
-                        if (cl.data().active && !req.body[1]) {
-                            classMethods.alertClassClosed(req.params.id)
-                        }
-                        return classes.doc(req.params.id).update({
-                                active: req.body[1],
-                                date: req.body[2],
-                                type: req.body[3],
-                                hall: req.body[4],
-                                hallName: req.body[5],
-                                name: req.body[6],
-                                author: req.body[7],
-                                duration: req.body[8],
-                                price: +req.body[9],
-                                description: req.body[10],
-                                pic: req.body[12],
-                                createdAt: new Date()
-                            })
-                            .then(() => res.sendStatus(200))
-                            .catch(err => {
-                                console.log(err)
-                            })
-                    })
-                    break;
+                    return res.status(403).send(`method removed`)
                 }
                 case 'GET': {
-                    if(!req.query.user) return res.sendStatus(400)
-
-                    return classes.doc(req.params.id).get().then(c=>{
-                        
-                        if(!c.exists) return res.sendStatus(404)
-                        
-                        devlog(`лекция есть`)
-
-                        c = c.data();  
-                        
-                        devlog(c.active)
-
-
-                        if(!c.active) return res.sendStatus(404)
-
-                        views.add({
-                            createdAt: new Date(),
-                            name:   c.name,
-                            entity: `classes`,
-                            id:     req.params.id,
-                            user:   +req.query.user
-                        }).then(s=>{
-                            classes.doc(req.params.id).update({
-                                views: FieldValue.increment(1)
-                            })
+                    return classMethods.get(req.params.id, +req.query.user)
+                        .then(d=>{
+                            res.json(d)
+                        }).catch(err=>{
+                            handleError(err,res)
                         })
-                        
-                        
-                        userClasses
-                            .where(`active`,'==',true)
-                            .where(`user`,'==',+req.query.user)
-                            .where(`class`,'==',req.params.id)
-                            .get()
-                            .then(col=>{
-                                let ticket = col.docs[0] ? col.docs[0].data() : null;
-
-                                if(ticket) ticket.id = col.docs[0].id
-
-                                c.booked = c.appointmentId = ticket ? ticket.id : null
-                                c.used = ticket ? ticket.status : null
-                                c.status = ticket ? ticket.status : null
-                                
-                                res.json(c)
-                            }).catch(err=>{
-                                res.status(500).send(err.message)
-                            })
-                    })
-                    // classes
-                    //     .where(`active`, '==', true)
-                    //     .where('date', '>=', new Date().toISOString())
-                    //     .orderBy('date')
-                    //     .get().then(col => {
-                    //         return res.json(handleQuery(col))
-                    //     })
 
                 }
                 case `DELETE`: {
@@ -1120,179 +788,18 @@ router.all(`/:data/:id`, (req, res) => {
                 }
                 case 'POST': {
                     if(!req.query.user) return res.sendStatus(400)
-                        
-                    return halls.doc(req.params.id).get().then(hall => {
-                        hall = hall.data()
-                        if (!hall.active) {
-                            return res.json({
-                                success: false,
-                                text: 'hallNotAvailable'
-                            })
-                        } else {
-
-                            udb
-                                .doc(req.query.user)
-                                .get()
-                                .then(user=>{
-                                    user = handleDoc(user)
-                                    roomsBlocked
-                                    .where('active', '==', true)
-                                    .where('room', '==', req.params.id)
-                                    .where('date', '==', req.query.date)
-                                    .get()
-                                    .then(col => {
-
-
-                                        if (col.docs.length && !user.insider) {
-                                            res.json({
-                                                success: false,
-                                                text: 'roomBlocked'
-                                            })
-                                        } else {
-                                            coworking
-                                                .where('hall', '==', req.params.id)
-                                                .where('date', '==', req.query.date)
-                                                .where('active', '==', true)
-                                                .get()
-                                                .then(col => {
-
-                                                    let users = handleQuery(col).map(r => r.user)
-
-                                                    if (users.indexOf(req.query.user) > -1) {
-
-                                                        // return res.status(400).send('alreadyBooked')
-                                                        return res.json({
-                                                            success: false,
-                                                            text: 'alreadyBooked'
-                                                        })
-
-                                                    } else if (users.length == hall.capacity) {
-
-                                                        return res.json({
-                                                            success: false,
-                                                            text: 'noSeatsLeft'
-                                                        })
-                                                        return res.status(400).send('noSeatsLeft')
-
-                                                    } else {
-                                                        udb.doc(req.query.user.toString()).get().then(u => {
-
-                                                            if (u.data().blocked) {
-                                                                return res.json({
-                                                                    success: false,
-                                                                    text: 'youArBanned'
-                                                                })
-                                                                return res.status(400).send('youArBanned')
-                                                                // noSeatsLeft
-                                                            }
-
-                                                            if (!u.data().occupation) return res.json({
-                                                                success: false,
-                                                                text: 'noOccupationProvided'
-                                                            })
-                                                            // return res.status(400).send('noOccupationProvided')
-                                                            if (!u.data().email) return res.json({
-                                                                success: false,
-                                                                text: 'noEmailProvided'
-                                                            })
-                                                            // return res.status(400).send('noEmailProvided')
-
-                                                            coworking.add({
-                                                                user: +req.query.user,
-                                                                hall: req.params.id,
-                                                                date: req.query.date,
-                                                                createdAt: new Date(),
-                                                                active: true,
-                                                                paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
-                                                                payed: false
-                                                            }).then(rec => {
-
-                                                                let bonusText = false;
-
-                                                                if (u.data().bonus) {
-
-                                                                    bonusText = true
-
-                                                                    udb.doc(u.id).update({
-                                                                        bonus: false
-                                                                    })
-                                                                }
-
-                                                                log({
-                                                                    filter: `coworking`,
-                                                                    text: `${uname(u.data(), u.id)} бронирует место в коворкинге ${hall.name} на ${req.query.date}`,
-                                                                    user: req.query.user,
-                                                                    hall: req.params.id
-                                                                })
-
-                                                                res.json({
-                                                                    success: true,
-                                                                    text: bonusText ? 'coworkingBookingConfirmedBonus' : 'coworkingBookingConfirmed',
-                                                                    record: rec.id
-                                                                })
-
-
-                                                                sendMessage2({
-                                                                    chat_id: req.query.user,
-                                                                    caption: translations.coworkingBookingDetails(req.query.date, hall.name, u.data().language_code)[u.data().language_code] || translations.coworkingBookingDetails(req.query.date, hall.name, u.data().language_code).en,
-                                                                    photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=coworking`,
-                                                                    reply_markup: {
-                                                                        inline_keyboard: [
-                                                                            [{
-                                                                                text: translations.coworkingBookingCancel[u.data().language_code] || translations.coworkingBookingCancel.en,
-                                                                                callback_data: `ca_cancel_${rec.id}`
-                                                                            }]
-                                                                        ]
-                                                                    }
-                                                                }, 'sendPhoto', token, messages)
-
-                                                                if (bonusText) {
-                                                                    sendMessage2({
-                                                                        chat_id: req.query.user,
-                                                                        text: translations.coworkingBookingConfirmedBonus[u.data().language_code] || translations.coworkingBookingConfirmedBonus.en
-                                                                    }, false, token, messages)
-                                                                }
-                                                            })
-                                                        })
-                                                    }
-                                                })
-                                        }
-                                    })
-                                })
-
-                            
-
-
-                        }
+                    let user = await getUser(req.query.user,udb);
+                
+                    return coworkingMethods.bookCoworking(user,req.params.id,req.query.date,false,res).then(()=>{
+                        devlog(`ok`)
+                    }).catch(err=>{
+                        handleError(err,res)
                     })
                 }
                 case 'DELETE': {
-                    return udb.doc(req.query.user.toString()).get().then(u => {
-
-                        if (!u.exists) return res.status(400).send('error')
-
-                        return coworking.doc(req.params.id).get().then(record => {
-                            if (!record.exists) return res.status(400).send('noAppointment')
-                            record = record.data();
-                            if (record.user != +req.query.user) return res.status(403).send(`unAuthorized`)
-                            if (!record.active) return res.status(500).send('alreadyCancelled')
-
-                            coworking.doc(req.params.id).update({
-                                active: false,
-                                updatedAt: new Date(),
-                                updatedBy: req.query.user
-                            }).then(() => {
-                                log({
-                                    filter: `coworking`,
-                                    text: `${uname(u.data(),u.id)} отменяет запись в коворкинге ${record.date}`
-                                })
-                                res.send('appointmentCancelled')
-                            })
-                        }).catch(err => {
-                            res.status(500).send('error')
-                        })
-                    })
-
+                    return coworkingMethods.cancel(req.params.id,req.query.user)
+                        .then(s=>res.send(s))
+                        .catch(err=>handleError(err,res))
                 }
             }
 
@@ -1305,11 +812,9 @@ router.all(`/:data/:id`, (req, res) => {
             switch (req.method) {
                 case 'POST': {
                     return mrMethods.bookMR(req.query.date, req.query.time, req.query.user, false, res)
-                    break;
                 }
                 case 'DELETE': {
                     return mrMethods.unbookMR(req.params.id, req.query.user, false, res)
-                    break;
                 }
                 default:
                     return res.status(404)

@@ -1,5 +1,5 @@
-// let ngrok =    process.env.ngrok2;
-let ngrok =     process.env.ngrok;
+let ngrok =    process.env.ngrok2;
+// let ngrok =     process.env.ngrok;
 
 let token =         process.env.papersToken;
 
@@ -499,6 +499,7 @@ function registerUser(u) {
     u.active = true;
     u.blocked = false;
     u.bonus = true;
+    u.noSpam = false;
 
     users[u.id] = u;
 
@@ -2593,6 +2594,19 @@ function getAvatar(id){
     })
 }
 
+common.ifBefore(udb,{}).then(async col=>{
+    col = col.filter(u=>!u.hasOwnProperty(`noSpam`))
+    for (let index = 0; index < col.length; index++) {
+        const u = col[index];
+        if(!u.hasOwnProperty(`noSpam`)){
+            await udb.doc(u.id.toString()).update({
+                noSpam: false
+            }).then(()=>{
+                console.log(`${u.id} updated, ${col.length-index}`)
+            })
+        }
+    }
+})
 
 module.exports = {
     
