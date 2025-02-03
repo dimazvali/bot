@@ -856,12 +856,12 @@ const coworking = {
         })    
     },
     async cancel(id,userId){
-        let record = await getDoc(coworking,id);
+        let record = await getDoc(coworkingCol,id);
         if(!checkEntity(`record`,record)) throw new Error(`noAppointment`);
         if(record.user !== +userId) throw new Error(`unAuthorized`);
         let user = getUser(userId,udb);
 
-        let upd = await coworking.doc(id).update({
+        let upd = await coworkingCol.doc(id).update({
             active: false,
             updatedAt: new Date(),
             updatedBy: +userId

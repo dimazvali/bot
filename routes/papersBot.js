@@ -11,13 +11,9 @@ var express =   require('express');
 var router =    express.Router();
 var axios =     require('axios');
 var cors =      require('cors')
-var sha256 =    require('sha256');
 var common =    require('./common');
 const m =       require('./methods.js');
 var QRCode =    require('qrcode')
-var cron =      require('node-cron');
-var FormData =  require('form-data');
-var modals =    require('./modals.js').modals
 const qs =      require('qs');
 const { createHash,createHmac } = require('node:crypto');
 const appLink = `https://t.me/paperstuffbot/app`
@@ -30,39 +26,20 @@ const {
     uname,
     drawDate,
     devlog,
-    letterize,
-    letterize2,
-    shuffle,
     clearTags
 } = require ('./common.js')
 
-const {
-    Parser
-} = require('json2csv');
 
 router.use(cors())
 
 const {
     initializeApp,
-    applicationDefault,
     cert
 } = require('firebase-admin/app');
 
 const {
-    getFirestore,
-    Timestamp,
     FieldValue
 } = require('firebase-admin/firestore');
-
-const {
-    getDatabase
-} = require('firebase-admin/database');
-
-const {
-    text,
-    query,
-    json
-} = require('express');
 
 
 var RSS = require('rss');
@@ -113,48 +90,26 @@ let rules = {
 // })
 
 const {
-    admins,
     adminTokens,
     authors,
-    bookings,
-    books,
     classes,
-    classesOffers,
-    coffee,
-    courses,
     coworking,
     coworkingRules,
-    deposits,
-    eventTypes,
     gallery,
     halls,
     invites,
-    invoices,
     logs,
     messages,
     mra,
-    news,
-    plans,
-    plansRequests,
-    plansUsers,
-    polls,
-    pollsAnswers,
     promos,
-    randomCoffeeIterations,
     randomCoffees,
     roomsBlocked,
-    settings,
     standAlone,
-    subscriptions,
     tokens,
     udb,
     userClasses,
-    userClassesQ,
-    userClassesWL,
-    userEntries,
     userTags,
     views,
-    wineList,
 } = require(`./papers/cols.js`);
 
 const {wine, rcMethods, classMethods, mrMethods, newsMethods } = require('./papers/logics.js');
@@ -365,9 +320,9 @@ router.post(`/sendMe/:type`, (req, res) => {
     switch (req.params.type) {
         case 'address': {
             m.sendMessage2({
-                chat_id: req.body.user,
-                "longitude": 44.78321832242679,
-                "latitude": 41.71100813134866,
+                chat_id:        req.body.user,
+                "longitude":    44.78321832242679,
+                "latitude":     41.71100813134866,
                 "title": "Papers (Hotel Iliani)",
                 "address": translations.iliani.en
             }, 'sendVenue', token)
@@ -1580,200 +1535,93 @@ router.post('/hook', (req, res) => {
             }
     
             if (inc[0] == 'ca') {
+                
                 switch (inc[1]) {
                     case 'set': {
-                        halls.doc(inc[2]).get().then(hall => {
-                            hall = hall.data()
-                            if (!hall.active) {
-                                return m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: translations.hallNotAvailable[user.language_code] || translations.hallNotAvailable.en
-                                }, 'answerCallbackQuery', token)
-                            } else {
-    
-                                roomsBlocked
-                                    .where('active', '==', true)
-                                    .where('room', '==', inc[2])
-                                    .where('date', '==', inc[3])
-                                    .get()
-                                    .then(col => {
-                                        if (col.docs.length) {
-                                            return m.sendMessage2({
-                                                callback_query_id: req.body.callback_query.id,
-                                                show_alert: true,
-                                                text: translations.roomBlocked[user.language_code] || translations.roomBlocked.en
-                                            }, 'answerCallbackQuery', token)
-                                        } else {
-                                            coworking
-                                                .where('hall', '==', inc[2])
-                                                .where('date', '==', inc[3])
-                                                .where('active', '==', true)
-                                                .get()
-                                                .then(col => {
-    
-                                                    let users = common.handleQuery(col).map(r => r.user)
-    
-                                                    if (users.indexOf(user.id) > -1) {
-                                                        return m.sendMessage2({
-                                                            callback_query_id: req.body.callback_query.id,
-                                                            show_alert: true,
-                                                            text: translations.alreadyBooked[user.language_code] || translations.alreadyBooked.en
-                                                        }, 'answerCallbackQuery', token)
-                                                    } else if (users.length == hall.capacity) {
-                                                        return m.sendMessage2({
-                                                            callback_query_id: req.body.callback_query.id,
-                                                            show_alert: true,
-                                                            text: translations.noSeatsLeft[user.language_code] || translations.noSeatsLeft.en
-                                                        }, 'answerCallbackQuery', token)
-                                                    } else {
-                                                        userRef.get().then(u => {
-    
-                                                            if (u.data().blocked) {
-                                                                return m.sendMessage2({
-                                                                    chat_id: user.id,
-                                                                    text: translations.youArBanned[user.language_code] || translations.youArBanned.en
-                                                                }, false, token, messages)
-                                                            }
-    
-                                                            if (!u.data().occupation) return m.sendMessage2({
-                                                                chat_id: user.id,
-                                                                text: translations.noOccupationProvided[user.language_code] || translations.noOccupationProvided.en
-                                                            }, false, token, messages)
-    
-                                                            if (!u.data().email) return m.sendMessage2({
-                                                                chat_id: user.id,
-                                                                text: translations.noEmailProvided[user.language_code] || translations.noEmailProvided.en
-                                                            }, false, token, messages)
-    
-                                                            coworking.add({
-                                                                user: +user.id,
-                                                                hall: inc[2],
-                                                                date: inc[3],
-                                                                createdAt: new Date(),
-                                                                active: true,
-                                                                paymentNeeded: (u.data().insider || u.data().admin || u.data().fellow) ? false : (u.data().bonus ? false : true),
-                                                                payed: false
-                                                            }).then(rec => {
-    
-                                                                if (u.data().bonus) {
-                                                                    udb.doc(u.id).update({
-                                                                        bonus: false
-                                                                    })
-                                                                }
-    
-                                                                log({
-                                                                    filter: `coworking`,
-                                                                    text: `${userLogName} бронирует место в коворкинге ${hall.name} на ${inc[3]}`,
-                                                                    user: user.id,
-                                                                    hall: inc[2]
-                                                                })
-    
-                                                                
-    
-                                                                m.sendMessage2({
-                                                                    chat_id: user.id,
-                                                                    text: translations.coworkingBookingDetails(inc[3], hall.name, user.language_code)[user.language_code] || translations.coworkingBookingDetails(inc[3], hall.name, user.language_code).en,
-                                                                    message_id: req.body.callback_query.message.message_id
-                                                                }, 'editMessageText', token).then(() => {
-                                                                    m.sendMessage2({
-                                                                        chat_id: user.id,
-                                                                        message_id: req.body.callback_query.message.message_id,
-                                                                        reply_markup: {
-                                                                            inline_keyboard: [
-                                                                                [{
-                                                                                    text: translations.coworkingBookingCancel[user.language_code] || translations.coworkingBookingCancel.en,
-                                                                                    callback_data: `ca_cancel_${rec.id}`
-                                                                                }]
-                                                                            ]
-                                                                        }
-                                                                    }, 'editMessageReplyMarkup', token)
-    
-                                                                    m.sendMessage2({
-                                                                        chat_id: user.id,
-                                                                        photo: process.env.ngrok + `/paper/qr?id=${rec.id}&entity=coworking`
-                                                                    }, 'sendPhoto', token, messages)
-    
-                                                                })
-                                                            })
-                                                        })
-                                                    }
-                                                })
-                                        }
-                                    })
-    
-    
-                            }
-                        })
-                        break;
+                        return coworkingMethods.bookCoworking(userData,inc[2],inc[3],req)
                     }
     
                     case 'cancel': {
-                        coworking.doc(inc[2]).get().then(record => {
-    
-                            if (!record.exists) {
-                                return m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: translations.noAppointment[user.language_code] || translations.noAppointment.en
-                                }, 'answerCallbackQuery', token)
-                            }
-    
-                            record = record.data();
-    
-    
-                            if (+user.id !== +record.user) {
-                                return m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: translations.unAuthorized[user.language_code] || translations.unAuthorized.en
-                                }, 'answerCallbackQuery', token)
-                            }
-    
-                            if (!record.active) {
-                                return m.sendMessage2({
-                                    callback_query_id: req.body.callback_query.id,
-                                    show_alert: true,
-                                    text: translations.alreadyCancelled[user.language_code] || translations.alreadyCancelled.en
-                                }, 'answerCallbackQuery', token)
-                            }
-    
-    
-    
-                            coworking.doc(inc[2]).update({
-                                active: false,
-                                updatedAt: new Date(),
-                                updatedBy: user.id
-                            }).then(() => {
-                                log({
-                                    filter: `coworking`,
-                                    text: `${userLogName} отменяет запись в коворкинге на ${record.date}`,
-                                    user: +userData.id
-                                })
-    
-                                m.sendMessage2({
-                                    chat_id: user.id,
-                                    text: translations.bookingCancelled[user.language_code] || translations.bookingCancelled.en,
-                                    message_id: req.body.callback_query.message.message_id
-                                }, 'editMessageText', token).then(() => {
-                                    m.sendMessage2({
-                                        chat_id: user.id,
-                                        message_id: req.body.callback_query.message.message_id,
-                                        reply_markup: {
-                                            inline_keyboard: [
-                                                [{
-                                                    text: translations.letsTryAgain[user.language_code] || translations.letsTryAgain.en,
-                                                    callback_data: `ca_repeat`
-                                                }]
-                                            ]
-                                        }
-                                    }, 'editMessageReplyMarkup', token)
-    
-                                })
-    
-                            })
+                        return coworkingMethods.cancel(inc[2],userData.id).then(code=>{
+                            m.sendMessage2({
+                                callback_query_id: req.body.callback_query.id,
+                                show_alert: true,
+                                text: translations[code][user.language_code] || translations[code].en
+                            }, 'answerCallbackQuery', token)
+                        }).catch(err=>{
+                            // TBD: редактировать сообщение
+                            m.sendMessage2({
+                                callback_query_id: req.body.callback_query.id,
+                                show_alert: true,
+                                text: translations[err.message][user.language_code] || translations[err.message].en
+                            }, 'answerCallbackQuery', token)
                         })
-                        break
+                        // coworking.doc(inc[2]).get().then(record => {
+    
+                        //     if (!record.exists) {
+                        //         return m.sendMessage2({
+                        //             callback_query_id: req.body.callback_query.id,
+                        //             show_alert: true,
+                        //             text: translations.noAppointment[user.language_code] || translations.noAppointment.en
+                        //         }, 'answerCallbackQuery', token)
+                        //     }
+    
+                        //     record = record.data();
+    
+    
+                        //     if (+user.id !== +record.user) {
+                        //         return m.sendMessage2({
+                        //             callback_query_id: req.body.callback_query.id,
+                        //             show_alert: true,
+                        //             text: translations.unAuthorized[user.language_code] || translations.unAuthorized.en
+                        //         }, 'answerCallbackQuery', token)
+                        //     }
+    
+                        //     if (!record.active) {
+                        //         return m.sendMessage2({
+                        //             callback_query_id: req.body.callback_query.id,
+                        //             show_alert: true,
+                        //             text: translations.alreadyCancelled[user.language_code] || translations.alreadyCancelled.en
+                        //         }, 'answerCallbackQuery', token)
+                        //     }
+    
+    
+    
+                        //     coworking.doc(inc[2]).update({
+                        //         active: false,
+                        //         updatedAt: new Date(),
+                        //         updatedBy: user.id
+                        //     }).then(() => {
+                        //         log({
+                        //             filter: `coworking`,
+                        //             text: `${userLogName} отменяет запись в коворкинге на ${record.date}`,
+                        //             user: +userData.id
+                        //         })
+    
+                        //         m.sendMessage2({
+                        //             chat_id: user.id,
+                        //             caption: translations.bookingCancelled[user.language_code] || translations.bookingCancelled.en,
+                        //             text: translations.bookingCancelled[user.language_code] || translations.bookingCancelled.en,
+                        //             message_id: req.body.callback_query.message.message_id
+                        //         }, 'editMessageText', token).then(() => {
+                        //             m.sendMessage2({
+                        //                 chat_id: user.id,
+                        //                 message_id: req.body.callback_query.message.message_id,
+                        //                 reply_markup: {
+                        //                     inline_keyboard: [
+                        //                         [{
+                        //                             text: translations.letsTryAgain[user.language_code] || translations.letsTryAgain.en,
+                        //                             callback_data: `ca_repeat`
+                        //                         }]
+                        //                     ]
+                        //                 }
+                        //             }, 'editMessageReplyMarkup', token)
+    
+                        //         })
+    
+                        //     })
+                        // })
+                        // break
                     }
     
                     case 'repeat': {
