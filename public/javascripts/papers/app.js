@@ -28,6 +28,19 @@ try{
     console.error(err)
 }
 
+async function auth(){
+    try {
+        await axios.post(`/paper/authWebApp?token=userToken`,tg.initData)    
+    } catch (error) {
+        console.warn(error)
+    }
+}
+
+auth();
+
+
+
+
 tg.requestWriteAccess();
 
 if(tg.platform != `tdesktop`) {
