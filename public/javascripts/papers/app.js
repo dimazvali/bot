@@ -39,8 +39,6 @@ async function auth(){
 auth();
 
 
-
-
 tg.requestWriteAccess();
 
 if(tg.platform != `tdesktop`) {
