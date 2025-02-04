@@ -979,60 +979,67 @@ const plan = {
 
 const profileMethods = {
     async get(user){
-        let warning = null;
-        
-        userEntries.add({
-            user: +user.id,
-            createdAt: new Date()
-        })
+        return new Promise((resolve, reject)=>{
 
-        udb.doc(user.id.toString()).update({
-            appOpens:       FieldValue.increment(1),
-            appLastOpened:  new Date()
-        })
-
-        let data = [];
-
-        data.push(classes.where(`date`, '>', isoDate()).get().then(col => handleQuery(col)))
-        data.push(userClasses.where(`user`, '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
-        data.push(coworkingCol.where('date', '>=', isoDate()).where('user', '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
-        data.push(mra.where('date', '>=', isoDate()).where('user', '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
-        
-        if(user.fellow){
-            data.push(
-                polls
-                .where('active', '==', true)
-                .orderBy('createdAt', 'desc')
-                .get()
-                .then(col => handleQuery(col))
-            )
-
-            data.push(
-                pollsAnswers
-                .where('user', '==', +user.id)
-                .orderBy('createdAt', 'desc')
-                .get()
-                .then(col => handleQuery(col))
-            )
-        }
-
-        Promise.all(data).then(data => {
-            return {
-                warning:    warning,
-                admin:      user.admin,
-                insider:    user.insider,
-                fellow:     user.fellow,
-                noSpam:     user.noSpam,
-                classes:        data[0],
-                userClasses:    data[1],
-                coworking:      data[2],
-                mr:             data[3],
-                questions:      data[4] || null,
-                answers:        data[5] || null,
-                
-            }
+            try {
+                let warning = null;
             
+                userEntries.add({
+                    user: +user.id,
+                    createdAt: new Date()
+                })
+
+                udb.doc(user.id.toString()).update({
+                    appOpens:       FieldValue.increment(1),
+                    appLastOpened:  new Date()
+                })
+
+                let data = [];
+
+                data.push(classes.where(`date`, '>', isoDate()).get().then(col => handleQuery(col)))
+                data.push(userClasses.where(`user`, '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
+                data.push(coworkingCol.where('date', '>=', isoDate()).where('user', '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
+                data.push(mra.where('date', '>=', isoDate()).where('user', '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
+                
+                if(user.fellow){
+                    data.push(
+                        polls
+                        .where('active', '==', true)
+                        .orderBy('createdAt', 'desc')
+                        .get()
+                        .then(col => handleQuery(col))
+                    )
+
+                    data.push(
+                        pollsAnswers
+                        .where('user', '==', +user.id)
+                        .orderBy('createdAt', 'desc')
+                        .get()
+                        .then(col => handleQuery(col))
+                    )
+                }
+
+                Promise.all(data).then(data => {
+                    resolve({
+                        warning:    warning,
+                        admin:      user.admin,
+                        insider:    user.insider,
+                        fellow:     user.fellow,
+                        noSpam:     user.noSpam,
+                        classes:        data[0],
+                        userClasses:    data[1],
+                        coworking:      data[2],
+                        mr:             data[3],
+                        questions:      data[4] || null,
+                        answers:        data[5] || null,
+                    })
+                    
+                })
+            } catch (error) {
+                reject({})
+            }
         })
+        
         
     },
     async update(user,data){
