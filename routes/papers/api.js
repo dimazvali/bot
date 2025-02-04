@@ -6,15 +6,13 @@ var axios =     require('axios').default;
 
 let token =         process.env.papersToken;
 
-const { FieldValue } = require('firebase-admin/firestore');
-const { handleQuery, isoDate, getDoc, ifBefore, uname, cur, devlog, handleDoc, handleError, checkEntity } = require('../common');
-const { registerUser, isAdmin } = require('../papersBot');
-const { plans, userClassesQ, polls, pollsAnswers, udb, userEntries, classes, userClasses, coworking, mra, halls, plansUsers, plansRequests, invites, authors, messages, coworkingRules, standAlone, eventTypes, views, roomsBlocked, adminTokens } = require('./cols');
+const { handleQuery, isoDate, getDoc, ifBefore, devlog, handleError, checkEntity } = require('../common');
+const { registerUser } = require('../papersBot');
+const { plans, userClassesQ, polls, pollsAnswers, udb, classes, userClasses, coworking, mra, halls, invites, authors, messages, adminTokens } = require('./cols');
 const { classMethods, mrMethods, plan, methods, profileMethods, standAloneMethods } = require('./logics');
 const coworkingMethods  = require('./logics').coworking;
-const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
-const { alertAdmins, log } = require('./store');
+const { log } = require('./store');
 
 
 async function auth(req,res,next){
@@ -48,13 +46,13 @@ router.get(`/:type`, auth, async (req, res) => {
 
         case 'menu':{
             return axios.get(`${process.env.menuHost}/test/8UxO0ziaGusAzxnztRsU?lang=ge&api=true`)
-            .then(data=>{
-                console.log(data.data)
-                res.json(data.data)
-            }).catch(err=>{
-                console.log(err)
-                res.status(500).send(err.message)
-            })
+                .then(data=>{
+                    console.log(data.data)
+                    res.json(data.data)
+                }).catch(err=>{
+                    console.log(err)
+                    res.status(500).send(err.message)
+                })
         }
         case `q`:{
             if(!req.query.class) return res.status(400).send(`no class provided`)

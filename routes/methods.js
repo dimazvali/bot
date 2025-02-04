@@ -88,13 +88,15 @@ function sendMessage2(m, ep, channel, messages, extra) {
 
 function getUser(id,udb){
     if(!id) return false;
-    return udb.doc(id.toString()).get().then(u=>{
-        if(!u.exists) return false;
-        
-        let t = u.data()
-            t.id = u.id;
-        return t
-    }).catch(err=>{})
+    return udb.doc(id.toString()).get()
+        .then(u=>{
+            if(!u.exists) return false;
+            
+            let t = u.data()
+                t.id = u.id;
+            return t
+        })
+        .catch(err=>false)
 }
 
 

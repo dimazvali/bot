@@ -38,11 +38,11 @@ if(!process.env.develop){
     
     
     cron.schedule(`0 5 * * *`, () => {
-        alertSoonCoworking()
-        alertAdminsCoworking()
+        alertSoonCoworking();
+        alertAdminsCoworking();
         countUserEntries(1)
-        nowShow()
-        updatePlans()
+        nowShow();
+        updatePlans();
         getNewUsers(udb,1).then(newcomers=>{
             log({
                 text: `Новых пользователей за сутки: ${newcomers}`
@@ -97,18 +97,19 @@ function countUserEntries(days){
 function feedBackTimer(){
     classes
         .where(`active`,'==',true)
-        .where(`date`,`>=`,new Date(+new Date() - 24*60*60*1000))
+        .where(`date`,`>=`,new Date(+new Date() - 24*60*60*1000).toISOString())
         .get()
         .then(col=>{
             handleQuery(col)
                 .filter(c=>!c.feedBackSent)
+                .filter(c=> c.date < new Date().toISOString())
                 .forEach(c=>{
                     log({
                         filter: `lectures`,
                         text:   `Автоматический запрос отзывов на лекцию ${c.name}`,
                         class:  c.id
                     })
-                    classMethods.askForFeedback(c.id)
+                    classMethods.feedBackRequest(c.id)
                 })
         })
 }
@@ -116,12 +117,15 @@ function feedBackTimer(){
 function alertSoonClasses() {
     classes
         .where('active', '==', true)
-        .where('date', '==', isoDate())
+        .where('date', '>=', isoDate())
         .get()
         .then(col => {
-            handleQuery(col).forEach(record => {
+            let futureClasses = handleQuery(col).filter(c=>c.date.split('T')[0] == isoDate());
+
+            futureClasses.forEach(record => {
                 classMethods.remind(record)
             })
+
         }).catch(err => {
             console.log(err)
         })
@@ -142,6 +146,7 @@ function alertSoonCoworking() {
 }
 
 async function remindOfCoworking(rec) {
+    
     let user = await getUser(rec.user,udb);
     let hall = await getDoc(halls,rec.hall);
 

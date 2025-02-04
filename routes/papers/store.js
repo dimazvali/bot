@@ -14,6 +14,9 @@ function localTime(plusMinutes,date){
     return (date || new Date(+new Date()+(plusMinutes||0)*60*1000)).toLocaleTimeString(false,{timeZone:'Asia/Tbilisi',hour:`2-digit`,minute:`2-digit`})
 }
 
+const classRates = [
+    1,2,3,4,5
+]
 
 function cba(req,txt){
     
@@ -433,11 +436,12 @@ function log(o) {
 }
 
 module.exports = {
-    langs,
-    coworkingPrice,
-    log,
     alertAdmins,
-    interprete,
-    localTime,
     cba,
+    classRates,
+    coworkingPrice,
+    interprete,
+    langs,
+    localTime,
+    log,
 }

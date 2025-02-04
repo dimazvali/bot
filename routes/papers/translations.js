@@ -67,8 +67,8 @@ const translations = {
         en: `Our beloved residents.`
     },
     openClass:{
-        ru: `открыть событие`,
-        en: `open app`
+        ru: `Открыть событие`,
+        en: `Open app`
     },
     review: {
         ru: `Оставьте отзыв`,
@@ -469,9 +469,9 @@ A trial day in the coworking space costs 15 GEL. Subsequent days are at the stan
     },
     lectureReminder: (l,u) => {
         return {
-            ru: `Напоминаем, что сегодня в ${localTime(false,new Date(l.date._seconds*1000))} мы ждем вас на лекции ${l.name}.${(l.price&&!l.payed)?`\n\nОбратите внимание: к оплате на месте ${cur(l.price,'GEL')}`:''}\n\n${(u.classesVisits||u.coworkingVisits) ? `` : `Адрес: Верико Анджапаридзе, 1 (Отель «Илиани»).`}`,
-            en: `Let me remind you of upcoming event today: ${l.name} at ${localTime(false,new Date(l.date._seconds*1000))}. ${l.price?`\n\nBeware: entrance fee is ${cur(l.price,'GEL')}`:''}\n\n${(u.classesVisits||u.coworkingVisits) ? `` : `Address: 1/10, 1 Veriko Anjaparidze St, Tbilisi.`}`,
-            ka: `შეგახსენებთ, რომ დღეს ${localTime(false,new Date(l.date._seconds*1000))}-ზე გელოდებით ლექციაზე ${l.name}`
+            ru: `Напоминаем, что сегодня в ${localTime(false,new Date(l.date))} мы ждем вас на лекции ${l.name}.${(l.price&&!l.payed)?`\n\nОбратите внимание: к оплате на месте ${cur(l.price,'GEL')}`:''}\n\n${(u.classesVisits||u.coworkingVisits) ? `` : `Адрес: Верико Анджапаридзе, 1 (Отель «Илиани»).`}`,
+            en: `Let me remind you of upcoming event today: ${l.name} at ${localTime(false,new Date(l.date))}. ${l.price?`\n\nBeware: entrance fee is ${cur(l.price,'GEL')}`:''}\n\n${(u.classesVisits||u.coworkingVisits) ? `` : `Address: 1/10, 1 Veriko Anjaparidze St, Tbilisi.`}`,
+            ka: `შეგახსენებთ, რომ დღეს ${localTime(false,new Date(l.date))}-ზე გელოდებით ლექციაზე ${l.name}`
         }
     },
     lectureConfirm: {

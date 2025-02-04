@@ -43,7 +43,7 @@ const translations = require('./translations');
 const { FieldValue } = require('firebase-admin/firestore');
 const { modals } = require('../modals');
 const { newPlanRecord, Author, classRecord, Plan, Hall, entity, Page } = require('./classes');
-const { coworkingPrice, log, localTime, alertAdmins, cba } = require('./store');
+const { coworkingPrice, log, localTime, alertAdmins, cba, classRates } = require('./store');
 
 
 function deleteEntity(req, res, ref, admin, attr, callback, extra) {
@@ -1220,72 +1220,60 @@ function registerView(d,userId, entity, col){
 
 const classMethods = {
     remind: async (rec) => {
-        let user = await getUser(rec.user,udb);
-        sendMessage2({
-            chat_id: rec.user,
-            text: translations.lectureReminder(rec,user)[user.language_code] || translations.lectureReminder(rec,user).en,
-            reply_markup: {
-                inline_keyboard: [
-                    [{
-                        text: translations.coworkingBookingCancel[user.language_code] || translations.coworkingBookingCancel.en,
-                        callback_data: `unclass_${rec.id}`
-                    }]
-                ]
-            }
-        }, false, token, messages)
-    },
-    feedBackRequest:(c)=>{
-        return getDoc(classes,c).then(l=>{
-            return userClasses
-                .where(`class`,'==',c)
-                .where('active','==',true)
-                .where('status','==','used')
-                .get()
-                .then(col=>{
-                    handleQuery(col).forEach(ticket=>{
-                        getUser(ticket.user,udb).then(user=>{
-                            sendMessage2({
-                                chat_id: ticket.user,
-                                text: translations.feedBackRequest(ticket,l)[user.language_code] || translations.feedBackRequest(ticket,l).en,
-                                reply_markup:{
-                                    inline_keyboard:[
-    
-                                        [
-                                            {
-                                                text: `1`,
-                                                callback_data: `feedback_ticket_${ticket.id}_1`
-                                            },
-                                            {
-                                                text: `2`,
-                                                callback_data: `feedback_ticket_${ticket.id}_2`
-                                            },
-                                            {
-                                                text: `3`,
-                                                callback_data: `feedback_ticket_${ticket.id}_3`
-                                            },
-                                            {
-                                                text: `4`,
-                                                callback_data: `feedback_ticket_${ticket.id}_4`
-                                            },
-                                            {
-                                                text: `5`,
-                                                callback_data: `feedback_ticket_${ticket.id}_5`
-                                            }
-                                        ]
-                                        
-                                    ]
+        let tickets = await ifBefore(userClasses,{active:true,class:rec.id});
+        tickets.forEach(async(t,i)=>{
+            let user = await getUser(t.user,udb);
+            setTimeout(()=>{
+                sendMessage2({ 
+                    chat_id: process.env.develop ? dimazvali : rec.user,
+                    text: translations.lectureReminder(rec,user)[user.language_code] || translations.lectureReminder(rec,user).en,
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{
+                                text: translations.coworkingBookingCancel[user.language_code] || translations.coworkingBookingCancel.en,
+                                callback_data: `unclass_${t.id}`
+                            }],[{
+                                text: translations.openClass[user.language_code] || translations.openClass[user.language_code],
+                                web_app: {
+                                    url: process.env.ngrok + '/paper/app?start=class_'+rec.id
                                 }
-                            },false,token,messages)
-                        })
-                        
-                    })
-                    classes.doc(c).update({
-                        feedBackSent: new Date()
-                    })
-    
-                    return handleQuery(col).length
-                })
+                            }]
+                        ]
+                    }
+                }, false, token, messages)
+            },i*200)
+            
         })
+        
+    },
+    feedBackRequest:async(c)=>{
+        let l = await getDoc(classes,c);
+        let tickets = await ifBefore(userClasses,{class:c, active:true, status: `used`})
+        tickets.forEach((ticket,i)=>{
+            setTimeout(async ()=>{
+                let user = await getUser(ticket.user,udb);
+                sendMessage2({
+                    chat_id:    process.env.develop ? dimazvali : ticket.user,
+                    text:       translations.feedBackRequest(ticket,l)[user.language_code] || translations.feedBackRequest(ticket,l).en,
+                    reply_markup:{
+                        inline_keyboard:[
+                            classRates.map(r=>{
+                                return {
+                                    text: r.toString(),
+                                    callback_data: `feedback_ticket_${ticket.id}_${r.toString()}`
+                                }
+                            })                            
+                        ]
+                    }
+                },false,token,messages)
+            },i*200)
+        })
+
+        classes.doc(c).update({
+            feedBackSent: new Date()
+        })
+
+        return tickets.length;
     },
     bookClass: async (user, classId, res, id)=>{
     
