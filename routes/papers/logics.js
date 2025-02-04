@@ -2,7 +2,7 @@
 
 const express = require('express');
 const router =  express.Router();
-var axios =     require('axios');
+var axios =     require('axios').default;
 
 let token =         process.env.papersToken;
 
@@ -30,6 +30,9 @@ const {
     subscriptions,
     courses,
     views,
+    standAlone,
+    polls,
+    pollsAnswers,
 } = require('./cols');
 
 const coworkingCol = require('./cols').coworking;
@@ -39,7 +42,7 @@ const { isoDate, uname, cur, handleQuery, devlog, ifBefore, dimazvali, drawDate,
 const translations = require('./translations');
 const { FieldValue } = require('firebase-admin/firestore');
 const { modals } = require('../modals');
-const { newPlanRecord, Author, classRecord, Plan, Hall, entity } = require('./classes');
+const { newPlanRecord, Author, classRecord, Plan, Hall, entity, Page } = require('./classes');
 const { coworkingPrice, log, localTime, alertAdmins, cba } = require('./store');
 
 
@@ -936,21 +939,19 @@ const plan = {
             text: `Ваша подписка на тарифный план ${p.name} была аннулирована.`
         },false,token,messages)
     },
-    request:async(userId,planId)=>{
-        let user = await getUser(userId,udb);
-        if(!checkEntity(`user`,user)) throw new Error(`user invalid`);
+    request:async(user,planId)=>{
         let plan = await getDoc(plans, planId)
         if(!checkEntity(`plan`,plan)) throw new Error(`plan invalid`);
         
-        let before = await ifBefore(plansRequests,{user:+userId, active:true, plan: planId});
+        let before = await ifBefore(plansRequests,{user:+user.id, active:true, plan: planId});
         if(before.length) throw new Error(`already booked`);
 
-        let alreadyBooked = await ifBefore(plansUsers,{user:+userId,active:true,plan: planId});
+        let alreadyBooked = await ifBefore(plansUsers,{user:+user.id,active:true,plan: planId});
         if(alreadyBooked.length) throw new Error(`plan in progress`);
         
         let record = await plansRequests.add({
             createdAt:  new Date(),
-            user:       +userId,
+            user:       +user.id,
             plan:       planId,
             active:     true
         })
@@ -963,7 +964,7 @@ const plan = {
         })
 
         sendMessage2({
-            chat_id:        userId,
+            chat_id:        user.id,
             photo:          `${process.env.ngrok}/paper/qr?id=${record.id}&entity=planRequests`,
             caption:       `Вы запросили подключение тарифа ${plan.name}.\nПросто покажите администратору этот код — он сможет подключить тариф в пару кликов.`
         },'sendPhoto',token,messages)
@@ -973,6 +974,115 @@ const plan = {
             id: record.id,
             comment: `Заявка принята! Мы скоро свяжемся с вами.`
         }
+    }
+}
+
+const profileMethods = {
+    async get(user){
+        let warning = null;
+        
+        userEntries.add({
+            user: +user.id,
+            createdAt: new Date()
+        })
+
+        udb.doc(user.id.toString()).update({
+            appOpens:       FieldValue.increment(1),
+            appLastOpened:  new Date()
+        })
+
+        let data = [];
+
+        data.push(classes.where(`date`, '>', isoDate()).get().then(col => handleQuery(col)))
+        data.push(userClasses.where(`user`, '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
+        data.push(coworkingCol.where('date', '>=', isoDate()).where('user', '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
+        data.push(mra.where('date', '>=', isoDate()).where('user', '==', +user.id).where('active', '==', true).get().then(col => handleQuery(col)))
+        
+        if(user.fellow){
+            data.push(
+                polls
+                .where('active', '==', true)
+                .orderBy('createdAt', 'desc')
+                .get()
+                .then(col => handleQuery(col))
+            )
+
+            data.push(
+                pollsAnswers
+                .where('user', '==', +user.id)
+                .orderBy('createdAt', 'desc')
+                .get()
+                .then(col => handleQuery(col))
+            )
+        }
+
+        Promise.all(data).then(data => {
+            return {
+                warning:    warning,
+                admin:      user.admin,
+                insider:    user.insider,
+                fellow:     user.fellow,
+                noSpam:     user.noSpam,
+                classes:        data[0],
+                userClasses:    data[1],
+                coworking:      data[2],
+                mr:             data[3],
+                questions:      data[4] || null,
+                answers:        data[5] || null,
+                
+            }
+            
+        })
+        
+    },
+    async update(user,data){
+        let plausible = [
+            'email',
+            'last_name',
+            'first_name',
+            'occupation',
+            'about',
+            'language_code',
+            'noSpam',
+            `randomCoffee`
+        ]
+        plausible.forEach(type => {
+                            
+            devlog(type)
+
+            if (data.hasOwnProperty(type)) {
+                
+                devlog(`${type}: ${data[type]}`)
+                
+                udb.doc(user.id.toString()).update({
+                    [type]:     data[type],
+                    updatedAt:  new Date()
+                })
+
+                if (type == 'language_code') {
+                    axios.post(`https://api.telegram.org/bot${token}/setChatMenuButton`, {
+                        "chat_id": user.id,
+                        "menu_button": {
+                            "type": "web_app",
+                            "text": translations.app[data.type] || translations.app.en,
+                            "web_app": {
+                                "url": process.env.ngrok+"/paper/app"
+                            }
+                        }
+                    })
+                }
+            } else if (data.attr == type){
+                
+                devlog(`обвноляем ${data.attr}`)
+
+                udb.doc(user.id.toString()).update({
+                    [data.attr]: data.value,
+                    updatedAt: new Date()
+                })
+            }
+        })
+
+        return true;
     }
 }
 
@@ -1098,7 +1208,7 @@ function registerView(d,userId, entity, col){
         name:       d.name || null,
         id:         d.id || null,
         user:       userId || null,
-        entity:     d.entity || null
+        entity:     d.entity || entity || null
     }).then(()=>{
         if(col){
             col.doc(d.id).update({
@@ -1182,6 +1292,12 @@ const classMethods = {
         if (!user) {
             user = await getUser(id,udb)
         }
+
+        if(!user) {
+            if(res) res.status(400).send(`no such user`)
+            return;
+        }
+
         let already = await ifBefore(userClasses, { user: +user.id, active: true, class: classId });
         
         if(already.length) {
@@ -1659,7 +1775,86 @@ const classMethods = {
             }
         }
         return c
+    },
+    async announce(data, admin){
+        try {
+
+            if(!consistencyCheck(data,[`class`,`type`,`text`])) throw new Error(`data missing`)
+
+            let list = userClasses.where(`class`,`==`,data.class);
+            
+            if(data.type == `all`)      list = list.where('active', '==', true)
+            if(data.type == `inside`)   list = list.where('status', '==', `used`)
+            if(data.type == `outside`)  list = list.where('status', '!=', `used`)
+
+            let tickets = await list.get().then(col=>handleQuery(col));
+
+            tickets.forEach((t,i)=>{
+                setTimeout(()=>{
+                    sendMessage2({
+                        chat_id:    t.user,
+                        text:       data.text,
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{
+                                    text: translations.openClass.en,
+                                    web_app: {
+                                        url: process.env.ngrok + '/paper/app?start=class_'+data.class
+                                    }
+                                }]
+                            ]
+                        }
+                    }, false, token, messages, {admin: +admin.id})
+                },i*200)
+            })
+
+            return {
+                success: true,
+                comment: `Рассылка уходит на ${tickets.length} пользователей.`
+            }
+
+        } catch (error) {
+            throw new Error(error.message)
+        }
+    },
+    async rate(data,user){
+        if(!consistencyCheck(data,[`rate`,`ticket`])) throw new Error(`data missing`);
+        let ticket = await getDoc(userClasses,data.ticket);
+        if(!checkEntity(`ticket`,ticket) || ticket.status != `used`) throw new Error(`ticket invalid`);
+        if(ticket.user !== +user.id) throw new Error(`not your ticket`);
+        await userClasses.doc(data.ticket).update({
+            rate:        +data.rate,
+            reviewed:    new Date()
+        })
+        this.classReScore(ticket.class);
+        log({
+            filter: `lectures`,
+            text:   `Новая оценка к мероприятию ${data.className}: ${data.rate}`,
+            user:   +user.id,
+            class:  ticket.class,
+            ticket: ticket.id
+        })
+        return true;
+    },
+    async review(data,user){
+        if(!consistencyCheck(data,[`text`,`ticket`])) throw new Error(`data missing`);
+        let ticket = await getDoc(userClasses,data.ticket);
+        if(!checkEntity(`ticket`,ticket) || ticket.status != `used`) throw new Error(`ticket invalid`);
+        if(ticket.user !== +user.id) throw new Error(`not your ticket`);
+        await userClasses.doc(data.ticket).update({
+            review:        data.text,
+            reviewed:       new Date()
+        })
+        log({
+            filter: `lectures`,
+            text:   `Новый отзыв к мероприятию ${data.className}: ${data.text}`,
+            user:   +user.id,
+            class:  ticket.class,
+            ticket: ticket.id
+        })
+        return true;
     }
+    // TBD: уведомления для авторов по отзывам и оценкам
 }
 
 const authorMethods = {
@@ -2144,6 +2339,34 @@ const methods = {
 }
 
 
+const standAloneMethods = {
+    async get(slug,user){
+        let data = await getDoc(standAlone,slug);
+        if(!checkEntity(`page`,data)) throw new Error(`no such page`);
+        registerView(data,user?user.id:null,`standAlone`,standAlone)
+        return data;
+    },
+    async add(data,admin){
+        if(!consistencyCheck(data,[`name`,`slug`])) throw new Error(`data missing`)
+        let before = await getDoc(standAlone,data.slug);
+        if(before) throw new Error(`slug occupied`);
+        let p = new Page(data,admin).js;
+        let record = await standAlone.doc(data.slug.toString()).set(p)
+        
+        log({
+            text:   `${uname(admin,admin.id)} создает раздел "${data.name}"`,
+            page:   data.slug,
+            admin:  +admin.id
+        })
+
+        return {
+            success: true,
+            id: data.slug
+        }
+        
+    }
+}
+
 
 module.exports = {
     addBook,
@@ -2163,6 +2386,8 @@ module.exports = {
     rcMethods,
     roomMethods,
     sendClass,
+    standAloneMethods,
     updateEntity,
     wine,
+    profileMethods,
 }

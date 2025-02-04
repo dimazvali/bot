@@ -27,6 +27,7 @@ let gcp = initializeApp({
 let fb = getFirestore(gcp);
 
 const admins =            fb.collection('admins');
+const entries =           fb.collection('entries');
 const adminTokens =       fb.collection('adminTokens');
 const authors =           fb.collection(`authors`);
 const bookings =          fb.collection(`bookings`);
@@ -85,6 +86,7 @@ module.exports = {
     coworking,
     coworkingRules,
     deposits,
+    entries,
     eventTypes,
     halls,
     invites,

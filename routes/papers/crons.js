@@ -8,9 +8,10 @@ const { nowShow,alertSoonMR, alertAdminsCoworking, classMethods, coworking } = r
 const { log } = require('debug');
 
 const { devlog, drawDate, uname, getNewUsers, handleQuery, ifBefore, handleDoc, isoDate, getDoc, letterize } = require('../common');
-const { udb, plansUsers, messages, views, classes, authors, halls, userEntries } = require('./cols');
+const { udb, plansUsers, messages, views, classes, authors, halls, userEntries, entries } = require('./cols');
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
+const { alertAdmins } = require('./store');
 
 let token =         process.env.papersToken;
 
@@ -51,6 +52,7 @@ if(!process.env.develop){
 
     cron.schedule(`0 5 * * 1`,()=>{
         alertMiniStats(7)
+        alertEntries(7);
         getNewUsers(udb,7).then(newcomers=>{
             log({
                 text: `Новых пользователей за неделю: ${newcomers}`
@@ -182,6 +184,27 @@ function updatePlans(){
         })
     })
 }
+
+async function alertEntries(days){
+    if(!days) days = 7;
+
+    let ndate = new Date(+new Date() - days*24*60*60*1000)
+
+    entries.where(`createdAt`,'>=',ndate).get().then(col=>{
+        let data = handleQuery(col);
+        let countriesUnique = [... new Set(data.map(r=>r.country))];
+        let result = {};
+
+        countriesUnique.forEach(c=>{
+            result[c] = data.filter(r=>r.country == c).length;
+        })
+
+        alertAdmins({
+            text: `Статистика приложения за неделю:\n\nВсего запусков: ${data.length}.\n\nПо странам:\n${Object.keys(result).map(c=>`*${c}*: ${result[c]}`).join(`\n`)}`
+        })
+    })
+}
+
 
 async function alertMiniStats(days){
     

@@ -15,6 +15,15 @@ class entity{
     }
 }
 
+class Page extends entity{
+    constructor(data,admin){
+        super(data,admin);
+        this.html = data.html || null;
+        this.views = 0;
+        this.slug = data.slug || null;
+    }
+}
+
 class Hall extends entity{
     constructor(data,admin){
         super(data,admin)
@@ -81,10 +90,11 @@ class classRecord extends entity{
 }
 
 module.exports = {
-    Hall,
-    Plan,
-    classRecord,
     Author,
+    classRecord,
     entity,
+    Hall,
     newPlanRecord,
+    Page,
+    Plan,
 }

@@ -9,30 +9,42 @@ let token =         process.env.papersToken;
 const { FieldValue } = require('firebase-admin/firestore');
 const { handleQuery, isoDate, getDoc, ifBefore, uname, cur, devlog, handleDoc, handleError, checkEntity } = require('../common');
 const { registerUser, isAdmin } = require('../papersBot');
-const { plans, userClassesQ, polls, pollsAnswers, udb, userEntries, classes, userClasses, coworking, mra, halls, plansUsers, plansRequests, invites, authors, messages, coworkingRules, standAlone, eventTypes, views, roomsBlocked } = require('./cols');
-const { classMethods, mrMethods, plan, methods } = require('./logics');
+const { plans, userClassesQ, polls, pollsAnswers, udb, userEntries, classes, userClasses, coworking, mra, halls, plansUsers, plansRequests, invites, authors, messages, coworkingRules, standAlone, eventTypes, views, roomsBlocked, adminTokens } = require('./cols');
+const { classMethods, mrMethods, plan, methods, profileMethods, standAloneMethods } = require('./logics');
 const coworkingMethods  = require('./logics').coworking;
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
 const { alertAdmins, log } = require('./store');
 
 
+async function auth(req,res,next){
+    if(!req.signedCookies.userToken && process.env.develop)  req.signedCookies.userToken = process.env.adminToken;
+    
+    if(!req.signedCookies.userToken) {
+        next();
+    }
+
+    let token = await getDoc(adminTokens,req.signedCookies.userToken);
+    if(!token) return res.sendStatus(401);
+    let user = await getUser(token.user, udb);
+    if(!user || user.blocked) return res.sendStatus(403);
+    res.locals.user = user;
+    
+    devlog(user);
+
+    next()
+}
 
 
-router.get(`/:type`, (req, res) => {
+router.get(`/:type`, auth, async (req, res) => {
+    
+    let user = res.locals.user;
+
     switch (req.params.type) {
+        
         case `tariffs`:{
             return plans.where(`active`,'==',true).get().then(col=>res.json(handleQuery(col)))
         }
-        // case `podcasts`:{
-        //     return podcasts
-        //         .where(`active`,'==',true)
-        //         .where(`date`,'>=',isoDate())
-        //         .get()
-        //         .then(col=>{
-        //             res.json(handleQuery(col).sort((a,b)=>a.date<b.date?-1:1))
-        //         })
-        // }
 
         case 'menu':{
             return axios.get(`${process.env.menuHost}/test/8UxO0ziaGusAzxnztRsU?lang=ge&api=true`)
@@ -62,6 +74,9 @@ router.get(`/:type`, (req, res) => {
             })
         }
         case 'polls': {
+            
+            if(!user) return res.sendStatus(401);
+
             let data = []
             data.push(
                 polls
@@ -73,7 +88,7 @@ router.get(`/:type`, (req, res) => {
 
             data.push(
                 pollsAnswers
-                .where('user', '==', +req.query.user)
+                .where('user', '==', +user.id)
                 .orderBy('createdAt', 'desc')
                 .get()
                 .then(col => handleQuery(col))
@@ -88,199 +103,88 @@ router.get(`/:type`, (req, res) => {
         }
         case 'userData': {
 
-            if (!req.query.user) return res.status(400)
+            if (!user) return res.status(401)
 
-            udb.doc(req.query.user.toString()).get().then(d => {
-                if (!d.exists) return res.sendStatus(404)
-
-                return res.json(d.data())
-            }).catch(err => {
-                return res.status(500).send(err.message)
-            })
-
-            break;
+            return res.json(user);
         }
+
         case 'user': {
-            if (!req.query.id) return res.status(400)
-            
-                req.query.id = req.query.id || '';
-
-            let warning = null;
-
-            return userEntries.add({
-                user: +req.query.id,
-                createdAt: new Date()
-            }).then(() => {
-
-                udb.doc(req.query.id).update({
-                    appOpens:       FieldValue.increment(1),
-                    appLastOpened:  new Date()
-                }).then(() => {
-
-                }).catch(err => {
-                    warning = 'noUser';
-                })
-
-                return udb.doc(req.query.id).get().then(u => {
-                    u = u.data()
-
-                    if (!u) {
-                        return res.json({
-                            warning: warning,
-                            admin: false,
-                            insider: false,
-                            fellow: false,
-                            classes: [],
-                            userClasses: [],
-                            coworking: [],
-                            mr: []
-                        })
-                    }
-                    
-                    if (u.blocked) {
-                        return res.json({
-                            warning: 'userBlocked'
-                        })
-                    }
-
-                    let data = [];
-
-                    data.push(classes.where(`date`, '>', isoDate()).get().then(col => handleQuery(col)))
-                    data.push(userClasses.where(`user`, '==', +req.query.id).where('active', '==', true).get().then(col => handleQuery(col)))
-                    data.push(coworking.where('date', '>=', isoDate()).where('user', '==', +req.query.id).where('active', '==', true).get().then(col => handleQuery(col)))
-                    data.push(mra.where('date', '>=', isoDate()).where('user', '==', +req.query.id).where('active', '==', true).get().then(col => handleQuery(col)))
-
-                    if (u.fellow) {
-                        data.push(
-                            polls
-                            .where('active', '==', true)
-                            .orderBy('createdAt', 'desc')
-                            .get()
-                            .then(col => handleQuery(col))
-                        )
-
-                        data.push(
-                            pollsAnswers
-                            .where('user', '==', +req.query.id)
-                            .orderBy('createdAt', 'desc')
-                            .get()
-                            .then(col => handleQuery(col))
-                        )
-                    }
-
-                    Promise.all(data).then(data => {
-                        return res.json({
-                            warning: warning,
-                            admin:      u.admin,
-                            insider:    u.insider,
-                            fellow:     u.fellow,
-                            noSpam:     u.noSpam,
-                            classes:    data[0],
-                            userClasses: data[1],
-                            coworking:  data[2],
-                            mr:         data[3],
-                            questions: data[4] || null,
-                            answers: data[5] || null,
-                            
-                        })
-                        
-                    })
-                })
-            })
-            break;
+            if (!user) return res.status(401)
+            return profileMethods.get(user)
+                .then(s=>res.json(s))
+                .catch(err=>handleError(err,res))
         }
-        case 'usersList': {
-            if (!req.query.user) return res.status(400).send('no user provided')
-            if (!req.query.type) return res.status(400).send('no type provided')
 
-            return udb.doc(req.query.user).get().then(u => {
-                u = u.data();
-                if (u.admin || u[req.query.type]) {
-                    udb
-                        .where(req.query.type, '==', true)
-                        .where('active', '==', true)
-                        .get().then(col => {
-                            res.json(handleQuery(col).map(user => {
-                                return {
-                                    id: user.id,
-                                    username: user.username,
-                                    first_name: user.first_name,
-                                    last_name: user.last_name,
-                                    about: user.about
-                                }
-                            }))
-                        })
-                } else {
-                    res.sendStatus(403)
+        case 'usersList': {
+            
+            if (!user) return res.sendStatus(401)
+            if (!user.admin) return res.sendStatus(403)
+
+            if (!req.query.type) return res.status(400).send('no type provided')
+        
+            let filter = req.query.type.toString();
+
+            let users = await ifBefore(udb,{active:true, [filter]: true})
+            res.json(users.map(user => {
+                return {
+                    id:         user.id,
+                    username:   user.username,
+                    first_name: user.first_name,
+                    last_name:  user.last_name,
+                    about:      user.about
                 }
-            })
+            }))
+            break;
         }
         case 'classes': {
+            if(!user) return res.sendStatus(401)
 
-            udb.doc(req.query.user).get().then(u => {
-                if (!u.exists) return res.sendStatus(404);
+            let data = []
 
-                u = u.data();
+            data.push(classes
+                .where(`active`, '==', true)
+                .where('date', '>=', new Date(+new Date()-2*60*60*1000).toISOString())
+                .orderBy('date')
+                .get().then(col => handleQuery(col).filter(c => ((user.admin || user.insider || user.fellow) ? true : ((c.fellows && user.fellow) || (c.admins && user.admin) || (!c.fellows && !c.admins))))))
 
-                if (u.blocked) return res.sendStatus(403)
+            data.push(userClasses
+                .where('active', '==', true)
+                .where('user', '==', +user.id)
+                .get().then(col => handleQuery(col)))
 
-                let data = []
+            Promise.all(data).then(data => {
 
-                data.push(classes
-                    .where(`active`, '==', true)
-                    .where('date', '>=', new Date(+new Date()-2*60*60*1000).toISOString())
-                    .orderBy('date')
-                    .get().then(col => handleQuery(col).filter(c => ((u.admin || u.insider || u.fellow) ? true : ((c.fellows && u.fellow) || (c.admins && u.admin) || (!c.fellows && !c.admins))))))
+                let result = [];
 
-                data.push(userClasses
-                    .where('active', '==', true)
-                    .where('user', '==', +req.query.user)
-                    .get().then(col => handleQuery(col)))
-
-                Promise.all(data).then(data => {
-
-                    let result = []
-                    data[0].forEach(c => {
-                        let record = data[1].filter(uc => c.id == uc.class)[0]
-                        if (record) {
-                            c.booked =          true;
-                            c.status =          record.status;
-                            c.appointmentId =   record.id;
-                            c.payed =           record.isPayed || false;
-                        }
-                        result.push(c)
-                    })
-
-                    res.json(result)
-
-                }).catch(err => {
-                    console.log(err)
-                    res.json([])
+                data[0].forEach(c => {
+                    let record = data[1].filter(uc => c.id == uc.class)[0]
+                    if (record) {
+                        c.booked =          true;
+                        c.status =          record.status;
+                        c.appointmentId =   record.id;
+                        c.payed =           record.isPayed || false;
+                    }
+                    result.push(c)
                 })
 
+                res.json(result)
+
+            }).catch(err => {
+                console.log(err)
+                res.json([])
             })
-
-
-
-
+            
             break;
         }
         case 'coworking': {
-            halls
-                .where(`active`, '==', true)
-                .where('isCoworking', '==', true)
-                .get().then(col => {
-                    res.json(handleQuery(col))
-                }).catch(err => {
-                    alertAdmins({
-                        filter: `coworking`,
-                        text: `ошибка выгрузки коворкинга ${err.message}`
-                    })
-                    res.status(500).send(`Извините, сервис временно недоступен`)
-                })
+            let data = await ifBefore(halls,{active:true,isCoworking:true});
+            res.json(data)
             break;
         }
         case 'mr': {
+            
+            if(!user) return res.sendStatus(401);
+
             mra
                 .where('active', '==', true)
                 .where('date', '>=', isoDate())
@@ -311,15 +215,15 @@ router.get(`/:type`, (req, res) => {
                             // @ts-ignore
                             t.slots.push({
                                 time: time,
-                                available: dayrecords.filter(r => r.time == time).length ? false : true,
-                                self: dayrecords.filter(r => r.time == time && r.user == +req.query.user).length ? dayrecords.filter(r => r.time == time && r.user == +req.query.user)[0].id : false
+                                available:  dayrecords.filter(r => r.time == time).length ? false : true,
+                                self:       dayrecords.filter(r => r.time == time && r.user == +user.id).length ? dayrecords.filter(r => r.time == time && r.user == +user.id)[0].id : false
                             })
                             
                             // @ts-ignore
                             t.slots.push({
                                 time: time2,
-                                available: dayrecords.filter(r => r.time == time2).length ? false : true,
-                                self: dayrecords.filter(r => r.time == time2 && r.user == +req.query.user).length ? dayrecords.filter(r => r.time == time2 && r.user == +req.query.user)[0].id : false
+                                available:  dayrecords.filter(r => r.time == time2).length ? false : true,
+                                self:       dayrecords.filter(r => r.time == time2 && r.user == +user.id).length ? dayrecords.filter(r => r.time == time2 && r.user == +user.id)[0].id : false
                             })
                             shift++
                         }
@@ -340,21 +244,22 @@ router.get(`/:type`, (req, res) => {
 })
 
 
-router.all(`/:data/:id`, async (req, res) => {
+router.all(`/:data/:id`, auth, async (req, res) => {
+    
+    let user = res.locals.user;
 
     switch (req.params.data) {
 
         case `tariffs`:{
-            if(!req.query.id) return res.sendStatus(400)
-
+            if(!user) return res.sendStatus(401);
             switch(req.method){
                 case `GET`:{
-                    return methods.plans.get(req.params.id,req.query.id)
+                    return methods.plans.get(req.params.id,user.id)
                         .then(s=>res.json(s))
                         .catch(err=>handleError(err.res))
                 }
                 case `POST`:{
-                    return plan.request(req.query.id,req.params.id)
+                    return plan.request(user,req.params.id)
                         .then(s=>{
                             res.json(s)
                         }).catch(err=>{
@@ -397,65 +302,59 @@ router.all(`/:data/:id`, async (req, res) => {
             })            
         }
         case `q`:{
+            if(!user) res.sendStatus(401)
             switch (req.method){
                 case `GET`:{
                     let q = await getDoc(userClassesQ,req.params.id);
                     if(!q) return res.sendStatus(404)
-                    getUser(q.user,udb).then(user=>{
-                        q.userData = user;
-                        res.json(q)
-                    })
+                    q.userData = user;
+                    res.json(q)
                     break;
                 }
                 case `POST`:{
-                    return getUser(req.body.user,udb).then(u=>{
-                        if(u){
-                            if(req.body.text && req.body.class) {
-                                userClassesQ.add({
-                                    active:     true,
-                                    createdAt:  new Date(),
-                                    class:      req.body.class,
-                                    user:       req.body.user,
-                                    text:       req.body.text
-                                }).then(s=>{
+                    if(req.body.text && req.body.class) {
+                        userClassesQ.add({
+                            active:     true,
+                            createdAt:  new Date(),
+                            class:      req.body.class,
+                            user:       +user.id,
+                            text:       req.body.text
+                        }).then(s=>{
 
-                                    getDoc(classes,req.body.class).then(c=>{
-                                        if(c){
-                                            log({
-                                                filter: `lectures`,
-                                                text:   `Новый вопрос к лекции ${c.name}: _${req.body.text}_`,
-                                                user:   +req.body.user,
-                                                class:  req.body.class
-                                            })
-    
-                                            if(c && c.authorId) getDoc(authors,c.authorId).then(a=>{
-                                                if(a && a.user){
-                                                    sendMessage2({
-                                                        chat_id: a.user,
-                                                        text: `Новый вопрос по вашей лекции: ${req.body.text}.`
-                                                    },false,token,messages)
-                                                }
-                                            })
+                            getDoc(classes,req.body.class).then(c=>{
+                                if(c){
+                                    log({
+                                        filter: `lectures`,
+                                        text:   `Новый вопрос к лекции ${c.name}: _${req.body.text}_`,
+                                        user:   +user.id,
+                                        class:  req.body.class
+                                    })
+
+                                    if(c && c.authorId) getDoc(authors,c.authorId).then(a=>{
+                                        if(a && a.user){
+                                            sendMessage2({
+                                                chat_id: a.user,
+                                                text: `Новый вопрос по вашей лекции: ${req.body.text}.`
+                                            },false,token,messages)
                                         }
                                     })
+                                }
+                            })
 
-                                    res.json({
-                                        success: true,
-                                        comment: `Вопрос задан. А это уже половина ответа...`
-                                    })
-                                }).catch(err=>{
-                                    res.json({
-                                        success: false,
-                                        comment: err.message
-                                    })
-                                })
-                            } else {
-                                res.sendStatus(400)
-                            }
-                        } else {
-                            res.sendStatus(400)
-                        }
-                    })
+                            res.json({
+                                success: true,
+                                comment: `Вопрос задан. А это уже половина ответа...`
+                            })
+                        }).catch(err=>{
+                            res.json({
+                                success: false,
+                                comment: err.message
+                            })
+                        })
+                    } else {
+                        res.sendStatus(400)
+                    }
+                    break;
                 }
                 case `DELETE`:{
                     return userClassesQ.doc(req.params.id).get().then(q=>{
@@ -474,11 +373,10 @@ router.all(`/:data/:id`, async (req, res) => {
             break;
         }
         case 'plans':{
+            if(!user) res.sendStatus(401)
             switch (req.method){
                 case 'PUT':{
-                    if(!req.query.user) return res.sendStatus(400)
-                    
-                    return plan.request(req.query.user, req.params.id).then(s=>{
+                    return plan.request(user, req.params.id).then(s=>{
                         res.json(s)
                     }).catch(err=>{
                         res.json({
@@ -570,69 +468,15 @@ router.all(`/:data/:id`, async (req, res) => {
 
         }
         case 'profile': {
-
+            if(!user) res.sendStatus(401)
             switch (req.method) {
                 case 'PUT': {
-                    udb.doc(req.params.id.toString()).get().then(d => {
-
-                        if (!d.exists) return res.sendStatus(404)
-
-                        let plausible = [
-                            'email',
-                            'last_name',
-                            'first_name',
-                            'occupation',
-                            'about',
-                            'language_code',
-                            'noSpam',
-                            `randomCoffee`
-                        ]
-                        
-                        devlog(req.body);
-
-                        plausible.forEach(type => {
-                            
-                            devlog(type)
-
-                            if (req.body.hasOwnProperty(type)) {
-                                
-                                devlog(`${type}: ${req.body[type]}`)
-                                
-                                udb.doc(req.params.id).update({
-                                    [type]: req.body[type],
-                                    updatedAt: new Date()
-                                })
-
-                                if (type == 'language_code') {
-                                    axios.post(`https://api.telegram.org/bot${token}/setChatMenuButton`, {
-                                        "chat_id": req.params.id,
-                                        "menu_button": {
-                                            "type": "web_app",
-                                            "text": translations.app[req.body.type] || translations.app.en,
-                                            "web_app": {
-                                                "url": process.env.ngrok+"/paper/app"
-                                            }
-                                        }
-                                    })
-                                }
-                            } else if (req.body.attr == type){
-                                
-                                devlog(`обвноляем ${req.body.attr}`)
-
-                                udb.doc(req.params.id).update({
-                                    [req.body.attr]: req.body.value,
-                                    updatedAt: new Date()
-                                })
-                            }
-                        })
-
-                        return res.json({
+                    return profileMethods.update(user,req.body).then(s=>{
+                        res.json({
                             success: true,
                             comment: `данные обновлены`
                         })
-
-                    })
-                    break;
+                    }).catch(err=>handleError(err,res))
                 }
                 default:
                     res.sendStatus(404)
@@ -640,89 +484,48 @@ router.all(`/:data/:id`, async (req, res) => {
             }
             break;
         }
-        case 'rules': {
-            coworkingRules.doc(req.params.id).set({
-                rules: req.body
-            })
-        }
+        // case 'rules': {
+        //     coworkingRules.doc(req.params.id).set({
+        //         rules: req.body
+        //     })
+        // }
         case `static`:{
-            return getDoc(standAlone,req.params.id).then(s=>{
-                if(!s || !s.active) return res.sendStatus(404)
-                standAlone.doc(req.params.id).update({
-                    views: FieldValue.increment(1)
-                }) 
-                return res.json(s)
-            })
+            return standAloneMethods.get(req.params.id,user)
+                .then(d=>res.json(d))
+                .catch(err=>handleError(err,res))
         }
-        case 'types': {
-            return eventTypes.doc(req.params.id).set({
-                en: req.body[0],
-                ru: req.body[1],
-                nom: req.body[2]
-            }).then(d => {
-                res.send(req.params.id)
-            }).catch(err => {
-                res.status(400).send(err.message)
-            })
-        }
+        // case 'types': {
+        //     return eventTypes.doc(req.params.id).set({
+        //         en:     req.body[0],
+        //         ru:     req.body[1],
+        //         nom:    req.body[2]
+        //     }).then(d => {
+        //         res.send(req.params.id)
+        //     }).catch(err => {
+        //         res.status(400).send(err.message)
+        //     })
+        // }
         
         case 'classes': {
-            if(!req.query.user) return res.sendStatus(400)
+            if(!user)return res.sendStatus(401)
 
             switch (req.method) {
                 case 'POST': {
                     if (req.query.intention == 'book') {
-                        if (!req.query.user) return res.sendStatus(400)
-                        return classMethods.bookClass(false, req.params.id, res, req.query.user)
+                        return classMethods.bookClass(false, req.params.id, res, user.id)
                     } else if (req.query.intention == `rate`) {
-                        if(!req.body.rate || !req.body.ticket) return res.sendStatus(400)
-                        return userClasses.doc(req.body.ticket).get().then(t=>{
-                            if(!t.exists) return res.sendStatus(404)
-                            t = handleDoc(t)
-                            if(t.status != `used`) return res.sendStatus(403)
-                            userClasses.doc(req.body.ticket).update({
-                                rate:           +req.body.rate,
-                                reviewed:    new Date()
-                            }).then(s=>{
-                                log({
-                                    filter: `lectures`,
-                                    text:   `Новая оценка к мероприятию ${req.body.className}: ${req.body.rate}`,
-                                    user:   t.user,
-                                    class:  t.class,
-                                    ticket: req.body.ticket
-                                })
-
-                                classMethods.classReScore(req.body.ticket)
-
-                                res.send(`ok`)
-                            }).catch(err=>{
-                                res.sendStatus(500)
-                                console.log(err)
+                        return classMethods.rate(req.body,user)
+                            .then(s=>{
+                                res.sendStatus(200)
                             })
-                        })
+                            .catch(err=>handleError(err,res))
+                        
                     } else if (req.query.intention == `review`) {
-                        if(!req.body.text || !req.body.ticket) return res.sendStatus(400)
-                        return userClasses.doc(req.body.ticket).get().then(t=>{
-                            if(!t.exists) return res.sendStatus(404)
-                            t = handleDoc(t)
-                            if(t.status != `used`) return res.sendStatus(403)
-                            userClasses.doc(req.body.ticket).update({
-                                review:     req.body.text,
-                                reviewed:    new Date()
-                            }).then(s=>{
-                                log({
-                                    filter: `lectures`,
-                                    text:   `Новый отзыв к мероприятию ${req.body.className}: ${req.body.text}`,
-                                    user:   t.user,
-                                    class:  t.class,
-                                    ticket: req.body.ticket
-                                })
-                                res.send(`ok`)
-                            }).catch(err=>{
-                                res.sendStatus(500)
-                                console.log(err)
+                        return classMethods.review(req.body,user)
+                            .then(s=>{
+                                res.sendStatus(200)
                             })
-                        })
+                            .catch(err=>handleError(err,res))
 
                     } else {
                         return res.status(403).send(`method removed`)
@@ -733,7 +536,7 @@ router.all(`/:data/:id`, async (req, res) => {
                     return res.status(403).send(`method removed`)
                 }
                 case 'GET': {
-                    return classMethods.get(req.params.id, +req.query.user)
+                    return classMethods.get(req.params.id, +user.id)
                         .then(d=>{
                             res.json(d)
                         }).catch(err=>{
@@ -742,54 +545,47 @@ router.all(`/:data/:id`, async (req, res) => {
 
                 }
                 case `DELETE`: {
-                    return classMethods.unClassUser(req.params.id, false, res, req.query.user)
+                    return classMethods.unClassUser(req.params.id, false, res, user.id)
                 }
                 default:
                     return res.status(400)
             }
         }
         case 'coworking': {
+            
+            if(!user) res.sendStatus(401);
+
             switch (req.method) {
                 case 'GET': {
                     return coworking
                         .where('hall', '==', req.params.id)
                         .where('active', '==', true)
                         .where('date', '>=', isoDate())
-                        .get().then(reservations => {
+                        .get().then(async reservationsCol => {
+                            let reservations = handleQuery(reservationsCol)
+                            let h = await getDoc(halls,req.params.id)
+                            
+                            let shift = 0;
+                            let answer = []
 
-                            halls.doc(req.params.id).get().then(h => {
-                                h = h.data()
-                                reservations = handleQuery(reservations)
+                            while (shift < 7) {
 
+                                let date = new Date(+new Date() + shift * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-                                let shift = 0;
-                                let answer = []
-
-                                while (shift < 7) {
-
-                                    let date = new Date(+new Date() + shift * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-
-
-                                    answer.push({
-                                        date: date,
-                                        capacity: h.capacity - reservations.filter(r => r.date == date).length,
-                                        booked: reservations.filter(r => r.date == date && r.user == +req.query.user).length ? 1 : 0,
-                                        record: reservations.filter(r => r.date == date && r.user == +req.query.user)[0] ?
-                                            reservations.filter(r => r.date == date && r.user == +req.query.user)[0].id : null
-                                    })
-                                    shift++
-                                }
-
-
-                                res.json(answer)
-                            })
-
+                                answer.push({
+                                    date:       date,
+                                    capacity:   h.capacity - reservations.filter(r => r.date == date).length,
+                                    booked:     reservations.filter(r => r.date == date && r.user == +user.id).length ? 1 : 0,
+                                    record:     reservations.filter(r => r.date == date && r.user == +user.id)[0] 
+                                        ? reservations.filter(r => r.date == date && r.user == +user.id)[0].id 
+                                        : null
+                                })
+                                shift++
+                            }
+                            res.json(answer)
                         })
                 }
                 case 'POST': {
-                    if(!req.query.user) return res.sendStatus(400)
-                    let user = await getUser(req.query.user,udb);
-                
                     return coworkingMethods.bookCoworking(user,req.params.id,req.query.date,false,res).then(()=>{
                         devlog(`ok`)
                     }).catch(err=>{
@@ -797,7 +593,7 @@ router.all(`/:data/:id`, async (req, res) => {
                     })
                 }
                 case 'DELETE': {
-                    return coworkingMethods.cancel(req.params.id,req.query.user)
+                    return coworkingMethods.cancel(req.params.id,user.id)
                         .then(s=>res.send(s))
                         .catch(err=>handleError(err,res))
                 }
@@ -809,12 +605,13 @@ router.all(`/:data/:id`, async (req, res) => {
             break;
         }
         case 'mr': {
+            if(!user) res.sendStatus(401)
             switch (req.method) {
                 case 'POST': {
-                    return mrMethods.bookMR(req.query.date, req.query.time, req.query.user, false, res)
+                    return mrMethods.bookMR(req.query.date, req.query.time, user.id, false, res)
                 }
                 case 'DELETE': {
-                    return mrMethods.unbookMR(req.params.id, req.query.user, false, res)
+                    return mrMethods.unbookMR(req.params.id, user.id, false, res)
                 }
                 default:
                     return res.status(404)

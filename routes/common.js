@@ -218,18 +218,19 @@ function letterize2(v,word){
 }
 
 function handleQuery(col,byDate,byName){
-    let res = col.docs.map(q => {
+    
+    let res = new Array(...col.docs.map(q => {
         let f = q.data();
         f.id = q.id
         return f
-    })
+    }));
+    
     if(byDate){
         res = res.sort((a,b)=>b.createdAt._seconds-a.createdAt._seconds)
     }
     if(byName){
         res = res.sort((a,b)=>sortableText(b.name) > sortableText(a.name) ? -1 : 0)
     }
-    // devlog(res)
     return res
 }
 
@@ -713,13 +714,13 @@ async function getDoc(col,id){
 
 function handleError(err,res){
     
-    console.log(err)
-    
-    if(res) res.status(500).send(err.message)
-    
     alertMe({
         text: `Ошибка! ${err.message}`
     })
+    
+    if(res) res.status(500).send(err.message)
+    
+    
 }
 
 function checkEntity(name, data, res){

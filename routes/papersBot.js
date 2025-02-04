@@ -1,10 +1,13 @@
+
 // let ngrok =    process.env.ngrok2;
 let ngrok =     process.env.ngrok;
 
-let token =         process.env.papersToken;
+let token =         process.env.papersToken || '';
 
 var https =             require('https');
 var fs =                require('fs');
+
+const requestIp = require('request-ip');
 
 
 var express =   require('express');
@@ -16,7 +19,7 @@ const m =       require('./methods.js');
 var QRCode =    require('qrcode')
 const qs =      require('qs');
 const { createHash,createHmac } = require('node:crypto');
-const appLink = `https://t.me/paperstuffbot/app`
+const appLink = `https://t.me/paperstugiffbot/app`
 
 
 
@@ -65,7 +68,6 @@ let gcp = initializeApp({
 }, 'paper2');
 
 
-
 let paymentToken =  process.env.papersPaymentToken;
 
 setTimeout(function(){
@@ -103,13 +105,13 @@ const {
     mra,
     promos,
     randomCoffees,
-    roomsBlocked,
     standAlone,
     tokens,
     udb,
     userClasses,
     userTags,
     views,
+    entries,
 } = require(`./papers/cols.js`);
 
 const {wine, rcMethods, classMethods, mrMethods, newsMethods } = require('./papers/logics.js');
@@ -227,7 +229,7 @@ router.post(`/auth`,(req,res)=>{
     
     console.log(Object.keys(req.body).sort())
 
-    data_check_string=Object.keys(req.body)
+    let data_check_string=Object.keys(req.body)
         .filter(key => key !== 'hash')
         .sort()
         .map(key=>`${key}=${req.body[key]}`)
@@ -420,6 +422,103 @@ router.get('/rss', function (req, res) {
 
     // res.sendFile(feed.xml())
 })
+
+
+router.post(`/authWebApp`,(req,res)=>{
+    authWebApp(req,res,token,adminTokens,udb,entries,registerUser)
+})
+
+
+
+
+function authWebApp(req, res, token, adminTokens, udb, entries,registerUser) {
+    let data_check_string = Object.keys(req.body)
+        .filter(key => key !== 'hash')
+        .sort()
+        .map(key => `${key}=${req.body[key]}`)
+        .join('\n')
+
+
+    const secretKey = createHmac('sha256', 'WebAppData')
+        .update(token)
+        .digest();
+
+    const hmac = createHmac('sha256', secretKey)
+        .update(data_check_string)
+        .digest('hex');
+
+    if (req.body.hash == hmac) {
+        req.body.user = JSON.parse(req.body.user);
+
+
+        m.getUser(req.body.user.id, udb).then(u => {
+
+            if (u && u.blocked) return res.sendStatus(403)
+
+            if (!u) registerUser(req.body.user)
+
+            adminTokens.add({
+                createdAt:  new Date(),
+                user:       +req.body.user.id,
+                active:     true
+            }).then(async c => {
+
+                res.cookie((req.query.token || 'adminToken'), c.id, {
+                    maxAge: 7 * 24 * 60 * 60 * 1000,
+                    signed: true,
+                    httpOnly: true,
+                }).json({
+                    admin: u && u.admin ? true : false
+                })
+                
+                if(u) udb.doc(req.body.user.id.toString()).update({
+                    entries:    FieldValue.increment(+1),
+                    recent:     new Date()
+                })
+
+                try {
+                    const clientIp = requestIp.getClientIp(req);
+
+                    if(clientIp.indexOf(`::`) == -1){
+                        let ipdata = {
+                            createdAt: new Date(),
+                            ip:         clientIp,
+                            city:       null,
+                            country:    null,
+                            region:     null,
+                            user:       u? +u.id : null,
+                            platform:   req.body.platform || null,
+                            version:    req.body.version || null
+                        }
+
+                        try{
+                            await axios.get(`https://api.ipgeolocation.io/ipgeo?apiKey=${process.env.ipgeolocation}&ip=${clientIp}`).then(d=>{
+                                ipdata.city =       d.data.city || null;
+                                ipdata.country =    d.data.country_name || null; 
+                                ipdata.region =     d.data.continent_name || null;
+
+                            })
+                        } catch (err){
+
+                        }
+
+                        entries.add(ipdata)
+                    }
+                } catch (error) {
+                    console.log(error)
+                }
+                
+
+
+            })
+        }).catch(err => {
+            console.log(err)
+        })
+    } else {
+        res.sendStatus(403)
+    }
+}
+
 
 router.get(`/`,(req,res)=>{
     

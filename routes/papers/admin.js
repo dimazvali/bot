@@ -10,9 +10,10 @@ let token =         process.env.papersToken;
 const { FieldValue } = require('firebase-admin/firestore');
 const { Parser } = require('json2csv');
 const { devlog, getDoc, uname, isoDate, handleError, letterize, handleDoc, handleQuery, drawDate, cur, alertMe, ifBefore, consistencyCheck } = require('../common');
+
 const { adminTokens, udb, userClassesQ, randomCoffeeIterations, messages, books, mra, userClasses, classes, deposits, standAlone, invoices, randomCoffees, coworking, halls, authors, news, plans, plansUsers, plansRequests, userClassesWL, subscriptions, logs, wineList, settings, roomsBlocked, courses, fb, promos } = require('./cols');
 
-const { addBook, classMethods, rcMethods, newsMethods, alertWithdrawal, wine, plan, sendClass, classDescription, mrMethods, methods, authorMethods, updateEntity, deleteEntity, roomMethods } = require('./logics');
+const { classMethods, rcMethods, newsMethods, alertWithdrawal, wine, plan, sendClass, classDescription, mrMethods, methods, authorMethods, updateEntity, deleteEntity, roomMethods, standAloneMethods } = require('./logics');
 
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
@@ -73,13 +74,14 @@ router.all(`/:method`, auth, async (req, res) => {
                 .then(col=>{
                     res.json(handleQuery(col))
                 })
+                .catch(err=>handleError(err,res))
         }
 
         case `userSearch`:{
             if(!req.query.name) return res.sendStatus(400)
             return Promise.resolve(userList).then(userList=>{
                 res.json(userList.filter(u=>u.username && !u.username.indexOf(req.query.name)))
-            })
+            }).catch(err=>handleError(err,res))
         }
     
     
@@ -94,10 +96,10 @@ router.all(`/:method`, auth, async (req, res) => {
                         .then(col=>{
                             res.json(handleQuery(col))
                         })
+                        .catch(err=>handleError(err,res))
                 }
                 case `POST`:{
-                    if(!req.body.user || !req.body.date || !req.body.time) return res.sendStatus(400)
-                    
+                    if(!consistencyCheck(req.body,[`user`,`date`,`time`],res)) return;
                     return mrMethods.bookMR(req.body.date, req.body.time, req.body.user, false, res)
                 }
             }
@@ -116,18 +118,10 @@ router.all(`/:method`, auth, async (req, res) => {
                         })
                 }
                 case `POST`:{
-                    if(!req.body.user || !req.body.class) return res.sendStatus(400)
-                    return getDoc(classes,req.body.class).then(c=>{
-                        if(!c) return res.sendStatus(400)
-                        if(!c.active) return res.status(400).send(`Занятие отменено`)
-                        getUser(req.body.user,udb).then(u=>{
-                            if(!u) return res.status(400).send(`Такого пользователя нет`)
-                            classMethods.bookClass(u,req.body.class,res)
-                        })
-                    })
+                    if(!consistencyCheck(req.body,[`user`,`class`],res)) return;
+                    return classMethods.bookClass(false, req.body.class, res, req.body.user)
                 }
             }
-            
         }
         case 'message': {
             if (req.body.text && req.body.user) {
@@ -162,108 +156,79 @@ router.all(`/:method`, auth, async (req, res) => {
         case `standAlone`:{
             switch (req.method){
                 case `POST`:{
-                    if(req.body.name){
-                        let p = true;
-                        if(req.body.slug) p = await getDoc(standAlone,req.body.slug.toString())
-                        if(p) return res.status(400).send(`slug уже занят`)
-                        let page = {
-                            createdAt:      new Date(),
-                            active:         true,
-                            createdBy:      +admin.id,
-                            name:           req.body.name,
-                            description:    req.body.description || null,
-                            html:           req.body.html || null,
-                            views:          0,
-                            slug:           req.body.slug || null
-                        }
-                        if(req.body.slug){
-                            standAlone.doc(req.body.slug).set(page).then(s=>{
-                                res.json({
-                                    success: true,
-                                    id: req.body.slug
-                                })
-                            })
-                        } else {
-                            standAlone.add(page).then(rec=>{
-                                res.json({
-                                    success: true,
-                                    id: rec.id
-                                })
-                                standAlone.doc(rec.id).update({
-                                    slug: rec.id
-                                })
-
-                            })
-                        }
-                            
-                    }
+                    return standAloneMethods.add(req.body,admin)
+                        .then(s=>{
+                            res.json(s)
+                        })
+                        .catch(err=>{
+                            handleError(err,res)
+                        })
                 }
                 case `GET`:{
-                    return standAlone.get().then(col=>{
-                        res.json(handleQuery(col,true))
-                    })
+                    let data = await ifBefore(standAlone);
+                    return res.json(data)
                 }
             }
         }
-        case `invoice`:{
-            return getUser(req.body.user,udb).then(u=>{
+        // case `invoice`:{
+        //     return getUser(req.body.user,udb).then(u=>{
                     
-                devlog(u)
+        //         devlog(u)
     
-                if(!u) return res.sendStatus(404)
+        //         if(!u) return res.sendStatus(404)
     
-                return invoices.add({
-                    active:     true,
-                    createdAt:  new Date(),
-                    createdBy:  +admin.id,
-                    price:      +req.body.price,
-                    desc:       req.body.desc,
-                    descLong:   req.body.descLong || null,
-                    user:       +req.body.user
-                }).then(rec=>{
-                    sendMessage2({
-                        chat_id: req.body.user,
-                        title: `${req.body.desc}`,
-                        description: req.body.descLong || `После оплаты возврат средств не осуществляется.`,
-                        payload: `invoice_${rec.id}`,
-                        need_phone_number: true,
-                        send_phone_number_to_provider: true,
-                        provider_data: {
-                            receipt: {
-                                customer: {
-                                    full_name: u.first_name+' '+u.last_name,
-                                    phone: +u.phone
-                                },
-                                items: [{
-                                    description: req.body.desc,
-                                    quantity: "1.00",
-                                    amount:{
-                                        value: req.body.price,
-                                        currency: 'RUB'
-                                    },
-                                    vat_code: 1
-                                }]
-                            }
-                        },
-                        "provider_token": process.env.papersTranzzoToken,
-                        "currency": "RUB",
-                        "prices": [{
-                            "label": req.body.desc,
-                            "amount":  req.body.price*100
-                        }]
-                    },'sendInvoice', token).then(m=>{
-                        devlog(m)
-                        invoices.doc(rec.id).update({
-                            message: m.result.message_id
-                        })
-                        res.json({
-                            success: true,
-                            comment: `Ивойс отправлен`
-                        })
-                    })
-                })
-            })
-        }
+        //         return invoices.add({
+        //             active:     true,
+        //             createdAt:  new Date(),
+        //             createdBy:  +admin.id,
+        //             price:      +req.body.price,
+        //             desc:       req.body.desc,
+        //             descLong:   req.body.descLong || null,
+        //             user:       +req.body.user
+        //         }).then(rec=>{
+        //             sendMessage2({
+        //                 chat_id: req.body.user,
+        //                 title: `${req.body.desc}`,
+        //                 description: req.body.descLong || `После оплаты возврат средств не осуществляется.`,
+        //                 payload: `invoice_${rec.id}`,
+        //                 need_phone_number: true,
+        //                 send_phone_number_to_provider: true,
+        //                 provider_data: {
+        //                     receipt: {
+        //                         customer: {
+        //                             full_name: u.first_name+' '+u.last_name,
+        //                             phone: +u.phone
+        //                         },
+        //                         items: [{
+        //                             description: req.body.desc,
+        //                             quantity: "1.00",
+        //                             amount:{
+        //                                 value: req.body.price,
+        //                                 currency: 'RUB'
+        //                             },
+        //                             vat_code: 1
+        //                         }]
+        //                     }
+        //                 },
+        //                 "provider_token": process.env.papersTranzzoToken,
+        //                 "currency": "RUB",
+        //                 "prices": [{
+        //                     "label": req.body.desc,
+        //                     "amount":  req.body.price*100
+        //                 }]
+        //             },'sendInvoice', token).then(m=>{
+        //                 devlog(m)
+        //                 invoices.doc(rec.id).update({
+        //                     message: m.result.message_id
+        //                 })
+        //                 res.json({
+        //                     success: true,
+        //                     comment: `Ивойс отправлен`
+        //                 })
+        //             })
+        //         })
+        //     })
+        // }
         case `rcParticipants`:{
             return res.json(await ifBefore(udb,{active:true, randomCoffee:true}))
         }
@@ -550,40 +515,12 @@ router.all(`/:method`, auth, async (req, res) => {
             break;
         }
         case `announce`:{
-            
-            let list = userClasses.where(`class`,`==`,req.body.class);
-            if(req.body.type == `all`) list = list.where('active', '==', true)
-            if(req.body.type == `inside`) list = list.where('status', '==', `used`)
-            if(req.body.type == `outside`) list = list.where('status', '!=', `used`)
-            
-            let tickets = await list.get().then(col=>handleQuery(col));
 
-            tickets.forEach((t,i)=>{
-                setTimeout(()=>{
-                    sendMessage2({
-                        chat_id:    t.user,
-                        text:       req.body.text,
-                        reply_markup: {
-                            inline_keyboard: [
-                                [{
-                                    text: translations.openClass.en,
-                                    web_app: {
-                                        url: process.env.ngrok + '/paper/app?start=class_'+req.body.class
-                                    }
-                                }]
-                            ]
-                        }
-                    }, false, token, messages)
-                },i*200)
-            })
-            
-            return
-        }
-        case 'feedBack':{
-            if(!req.query.class) res.sendStatus(404)
-            classMethods.feedBackRequest(req.query.class)
-            res.sendStatus(200)
-            break;
+            return classMethods.announce(req.body,admin)
+                .then(s=>{
+                    res.json(s)
+                })
+                .catch(err=>handleError(err,res))
         }
 
         case `q`:{
@@ -1023,7 +960,7 @@ router.all(`/:method`, auth, async (req, res) => {
     
         case `wine`:{
             if(!req.body.user) return res.sendStatus(400);
-    
+
             return udb.doc(req.body.user.toString()).get().then(u=>{
                 if(!u.exists) return res.sendStatus(404)
                 u = handleDoc(u)
@@ -1500,8 +1437,6 @@ router.all(`/:method/:id`,auth,async(req,res)=>{
                 res.json(days)
             })
         }
-        
-
         case `authors`:{
             let ref = authors.doc(req.params.id)
             return ref.get().then(author => {
