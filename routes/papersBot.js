@@ -23,6 +23,8 @@ const appLink = `https://t.me/paperstugiffbot/app`
 
 
 
+
+
 const {
     isoDate,
     getDoc,
@@ -2537,6 +2539,7 @@ function getAvatar(id){
     }).then(d=>{
         return d.data
     }).catch(err=>{
+        
         console.log(err)
     })
 }

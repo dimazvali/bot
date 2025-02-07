@@ -186,10 +186,6 @@ function updateEntity(req, res, ref, adminId,callback) {
     })
 }
 
-
-handleError(new Error(`21312312`))
-
-
 const wine = {
     consume: async function (recordId,admin){
         return new Promise(async(resolve, reject)=>{

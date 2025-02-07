@@ -36,8 +36,7 @@ async function auth(){
     }
 }
 
-auth();
-
+await auth();
 
 tg.requestWriteAccess();
 
