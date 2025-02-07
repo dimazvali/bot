@@ -36,7 +36,7 @@ async function auth(){
     }
 }
 
-await auth();
+
 
 tg.requestWriteAccess();
 
@@ -211,61 +211,63 @@ tg.MainButton.setParams({
 
 
 let user = {};
-
-axios.get(`/paper/api/user?id=${userid}`).then(u => {
+auth().then(()=>{
+    axios.get(`/paper/api/user?id=${userid}`).then(u => {
     
-    user = u.data;
-
-    if(u.data.warning){
-        if(u.data.warning == 'noUser'){
-            axios.post(`/paper/api/user/${tg.initDataUnsafe.user.id}`,tg.initDataUnsafe.user)
+        user = u.data;
+    
+        if(u.data.warning){
+            if(u.data.warning == 'noUser'){
+                axios.post(`/paper/api/user/${tg.initDataUnsafe.user.id}`,tg.initDataUnsafe.user)
+            }
+            tg.showAlert(translations[u.data.warning][userLang] || translations[u.data.warning].en)
+            if(u.data.warning == 'dataMissing') showProfile()
+            console.log(u.data.fellow)    
         }
-        tg.showAlert(translations[u.data.warning][userLang] || translations[u.data.warning].en)
-        if(u.data.warning == 'dataMissing') showProfile()
-        console.log(u.data.fellow)    
-    }
-
-    if(u.data.fellow){
-        document.querySelector('#fellows').append(ce('h2',false,false,'Fellows',{
-            onclick:function(){
-                showFellows(this, u.data.questions, u.data.answers)
-            }
-        }))
-    }
-
-    if(u.data.admin){
-        let m = document.querySelector('.mobile')
-        m.insertBefore(ce('h2',false,false,'Открыть админку',{
-            onclick:()=>{
-                shimmer(true)
-                window.open('http://t.me/paperstuffbot/admin')
-            }
-        }),m.querySelectorAll('div')[1]) 
-        
-    }
-
-    if(u.data.coworking.length){
-        document.querySelector('#coworking').querySelector('h2').dataset.count = u.data.coworking.length;
-    }
-
-    if(u.data.mr.length){
-        document.querySelector('#mr').querySelector('h2').dataset.count = u.data.mr.length;
-    }
-
-    if(u.data.userClasses.length){
-        let tobe = u.data.classes.map(c=>c.id)
-        console.log(tobe)
-        console.log(u.data.userClasses.map(c=>c.id))
-       let toCome =  u.data.userClasses.filter(c=>tobe.indexOf(c.class)>-1)
-       console.log(toCome)
-       if(toCome.length){
-        document.querySelector('#classes').querySelector('h2').dataset.count = toCome.length
-       }
-    }
-
-}).catch(err=>{
-    console.log(err)
+    
+        if(u.data.fellow){
+            document.querySelector('#fellows').append(ce('h2',false,false,'Fellows',{
+                onclick:function(){
+                    showFellows(this, u.data.questions, u.data.answers)
+                }
+            }))
+        }
+    
+        if(u.data.admin){
+            let m = document.querySelector('.mobile')
+            m.insertBefore(ce('h2',false,false,'Открыть админку',{
+                onclick:()=>{
+                    shimmer(true)
+                    window.open('http://t.me/paperstuffbot/admin')
+                }
+            }),m.querySelectorAll('div')[1]) 
+            
+        }
+    
+        if(u.data.coworking.length){
+            document.querySelector('#coworking').querySelector('h2').dataset.count = u.data.coworking.length;
+        }
+    
+        if(u.data.mr.length){
+            document.querySelector('#mr').querySelector('h2').dataset.count = u.data.mr.length;
+        }
+    
+        if(u.data.userClasses.length){
+            let tobe = u.data.classes.map(c=>c.id)
+            console.log(tobe)
+            console.log(u.data.userClasses.map(c=>c.id))
+           let toCome =  u.data.userClasses.filter(c=>tobe.indexOf(c.class)>-1)
+           console.log(toCome)
+           if(toCome.length){
+            document.querySelector('#classes').querySelector('h2').dataset.count = toCome.length
+           }
+        }
+    
+    }).catch(err=>{
+        console.log(err)
+    })
 })
+
 
 function handleError(err){
     tg.showAlert(err.message)
