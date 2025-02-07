@@ -38,7 +38,7 @@ const {
 const coworkingCol = require('./cols').coworking;
 
 const { getUser, sendMessage2 } = require('../methods');
-const { isoDate, uname, cur, handleQuery, devlog, ifBefore, dimazvali, drawDate, getDoc, letterize, handleDoc, consistencyCheck, checkEntity, shuffle } = require('../common');
+const { isoDate, uname, cur, handleQuery, devlog, ifBefore, dimazvali, drawDate, getDoc, letterize, handleDoc, consistencyCheck, checkEntity, shuffle, handleCatch, handleError } = require('../common');
 const translations = require('./translations');
 const { FieldValue } = require('firebase-admin/firestore');
 const { modals } = require('../modals');
@@ -46,48 +46,45 @@ const { newPlanRecord, Author, classRecord, Plan, Hall, entity, Page } = require
 const { coworkingPrice, log, localTime, alertAdmins, cba, classRates } = require('./store');
 
 
-function deleteEntity(req, res, ref, admin, attr, callback, extra) {
+async function deleteEntity(req, res, ref, admin, attr, callback, extra) {
     
-    devlog(`удаляем нечто`);
-
-    let entities = {
-        mr:{
-            log:(name)=> `запись в переговорку была снята`,
-            attr: `mr`
-        },
-        plansUsers:{
-            log:(name)=> `подписка на тариф ${name} (${ref.id}) была архивирован`,
-            attr: `plansUsers`
-        },
-        courses: {
-            log: (name) => `курс ${name} (${ref.id}) был архивирован`,
-            attr: `course`
-        },
-        users: {
-            log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
-            attr: `user`
-        },
-        streams: {
-            log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
-            attr: `stream`
-        },
-        plans: {
-            log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
-            attr: `plan`
+    try {
+        let entities = {
+            mr:{
+                log:(name)=> `запись в переговорку была снята`,
+                attr: `mr`
+            },
+            plansUsers:{
+                log:(name)=> `подписка на тариф ${name} (${ref.id}) была архивирован`,
+                attr: `plansUsers`
+            },
+            courses: {
+                log: (name) => `курс ${name} (${ref.id}) был архивирован`,
+                attr: `course`
+            },
+            users: {
+                log: (name) => `пользователь ${name} (${ref.id}) был заблокирован`,
+                attr: `user`
+            },
+            streams: {
+                log: (name) => `подписка на трансляцию ${name} (${ref.id}) была аннулирована`,
+                attr: `stream`
+            },
+            plans: {
+                log: (name) => `абонемент ${name} (${ref.id}) был аннулирован`,
+                attr: `plan`
+            }
         }
-    }
-
-    return ref.get().then(e => {
+        let e = await ref.get() 
         
         let data = handleDoc(e)
-
-        devlog(data)
 
         if (!data[attr || 'active']) return res.json({
             success: false,
             comment: `Вы опоздали. Запись уже удалена.`
         })
-        ref.update({
+
+        await ref.update({
             [attr || 'active']: false,
             updatedBy: admin
         }).then(s => {
@@ -127,7 +124,9 @@ function deleteEntity(req, res, ref, admin, attr, callback, extra) {
                 comment: err.message
             })
         })
-    })
+    } catch (error) {
+        handleCatch(arguments,error)
+    }
 }
 
 function updateEntity(req, res, ref, adminId,callback) {
@@ -188,42 +187,11 @@ function updateEntity(req, res, ref, adminId,callback) {
 }
 
 
+handleError(new Error(`21312312`))
 
-
-function addBook(req,res,admin){
-    
-    let b = {
-        createdAt:  new Date(),
-        active:     true,
-        createdBy:  +admin.id,
-        name:       req.body.name   || null,
-        description:req.body.description || null,
-        pic:        req.body.pic    || null,
-        isbn:       req.body.isbn   || null,
-        lang:       req.body.lang   || `ru`,
-        author:     req.body.author || null,
-        price:      +req.body.price || null,
-        owner:      +req.body.owner || null,
-        year:       +req.body.year  || null,
-        state:      +req.body.state || null,
-        publisher:  req.body.publisher || null,
-    }
-
-    return books.add(b).then(rec=>{
-        
-        log({
-            text:   `${uname(admin,admin.id)} добавляет книгу ${b.name}.`,
-            book:   rec.id,
-            admin:  +admin.id,
-            silent: true
-        })
-
-        return res.redirect(`/paper/web?page=books_${rec.id}`)
-    })
-}
 
 const wine = {
-    consume: async(recordId,admin)=>{
+    consume: async function (recordId,admin){
         return new Promise(async(resolve, reject)=>{
             try {
                 let d = await getDoc(wineList,recordId); 
@@ -247,12 +215,9 @@ const wine = {
                     comment: `Остаток: ${letterize(d.left-1, 'ходка')}`
                 }) 
             } catch (error) {
-                
+                handleCatch(arguments,error);
             }
-            
-
         })
-        
     },
     add: async (data, admin)=>{
         return  new Promise((resolve,reject)=>{
@@ -286,7 +251,9 @@ const wine = {
 }
 
 function alertWithdrawal(user, id, sum, reason) {
+    
     if (sum > 0) sum = sum * -1;
+    
     udb.doc(user.id || id).update({
         deposit: FieldValue.increment(sum)
     }).then(() => {
@@ -2364,7 +2331,6 @@ const standAloneMethods = {
 
 
 module.exports = {
-    addBook,
     alertAdminsCoworking,
     alertSoonMR,
     alertWithdrawal,

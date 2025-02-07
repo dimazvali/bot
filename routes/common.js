@@ -712,10 +712,16 @@ async function getDoc(col,id){
 }
 
 
-function handleError(err,res){
-    
+function handleCatch(args, err){
     alertMe({
-        text: `Ошибка! ${err.message}`
+        text: `Ошибка ${args.callee.name}: ${err.message}\n${err.stack}`
+    })
+}
+
+function handleError(err,res){
+
+    alertMe({
+        text: `Ошибка! ${err.message}, ${err.stack})}`
     })
     
     if(res) res.status(500).send(err.message)
@@ -750,6 +756,7 @@ function cutMe(txt, limit) {
 
 
 module.exports = {
+    handleCatch,
     checkEntity,
     consistencyCheck,
     isoDate,
