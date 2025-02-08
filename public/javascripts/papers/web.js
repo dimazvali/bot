@@ -508,6 +508,46 @@ function planUseLine(line,butUser){
     return c
 }
 
+
+function showPodcastsOptions(record, user){
+    let c = modal()
+        
+        c.append(ce(`button`,false,[`dateButton`,`dark`],uname(user,user.id),{onclick:()=>showUser(false,user.id)}))
+
+        if(record.status != `used`) {
+            let tv = ce(`div`,false,`flex`)
+            c.append(tv)
+            
+            tv.append(ce(`button`,false,[`dateButton`,`dark`,`active`],`снять запись`,{
+                onclick:function(){
+                    axios.delete(`/${host}/admin/podcasts/${record.id}`).then(s=>{
+                        handleSave(s)
+                        if(s.data.succes) с.remove()
+                    }).catch(handleError)
+                }
+            }))
+        }
+
+    let txt = ce(`textarea`,false,false,false,{placeholder: `Вам слово`})
+    
+    c.append(txt)
+    c.append(ce(`button`,false,buttonStyle,`Написать`,{
+        onclick:function(){
+            if(!txt.value) return alert(`Я не вижу ваших букв`)
+            this.setAttribute(`disabled`,true)
+            axios.post(`/${host}/admin/message`,{
+                text: txt.value,
+                user: user.id
+            }).then(handleSave)
+            .catch(handleError)
+            .finally(()=>{
+                txt.value = null;
+                this.removeAttribute(`disabled`)
+            })
+        }
+    }))
+}
+
 function showMROptions(record, user, container){
     let c = modal()
         
@@ -545,6 +585,7 @@ function showMROptions(record, user, container){
         }
     }))
 }
+
 function showCoworkingOptions(record, user, container){
     let c = modal()
         
@@ -2408,6 +2449,111 @@ function showUserLine(u, cnt) {
 }
 
 
+function showPodcasts(){
+    let p = preparePopupWeb(`podcasts`,false,false,true,false,false,`Подкастерская`)
+    load(`podcasts`).then(data=>{
+        let cc = ce('div', false, `scroll`)
+        let c = ce('div', false, `flex`)
+        cc.append(c)
+        p.append(cc)
+        let dayCount = 0
+        while (dayCount < 30) {
+            let day = ce(`div`, false, `date`)
+            c.append(day)
+            let date = new Date(+new Date() + (dayCount * 24 * 60 * 60 * 1000))
+            
+            let isoDate = date.toISOString().split('T')[0]
+            
+            day.append(ce(`h3`, false, (date.getDay() == 0 || date.getDay() == 6) ? `active` : false, drawDate(date)))
+            
+            let time = 10;
+            let dayrecords = data.filter(r=>r.active && r.date == isoDate)
+            
+            while (time<22){
+                let record = dayrecords.filter(r=>r.time == time)[0];
+                
+                if(record){
+                    let rec = ce('div',false,[`recordLine`,record.paid?`fineButton`:'reg'])
+                    rec.append(ce(`span`,false,`info`,time+':00'));
+                    
+                    load(`users`,record.user, false, downLoadedUsers).then(u=>
+                        rec.append(ce(`button`,false,[`dark`,`dateButton`,`reg`,record.status==`used`?`active`:'reg'],unameShort(u,u.id),{
+                            onclick:function(){
+                                showPodcastsOptions(record,u)
+                            }
+                        }))
+                    )
+                    day.append(rec)
+                } else {
+                    let rec = ce('div',false,`recordLine`,false,{
+                        dataset:{active:false,time:time}
+                    })
+                    rec.append(ce(`span`,false,`info`,time+':00'))
+                    
+                    rec.append(ce(`button`,false,[`dark`,`dateButton`],`пусто`,{
+                        onclick:()=>{
+                            occupyPodcast(isoDate, rec.dataset.time, rec);
+                        }
+                    }))
+                    day.append(rec)
+                }
+                time++
+            }
+            dayCount++
+        }
+    })
+}
+
+function occupyPodcast(date,time,button){
+    let p = modal()
+    
+        p.append(ce(`h2`,false,false,`Запись в подкастерскую`))
+        p.append(ce(`p`,false,false,`${date}, ${time}`))
+        
+        let suggest = ce(`div`)
+
+        let cv = null;
+
+        let inp = ce('input',false,false,false,{
+            placeholder: `начните вводить ник пользователя`,
+            oninput:function(){
+                if(this.value && this.value!=cv && this.value.length > 3){
+                    cv = this.value
+                    suggest.innerHTML = `ищу-свищу`
+                    axios.get(`/${host}/admin/userSearch?name=${this.value}`).then(options=>{
+                        if(options.data.length){
+                            suggest.innerHTML = null;
+                            options.data.forEach(u=>{
+                                suggest.append(ce(`button`,false,buttonStyle,uname(u,u.id),{
+                                    onclick:function(){
+                                        this.setAttribute(`disabled`,true)
+                                        axios.post(`/${host}/admin/podcasts`,{
+                                            user: +u.id,
+                                            date: date,
+                                            time: time
+                                        }).then(s=>{
+                                            handleSave(s)
+                                            p.remove()
+                                            button.dataset.active = true;
+                                            button.innerHTML = uname(u,u.id)
+                                            button.onclick=()=>{
+                                                showPodcastsOptions(s.data.data,u,button)
+                                            }
+                                        })
+                                    }
+                                }))
+                            })
+                        }
+                    })
+                }
+            }
+        })
+
+        p.append(inp)
+        p.append(suggest)
+        
+}
+
 function showMeetingRoom(){
     let p = preparePopupWeb(`mr`,false,false,true,false,false,`Переговорка`)
     load(`mr`).then(data=>{
@@ -2502,27 +2648,6 @@ function showMeetingRoom(){
 
                 shift++
             }
-
-
-            // data
-            //     .filter(e => typeof e.date == `string` && new Date(e.date).toISOString().split('T')[0] == isoDate)
-            //     .sort((a,b)=>b.time<a.time?1:-1)
-            //     .forEach(e => {
-            //         let rec = ce('div',false,`recordLine`,false,{
-            //             // dataset:{hall:e.hall}
-            //         })
-            //             rec.append(ce(`span`,false,`info`,e.time))
-                        
-            //             load(`users`,e.user).then(u=>
-            //                 rec.append(ce(`button`,false,[`dark`,`dateButton`,((e.payed||!e.paymentNeeded)?'fineButton':'reg'),e.status==`used`?`active`:'reg'],unameShort(u,u.id),{
-            //                     // onclick:()=> showUser(u,u.id)
-            //                     onclick:function(){
-            //                         showCoworkingOptions(e,u,this)
-            //                     }
-            //                 }))
-            //             )
-            //         day.append(rec)
-            //     })
 
             c.append(day)
             i++

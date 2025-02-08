@@ -54,6 +54,32 @@ router.all(`/:method`, auth, async (req, res) => {
 
     switch (req.params.method) {
 
+        case `podcasts`:{
+            switch(req.method){
+                case `GET`:{
+                    return methods.podcasts.list(+admin.id,admin)
+                        .then(col=>res.json(col))
+                        .catch(err=>handleError(err,res))
+                }
+                case `POST`:{
+                    if(!consistencyCheck(req.body,[`date`,`time`],res)) return false;
+                    return methods.podcasts.book(req.body,admin)
+                        .then(id=>{
+                            res.json({
+                                success: true,
+                                id: id,
+                            })
+                        })
+                        .catch(err=>{
+                            res.json({
+                                success: false,
+                                comment: err.message
+                            })
+                        })
+                }
+            }
+        }
+
         case `langs`:{
             return res.json(langs)
         }
@@ -1023,7 +1049,7 @@ router.all(`/:method/:id`,auth,async(req,res)=>{
         case `podcasts`:{
             switch (req.method){
                 case `DELETE`:{
-                    return methods.podcasts.cancel(req.params.id,req.query.reason,admin)
+                    return methods.podcasts.cancel(req.params.id,req.query.reason,false,admin)
                         .then(()=>{
                             res.sendStatus(200)
                         })

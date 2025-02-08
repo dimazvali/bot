@@ -2186,10 +2186,12 @@ const roomMethods = {
 
 const methods = {
     podcasts:{
-        async list(userId){
+        async list(userId, admin){
             
             let before = await podcastRecords.where(`date`,'>=',isoDate()).get().then(col=>handleQuery(col));
             
+            if(admin) return before;
+
             before = before.filter(r=>r.active && r.date < isoDate(14)).map(r=>{
                 if(r.user != userId) delete r.user;
                 return r;
@@ -2241,11 +2243,11 @@ const methods = {
 
             return record.id
         },
-        async cancel(id,reason,user){
+        async cancel(id,reason,user,admin){
             
             let record = await getDoc(podcastRecords, id);
             
-            if(!user.admin){
+            if(!admin){
                 if(+record.user != +user.id) throw new PermissionDenied(`вы не можете отменить чужую запись`)
             }
 
@@ -2261,12 +2263,19 @@ const methods = {
                 updatedBy:  +user.id 
             })
 
-            if(user.admin){
+            if(admin){
                 alertAdmins({
                     filter: `coworking`,
                     text: `${uname(user,user.id)} отменяет запись в подкастерску на ${record.date}, ${record.time} ${reason ? `по прчиине ${reason}` : `без указания причин`}`
                 })
             }
+
+            if(!user) user = await getUser(record.user,udb);
+
+            sendMessage2({
+                chat_id:    record.user,
+                text:       translations.podcastRecordCancelled[user.language_code](record) || translations.podcastRecordCancelled.en(record)
+            },false,token,messages)
 
             return true;
         },

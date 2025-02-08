@@ -12,6 +12,10 @@ eventTypes.get().then(col => {
 
 
 const translations = {
+    podcastRecordCancelled:{
+        ru:(rec)=>`Ваша запись в подкаст студию на ${rec.date}, ${rec.time}:00 была отменена.`,
+        en:(rec)=>`Your podcast studio booking on ${rec.date}, ${rec.time}:00 was cancelled.`
+    },
     podcasts:{
         ru: `Подкастерская`,
         en: `Podcast studio`

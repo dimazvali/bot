@@ -55,6 +55,7 @@ router.all(`/:type`, auth, async (req, res) => {
                 case `POST`:{
 
                     if(!consistencyCheck(req.body,[`date`,`time`],res)) return false;
+                    
                     req.body.user = user.id;
                     return methods.podcasts.book(req.body)
                         .then(id=>{
