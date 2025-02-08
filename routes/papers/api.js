@@ -6,16 +6,20 @@ var axios =     require('axios').default;
 
 let token =         process.env.papersToken;
 
-const { handleQuery, isoDate, getDoc, ifBefore, devlog, handleError, checkEntity } = require('../common');
+const { handleQuery, isoDate, getDoc, ifBefore, devlog, handleError, checkEntity, consistencyCheck } = require('../common');
 const { registerUser } = require('../papersBot');
-const { plans, userClassesQ, polls, pollsAnswers, udb, classes, userClasses, coworking, mra, halls, invites, authors, messages, adminTokens } = require('./cols');
+const { plans, userClassesQ, polls, pollsAnswers, udb, classes, userClasses, coworking, mra, halls, invites, authors, messages, adminTokens, podcastRecords } = require('./cols');
 const { classMethods, mrMethods, plan, methods, profileMethods, standAloneMethods } = require('./logics');
 const coworkingMethods  = require('./logics').coworking;
 const { getUser, sendMessage2 } = require('../methods');
 const { log } = require('./store');
+const { PollAnwer } = require('./classes');
 
 
 async function auth(req,res,next){
+
+    devlog(req.method)
+
     if(!req.signedCookies.userToken && process.env.develop)  req.signedCookies.userToken = process.env.adminToken;
     
     if(!req.signedCookies.userToken) {
@@ -34,14 +38,48 @@ async function auth(req,res,next){
 }
 
 
-router.get(`/:type`, auth, async (req, res) => {
+router.all(`/:type`, auth, async (req, res) => {
     
     let user = res.locals.user;
+    
+    devlog(req.method)
 
     switch (req.params.type) {
-        
+        case `podcasts`:{
+            switch (req.method){
+                case `GET`:{
+                    return methods.podcasts.list(+user.id)
+                        .then(col=>res.json(col))
+                        .catch(err=>handleError(err,res))
+                }
+                case `POST`:{
+
+                    if(!consistencyCheck(req.body,[`date`,`time`],res)) return false;
+                    req.body.user = user.id;
+                    return methods.podcasts.book(req.body)
+                        .then(id=>{
+                            res.json({
+                                success: true,
+                                id: id,
+                                comment: `Вы записаны на ${req.body.date, req.body.time}`
+                            })
+                        })
+                        .catch(err=>{
+                            
+                            devlog(err);
+
+                            res.json({
+                                success: false,
+                                comment: err.message
+                            })
+                        })
+                }
+            }
+        }
         case `tariffs`:{
-            return plans.where(`active`,'==',true).get().then(col=>res.json(handleQuery(col)))
+            return plans.where(`active`,'==',true).get().then(col=>res.json(handleQuery(col))).catch(err=>{
+                handleError(err,res)
+            })
         }
 
         case 'menu':{
@@ -50,8 +88,7 @@ router.get(`/:type`, auth, async (req, res) => {
                     console.log(data.data)
                     res.json(data.data)
                 }).catch(err=>{
-                    console.log(err)
-                    res.status(500).send(err.message)
+                    handleError(err,res)
                 })
         }
         case `q`:{
@@ -62,6 +99,8 @@ router.get(`/:type`, auth, async (req, res) => {
                 .get()
                 .then(col=>{
                     res.json(handleQuery(col))
+                }).catch(err=>{
+                    handleError(err,res)
                 })
         }
         case 'plans':{
@@ -69,6 +108,8 @@ router.get(`/:type`, auth, async (req, res) => {
                 res.json(handleQuery(col).sort((a,b)=>{
                     return b.createdAt._seconds - a.createdAt._seconds 
                 }))
+            }).catch(err=>{
+                handleError(err,res)
             })
         }
         case 'polls': {
@@ -76,6 +117,7 @@ router.get(`/:type`, auth, async (req, res) => {
             if(!user) return res.sendStatus(401);
 
             let data = []
+            
             data.push(
                 polls
                 .where('active', '==', true)
@@ -96,6 +138,8 @@ router.get(`/:type`, auth, async (req, res) => {
                     questions: data[0],
                     answers: data[1]
                 })
+            }).catch(err=>{
+                handleError(err,res)
             })
 
         }
@@ -114,24 +158,29 @@ router.get(`/:type`, auth, async (req, res) => {
         }
 
         case 'usersList': {
+            try {
+                if (!user) return res.sendStatus(401)
+                if (!user.admin) return res.sendStatus(403)
+    
+                if (!req.query.type) return res.status(400).send('no type provided')
             
-            if (!user) return res.sendStatus(401)
-            if (!user.admin) return res.sendStatus(403)
-
-            if (!req.query.type) return res.status(400).send('no type provided')
-        
-            let filter = req.query.type.toString();
-
-            let users = await ifBefore(udb,{active:true, [filter]: true})
-            res.json(users.map(user => {
-                return {
-                    id:         user.id,
-                    username:   user.username,
-                    first_name: user.first_name,
-                    last_name:  user.last_name,
-                    about:      user.about
-                }
-            }))
+                let filter = req.query.type.toString();
+    
+                let users = await ifBefore(udb,{active:true, [filter]: true})
+                
+                res.json(users.map(user => {
+                    return {
+                        id:         user.id,
+                        username:   user.username,
+                        first_name: user.first_name,
+                        last_name:  user.last_name,
+                        about:      user.about
+                    }
+                }))
+            } catch (error) {
+                handleError(error,res)   
+            }
+            
             break;
         }
         case 'classes': {
@@ -167,9 +216,8 @@ router.get(`/:type`, auth, async (req, res) => {
 
                 res.json(result)
 
-            }).catch(err => {
-                console.log(err)
-                res.json([])
+            }).catch(err=>{
+                handleError(err,res)
             })
             
             break;
@@ -230,9 +278,8 @@ router.get(`/:type`, auth, async (req, res) => {
                         i++
                     }
                     res.json(result)
-                }).catch(err => {
-                    console.log(err)
-                    res.json([])
+                }).catch(err=>{
+                    handleError(err,res)
                 })
             break;
         }
@@ -247,14 +294,26 @@ router.all(`/:data/:id`, auth, async (req, res) => {
     let user = res.locals.user;
 
     switch (req.params.data) {
-
+        case `podcasts`:{
+            switch(req.method){
+                case `DELETE`:{
+                    return methods.podcasts.cancel(req.params.id,req.query.reason, user)
+                        .then(d=>{
+                            res.sendStatus(200)
+                        })
+                        .catch(err=>{
+                            res.status(400).send(err.message);
+                        })
+                }
+            }   
+        }
         case `tariffs`:{
             if(!user) return res.sendStatus(401);
             switch(req.method){
                 case `GET`:{
                     return methods.plans.get(req.params.id,user.id)
                         .then(s=>res.json(s))
-                        .catch(err=>handleError(err.res))
+                        .catch(err=>handleError(err,res))
                 }
                 case `POST`:{
                     return plan.request(user,req.params.id)
@@ -393,74 +452,36 @@ router.all(`/:data/:id`, auth, async (req, res) => {
             
             break;
         }
-
-        // case `podcasts`:{
-        //     switch(req.method){
-        //         case `POST`:{
-        //             if(!req.body.user) return res.status(400).send(`no user no room`)
-        //             if(!req.body.date) return res.status(400).send(`no date provided`)
-        //             return getUser(req.body.user,udb).then(user=>{
-        //                 if(user.blocked) return res.status(400).send(`you are not welcome`)
-        //                 podcasts
-        //                     .where(`active`,'==',true)
-        //                     .where(`date`,'==',isoDate(req.body.date))
-        //                     .get()
-        //                     .then(col=>{
-        //                         if(!col.docs.length){
-        //                             podcasts.add({
-        //                                 createdAt:  new Date(),
-        //                                 user:       +req.body.user,
-        //                                 active:     true,
-        //                                 date:       isoDate(req.body.date)
-        //                             }).then(rec=>{
-        //                                 res.json({
-        //                                     success: true,
-        //                                     comment: `ok`,
-        //                                     id: rec.id
-        //                                 })
-        //                                 log({
-        //                                     filter: `coworking`,
-        //                                     text: `${uname(u,u.id)} бронирует подкастерскую на ${isoDate(req.body.date)}`
-        //                                 })
-        //                             })
-        //                         } else {
-                                    
-        //                             col = handleQuery(col)
-
-        //                             if(+req.body.user == col[0].user){
-        //                                 return res.status(400).send(`вы уже забронировали эту дату`)
-        //                             }
-        //                             return res.status(400).send(`Извините, дата уже занята`)
-        //                         }
-        //                     })
-        //             })
-        //         }
-        //     }
-        // }
         
         case 'polls': {
             switch (req.method) {
-                case 'GET': {
 
-                }
                 case 'POST': {
-                    if (!req.body.fellow) return res.status(400).send('no fellow provided')
-                    let user = await getUser(req.body.fellow,udb);
-                    if(!user) res.status(404).send('no such user')
-                    if (!user.fellow) return res.sendStatus(403)
-                    let poll = await getDoc(polls, req.params.id) 
-                    if(!poll)  return res.sendStatus(403)
-                    return pollsAnswers.add({
-                        createdAt:  new Date(),
-                        user:       +req.body.fellow,
-                        q:          req.params.id,
-                        text:       req.body.text || null
-                    }).then(() => {
-                        return res.sendStatus(200)
-                    }).catch(err => {
-                        return res.status(500).send(err.message)
-                    })
+
+                    try {
+                        if (!req.body.fellow) return res.status(400).send('no fellow provided')
                     
+                        let user = await getUser(req.body.fellow,udb);
+                        if(!user) res.status(404).send('no such user')
+                        
+                        if (!user.fellow) return res.sendStatus(403)
+                        
+                        let poll = await getDoc(polls, req.params.id) 
+                        if(!poll) return res.sendStatus(403)
+                        
+                        req.body.q = req.params.id;
+    
+                        let record = await pollsAnswers.add(new PollAnwer(req.body).js);
+                        
+                        res.json({
+                            success: true,
+                            id: record.id
+                        })    
+                    } catch (error) {
+                        handleError(error,res)
+                    }
+
+                    break;
                 }
             }
 
@@ -469,7 +490,8 @@ router.all(`/:data/:id`, auth, async (req, res) => {
             if(!user) res.sendStatus(401)
             switch (req.method) {
                 case 'PUT': {
-                    return profileMethods.update(user,req.body).then(s=>{
+                    return profileMethods.update(user,req.body)
+                    .then(()=>{
                         res.json({
                             success: true,
                             comment: `данные обновлены`
@@ -543,7 +565,11 @@ router.all(`/:data/:id`, auth, async (req, res) => {
 
                 }
                 case `DELETE`: {
-                    return classMethods.unClassUser(req.params.id, false, res, user.id)
+                    return classMethods
+                        .unClassUser(req.params.id, false, res, user.id)
+                        .catch(err=>{
+                            handleError(err,res)
+                        })
                 }
                 default:
                     return res.status(400)
@@ -560,27 +586,31 @@ router.all(`/:data/:id`, auth, async (req, res) => {
                         .where('active', '==', true)
                         .where('date', '>=', isoDate())
                         .get().then(async reservationsCol => {
-                            let reservations = handleQuery(reservationsCol)
-                            let h = await getDoc(halls,req.params.id)
-                            
-                            let shift = 0;
-                            let answer = []
+                            try {
+                                let reservations = handleQuery(reservationsCol)
+                                let h = await getDoc(halls,req.params.id)
+                                
+                                let shift = 0;
+                                let answer = []
 
-                            while (shift < 7) {
+                                while (shift < 7) {
 
-                                let date = new Date(+new Date() + shift * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                                    let date = new Date(+new Date() + shift * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-                                answer.push({
-                                    date:       date,
-                                    capacity:   h.capacity - reservations.filter(r => r.date == date).length,
-                                    booked:     reservations.filter(r => r.date == date && r.user == +user.id).length ? 1 : 0,
-                                    record:     reservations.filter(r => r.date == date && r.user == +user.id)[0] 
-                                        ? reservations.filter(r => r.date == date && r.user == +user.id)[0].id 
-                                        : null
-                                })
-                                shift++
+                                    answer.push({
+                                        date:       date,
+                                        capacity:   h.capacity - reservations.filter(r => r.date == date).length,
+                                        booked:     reservations.filter(r => r.date == date && r.user == +user.id).length ? 1 : 0,
+                                        record:     reservations.filter(r => r.date == date && r.user == +user.id)[0] 
+                                            ? reservations.filter(r => r.date == date && r.user == +user.id)[0].id 
+                                            : null
+                                    })
+                                    shift++
+                                }
+                                res.json(answer)
+                            } catch (error) {
+                                handleError(error,res)
                             }
-                            res.json(answer)
                         })
                 }
                 case 'POST': {
@@ -606,10 +636,14 @@ router.all(`/:data/:id`, auth, async (req, res) => {
             if(!user) res.sendStatus(401)
             switch (req.method) {
                 case 'POST': {
-                    return mrMethods.bookMR(req.query.date, req.query.time, user.id, false, res)
+                    return mrMethods.bookMR(req.query.date, req.query.time, user.id, false, res).catch(err=>{
+                        handleError(err,res)
+                    })
                 }
                 case 'DELETE': {
-                    return mrMethods.unbookMR(req.params.id, user.id, false, res)
+                    return mrMethods.unbookMR(req.params.id, user.id, false, res).catch(err=>{
+                        handleError(err,res)
+                    })
                 }
                 default:
                     return res.status(404)

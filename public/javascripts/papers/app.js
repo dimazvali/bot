@@ -15,6 +15,7 @@ function shimmer(light){
 try{
     if(tg.initDataUnsafe.user.language_code != 'en' && translations.schedule[tg.initDataUnsafe.user.language_code]){
         let lang = tg.initDataUnsafe.user.language_code
+            podcasts.querySelector('h2').innerHTML = translations.podcasts[lang]
             classes.querySelector('h2').innerHTML = translations.schedule[lang]
             coworking.querySelector('h2').innerHTML = translations.coworking[lang]
             mr.querySelector('h2').innerHTML = translations.mr[lang]
@@ -559,6 +560,36 @@ function showMR(el){
     }
 }
 
+function showPodcasts(el){
+    
+    shimmer(true)
+
+    if(el.className.indexOf('switched')>-1){
+        el.classList.remove('switched')    
+        el.parentNode.classList.remove('open')
+        el.parentNode.querySelectorAll('.dateButton').forEach(c=>c.remove())
+    } else {
+        mainButton(true)
+        el.classList.add('switched')    
+        el.parentNode.classList.add('open')
+        axios.get(`/paper/api/podcasts?user=${userid}`).then(data=>{
+            
+            let dates = [...new Set(data.data.map(r=>r.date))];
+            
+            dates.forEach(date=>{
+                let records = data.data.filter(r=>r.date == date)
+                el.parentNode.append(drawDayPodcasts(date,records))
+            })
+        }).catch(err=>{
+            tg.showAlert(err.data)
+        }).finally(()=>{
+            mainButton(false)
+        })
+    }
+}
+
+
+
 function book(){
     tg.MainButton.showProgress()
     axios.post(`/paper/api/coworking/${coworkingHall}?date=${coworkindDate}&user=${userid}`).then(d=>{
@@ -930,6 +961,69 @@ function showBar(){
 //     return content    
 // }
 
+function drawDayPodcasts(date,records){
+    let c = ce('div')
+    c.append(ce('button',false,['dateButton',(records.filter(s=>s.id).length?'occupied':null)],drawDate(date,userLang),{
+        dataset:{
+            booked: 1
+        },
+        onclick:function(){
+            
+            shimmer(true)
+
+            tg.BackButton.show();
+            tg.onEvent('backButtonClicked',clearPopUp)
+            mcb = clearPopUp
+
+            let popup = ce('div',false,'popup')
+                document.body.append(popup)
+            let content = ce('div')
+                popup.append(content)
+
+            let h = ce('div',false,'header')
+                h.append(ce('h3',false,false,(translations.podcasts[userLang] ||translations.podcasts.en)))
+                h.append(ce('h5',false,false,date))
+                popup.style.backgroundImage = `url(https://firebasestorage.googleapis.com/v0/b/paperstuff-620fa.appspot.com/o/coworking%2FIMG_20240327_160615.jpg?alt=media&token=b8ba919b-66bd-4ed6-89ba-e670e41c79a1)`
+            content.append(h)
+
+            let timing = ce('div',false,'timing')
+            
+            records.forEach(slot=>{
+                timing.append(ce('button',false,'dateButton',slot.time+':00'+(slot.self?` (${translations.enlisted[userLang] || translations.enlisted.en})` :''),{
+                    dataset:{
+                        booked: !slot.available,
+                        time: slot.time,
+                        self: slot.self ? true : false
+                    },
+                    onclick:()=>{
+                        
+                        shimmer(true)
+
+                        mrDate = date,
+                        mrTime = slot.time
+                        mrSlot = slot.id
+
+                        if(slot.self){
+                            tg.MainButton.setText(translations.unbookOn(slot.time)[userLang] || translations.unbookOn(slot.time).en)
+                            tg.MainButton.show()
+                            tg.MainButton.onClick(unSlotPodcasts)
+                            mbbc = unSlot
+                        } else if (slot.available){
+                            tg.MainButton.setText(translations.bookOn(slot.time)[userLang] || translations.bookOn(slot.time).en)
+                            tg.MainButton.show()
+                            tg.MainButton.onClick(slotmePodcasts)
+                            mbbc = slot
+                        }
+                    }                    
+                }))
+            })
+            content.append(timing)
+        }
+    }))
+    return c
+}
+
+
 function drawDay(d){
     console.log(d)
     let c = ce('div')
@@ -955,7 +1049,9 @@ function drawDay(d){
                 h.append(ce('h5',false,false,d.date))
                 popup.style.backgroundImage = `url(https://firebasestorage.googleapis.com/v0/b/paperstuff-620fa.appspot.com/o/coworking%2F2023-01-17%2009.58%201.jpg?alt=media&token=a1520476-d466-43e4-8c71-afa6c045b0ae)`
             content.append(h)
+
             let timing = ce('div',false,'timing')
+            
             d.slots.forEach(slot=>{
                 timing.append(ce('button',false,'dateButton',slot.time+(slot.self?` (${translations.enlisted[userLang] || translations.enlisted.en})` :''),{
                     dataset:{
@@ -1005,22 +1101,65 @@ function slotme(){
 
             tg.showAlert(translations.coworkingBookingConfirmed[tg.initDataUnsafe.user.language_code] || translations.coworkingBookingConfirmed.en)
 
-
-            // mrSlot = d.data.id;
-            // tg.MainButton.offClick(slotme)
-            // mbbc = unSlot
-            // document.querySelector(`[data-time="${mrTime}"]`).dataset.booked = true;
-            // document.querySelector(`[data-time="${mrTime}"]`).innerHTML+=`<br>(${translations.enlisted[userLang] || translations.enlisted.en})`
-            // document.querySelector(`[data-time="${mrTime}"]`).dataset.self = true;
-            
-            // tg.MainButton.setText(translations.coworkingBookingCancel[[tg.initDataUnsafe.user.language_code]] || translations.coworkingBookingCancel.en)
-            // tg.MainButton.onClick(unSlot)
         } else {
             tg.showAlert(translations[d.data.text][tg.initDataUnsafe.user.language_code] || translations[d.data.text].en)
             tg.MainButton.offClick(slotme)
             tg.MainButton.hide()
         }
         
+    }).catch(err=>{
+        tg.showAlert(translations[err.data][tg.initDataUnsafe.user.language_code] || translations[err.data].en)
+    }).finally(()=>{
+        tg.MainButton.hideProgress()
+    })
+}
+
+function slotmePodcasts(){
+    tg.MainButton.showProgress()
+    axios.post(`/paper/api/podcasts`,{
+        date: mrDate,
+        time: +mrTime
+    }).then(d=>{
+        if(d.data.success){
+
+            mcb = clearPopUp;
+            clearPopUp()
+
+            showMR(mr.querySelector('h2'))
+
+            tg.showAlert(translations.coworkingBookingConfirmed[tg.initDataUnsafe.user.language_code] || translations.coworkingBookingConfirmed.en)
+
+        } else {
+            tg.showAlert(d.data.comment)
+            tg.MainButton.offClick(slotmePodcasts)
+            tg.MainButton.hide()
+        }
+        
+    }).catch(err=>{
+        tg.showAlert(translations[err.data][tg.initDataUnsafe.user.language_code] || translations[err.data].en)
+    }).finally(()=>{
+        tg.MainButton.hideProgress()
+    })
+}
+
+
+function unSlotPodcasts(){
+    tg.MainButton.showProgress()
+    axios.delete(`/paper/api/podcasts/${mrSlot}`).then(d=>{
+        
+        if(d.data.success){
+            tg.showAlert(translations[d.data.text][tg.initDataUnsafe.user.language_code] || translations[d.data.text].en)
+            
+            mcb = clearPopUp;
+            clearPopUp()
+
+            showMR(mr.querySelector('h2'))
+        } else {
+            tg.showAlert(d.data.comment)
+            tg.MainButton.offClick(unSlotPodcasts)
+            tg.MainButton.hide()
+        }
+    
     }).catch(err=>{
         tg.showAlert(translations[err.data][tg.initDataUnsafe.user.language_code] || translations[err.data].en)
     }).finally(()=>{

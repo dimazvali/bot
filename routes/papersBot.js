@@ -629,7 +629,7 @@ function registerUser(u) {
         
 
     }).catch(err => {
-        console.log(err)
+        handleError(err)
     })
 
 

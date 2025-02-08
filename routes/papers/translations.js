@@ -1,4 +1,4 @@
-const { drawDate, cur, letterize, shuffle, handleQuery } = require("../common")
+const { drawDate, cur, letterize, shuffle, handleQuery, dimazvali, devlog } = require("../common")
 const { eventTypes } = require("./cols")
 const { coworkingPrice, localTime } = require("./store")
 
@@ -11,8 +11,11 @@ eventTypes.get().then(col => {
 })
 
 
-
 const translations = {
+    podcasts:{
+        ru: `Подкастерская`,
+        en: `Podcast studio`
+    },
     planTerminated:(p,u)=>{
         return {
             ru: `Все хорошее когда-то заканчивается. Вот и ваша подписка ${p.name} закончилась ${drawDate(p.to._seconds*1000)}. Давайте повторим?`,

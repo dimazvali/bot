@@ -33,6 +33,7 @@ const {
     standAlone,
     polls,
     pollsAnswers,
+    podcastRecords,
 } = require('./cols');
 
 const coworkingCol = require('./cols').coworking;
@@ -42,7 +43,7 @@ const { isoDate, uname, cur, handleQuery, devlog, ifBefore, dimazvali, drawDate,
 const translations = require('./translations');
 const { FieldValue } = require('firebase-admin/firestore');
 const { modals } = require('../modals');
-const { newPlanRecord, Author, classRecord, Plan, Hall, entity, Page } = require('./classes');
+const { newPlanRecord, Author, classRecord, Plan, Hall, entity, Page, SearchError, PermissionDenied, AlreadyError, PodcastRecord } = require('./classes');
 const { coworkingPrice, log, localTime, alertAdmins, cba, classRates } = require('./store');
 
 
@@ -2184,6 +2185,92 @@ const roomMethods = {
 }
 
 const methods = {
+    podcasts:{
+        async list(userId){
+            
+            let before = await podcastRecords.where(`date`,'>=',isoDate()).get().then(col=>handleQuery(col));
+            
+            before = before.filter(r=>r.active && r.date < isoDate(14)).map(r=>{
+                if(r.user != userId) delete r.user;
+                return r;
+            })
+            
+            let result = [];
+
+            let days = 0;
+            while (days < 14){
+
+                let date = isoDate(days);
+                let hour = 10;
+                
+                while (hour < 22){
+                    let already = before.filter(r=>r.date == isoDate(days) && r.time == hour)[0];
+                    
+                    let slot = {
+                        date:       date,
+                        time:       hour,
+                        available:  already ? false : true,
+                        id:         (already && already.user) ? (already.id || null) : false
+                    }
+
+                    result.push(slot);
+
+                    hour++
+                }
+                days ++;
+            }
+
+            return result;
+
+        },
+        async book(data,admin){
+            
+            devlog(data);
+
+            let user =          await getUser(data.user, udb);
+            if(!user)           throw new SearchError(`нет такого пользователя`);
+            if(user.blocked)    throw new PermissionDenied(`доступ ограничен`);
+            let before =        await ifBefore(podcastRecords,{user: +data.user, active: true, date:data.date, time: data.time});
+            if(before.length)   throw new AlreadyError(`уже забронировано`)
+            let record =        await podcastRecords.add(new PodcastRecord(data,admin).js);
+
+            alertAdmins({
+                filter: `coworking`,
+                text: `${uname(user,user.id)} записывается в подкастерскую на ${data.date}, ${data.time}.`
+            })
+
+            return record.id
+        },
+        async cancel(id,reason,user){
+            
+            let record = await getDoc(podcastRecords, id);
+            
+            if(!user.admin){
+                if(+record.user != +user.id) throw new PermissionDenied(`вы не можете отменить чужую запись`)
+            }
+
+            if(!record) throw new SearchError(`нет такой записи`);
+            if(!record.active) throw new SearchError(`запись уже отменена`);
+            if(record.status == `used`) throw new Error(`нельзя отменить уже состоявшуюся запись`)
+            
+            let upd = await podcastRecords.doc(id).update({
+                active:     false,
+                status:     `cancelled`,
+                reason:     reason || null,
+                updatedAt:  new Date(),
+                updatedBy:  +user.id 
+            })
+
+            if(user.admin){
+                alertAdmins({
+                    filter: `coworking`,
+                    text: `${uname(user,user.id)} отменяет запись в подкастерску на ${record.date}, ${record.time} ${reason ? `по прчиине ${reason}` : `без указания причин`}`
+                })
+            }
+
+            return true;
+        },
+    },
     deposits:{
         add: async(admin, data, res)=>{
             if(!consistencyCheck(data,[

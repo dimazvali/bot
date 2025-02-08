@@ -1,3 +1,5 @@
+const { alertAdmins } = require("./store");
+
 class entity{
     constructor(o,admin){
         
@@ -11,7 +13,67 @@ class entity{
 
     }
     get js(){
-        return JSON.parse(JSON.stringify(this))
+        let t = JSON.parse(JSON.stringify(this));
+        t.createdAt = new Date(t.createdAt);
+        return t;
+    }
+}
+
+
+class AlreadyError extends Error{
+    constructor(message){
+        super(message);
+        this.name = `alreadyError`;
+    }
+}
+
+class PermissionDenied extends Error{
+    constructor(message){
+        super(message);
+        this.name = `permissionDenied`;
+    }
+}
+
+class SearchError extends Error {
+    constructor(message){
+        super(message);
+        this.name = `searchError`
+    }
+}
+
+class OccupiedError extends Error {
+    constructor(message){
+        super(message);
+        this.name = `occupiedError`
+    }
+}
+
+class PollAnwer extends entity{
+    constructor(data){
+        super(data);
+        this.user = data.user;
+        this.q =    data.q;
+        this.text = data.text || null;
+    }
+}
+
+const statuses = {
+    active:     `active`,
+    paid:       `paid`,
+    cancelled:  `cancelled`,
+    nc:         `nc`,
+    used:       `used`
+}
+
+class PodcastRecord extends entity{
+    constructor(data,admin){
+        super(data,admin)
+
+        this.date =     data.date || null;
+        this.time =     +data.time || null;
+        this.user =     +data.user || null;
+        this.paid =     false;
+        this.status =   statuses.active
     }
 }
 
@@ -90,6 +152,7 @@ class classRecord extends entity{
 }
 
 module.exports = {
+    PollAnwer,
     Author,
     classRecord,
     entity,
@@ -97,4 +160,10 @@ module.exports = {
     newPlanRecord,
     Page,
     Plan,
+    PodcastRecord,
+    
+    PermissionDenied,
+    SearchError,
+    OccupiedError,
+    AlreadyError,
 }

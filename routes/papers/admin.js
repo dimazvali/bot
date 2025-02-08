@@ -11,7 +11,7 @@ const { FieldValue } = require('firebase-admin/firestore');
 const { Parser } = require('json2csv');
 const { devlog, getDoc, uname, isoDate, handleError, letterize, handleDoc, handleQuery, drawDate, cur, alertMe, ifBefore, consistencyCheck } = require('../common');
 
-const { adminTokens, udb, userClassesQ, randomCoffeeIterations, messages, books, mra, userClasses, classes, deposits, standAlone, invoices, randomCoffees, coworking, halls, authors, news, plans, plansUsers, plansRequests, userClassesWL, subscriptions, logs, wineList, settings, roomsBlocked, courses, fb, promos } = require('./cols');
+const { adminTokens, udb, userClassesQ, randomCoffeeIterations, messages, books, mra, userClasses, classes, deposits, standAlone, invoices, randomCoffees, coworking, halls, authors, news, plans, plansUsers, plansRequests, userClassesWL, subscriptions, logs, wineList, settings, roomsBlocked, courses, fb, promos, podcastRecords } = require('./cols');
 
 const { classMethods, rcMethods, newsMethods, alertWithdrawal, wine, plan, sendClass, classDescription, mrMethods, methods, authorMethods, updateEntity, deleteEntity, roomMethods, standAloneMethods } = require('./logics');
 
@@ -1016,10 +1016,26 @@ router.all(`/:method`, auth, async (req, res) => {
 })
 
 router.all(`/:method/:id`,auth,async(req,res)=>{
+    
     let admin = res.locals.admin;
     
     switch(req.params.method){
-
+        case `podcasts`:{
+            switch (req.method){
+                case `DELETE`:{
+                    return methods.podcasts.cancel(req.params.id,req.query.reason,admin)
+                        .then(()=>{
+                            res.sendStatus(200)
+                        })
+                        .catch(err=>{
+                            handleError(err,res)
+                        })
+                }
+                case `PUT`:{
+                    return updateEntity(req,res,podcastRecords.doc(req.params.id),admin.id)
+                }
+            }
+        }
         case `rcStart`:{
             let i =         await getDoc(randomCoffeeIterations,req.params.id);
 

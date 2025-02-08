@@ -15,7 +15,6 @@ require('dotenv').config()
 
 var app = express();
 
-console.log(process.env.papersToken)
 
 app.use(cookieParser(process.env.papersToken));
 
@@ -24,27 +23,28 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 app.use(logger('dev'));
-app.use(express.json({limit: '50mb'}));
+
 app.use(express.urlencoded({ extended: false }));
+
 app.use(requestLanguage({
   languages: [`ru-RU`,'en-EN'],
 }));
 
+app.use(express.json({limit: '50mb'}));
 
-app.use(express.json({limit:'10mb'}));
 app.use(bodyParser.json({limit: '50mb'}))
 bodyParser.json({limit: '50mb'})
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 process.on('warning', e => console.warn(e.stack));
 
-
 let auRouter = require('./routes/auditoriaBot')
 
 // app.use('/wine/',       require('./routes/wineBot'));
-app.use('/igrik',       require('./routes/igrikBot'));
+// app.use('/igrik',       require('./routes/igrikBot'));
 
-app.use(require('./routes/papers/crons'));
+
 app.use('/paper/slack',       require('./routes/papers/slack'));
 app.use('/paper/admin',       require('./routes/papers/admin'));
 app.use('/paper/api',         require('./routes/papers/api'));
@@ -53,6 +53,7 @@ app.use('/paper',             require('./routes/papersBot').router);
 
 app.use(vhost(`papers.*.*`,require('./routes/papersBot').router));
 
+app.use(require('./routes/papers/crons'));
 
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
 app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
@@ -89,6 +90,14 @@ app.use('/homeless',        require('./routes/homelessBot'));
 
 
 // catch 404 and forward to error handler
+app.use((req,res,next)=>{
+  // devlog(req);
+  alertMe({
+    text: `404: ${req.originalUrl}`
+  })
+  next()
+})
+
 app.use(function(req, res, next) {
   next(createError(404));
 });
@@ -105,7 +114,9 @@ app.use(function(err, req, res, next) {
 });
 
 process.on('exit', function(code){ 
-  return alertMe(`Exiting with code ${code}`); 
+  return alertMe({
+    text: `Exiting with code ${code}`
+  }); 
 });
 
 

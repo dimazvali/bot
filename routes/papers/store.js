@@ -1,12 +1,13 @@
 //@ts-check
 
 const { default: axios } = require("axios");
-const { ifBefore, devlog, handleDoc } = require("../common");
+const { ifBefore, devlog } = require("../common");
 const { sendMessage2 } = require("../methods");
 const { logs, udb } = require("./cols");
+
 let token =         process.env.papersToken;
-let ngrok =     process.env.ngrok;
-const hook = process.env.papersHook || ''; 
+let ngrok =         process.env.ngrok;
+const hook =        process.env.papersHook || ''; 
 
 let coworkingPrice =    30;
 
@@ -19,9 +20,6 @@ const classRates = [
 ]
 
 function cba(req,txt){
-    
-    devlog(req);
-
     sendMessage2({
         callback_query_id: req.body.callback_query.id,
         show_alert: true,
@@ -434,6 +432,7 @@ function log(o) {
         
     })
 }
+
 
 module.exports = {
     alertAdmins,

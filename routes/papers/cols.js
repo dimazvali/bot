@@ -5,6 +5,7 @@ const {
 } = require('firebase-admin/app');
 
 const { getFirestore } = require('firebase-admin/firestore');
+const { devlog } = require('../common');
 
 
 
@@ -24,7 +25,9 @@ let gcp = initializeApp({
     databaseURL: "https://rrspecialsapi.firebaseio.com"
 }, 'paper');
 
-let fb = getFirestore(gcp);
+let fb =                  getFirestore(gcp);
+
+devlog(fb)
 
 const admins =            fb.collection('admins');
 const entries =           fb.collection('entries');
@@ -51,6 +54,7 @@ const news =              fb.collection('news');
 const plans =             fb.collection(`plans`);
 const plansRequests =     fb.collection(`plansRequests`);
 const plansUsers =        fb.collection(`plansUsers`);
+const podcastRecords =    fb.collection(`podcastRecords`);
 const polls =             fb.collection('polls');
 const pollsAnswers =      fb.collection('pollsAnswers')
 const promos =            fb.collection(`promos`);
@@ -116,4 +120,5 @@ module.exports = {
     userTags,
     views,
     wineList,
+    podcastRecords,
 }

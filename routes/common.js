@@ -5,8 +5,14 @@ const { createHash,createHmac } = require('node:crypto');
 const { getUser } = require("./methods");
 const { FieldValue } = require("firebase-admin/firestore");
 
-function isoDate(){
-    return new Date().toISOString().split('T')[0]
+function isoDate(days){
+    let date = new Date()
+    
+    if(days) {
+        date = new Date(+new Date()+Number(days)*24*60*60*1000)
+    }
+    
+    return date.toISOString().split('T')[0]
 }
 
 
@@ -707,7 +713,7 @@ function checkObscene(v) {
 
 async function getDoc(col,id){
     if(typeof id == 'number') id = id.toString()
-    if(!id) return {}
+    if(!id) return false;
     return col.doc(id).get().then(doc=>handleDoc(doc)) 
 }
 
@@ -726,6 +732,7 @@ function handleError(err,res){
     
     if(res) res.status(500).send(err.message)
     
+    console.error(err)
     
 }
 
