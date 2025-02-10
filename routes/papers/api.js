@@ -22,9 +22,9 @@ async function auth(req,res,next){
 
     if(!req.signedCookies.userToken && process.env.develop)  req.signedCookies.userToken = process.env.adminToken;
     
-    if(!req.signedCookies.userToken) {
-        next();
-    }
+    // if(!req.signedCookies.userToken) {
+    //     next();
+    // }
 
     let token = await getDoc(adminTokens,req.signedCookies.userToken);
     if(!token) return res.sendStatus(401);
@@ -528,7 +528,7 @@ router.all(`/:data/:id`, auth, async (req, res) => {
         // }
         
         case 'classes': {
-            if(!user)return res.sendStatus(401)
+            if(!user) return res.sendStatus(401)
 
             switch (req.method) {
                 case 'POST': {
