@@ -42,7 +42,7 @@ process.on('warning', e => console.warn(e.stack));
 let auRouter = require('./routes/auditoriaBot')
 
 // app.use('/wine/',       require('./routes/wineBot'));
-// app.use('/igrik',       require('./routes/igrikBot'));
+app.use('/igrik',       require('./routes/igrikBot'));
 
 
 app.use('/paper/slack',       require('./routes/papers/slack'));
