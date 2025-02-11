@@ -1129,7 +1129,7 @@ function slotmePodcasts(){
             mcb = clearPopUp;
             clearPopUp()
 
-            showMR(mr.querySelector('h2'))
+            showMR(podcasts.querySelector('h2'))
 
             tg.showAlert(translations.coworkingBookingConfirmed[tg.initDataUnsafe.user.language_code] || translations.coworkingBookingConfirmed.en)
 
@@ -1157,7 +1157,7 @@ function unSlotPodcasts(){
             mcb = clearPopUp;
             clearPopUp()
 
-            showMR(mr.querySelector('h2'))
+            showMR(podcasts.querySelector('h2'))
         } else {
             tg.showAlert(d.data.comment)
             tg.MainButton.offClick(unSlotPodcasts)
@@ -1473,6 +1473,12 @@ function drawLecturePopup(c){
                 content.append(drawLectureReview(c))
             }
             popup.append(content)
+
+            popup.append(ce(`button`,false,`dateButton`,`Позвать друзей`,{
+                onclick:()=>{
+                    tg.switchInlineQuery(`classes_${c.id}`,[`users`,`groups`,`channels`])
+                }
+            }))
             document.body.append(popup)
 }
 

@@ -1723,7 +1723,7 @@ const classMethods = {
     },
     async get(id,userId){
         let c = await getDoc(classes,id);
-        if(!checkEntity(`ticket`,c)) throw new Error(`no such event`);
+        // if(!checkEntity(`ticket`,c)) throw new Error(`no such event`);
         if(userId){
             registerView(c, userId, `classes`, classes);
             let ticket = await ifBefore(userClasses,{active:true,user:+userId,class:id})[0];

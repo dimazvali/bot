@@ -19,7 +19,7 @@ const m =       require('./methods.js');
 var QRCode =    require('qrcode')
 const qs =      require('qs');
 const { createHash,createHmac } = require('node:crypto');
-const appLink = `https://t.me/paperstugiffbot/app`
+const appLink = `https://t.me/paperstuffbot/app`
 
 
 
@@ -116,7 +116,7 @@ const {
     entries,
 } = require(`./papers/cols.js`);
 
-const {wine, rcMethods, classMethods, mrMethods, newsMethods } = require('./papers/logics.js');
+const {wine, rcMethods, classMethods, mrMethods, newsMethods, classDescription } = require('./papers/logics.js');
 
 const coworkingMethods = require('./papers/logics.js').coworking;
 const translations = require('./papers/translations.js');
@@ -844,7 +844,7 @@ router.all(`/trello`,(req,res)=>{
 
 
 
-router.post('/hook', (req, res) => {
+router.post('/hook', async (req, res) => {
     
     res.sendStatus(200)
 
@@ -1214,10 +1214,38 @@ router.post('/hook', (req, res) => {
             console.log(err)
         })
     }
+    if(req.body.inline_query){
+        let inc = req.body.inline_query.query.split('_');
+        switch(inc[0]){
+            case `classes`:{
+                let data = await getDoc(classes,inc[1]);
+                devlog(data);
 
+                return m.sendMessage2({
+                    inline_query_id: req.body.inline_query.id,
+                    is_personal: true,
+                    cache_time: 0,    
+                    results:[{
+                        type:   `article`,
+                        id:     inc[1],
+                        title:  data.name,
+                        description: 'Нажмите, чтобы позвать товарища.',
+                        reply_markup: `HTML`,
+                        input_message_content: {
+                            message_text: classDescription(data,`ru`)
+                        },
+                        reply_markup: {
+                            inline_keyboard:[[{
+                                text: 'Зарегистрироваться',
+                                url: `${appLink}?startapp=classes_${inc[1]}`
+                            }]]
+                        }
+                    }]
+                },`answerInlineQuery`,token)
+            }
+        }
+    }
     if (req.body.callback_query) {
-
-    
         m.getUser(req.body.callback_query.from.id,udb).then(async userData => {
             
             let userRef = udb.doc(userData.id.toString())

@@ -36,6 +36,13 @@
     --accent: #FF9E00;
 }
 
+#podcasts>button{
+    display: none;
+}
+
+#podcasts.open>button{
+    display: block;
+}
 
 body {
     margin: 0 auto;
