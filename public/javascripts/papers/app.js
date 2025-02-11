@@ -67,72 +67,6 @@ translations.unbookOn = (d)=>{
     }
 }
 
-if(start){
-    switch(start){
-
-        case `tariffs`:{
-            showTariffs()
-            break;
-        }
-
-        case 'classes': {
-            showSchedule(classes.querySelector('h2'))
-            break;
-        }
-        case 'coworking': {
-            showCoworking(coworking.querySelector('h2'))
-            break;
-        }
-        case 'mr': {
-            showMR(mr.querySelector('h2'))
-            break;
-        }
-        case 'profile': {
-            showProfile(profile.querySelector('h2'))
-            break;
-        }
-
-        default:{
-            if(!start.indexOf(`class_`)){
-                axios
-                    .get(`/${host}/api/classes/${start.split(`_`)[1]}?user=${userid}`)
-                    .then(data=>{
-                        data.data.id = start.split(`_`)[1]
-                        drawLecturePopup(data.data)
-                    }).catch(err=>{
-                        tg.showAlert(err.message)
-                    })
-            }
-
-            if(!start.indexOf(`invite`)){
-                console.log(`Переход по пришлашению`)
-                let id = start.split('_')[1];
-                axios
-                    .get(`/${host}/api/invite/${id}?user=${userid}`)
-                    .then(data=>{
-                        
-                        data = data.data
-                        console.log(data)
-                        if(data.success){
-                            showCoworking(coworking.querySelector('h2'))
-                            if(data.plans){
-                                axios.put(`/${host}/api/plans/${data.plans}?user=${userid}`)
-                                .then(tg.showAlert(`Спасибо! Ваш запрос отправлен администратору. Он свяжется с вами, чтобы внести оплату.`))
-                                .catch(err=>{
-                                    tg.showAlert(err.message)
-                                })
-                            }
-                            
-                                
-                            // showCoworkingIntro(data.plans)
-                        } else {
-                            tg.showAlert(data.comment)
-                        }
-                    }).catch(handleError)
-            }
-        }
-    }
-}
 
 
 function toggleStart(el){
@@ -213,6 +147,74 @@ tg.MainButton.setParams({
 
 let user = {};
 auth().then(()=>{
+
+    if(start){
+        switch(start){
+    
+            case `tariffs`:{
+                showTariffs()
+                break;
+            }
+    
+            case 'classes': {
+                showSchedule(classes.querySelector('h2'))
+                break;
+            }
+            case 'coworking': {
+                showCoworking(coworking.querySelector('h2'))
+                break;
+            }
+            case 'mr': {
+                showMR(mr.querySelector('h2'))
+                break;
+            }
+            case 'profile': {
+                showProfile(profile.querySelector('h2'))
+                break;
+            }
+    
+            default:{
+                if(!start.indexOf(`class_`)){
+                    axios
+                        .get(`/${host}/api/classes/${start.split(`_`)[1]}?user=${userid}`)
+                        .then(data=>{
+                            data.data.id = start.split(`_`)[1]
+                            drawLecturePopup(data.data)
+                        }).catch(err=>{
+                            tg.showAlert(err.message)
+                        })
+                }
+    
+                if(!start.indexOf(`invite`)){
+                    console.log(`Переход по пришлашению`)
+                    let id = start.split('_')[1];
+                    axios
+                        .get(`/${host}/api/invite/${id}?user=${userid}`)
+                        .then(data=>{
+                            
+                            data = data.data
+                            console.log(data)
+                            if(data.success){
+                                showCoworking(coworking.querySelector('h2'))
+                                if(data.plans){
+                                    axios.put(`/${host}/api/plans/${data.plans}?user=${userid}`)
+                                    .then(tg.showAlert(`Спасибо! Ваш запрос отправлен администратору. Он свяжется с вами, чтобы внести оплату.`))
+                                    .catch(err=>{
+                                        tg.showAlert(err.message)
+                                    })
+                                }
+                                
+                                    
+                                // showCoworkingIntro(data.plans)
+                            } else {
+                                tg.showAlert(data.comment)
+                            }
+                        }).catch(handleError)
+                }
+            }
+        }
+    }
+    
     axios.get(`/paper/api/user?id=${userid}`).then(u => {
     
         user = u.data;
@@ -268,6 +270,8 @@ auth().then(()=>{
         console.log(err)
     })
 })
+
+
 
 
 function handleError(err){
