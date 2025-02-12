@@ -12,6 +12,10 @@ eventTypes.get().then(col => {
 
 
 const translations = {
+    podcastFeedBackRequest:{
+        ru: `Привет! Пожалуйста, дайте оценку нашей подкаст-студии — нам важно ваше мнение:`,
+        en: `Please, dont't forget to rate our podcast-studio:`
+    },
     podcastRecordCancelled:{
         ru:(rec)=>`Ваша запись в подкаст студию на ${rec.date}, ${rec.time}:00 была отменена.`,
         en:(rec)=>`Your podcast studio booking on ${rec.date}, ${rec.time}:00 was cancelled.`
@@ -19,6 +23,10 @@ const translations = {
     podcasts:{
         ru: `Подкастерская`,
         en: `Podcast studio`
+    },
+    podcastRecordReminder:{
+        ru: (t)=>`Напоминаем, что сегодня мы ждем вас в подкаст-студии с ${t}:00.`,
+        en: (t)=>`Let us remind you that podcast studio is booked for you for an hour at ${t}:00.`
     },
     planTerminated:(p,u)=>{
         return {

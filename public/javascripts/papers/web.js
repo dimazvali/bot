@@ -41,6 +41,10 @@ if(start){
             showMeetingRoom()
             break;
         }
+        case `podcasts`:{
+            showPodcasts()
+            break;
+        }
         case `tickets`:{
             if(start[1]) {
                 showTicket(false,start[1])
@@ -521,6 +525,18 @@ function showPodcastsOptions(record, user){
             tv.append(ce(`button`,false,[`dateButton`,`dark`,`active`],`снять запись`,{
                 onclick:function(){
                     axios.delete(`/${host}/admin/podcasts/${record.id}`).then(s=>{
+                        handleSave(s)
+                        if(s.data.succes) с.remove()
+                    }).catch(handleError)
+                }
+            }))
+
+            tv.append(ce(`button`,false,[`dateButton`,`dark`],`Слот использован`,{
+                onclick:function(){
+                    axios.put(`/${host}/admin/podcasts/${record.id}`,{
+                        attr: `status`,
+                        value: `used`
+                    }).then(s=>{
                         handleSave(s)
                         if(s.data.succes) с.remove()
                     }).catch(handleError)
@@ -3027,6 +3043,10 @@ function showUser(u, id) {
                 attr: `alert.coworking`,
                 name: `включить уведомления по коворкингу`,
                 disname: `снять уведомления по коворкингу`
+            }, {
+                attr: `alert.podcasts`,
+                name: `включить уведомления по подкастерской`,
+                disname: `снять уведомления по подкастерской`
             }]
 
             let ac = ce(`div`,false,`flex`)

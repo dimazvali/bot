@@ -1,6 +1,6 @@
 
-// let ngrok =    process.env.ngrok2;
-let ngrok =     process.env.ngrok;
+let ngrok =    process.env.ngrok2;
+// let ngrok =     process.env.ngrok;
 
 let token =         process.env.papersToken || '';
 
@@ -112,7 +112,7 @@ const {
     entries,
 } = require(`./papers/cols.js`);
 
-const {wine, rcMethods, classMethods, mrMethods, newsMethods, classDescription } = require('./papers/logics.js');
+const {wine, rcMethods, classMethods, mrMethods, newsMethods, classDescription, methods } = require('./papers/logics.js');
 
 const coworkingMethods = require('./papers/logics.js').coworking;
 const translations = require('./papers/translations.js');
@@ -1880,6 +1880,16 @@ router.post('/hook', async (req, res) => {
                             coworkingRate: +inc[2]
                         })
     
+                        return m.sendMessage2({
+                            callback_query_id: req.body.callback_query.id,
+                            text: `Спасибо!`,
+                            show_alert: true,
+                        }, 'answerCallbackQuery', token)
+                    }
+                    case `podcasts`:{
+                        
+                        methods.podcasts.getRated(user.id,inc[2])
+                        
                         return m.sendMessage2({
                             callback_query_id: req.body.callback_query.id,
                             text: `Спасибо!`,

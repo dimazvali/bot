@@ -7,8 +7,8 @@ var cron =      require('node-cron');
 const { nowShow,alertSoonMR, alertAdminsCoworking, classMethods, coworking } = require('./logics');
 const { log } = require('debug');
 
-const { devlog, drawDate, uname, getNewUsers, handleQuery, ifBefore, handleDoc, isoDate, getDoc, letterize } = require('../common');
-const { udb, plansUsers, messages, views, classes, authors, halls, userEntries, entries } = require('./cols');
+const { devlog, drawDate, uname, getNewUsers, handleQuery, ifBefore, handleDoc, isoDate, getDoc, letterize, alertMe, dimazvali, handleError } = require('../common');
+const { udb, plansUsers, messages, views, classes, authors, halls, userEntries, entries, podcastRecords } = require('./cols');
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
 const { alertAdmins } = require('./store');
@@ -39,6 +39,7 @@ if(!process.env.develop){
     
     cron.schedule(`0 5 * * *`, () => {
         alertSoonCoworking();
+        alertPodcasts();
         alertAdminsCoworking();
         countUserEntries(1)
         nowShow();
@@ -81,6 +82,43 @@ if(!process.env.develop){
     })
 }
 
+
+
+async function alertPodcasts(){
+    try {
+        let records = await ifBefore(podcastRecords,{active:true,date:isoDate()});
+        if(records.length ){
+            let processed = [];
+            for (let index = 0; index < records.sort((a,b)=>b.time<a.time?1:-1).length; index++) {
+                
+                const r = records[index];
+                
+                let user = await getUser(r.user, udb);
+                
+                processed.push(`— ${r.time}:00 ${uname(user,user.id)}`)
+                
+                sendMessage2({
+                    // chat_id: user.id,
+                    chat_id: dimazvali,
+                    text: translations.podcastRecordReminder[user.language_code](r.time) ||translations.podcastRecordReminder.en(r.time)
+                },false,token,messages);
+
+            }
+
+
+            alertAdmins({
+                filter: `podcasts`,
+                text:   `Записи в подкастерскую на сегодня:\n${processed.join('\n')}`
+            })
+        } else {
+            alertAdmins({
+                text: `На сегодня записей в подкастерскую нет.`
+            })
+        }    
+    } catch (error) {
+        handleError(error)
+    }
+}
 
 function countUserEntries(days){
     userEntries

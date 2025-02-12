@@ -9,7 +9,7 @@ let token =         process.env.papersToken;
 
 const { FieldValue } = require('firebase-admin/firestore');
 const { Parser } = require('json2csv');
-const { devlog, getDoc, uname, isoDate, handleError, letterize, handleDoc, handleQuery, drawDate, cur, alertMe, ifBefore, consistencyCheck } = require('../common');
+const { devlog, getDoc, uname, isoDate, handleError, letterize, handleDoc, handleQuery, drawDate, cur, alertMe, ifBefore, consistencyCheck, dimazvali } = require('../common');
 
 const { adminTokens, udb, userClassesQ, randomCoffeeIterations, messages, books, mra, userClasses, classes, deposits, standAlone, invoices, randomCoffees, coworking, halls, authors, news, plans, plansUsers, plansRequests, userClassesWL, subscriptions, logs, wineList, settings, roomsBlocked, courses, fb, promos, podcastRecords } = require('./cols');
 
@@ -17,7 +17,7 @@ const { classMethods, rcMethods, newsMethods, alertWithdrawal, wine, plan, sendC
 
 const translations = require('./translations');
 const { getUser, sendMessage2 } = require('../methods');
-const { langs, coworkingPrice, log, interprete } = require('./store.js');
+const { langs, coworkingPrice, log, interprete, alertAdmins } = require('./store.js');
 const coworkingMethods = require('./logics.js').coworking;
 
 let userList = [];
@@ -1597,6 +1597,7 @@ router.all(`/:method/:id`,auth,async(req,res)=>{
         case `users`:{
             let ref = udb.doc(req.params.id);
 
+            // @ts-ignore
             return ref.get().then(cl => {
                 if (!cl.exists) return res.sendStatus(404)
                 switch (req.method) {
@@ -1707,3 +1708,19 @@ router.all(`/:method/:id`,auth,async(req,res)=>{
 })
 
 module.exports = router;
+
+
+// ifBefore(udb,{admin:true}).then(admins=>{
+//     admins.forEach(admin=>{
+//         sendMessage2({
+//             chat_id: admin.id,
+//             text: `poll`,
+//             question: `есть вопрос`,
+//             options:[{
+//                 text: `да`,
+//             },{
+//                 text: `нет`,
+//             }]
+//         },`sendPoll`,token)
+//     })
+// })

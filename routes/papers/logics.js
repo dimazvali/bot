@@ -130,29 +130,31 @@ async function deleteEntity(req, res, ref, admin, attr, callback, extra) {
     }
 }
 
-function updateEntity(req, res, ref, adminId,callback) {
+async function updateEntity(req, res, ref, adminId,callback) {
     
     devlog(`обновление`);
+    devlog(req.body)
 
-    return ref.update({
-        updatedAt: new Date(),
-        updatedBy: adminId,
-        [req.body.attr]: (req.body.attr == `date`||req.body.type == `date`) ? new Date(req.body.value) : req.body.value
-    }).then(s => {
-        
-
+    try {
+        let s = await ref.update({
+            updatedAt: new Date(),
+            updatedBy: adminId,
+            [req.body.attr]: (req.body.attr == `date`||req.body.type == `date`) ? new Date(req.body.value) : req.body.value
+        })
+    
         if(callback){
             callback()
         }
-
+    
         if(req.body.attr == `randomCoffee`){
             if(req.body.value) {
                 rcMethods.welcome2RC(ref.id)
             }
         }
-
-        if(req.body.value == `used` && req.params.method == `userClasses`) return classMethods.acceptTicket(req.params.id, res, {id:+adminId})
-
+    
+        if(req.body.value == `used` && req.params.method == `userClasses`)  return classMethods.acceptTicket(req.params.id, res, {id:+adminId})
+        if(req.body.value == `used` && req.params.method == `podcasts`)     methods.podcasts.accept(req.params.id, {id:+adminId})
+    
         if (req.body.attr == `authorId`) {
             getDoc(authors, req.body.value).then(a => {
                 ref.update({
@@ -160,7 +162,7 @@ function updateEntity(req, res, ref, adminId,callback) {
                 })
             })
         }
-
+    
         if (req.body.attr == `courseId`) {
             getDoc(courses, req.body.value).then(a => {
                 ref.update({
@@ -168,7 +170,7 @@ function updateEntity(req, res, ref, adminId,callback) {
                 })
             })
         }
-
+    
         if (req.body.attr == `planId`) {
             getDoc(plans, req.body.value).then(a => {
                 ref.update({
@@ -176,15 +178,14 @@ function updateEntity(req, res, ref, adminId,callback) {
                 })
             })
         }
-
+    
         res.json({
             success: true
         })
-
-    }).catch(err => {
-        console.log(err)
-        res.status(500).send(err.message)
-    })
+    } catch (error) {
+        handleError(error,res)
+    }
+    
 }
 
 const wine = {
@@ -2186,6 +2187,73 @@ const roomMethods = {
 
 const methods = {
     podcasts:{
+        async getRated(userId,grade){
+            try {
+                let user = await getUser(userId,udb);
+                await udb.doc(user.id).update({
+                    podcastRate: +grade
+                })
+                log({
+                    text: `${uname(user,user.id)} ставит подкаст-студии оценку ${grade}`,
+                    user: +user.id
+                })
+            } catch (error) {
+                handleError(error)
+            }
+            
+        },
+        async requestFeedBack(user){
+            sendMessage2({
+                chat_id:    user.id,
+                text:       translations.podcastFeedBackRequest[user.language_code]|| translations.podcastFeedBackRequest.en,
+                reply_markup:{
+                    inline_keyboard:[
+                        [{
+                            text: `1`,
+                            callback_data: `feedback_podcasts_1`
+                        },{
+                            text: `2`,
+                            callback_data: `feedback_podcasts_2`
+                        },{
+                            text: `3`,
+                            callback_data: `feedback_podcasts_3`
+                        },{
+                            text: `4`,
+                            callback_data: `feedback_podcasts_4`
+                        },{
+                            text: `5`,
+                            callback_data: `feedback_podcasts_5`
+                        }],
+                    ]
+                }
+            },false,token,messages)
+        },
+        async accept(id,admin){
+            try {
+                admin = await getUser(admin.id,udb)
+            
+                let record =    await getDoc(podcastRecords,id);
+                let user =      await getUser(record.user, udb);
+                
+                if(user){
+                    udb.doc(user.id).update({
+                        podcastsVisits: FieldValue.increment(1)
+                    })
+
+                    if(!user.podcastRate){
+                        this.requestFeedBack(user)
+                    }
+                }
+
+                log({
+                    silent:         true,
+                    text:           `${uname(admin,admin.id)} подтверждает посещение подкастерской со стороны ${uname(user,record.user)}`,
+                    podcastRecord:  id
+                })    
+            } catch (error) {
+                handleError(error)
+            }
+        },
         async list(userId, admin){
             
             let before = await podcastRecords.where(`date`,'>=',isoDate()).get().then(col=>handleQuery(col));
@@ -2237,7 +2305,7 @@ const methods = {
             let record =        await podcastRecords.add(new PodcastRecord(data,admin).js);
 
             alertAdmins({
-                filter: `coworking`,
+                filter: `podcasts`,
                 text: `${uname(user,user.id)} записывается в подкастерскую на ${data.date}, ${data.time}.`
             })
 
@@ -2265,7 +2333,7 @@ const methods = {
 
             if(admin){
                 alertAdmins({
-                    filter: `coworking`,
+                    filter: `podcasts`,
                     text: `${uname(user,user.id)} отменяет запись в подкастерску на ${record.date}, ${record.time} ${reason ? `по прчиине ${reason}` : `без указания причин`}`
                 })
             }

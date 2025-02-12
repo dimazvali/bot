@@ -30,8 +30,7 @@ function cba(req,txt){
         alertMe({
             text: `cba error. ${JSON.stringify(req)}`
         })
-    }
-    
+    }   
 }
 
 
