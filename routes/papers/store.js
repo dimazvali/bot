@@ -1,7 +1,7 @@
 //@ts-check
 
 const { default: axios } = require("axios");
-const { ifBefore, devlog } = require("../common");
+const { ifBefore, devlog, alertMe } = require("../common");
 const { sendMessage2 } = require("../methods");
 const { logs, udb } = require("./cols");
 
@@ -20,11 +20,18 @@ const classRates = [
 ]
 
 function cba(req,txt){
-    sendMessage2({
-        callback_query_id: req.body.callback_query.id,
-        show_alert: true,
-        text:       txt
-    }, 'answerCallbackQuery', token)
+    if(!req && req.body && req.body.callback_query){
+        sendMessage2({
+            callback_query_id: req.body.callback_query.id,
+            show_alert: true,
+            text:       txt
+        }, 'answerCallbackQuery', token)
+    } else {
+        alertMe({
+            text: `cba error. ${JSON.stringify(req)}`
+        })
+    }
+    
 }
 
 
