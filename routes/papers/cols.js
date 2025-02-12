@@ -83,6 +83,7 @@ module.exports = {
     authors,
     bookings,
     books,
+    gallery,
     classes,
     classesOffers,
     coffee,

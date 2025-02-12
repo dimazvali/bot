@@ -21,10 +21,6 @@ const qs =      require('qs');
 const { createHash,createHmac } = require('node:crypto');
 const appLink = `https://t.me/paperstuffbot/app`
 
-
-
-
-
 const {
     isoDate,
     getDoc,
