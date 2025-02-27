@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Scroll</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            overflow: hidden;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            overflow: auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+            position: relative;
+        }
+        .image {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <script>
+        function generateImages(count) {
+            return Array.from({ length: count }, (_, index) => {
+                const img = document.createElement("img");
+                img.src = `https://picsum.photos/100/100?random=${Math.random()}`;
+                img.classList.add("image");
+                return img;
+            });
+        }
+
+        const container = document.getElementById("container");
+        container.append(...generateImages(18));
+        container.scrollTo(container.scrollWidth / 2, container.scrollHeight / 2);
+
+        container.addEventListener("scroll", () => {
+            if (container.scrollTop < 50) {
+                container.prepend(...generateImages(18));
+                container.scrollTop += 100;
+            }
+            if (container.scrollLeft < 50) {
+                container.prepend(...generateImages(18));
+                container.scrollLeft += 100;
+            }
+            if (container.scrollHeight - container.scrollTop - container.clientHeight < 50) {
+                container.append(...generateImages(18));
+            }
+            if (container.scrollWidth - container.scrollLeft - container.clientWidth < 50) {
+                container.append(...generateImages(18));
+            }
+        });
+    </script>
+</body>
+</html>
