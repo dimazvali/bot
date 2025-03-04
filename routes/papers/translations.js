@@ -45,7 +45,7 @@ const translations = {
         en: (glasses)=>`Сongratulations! You've got a certificate for ${glasses} glasses of wine at out bar. Use them wisely.`
     },
     tariffs:{
-        en: `Tariffs`,
+        en: `Coworking pricess`,
         ru: `Тарифы`
     },
     whatWasWrong:{
@@ -358,7 +358,7 @@ const translations = {
     },
     coworking: {
         ru: 'Записаться в коворкинг',
-        en: 'Coworking',
+        en: 'Book coworking',
         ka: 'კოვორკინგი'
     },
     mr: {
