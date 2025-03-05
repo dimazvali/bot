@@ -6,6 +6,12 @@ let freeVer = [...ver];
 
 const dataGals = [10,5,8,6,12,13,4,3,11,7,14,2,9,1,15,16,17,18];
 
+const grid = 5;
+const gap = 4;
+
+const witemWidth = 60;
+const itemHeight = 40;
+
 function getRandomCard(type){
     switch (type){
         case `hor`:{
@@ -28,8 +34,25 @@ let mouseDown = false;
 
 let preventHor = false;
 
+let coolantX = false;
+let coolantY = false;
 
+let cooldown = false;
+let coolDownTimer = 30;
 
+function cd(){
+    if(!cooldown) {
+        cooldown = true;
+        setTimeout(()=>{
+            cooldown = false;
+            console.warn(`сняли кулдаун`)    
+        },coolDownTimer)
+        return true
+    } else {
+        console.warn(`cooldown`)
+        return false
+    }
+}
 
 function moovePage(x,y){
 
@@ -49,71 +72,91 @@ function moovePage(x,y){
 
     if(composition[0].getBoundingClientRect().x > rem){
         
+        // if(coolantX) return;
+        // coolantX = true;
+
         let ps = new Number(composition[0].getBoundingClientRect().x/rem);
 
-        if(!preventHor){
-            preventHor = true;
-            console.log('движение влево')
-            
-            let cols = [... new Set(composition.map(el=>el.getBoundingClientRect().x))].sort((a,b)=>b-a);
-            
-            // console.log(cols);
-            let offset = +composition.filter(el=>el.getBoundingClientRect().x === cols[3])[0].dataset.x; 
-            composition.filter(el=>el.getBoundingClientRect().x === cols[0]).forEach(el=>{
-                let shift = -60+(offset)-2;    
-                console.log(shift, ps)
-                el.style.transform = `translate(-${shift}rem, ${+el.dataset.y}rem)`
-                el.dataset.x = shift;
-            })
-            preventHor = false;
-        }
+        console.log('движение влево')
+        
+        let offset = +composition[0].dataset.x; 
+        
+        composition.slice(-grid).forEach(el=>{
+            let shift = -witemWidth+(offset)-gap;
+            console.log(shift, ps)
+            el.style.transform = `translate(-${shift}rem, ${+el.dataset.y}rem)`
+            el.dataset.x = shift;
+        })
         
     } else if (composition[composition.length-1].getBoundingClientRect().right < window.innerWidth){
+
+        
+        // if(coolantX) return;
+        // coolantX = true;
+
         console.log(' движение вправо')
-        let cols = [... new Set(composition.map(el=>el.getBoundingClientRect().x))].sort((a,b)=>a-b);
         
-        composition.filter(el=>el.getBoundingClientRect().x === cols[0]).forEach(el=>{
-            el.style.transform = `translate(${composition[composition.length-1].getBoundingClientRect().right/rem + 2}rem, ${+el.dataset.y}rem)`
-            el.dataset.x = composition[composition.length-1].getBoundingClientRect().right/rem + 2;
+        let shift = +composition[composition.length-1].dataset.x + witemWidth + gap
+        
+        composition.slice(0,grid).forEach(el=>{
+            el.style.transform = `translate(${shift}rem, ${+el.dataset.y}rem)`
+            el.dataset.x = shift;
         })
+
+    } else {
+
+        let compositionY = [...document.querySelectorAll(`[data-type]`)];
+    
+        compositionY = compositionY.sort((a,b)=>{
+            return a.getBoundingClientRect().y-b.getBoundingClientRect().y
+        })
+
+        console.log(compositionY[0].getBoundingClientRect().top,compositionY[compositionY.length-1].getBoundingClientRect().bottom)
+        
+        if(compositionY[0].getBoundingClientRect().top > 8){
+
+            // if(coolantY) return;
+            // coolantY = true;
+
+            console.log('движение вверх')
+
+            let offset = compositionY[0].getBoundingClientRect().top/rem;
+
+            compositionY.slice(-grid).forEach(el=>{
+                let shift = -itemHeight + (offset) - gap;
+                el.style.transform = `translate(${+el.dataset.x}rem, ${shift}rem)`
+                el.dataset.y = shift;
+            })
+
+        } else if (compositionY[compositionY.length-1].getBoundingClientRect().bottom < window.innerHeight){
+          
+            
+
+            // if(coolantY) return;
+            // coolantY = true;
+
+            console.log('движение вниз')
+
+            let shift = +(compositionY[compositionY.length-1].dataset.y) + itemHeight + gap
+
+            console.log(grid,shift);
+
+            compositionY.slice(0,grid).forEach((el,i)=>{
+                console.log(i);
+
+                el.style.transform = `translate(${+el.dataset.x}rem, ${shift}rem)`
+                el.dataset.y = shift;
+            })
+        }
     }
 
-    let compositionY = [...document.querySelectorAll(`[data-type]`)];
     
-    compositionY = compositionY.sort((a,b)=>{
-        return a.getBoundingClientRect().y-b.getBoundingClientRect().y
-    })
-
-    
-
-    
-    if(compositionY[0].getBoundingClientRect().top > 8){
-        console.log('движение вверх')
-        let cols = [... new Set(compositionY.map(el=>el.getBoundingClientRect().y))].sort((a,b)=>b-a);
-
-        console.log(cols)
-        let offset = +composition.filter(el=>el.getBoundingClientRect().y === cols[3])[0].dataset.y; 
-
-        compositionY.slice(-4).forEach(el=>{
-            let shift = -40+(offset)-2;
-            el.style.transform = `translate(${+el.dataset.x}rem, -${shift}rem)`
-            el.dataset.y = shift;
-        })
-    } else if(compositionY[compositionY.length-1].getBoundingClientRect().bottom < window.innerHeight){
-        console.log('движение вниз')
-
-        let cols = [... new Set(compositionY.map(el=>el.getBoundingClientRect().y))].sort((a,b)=>a-b);
-        
-        compositionY.filter(el=>el.getBoundingClientRect().y === cols[0]).forEach(el=>{
-            el.style.transform = `translate(${+el.dataset.x}rem, ${(compositionY[compositionY.length-1].getBoundingClientRect().bottom/rem) + 2}rem)`
-            el.dataset.y = (compositionY[compositionY.length-1].getBoundingClientRect().bottom/rem) + 2;
-        })
-    }
 }
 
 document.onmousedown = (e) => {
     e.preventDefault();
     mouseDown = true;
+
 }
 
 document.onmouseover = (e) => {
@@ -122,23 +165,36 @@ document.onmouseover = (e) => {
 
 document.onmouseup = (e) => {
     mouseDown = false;
+    coolantX = false;
+    coolantY = false;
 }
 
-previousTouch ={
+previousTouch = {
     clientX: 0,
     clientY: 0
 };
 
-document.ontouchmove = (e) => {
+document.ontouchend = ()=>{
+    coolantX = false;
+    coolantY = false;   
+}
+
+document.ontouchstart = (e) =>{
+    console.log(`touch`)
     e.preventDefault()
+    previousTouch = e.touches[0];
+    coolantX = false;
+    coolantY = false;
+}
 
+document.ontouchmove = (e) => {
+    
     const touch = e.touches[0];
-
+    
     if (previousTouch) {
         moovePage(touch.clientX - previousTouch.clientX, touch.clientY - previousTouch.clientY);
     }
-
-    previousTouch = touch;
+    previousTouch = e.touches[0]
 
 }
 
@@ -161,13 +217,13 @@ const observer = new IntersectionObserver((entries) => {
 
 let col = 0;
 
-while (col < 4) {
+while (col < grid) {
     let row = 0;
-    while (row < 4) {
-        let b = setBlock(`${col * 62}rem, ${row * 42}rem`);
+    while (row < grid) {
+        let b = setBlock(`${col * (witemWidth + gap)}rem, ${row * (itemHeight + gap)}rem`);
         viewBox.append(b);
-        b.dataset.x = col * 62;
-        b.dataset.y = row * 42;
+        b.dataset.x = col * (witemWidth + gap);
+        b.dataset.y = row * (itemHeight + gap);
         row++;
     }
     col++;
@@ -176,26 +232,23 @@ while (col < 4) {
 
 window.onload = function() {
 
-    window.onkeyup=(e)=>{
-        if(e.code == `ArrowLeft` || e.code == `ArrowRight`){
-            keyScroll.x =clearInterval(keyScroll.x)
-        }
-        if(e.code == `ArrowUp` || e.code == `ArrowDown`){
-            keyScroll.y = clearInterval(keyScroll.y)
-        }
-    }
+    // window.onkeyup=(e)=>{
+    //     if(e.code == `ArrowLeft` || e.code == `ArrowRight`){
+    //         keyScroll.x =clearInterval(keyScroll.x)
+    //     }
+    //     if(e.code == `ArrowUp` || e.code == `ArrowDown`){
+    //         keyScroll.y = clearInterval(keyScroll.y)
+    //     }
+    // }
     let keyScroll = {
         y: null,
         x: null
     };
 
     window.onkeydown=(e)=>{
-
-        
-
     
         const movement = 3;
-        
+
         let scrolls = {
             'ArrowUp': {
                 axis:       `y`,
@@ -215,17 +268,26 @@ window.onload = function() {
             }
     
         }
+        
+
+        requestAnimationFrame((event)=>{
+            console.log(e.code,event);
+            if(scrolls[e.code]) moovePage(scrolls[e.code].axis == `x` ? scrolls[e.code].left : 0, scrolls[e.code].axis == `y` ? scrolls[e.code].top : 0)
+        })
+        
+        
     
-        if(scrolls[e.code]){
-            if(!keyScroll[scrolls[e.code].axis]) keyScroll[scrolls[e.code].axis] = setInterval(()=>{
-                moovePage(scrolls[e.code].axis == `x` ? scrolls[e.code].left : 0, scrolls[e.code].axis == `y` ? scrolls[e.code].top : 0)
-            },10)
-        }
+        // if(scrolls[e.code]){
+        //     if(!keyScroll[scrolls[e.code].axis]) keyScroll[scrolls[e.code].axis] = setInterval(()=>{
+        //         moovePage(scrolls[e.code].axis == `x` ? scrolls[e.code].left : 0, scrolls[e.code].axis == `y` ? scrolls[e.code].top : 0)
+        //     },10)
+        // }
     }
 
     hover.style.filter = 'opacity(0)';
 
     document.onmousemove = (e) => {
+        
         e.preventDefault();
         
         if (mouseDown) {

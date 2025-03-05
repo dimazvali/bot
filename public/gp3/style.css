@@ -40,12 +40,9 @@ html {
 
 @media (pointer:coarse) {
     html {
-        /* width: 100vw;
-        height: 100vh; */
-        /* overflow: hidden; */
-        /* -webkit-o */
-        /* -webkit-overflow-scrolling:hidden; */
-
+        width: 100vw;
+        height: 100vh; 
+        overflow: hidden;
     }
 }
 
