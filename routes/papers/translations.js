@@ -475,10 +475,10 @@ A trial day in the coworking space costs 15 GEL. Subsequent days are at the stan
             ka: `გადახდა ${v}`
         }
     },
-    lectureInvite: (l) => {
+    lectureInvite: (l,amount) => {
         return {
-            ru: `Отлично! Ждем вас на лекции «${l.name}» (${drawDate(l.date,false,{time:true})}).${l.price?`\n\nОбратите внимание: к оплате на месте ${cur(l.price,'GEL')}`:''}`,
-            en: `Great! Looking forward to meeting you. ${l.price?`\n\nBeware: entrance fee is ${cur(l.price,'GEL')}`:''}`,
+            ru: `Отлично! Ждем вас на лекции «${l.name}» (${drawDate(l.date,false,{time:true})}).${amount>1?`\n\nНа ваше имя забронировано ${letterize(amount,`место`)}.`:''}${l.price?`\n\nОбратите внимание: к оплате на месте ${cur(+l.price*amount,'GEL')}`:''}`,
+            en: `Great! Looking forward to meeting you.${amount>1?`\n\nYou have reserved ${amount} seats.`:''}${l.price?`\n\nBeware: entrance fee is ${cur(l.price,'GEL')}`:''}`,
             ka: `დიდი! გელოდებით ლექციაზე "${l.name}"`
         }
     },

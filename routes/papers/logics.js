@@ -1247,8 +1247,10 @@ const classMethods = {
 
         return tickets.length;
     },
-    bookClass: async (user, classId, res, id)=>{
-    
+    bookClass: async (user, classId, res, id, amount)=>{
+        
+        if(!amount) amount = 1;
+
         if (!user) {
             user = await getUser(id,udb)
         }
@@ -1290,13 +1292,14 @@ const classMethods = {
             className:  c.name,
             class:      classId,
             date:       c.date,
+            amount:     amount
         }
 
         let sub = await ifBefore(plansUsers,{user:+user.id,active:true})[0];
 
         let subData = sub ? `подписка: ${sub.name}` : ``;
 
-        let before = await ifBefore(userClasses,{class:classId,active:true})
+        let before = await ifBefore(userClasses,{class:classId,active:true}).reduce((a,b)=> a+(b.amount||1) ,0)
         
         let line =          before.length;
         let capacity =      c.capacity
@@ -1339,7 +1342,7 @@ const classMethods = {
         let record = await userClasses.add(d);
         
         classes.doc(classId).update({
-            visitors: FieldValue.increment(1)
+            visitors: FieldValue.increment(amount)
         })
 
         seatsData = `забронировано мест: ${line} из ${capacity||`бесконечного множества`}`;
@@ -1352,7 +1355,7 @@ const classMethods = {
         sendMessage2({
             chat_id:    user.id,
             photo:      process.env.ngrok + `/paper/qr?id=${record.id}&entity=userClasses`,
-            caption:    translations.lectureInvite(c)[user.language_code] || translations.lectureInvite(c).en,
+            caption:    translations.lectureInvite(c,amount)[user.language_code] || translations.lectureInvite(c,amount).en,
             reply_markup: {
                 inline_keyboard: [
                     [{
@@ -2067,7 +2070,12 @@ const newsMethods = {
                     let field = message.filter.split(`_`)[0];
                     users = users.filter(u=>u[field]) 
                 }
-                
+
+                if(message.recipients) users = message.recipients.split(`\n`).filter(id=>id).map(id=>{
+                    return {
+                        id: id
+                    }
+                })
                 
                 if(!message.class) return users.forEach((u, i) => {
                     setTimeout(()=>{
@@ -2148,10 +2156,11 @@ const newsMethods = {
                     inline_keyboard:    data.inline_keyboard || null,
                     media:              data.media || null,
                     class:              data.class || null,
+                    recipients:         data.recipients || null,
                 })
     
                 log({
-                    text:   `${uname(admin,admin.id)} стартует рассылку с рабочим названием «${data.name}».`,
+                    text:   `${uname(admin,admin.id)} создает рассылку с рабочим названием «${data.name}».`,
                     admin:  +admin.id,
                     silent: true,
                     news:   record.id

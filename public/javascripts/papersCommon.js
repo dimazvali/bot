@@ -120,10 +120,9 @@ function showNewNews(){
     
     let name = ce('input',false,`block`,false,{placeholder: `Название`})
 
-    
-    
-
     let desc = ce('textarea',false,false,false,{placeholder: `Текст`})
+
+    let recipients = ce('textarea',false,false,false,{placeholder: `Кастомный список получателей (id через перенос строки)`})
     
     let select = ce(`select`)
         select.append(ce(`option`,false,false,`Кому отправлять?`,{
@@ -190,6 +189,7 @@ function showNewNews(){
                     text:           desc.value,
                     tag:            tag.value,
                     filter:         select.value,
+                    recipients:     recipients.value,
                     media:          media,
                     silent:         silent.querySelector(`input`).checked ? true : false,
                     safe:           safe.querySelector(`input`).checked ? true : false
@@ -208,6 +208,7 @@ function showNewNews(){
     p.append(inpC)
 
     inpC.append(name)
+    
     inpC.append(mediaLine())
     inpC.append(ce(`button`,false,`thin`,`Добавить фото`,{
         onclick:function(){
@@ -217,6 +218,8 @@ function showNewNews(){
     }))
     inpC.append(desc)
     inpC.append(select)
+    inpC.append(recipients)
+    
     inpC.append(tag)
     
     inpC.append(silent)

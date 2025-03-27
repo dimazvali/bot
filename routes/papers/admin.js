@@ -608,6 +608,7 @@ router.all(`/:method`, auth, async (req, res) => {
                     try {
     
                         let record = await newsMethods.add(req.body,admin);
+                        
                         let result = await newsMethods.startNews(record.id);
     
                         return res.json({
