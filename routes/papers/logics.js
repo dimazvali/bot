@@ -1295,11 +1295,11 @@ const classMethods = {
             amount:     amount
         }
 
-        let sub = await ifBefore(plansUsers,{user:+user.id,active:true})[0];
+        let sub = (await ifBefore(plansUsers,{user:+user.id,active:true}))[0];
 
         let subData = sub ? `подписка: ${sub.name}` : ``;
 
-        let before = await ifBefore(userClasses,{class:classId,active:true}).reduce((a,b)=> a+(b.amount||1) ,0)
+        let before = (await ifBefore(userClasses,{class:classId,active:true})).reduce((a,b)=> a+(b.amount||1) ,0)
         
         let line =          before.length;
         let capacity =      c.capacity
