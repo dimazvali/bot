@@ -1299,9 +1299,15 @@ const classMethods = {
 
         let subData = sub ? `подписка: ${sub.name}` : ``;
 
-        let before = (await ifBefore(userClasses,{class:classId,active:true})).reduce((a,b)=> a+(b.amount||1) ,0)
+        let alreadyLine = await ifBefore(userClasses,{class:classId,active:true});
+
+        devlog(alreadyLine);
+
+        let before = alreadyLine.reduce((a,b)=> a+(b.amount||1) ,0)
         
-        let line =          before.length;
+        devlog(before);
+
+        let line =          before;
         let capacity =      c.capacity
         let seatsData =     '';
         
