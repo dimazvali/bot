@@ -2324,8 +2324,21 @@ const methods = {
                 text: `${uname(user,user.id)} записывается в подкастерскую на ${data.date}, ${data.time}.`
             })
 
+            await sendMessage2({
+                chat_id:    user.id,
+                text:       `Вы забронировали подкастерскую на час с ${data.date}, ${data.time}:00.`,
+                reply_markup: {
+                    inline_keyboard: [[{
+                        text: `Отменить`
+                    }]]
+                }
+            },false,token,messages)
+
+            
+
             return record.id
         },
+
         async cancel(id,reason,user,admin){
             
             let record = await getDoc(podcastRecords, id);
@@ -2349,7 +2362,7 @@ const methods = {
             if(admin){
                 alertAdmins({
                     filter: `podcasts`,
-                    text: `${uname(user,user.id)} отменяет запись в подкастерску на ${record.date}, ${record.time} ${reason ? `по прчиине ${reason}` : `без указания причин`}`
+                    text: `${uname(user,user.id)} отменяет запись в подкастерскую на ${record.date}, ${record.time} ${reason ? `по прчиине ${reason}` : `без указания причин`}`
                 })
             }
 
@@ -2519,11 +2532,11 @@ module.exports = {
     newsMethods,
     nowShow,
     plan,
+    profileMethods,
     rcMethods,
     roomMethods,
     sendClass,
     standAloneMethods,
     updateEntity,
     wine,
-    profileMethods,
 }

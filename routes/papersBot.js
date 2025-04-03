@@ -2150,6 +2150,14 @@ router.post('/hook', async (req, res) => {
                     text: `Спасибо и до новых встреч!`
                 }, 'answerCallbackQuery', token)
             }
+
+            if(inc[0] == `podcasts`){
+                try {
+                    await methods.podcasts.cancel(inc[1],`воля пользователя`,user)
+                } catch (error) {
+                    handleError(error)
+                }
+            }
         })
     
     
