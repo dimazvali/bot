@@ -137,7 +137,7 @@ const translations = {
     },
     toKnow: {
         en: `${coworkingPrice} GEL per day. The first day is 15 GEL.`,
-        ru: `Стоимость — ${coworkingPrice} лари в день, первый тестовый день — 15.`
+        ru: `Цена — ${coworkingPrice} лари в день, первый тестовый день — 15.`
     },
     iliani: {
         en: '1/10 Veriko Anjaparidze St, Tbilisi, Georgia',
@@ -327,7 +327,7 @@ const translations = {
                 'ru-RU',{
                     timeZone: 'Asia/Tbilisi'
                 }
-            )}${l.price?`\nСтоимость: ${cur(l.price,'GEL')}`:''}`,
+            )}${l.price?`\nЦена: ${cur(l.price,'GEL')}`:''}`,
             en: `Hello there! We have a new ${eTypes[l.type].en} coming: ${l.name} by ${l.author} on ${new Date(l.date).toLocaleDateString()}.`,
             ka: `გაუმარჯოს! ჩვენ გვაქვს ახალი ${eTypes[l.type].ka} მომავალი: ${l.name} ${l.author}-ის მიერ ${new Date(l.date).toLocaleDateString()}`
         }
@@ -399,7 +399,7 @@ const translations = {
         ka: ''
     },
     fee: {
-        ru: 'Стоимость ',
+        ru: 'Цена ',
         en: 'Entry fee ',
         ka: 'შესვლა'
     },
