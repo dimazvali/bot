@@ -2150,19 +2150,23 @@ const newsMethods = {
                 } else {
                     let cl = await getDoc(classes, message.class);
                     
-                    let records = await ifBefore(userClasses,{
-                        class: message.class,
-                        active: true
-                    })
+                    // let records = await ifBefore(userClasses,{
+                    //     class: message.class,
+                    //     active: true
+                    // })
+
+                    let records = await ifBefore(udb, { active: true, noSpam: false });
+
+                    
 
                     resolve({
                         success: records.length,
                     })
 
                     for (let index = 0; index < records.length; index++) {
-                        const ticket = records[index];
+                        const user = records[index];
                         
-                        let user = await getUser(ticket.usedRecords,udb)
+                        // let user = await getUser(ticket.usedRecords,udb)
                         
                         let m = await sendClass(cl,user,message.id)
                         
