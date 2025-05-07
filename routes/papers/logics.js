@@ -671,7 +671,7 @@ const coworking = {
                     if(col.docs.length == 1) setTimeout(()=>{
                         sendMessage2({
                             chat_id: record.user,
-                            text: `Добрый вечер!\nМы были рады видеть вас в коворкинге Papers.А вы?.. \nПожалуйста, поставьте нам честную оценку. Мы также будем рады любой обратной связи (просто напишите в бот, что вам понравилось — а что могло быть и лучше).`,
+                            text: `Добрый вечер!\nМы были рады видеть вас в коворкинге Papers.А вы?.. \nПожалуйста, поставьте нам честную оценку. Мы также будем рады любой обратной связи (просто напишите в бот, что вам понравилось — а что могло быть и лучше).\n\nО приятном: покажите это сообщение нашему администратору в течение недели и получите скидку 25 % на любой тариф в нашем коворкинге. Тарифы можно изучить прямо в этом боте, нажав на кнопку «приложение» в его левом нижнем углу.`,
                             reply_markup:{
                                 inline_keyboard:[
                                     [{
@@ -2068,80 +2068,112 @@ const newsMethods = {
         return new Promise(async (resolve, reject) => {
             try {
                 let message = await getDoc(news, id);
-                if(!message) return false;
                 
-                let users = await ifBefore(udb, { active: true, noSpam: false });
-                
-                if(message.filter){
-                    let field = message.filter.split(`_`)[0];
-                    users = users.filter(u=>u[field]) 
-                }
+                if(!message) reject(`нет такой рассылки`)
 
-                if(message.recipients) users = message.recipients.split(`\n`).filter(id=>id).map(id=>{
-                    return {
-                        id: id
+                if(!message.class) {
+
+                    let users = [];
+
+                    if(message.recipients) {
+                        users = message.recipients.split(`\n`).filter(id=>id).map(id=>{
+                            return {
+                                id: id
+                            }
+                        })
+                    } else {
+                        users = await ifBefore(udb, { active: true, noSpam: false });
                     }
-                })
-                
-                if(!message.class) return users.forEach((u, i) => {
-                    setTimeout(()=>{
+
+                    if(message.filter){
+                        let field = message.filter.split(`_`)[0];
+                        users =     users.filter(u=>u[field]) 
+                    }
+
+                    resolve({
+                        success: users.length,
+                    })
+                    
+                    
+                    for (let index = 0; index < users.length; index++) {
+                        const u = users[index];
                         let m = null;
-                        if(!message.media || !message.media.length){
-                            m = sendMessage2({
-                                chat_id:    u.user || u.id,
-                                text:       message.text,
-                                parse_mode: `HTML`,
-                                protect_content:        message.safe?true:false,
-                                disable_notification:   message.silent?true:false,
-                            },false,token,messages,{news: message.id})
-                        } else if(message.media && message.media.length == 1) {
-                            m = sendMessage2({
-                                chat_id:        u.user || u.id,
-                                caption:        message.text,
-                                parse_mode:     `HTML`,
-                                photo:          message.media[0],
-                                protect_content: message.safe?true:false,
-                                disable_notification: message.silent?true:false,
-                            },`sendPhoto`,token,messages,{news: message.id})
-                        } else if(message.media){
-                            m = sendMessage2({
-                                chat_id:        u.user || u.id,
-                                caption:        message.text,
-                                parse_mode:     `HTML`,
-                                media:          message.media.map((p,i)=>{
-                                    return {
-                                        type:       `photo`,
-                                        media:      p,
-                                        caption:    i?'':message.text
-                                    }
-                                }),
-                                protect_content: message.safe?true:false,
-                                disable_notification: message.silent?true:false,
-                            },`sendMediaGroup`,token,messages,{news: message.id})
+                        try {
+                            if(!message.media || !message.media.length){
+                                m = await sendMessage2({
+                                    chat_id:    u.user || u.id,
+                                    text:       message.text,
+                                    parse_mode: `HTML`,
+                                    protect_content:        message.safe?true:false,
+                                    disable_notification:   message.silent?true:false,
+                                },false,token,messages,{news: message.id})
+                            } else if(message.media && message.media.length == 1) {
+                                m = await sendMessage2({
+                                    chat_id:        u.user || u.id,
+                                    caption:        message.text,
+                                    parse_mode:     `HTML`,
+                                    photo:          message.media[0],
+                                    protect_content: message.safe?true:false,
+                                    disable_notification: message.silent?true:false,
+                                },`sendPhoto`,token,messages,{news: message.id})
+                            } else if(message.media){
+                                m = await sendMessage2({
+                                    chat_id:        u.user || u.id,
+                                    caption:        message.text,
+                                    parse_mode:     `HTML`,
+                                    media:          message.media.map((p,i)=>{
+                                        return {
+                                            type:       `photo`,
+                                            media:      p,
+                                            caption:    i?'':message.text
+                                        }
+                                    }),
+                                    protect_content: message.safe?true:false,
+                                    disable_notification: message.silent?true:false,
+                                },`sendMediaGroup`,token,messages,{news: message.id})
+                            }
+                            
+                            if(m && m.result) await news.doc(message.id).update({
+                                audience: FieldValue.increment(1)
+                            })    
+                        } catch (error) {
+                            handleError(error);
                         }
-                        Promise.resolve(m).then(m=>{
-                            if(m && m.result) news.doc(message.id).update({
-                                audience: FieldValue.increment(1)
-                            })
-                        })
-                    },i*200)
-                })
+                    }
+                    await news.doc(message.id).update({
+                        finished: new Date()
+                    })
+                    alertAdmins({
+                        text: `Рассылка ${message.name} завершена` 
+                    })
 
-                let cl = await getDoc(classes, message.class);
+                } else {
+                    let cl = await getDoc(classes, message.class);
+                    
+                    let records = await ifBefore(userClasses,{
+                        class: message.class,
+                        active: true
+                    })
+
+                    resolve({
+                        success: records.length,
+                    })
+
+                    for (let index = 0; index < records.length; index++) {
+                        const ticket = records[index];
+                        
+                        let user = await getUser(ticket.usedRecords,udb)
+                        
+                        let m = await sendClass(cl,user,message.id)
+                        
+                        if(m && m.result) await news.doc(message.id).update({
+                            audience: FieldValue.increment(1)
+                        })
+                    }
+
+                } 
                 
-                users.forEach((u,i)=>{
-                    setTimeout(()=>{
-                        sendClass(cl,u,message.id).then(m=>{
-                            if(m && m.result) news.doc(message.id).update({
-                                audience: FieldValue.increment(1)
-                            })
-                        })
-                    },i*200)
-                })
-
-                resolve({
-                    success: users.length,
-                })
+                
             } catch (error) {
                 reject(error)
             }
