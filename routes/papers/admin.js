@@ -1292,7 +1292,8 @@ router.all(`/:method/:id`,auth,async(req,res)=>{
                         let record = await newsMethods.add({
                             name:       `Рассылка по админам по лекции ${cl.name}`,
                             text:       classDescription(cl,`ru`),
-                            filter:     `admin`
+                            filter:     `admin`,
+                            class:      cl.id
                         },admin)
                         
                         let result = await newsMethods.startNews(record.id)

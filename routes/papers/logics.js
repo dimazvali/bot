@@ -2157,7 +2157,10 @@ const newsMethods = {
 
                     let records = await ifBefore(udb, { active: true, noSpam: false });
 
-                    
+                    if(message.filter){
+                        let field = message.filter.split(`_`)[0];
+                        records =     records.filter(u=>u[field]) 
+                    }
 
                     resolve({
                         success: records.length,
