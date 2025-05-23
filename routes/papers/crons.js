@@ -31,56 +31,56 @@ let siteSectionsTypes = {
 }
 
 
-if(!process.env.develop){
-    cron.schedule(`55,25 * * * *`, () => {
-        alertSoonMR()
-    })
+// if(!process.env.develop){
+//     cron.schedule(`55,25 * * * *`, () => {
+//         alertSoonMR()
+//     })
     
     
-    cron.schedule(`0 5 * * *`, () => {
-        alertSoonCoworking();
-        alertPodcasts();
-        alertAdminsCoworking();
-        countUserEntries(1)
-        nowShow();
-        updatePlans();
-        getNewUsers(udb,1).then(newcomers=>{
-            log({
-                text: `Новых пользователей за сутки: ${newcomers}`
-            })
-        })
-    })
+//     cron.schedule(`0 5 * * *`, () => {
+//         alertSoonCoworking();
+//         alertPodcasts();
+//         alertAdminsCoworking();
+//         countUserEntries(1)
+//         nowShow();
+//         updatePlans();
+//         getNewUsers(udb,1).then(newcomers=>{
+//             log({
+//                 text: `Новых пользователей за сутки: ${newcomers}`
+//             })
+//         })
+//     })
 
-    cron.schedule(`0 5 * * 1`,()=>{
-        alertMiniStats(7)
-        alertEntries(7);
-        getNewUsers(udb,7).then(newcomers=>{
-            log({
-                text: `Новых пользователей за неделю: ${newcomers}`
-            })
-        })
-    })
+//     cron.schedule(`0 5 * * 1`,()=>{
+//         alertMiniStats(7)
+//         alertEntries(7);
+//         getNewUsers(udb,7).then(newcomers=>{
+//             log({
+//                 text: `Новых пользователей за неделю: ${newcomers}`
+//             })
+//         })
+//     })
     
-    cron.schedule(`0 11 * * *`, () => {
-        alertSoonClasses()
-    })
+//     cron.schedule(`0 11 * * *`, () => {
+//         alertSoonClasses()
+//     })
 
-    cron.schedule(`0 19 * * *`, () => {
-        feedBackTimer()
-    })
+//     cron.schedule(`0 19 * * *`, () => {
+//         feedBackTimer()
+//     })
 
-    cron.schedule(`0 15 * * *`, () => {
-        coworking.requestCoworkingFeedback()
-    })
+//     cron.schedule(`0 15 * * *`, () => {
+//         coworking.requestCoworkingFeedback()
+//     })
     
-    cron.schedule(`0 5 1 * *`, () => {
-        getNewUsers(udb,30).then(newcomers=>{
-            log({
-                text: `Новых пользователей за месяц: ${newcomers}`
-            })
-        })
-    })
-}
+//     cron.schedule(`0 5 1 * *`, () => {
+//         getNewUsers(udb,30).then(newcomers=>{
+//             log({
+//                 text: `Новых пользователей за месяц: ${newcomers}`
+//             })
+//         })
+//     })
+// }
 
 
 

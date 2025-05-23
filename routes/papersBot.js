@@ -68,11 +68,11 @@ let gcp = initializeApp({
 
 let paymentToken =  process.env.papersPaymentToken;
 
-setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
-        console.log(`papers hook set on ${ngrok}`)
-    }).catch(handleError)   
-},1000)
+// setTimeout(function(){
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/paper/hook`).then(()=>{
+//         console.log(`papers hook set on ${ngrok}`)
+//     }).catch(handleError)   
+// },1000)
 
 function handleError(err,res) {
     console.log(err);
