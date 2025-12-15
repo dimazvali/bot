@@ -63,11 +63,12 @@ app.use(vhost(`neva.localhost`,require('./routes/neva')))
 app.use(vhost(`neva.*.*`,require('./routes/neva')))
 app.use('/neva',       require('./routes/neva'));
 
-app.use('/auditoria',           require('./routes/auditoriaBot'));
-app.use(vhost(`auditoria.*.*`,  require('./routes/auditoriaBot')))
-app.use(vhost(`au.localhost`,   require('./routes/auditoriaBot')))
+// app.use('/auditoria',           require('./routes/auditoriaBot'));
+// app.use(vhost(`auditoria.*.*`,  require('./routes/auditoriaBot')))
+// app.use(vhost(`au.localhost`,   require('./routes/auditoriaBot')))
 
 
+app.use('/proxy',        require('./routes/proxy'));
 
 
 // app.use('/sss',         require('./routes/sss'));
