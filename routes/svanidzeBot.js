@@ -77,7 +77,7 @@ let gcpnew = initializeApp({
         "universe_domain": "googleapis.com"
       }),
     // databaseURL: "https://dimazvalimisc-default-rtdb.europe-west1.firebasedatabase.app"
-}, host);
+}, host+'2');
 
 
 let gcp = initializeApp({
@@ -98,12 +98,34 @@ let gcp = initializeApp({
 
 let fb =    getFirestore(gcp);
 
+let newFb = getFirestore(gcpnew)
 
 let adminTokens =           fb.collection(`${host}AdminTokens`);
 let udb =                   fb.collection(`${host}Users`);
 let messages =              fb.collection(`${host}UsersMessages`);
 let logs =                  fb.collection(`${host}Logs`);
 let payments =              fb.collection(`${host}Payments`)
+
+
+function transfer(){
+    [
+        `AdminTokens`,
+        `Users`,
+        `UsersMessages`,
+        `Logs`,
+        `Payments`
+    ].forEach(colname=>{
+        fb.collection(`${host}${colname}`).get().then(col=>{
+            handleQuery(col).forEach(doc=>{
+                if(doc.createdAt) doc.createdAt = new Date(doc.createdAt._seconds?doc.createdAt._seconds*1000: doc.createdAt);
+                if(doc.updatedAt) doc.updatedAt = new Date(doc.updatedAt._seconds ? doc.updatedAt._seconds*1000 : doc.updatedAt);
+                newFb.collection(colname).doc(doc.id).set(doc).then(()=>{
+                    console.log(colname,doc.id)
+                })
+            })
+        })
+    })
+}
 
 
 if (!process.env.develop) {
@@ -234,11 +256,38 @@ function deActivate(){
         })
 }
 
+function blockPayment(rec){
+    payments.doc(rec.id).update({
+        active:     false,
+        updatedAt:  new Date()
+    })
+
+    udb.doc(rec.user.toString()).update({
+        payed: false
+    })
+
+    sendMessage2({
+        chat_id: rec.user,
+        text: `your subscription was cancelled. you can ask the bot why, if you don't know the reason`,
+    },false,token,messages)
+
+    sendMessage2({
+        user_id: rec.user,
+        chat_id: group,
+    },`banChatMember`,token).then(d=>{
+        devlog(d)
+    })
+}
+
 function blockSubscription(rec){
 
     payments.doc(rec.id).update({
-        active: false,
-        updatedAt: new Date()
+        active:     false,
+        updatedAt:  new Date()
+    })
+
+    udb.doc(rec.user.toString()).update({
+        payed: false
     })
     
     sendMessage2({
@@ -268,7 +317,8 @@ function blockSubscription(rec){
 }
 
 if(process.env.develop) router.get(`/test`,(req,res)=>{
-    deActivate()
+    // deActivate()
+    transfer()
     res.sendStatus(200)
 })
 
@@ -337,8 +387,9 @@ router.get(`/web`, (req, res) => {
 })
 const datatypes = {
     payments:{
-        col: payments,
-        newDoc: addPayment
+        col:            payments,
+        newDoc:         addPayment,
+        removeCallBack: blockPayment,
     },
     messages:{
         col:    messages,
@@ -560,7 +611,7 @@ router.all(`/admin/:method/:id`,(req,res)=>{
                         })
 
                         if(req.method == `PUT`)         return updateEntity(req,res,ref,admin)
-                        if(req.method == `DELETE`)      return deleteEntity(req,res,ref,admin)
+                        if(req.method == `DELETE`)      return deleteEntity(req,res,ref,admin,false,()=>datatypes[req.params.method].removeCallBack(d))
                         
                         return res.sendStatus(404)
                         

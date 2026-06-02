@@ -1,8 +1,11 @@
+
 const hor = [1,3,6,7,9,11,13,15,16];
 const ver = [2,4,5,8,10,12,14,17];
 
+
 let freeHor = [...hor];
 let freeVer = [...ver];
+
 
 const dataGals = [10,5,8,6,12,13,4,3,11,7,14,2,9,1,15,16,17,18];
 
@@ -11,6 +14,14 @@ const gap = 4;
 
 const witemWidth = 60;
 const itemHeight = 40;
+
+function toggleStart(){
+    document.querySelector(`#start`).style.filter = `opacity(0)`;
+    setTimeout(() => {
+        document.querySelector(`#start`).style.display = `none`;
+    }, 1000);
+}
+
 
 function getRandomCard(type){
     switch (type){
@@ -55,7 +66,12 @@ function cd(){
 }
 
 function moovePage(x,y){
-
+    try {
+        toggleStart();    
+    } catch (error) {
+        
+    }
+    
 
     document.querySelectorAll(`[data-type]`).forEach(el => {
         el.style.transform = `translate(${(+el.dataset.x||0) + (x/rem)}rem, ${(+el.dataset.y||0)+ (y/rem)}rem)`
@@ -180,7 +196,6 @@ document.ontouchend = ()=>{
 }
 
 document.ontouchstart = (e) =>{
-    console.log(`touch`)
     e.preventDefault()
     previousTouch = e.touches[0];
     coolantX = false;
@@ -203,24 +218,12 @@ let rem = parseInt(getComputedStyle(document.documentElement).fontSize)
 
 
 
-
-const observer = new IntersectionObserver((entries) => {
-    // If intersectionRatio is 0, the target is out of view
-    // and we do not need to do anything.
-    // if (entries[0].intersectionRatio <= 0) return;
-  
-    console.log(entries)
-
-    console.log("Loaded new items");
-  });
-  // start observing
-
 let col = 0;
-
 while (col < grid) {
     let row = 0;
     while (row < grid) {
-        let b = setBlock(`${col * (witemWidth + gap)}rem, ${row * (itemHeight + gap)}rem`);
+        console.log(row+(col*grid))
+        let b = setBlock(`${col * (witemWidth + gap)}rem, ${row * (itemHeight + gap)}rem`, row+(col*grid));
         viewBox.append(b);
         b.dataset.x = col * (witemWidth + gap);
         b.dataset.y = row * (itemHeight + gap);
@@ -296,13 +299,12 @@ window.onload = function() {
     }
     
 
-    let f = document.querySelectorAll(`[data-type]`)[15];
+    let f = document.querySelectorAll(`[data-type]`)[grid*grid-1];
 
     setTimeout(() => {
-        window.scrollTo(f.getClientRects()[0].right/2-(window.innerWidth/2),f.getClientRects()[0].bottom/2-(window.innerHeight/2))
+        window.scrollTo(f.getClientRects()[0].right/2-(window.innerWidth),f.getClientRects()[0].bottom/2-(window.innerHeight))
     }, 200);
     
-    observer.observe(document.querySelector(`[data-type="0"]`));
     
     setTimeout(() => {
         hover.style.display = 'none';   
@@ -312,22 +314,24 @@ window.onload = function() {
 function setPicture(type){
     let picure = getRandomCard(type);
     let img = ce(`img`,false,[`g-card`,picure],false,{
-        src: `/images/cards/${picure}.webp`,
+        src: `https://static.sobaka.ru/uploads/longread/193260/img/cards/${picure}.webp`,
         dataset:{
             gal: dataGals[picure]
         },
         onclick:()=>{
-            // popup(img.src)
+            popup(dataGals[picure])
         }
     });
     return img;
 }
 
-function setBlock(translate){
-    let type = Math.floor(Math.random() * 3);
+function setBlock(translate,num){
+    
+    let type = num == 6 ? 1 : Math.floor(Math.random() * 3);
     let block = ce(`div`,false,false,false,{
         dataset:{
-            type: type
+            type: type,
+            cnt: num
         },
     });
     if(translate) block.style.transform = `translate(${translate})`;
@@ -340,6 +344,7 @@ function setBlock(translate){
             let col = ce(`div`,false,`col`)
             col.append(setPicture(`ver`));
             block.append(col)
+
             let col2 = ce(`div`,false,[`col`,'c2'])
             col2.append(setPicture(`hor`));
             col2.append(setPicture(`hor`));

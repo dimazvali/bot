@@ -482,10 +482,7 @@ router.all(`/api/:method/:id`,(req,res)=>{
                                             invoice:  d.result
                                         })
                                     })
-                                })
-                                
-
-                                
+                                })   
                             }
                         }).catch(err=>{
                             handleError(err,res)
@@ -946,14 +943,16 @@ router.post(`/hook`, (req, res) => {
     }
 
     if (req.body.pre_checkout_query){
+
         sendMessage2({
-            ok: true,
-            pre_checkout_query_id: req.body.pre_checkout_query.id
+            ok:                     true,
+            pre_checkout_query_id:  req.body.pre_checkout_query.id
         },'answerPreCheckoutQuery',token).then(s=>{
             console.log(s.data)
         }).catch(err=>{
             console.log(err)
         })
+        
     }
 })
 

@@ -39,29 +39,29 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 process.on('warning', e => console.warn(e.stack));
 
-let auRouter = require('./routes/auditoriaBot')
+// let auRouter = require('./routes/auditoriaBot')
 
 // app.use('/wine/',       require('./routes/wineBot'));
-app.use('/igrik',       require('./routes/igrikBot'));
+// app.use('/igrik',       require('./routes/igrikBot'));
 
 
-app.use('/paper/slack',       require('./routes/papers/slack'));
-app.use('/paper/admin',       require('./routes/papers/admin'));
-app.use('/paper/api',         require('./routes/papers/api'));
-app.use('/paper',             require('./routes/papersBot').router);
+// app.use('/paper/slack',       require('./routes/papers/slack'));
+// app.use('/paper/admin',       require('./routes/papers/admin'));
+// app.use('/paper/api',         require('./routes/papers/api'));
+// app.use('/paper',             require('./routes/papersBot').router);
 
 
-app.use(vhost(`papers.*.*`,require('./routes/papersBot').router));
+// app.use(vhost(`papers.*.*`,require('./routes/papersBot').router));
 
-app.use(require('./routes/papers/crons'));
+// app.use(require('./routes/papers/crons'));
 
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
 app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
 app.use('/dimazvali',     require('./routes/dimazvali'));
 
-app.use(vhost(`neva.localhost`,require('./routes/neva')))
-app.use(vhost(`neva.*.*`,require('./routes/neva')))
-app.use('/neva',       require('./routes/neva'));
+// app.use(vhost(`neva.localhost`,require('./routes/neva')))
+// app.use(vhost(`neva.*.*`,require('./routes/neva')))
+// app.use('/neva',       require('./routes/neva'));
 
 // app.use('/auditoria',           require('./routes/auditoriaBot'));
 // app.use(vhost(`auditoria.*.*`,  require('./routes/auditoriaBot')))
@@ -72,13 +72,13 @@ app.use('/proxy',        require('./routes/proxy'));
 
 
 // app.use('/sss',         require('./routes/sss'));
-app.use('/kaha',        require('./routes/kaha'));
-app.use('/wtg',         require('./routes/wtgBot'));
+// app.use('/kaha',        require('./routes/kaha'));
+// app.use('/wtg',         require('./routes/wtgBot'));
 app.use('/test',        require('./routes/test'));
-app.use('/cyprus',      require('./routes/cyprus'));
-app.use('/ps',          require('./routes/psBot'));
-app.use('/vz',          require('./routes/vzBot'));
-app.use('/books',       require('./routes/booksBot'));
+// app.use('/cyprus',      require('./routes/cyprus'));
+// app.use('/ps',          require('./routes/psBot'));
+// app.use('/vz',          require('./routes/vzBot'));
+// app.use('/books',       require('./routes/booksBot'));
 
 // app.use('/hz',              require('./routes/hz'));
 app.use('/homeless',        require('./routes/homelessBot'));

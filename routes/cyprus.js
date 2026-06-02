@@ -17,7 +17,7 @@ const devlog = require(`./common`).devlog
 const host = `cyprus`
 
 const channellId = -1002139324312;
-
+const prodChannelId =  -1001763708294;
 const {
     initializeApp,
     applicationDefault,
@@ -74,11 +74,32 @@ let testChannelLink =   `https://t.me/+uaMO0ee7u5hjYmQy`
 const ngrok = process.env.ngrok
 
 
+// m.sendMessage2({
+//     text: `Дорогие друзья и уважаемые читатели, теперь с помощью бота @cyprusjournal_bot вы сможете поделиться своей новостью о Кипре! 
+
+// Если вы стали свидетелем интересного факта (в формате наших новостей) или у вас есть фото каких-либо красот/фестивалей/явлений природы, добро пожаловать в наш канал.
+
+// Запустите бота @cyprusjournal_bot
+// Напишите короткую новость, пришлите фото. Обязательно укажите город и дату произошедшего.`,
+//     chat_id: prodChannelId,
+//     reply_markup:{
+//         inline_keyboard:[[
+//             {
+//                 text: `Отправить новость`,
+//                 url: botLink
+//             }
+//         ]]
+//     }
+// },false,token)
+
+
 setTimeout(function(){
     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/cyprus/hook`).then(()=>{
         console.log(`cyprus hook set on ${ngrok}`)
     }).catch(handleError)   
 },1500)
+
+
 
 function handleError(err) {
     console.log(err);
