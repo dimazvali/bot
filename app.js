@@ -57,6 +57,7 @@ process.on('warning', e => console.warn(e.stack));
 
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
 app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
+app.use(vhost(`bot.*.*`,require('./routes/dimazvali')))
 app.use('/dimazvali',     require('./routes/dimazvali'));
 
 // app.use(vhost(`neva.localhost`,require('./routes/neva')))
