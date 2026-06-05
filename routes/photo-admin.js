@@ -170,6 +170,8 @@ router.post('/country/:key/reorder-series', requireAuth, express.json(), (req, r
   if (!data[key] || !Array.isArray(order)) return res.status(400).json({ ok: false });
   var validKeys = Object.keys(data[key].series);
   if (!order.every(k => validKeys.includes(k))) return res.status(400).json({ ok: false });
+  if (order.length !== validKeys.length) return res.status(400).json({ ok: false });
+  if (new Set(order).size !== order.length) return res.status(400).json({ ok: false });
   data[key].seriesOrder = order;
   saveData(data);
   res.json({ ok: true });
@@ -184,6 +186,9 @@ router.post('/series/:country', requireAuth, (req, res) => {
   var k = slugify(key);
   if (!data[country].series[k]) {
     data[country].series[k] = { label, photos: [] };
+    if (data[country].seriesOrder) {
+      data[country].seriesOrder.push(k);
+    }
     saveData(data);
   }
   res.redirect('/admin');
@@ -295,7 +300,7 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
 
   data[country].series[series].photos.splice(idx, 1);
   saveData(data);
-  res.redirect('/admin');
+  res.redirect(`/admin/${country}/${series}/edit`);
 });
 
 router.get('/tags', requireAuth, (req, res) => {

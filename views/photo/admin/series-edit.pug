@@ -62,7 +62,9 @@ html(data-theme='dark')
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ order: order }),
-            });
+            }).then(function(r) { return r.json(); }).then(function(data) {
+              if (!data.ok) alert('Ошибка сохранения порядка');
+            }).catch(function() { alert('Ошибка сохранения порядка'); });
           },
         });
       }
