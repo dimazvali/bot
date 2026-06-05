@@ -409,6 +409,12 @@ router.post('/:country/:series/reorder-photos', requireAuth, express.json(), (re
   if (!order.every(function(id) { return validIds.includes(id); })) {
     return res.status(400).json({ ok: false });
   }
+  if (order.length !== photos.length) {
+    return res.status(400).json({ ok: false });
+  }
+  if (new Set(order).size !== order.length) {
+    return res.status(400).json({ ok: false });
+  }
   data[country].series[seriesKey].photos = order.map(function(id) { return photoMap[id]; });
   saveData(data);
   res.json({ ok: true });
