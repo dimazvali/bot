@@ -1,0 +1,35 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo #{countryLabel} · #{seriesLabel}
+
+      .admin-section
+        h2.admin-title ЗАГРУЗИТЬ ФОТО
+        p.admin-hint Файл будет конвертирован в WebP и загружен в Firebase Storage в двух размерах (800px и 2400px).
+        form.admin-form(method='POST' action=`/admin/${country}/${series}/upload` enctype='multipart/form-data')
+          input.admin-input(type='file' name='photo' accept='image/*' required)
+          input.admin-input(type='text' name='title' placeholder='название снимка')
+          input.admin-input(type='text' name='date' placeholder='дата (напр. Май 2024)')
+          textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='3')
+          button.admin-btn(type='submit') ЗАГРУЗИТЬ
+
+      if photos && photos.length
+        .admin-section
+          h2.admin-title ФОТО В СЕРИИ (#{photos.length})
+          .admin-photo-list
+            each photo in photos
+              .admin-photo-row
+                if photo.urls
+                  img.admin-thumb(src=photo.urls.preview alt=photo.title)
+                .admin-photo-info
+                  span.admin-photo-title= photo.title
+                  span.admin-photo-id= photo.id
+                form.admin-delete-form(method='POST' action=`/admin/${country}/${series}/${photo.id}/delete`)
+                  button.admin-btn.admin-btn--danger(type='submit') удалить

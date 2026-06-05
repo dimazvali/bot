@@ -1,0 +1,32 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        span.admin-logo AERO ADMIN
+        a.admin-logout(href='/admin/logout') выйти
+
+      .admin-section
+        h2.admin-title СТРАНЫ
+        each country, countryKey in data
+          .admin-country
+            .admin-country-name #{country.label} (#{countryKey})
+            .admin-series-list
+              each series, seriesKey in country.series
+                .admin-series-row
+                  span.admin-series-name #{series.label} (#{seriesKey}) — #{series.photos.length} фото
+                  a.admin-link(href=`/admin/${countryKey}/${seriesKey}/upload`) загрузить
+            form.admin-form(method='POST' action=`/admin/series/${countryKey}`)
+              input.admin-input(type='text' name='key' placeholder='ключ (eng)')
+              input.admin-input(type='text' name='label' placeholder='название')
+              button.admin-btn(type='submit') + серия
+
+        form.admin-form.admin-form--country(method='POST' action='/admin/country')
+          h3.admin-subtitle ДОБАВИТЬ СТРАНУ
+          input.admin-input(type='text' name='key' placeholder='ключ (eng, напр. georgia)')
+          input.admin-input(type='text' name='label' placeholder='название (напр. Грузия)')
+          button.admin-btn(type='submit') + страна
