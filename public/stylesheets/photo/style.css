@@ -8,6 +8,8 @@
   --text-muted:  #666;
   --accent:      #fff;
   --overlay-bg:  rgba(0,0,0,0.65);
+  --shimmer-base:      #1a1a1a;
+  --shimmer-highlight: #2c2c2c;
 }
 [data-theme="light"] {
   --bg:          #f5f5f5;
@@ -18,6 +20,8 @@
   --text-muted:  #bbb;
   --accent:      #000;
   --overlay-bg:  rgba(255,255,255,0.75);
+  --shimmer-base:      #e4e4e4;
+  --shimmer-highlight: #f0f0f0;
 }
 
 /* ─── RESET ──────────────────────────────────────────────────── */
@@ -368,4 +372,30 @@ body,
 .gallery-label,
 .gallery-header {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* skeletons */
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.photo-card {
+  background: linear-gradient(
+    90deg,
+    var(--shimmer-base) 25%,
+    var(--shimmer-highlight) 50%,
+    var(--shimmer-base) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+.photo-card img {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.photo-card img.loaded {
+  opacity: 1;
 }
