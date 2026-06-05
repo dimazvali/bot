@@ -392,4 +392,26 @@ router.post('/:country/:series/delete', requireAuth, async (req, res) => {
   }
 });
 
+router.post('/:country/:series/reorder-photos', requireAuth, express.json(), (req, res) => {
+  var { country, series: seriesKey } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) {
+    return res.status(400).json({ ok: false });
+  }
+  var { order } = req.body;
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey] || !Array.isArray(order)) {
+    return res.status(400).json({ ok: false });
+  }
+  var photos = data[country].series[seriesKey].photos;
+  var photoMap = {};
+  photos.forEach(function(p) { photoMap[p.id] = p; });
+  var validIds = photos.map(function(p) { return p.id; });
+  if (!order.every(function(id) { return validIds.includes(id); })) {
+    return res.status(400).json({ ok: false });
+  }
+  data[country].series[seriesKey].photos = order.map(function(id) { return photoMap[id]; });
+  saveData(data);
+  res.json({ ok: true });
+});
+
 module.exports = router;
