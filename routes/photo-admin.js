@@ -4,6 +4,7 @@ var path = require('path');
 var multer = require('multer');
 var sharp = require('sharp');
 var { getData, saveData } = require('../lib/photo-data');
+var { getTags, saveTags } = require('../lib/photo-tags');
 
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
@@ -204,6 +205,39 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
   data[country].series[series].photos.splice(idx, 1);
   saveData(data);
   res.redirect('/admin');
+});
+
+router.get('/tags', requireAuth, (req, res) => {
+  var error = req.query.error || null;
+  res.render('photo/admin/tags', { tags: getTags(), title: 'Теги — AERO Admin', error });
+});
+
+router.post('/tags', requireAuth, (req, res) => {
+  var { slug, label } = req.body;
+  if (!slug || !label) return res.redirect('/admin/tags');
+  var clean = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-|-$/g, '');
+  if (!clean) return res.redirect('/admin/tags');
+  var tags = getTags();
+  if (!tags[clean]) {
+    tags[clean] = { label };
+    saveTags(tags);
+  }
+  res.redirect('/admin/tags');
+});
+
+router.post('/tags/:slug/delete', requireAuth, (req, res) => {
+  var { slug } = req.params;
+  var data = getData();
+  var inUse = Object.values(data).some(country =>
+    Object.values(country.series).some(series =>
+      series.photos.some(p => p.tags && p.tags.includes(slug))
+    )
+  );
+  if (inUse) return res.redirect('/admin/tags?error=inuse');
+  var tags = getTags();
+  delete tags[slug];
+  saveTags(tags);
+  res.redirect('/admin/tags');
 });
 
 module.exports = router;

@@ -307,4 +307,12 @@ textarea.admin-input { resize: vertical; }
 .admin-photo-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .admin-photo-title { font-size: 11px; color: var(--text); }
 .admin-photo-id { font-size: 9px; color: var(--text-dim); font-family: monospace; }
+
+/* admin tags */
+.admin-tag-list { display: flex; flex-direction: column; gap: 8px; }
+.admin-tag-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.admin-tag-info { display: flex; gap: 12px; flex: 1; align-items: center; }
+.admin-tag-slug { font-size: 11px; font-family: monospace; color: var(--text-dim); letter-spacing: 1px; }
+.admin-tag-label { font-size: 13px; color: var(--text); }
+.admin-error { font-size: 12px; color: #e55; margin-bottom: 12px; }
 .admin-delete-form { flex-shrink: 0; }

@@ -1,0 +1,32 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo ТЕГИ
+
+      .admin-section
+        h2.admin-title ДОБАВИТЬ ТЕГ
+        if error === 'inuse'
+          p.admin-error Тег используется в фотографиях, сначала удалите его из фото.
+        form.admin-form(method='POST' action='/admin/tags')
+          input.admin-input(type='text' name='slug' placeholder='slug (eng, напр. sunrise)')
+          input.admin-input(type='text' name='label' placeholder='метка (напр. Рассвет)')
+          button.admin-btn(type='submit') + тег
+
+      if Object.keys(tags).length
+        .admin-section
+          h2.admin-title ВСЕ ТЕГИ (#{Object.keys(tags).length})
+          .admin-tag-list
+            each tag, slug in tags
+              .admin-tag-row
+                .admin-tag-info
+                  span.admin-tag-slug= slug
+                  span.admin-tag-label= tag.label
+                form.admin-delete-form(method='POST' action=`/admin/tags/${slug}/delete`)
+                  button.admin-btn.admin-btn--danger(type='submit') удалить
