@@ -56,4 +56,20 @@
       img.addEventListener('error', function () { img.classList.add('loaded'); img.closest('.photo-card').classList.add('loaded'); });
     }
   });
+  window.sharePhoto = function () {
+    var title = document.title;
+    var url = location.href;
+    if (navigator.share) {
+      navigator.share({ title: title, url: url }).catch(function () {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(function () {
+        var btn = document.querySelector('.action-btn[onclick="sharePhoto()"]');
+        if (btn) {
+          var orig = btn.textContent;
+          btn.textContent = 'СКОПИРОВАНО';
+          setTimeout(function () { btn.textContent = orig; }, 2000);
+        }
+      });
+    }
+  };
 }());

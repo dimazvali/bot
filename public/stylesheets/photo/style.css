@@ -404,3 +404,17 @@ body,
   animation: none;
   background: none;
 }
+
+/* action buttons on photo page */
+.photo-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.action-btn {
+  font-size: 9px;
+  letter-spacing: 2px;
+  font-family: monospace;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  background: none;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+.action-btn:hover { color: var(--text); border-color: var(--text-muted); }

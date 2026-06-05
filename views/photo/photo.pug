@@ -25,3 +25,5 @@ block content
       .photo-tags
         each tag in photo.tags
           a.photo-tag(href=`/tag/${tag}`)= allTags[tag] ? allTags[tag].label.toUpperCase() : tag.toUpperCase()
+    .photo-actions
+      button.action-btn(onclick='sharePhoto()') ПОДЕЛИТЬСЯ
