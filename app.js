@@ -33,11 +33,40 @@ app.use(requestLanguage({
 app.use(express.json({limit: '50mb'}));
 
 app.use(bodyParser.json({limit: '50mb'}))
+
 bodyParser.json({limit: '50mb'})
 
-
-
 process.on('warning', e => console.warn(e.stack));
+
+app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
+app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
+app.use(vhost(`bot.*.*`,require('./routes/dimazvali')))
+app.use(vhost('photo.*.*', require('./routes/photo')))
+app.use(vhost('photo.localhost', require('./routes/photo')))
+
+
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
+
+app.use('/dimazvali',     require('./routes/dimazvali'));
+
+
+
+app.use('/proxy',        require('./routes/proxy'));
+app.use('/test',        require('./routes/test'));
+app.use('/homeless',        require('./routes/homelessBot'));
+
+
+
+// app.use(vhost(`neva.localhost`,require('./routes/neva')))
+// app.use(vhost(`neva.*.*`,require('./routes/neva')))
+// app.use('/neva',       require('./routes/neva'));
+
+// app.use('/auditoria',           require('./routes/auditoriaBot'));
+// app.use(vhost(`auditoria.*.*`,  require('./routes/auditoriaBot')))
+// app.use(vhost(`au.localhost`,   require('./routes/auditoriaBot')))
+
 
 // let auRouter = require('./routes/auditoriaBot')
 
@@ -55,34 +84,11 @@ process.on('warning', e => console.warn(e.stack));
 
 // app.use(require('./routes/papers/crons'));
 
-app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
-app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
-app.use(vhost(`bot.*.*`,require('./routes/dimazvali')))
-
-
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
-
-
-app.use('/dimazvali',     require('./routes/dimazvali'));
-
-// app.use(vhost(`neva.localhost`,require('./routes/neva')))
-// app.use(vhost(`neva.*.*`,require('./routes/neva')))
-// app.use('/neva',       require('./routes/neva'));
-
-// app.use('/auditoria',           require('./routes/auditoriaBot'));
-// app.use(vhost(`auditoria.*.*`,  require('./routes/auditoriaBot')))
-// app.use(vhost(`au.localhost`,   require('./routes/auditoriaBot')))
-
-
-app.use('/proxy',        require('./routes/proxy'));
 
 
 // app.use('/sss',         require('./routes/sss'));
 // app.use('/kaha',        require('./routes/kaha'));
 // app.use('/wtg',         require('./routes/wtgBot'));
-app.use('/test',        require('./routes/test'));
 
 
 
@@ -92,7 +98,7 @@ app.use('/test',        require('./routes/test'));
 // app.use('/books',       require('./routes/booksBot'));
 
 // app.use('/hz',              require('./routes/hz'));
-app.use('/homeless',        require('./routes/homelessBot'));
+
 
 
 // app.use(`/dash`,            require('./routes/dashBot'))
