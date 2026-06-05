@@ -444,6 +444,7 @@ router.post('/:country/:series/:id/edit', requireAuth, (req, res) => {
     return res.redirect('/admin');
   }
   var { title, date, desc } = req.body;
+  if (!title || !title.trim()) return res.redirect(`/admin/${country}/${seriesKey}/${id}/edit`);
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
   var data = getData();
@@ -457,7 +458,7 @@ router.post('/:country/:series/:id/edit', requireAuth, (req, res) => {
   var tags = rawTags.filter(function(s) { return knownTags[s]; });
   var latRaw = parseFloat(req.body.lat);
   var lngRaw = parseFloat(req.body.lng);
-  photo.title = title ? title.trim() : photo.title;
+  photo.title = title.trim();
   photo.date = date ? date.trim() : '';
   photo.desc = desc ? desc.trim() : '';
   if (instagramUrl) { photo.instagram = instagramUrl; } else { delete photo.instagram; }
