@@ -142,11 +142,13 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
 router.post('/:country/:series/upload', requireAuth, upload.single('photo'), async (req, res) => {
   var { country, series } = req.params;
   var { title, date, desc } = req.body;
-  var tags = req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags]) : [];
+  var knownTags = getTags();
+  var rawTags = req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags]) : [];
+  var tags = rawTags.filter(s => knownTags[s]);
   var latRaw = parseFloat(req.body.lat);
   var lngRaw = parseFloat(req.body.lng);
   var coords = null;
-  if (!isNaN(latRaw) && !isNaN(lngRaw)) {
+  if (!isNaN(latRaw) && !isNaN(lngRaw) && Math.abs(latRaw) <= 90 && Math.abs(lngRaw) <= 180) {
     coords = { lat: latRaw, lng: lngRaw };
   } else {
     try {
