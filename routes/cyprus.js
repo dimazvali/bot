@@ -71,7 +71,7 @@ let token = process.env.cyprusToken
 let botLink =           `https://t.me/cyprusjournal_bot`
 let testChannelLink =   `https://t.me/+uaMO0ee7u5hjYmQy`
 
-const ngrok = process.env.ngrok
+const ngrok = `https://cyprus.dimazvali.com`
 
 
 // m.sendMessage2({
@@ -94,7 +94,7 @@ const ngrok = process.env.ngrok
 
 
 setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/cyprus/hook`).then(()=>{
+    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/hook`).then(()=>{
         console.log(`cyprus hook set on ${ngrok}`)
     }).catch(handleError)   
 },1500)
@@ -418,7 +418,7 @@ router.all(`/api/:data`,(req,res)=>{
                             res.json({success:true})
 
                             log({
-                                text: `Новая публикация от пользователя  ${uname(u,u.id)}: ${req.body.title}.\nЧитаем здесь: ${ngrok}/${host}/web?page=news_${s.id}`,
+                                text: `Новая публикация от пользователя  ${uname(u,u.id)}: ${req.body.title}.\nЧитаем здесь: ${ngrok}/web?page=news_${s.id}`,
                                 user: +req.query.user,
                                 news: s.id
                             })
@@ -516,7 +516,7 @@ router.post('/hook', (req, res) => {
                                 [{
                                     text: `test`,
                                     web_app: {
-                                        url: `${ngrok}/${host}/admin`
+                                        url: `${ngrok}/admin`
                                     }
                                 }]
                             ]
@@ -531,7 +531,7 @@ router.post('/hook', (req, res) => {
                                 [{
                                     text: `test`,
                                     web_app: {
-                                        url: `${ngrok}/${host}/app`
+                                        url: `${ngrok}/app`
                                     }
                                 }]
                             ]
@@ -760,7 +760,7 @@ router.get(`/web`,(req,res)=>{
             })
         }) 
 
-    if(!req.signedCookies.adminToken) return res.redirect(`${ngrok}/${host}/auth`)
+    if(!req.signedCookies.adminToken) return res.redirect(`${ngrok}/auth`)
     
     adminTokens
         .doc(req.signedCookies.adminToken)

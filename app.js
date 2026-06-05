@@ -76,6 +76,9 @@ app.use('/proxy',        require('./routes/proxy'));
 // app.use('/kaha',        require('./routes/kaha'));
 // app.use('/wtg',         require('./routes/wtgBot'));
 app.use('/test',        require('./routes/test'));
+
+app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
+
 // app.use('/cyprus',      require('./routes/cyprus'));
 // app.use('/ps',          require('./routes/psBot'));
 // app.use('/vz',          require('./routes/vzBot'));
