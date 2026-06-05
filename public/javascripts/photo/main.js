@@ -14,4 +14,11 @@
     var current = document.documentElement.getAttribute('data-theme') || 'dark';
     applyTheme(current === 'dark' ? 'light' : 'dark');
   };
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      var url = document.body.getAttribute('data-series-url');
+      if (url) location.href = url;
+    }
+  });
 }());
