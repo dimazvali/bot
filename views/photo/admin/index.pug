@@ -15,12 +15,21 @@ html(data-theme='dark')
         h2.admin-title СТРАНЫ
         each country, countryKey in data
           .admin-country
-            .admin-country-name #{country.label} (#{countryKey})
+            .admin-country-name
+              span= `${country.label} (${countryKey})`
+              if country.archived
+                span.admin-archived [архив]
+              a.admin-link(href=`/admin/country/${countryKey}/edit` style='margin-left:auto') редактировать
             .admin-series-list
               each series, seriesKey in country.series
                 .admin-series-row
-                  span.admin-series-name #{series.label} (#{seriesKey}) — #{series.photos.length} фото
-                  a.admin-link(href=`/admin/${countryKey}/${seriesKey}/upload`) загрузить
+                  span.admin-series-name
+                    = `${series.label} (${seriesKey}) — ${series.photos.length} фото`
+                    if series.archived
+                      span.admin-archived [архив]
+                  .admin-series-actions
+                    a.admin-link(href=`/admin/${countryKey}/${seriesKey}/upload`) загрузить
+                    a.admin-link(href=`/admin/${countryKey}/${seriesKey}/edit`) редактировать
             form.admin-form(method='POST' action=`/admin/series/${countryKey}`)
               input.admin-input(type='text' name='key' placeholder='ключ (eng)')
               input.admin-input(type='text' name='label' placeholder='название')
