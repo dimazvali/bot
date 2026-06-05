@@ -1,0 +1,34 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .site
+      aside.sidebar
+        .sidebar-logo
+          a(href='/') AERO
+          span aerial photography
+        nav.sidebar-nav
+          each country, countryKey in data
+            - var firstSeriesKey = Object.keys(country.series)[0]
+            a.nav-country(
+              href=`/${countryKey}/${firstSeriesKey}`
+              class=activeCountry === countryKey ? 'open' : ''
+            )
+              span.arrow= activeCountry === countryKey ? '▾' : '▸'
+              | &nbsp;
+              = country.label.toUpperCase()
+            if activeCountry === countryKey
+              each series, seriesKey in country.series
+                a.nav-series(
+                  href=`/${countryKey}/${seriesKey}`
+                  class=activeSeries === seriesKey ? 'active' : ''
+                ) #{series.label}
+        .sidebar-footer
+          a(href='/about') О СЕБЕ
+          button.theme-toggle(onclick='toggleTheme()' title='Переключить тему') ◐
+      main.main
+        block content
+    script(src='/javascripts/photo/main.js')
