@@ -35,6 +35,7 @@ var upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
+    if (!file.originalname) return cb(null, false);
     if (!file.mimetype.startsWith('image/')) return cb(new Error('Only images allowed'));
     cb(null, true);
   },
