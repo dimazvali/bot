@@ -191,6 +191,7 @@ router.post('/series/:country', requireAuth, (req, res) => {
 
 router.get('/:country/:series/upload', requireAuth, (req, res) => {
   var { country, series } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
   var data = getData();
   if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
   res.render('photo/admin/upload', {
@@ -206,6 +207,7 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
 
 router.post('/:country/:series/upload', requireAuth, upload.single('photo'), async (req, res) => {
   var { country, series } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
   var { title, date, desc } = req.body;
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
