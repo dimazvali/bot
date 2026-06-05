@@ -13,9 +13,11 @@ html(data-theme='dark')
       .admin-section
         h2.admin-title РЕДАКТИРОВАТЬ ФОТО
         if photo.urls
-          img(src=photo.urls.preview alt=photo.title style='width:240px;height:auto;display:block;margin-bottom:16px;')
-        form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`)
+          img(src=photo.urls.preview alt=photo.title style='width:100%;max-width:480px;height:auto;display:block;margin-bottom:16px;')
+        form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit` enctype='multipart/form-data')
           input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
+          p.admin-hint ЗАМЕНИТЬ ФАЙЛ (необязательно):
+          input.admin-input(type='file' name='photo' accept='image/*')
           input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. Май 2024)')
           textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='3')= photo.desc || ''
           input.admin-input(type='url' name='instagram' value=photo.instagram || '' placeholder='ссылка на публикацию в instagram (необязательно)')

@@ -443,7 +443,7 @@ router.get('/:country/:series/:id/edit', requireAuth, (req, res) => {
   });
 });
 
-router.post('/:country/:series/:id/edit', requireAuth, (req, res) => {
+router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), async (req, res) => {
   var { country, series: seriesKey, id } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
     return res.redirect('/admin');
@@ -473,8 +473,27 @@ router.post('/:country/:series/:id/edit', requireAuth, (req, res) => {
     delete photo.coords;
   }
   if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
-  saveData(data);
-  res.redirect(`/admin/${country}/${seriesKey}/edit`);
+  try {
+    if (req.file) {
+      var [buf800, buf2400] = await Promise.all([
+        sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
+        sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+      ]);
+      var path800 = `${country}/${seriesKey}/${id}-800.webp`;
+      var path2400 = `${country}/${seriesKey}/${id}-2400.webp`;
+      await Promise.all([
+        bucket.file(path800).save(buf800, { contentType: 'image/webp' }).then(() => bucket.file(path800).makePublic()),
+        bucket.file(path2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(path2400).makePublic()),
+      ]);
+      var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
+      photo.urls = { preview: `${base}/${path800}`, full: `${base}/${path2400}` };
+    }
+    saveData(data);
+    res.redirect(`/admin/${country}/${seriesKey}/edit`);
+  } catch (err) {
+    console.error('Photo edit error:', err);
+    res.status(500).send('Ошибка при замене фото: ' + err.message);
+  }
 });
 
 module.exports = router;
