@@ -95,6 +95,16 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
   padding: 16px;
   border-top: 1px solid var(--border);
   display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sidebar-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-footer-bottom {
+  display: flex;
   align-items: center;
   justify-content: space-between;
 }

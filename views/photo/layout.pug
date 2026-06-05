@@ -8,8 +8,8 @@ html(data-theme='dark')
     .site
       aside.sidebar
         .sidebar-logo
-          a(href='/') AERO
-          span aerial photography
+          a(href='/') dimazvali.com
+          span Дмитрий Шестаков
         nav.sidebar-nav
           each country, countryKey in data
             - var firstSeriesKey = Object.keys(country.series)[0]
@@ -27,8 +27,13 @@ html(data-theme='dark')
                   class=activeSeries === seriesKey ? 'active' : ''
                 ) #{series.label}
         .sidebar-footer
-          a(href='/about') О СЕБЕ
-          button.theme-toggle(onclick='toggleTheme()' title='Переключить тему') ◐
+          .sidebar-contacts
+            a(href='mailto:dimazvali@gmail.com') dimazvali@gmail.com
+            a(href='https://t.me/dimazvali' target='_blank' rel='noopener') @dimazvali
+            a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') @dimazvali2
+          .sidebar-footer-bottom
+            a(href='/about') О СЕБЕ
+            button.theme-toggle(onclick='toggleTheme()' title='Переключить тему') ◐
       main.main
         block content
     script(src='/javascripts/photo/main.js')
