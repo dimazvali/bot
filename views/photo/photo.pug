@@ -6,7 +6,7 @@ block content
       a(href=`/${countryKey}/${seriesKey}`) ← #{seriesLabel.toUpperCase()}
     .photo-page-image
       img(
-        src=`/images/photo/${countryKey}/${seriesKey}/${photo.file}`
+        src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
         alt=photo.title
         onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
       )

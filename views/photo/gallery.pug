@@ -12,7 +12,7 @@ block content
     each photo in photos
       a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
         img(
-          src=`/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
+          src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
           alt=photo.title
           loading='lazy'
           onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
