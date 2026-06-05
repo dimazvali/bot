@@ -1,0 +1,32 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href=`/admin/${countryKey}/${seriesKey}/edit`) ← назад
+        span.admin-logo= photo.title
+
+      .admin-section
+        h2.admin-title РЕДАКТИРОВАТЬ ФОТО
+        if photo.urls
+          img(src=photo.urls.preview alt=photo.title style='width:240px;height:auto;display:block;margin-bottom:16px;')
+        form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`)
+          input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка')
+          input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. Май 2024)')
+          textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='3')= photo.desc || ''
+          input.admin-input(type='url' name='instagram' value=photo.instagram || '' placeholder='ссылка на публикацию в instagram (необязательно)')
+          .admin-coords
+            input.admin-input(type='text' name='lat' value=(photo.coords ? photo.coords.lat : '') placeholder='широта (напр. 41.693)')
+            input.admin-input(type='text' name='lng' value=(photo.coords ? photo.coords.lng : '') placeholder='долгота (напр. 44.801)')
+          if tags && Object.keys(tags).length
+            .admin-tags-select
+              p.admin-hint ТЕГИ:
+              each tag, slug in tags
+                label.admin-tag-check
+                  input(type='checkbox' name='tags' value=slug checked=(photo.tags && photo.tags.includes(slug)))
+                  span= tag.label
+          button.admin-btn(type='submit') СОХРАНИТЬ

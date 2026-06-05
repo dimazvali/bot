@@ -420,4 +420,55 @@ router.post('/:country/:series/reorder-photos', requireAuth, express.json(), (re
   res.json({ ok: true });
 });
 
+router.get('/:country/:series/:id/edit', requireAuth, (req, res) => {
+  var { country, series: seriesKey, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
+    return res.redirect('/admin');
+  }
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.redirect('/admin');
+  res.render('photo/admin/photo-edit', {
+    title: `${photo.title} — AERO Admin`,
+    countryKey: country,
+    seriesKey,
+    photo,
+    tags: getTags(),
+  });
+});
+
+router.post('/:country/:series/:id/edit', requireAuth, (req, res) => {
+  var { country, series: seriesKey, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
+    return res.redirect('/admin');
+  }
+  var { title, date, desc } = req.body;
+  var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
+  if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  var photos = data[country].series[seriesKey].photos;
+  var idx = photos.findIndex(function(p) { return p.id === id; });
+  if (idx === -1) return res.redirect('/admin');
+  var photo = photos[idx];
+  var knownTags = getTags();
+  var rawTags = req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags]) : [];
+  var tags = rawTags.filter(function(s) { return knownTags[s]; });
+  var latRaw = parseFloat(req.body.lat);
+  var lngRaw = parseFloat(req.body.lng);
+  photo.title = title ? title.trim() : photo.title;
+  photo.date = date ? date.trim() : '';
+  photo.desc = desc ? desc.trim() : '';
+  if (instagramUrl) { photo.instagram = instagramUrl; } else { delete photo.instagram; }
+  if (!isNaN(latRaw) && !isNaN(lngRaw) && Math.abs(latRaw) <= 90 && Math.abs(lngRaw) <= 180) {
+    photo.coords = { lat: latRaw, lng: lngRaw };
+  } else {
+    delete photo.coords;
+  }
+  if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
+  saveData(data);
+  res.redirect(`/admin/${country}/${seriesKey}/edit`);
+});
+
 module.exports = router;
