@@ -13,7 +13,7 @@ html(data-theme='dark')
       .admin-section
         h2.admin-title ДОБАВИТЬ ТЕГ
         if error === 'inuse'
-          p.admin-error Тег используется в фотографиях, сначала удалите его из фото.
+          p.admin-tags-error Тег используется в фотографиях, сначала удалите его из фото.
         form.admin-form(method='POST' action='/admin/tags')
           input.admin-input(type='text' name='slug' placeholder='slug (eng, напр. sunrise)')
           input.admin-input(type='text' name='label' placeholder='метка (напр. Рассвет)')
