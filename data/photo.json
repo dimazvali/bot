@@ -1,0 +1,62 @@
+{
+  "georgia": {
+    "label": "Грузия",
+    "series": {
+      "tbilisi": {
+        "label": "Тбилиси",
+        "photos": [
+          {
+            "id": "metelhi-dawn",
+            "file": "metelhi-dawn.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "kura-summer",
+            "file": "kura-summer.jpg",
+            "title": "Кура, лето",
+            "date": "Июнь 2024",
+            "desc": ""
+          },
+          {
+            "id": "old-city-fog",
+            "file": "old-city-fog.jpg",
+            "title": "Старый город, туман",
+            "date": "Март 2024",
+            "desc": ""
+          }
+        ]
+      },
+      "kakheti": {
+        "label": "Кахетия",
+        "photos": [
+          {
+            "id": "alazani-valley",
+            "file": "alazani-valley.jpg",
+            "title": "Алазанская долина",
+            "date": "Октябрь 2024",
+            "desc": "Виноградники в октябре, время сбора урожая."
+          }
+        ]
+      }
+    }
+  },
+  "cyprus": {
+    "label": "Кипр",
+    "series": {
+      "coast": {
+        "label": "Побережье",
+        "photos": [
+          {
+            "id": "paphos-coast",
+            "file": "paphos-coast.jpg",
+            "title": "Пафос с воздуха",
+            "date": "Февраль 2025",
+            "desc": ""
+          }
+        ]
+      }
+    }
+  }
+}
