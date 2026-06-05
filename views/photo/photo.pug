@@ -21,3 +21,7 @@ block content
           a.nav-btn(href=`/${countryKey}/${seriesKey}/${next.id}`) СЛЕД. →
     if photo.desc
       p.photo-page-desc= photo.desc
+    if photo.tags && photo.tags.length
+      .photo-tags
+        each tag in photo.tags
+          a.photo-tag(href=`/tag/${tag}`)= allTags[tag] ? allTags[tag].label.toUpperCase() : tag.toUpperCase()

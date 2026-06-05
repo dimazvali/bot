@@ -104,6 +104,7 @@ router.get('/:country/:series/:id', (req, res) => {
     seriesKey,
     countryLabel: country.label,
     seriesLabel: series.label,
+    allTags: getTags(),
     title: `${photo.title} — AERO`,
   });
 });
