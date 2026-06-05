@@ -1,0 +1,47 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo= country.label
+        if error
+          span.admin-error= error
+
+      .admin-section
+        h2.admin-title ПЕРЕИМЕНОВАТЬ
+        form.admin-form(method='POST' action=`/admin/country/${countryKey}/edit`)
+          input.admin-input(type='text' name='label' value=country.label placeholder='название страны')
+          button.admin-btn(type='submit') СОХРАНИТЬ
+
+      .admin-section
+        h2.admin-title ВИДИМОСТЬ
+        form.admin-form(method='POST' action=`/admin/country/${countryKey}/archive`)
+          button.admin-btn(type='submit')= country.archived ? 'РАЗАРХИВИРОВАТЬ' : 'АРХИВИРОВАТЬ'
+        p.admin-hint Архивированная страна скрыта на публичном сайте, но доступна в админке.
+
+      if seriesKeys.length
+        .admin-section
+          h2.admin-title ПОРЯДОК СЕРИЙ
+          p.admin-hint Перетащите серии для изменения порядка отображения.
+          ul#series-list.admin-sort-list(data-url=`/admin/country/${countryKey}/reorder-series`)
+            each seriesKey in seriesKeys
+              - var s = country.series[seriesKey]
+              li.admin-sort-item(data-id=seriesKey)
+                span.admin-sort-handle ⠿
+                span= `${s.label} (${seriesKey})`
+                if s.archived
+                  span.admin-archived [архив]
+
+      if canDelete
+        .admin-section
+          h2.admin-title УДАЛИТЬ СТРАНУ
+          form.admin-form(method='POST' action=`/admin/country/${countryKey}/delete`)
+            button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ
+      else
+        .admin-section
+          p.admin-hint Страну можно удалить только если у неё нет серий. Сначала удалите все серии.

@@ -72,13 +72,13 @@ async function requireAuth(req, res, next) {
 }
 
 router.get('/login', (req, res) => {
-  res.render('photo/admin/login', { title: 'Вход — AERO Admin', error: null });
+  res.render('photo/admin/login', { title: 'Вход — photo.dimazvali.com Admin', error: null });
 });
 
 router.post('/login', async (req, res) => {
   var { pass } = req.body;
   if (!pass || pass !== process.env.PHOTO_ADMIN_PASS) {
-    return res.render('photo/admin/login', { title: 'Вход — AERO Admin', error: 'Неверный пароль' });
+    return res.render('photo/admin/login', { title: 'Вход — photo.dimazvali.com Admin', error: 'Неверный пароль' });
   }
   var doc = await adminTokens.add({ createdAt: new Date() });
   res.cookie('photoAdminToken', doc.id, { signed: true, httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
@@ -95,7 +95,7 @@ router.get('/logout', async (req, res) => {
 });
 
 router.get('/', requireAuth, (req, res) => {
-  res.render('photo/admin/index', { data: getData(), title: 'AERO Admin' });
+  res.render('photo/admin/index', { data: getData(), title: 'photo.dimazvali.com Admin' });
 });
 
 router.post('/country', requireAuth, (req, res) => {
@@ -107,6 +107,54 @@ router.post('/country', requireAuth, (req, res) => {
     data[k] = { label, series: {} };
     saveData(data);
   }
+  res.redirect('/admin');
+});
+
+router.get('/country/:key/edit', requireAuth, (req, res) => {
+  var { key } = req.params;
+  var data = getData();
+  var country = data[key];
+  if (!country) return res.redirect('/admin');
+  var seriesKeys = country.seriesOrder || Object.keys(country.series);
+  res.render('photo/admin/country-edit', {
+    title: `${country.label} — AERO Admin`,
+    countryKey: key,
+    country,
+    seriesKeys,
+    canDelete: Object.keys(country.series).length === 0,
+    error: req.query.error || null,
+  });
+});
+
+router.post('/country/:key/edit', requireAuth, (req, res) => {
+  var { key } = req.params;
+  var { label } = req.body;
+  if (!label || !label.trim()) return res.redirect(`/admin/country/${key}/edit`);
+  var data = getData();
+  if (!data[key]) return res.redirect('/admin');
+  data[key].label = label.trim();
+  saveData(data);
+  res.redirect(`/admin/country/${key}/edit`);
+});
+
+router.post('/country/:key/archive', requireAuth, (req, res) => {
+  var { key } = req.params;
+  var data = getData();
+  if (!data[key]) return res.redirect('/admin');
+  data[key].archived = !data[key].archived;
+  saveData(data);
+  res.redirect(`/admin/country/${key}/edit`);
+});
+
+router.post('/country/:key/delete', requireAuth, (req, res) => {
+  var { key } = req.params;
+  var data = getData();
+  if (!data[key]) return res.redirect('/admin');
+  if (Object.keys(data[key].series).length > 0) {
+    return res.redirect(`/admin/country/${key}/edit?error=Удалите все серии перед удалением страны`);
+  }
+  delete data[key];
+  saveData(data);
   res.redirect('/admin');
 });
 
@@ -129,7 +177,7 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
   var data = getData();
   if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
   res.render('photo/admin/upload', {
-    title: 'Загрузка — AERO Admin',
+    title: 'Загрузка — photo.dimazvali.com Admin',
     country,
     series,
     seriesLabel: data[country].series[series].label,
@@ -232,7 +280,7 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
 
 router.get('/tags', requireAuth, (req, res) => {
   var error = req.query.error || null;
-  res.render('photo/admin/tags', { tags: getTags(), title: 'Теги — AERO Admin', error });
+  res.render('photo/admin/tags', { tags: getTags(), title: 'Теги — photo.dimazvali.com Admin', error });
 });
 
 router.post('/tags', requireAuth, (req, res) => {
