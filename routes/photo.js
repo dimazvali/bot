@@ -9,6 +9,12 @@ router.use(express.static(path.join(__dirname, '../public')));
 // Admin router must be mounted BEFORE wildcard routes
 router.use('/admin', require('./photo-admin'));
 
+var BASE = 'https://photo.dimazvali.com';
+
+function ogImg(photo) {
+  return photo && photo.urls ? photo.urls.preview : null;
+}
+
 function getActiveSeries(country) {
   var order = country.seriesOrder || Object.keys(country.series);
   return order.filter(k => country.series[k] && !country.series[k].archived);
@@ -33,18 +39,30 @@ function getAllPhotos() {
 // GET / — full gallery (all photos)
 router.get('/', (req, res) => {
   var data = getData();
+  var photos = getAllPhotos();
   res.render('photo/gallery', {
     data,
     activeCountry: null,
     activeSeries: null,
-    photos: getAllPhotos(),
+    photos,
     title: 'photo.dimazvali.com',
+    desc: 'Аэрофотосъёмка — Дмитрий Шестаков. Серийная документальная фотография с воздуха.',
+    ogImage: ogImg(photos[0]),
+    ogUrl: BASE + '/',
+    breadcrumbs: null,
   });
 });
 
 // GET /about
 router.get('/about', (req, res) => {
-  res.render('photo/about', { data: getData(), title: 'О себе — photo.dimazvali.com' });
+  res.render('photo/about', {
+    data: getData(),
+    title: 'О себе — photo.dimazvali.com',
+    desc: 'Дмитрий Шестаков — аэрофотограф. Снимаю документальные серии с воздуха.',
+    ogImage: null,
+    ogUrl: BASE + '/about',
+    breadcrumbs: [{ name: 'О себе', url: BASE + '/about' }],
+  });
 });
 
 // GET /tag/:slug — gallery filtered by tag
@@ -61,6 +79,10 @@ router.get('/tag/:slug', (req, res) => {
     tagSlug: slug,
     photos,
     title: `${tags[slug].label} — photo.dimazvali.com`,
+    desc: `${tags[slug].label} — аэрофотосъёмка Дмитрия Шестакова`,
+    ogImage: ogImg(photos[0]),
+    ogUrl: `${BASE}/tag/${slug}`,
+    breadcrumbs: [{ name: tags[slug].label, url: `${BASE}/tag/${slug}` }],
   });
 });
 
@@ -124,6 +146,10 @@ router.get('/:country', (req, res) => {
     activeSeries: null,
     photos,
     title: `${country.label} — photo.dimazvali.com`,
+    desc: `${country.label} — аэрофотосъёмка Дмитрия Шестакова`,
+    ogImage: ogImg(photos[0]),
+    ogUrl: `${BASE}/${countryKey}`,
+    breadcrumbs: [{ name: country.label, url: `${BASE}/${countryKey}` }],
   });
 });
 
@@ -136,12 +162,20 @@ router.get('/:country/:series', (req, res) => {
   var series = country.series[seriesKey];
   if (!series || series.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
 
+  var photos = series.photos.map(p => ({ countryKey, seriesKey, ...p }));
   res.render('photo/gallery', {
     data,
     activeCountry: countryKey,
     activeSeries: seriesKey,
-    photos: series.photos.map(p => ({ countryKey, seriesKey, ...p })),
+    photos,
     title: `${series.label} · ${country.label} — photo.dimazvali.com`,
+    desc: `${series.label} · ${country.label} — аэрофотосъёмка Дмитрия Шестакова`,
+    ogImage: ogImg(photos[0]),
+    ogUrl: `${BASE}/${countryKey}/${seriesKey}`,
+    breadcrumbs: [
+      { name: country.label, url: `${BASE}/${countryKey}` },
+      { name: series.label, url: `${BASE}/${countryKey}/${seriesKey}` },
+    ],
   });
 });
 
@@ -176,6 +210,14 @@ router.get('/:country/:series/:id', (req, res) => {
     allTags: getTags(),
     seriesUrl: `/${countryKey}/${seriesKey}`,
     title: `${photo.title} — photo.dimazvali.com`,
+    desc: photo.desc || `${photo.title} · ${series.label} · ${country.label}`,
+    ogImage: photo.urls ? photo.urls.full : null,
+    ogUrl: `${BASE}/${countryKey}/${seriesKey}/${photo.id}`,
+    breadcrumbs: [
+      { name: country.label, url: `${BASE}/${countryKey}` },
+      { name: series.label, url: `${BASE}/${countryKey}/${seriesKey}` },
+      { name: photo.title, url: `${BASE}/${countryKey}/${seriesKey}/${photo.id}` },
+    ],
   });
 });
 

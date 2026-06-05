@@ -3,6 +3,21 @@ html(data-theme='dark')
   head
     title= title
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    - var _desc = desc || 'Аэрофотосъёмка — Дмитрий Шестаков'
+    meta(name='description' content=_desc)
+    meta(property='og:title' content=title)
+    meta(property='og:description' content=_desc)
+    meta(property='og:type' content='website')
+    meta(property='og:site_name' content='photo.dimazvali.com')
+    if ogImage
+      meta(property='og:image' content=ogImage)
+    if ogUrl
+      meta(property='og:url' content=ogUrl)
+      link(rel='canonical' href=ogUrl)
+    meta(name='twitter:card' content='summary_large_image')
+    if breadcrumbs && breadcrumbs.length
+      - var _ldItems = [{"@type":"ListItem","position":1,"name":"Главная","item":"https://photo.dimazvali.com/"}].concat(breadcrumbs.map(function(b,i){return{"@type":"ListItem","position":i+2,"name":b.name,"item":b.url};}))
+      script(type='application/ld+json')!= JSON.stringify({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":_ldItems})
     link(rel='stylesheet' href='/stylesheets/photo/style.css')
     script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
     script.
