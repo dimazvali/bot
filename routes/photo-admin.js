@@ -5,12 +5,10 @@ var multer = require('multer');
 var sharp = require('sharp');
 var { getData, saveData } = require('../lib/photo-data');
 
-var { initializeApp, getApps } = require('firebase-admin/app');
+var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { getStorage } = require('firebase-admin/storage');
-var { cert } = require('firebase-admin/app');
 
-// Initialize Firebase app named 'photo' (reuse if already initialized)
 var photoApp = getApps().find(a => a.name === 'photo') || initializeApp({
   credential: cert({
     type: 'service_account',
@@ -59,8 +57,6 @@ function uniqueId(base, existingIds) {
   return `${base}-${n}`;
 }
 
-// ── AUTH MIDDLEWARE ───────────────────────────────────────────────────────────
-
 async function requireAuth(req, res, next) {
   var tokenId = req.signedCookies && req.signedCookies.photoAdminToken;
   if (!tokenId) return res.redirect('/admin/login');
@@ -72,8 +68,6 @@ async function requireAuth(req, res, next) {
     res.redirect('/admin/login');
   }
 }
-
-// ── LOGIN ─────────────────────────────────────────────────────────────────────
 
 router.get('/login', (req, res) => {
   res.render('photo/admin/login', { title: 'Вход — AERO Admin', error: null });
@@ -98,13 +92,9 @@ router.get('/logout', async (req, res) => {
   res.redirect('/admin/login');
 });
 
-// ── INDEX — список стран и серий ──────────────────────────────────────────────
-
 router.get('/', requireAuth, (req, res) => {
   res.render('photo/admin/index', { data: getData(), title: 'AERO Admin' });
 });
-
-// ── CREATE COUNTRY ────────────────────────────────────────────────────────────
 
 router.post('/country', requireAuth, (req, res) => {
   var { key, label } = req.body;
@@ -117,8 +107,6 @@ router.post('/country', requireAuth, (req, res) => {
   }
   res.redirect('/admin');
 });
-
-// ── CREATE SERIES ─────────────────────────────────────────────────────────────
 
 router.post('/series/:country', requireAuth, (req, res) => {
   var { country } = req.params;
@@ -134,8 +122,6 @@ router.post('/series/:country', requireAuth, (req, res) => {
   res.redirect('/admin');
 });
 
-// ── UPLOAD FORM ───────────────────────────────────────────────────────────────
-
 router.get('/:country/:series/upload', requireAuth, (req, res) => {
   var { country, series } = req.params;
   var data = getData();
@@ -149,8 +135,6 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
     photos: data[country].series[series].photos,
   });
 });
-
-// ── UPLOAD PHOTO ──────────────────────────────────────────────────────────────
 
 router.post('/:country/:series/upload', requireAuth, upload.single('photo'), async (req, res) => {
   var { country, series } = req.params;
@@ -197,8 +181,6 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     res.status(500).send('Ошибка при загрузке: ' + err.message);
   }
 });
-
-// ── DELETE PHOTO ──────────────────────────────────────────────────────────────
 
 router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
   var { country, series, id } = req.params;
