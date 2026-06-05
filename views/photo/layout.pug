@@ -12,9 +12,8 @@ html(data-theme='dark')
           span Дмитрий Шестаков
         nav.sidebar-nav
           each country, countryKey in data
-            - var firstSeriesKey = Object.keys(country.series)[0]
             a.nav-country(
-              href=`/${countryKey}/${firstSeriesKey}`
+              href=`/${countryKey}`
               class=activeCountry === countryKey ? 'open' : ''
             )
               span.arrow= activeCountry === countryKey ? '▾' : '▸'

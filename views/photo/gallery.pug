@@ -6,6 +6,9 @@ block content
       - const country = data[activeCountry]
       - const series = country.series[activeSeries]
       span.gallery-label #{country.label.toUpperCase()} · #{series.label.toUpperCase()} · #{photos.length} фото
+    else if activeCountry
+      - const country = data[activeCountry]
+      span.gallery-label #{country.label.toUpperCase()} · #{photos.length} фото
     else
       span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
   .masonry

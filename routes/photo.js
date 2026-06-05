@@ -58,6 +58,29 @@ router.get('/tag/:slug', (req, res) => {
   });
 });
 
+// GET /:country — all photos in a country
+router.get('/:country', (req, res) => {
+  var data = getData();
+  var { country: countryKey } = req.params;
+  var country = data[countryKey];
+  if (!country) return res.status(404).render('error', { message: 'Not found', error: {} });
+
+  var photos = [];
+  for (var seriesKey of Object.keys(country.series)) {
+    for (var photo of country.series[seriesKey].photos) {
+      photos.push({ countryKey, seriesKey, ...photo });
+    }
+  }
+
+  res.render('photo/gallery', {
+    data,
+    activeCountry: countryKey,
+    activeSeries: null,
+    photos,
+    title: `${country.label} — AERO`,
+  });
+});
+
 // GET /:country/:series — filtered gallery
 router.get('/:country/:series', (req, res) => {
   var data = getData();
