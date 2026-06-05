@@ -1,0 +1,18 @@
+extends layout
+
+block content
+  .gallery-header
+    span.gallery-label ТЕГ: #{tagLabel.toUpperCase()} · #{photos.length} фото
+  .masonry
+    each photo in photos
+      a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
+        img(
+          src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
+          alt=photo.title
+          loading='lazy'
+          onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+        )
+        .photo-overlay
+          span.photo-title= photo.title
+          if photo.date
+            span.photo-date= photo.date

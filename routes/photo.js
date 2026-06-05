@@ -2,6 +2,7 @@ var express = require('express');
 var router = express.Router();
 var path = require('path');
 var { getData } = require('../lib/photo-data');
+var { getTags } = require('../lib/photo-tags');
 
 router.use(express.static(path.join(__dirname, '../public')));
 
@@ -38,6 +39,23 @@ router.get('/', (req, res) => {
 // GET /about
 router.get('/about', (req, res) => {
   res.render('photo/about', { data: getData(), title: 'О себе — AERO' });
+});
+
+// GET /tag/:slug — gallery filtered by tag
+router.get('/tag/:slug', (req, res) => {
+  var { slug } = req.params;
+  var tags = getTags();
+  if (!tags[slug]) return res.status(404).render('error', { message: 'Not found', error: {} });
+  var photos = getAllPhotos().filter(p => p.tags && p.tags.includes(slug));
+  res.render('photo/tag-gallery', {
+    data: getData(),
+    activeCountry: null,
+    activeSeries: null,
+    tagLabel: tags[slug].label,
+    tagSlug: slug,
+    photos,
+    title: `${tags[slug].label} — AERO`,
+  });
 });
 
 // GET /:country/:series — filtered gallery
