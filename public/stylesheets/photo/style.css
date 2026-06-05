@@ -376,8 +376,8 @@ body,
 
 /* skeletons */
 @keyframes shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .photo-card {
@@ -398,4 +398,9 @@ body,
 
 .photo-card img.loaded {
   opacity: 1;
+}
+
+.photo-card.loaded {
+  animation: none;
+  background: none;
 }

@@ -50,9 +50,10 @@
   document.querySelectorAll('.masonry .photo-card img').forEach(function (img) {
     if (img.complete && img.naturalWidth) {
       img.classList.add('loaded');
+      img.closest('.photo-card').classList.add('loaded');
     } else {
-      img.addEventListener('load', function () { img.classList.add('loaded'); });
-      img.addEventListener('error', function () { img.classList.add('loaded'); });
+      img.addEventListener('load', function () { img.classList.add('loaded'); img.closest('.photo-card').classList.add('loaded'); });
+      img.addEventListener('error', function () { img.classList.add('loaded'); img.closest('.photo-card').classList.add('loaded'); });
     }
   });
 }());
