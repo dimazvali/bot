@@ -6,9 +6,34 @@
     localStorage.setItem(THEME_KEY, theme);
   }
 
-  // restore saved theme on load
-  var saved = localStorage.getItem(THEME_KEY);
-  if (saved) applyTheme(saved);
+  function getAutoTheme() {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq.media !== 'not all') {
+      return mq.matches ? 'dark' : 'light';
+    }
+    var h = new Date().getHours();
+    return (h >= 7 && h < 21) ? 'light' : 'dark';
+  }
+
+  function initTheme() {
+    var saved = localStorage.getItem(THEME_KEY);
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      return;
+    }
+    document.documentElement.setAttribute('data-theme', getAutoTheme());
+  }
+
+  initTheme();
+
+  var mqDark = window.matchMedia('(prefers-color-scheme: dark)');
+  if (mqDark.addEventListener) {
+    mqDark.addEventListener('change', function () {
+      if (!localStorage.getItem(THEME_KEY)) {
+        document.documentElement.setAttribute('data-theme', getAutoTheme());
+      }
+    });
+  }
 
   window.toggleTheme = function () {
     var current = document.documentElement.getAttribute('data-theme') || 'dark';
@@ -19,6 +44,15 @@
     if (e.key === 'Escape') {
       var url = document.body.getAttribute('data-series-url');
       if (url) location.href = url;
+    }
+  });
+
+  document.querySelectorAll('.masonry .photo-card img').forEach(function (img) {
+    if (img.complete && img.naturalWidth) {
+      img.classList.add('loaded');
+    } else {
+      img.addEventListener('load', function () { img.classList.add('loaded'); });
+      img.addEventListener('error', function () { img.classList.add('loaded'); });
     }
   });
 }());
