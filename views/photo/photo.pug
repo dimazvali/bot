@@ -1,0 +1,23 @@
+extends layout
+
+block content
+  .photo-page
+    .photo-page-back
+      a(href=`/${countryKey}/${seriesKey}`) ← #{seriesLabel.toUpperCase()}
+    .photo-page-image
+      img(
+        src=`/images/photo/${countryKey}/${seriesKey}/${photo.file}`
+        alt=photo.title
+        onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+      )
+    .photo-page-info
+      .photo-page-meta
+        h1.photo-page-title= photo.title
+        .photo-page-loc #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
+      .photo-page-nav
+        if prev
+          a.nav-btn(href=`/${countryKey}/${seriesKey}/${prev.id}`) ← ПРЕД.
+        if next
+          a.nav-btn(href=`/${countryKey}/${seriesKey}/${next.id}`) СЛЕД. →
+    if photo.desc
+      p.photo-page-desc= photo.desc
