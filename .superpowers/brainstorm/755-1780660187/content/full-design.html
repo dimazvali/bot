@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дизайн — итог</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1a1a; color: #ccc; padding: 24px; }
+
+  h2 { color: #fff; font-size: 18px; letter-spacing: 1px; margin-bottom: 6px; }
+  .subtitle { color: #666; font-size: 13px; margin-bottom: 24px; }
+
+  .browser-frame {
+    background: #0d0d0d;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .browser-bar {
+    background: #1a1a1a;
+    border-bottom: 1px solid #2a2a2a;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.r { background: #3a1a1a; }
+  .dot.y { background: #3a3a1a; }
+  .dot.g { background: #1a3a1a; }
+  .url-bar { flex: 1; background: #111; border: 1px solid #2a2a2a; border-radius: 4px; padding: 3px 10px; font-size: 10px; color: #555; margin: 0 12px; font-family: monospace; }
+
+  .theme-toggle { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #555; font-family: monospace; }
+  .toggle-pill { width: 28px; height: 14px; background: #333; border-radius: 7px; position: relative; cursor: pointer; }
+  .toggle-pill::after { content:''; position: absolute; left: 2px; top: 2px; width: 10px; height: 10px; border-radius: 50%; background: #888; transition: left .2s; }
+
+  .site-body { display: flex; height: 480px; }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 160px;
+    background: #0a0a0a;
+    border-right: 1px solid #1e1e1e;
+    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .site-logo {
+    padding: 0 16px 20px;
+    border-bottom: 1px solid #1a1a1a;
+    margin-bottom: 16px;
+    font-family: monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #fff;
+  }
+  .site-logo span { display: block; font-size: 8px; letter-spacing: 2px; color: #444; margin-top: 2px; }
+
+  .nav-country {
+    padding: 6px 16px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: #777;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color .15s;
+  }
+  .nav-country:hover { color: #aaa; }
+  .nav-country.open { color: #fff; }
+  .nav-country .arrow { font-size: 7px; }
+
+  .nav-subject {
+    padding: 4px 16px 4px 28px;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: #444;
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .nav-subject:hover, .nav-subject.active { color: #aaa; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid #1a1a1a;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #333;
+    cursor: pointer;
+  }
+  .sidebar-footer:hover { color: #666; }
+
+  /* MAIN */
+  .main { flex: 1; overflow-y: auto; padding: 20px; }
+
+  .section-title {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: #444;
+    margin-bottom: 14px;
+    font-family: monospace;
+  }
+
+  /* MASONRY */
+  .masonry {
+    columns: 3;
+    column-gap: 8px;
+  }
+  .photo-card {
+    break-inside: avoid;
+    margin-bottom: 8px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .photo-card:hover .photo-overlay { opacity: 1; }
+  .photo-thumb {
+    width: 100%;
+    display: block;
+    background: #1a1a1a;
+    border: 1px solid #222;
+  }
+  .photo-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,.65);
+    opacity: 0;
+    transition: opacity .2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 10px;
+  }
+  .photo-title { font-size: 9px; letter-spacing: 1px; color: #ddd; font-family: monospace; }
+  .photo-sub   { font-size: 8px; color: #666; margin-top: 2px; }
+
+  /* PHOTO PAGE PREVIEW */
+  .photo-page {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .photo-page-img {
+    width: 100%;
+    aspect-ratio: 16/7;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1e1e1e 100%);
+    border: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #333;
+    font-size: 10px;
+    letter-spacing: 3px;
+    font-family: monospace;
+  }
+  .photo-page-meta { display: flex; justify-content: space-between; align-items: flex-start; }
+  .photo-page-title { font-size: 15px; color: #ccc; letter-spacing: 1px; }
+  .photo-page-loc { font-size: 9px; color: #444; letter-spacing: 2px; font-family: monospace; margin-top: 4px; }
+  .photo-page-desc { font-size: 11px; color: #555; line-height: 1.6; max-width: 480px; }
+  .photo-nav { display: flex; gap: 12px; }
+  .photo-nav-btn { font-size: 9px; letter-spacing: 2px; color: #444; cursor: pointer; border: 1px solid #2a2a2a; padding: 5px 12px; font-family: monospace; }
+  .photo-nav-btn:hover { color: #aaa; border-color: #555; }
+  .back-btn { font-size: 9px; letter-spacing: 2px; color: #444; cursor: pointer; font-family: monospace; margin-bottom: 4px; }
+  .back-btn:hover { color: #aaa; }
+
+  /* annotations */
+  .annotation {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    max-width: 860px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .ann { background: #111; border: 1px solid #222; border-radius: 4px; padding: 12px 14px; }
+  .ann-label { font-size: 9px; letter-spacing: 2px; color: #555; font-family: monospace; margin-bottom: 6px; }
+  .ann-text { font-size: 12px; color: #888; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h2>Итоговый дизайн</h2>
+<p class="subtitle">Нажми «→ фото» чтобы увидеть страницу снимка. Нажми «← галерея» чтобы вернуться.</p>
+
+<div class="browser-frame">
+  <div class="browser-bar">
+    <div class="dot r"></div>
+    <div class="dot y"></div>
+    <div class="dot g"></div>
+    <div class="url-bar">aero.photo / georgia / tbilisi</div>
+    <div class="theme-toggle">
+      <span>☀</span>
+      <div class="toggle-pill"></div>
+      <span>☽</span>
+    </div>
+  </div>
+
+  <div class="site-body">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="site-logo">AERO<span>aerial photography</span></div>
+
+      <div class="nav-country open"><span class="arrow">▾</span> ГРУЗИЯ</div>
+      <div class="nav-subject active">Тбилиси</div>
+      <div class="nav-subject">Кахетия</div>
+      <div class="nav-subject">Казбеги</div>
+
+      <div class="nav-country" style="margin-top:6px;"><span class="arrow">▸</span> КИПР</div>
+      <div class="nav-country"><span class="arrow">▸</span> ТУРЦИЯ</div>
+      <div class="nav-country"><span class="arrow">▸</span> РОССИЯ</div>
+
+      <div class="sidebar-footer">О СЕБЕ</div>
+    </div>
+
+    <!-- MAIN: GALLERY -->
+    <div class="main" id="gallery-view">
+      <div class="section-title">ГРУЗИЯ · ТБИЛИСИ · 24 фото</div>
+      <div class="masonry">
+
+        <div class="photo-card" onclick="showPhoto()">
+          <svg class="photo-thumb" viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="110" fill="#1e1e1e"/>
+            <rect x="20" y="30" width="160" height="2" fill="#2a2a2a"/>
+            <rect x="40" y="50" width="120" height="2" fill="#252525"/>
+            <rect x="10" y="70" width="180" height="2" fill="#2a2a2a"/>
+            <circle cx="160" cy="25" r="12" fill="#222"/>
+          </svg>
+          <div class="photo-overlay">
+            <div class="photo-title">Метехи на рассвете</div>
+            <div class="photo-sub">Тбилиси, 2024</div>
+          </div>
+        </div>
+
+        <div class="photo-card" onclick="showPhoto()">
+          <svg class="photo-thumb" viewBox="0 0 200 75" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="75" fill="#222"/>
+            <rect x="0" y="35" width="200" height="40" fill="#1a1a1a"/>
+            <path d="M0 35 Q50 20 100 35 Q150 50 200 35" stroke="#2a2a2a" fill="none" stroke-width="1"/>
+          </svg>
+          <div class="photo-overlay">
+            <div class="photo-title">Кура, лето</div>
+            <div class="photo-sub">Тбилиси, 2024</div>
+          </div>
+        </div>
+
+        <div class="photo-card" onclick="showPhoto()">
+          <svg class="photo-thumb" viewBox="0 0 200 130" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="130" fill="#1c1c1c"/>
+            <rect x="0" y="80" width="200" height="50" fill="#161616"/>
+            <rect x="30" y="40" width="8" height="40" fill="#222"/>
+            <rect x="50" y="30" width="8" height="50" fill="#252525"/>
+            <rect x="70" y="45" width="8" height="35" fill="#222"/>
+            <rect x="90" y="25" width="8" height="55" fill="#282828"/>
+            <rect x="110" y="38" width="8" height="42" fill="#222"/>
+            <rect x="130" y="50" width="8" height="30" fill="#252525"/>
+            <rect x="150" y="35" width="8" height="45" fill="#222"/>
+          </svg>
+          <div class="photo-overlay">
+            <div class="photo-title">Старый город, туман</div>
+            <div class="photo-sub">Тбилиси, 2024</div>
+          </div>
+        </div>
+
+        <div class="photo-card" onclick="showPhoto()">
+          <svg class="photo-thumb" viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="90" fill="#212121"/>
+            <rect x="0" y="55" width="200" height="35" fill="#1a1a1a"/>
+            <ellipse cx="100" cy="55" rx="80" ry="8" fill="#262626"/>
+          </svg>
+          <div class="photo-overlay">
+            <div class="photo-title">Площадь Свободы</div>
+            <div class="photo-sub">Тбилиси, 2024</div>
+          </div>
+        </div>
+
+        <div class="photo-card" onclick="showPhoto()">
+          <svg class="photo-thumb" viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="120" fill="#1e1e1e"/>
+            <path d="M0 60 L50 40 L100 55 L150 35 L200 50 L200 120 L0 120Z" fill="#1a1a1a"/>
+            <circle cx="80" cy="30" r="6" fill="#2a2a2a"/>
+          </svg>
+          <div class="photo-overlay">
+            <div class="photo-title">Хребет, закат</div>
+            <div class="photo-sub">Тбилиси, 2024</div>
+          </div>
+        </div>
+
+        <div class="photo-card" onclick="showPhoto()">
+          <svg class="photo-thumb" viewBox="0 0 200 85" xmlns="http://www.w3.org/2000/svg">
+            <rect width="200" height="85" fill="#202020"/>
+            <line x1="0" y1="42" x2="200" y2="42" stroke="#2a2a2a" stroke-width="1"/>
+            <line x1="0" y1="44" x2="200" y2="44" stroke="#252525" stroke-width="1"/>
+            <rect x="60" y="20" width="80" height="22" fill="#1a1a1a"/>
+          </svg>
+          <div class="photo-overlay">
+            <div class="photo-title">Мост Мира</div>
+            <div class="photo-sub">Тбилиси, 2024</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- PHOTO PAGE -->
+    <div class="main photo-page" id="photo-view">
+      <div class="back-btn" onclick="showGallery()">← ТБИЛИСИ</div>
+      <div class="photo-page-img">МЕТЕХИ НА РАССВЕТЕ · 6000×3000px</div>
+      <div class="photo-page-meta">
+        <div>
+          <div class="photo-page-title">Метехи на рассвете</div>
+          <div class="photo-page-loc">ГРУЗИЯ · ТБИЛИСИ · МАЙ 2024</div>
+        </div>
+        <div class="photo-nav">
+          <div class="photo-nav-btn">← ПРЕД.</div>
+          <div class="photo-nav-btn">СЛЕД. →</div>
+        </div>
+      </div>
+      <div class="photo-page-desc">Церковь Метехи и крепость на скале над Курой. Снято в 6:15 утра на высоте 80 метров, в тумане. DJI Mini 4 Pro.</div>
+    </div>
+  </div>
+</div>
+
+<div class="annotation">
+  <div class="ann">
+    <div class="ann-label">НАВИГАЦИЯ</div>
+    <div class="ann-text">Страны раскрываются аккордеоном. Текущий сюжет подсвечен. Переключатель тёмной/светлой темы в браузер-баре.</div>
+  </div>
+  <div class="ann">
+    <div class="ann-label">ГАЛЕРЕЯ</div>
+    <div class="ann-text">Masonry в 3 колонки. При наведении — тёмный оверлей с названием. Клик → страница снимка.</div>
+  </div>
+  <div class="ann">
+    <div class="ann-label">СТРАНИЦА ФОТО</div>
+    <div class="ann-text">Полная ширина, горизонтальное фото. Метаданные + описание. Навигация вперёд/назад внутри серии.</div>
+  </div>
+</div>
+
+<script>
+function showPhoto() {
+  document.getElementById('gallery-view').style.display = 'none';
+  document.getElementById('photo-view').style.display = 'flex';
+}
+function showGallery() {
+  document.getElementById('gallery-view').style.display = 'block';
+  document.getElementById('photo-view').style.display = 'none';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<h2>Как показывать фото в сетке?</h2>
+<p class="subtitle">Сайдбар одинаковый, отличается только раскладка фотографий</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="uniform" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#111;padding:12px;font-family:monospace;display:flex;gap:10px;height:140px;">
+      <div style="width:80px;background:#0d0d0d;border-right:1px solid #1e1e1e;padding:10px 8px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;font-size:8px;">
+        <div style="color:#fff;letter-spacing:3px;margin-bottom:4px;">AERO</div>
+        <div style="color:#888;">▸ Грузия</div>
+        <div style="color:#444;padding-left:8px;">Тбилиси</div>
+        <div style="color:#444;padding-left:8px;">Кахетия</div>
+        <div style="color:#555;">▸ Кипр</div>
+        <div style="color:#555;">▸ Турция</div>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:4px;">
+        <div style="background:#1e1e1e;border:1px solid #2a2a2a;"></div>
+        <div style="background:#222;border:1px solid #2a2a2a;"></div>
+        <div style="background:#1c1c1c;border:1px solid #2a2a2a;"></div>
+        <div style="background:#222;border:1px solid #2a2a2a;"></div>
+        <div style="background:#1e1e1e;border:1px solid #2a2a2a;"></div>
+        <div style="background:#212121;border:1px solid #2a2a2a;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Равномерная сетка</h3>
+      <p>Все фото одного размера, строгие ряды. Чисто, предсказуемо, легко просматривать.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="masonry" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#111;padding:12px;font-family:monospace;display:flex;gap:10px;height:140px;">
+      <div style="width:80px;background:#0d0d0d;border-right:1px solid #1e1e1e;padding:10px 8px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;font-size:8px;">
+        <div style="color:#fff;letter-spacing:3px;margin-bottom:4px;">AERO</div>
+        <div style="color:#888;">▸ Грузия</div>
+        <div style="color:#444;padding-left:8px;">Тбилиси</div>
+        <div style="color:#444;padding-left:8px;">Кахетия</div>
+        <div style="color:#555;">▸ Кипр</div>
+        <div style="color:#555;">▸ Турция</div>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto;gap:4px;align-content:start;">
+        <div style="background:#1e1e1e;border:1px solid #2a2a2a;height:36px;"></div>
+        <div style="background:#222;border:1px solid #2a2a2a;height:52px;"></div>
+        <div style="background:#1c1c1c;border:1px solid #2a2a2a;height:50px;"></div>
+        <div style="background:#212121;border:1px solid #2a2a2a;height:28px;margin-top:-16px;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Masonry (каскад)</h3>
+      <p>Фото разной высоты, заполняют пространство без пробелов. Живее, но менее строго.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="featured" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#111;padding:12px;font-family:monospace;display:flex;gap:10px;height:140px;">
+      <div style="width:80px;background:#0d0d0d;border-right:1px solid #1e1e1e;padding:10px 8px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;font-size:8px;">
+        <div style="color:#fff;letter-spacing:3px;margin-bottom:4px;">AERO</div>
+        <div style="color:#888;">▸ Грузия</div>
+        <div style="color:#444;padding-left:8px;">Тбилиси</div>
+        <div style="color:#444;padding-left:8px;">Кахетия</div>
+        <div style="color:#555;">▸ Кипр</div>
+        <div style="color:#555;">▸ Турция</div>
+      </div>
+      <div style="flex:1;display:grid;grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr;gap:4px;">
+        <div style="background:#222;border:1px solid #2a2a2a;grid-row:1/3;"></div>
+        <div style="background:#1e1e1e;border:1px solid #2a2a2a;"></div>
+        <div style="background:#1c1c1c;border:1px solid #2a2a2a;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — С главным кадром</h3>
+      <p>Одно большое фото слева, остальные меньше рядом. Акцент на лучший снимок серии.</p>
+    </div>
+  </div>
+
+</div>
