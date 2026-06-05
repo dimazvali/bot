@@ -45,3 +45,24 @@ html(data-theme='dark')
       else
         .admin-section
           p.admin-hint Страну можно удалить только если у неё нет серий. Сначала удалите все серии.
+
+    script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
+    script.
+      var list = document.getElementById('series-list');
+      if (list) {
+        var reorderUrl = list.getAttribute('data-url');
+        Sortable.create(list, {
+          handle: '.admin-sort-handle',
+          animation: 150,
+          onEnd: function() {
+            var order = Array.from(list.querySelectorAll('.admin-sort-item')).map(function(el) {
+              return el.getAttribute('data-id');
+            });
+            fetch(reorderUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ order: order }),
+            });
+          },
+        });
+      }

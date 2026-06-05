@@ -162,6 +162,19 @@ router.post('/country/:key/delete', requireAuth, (req, res) => {
   res.redirect('/admin');
 });
 
+router.post('/country/:key/reorder-series', requireAuth, express.json(), (req, res) => {
+  var { key } = req.params;
+  if (!/^[a-z0-9-]+$/.test(key)) return res.status(400).json({ ok: false });
+  var { order } = req.body;
+  var data = getData();
+  if (!data[key] || !Array.isArray(order)) return res.status(400).json({ ok: false });
+  var validKeys = Object.keys(data[key].series);
+  if (!order.every(k => validKeys.includes(k))) return res.status(400).json({ ok: false });
+  data[key].seriesOrder = order;
+  saveData(data);
+  res.json({ ok: true });
+});
+
 router.post('/series/:country', requireAuth, (req, res) => {
   var { country } = req.params;
   var { key, label } = req.body;
