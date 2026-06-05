@@ -3,6 +3,7 @@ var router = express.Router();
 var path = require('path');
 var multer = require('multer');
 var sharp = require('sharp');
+var exifr = require('exifr');
 var { getData, saveData } = require('../lib/photo-data');
 var { getTags, saveTags } = require('../lib/photo-tags');
 
@@ -134,12 +135,25 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
     seriesLabel: data[country].series[series].label,
     countryLabel: data[country].label,
     photos: data[country].series[series].photos,
+    tags: getTags(),
   });
 });
 
 router.post('/:country/:series/upload', requireAuth, upload.single('photo'), async (req, res) => {
   var { country, series } = req.params;
   var { title, date, desc } = req.body;
+  var tags = req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags]) : [];
+  var latRaw = parseFloat(req.body.lat);
+  var lngRaw = parseFloat(req.body.lng);
+  var coords = null;
+  if (!isNaN(latRaw) && !isNaN(lngRaw)) {
+    coords = { lat: latRaw, lng: lngRaw };
+  } else {
+    try {
+      var gps = await exifr.gps(req.file.buffer);
+      if (gps) coords = { lat: gps.latitude, lng: gps.longitude };
+    } catch (e) {}
+  }
   var data = getData();
 
   if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
@@ -164,7 +178,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     ]);
 
     var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
-    data[country].series[series].photos.push({
+    var photoEntry = {
       id,
       title: title || baseName,
       date: date || '',
@@ -173,7 +187,10 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
         preview: `${base}/${path800}`,
         full: `${base}/${path2400}`,
       },
-    });
+    };
+    if (tags.length) photoEntry.tags = tags;
+    if (coords) photoEntry.coords = coords;
+    data[country].series[series].photos.push(photoEntry);
     saveData(data);
 
     res.redirect(`/admin/${country}/${series}/upload`);

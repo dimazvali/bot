@@ -18,6 +18,17 @@ html(data-theme='dark')
           input.admin-input(type='text' name='title' placeholder='название снимка')
           input.admin-input(type='text' name='date' placeholder='дата (напр. Май 2024)')
           textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='3')
+          .admin-coords
+            input.admin-input(type='text' name='lat' placeholder='широта (напр. 41.693)')
+            input.admin-input(type='text' name='lng' placeholder='долгота (напр. 44.801)')
+          p.admin-hint Координаты заполняются из EXIF автоматически если не заданы вручную.
+          if tags && Object.keys(tags).length
+            .admin-tags-select
+              p.admin-hint ТЕГИ:
+              each tag, slug in tags
+                label.admin-tag-check
+                  input(type='checkbox' name='tags' value=slug)
+                  span= tag.label
           button.admin-btn(type='submit') ЗАГРУЗИТЬ
 
       if photos && photos.length
@@ -31,5 +42,7 @@ html(data-theme='dark')
                 .admin-photo-info
                   span.admin-photo-title= photo.title
                   span.admin-photo-id= photo.id
+                  if photo.tags && photo.tags.length
+                    span.admin-photo-tags= photo.tags.join(', ')
                 form.admin-delete-form(method='POST' action=`/admin/${country}/${series}/${photo.id}/delete`)
                   button.admin-btn.admin-btn--danger(type='submit') удалить

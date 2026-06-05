@@ -316,3 +316,11 @@ textarea.admin-input { resize: vertical; }
 .admin-tag-label { font-size: 13px; color: var(--text); }
 .admin-tags-error { font-size: 12px; color: #e55; margin-bottom: 12px; }
 .admin-delete-form { flex-shrink: 0; }
+
+/* upload form extras */
+.admin-coords { display: flex; gap: 8px; }
+.admin-coords .admin-input { flex: 1; }
+.admin-tags-select { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 8px 0; }
+.admin-tag-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
+.admin-tag-check input { cursor: pointer; }
+.admin-photo-tags { font-size: 10px; color: var(--text-dim); font-family: monospace; letter-spacing: 1px; }
