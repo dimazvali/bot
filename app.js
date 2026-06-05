@@ -55,6 +55,8 @@ process.on('warning', e => console.warn(e.stack));
 
 // app.use(require('./routes/papers/crons'));
 
+app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
+
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
 app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
 app.use(vhost(`bot.*.*`,require('./routes/dimazvali')))
@@ -77,7 +79,7 @@ app.use('/proxy',        require('./routes/proxy'));
 // app.use('/wtg',         require('./routes/wtgBot'));
 app.use('/test',        require('./routes/test'));
 
-app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
+
 
 // app.use('/cyprus',      require('./routes/cyprus'));
 // app.use('/ps',          require('./routes/psBot'));
