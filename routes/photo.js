@@ -64,6 +64,46 @@ router.get('/tag/:slug', (req, res) => {
   });
 });
 
+// GET /sitemap.xml
+router.get('/sitemap.xml', (req, res) => {
+  var base = 'https://photo.dimazvali.com';
+  var data = getData();
+  var tags = getTags();
+  var urls = [base + '/', base + '/about'];
+
+  for (var slug of Object.keys(tags)) {
+    urls.push(base + '/tag/' + slug);
+  }
+
+  for (var countryKey of Object.keys(data)) {
+    var country = data[countryKey];
+    if (country.archived) continue;
+    urls.push(base + '/' + countryKey);
+    for (var seriesKey of getActiveSeries(country)) {
+      var series = country.series[seriesKey];
+      urls.push(base + '/' + countryKey + '/' + seriesKey);
+      for (var photo of series.photos) {
+        urls.push(base + '/' + countryKey + '/' + seriesKey + '/' + photo.id);
+      }
+    }
+  }
+
+  var xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+  for (var url of urls) {
+    xml += '  <url><loc>' + url + '</loc></url>\n';
+  }
+  xml += '</urlset>';
+
+  res.set('Content-Type', 'application/xml');
+  res.send(xml);
+});
+
+// GET /robots.txt
+router.get('/robots.txt', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send('User-agent: *\nAllow: /\nSitemap: https://photo.dimazvali.com/sitemap.xml\n');
+});
+
 // GET /:country — all photos in a country
 router.get('/:country', (req, res) => {
   var data = getData();
