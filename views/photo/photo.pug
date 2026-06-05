@@ -27,3 +27,5 @@ block content
           a.photo-tag(href=`/tag/${tag}`)= allTags[tag] ? allTags[tag].label.toUpperCase() : tag.toUpperCase()
     .photo-actions
       button.action-btn(onclick='sharePhoto()') ПОДЕЛИТЬСЯ
+      if photo.instagram
+        a.action-btn(href=photo.instagram target='_blank' rel='noopener') INSTAGRAM

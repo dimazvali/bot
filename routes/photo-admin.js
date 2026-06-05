@@ -142,6 +142,7 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
 router.post('/:country/:series/upload', requireAuth, upload.single('photo'), async (req, res) => {
   var { country, series } = req.params;
   var { title, date, desc } = req.body;
+  var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   var data = getData();
 
   if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
@@ -193,6 +194,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     };
     if (tags.length) photoEntry.tags = tags;
     if (coords) photoEntry.coords = coords;
+    if (instagramUrl) photoEntry.instagram = instagramUrl;
     data[country].series[series].photos.push(photoEntry);
     saveData(data);
 
