@@ -328,4 +328,56 @@ router.post('/tags/:slug/delete', requireAuth, (req, res) => {
   res.redirect('/admin/tags');
 });
 
+router.get('/:country/:series/edit', requireAuth, (req, res) => {
+  var { country, series: seriesKey } = req.params;
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  res.render('photo/admin/series-edit', {
+    title: `${data[country].series[seriesKey].label} — AERO Admin`,
+    countryKey: country,
+    countryLabel: data[country].label,
+    seriesKey,
+    series: data[country].series[seriesKey],
+  });
+});
+
+router.post('/:country/:series/edit', requireAuth, (req, res) => {
+  var { country, series: seriesKey } = req.params;
+  var { label } = req.body;
+  if (!label || !label.trim()) return res.redirect(`/admin/${country}/${seriesKey}/edit`);
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  data[country].series[seriesKey].label = label.trim();
+  saveData(data);
+  res.redirect(`/admin/${country}/${seriesKey}/edit`);
+});
+
+router.post('/:country/:series/archive', requireAuth, (req, res) => {
+  var { country, series: seriesKey } = req.params;
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  data[country].series[seriesKey].archived = !data[country].series[seriesKey].archived;
+  saveData(data);
+  res.redirect(`/admin/${country}/${seriesKey}/edit`);
+});
+
+router.post('/:country/:series/delete', requireAuth, async (req, res) => {
+  var { country, series: seriesKey } = req.params;
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  var photos = data[country].series[seriesKey].photos;
+  await Promise.all(photos.map(function(p) {
+    return Promise.all([
+      bucket.file(`${country}/${seriesKey}/${p.id}-800.webp`).delete().catch(function() {}),
+      bucket.file(`${country}/${seriesKey}/${p.id}-2400.webp`).delete().catch(function() {}),
+    ]);
+  }));
+  if (data[country].seriesOrder) {
+    data[country].seriesOrder = data[country].seriesOrder.filter(function(k) { return k !== seriesKey; });
+  }
+  delete data[country].series[seriesKey];
+  saveData(data);
+  res.redirect('/admin');
+});
+
 module.exports = router;
