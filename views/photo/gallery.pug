@@ -1,0 +1,23 @@
+extends layout
+
+block content
+  .gallery-header
+    if activeCountry && activeSeries
+      - const country = data[activeCountry]
+      - const series = country.series[activeSeries]
+      span.gallery-label #{country.label.toUpperCase()} · #{series.label.toUpperCase()} · #{photos.length} фото
+    else
+      span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
+  .masonry
+    each photo in photos
+      a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
+        img(
+          src=`/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
+          alt=photo.title
+          loading='lazy'
+          onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+        )
+        .photo-overlay
+          span.photo-title= photo.title
+          if photo.date
+            span.photo-date= photo.date
