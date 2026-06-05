@@ -143,6 +143,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
   var { country, series } = req.params;
   var { title, date, desc } = req.body;
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
+  if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
   var data = getData();
 
   if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
