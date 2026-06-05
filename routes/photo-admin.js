@@ -112,6 +112,7 @@ router.post('/country', requireAuth, (req, res) => {
 
 router.get('/country/:key/edit', requireAuth, (req, res) => {
   var { key } = req.params;
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
   var data = getData();
   var country = data[key];
   if (!country) return res.redirect('/admin');
@@ -128,6 +129,7 @@ router.get('/country/:key/edit', requireAuth, (req, res) => {
 
 router.post('/country/:key/edit', requireAuth, (req, res) => {
   var { key } = req.params;
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
   var { label } = req.body;
   if (!label || !label.trim()) return res.redirect(`/admin/country/${key}/edit`);
   var data = getData();
@@ -139,6 +141,7 @@ router.post('/country/:key/edit', requireAuth, (req, res) => {
 
 router.post('/country/:key/archive', requireAuth, (req, res) => {
   var { key } = req.params;
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
   var data = getData();
   if (!data[key]) return res.redirect('/admin');
   data[key].archived = !data[key].archived;
@@ -148,6 +151,7 @@ router.post('/country/:key/archive', requireAuth, (req, res) => {
 
 router.post('/country/:key/delete', requireAuth, (req, res) => {
   var { key } = req.params;
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
   var data = getData();
   if (!data[key]) return res.redirect('/admin');
   if (Object.keys(data[key].series).length > 0) {
