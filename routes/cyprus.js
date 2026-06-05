@@ -74,6 +74,11 @@ let testChannelLink =   `https://t.me/+uaMO0ee7u5hjYmQy`
 const ngrok = `https://cyprus.dimazvali.com`
 
 
+console.log(`CYPRUS STARTED`)
+
+router.get('/', (req, res) => res.send('cyprus ok'))
+
+
 // m.sendMessage2({
 //     text: `Дорогие друзья и уважаемые читатели, теперь с помощью бота @cyprusjournal_bot вы сможете поделиться своей новостью о Кипре! 
 

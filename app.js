@@ -56,10 +56,13 @@ process.on('warning', e => console.warn(e.stack));
 // app.use(require('./routes/papers/crons'));
 
 app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
-
-app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
 app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
 app.use(vhost(`bot.*.*`,require('./routes/dimazvali')))
+
+
+app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
+
+
 app.use('/dimazvali',     require('./routes/dimazvali'));
 
 // app.use(vhost(`neva.localhost`,require('./routes/neva')))
