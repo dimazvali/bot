@@ -12,9 +12,9 @@ var axios = require('axios');
 let token =         process.env.psToken;
 const host = 'ps';
 
-axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(s => {
-    console.log(`psBot hook set to ${ngrok}`)
-})
+// axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(s => {
+//     console.log(`psBot hook set to ${ngrok}`)
+// })
 
 var express = require('express');
 var router = express.Router();

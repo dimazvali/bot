@@ -79,11 +79,11 @@ let fb = getFirestore(gcp);
 let s = getStorage(gcp)
 
 
-setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(()=>{
-        console.log(`${host} hook set on ${ngrok}`)
-    }).catch(handleError)   
-},1000)
+// setTimeout(function(){
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(()=>{
+//         console.log(`${host} hook set on ${ngrok}`)
+//     }).catch(handleError)   
+// },1000)
 
 let adminTokens =                   fb.collection(`${host}AdminTokens`);
 let udb =                           fb.collection(`${host}users`);

@@ -68,11 +68,11 @@ let gcp = initializeApp({
 let fb = getFirestore(gcp);
 
 
-setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(()=>{
-        console.log(`neva hook set on ${ngrok}`)
-    }).catch(handleError)   
-},1000)
+// setTimeout(function(){
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(()=>{
+//         console.log(`neva hook set on ${ngrok}`)
+//     }).catch(handleError)   
+// },1000)
 
 
 let authors =                   fb.collection(`NEVAauthors`);

@@ -18,6 +18,7 @@ const host = `cyprus`
 
 const channellId = -1002139324312;
 const prodChannelId =  -1001763708294;
+
 const {
     initializeApp,
     applicationDefault,
@@ -98,11 +99,11 @@ router.get('/', (req, res) => res.send('cyprus ok'))
 // },false,token)
 
 
-setTimeout(function(){
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/hook`).then(()=>{
-        console.log(`cyprus hook set on ${ngrok}`)
-    }).catch(handleError)   
-},1500)
+// setTimeout(function(){
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/hook`).then(()=>{
+//         console.log(`cyprus hook set on ${ngrok}`)
+//     }).catch(handleError)   
+// },1500)
 
 
 
@@ -460,7 +461,7 @@ router.post('/hook', (req, res) => {
     
     res.sendStatus(200)
 
-    devlog(JSON.stringify(req.body))
+    console.log(JSON.stringify(req.body))
 
     let user = {}
 

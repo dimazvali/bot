@@ -347,3 +347,25 @@ textarea.admin-input { resize: vertical; }
   text-decoration: none;
 }
 .photo-tag:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* theme transition */
+body,
+.sidebar,
+.sidebar-logo,
+.sidebar-logo a,
+.sidebar-logo span,
+.sidebar-footer,
+.sidebar-contacts,
+.sidebar-footer-bottom,
+.nav-country,
+.nav-series,
+.theme-toggle,
+.photo-card,
+.photo-overlay,
+.nav-btn,
+.photo-page-back a,
+.photo-page-desc,
+.gallery-label,
+.gallery-header {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

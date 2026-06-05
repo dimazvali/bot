@@ -96,11 +96,11 @@ let s = getStorage(gcp)
 //         console.log(err)
 //     })
 
-setTimeout(function () {
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/dimazvali/hook`).then(() => {
-        console.log(`dimazvali hook set on ${ngrok}`)
-    }).catch(handleError)
-}, 1000)
+// setTimeout(function () {
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/dimazvali/hook`).then(() => {
+//         console.log(`dimazvali hook set on ${ngrok}`)
+//     }).catch(handleError)
+// }, 1000)
 
 
 let adminTokens = fb.collection('DIMAZVALIadminTokens');

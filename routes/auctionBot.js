@@ -108,13 +108,13 @@ let s =     getStorage(gcp)
 let rtb =   getDatabase(gcp)
 
 
-setTimeout(function () {
-    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(() => {
-        console.log(`${host} hook set on ${ngrok}`)
-    }).catch(err => {
-        handleError(err)
-    })
-}, 1000)
+// setTimeout(function () {
+//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/${host}/hook`).then(() => {
+//         console.log(`${host} hook set on ${ngrok}`)
+//     }).catch(err => {
+//         handleError(err)
+//     })
+// }, 1000)
 
 
 

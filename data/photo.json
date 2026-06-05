@@ -6,25 +6,84 @@
         "label": "Тбилиси",
         "photos": [
           {
-            "id": "metelhi-dawn",
-            "file": "metelhi-dawn.jpg",
+            "id": "1",
+            "file": "1.jpg",
             "title": "Метехи на рассвете",
             "date": "Май 2024",
             "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
           },
           {
-            "id": "kura-summer",
-            "file": "kura-summer.jpg",
-            "title": "Кура, лето",
-            "date": "Июнь 2024",
-            "desc": ""
+            "id": "2",
+            "file": "2.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
           },
           {
-            "id": "old-city-fog",
-            "file": "old-city-fog.jpg",
-            "title": "Старый город, туман",
-            "date": "Март 2024",
-            "desc": ""
+            "id": "3",
+            "file": "3.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "4",
+            "file": "4.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "5",
+            "file": "5.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "6",
+            "file": "6.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "7",
+            "file": "7.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "8",
+            "file": "8.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "9",
+            "file": "9.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "10",
+            "file": "10.jpg",
+            "title": "Метехи на рассвете",
+            "date": "Май 2024",
+            "desc": "Церковь Метехи и крепость на скале над Курой. 6:15 утра, высота 80 м."
+          },
+          {
+            "id": "img-0013",
+            "title": "Пеламуши",
+            "date": "Май 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-0013-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-0013-2400.webp"
+            }
           }
         ]
       },
@@ -39,6 +98,85 @@
             "desc": "Виноградники в октябре, время сбора урожая."
           }
         ]
+      },
+      "samegrelo": {
+        "label": "Самегрело",
+        "photos": [
+          {
+            "id": "dji-0610",
+            "title": "Каньон",
+            "date": "Апрель 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-2400.webp"
+            }
+          },
+          {
+            "id": "dji-0573",
+            "title": "Балда",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-2400.webp"
+            }
+          }
+        ]
+      },
+      "batumi": {
+        "label": "Батуми",
+        "photos": [
+          {
+            "id": "dji-fly-20260312-182322-174-1773325565022-photo-optimized",
+            "title": "Медея",
+            "date": "январь 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182322-174-1773325565022-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182322-174-1773325565022-photo-optimized-2400.webp"
+            }
+          },
+          {
+            "id": "dji-fly-20260311-181456-64-1773238727064-photo-optimized",
+            "title": "Берег на закате",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181456-64-1773238727064-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181456-64-1773238727064-photo-optimized-2400.webp"
+            }
+          },
+          {
+            "id": "dji-fly-20260312-174722-156-1773323498033-photo-optimized",
+            "title": "Корабель",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-174722-156-1773323498033-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-174722-156-1773323498033-photo-optimized-2400.webp"
+            }
+          }
+        ]
+      },
+      "pankisi": {
+        "label": "Панкиси",
+        "photos": [
+          {
+            "id": "dji-fly-20260510-172130-503-1778419845999-photo-optimized",
+            "title": "Амфитеатр",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-2400.webp"
+            }
+          }
+        ]
+      },
+      "kutaisi": {
+        "label": "Кутаиси",
+        "photos": []
       }
     }
   },
@@ -56,6 +194,52 @@
             "desc": ""
           }
         ]
+      },
+      "almaty": {
+        "label": "Алматмы",
+        "photos": []
+      }
+    }
+  },
+  "kz": {
+    "label": "Казахстан",
+    "series": {
+      "charyn": {
+        "label": "чарынский каньон",
+        "photos": [
+          {
+            "id": "paphos-coast",
+            "file": "1.jpg",
+            "title": "Пафос с воздуха",
+            "date": "Февраль 2025",
+            "desc": ""
+          },
+          {
+            "id": "paphos-coast",
+            "file": "2.jpg",
+            "title": "Пафос с воздуха",
+            "date": "Февраль 2025",
+            "desc": ""
+          },
+          {
+            "id": "paphos-coast",
+            "file": "3.jpg",
+            "title": "Пафос с воздуха",
+            "date": "Февраль 2025",
+            "desc": ""
+          },
+          {
+            "id": "paphos-coast",
+            "file": "4.jpg",
+            "title": "Пафос с воздуха",
+            "date": "Февраль 2025",
+            "desc": ""
+          }
+        ]
+      },
+      "almaty": {
+        "label": "Алматы",
+        "photos": []
       }
     }
   }
