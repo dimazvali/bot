@@ -35,7 +35,7 @@ app.use(express.json({limit: '50mb'}));
 app.use(bodyParser.json({limit: '50mb'}))
 bodyParser.json({limit: '50mb'})
 
-app.use(express.static(path.join(__dirname, 'public')));
+
 
 process.on('warning', e => console.warn(e.stack));
 
@@ -59,6 +59,8 @@ app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
 app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
 app.use(vhost(`bot.*.*`,require('./routes/dimazvali')))
 
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
 
