@@ -12,19 +12,23 @@ html(data-theme='dark')
           span Дмитрий Шестаков
         nav.sidebar-nav
           each country, countryKey in data
-            a.nav-country(
-              href=`/${countryKey}`
-              class=activeCountry === countryKey ? 'open' : ''
-            )
-              span.arrow= activeCountry === countryKey ? '▾' : '▸'
-              | &nbsp;
-              = country.label.toUpperCase()
-            if activeCountry === countryKey
-              each series, seriesKey in country.series
-                a.nav-series(
-                  href=`/${countryKey}/${seriesKey}`
-                  class=activeSeries === seriesKey ? 'active' : ''
-                ) #{series.label}
+            if !country.archived
+              - var seriesOrder = country.seriesOrder || Object.keys(country.series)
+              a.nav-country(
+                href=`/${countryKey}`
+                class=activeCountry === countryKey ? 'open' : ''
+              )
+                span.arrow= activeCountry === countryKey ? '▾' : '▸'
+                | &nbsp;
+                = country.label.toUpperCase()
+              if activeCountry === countryKey
+                each seriesKey in seriesOrder
+                  - var series = country.series[seriesKey]
+                  if series && !series.archived
+                    a.nav-series(
+                      href=`/${countryKey}/${seriesKey}`
+                      class=activeSeries === seriesKey ? 'active' : ''
+                    ) #{series.label}
         .sidebar-footer
           .sidebar-contacts
             a(href='mailto:dimazvali@gmail.com') dimazvali@gmail.com

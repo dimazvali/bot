@@ -9,12 +9,18 @@ router.use(express.static(path.join(__dirname, '../public')));
 // Admin router must be mounted BEFORE wildcard routes
 router.use('/admin', require('./photo-admin'));
 
+function getActiveSeries(country) {
+  var order = country.seriesOrder || Object.keys(country.series);
+  return order.filter(k => country.series[k] && !country.series[k].archived);
+}
+
 function getAllPhotos() {
   var data = getData();
   var list = [];
   for (var countryKey of Object.keys(data)) {
     var country = data[countryKey];
-    for (var seriesKey of Object.keys(country.series)) {
+    if (country.archived) continue;
+    for (var seriesKey of getActiveSeries(country)) {
       var series = country.series[seriesKey];
       for (var photo of series.photos) {
         list.push({ countryKey, seriesKey, ...photo });
@@ -32,13 +38,13 @@ router.get('/', (req, res) => {
     activeCountry: null,
     activeSeries: null,
     photos: getAllPhotos(),
-    title: 'AERO',
+    title: 'photo.dimazvali.com',
   });
 });
 
 // GET /about
 router.get('/about', (req, res) => {
-  res.render('photo/about', { data: getData(), title: 'О себе — AERO' });
+  res.render('photo/about', { data: getData(), title: 'О себе — photo.dimazvali.com' });
 });
 
 // GET /tag/:slug — gallery filtered by tag
@@ -54,7 +60,7 @@ router.get('/tag/:slug', (req, res) => {
     tagLabel: tags[slug].label,
     tagSlug: slug,
     photos,
-    title: `${tags[slug].label} — AERO`,
+    title: `${tags[slug].label} — photo.dimazvali.com`,
   });
 });
 
@@ -63,10 +69,10 @@ router.get('/:country', (req, res) => {
   var data = getData();
   var { country: countryKey } = req.params;
   var country = data[countryKey];
-  if (!country) return res.status(404).render('error', { message: 'Not found', error: {} });
+  if (!country || country.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
 
   var photos = [];
-  for (var seriesKey of Object.keys(country.series)) {
+  for (var seriesKey of getActiveSeries(country)) {
     for (var photo of country.series[seriesKey].photos) {
       photos.push({ countryKey, seriesKey, ...photo });
     }
@@ -77,7 +83,7 @@ router.get('/:country', (req, res) => {
     activeCountry: countryKey,
     activeSeries: null,
     photos,
-    title: `${country.label} — AERO`,
+    title: `${country.label} — photo.dimazvali.com`,
   });
 });
 
@@ -86,16 +92,16 @@ router.get('/:country/:series', (req, res) => {
   var data = getData();
   var { country: countryKey, series: seriesKey } = req.params;
   var country = data[countryKey];
-  if (!country) return res.status(404).render('error', { message: 'Not found', error: {} });
+  if (!country || country.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
   var series = country.series[seriesKey];
-  if (!series) return res.status(404).render('error', { message: 'Not found', error: {} });
+  if (!series || series.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
 
   res.render('photo/gallery', {
     data,
     activeCountry: countryKey,
     activeSeries: seriesKey,
     photos: series.photos.map(p => ({ countryKey, seriesKey, ...p })),
-    title: `${series.label} · ${country.label} — AERO`,
+    title: `${series.label} · ${country.label} — photo.dimazvali.com`,
   });
 });
 
@@ -104,9 +110,9 @@ router.get('/:country/:series/:id', (req, res) => {
   var data = getData();
   var { country: countryKey, series: seriesKey, id } = req.params;
   var country = data[countryKey];
-  if (!country) return res.status(404).render('error', { message: 'Not found', error: {} });
+  if (!country || country.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
   var series = country.series[seriesKey];
-  if (!series) return res.status(404).render('error', { message: 'Not found', error: {} });
+  if (!series || series.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
 
   var photos = series.photos;
   var idx = photos.findIndex(p => p.id === id);
@@ -129,7 +135,7 @@ router.get('/:country/:series/:id', (req, res) => {
     seriesLabel: series.label,
     allTags: getTags(),
     seriesUrl: `/${countryKey}/${seriesKey}`,
-    title: `${photo.title} — AERO`,
+    title: `${photo.title} — photo.dimazvali.com`,
   });
 });
 
