@@ -1,0 +1,227 @@
+var express = require('express');
+var router = express.Router();
+var path = require('path');
+var multer = require('multer');
+var sharp = require('sharp');
+var { getData, saveData } = require('../lib/photo-data');
+
+var { initializeApp, getApps } = require('firebase-admin/app');
+var { getFirestore } = require('firebase-admin/firestore');
+var { getStorage } = require('firebase-admin/storage');
+var { cert } = require('firebase-admin/app');
+
+// Initialize Firebase app named 'photo' (reuse if already initialized)
+var photoApp = getApps().find(a => a.name === 'photo') || initializeApp({
+  credential: cert({
+    type: 'service_account',
+    project_id: 'dimazvalimisc',
+    private_key_id: '5eb5025afc0fe53b63f518ba071f89e7b7ce03af',
+    private_key: process.env.sssGCPKey.replace(/\\n/g, '\n'),
+    client_email: 'firebase-adminsdk-4iwd4@dimazvalimisc.iam.gserviceaccount.com',
+    client_id: '110523994931477712119',
+    auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+    token_uri: 'https://oauth2.googleapis.com/token',
+    auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+    client_x509_cert_url: 'https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-4iwd4%40dimazvalimisc.iam.gserviceaccount.com',
+  }),
+  storageBucket: process.env.PHOTO_BUCKET,
+}, 'photo');
+
+var fb = getFirestore(photoApp);
+var bucket = getStorage(photoApp).bucket();
+var adminTokens = fb.collection('PHOTOadminTokens');
+
+var upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only images allowed'));
+    cb(null, true);
+  },
+});
+
+function slugify(str) {
+  var map = {
+    а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'j',
+    к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',
+    х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',
+  };
+  return str.toLowerCase()
+    .split('').map(c => map[c] !== undefined ? map[c] : c).join('')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+function uniqueId(base, existingIds) {
+  if (!existingIds.includes(base)) return base;
+  var n = 2;
+  while (existingIds.includes(`${base}-${n}`)) n++;
+  return `${base}-${n}`;
+}
+
+// ── AUTH MIDDLEWARE ───────────────────────────────────────────────────────────
+
+async function requireAuth(req, res, next) {
+  var tokenId = req.signedCookies && req.signedCookies.photoAdminToken;
+  if (!tokenId) return res.redirect('/admin/login');
+  try {
+    var doc = await adminTokens.doc(tokenId).get();
+    if (!doc.exists) return res.redirect('/admin/login');
+    next();
+  } catch (e) {
+    res.redirect('/admin/login');
+  }
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+
+router.get('/login', (req, res) => {
+  res.render('photo/admin/login', { title: 'Вход — AERO Admin', error: null });
+});
+
+router.post('/login', async (req, res) => {
+  var { pass } = req.body;
+  if (!pass || pass !== process.env.PHOTO_ADMIN_PASS) {
+    return res.render('photo/admin/login', { title: 'Вход — AERO Admin', error: 'Неверный пароль' });
+  }
+  var doc = await adminTokens.add({ createdAt: new Date() });
+  res.cookie('photoAdminToken', doc.id, { signed: true, httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
+  res.redirect('/admin');
+});
+
+router.get('/logout', async (req, res) => {
+  var tokenId = req.signedCookies && req.signedCookies.photoAdminToken;
+  if (tokenId) {
+    try { await adminTokens.doc(tokenId).delete(); } catch (e) {}
+  }
+  res.clearCookie('photoAdminToken');
+  res.redirect('/admin/login');
+});
+
+// ── INDEX — список стран и серий ──────────────────────────────────────────────
+
+router.get('/', requireAuth, (req, res) => {
+  res.render('photo/admin/index', { data: getData(), title: 'AERO Admin' });
+});
+
+// ── CREATE COUNTRY ────────────────────────────────────────────────────────────
+
+router.post('/country', requireAuth, (req, res) => {
+  var { key, label } = req.body;
+  if (!key || !label) return res.redirect('/admin');
+  var data = getData();
+  var k = slugify(key);
+  if (!data[k]) {
+    data[k] = { label, series: {} };
+    saveData(data);
+  }
+  res.redirect('/admin');
+});
+
+// ── CREATE SERIES ─────────────────────────────────────────────────────────────
+
+router.post('/series/:country', requireAuth, (req, res) => {
+  var { country } = req.params;
+  var { key, label } = req.body;
+  if (!key || !label) return res.redirect('/admin');
+  var data = getData();
+  if (!data[country]) return res.redirect('/admin');
+  var k = slugify(key);
+  if (!data[country].series[k]) {
+    data[country].series[k] = { label, photos: [] };
+    saveData(data);
+  }
+  res.redirect('/admin');
+});
+
+// ── UPLOAD FORM ───────────────────────────────────────────────────────────────
+
+router.get('/:country/:series/upload', requireAuth, (req, res) => {
+  var { country, series } = req.params;
+  var data = getData();
+  if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
+  res.render('photo/admin/upload', {
+    title: 'Загрузка — AERO Admin',
+    country,
+    series,
+    seriesLabel: data[country].series[series].label,
+    countryLabel: data[country].label,
+    photos: data[country].series[series].photos,
+  });
+});
+
+// ── UPLOAD PHOTO ──────────────────────────────────────────────────────────────
+
+router.post('/:country/:series/upload', requireAuth, upload.single('photo'), async (req, res) => {
+  var { country, series } = req.params;
+  var { title, date, desc } = req.body;
+  var data = getData();
+
+  if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
+  if (!req.file) return res.redirect(`/admin/${country}/${series}/upload`);
+
+  try {
+    var baseName = path.basename(req.file.originalname, path.extname(req.file.originalname));
+    var existingIds = data[country].series[series].photos.map(p => p.id);
+    var id = uniqueId(slugify(baseName), existingIds);
+
+    var [buf800, buf2400] = await Promise.all([
+      sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+    ]);
+
+    var path800 = `${country}/${series}/${id}-800.webp`;
+    var path2400 = `${country}/${series}/${id}-2400.webp`;
+
+    await Promise.all([
+      bucket.file(path800).save(buf800, { contentType: 'image/webp' }).then(() => bucket.file(path800).makePublic()),
+      bucket.file(path2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(path2400).makePublic()),
+    ]);
+
+    var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
+    data[country].series[series].photos.push({
+      id,
+      title: title || baseName,
+      date: date || '',
+      desc: desc || '',
+      urls: {
+        preview: `${base}/${path800}`,
+        full: `${base}/${path2400}`,
+      },
+    });
+    saveData(data);
+
+    res.redirect(`/admin/${country}/${series}/upload`);
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).send('Ошибка при загрузке: ' + err.message);
+  }
+});
+
+// ── DELETE PHOTO ──────────────────────────────────────────────────────────────
+
+router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
+  var { country, series, id } = req.params;
+  var data = getData();
+  if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
+
+  var photos = data[country].series[series].photos;
+  var idx = photos.findIndex(p => p.id === id);
+  if (idx === -1) return res.redirect('/admin');
+
+  var photo = photos[idx];
+  if (photo.urls) {
+    try {
+      await Promise.all([
+        bucket.file(`${country}/${series}/${id}-800.webp`).delete(),
+        bucket.file(`${country}/${series}/${id}-2400.webp`).delete(),
+      ]);
+    } catch (e) {}
+  }
+
+  data[country].series[series].photos.splice(idx, 1);
+  saveData(data);
+  res.redirect('/admin');
+});
+
+module.exports = router;
