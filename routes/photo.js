@@ -1,16 +1,21 @@
 var express = require('express');
 var router = express.Router();
 var path = require('path');
-var fs = require('fs');
+var { getData } = require('../lib/photo-data');
 
-const data = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/photo.json'), 'utf8'));
+router.use(express.static(path.join(__dirname, '../public')));
 
-// Build flat list of all photos for prev/next navigation
+// Admin router must be mounted BEFORE wildcard routes
+router.use('/admin', require('./photo-admin'));
+
 function getAllPhotos() {
-  const list = [];
-  for (const [countryKey, country] of Object.entries(data)) {
-    for (const [seriesKey, series] of Object.entries(country.series)) {
-      for (const photo of series.photos) {
+  var data = getData();
+  var list = [];
+  for (var countryKey of Object.keys(data)) {
+    var country = data[countryKey];
+    for (var seriesKey of Object.keys(country.series)) {
+      var series = country.series[seriesKey];
+      for (var photo of series.photos) {
         list.push({ countryKey, seriesKey, ...photo });
       }
     }
@@ -20,6 +25,7 @@ function getAllPhotos() {
 
 // GET / — full gallery (all photos)
 router.get('/', (req, res) => {
+  var data = getData();
   res.render('photo/gallery', {
     data,
     activeCountry: null,
@@ -31,15 +37,16 @@ router.get('/', (req, res) => {
 
 // GET /about
 router.get('/about', (req, res) => {
-  res.render('photo/about', { data, title: 'О себе — AERO' });
+  res.render('photo/about', { data: getData(), title: 'О себе — AERO' });
 });
 
 // GET /:country/:series — filtered gallery
 router.get('/:country/:series', (req, res) => {
-  const { country: countryKey, series: seriesKey } = req.params;
-  const country = data[countryKey];
+  var data = getData();
+  var { country: countryKey, series: seriesKey } = req.params;
+  var country = data[countryKey];
   if (!country) return res.status(404).render('error', { message: 'Not found', error: {} });
-  const series = country.series[seriesKey];
+  var series = country.series[seriesKey];
   if (!series) return res.status(404).render('error', { message: 'Not found', error: {} });
 
   res.render('photo/gallery', {
@@ -53,19 +60,20 @@ router.get('/:country/:series', (req, res) => {
 
 // GET /:country/:series/:id — single photo page
 router.get('/:country/:series/:id', (req, res) => {
-  const { country: countryKey, series: seriesKey, id } = req.params;
-  const country = data[countryKey];
+  var data = getData();
+  var { country: countryKey, series: seriesKey, id } = req.params;
+  var country = data[countryKey];
   if (!country) return res.status(404).render('error', { message: 'Not found', error: {} });
-  const series = country.series[seriesKey];
+  var series = country.series[seriesKey];
   if (!series) return res.status(404).render('error', { message: 'Not found', error: {} });
 
-  const photos = series.photos;
-  const idx = photos.findIndex(p => p.id === id);
+  var photos = series.photos;
+  var idx = photos.findIndex(p => p.id === id);
   if (idx === -1) return res.status(404).render('error', { message: 'Not found', error: {} });
 
-  const photo = photos[idx];
-  const prev = idx > 0 ? photos[idx - 1] : null;
-  const next = idx < photos.length - 1 ? photos[idx + 1] : null;
+  var photo = photos[idx];
+  var prev = idx > 0 ? photos[idx - 1] : null;
+  var next = idx < photos.length - 1 ? photos[idx + 1] : null;
 
   res.render('photo/photo', {
     data,
