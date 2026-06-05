@@ -16,9 +16,9 @@ block content
         .photo-page-loc #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
       .photo-page-nav
         if prev
-          a.nav-btn(href=`/${countryKey}/${seriesKey}/${prev.id}`) ← ПРЕД.
+          a.nav-btn(href=`/${countryKey}/${seriesKey}/${prev.id}` data-dir='prev') ← ПРЕД.
         if next
-          a.nav-btn(href=`/${countryKey}/${seriesKey}/${next.id}`) СЛЕД. →
+          a.nav-btn(href=`/${countryKey}/${seriesKey}/${next.id}` data-dir='next') СЛЕД. →
     if photo.desc
       p.photo-page-desc= photo.desc
     if photo.tags && photo.tags.length

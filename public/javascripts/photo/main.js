@@ -45,6 +45,14 @@
       var url = document.body.getAttribute('data-series-url');
       if (url) location.href = url;
     }
+    if (e.key === 'ArrowLeft') {
+      var btn = document.querySelector('.nav-btn[data-dir="prev"]');
+      if (btn) location.href = btn.getAttribute('href');
+    }
+    if (e.key === 'ArrowRight') {
+      var btn = document.querySelector('.nav-btn[data-dir="next"]');
+      if (btn) location.href = btn.getAttribute('href');
+    }
   });
 
   document.querySelectorAll('.masonry .photo-card img').forEach(function (img) {
