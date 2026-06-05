@@ -273,6 +273,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
 
 router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
   var { country, series, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin');
   var data = getData();
   if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
 
@@ -330,6 +331,7 @@ router.post('/tags/:slug/delete', requireAuth, (req, res) => {
 
 router.get('/:country/:series/edit', requireAuth, (req, res) => {
   var { country, series: seriesKey } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
   var data = getData();
   if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
   res.render('photo/admin/series-edit', {
@@ -343,6 +345,7 @@ router.get('/:country/:series/edit', requireAuth, (req, res) => {
 
 router.post('/:country/:series/edit', requireAuth, (req, res) => {
   var { country, series: seriesKey } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
   var { label } = req.body;
   if (!label || !label.trim()) return res.redirect(`/admin/${country}/${seriesKey}/edit`);
   var data = getData();
@@ -354,6 +357,7 @@ router.post('/:country/:series/edit', requireAuth, (req, res) => {
 
 router.post('/:country/:series/archive', requireAuth, (req, res) => {
   var { country, series: seriesKey } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
   var data = getData();
   if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
   data[country].series[seriesKey].archived = !data[country].series[seriesKey].archived;
@@ -363,21 +367,27 @@ router.post('/:country/:series/archive', requireAuth, (req, res) => {
 
 router.post('/:country/:series/delete', requireAuth, async (req, res) => {
   var { country, series: seriesKey } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
   var data = getData();
   if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
-  var photos = data[country].series[seriesKey].photos;
-  await Promise.all(photos.map(function(p) {
-    return Promise.all([
-      bucket.file(`${country}/${seriesKey}/${p.id}-800.webp`).delete().catch(function() {}),
-      bucket.file(`${country}/${seriesKey}/${p.id}-2400.webp`).delete().catch(function() {}),
-    ]);
-  }));
-  if (data[country].seriesOrder) {
-    data[country].seriesOrder = data[country].seriesOrder.filter(function(k) { return k !== seriesKey; });
+  try {
+    var photos = data[country].series[seriesKey].photos;
+    await Promise.all(photos.map(function(p) {
+      return Promise.all([
+        bucket.file(`${country}/${seriesKey}/${p.id}-800.webp`).delete().catch(function() {}),
+        bucket.file(`${country}/${seriesKey}/${p.id}-2400.webp`).delete().catch(function() {}),
+      ]);
+    }));
+    if (data[country].seriesOrder) {
+      data[country].seriesOrder = data[country].seriesOrder.filter(function(k) { return k !== seriesKey; });
+    }
+    delete data[country].series[seriesKey];
+    saveData(data);
+    res.redirect('/admin');
+  } catch (err) {
+    console.error('Series delete error:', err);
+    res.status(500).send('Ошибка при удалении серии: ' + err.message);
   }
-  delete data[country].series[seriesKey];
-  saveData(data);
-  res.redirect('/admin');
 });
 
 module.exports = router;
