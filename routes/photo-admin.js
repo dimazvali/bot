@@ -242,15 +242,18 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     var existingIds = data[country].series[series].photos.map(p => p.id);
     var id = uniqueId(slugify(baseName), existingIds);
 
-    var [buf800, buf2400] = await Promise.all([
+    var [buf400, buf800, buf2400] = await Promise.all([
+      sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
     ]);
 
+    var path400 = `${country}/${series}/${id}-400.webp`;
     var path800 = `${country}/${series}/${id}-800.webp`;
     var path2400 = `${country}/${series}/${id}-2400.webp`;
 
     await Promise.all([
+      bucket.file(path400).save(buf400, { contentType: 'image/webp' }).then(() => bucket.file(path400).makePublic()),
       bucket.file(path800).save(buf800, { contentType: 'image/webp' }).then(() => bucket.file(path800).makePublic()),
       bucket.file(path2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(path2400).makePublic()),
     ]);
@@ -262,6 +265,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
       date: date || '',
       desc: desc || '',
       urls: {
+        thumb: `${base}/${path400}`,
         preview: `${base}/${path800}`,
         full: `${base}/${path2400}`,
       },
@@ -293,6 +297,7 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
   if (photo.urls) {
     try {
       await Promise.all([
+        bucket.file(`${country}/${series}/${id}-400.webp`).delete().catch(() => {}),
         bucket.file(`${country}/${series}/${id}-800.webp`).delete(),
         bucket.file(`${country}/${series}/${id}-2400.webp`).delete(),
       ]);
@@ -382,6 +387,7 @@ router.post('/:country/:series/delete', requireAuth, async (req, res) => {
     var photos = data[country].series[seriesKey].photos;
     await Promise.all(photos.map(function(p) {
       return Promise.all([
+        bucket.file(`${country}/${seriesKey}/${p.id}-400.webp`).delete().catch(function() {}),
         bucket.file(`${country}/${seriesKey}/${p.id}-800.webp`).delete().catch(function() {}),
         bucket.file(`${country}/${seriesKey}/${p.id}-2400.webp`).delete().catch(function() {}),
       ]);
@@ -476,18 +482,21 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
   try {
     if (req.file) {
-      var [buf800, buf2400] = await Promise.all([
+      var [buf400, buf800, buf2400] = await Promise.all([
+        sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
         sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
         sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
       ]);
+      var path400 = `${country}/${seriesKey}/${id}-400.webp`;
       var path800 = `${country}/${seriesKey}/${id}-800.webp`;
       var path2400 = `${country}/${seriesKey}/${id}-2400.webp`;
       await Promise.all([
+        bucket.file(path400).save(buf400, { contentType: 'image/webp' }).then(() => bucket.file(path400).makePublic()),
         bucket.file(path800).save(buf800, { contentType: 'image/webp' }).then(() => bucket.file(path800).makePublic()),
         bucket.file(path2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(path2400).makePublic()),
       ]);
       var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
-      photo.urls = { preview: `${base}/${path800}`, full: `${base}/${path2400}` };
+      photo.urls = { thumb: `${base}/${path400}`, preview: `${base}/${path800}`, full: `${base}/${path2400}` };
     }
     saveData(data);
     res.redirect(`/admin/${country}/${seriesKey}/edit`);
