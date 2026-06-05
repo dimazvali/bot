@@ -142,6 +142,11 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
 router.post('/:country/:series/upload', requireAuth, upload.single('photo'), async (req, res) => {
   var { country, series } = req.params;
   var { title, date, desc } = req.body;
+  var data = getData();
+
+  if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
+  if (!req.file) return res.redirect(`/admin/${country}/${series}/upload`);
+
   var knownTags = getTags();
   var rawTags = req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags]) : [];
   var tags = rawTags.filter(s => knownTags[s]);
@@ -156,10 +161,6 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
       if (gps) coords = { lat: gps.latitude, lng: gps.longitude };
     } catch (e) {}
   }
-  var data = getData();
-
-  if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
-  if (!req.file) return res.redirect(`/admin/${country}/${series}/upload`);
 
   try {
     var baseName = path.basename(req.file.originalname, path.extname(req.file.originalname));
@@ -234,7 +235,7 @@ router.get('/tags', requireAuth, (req, res) => {
 router.post('/tags', requireAuth, (req, res) => {
   var { slug, label } = req.body;
   if (!slug || !label) return res.redirect('/admin/tags');
-  var clean = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-|-$/g, '');
+  var clean = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '');
   if (!clean) return res.redirect('/admin/tags');
   var tags = getTags();
   if (!tags[clean]) {
