@@ -4,5 +4,23 @@
   },
   "night": {
     "label": "Ночь"
+  },
+  "mountains": {
+    "label": "Горы"
+  },
+  "mtkvari": {
+    "label": "Мтквари"
+  },
+  "chronicles": {
+    "label": "Хроники Грузии"
+  },
+  "tbilisea": {
+    "label": "Тбилисское море"
+  },
+  "sameba": {
+    "label": "Самеба"
+  },
+  "cablecars": {
+    "label": "Канатки"
   }
 }
