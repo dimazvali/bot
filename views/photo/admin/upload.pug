@@ -14,15 +14,16 @@ html(data-theme='dark')
         h2.admin-title ЗАГРУЗИТЬ ФОТО
         p.admin-hint Файл будет конвертирован в WebP и загружен в Firebase Storage в двух размерах (800px и 2400px).
         form.admin-form(method='POST' action=`/admin/${country}/${series}/upload` enctype='multipart/form-data')
-          input.admin-input(type='file' name='photo' accept='image/*' required)
-          input.admin-input(type='text' name='title' placeholder='название снимка')
-          input.admin-input(type='text' name='date' placeholder='дата (напр. Май 2024)')
+          input.admin-input#photo-file(type='file' name='photo' accept='image/*' required)
+          span.admin-hint#exif-status
+          input.admin-input#photo-title(type='text' name='title' placeholder='название снимка')
+          input.admin-input#photo-date(type='text' name='date' placeholder='дата (напр. Май 2024)')
           textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='3')
           input.admin-input(type='url' name='instagram' placeholder='ссылка на публикацию в instagram (необязательно)')
           .admin-coords
-            input.admin-input(type='text' name='lat' placeholder='широта (напр. 41.693)')
-            input.admin-input(type='text' name='lng' placeholder='долгота (напр. 44.801)')
-          p.admin-hint Координаты заполняются из EXIF автоматически если не заданы вручную.
+            input.admin-input#photo-lat(type='text' name='lat' placeholder='широта (напр. 41.693)')
+            input.admin-input#photo-lng(type='text' name='lng' placeholder='долгота (напр. 44.801)')
+          input.admin-input#photo-altitude(type='number' name='altitude' placeholder='высота над уровнем моря (м)')
           if tags && Object.keys(tags).length
             .admin-tags-select
               p.admin-hint ТЕГИ:
@@ -47,3 +48,42 @@ html(data-theme='dark')
                     span.admin-photo-tags= photo.tags.join(', ')
                 form.admin-delete-form(method='POST' action=`/admin/${country}/${series}/${photo.id}/delete`)
                   button.admin-btn.admin-btn--danger(type='submit') удалить
+
+    script(src='https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.cjs')
+    script.
+      var MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+
+      document.getElementById('photo-file').addEventListener('change', async function (e) {
+        var file = e.target.files[0];
+        var status = document.getElementById('exif-status');
+        status.textContent = '';
+        if (!file) return;
+
+        try {
+          var exif = await exifr.parse(file, { gps: true, pick: ['DateTimeOriginal', 'GPSAltitude'] });
+          if (!exif) return;
+
+          var filled = [];
+
+          if (exif.DateTimeOriginal) {
+            var d = new Date(exif.DateTimeOriginal);
+            document.getElementById('photo-date').value = MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+            filled.push('дата');
+          }
+
+          if (exif.latitude != null) {
+            document.getElementById('photo-lat').value = exif.latitude.toFixed(6);
+            document.getElementById('photo-lng').value = exif.longitude.toFixed(6);
+            filled.push('координаты');
+          }
+
+          if (exif.GPSAltitude != null) {
+            document.getElementById('photo-altitude').value = Math.round(exif.GPSAltitude);
+            filled.push('высота');
+          }
+
+          if (filled.length) status.textContent = '✓ из EXIF: ' + filled.join(', ');
+        } catch (err) {
+          // EXIF unavailable — silent
+        }
+      });

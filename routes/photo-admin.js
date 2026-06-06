@@ -4,8 +4,9 @@ var path = require('path');
 var multer = require('multer');
 var sharp = require('sharp');
 var exifr = require('exifr');
-var { getData, saveData } = require('../lib/photo-data');
-var { getTags, saveTags } = require('../lib/photo-tags');
+var { getData, saveData, initFromFirestore } = require('../lib/photo-data');
+var { getTags, saveTags, initTagsFromFirestore } = require('../lib/photo-tags');
+var photoStats = require('../lib/photo-stats');
 
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
@@ -31,9 +32,13 @@ var fb = getFirestore(photoApp);
 var bucket = getStorage(photoApp).bucket();
 var adminTokens = fb.collection('PHOTOadminTokens');
 
+initFromFirestore(fb).catch(console.error);
+initTagsFromFirestore(fb).catch(console.error);
+photoStats.init(fb);
+
 var upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 30 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.originalname) return cb(null, false);
     if (!file.mimetype.startsWith('image/')) return cb(new Error('Only images allowed'));
@@ -227,13 +232,19 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
   var tags = rawTags.filter(s => knownTags[s]);
   var latRaw = parseFloat(req.body.lat);
   var lngRaw = parseFloat(req.body.lng);
+  var altRaw = parseFloat(req.body.altitude);
   var coords = null;
+  var altitude = !isNaN(altRaw) && altRaw >= 0 ? Math.round(altRaw) : null;
   if (!isNaN(latRaw) && !isNaN(lngRaw) && Math.abs(latRaw) <= 90 && Math.abs(lngRaw) <= 180) {
     coords = { lat: latRaw, lng: lngRaw };
-  } else {
+  }
+  if (!coords || altitude === null) {
     try {
-      var gps = await exifr.gps(req.file.buffer);
-      if (gps) coords = { lat: gps.latitude, lng: gps.longitude };
+      var gps = await exifr.parse(req.file.buffer, { gps: true });
+      if (gps) {
+        if (!coords && gps.latitude != null) coords = { lat: gps.latitude, lng: gps.longitude };
+        if (altitude === null && gps.GPSAltitude != null) altitude = Math.round(gps.GPSAltitude);
+      }
     } catch (e) {}
   }
 
@@ -272,6 +283,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     };
     if (tags.length) photoEntry.tags = tags;
     if (coords) photoEntry.coords = coords;
+    if (altitude !== null) photoEntry.altitude = altitude;
     if (instagramUrl) photoEntry.instagram = instagramUrl;
     data[country].series[series].photos.push(photoEntry);
     saveData(data);
@@ -470,6 +482,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   var tags = rawTags.filter(function(s) { return knownTags[s]; });
   var latRaw = parseFloat(req.body.lat);
   var lngRaw = parseFloat(req.body.lng);
+  var altEditRaw = parseFloat(req.body.altitude);
   photo.title = title.trim();
   photo.date = date ? date.trim() : '';
   photo.desc = desc ? desc.trim() : '';
@@ -479,6 +492,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   } else {
     delete photo.coords;
   }
+  if (!isNaN(altEditRaw) && altEditRaw >= 0) { photo.altitude = Math.round(altEditRaw); } else { delete photo.altitude; }
   if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
   try {
     if (req.file) {

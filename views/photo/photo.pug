@@ -5,6 +5,7 @@ block content
     .photo-page-back
       a(href=`/${countryKey}/${seriesKey}`) ← #{seriesLabel.toUpperCase()}
     .photo-page-image
+      .photo-page-bg(style=`background-image: url(${photo.urls ? photo.urls.full : '/images/photo/' + countryKey + '/' + seriesKey + '/' + photo.file})`)
       img(
         src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
         alt=photo.title

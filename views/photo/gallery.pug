@@ -11,6 +11,10 @@ block content
       span.gallery-label #{country.label.toUpperCase()} · #{photos.length} фото
     else
       span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
+  if activeTags && activeTags.length
+    .gallery-tags
+      each tag in activeTags
+        a.gallery-tag(href=`/tag/${tag.key}`) #{tag.label.toUpperCase()}
   .masonry
     each photo in photos
       a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)

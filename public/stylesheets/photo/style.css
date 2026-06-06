@@ -138,7 +138,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
 /* ─── GALLERY HEADER ─────────────────────────────────────────── */
 .gallery-header { margin-bottom: 16px; }
-.gallery-label { font-size: 9px; letter-spacing: 3px; color: var(--text-muted); font-family: monospace; }
+.gallery-label { font-size: 13px; letter-spacing: 3px; color: var(--text-muted); font-family: monospace; }
 
 /* ─── MASONRY ────────────────────────────────────────────────── */
 .masonry {
@@ -192,12 +192,29 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 }
 .photo-page-back a:hover { color: var(--text); }
 
+.photo-page-image {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.photo-page-bg {
+  position: absolute;
+  inset: -40px;
+  background-size: cover;
+  background-position: center;
+  filter: blur(40px);
+  opacity: 0.45;
+  z-index: 0;
+}
+
 .photo-page-image img {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: auto;
   max-height: 70vh;
   object-fit: contain;
-  background: var(--bg);
 }
 
 .photo-page-info {
@@ -338,6 +355,19 @@ textarea.admin-input { resize: vertical; }
 .admin-tag-check { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
 .admin-tag-check input { cursor: pointer; }
 .admin-photo-tags { font-size: 10px; color: var(--text-dim); font-family: monospace; letter-spacing: 1px; }
+
+/* gallery page tags */
+.gallery-tags { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 0 4px; margin-bottom: 20px; }
+.gallery-tag {
+  font-size: 9px;
+  letter-spacing: 2px;
+  font-family: monospace;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+  padding: 3px 10px;
+  text-decoration: none;
+}
+.gallery-tag:hover { color: var(--text); border-color: var(--text-muted); }
 
 /* photo page tags */
 .photo-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }

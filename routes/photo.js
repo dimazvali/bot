@@ -3,6 +3,7 @@ var router = express.Router();
 var path = require('path');
 var { getData } = require('../lib/photo-data');
 var { getTags } = require('../lib/photo-tags');
+var { trackView } = require('../lib/photo-stats');
 
 router.use(express.static(path.join(__dirname, '../public')));
 
@@ -133,6 +134,8 @@ router.get('/:country', (req, res) => {
   var country = data[countryKey];
   if (!country || country.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
 
+  trackView('country', countryKey, req.path);
+
   var photos = [];
   for (var seriesKey of getActiveSeries(country)) {
     for (var photo of country.series[seriesKey].photos) {
@@ -140,11 +143,17 @@ router.get('/:country', (req, res) => {
     }
   }
 
+  var allTags = getTags();
+  var tagSet = new Set();
+  photos.forEach(function (p) { if (p.tags) p.tags.forEach(function (t) { tagSet.add(t); }); });
+  var activeTags = Array.from(tagSet).filter(function (k) { return allTags[k]; }).map(function (k) { return { key: k, label: allTags[k].label }; });
+
   res.render('photo/gallery', {
     data,
     activeCountry: countryKey,
     activeSeries: null,
     photos,
+    activeTags,
     title: `${country.label} — photo.dimazvali.com`,
     desc: `${country.label} — аэрофотосъёмка Дмитрия Шестакова`,
     ogImage: ogImg(photos[0]),
@@ -162,12 +171,20 @@ router.get('/:country/:series', (req, res) => {
   var series = country.series[seriesKey];
   if (!series || series.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
 
+  trackView('series', countryKey + '/' + seriesKey, req.path);
+
   var photos = series.photos.map(p => ({ countryKey, seriesKey, ...p }));
+  var allTagsSeries = getTags();
+  var tagSetSeries = new Set();
+  photos.forEach(function (p) { if (p.tags) p.tags.forEach(function (t) { tagSetSeries.add(t); }); });
+  var activeTags = Array.from(tagSetSeries).filter(function (k) { return allTagsSeries[k]; }).map(function (k) { return { key: k, label: allTagsSeries[k].label }; });
+
   res.render('photo/gallery', {
     data,
     activeCountry: countryKey,
     activeSeries: seriesKey,
     photos,
+    activeTags,
     title: `${series.label} · ${country.label} — photo.dimazvali.com`,
     desc: `${series.label} · ${country.label} — аэрофотосъёмка Дмитрия Шестакова`,
     ogImage: ogImg(photos[0]),
@@ -195,6 +212,8 @@ router.get('/:country/:series/:id', (req, res) => {
   var photo = photos[idx];
   var prev = idx > 0 ? photos[idx - 1] : null;
   var next = idx < photos.length - 1 ? photos[idx + 1] : null;
+
+  trackView('photo', countryKey + '/' + seriesKey + '/' + id, req.path);
 
   res.render('photo/photo', {
     data,

@@ -24,6 +24,7 @@ html(data-theme='dark')
           .admin-coords
             input.admin-input(type='text' name='lat' value=(photo.coords ? photo.coords.lat : '') placeholder='широта (напр. 41.693)')
             input.admin-input(type='text' name='lng' value=(photo.coords ? photo.coords.lng : '') placeholder='долгота (напр. 44.801)')
+          input.admin-input(type='number' name='altitude' value=(photo.altitude != null ? photo.altitude : '') placeholder='высота над уровнем моря (м)')
           if tags && Object.keys(tags).length
             .admin-tags-select
               p.admin-hint ТЕГИ:

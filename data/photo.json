@@ -230,6 +230,19 @@
             "tags": [
               "night"
             ]
+          },
+          {
+            "id": "3c9f8124-60fd-4aac-8d20-5a23f5a0ff76",
+            "title": "Стадион имени Бориса Панчадзе",
+            "date": "Сентябрь 2025",
+            "desc": "Хороший был футбол.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3c9f8124-60fd-4aac-8d20-5a23f5a0ff76-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3c9f8124-60fd-4aac-8d20-5a23f5a0ff76-2400.webp"
+            },
+            "tags": [
+              "night"
+            ]
           }
         ]
       },
@@ -445,7 +458,7 @@
             "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/3-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/3-2400.webp"
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
             }
           },
           {
