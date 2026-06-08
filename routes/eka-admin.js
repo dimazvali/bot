@@ -95,11 +95,13 @@ router.get('/directions', requireAuth, async function(req, res, next) {
   } catch (e) { next(e); }
 });
 
-router.post('/directions/reorder', requireAuth, express.json(), async function(req, res) {
-  var ids = req.body.ids;
-  if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids required' });
-  await ekaData.reorderDirections(ids);
-  res.json({ ok: true });
+router.post('/directions/reorder', requireAuth, express.json(), async function(req, res, next) {
+  try {
+    var ids = req.body.ids;
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids required' });
+    await ekaData.reorderDirections(ids);
+    res.json({ ok: true });
+  } catch(e) { next(e); }
 });
 
 router.get('/directions/new', requireAuth, function(req, res) {
@@ -207,9 +209,9 @@ router.post('/tours/:id/edit', requireAuth, express.urlencoded({ extended: false
       descRu: b.descRu || '', descEn: b.descEn || '',
       date: b.date ? new Date(b.date) : null,
       durationRu: b.durationRu || '', durationEn: b.durationEn || '',
-      price: b.price ? parseInt(b.price) : 0,
+      price: b.price ? (parseInt(b.price, 10) || 0) : 0,
       currency: b.currency || 'USD',
-      maxParticipants: b.maxParticipants ? parseInt(b.maxParticipants) : 0,
+      maxParticipants: b.maxParticipants ? (parseInt(b.maxParticipants, 10) || 0) : 0,
       published: b.published === 'on',
     };
     var savedId = await ekaData.saveTour(id, data);
@@ -232,6 +234,8 @@ router.get('/requests', requireAuth, async function(req, res, next) {
 
 router.post('/requests/:id/status', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
+    var VALID_STATUSES = ['new', 'contacted', 'done'];
+    if (!VALID_STATUSES.includes(req.body.status)) return res.status(400).send('Bad status');
     await ekaData.updateRequestStatus(req.params.id, req.body.status);
     res.redirect('/admin/requests');
   } catch (e) { next(e); }

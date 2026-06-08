@@ -31,8 +31,8 @@ router.use('/admin', require('./eka-admin'));
 router.use(express.static(path.join(__dirname, '../public')));
 
 router.get('/', function(req, res) {
-  var accept = req.headers['accept-language'] || '';
-  var lang = accept.toLowerCase().indexOf('ru') === 0 ? 'ru' : 'en';
+  var accept = (req.headers['accept-language'] || '').split(',')[0].trim().toLowerCase();
+  var lang = accept.startsWith('ru') ? 'ru' : 'en';
   res.redirect('/' + lang + '/');
 });
 
