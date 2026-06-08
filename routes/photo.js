@@ -4,11 +4,18 @@ var path = require('path');
 var { getData } = require('../lib/photo-data');
 var { getTags } = require('../lib/photo-tags');
 var { trackView } = require('../lib/photo-stats');
+var { COLOR_FAMILIES } = require('../lib/color-utils');
 
 router.use(express.static(path.join(__dirname, '../public')));
 
 // Admin router must be mounted BEFORE wildcard routes
 router.use('/admin', require('./photo-admin'));
+
+router.use(function(req, res, next) {
+  res.locals.colorFamilies = COLOR_FAMILIES;
+  res.locals.activeColorFamily = null;
+  next();
+});
 
 var BASE = 'https://photo.dimazvali.com';
 
@@ -87,6 +94,28 @@ router.get('/tag/:slug', (req, res) => {
   });
 });
 
+// GET /color/:family — gallery filtered by color
+router.get('/color/:family', function(req, res) {
+  var { family } = req.params;
+  if (!COLOR_FAMILIES[family]) return res.status(404).render('error', { message: 'Not found', error: {} });
+  var photos = getAllPhotos().filter(function(p) { return p.colorFamily === family; });
+  var info = COLOR_FAMILIES[family];
+  res.render('photo/color-gallery', {
+    data: getData(),
+    activeCountry: null,
+    activeSeries: null,
+    activeColorFamily: family,
+    colorLabel: info.label,
+    colorHex: info.hex,
+    photos,
+    title: info.label + ' — photo.dimazvali.com',
+    desc: info.label + ' — аэрофотосъёмка Дмитрия Шестакова',
+    ogImage: ogImg(photos[0]),
+    ogUrl: BASE + '/color/' + family,
+    breadcrumbs: [{ name: info.label, url: BASE + '/color/' + family }],
+  });
+});
+
 // GET /sitemap.xml
 router.get('/sitemap.xml', (req, res) => {
   var base = 'https://photo.dimazvali.com';
@@ -96,6 +125,10 @@ router.get('/sitemap.xml', (req, res) => {
 
   for (var slug of Object.keys(tags)) {
     urls.push(base + '/tag/' + slug);
+  }
+
+  for (var family of Object.keys(COLOR_FAMILIES)) {
+    urls.push(base + '/color/' + family);
   }
 
   for (var countryKey of Object.keys(data)) {
@@ -215,6 +248,21 @@ router.get('/:country/:series/:id', (req, res) => {
 
   trackView('photo', countryKey + '/' + seriesKey + '/' + id, req.path);
 
+  var photoTags = new Set(photo.tags || []);
+  var related = [];
+  if (photoTags.size > 0) {
+    for (var sk of getActiveSeries(country)) {
+      for (var rp of country.series[sk].photos) {
+        if (rp.id === id) continue;
+        if (!rp.urls) continue;
+        if (!rp.tags || !rp.tags.some(t => photoTags.has(t))) continue;
+        related.push({ countryKey, seriesKey: sk, id: rp.id, title: rp.title, urls: rp.urls });
+        if (related.length >= 5) break;
+      }
+      if (related.length >= 5) break;
+    }
+  }
+
   res.render('photo/photo', {
     data,
     activeCountry: countryKey,
@@ -227,6 +275,7 @@ router.get('/:country/:series/:id', (req, res) => {
     countryLabel: country.label,
     seriesLabel: series.label,
     allTags: getTags(),
+    related,
     seriesUrl: `/${countryKey}/${seriesKey}`,
     title: `${photo.title} — photo.dimazvali.com`,
     desc: photo.desc || `${photo.title} · ${series.label} · ${country.label}`,
