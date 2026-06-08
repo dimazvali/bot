@@ -12,7 +12,7 @@ var ekaApp = getApps().find(function(a) { return a.name === 'eka'; }) || initial
     type: 'service_account',
     project_id: 'dimazvalimisc',
     private_key_id: '5eb5025afc0fe53b63f518ba071f89e7b7ce03af',
-    private_key: process.env.sssGCPKey.replace(/\\n/g, '\n'),
+    private_key: (process.env.sssGCPKey || '').replace(/\\n/g, '\n'),
     client_email: 'firebase-adminsdk-4iwd4@dimazvalimisc.iam.gserviceaccount.com',
     client_id: '110523994931477712119',
     auth_uri: 'https://accounts.google.com/o/oauth2/auth',
