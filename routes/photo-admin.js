@@ -7,6 +7,7 @@ var exifr = require('exifr');
 var { getData, saveData, initFromFirestore } = require('../lib/photo-data');
 var { getTags, saveTags, initTagsFromFirestore } = require('../lib/photo-tags');
 var photoStats = require('../lib/photo-stats');
+var { extractColorFamily } = require('../lib/color-utils');
 
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
@@ -253,10 +254,11 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     var existingIds = data[country].series[series].photos.map(p => p.id);
     var id = uniqueId(slugify(baseName), existingIds);
 
-    var [buf400, buf800, buf2400] = await Promise.all([
+    var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+      extractColorFamily(req.file.buffer),
     ]);
 
     var path400 = `${country}/${series}/${id}-400.webp`;
@@ -285,6 +287,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     if (coords) photoEntry.coords = coords;
     if (altitude !== null) photoEntry.altitude = altitude;
     if (instagramUrl) photoEntry.instagram = instagramUrl;
+    if (colorFamily) photoEntry.colorFamily = colorFamily;
     data[country].series[series].photos.push(photoEntry);
     saveData(data);
 
@@ -352,6 +355,72 @@ router.post('/tags/:slug/delete', requireAuth, (req, res) => {
   delete tags[slug];
   saveTags(tags);
   res.redirect('/admin/tags');
+});
+
+async function listUploadedImages() {
+  var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
+  var [files] = await bucket.getFiles({ prefix: 'images/' });
+  return files
+    .filter(f => f.name.endsWith('-400.webp'))
+    .map(f => {
+      var stem = f.name.replace(/-400\.webp$/, '');
+      var name = stem.replace(/^images\//, '');
+      return {
+        name,
+        thumb: `${base}/${f.name}`,
+        sm:  `${base}/${stem}-400.webp`,
+        md:  `${base}/${stem}-800.webp`,
+        lg:  `${base}/${stem}-2400.webp`,
+      };
+    })
+    .reverse();
+}
+
+router.get('/images', requireAuth, async (req, res) => {
+  try {
+    var images = await listUploadedImages();
+    res.render('photo/admin/images', {
+      title: 'Изображения — AERO Admin',
+      images,
+      uploaded: req.query.uploaded || null,
+      error: req.query.error || null,
+    });
+  } catch (err) {
+    console.error('Images list error:', err);
+    res.render('photo/admin/images', { title: 'Изображения — AERO Admin', images: [], uploaded: null, error: err.message });
+  }
+});
+
+router.post('/images/upload', requireAuth, upload.single('image'), async (req, res) => {
+  if (!req.file) return res.redirect('/admin/images?error=' + encodeURIComponent('Файл не выбран'));
+  try {
+    var rawName = req.body.name ? req.body.name.trim() : '';
+    var basePart = rawName
+      ? slugify(rawName)
+      : slugify(path.basename(req.file.originalname, path.extname(req.file.originalname))) || 'image';
+    var baseName = basePart + '-' + Date.now();
+
+    var [buf400, buf800, buf2400] = await Promise.all([
+      sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+    ]);
+
+    var p400  = `images/${baseName}-400.webp`;
+    var p800  = `images/${baseName}-800.webp`;
+    var p2400 = `images/${baseName}-2400.webp`;
+
+    await Promise.all([
+      bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(() => bucket.file(p400).makePublic()),
+      bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(() => bucket.file(p800).makePublic()),
+      bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(p2400).makePublic()),
+    ]);
+
+    res.redirect('/admin/images?uploaded=' + encodeURIComponent(baseName));
+  } catch (err) {
+    console.error('Image upload error:', err);
+    res.redirect('/admin/images?error=' + encodeURIComponent(err.message));
+  }
 });
 
 router.get('/:country/:series/edit', requireAuth, (req, res) => {
@@ -496,10 +565,11 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
   try {
     if (req.file) {
-      var [buf400, buf800, buf2400] = await Promise.all([
+      var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
         sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
         sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
         sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+        extractColorFamily(req.file.buffer),
       ]);
       var path400 = `${country}/${seriesKey}/${id}-400.webp`;
       var path800 = `${country}/${seriesKey}/${id}-800.webp`;
@@ -511,6 +581,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
       ]);
       var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
       photo.urls = { thumb: `${base}/${path400}`, preview: `${base}/${path800}`, full: `${base}/${path2400}` };
+      if (colorFamily) photo.colorFamily = colorFamily;
     }
     saveData(data);
     res.redirect(`/admin/${country}/${seriesKey}/edit`);
