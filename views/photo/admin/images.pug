@@ -1,0 +1,48 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo IMAGES
+
+      .admin-section
+        h2.admin-title ЗАГРУЗИТЬ ИЗОБРАЖЕНИЕ
+        p.admin-hint Файл будет конвертирован в WebP в трёх размерах (400 / 800 / 2400px).
+        if error
+          p.admin-error= error
+        if uploaded
+          p.admin-hint ✓ загружено: #{uploaded}
+        form.admin-form(method='POST' action='/admin/images/upload' enctype='multipart/form-data')
+          input.admin-input(type='text' name='name' placeholder='имя файла (необязательно, без расширения)')
+          input.admin-input(type='file' name='image' accept='image/*' required)
+          button.admin-btn(type='submit') ЗАГРУЗИТЬ
+
+      if images && images.length
+        .admin-section
+          h2.admin-title ЗАГРУЖЕННЫЕ (#{images.length})
+          .img-grid
+            each img in images
+              .img-card(id=img.name class=(img.name === uploaded ? 'img-card--new' : ''))
+                a(href=img.lg target='_blank' rel='noopener')
+                  img.img-thumb(src=img.thumb alt=img.name loading='lazy')
+                .img-name= img.name
+                .img-actions
+                  button.admin-btn.admin-btn--sm(onclick=`cp('${img.sm}',this)`) 400
+                  button.admin-btn.admin-btn--sm(onclick=`cp('${img.md}',this)`) 800
+                  button.admin-btn.admin-btn--sm(onclick=`cp('${img.lg}',this)`) 2400
+
+    script.
+      function cp(url, btn) {
+        navigator.clipboard.writeText(url).then(function () {
+          var orig = btn.textContent;
+          btn.textContent = '✓';
+          setTimeout(function () { btn.textContent = orig; }, 1500);
+        });
+      }
+      var newCard = document.querySelector('.img-card--new');
+      if (newCard) newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });

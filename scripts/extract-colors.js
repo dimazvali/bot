@@ -1,4 +1,6 @@
 'use strict';
+require('dotenv').config();
+
 var https = require('https');
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');

@@ -6,9 +6,11 @@ block content
       - const country = data[activeCountry]
       - const series = country.series[activeSeries]
       span.gallery-label #{country.label.toUpperCase()} · #{series.label.toUpperCase()} · #{photos.length} фото
+      button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
     else if activeCountry
       - const country = data[activeCountry]
       span.gallery-label #{country.label.toUpperCase()} · #{photos.length} фото
+      button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
     else
       span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
   if activeTags && activeTags.length

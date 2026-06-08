@@ -1,318 +1,21 @@
 {
+  "cyprus": {
+    "label": "Кипр",
+    "archived": true,
+    "series": {}
+  },
   "georgia": {
     "label": "Грузия",
+    "seriesOrder": [
+      "tbilisi",
+      "samegrelo",
+      "kutaisi",
+      "batumi",
+      "pankisi",
+      "hevsureti",
+      "mtsheta"
+    ],
     "series": {
-      "tbilisi": {
-        "label": "Тбилиси",
-        "photos": [
-          {
-            "id": "1",
-            "file": "1.jpg",
-            "title": "Вид на метехский мост при низкой воде",
-            "date": "Июнь 2026",
-            "desc": "В начале июня 2026 уровень воды в Мтквари резко упал — и проступили очертания старого Тбилиси.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/1-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/1-2400.webp"
-            },
-            "tags": [
-              "mtkvari"
-            ]
-          },
-          {
-            "id": "2",
-            "file": "2.jpg",
-            "title": "2 метра под уровнем мтквари",
-            "date": "Июнь 2026",
-            "desc": "В начале июня 2026 уровень воды в Мтквари резко упал — и проступили очертания старого Тбилиси.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/2-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/2-2400.webp"
-            }
-          },
-          {
-            "id": "3",
-            "file": "3.jpg",
-            "title": "Альпинисты на воздушном шаре",
-            "date": "Июнь 2026",
-            "desc": "Промышленные альпинисты моют популярный туристический аттракцион в парке Рике",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3-2400.webp"
-            }
-          },
-          {
-            "id": "4",
-            "file": "4.jpg",
-            "title": "Прогулочные лодки у Дворца юстиции",
-            "date": "Июнь 2026",
-            "desc": "Из-за падения уровня воды в Мтквари туристические кораблики были пришвартованы на отмели.",
-            "tags": [
-              "mtkvari"
-            ],
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/4-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/4-2400.webp"
-            }
-          },
-          {
-            "id": "5",
-            "file": "5.jpg",
-            "title": "Снежные Хроники Грузии",
-            "date": "Март 2026",
-            "desc": "Вид на монументальнейший монумент Зураба Церетели и Тбилисское море.",
-            "tags": [
-              "winter",
-              "chronicles"
-            ],
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/5-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/5-2400.webp"
-            }
-          },
-          {
-            "id": "6",
-            "file": "6.jpg",
-            "title": "Тбилисское море",
-            "date": "Март 2026",
-            "desc": "Оно же Тбилисское водохранилище — последнее прибежище яхтсменов в городе, где даже озера называются в честь сухопутных черепах.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/6-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/6-2400.webp"
-            },
-            "tags": [
-              "tbilisea"
-            ]
-          },
-          {
-            "id": "7",
-            "file": "7.jpg",
-            "title": "Весенний Метехи",
-            "date": "Март 2026",
-            "desc": "Вид на исторический центр города в самую холодную весну XXI века.",
-            "tags": [
-              "mtkvari"
-            ],
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/7-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/7-2400.webp"
-            }
-          },
-          {
-            "id": "8",
-            "file": "8.jpg",
-            "title": "Подготовка к захоронению Илии II",
-            "date": "Март 2026",
-            "desc": "День, когда я лично познакомился с грузинской службой госбезопасности.",
-            "tags": [
-              "mtkvari"
-            ],
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/8-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/8-2400.webp"
-            }
-          },
-          {
-            "id": "9",
-            "file": "9.jpg",
-            "title": "Поминовение Илии II в Самеба",
-            "date": "Март 2026",
-            "desc": "В течение трех дней люди со всей Грузии стояли в бесконечной очереди, чтобы отдать дань памяти патриарху.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/9-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/9-2400.webp"
-            },
-            "tags": [
-              "sameba"
-            ]
-          },
-          {
-            "id": "10",
-            "file": "10.jpg",
-            "title": "Самгорская канатка",
-            "date": "Март 2026",
-            "desc": "Нижняя кабинка заброшенной канатной дороги, соединявшей районы Самгори и Вазисубани.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/10-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/10-2400.webp"
-            },
-            "tags": [
-              "cablecars"
-            ]
-          },
-          {
-            "id": "dji-fly-20251004-172428-35-1759584293867-photo-optimized",
-            "title": "Новый мост в парке Вере",
-            "date": "Октябрь 2025",
-            "desc": "Что-то на московском.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20251004-172428-35-1759584293867-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20251004-172428-35-1759584293867-photo-optimized-2400.webp"
-            }
-          },
-          {
-            "id": "temp-image-for-default-share-png",
-            "title": "Панорама парка Рике",
-            "date": "",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/temp-image-for-default-share-png-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/temp-image-for-default-share-png-2400.webp"
-            },
-            "coords": {
-              "lat": 41.69049,
-              "lng": 44.81127166666667
-            }
-          },
-          {
-            "id": "dji-fly-20250803-191336-310-1754234028934-photo-optimized",
-            "title": "Коджори в августе",
-            "date": "Август 2025",
-            "desc": "Вид от крепости на север.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250803-191336-310-1754234028934-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250803-191336-310-1754234028934-photo-optimized-2400.webp"
-            },
-            "coords": {
-              "lat": 41.640878,
-              "lng": 44.690844
-            }
-          },
-          {
-            "id": "dji-fly-20260307-163208-945-1772886838874-photo-optimized",
-            "title": "Яхта на Тбилисском море",
-            "date": "Март 2026",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-163208-945-1772886838874-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-163208-945-1772886838874-photo-optimized-2400.webp"
-            },
-            "tags": [
-              "tbilisea"
-            ]
-          },
-          {
-            "id": "dji-fly-20260307-162332-912-1772886365129-photo-optimized",
-            "title": "მწვანე ",
-            "date": "Март 2026",
-            "desc": "Яхты на тбилисском море.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-162332-912-1772886365129-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-162332-912-1772886365129-photo-optimized-2400.webp"
-            },
-            "tags": [
-              "tbilisea"
-            ]
-          },
-          {
-            "id": "dji-fly-20260211-113620-286-1770795437065-photo-optimized",
-            "title": "Купол Самебы под снегом",
-            "date": "Февраль 2026",
-            "desc": "Редкие дни, когда в Тбилиси снег не только падает, но и подняться не может.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260211-113620-286-1770795437065-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260211-113620-286-1770795437065-photo-optimized-2400.webp"
-            },
-            "tags": [
-              "winter",
-              "sameba"
-            ]
-          },
-          {
-            "id": "dji-fly-20260213-034524-416-1770940053802-photo-optimized",
-            "title": "Мать грузия и телебашня",
-            "date": "Февраль 2026",
-            "desc": "Мать Грузия хоть и с мечом, но всегда улыбается.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260213-034524-416-1770940053802-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260213-034524-416-1770940053802-photo-optimized-2400.webp"
-            },
-            "tags": [
-              "night"
-            ]
-          },
-          {
-            "id": "3c9f8124-60fd-4aac-8d20-5a23f5a0ff76",
-            "title": "Стадион имени Бориса Панчадзе",
-            "date": "Сентябрь 2025",
-            "desc": "Хороший был футбол.",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3c9f8124-60fd-4aac-8d20-5a23f5a0ff76-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3c9f8124-60fd-4aac-8d20-5a23f5a0ff76-2400.webp"
-            },
-            "tags": [
-              "night"
-            ]
-          }
-        ]
-      },
-      "samegrelo": {
-        "label": "Самегрело",
-        "photos": [
-          {
-            "id": "dji-0610",
-            "title": "Каньон",
-            "date": "Апрель 2026",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-2400.webp"
-            }
-          },
-          {
-            "id": "dji-0573",
-            "title": "Балда",
-            "date": "",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-2400.webp"
-            }
-          },
-          {
-            "id": "dji-0624",
-            "title": "Патара Водопади",
-            "date": "Май 2026",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0624-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0624-2400.webp"
-            },
-            "coords": {
-              "lat": 42.491987,
-              "lng": 42.42731
-            }
-          },
-          {
-            "id": "dji-0617",
-            "title": "Налево пойдешь",
-            "date": "",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0617-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0617-2400.webp"
-            },
-            "coords": {
-              "lat": 42.49188,
-              "lng": 42.42784
-            }
-          },
-          {
-            "id": "dji-0616-2",
-            "title": "Направо пойдешь",
-            "date": "Май 2026",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0616-2-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0616-2-2400.webp"
-            },
-            "coords": {
-              "lat": 42.491919,
-              "lng": 42.427769
-            }
-          }
-        ]
-      },
       "batumi": {
         "label": "Батуми",
         "photos": [
@@ -324,7 +27,8 @@
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182322-174-1773325565022-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182322-174-1773325565022-photo-optimized-2400.webp"
-            }
+            },
+            "colorFamily": "teal"
           },
           {
             "id": "dji-fly-20260311-181456-64-1773238727064-photo-optimized",
@@ -334,7 +38,8 @@
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181456-64-1773238727064-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181456-64-1773238727064-photo-optimized-2400.webp"
-            }
+            },
+            "colorFamily": "teal"
           },
           {
             "id": "dji-fly-20260312-174722-156-1773323498033-photo-optimized",
@@ -344,47 +49,14 @@
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-174722-156-1773323498033-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-174722-156-1773323498033-photo-optimized-2400.webp"
-            }
+            },
+            "colorFamily": "blue"
           }
         ]
-      },
-      "pankisi": {
-        "label": "Панкиси",
-        "photos": [
-          {
-            "id": "dji-fly-20260510-172130-503-1778419845999-photo-optimized",
-            "title": "Амфитеатр",
-            "date": "",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-2400.webp"
-            }
-          }
-        ]
-      },
-      "kutaisi": {
-        "label": "Кутаиси",
-        "photos": [],
-        "archived": true
       },
       "hevsureti": {
         "label": "Хевсуретия",
         "photos": [
-          {
-            "id": "dji-fly-20250823-173544-554-1755956274563-photo-optimized",
-            "title": "Крепость Кистани",
-            "date": "Август 2025",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-173544-554-1755956274563-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-173544-554-1755956274563-photo-optimized-2400.webp"
-            },
-            "coords": {
-              "lat": 42.561933,
-              "lng": 45.083325
-            }
-          },
           {
             "id": "dji-fly-20250823-172348-552-1755955496471-photo-optimized",
             "title": "Деревня кистани",
@@ -397,9 +69,30 @@
             "coords": {
               "lat": 42.549444,
               "lng": 45.078992
-            }
+            },
+            "colorFamily": "mono"
+          },
+          {
+            "id": "dji-fly-20250823-173544-554-1755956274563-photo-optimized",
+            "title": "Крепость Кистани",
+            "date": "Август 2025",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-173544-554-1755956274563-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-173544-554-1755956274563-photo-optimized-2400.webp"
+            },
+            "coords": {
+              "lat": 42.561933,
+              "lng": 45.083325
+            },
+            "colorFamily": "mono"
           }
         ]
+      },
+      "kutaisi": {
+        "label": "Кутаиси",
+        "archived": true,
+        "photos": []
       },
       "mtsheta": {
         "label": "Мцхета",
@@ -415,74 +108,370 @@
             },
             "tags": [
               "winter"
-            ]
-          }
-        ]
-      }
-    },
-    "seriesOrder": [
-      "tbilisi",
-      "samegrelo",
-      "kutaisi",
-      "batumi",
-      "pankisi",
-      "hevsureti",
-      "mtsheta"
-    ]
-  },
-  "cyprus": {
-    "label": "Кипр",
-    "series": {},
-    "archived": true
-  },
-  "kz": {
-    "label": "Казахстан",
-    "series": {
-      "charyn": {
-        "label": "Чарынский каньон",
-        "photos": [
-          {
-            "id": "2",
-            "title": "Каньон замков 1",
-            "date": "Апрель 2026",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
-            }
-          },
-          {
-            "id": "3",
-            "title": "Каньон замков 2",
-            "date": "Апрель 2026",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/3-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
-            }
-          },
-          {
-            "id": "1",
-            "title": "Каньон замков 3",
-            "date": "Апрель 2026",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/1-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/1-2400.webp"
-            }
-          },
-          {
-            "id": "4",
-            "title": "Каньон без замков",
-            "date": "Апрель 2026",
-            "desc": "",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/4-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/4-2400.webp"
-            }
+            ],
+            "colorFamily": "teal"
           }
         ]
       },
+      "pankisi": {
+        "label": "Панкиси",
+        "photos": [
+          {
+            "id": "dji-fly-20260510-172130-503-1778419845999-photo-optimized",
+            "title": "Амфитеатр",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-2400.webp"
+            },
+            "colorFamily": "green"
+          }
+        ]
+      },
+      "samegrelo": {
+        "label": "Самегрело",
+        "photos": [
+          {
+            "id": "dji-0610",
+            "title": "Каньон",
+            "date": "Апрель 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-2400.webp"
+            },
+            "colorFamily": "mono"
+          },
+          {
+            "id": "dji-0573",
+            "title": "Балда",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-2400.webp"
+            },
+            "colorFamily": "teal"
+          },
+          {
+            "id": "dji-0624",
+            "title": "Патара Водопади",
+            "date": "Май 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0624-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0624-2400.webp"
+            },
+            "coords": {
+              "lat": 42.491987,
+              "lng": 42.42731
+            },
+            "colorFamily": "mono"
+          },
+          {
+            "id": "dji-0617",
+            "title": "Налево пойдешь",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0617-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0617-2400.webp"
+            },
+            "coords": {
+              "lat": 42.49188,
+              "lng": 42.42784
+            },
+            "colorFamily": "mono"
+          },
+          {
+            "id": "dji-0616-2",
+            "title": "Направо пойдешь",
+            "date": "Май 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0616-2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0616-2-2400.webp"
+            },
+            "coords": {
+              "lat": 42.491919,
+              "lng": 42.427769
+            },
+            "colorFamily": "mono"
+          }
+        ]
+      },
+      "tbilisi": {
+        "label": "Тбилиси",
+        "photos": [
+          {
+            "id": "1",
+            "file": "1.jpg",
+            "title": "Вид на метехский мост при низкой воде",
+            "date": "Июнь 2026",
+            "desc": "В начале июня 2026 уровень воды в Мтквари резко упал — и проступили очертания старого Тбилиси.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/1-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/1-2400.webp"
+            },
+            "tags": [
+              "mtkvari"
+            ],
+            "colorFamily": "mono"
+          },
+          {
+            "id": "2",
+            "file": "2.jpg",
+            "title": "2 метра под уровнем мтквари",
+            "date": "Июнь 2026",
+            "desc": "В начале июня 2026 уровень воды в Мтквари резко упал — и проступили очертания старого Тбилиси.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/2-2400.webp"
+            },
+            "colorFamily": "mono"
+          },
+          {
+            "id": "3",
+            "file": "3.jpg",
+            "title": "Альпинисты на воздушном шаре",
+            "date": "Июнь 2026",
+            "desc": "Промышленные альпинисты моют популярный туристический аттракцион в парке Рике",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3-2400.webp"
+            },
+            "colorFamily": "blue"
+          },
+          {
+            "id": "4",
+            "file": "4.jpg",
+            "title": "Прогулочные лодки у Дворца юстиции",
+            "date": "Июнь 2026",
+            "desc": "Из-за падения уровня воды в Мтквари туристические кораблики были пришвартованы на отмели.",
+            "tags": [
+              "mtkvari"
+            ],
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/4-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/4-2400.webp"
+            },
+            "colorFamily": "blue"
+          },
+          {
+            "id": "5",
+            "file": "5.jpg",
+            "title": "Снежные Хроники Грузии",
+            "date": "Март 2026",
+            "desc": "Вид на монументальнейший монумент Зураба Церетели и Тбилисское море.",
+            "tags": [
+              "winter",
+              "chronicles"
+            ],
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/5-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/5-2400.webp"
+            },
+            "colorFamily": "teal"
+          },
+          {
+            "id": "6",
+            "file": "6.jpg",
+            "title": "Тбилисское море",
+            "date": "Март 2026",
+            "desc": "Оно же Тбилисское водохранилище — последнее прибежище яхтсменов в городе, где даже озера называются в честь сухопутных черепах.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/6-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/6-2400.webp"
+            },
+            "tags": [
+              "tbilisea"
+            ],
+            "colorFamily": "mono"
+          },
+          {
+            "id": "7",
+            "file": "7.jpg",
+            "title": "Весенний Метехи",
+            "date": "Март 2026",
+            "desc": "Вид на исторический центр города в самую холодную весну XXI века.",
+            "tags": [
+              "mtkvari"
+            ],
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/7-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/7-2400.webp"
+            },
+            "colorFamily": "teal"
+          },
+          {
+            "id": "8",
+            "file": "8.jpg",
+            "title": "Подготовка к захоронению Илии II",
+            "date": "Март 2026",
+            "desc": "День, когда я лично познакомился с грузинской службой госбезопасности.",
+            "tags": [
+              "mtkvari"
+            ],
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/8-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/8-2400.webp"
+            },
+            "colorFamily": "mono"
+          },
+          {
+            "id": "9",
+            "file": "9.jpg",
+            "title": "Поминовение Илии II в Самеба",
+            "date": "Март 2026",
+            "desc": "В течение трех дней люди со всей Грузии стояли в бесконечной очереди, чтобы отдать дань памяти патриарху.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/9-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/9-2400.webp"
+            },
+            "tags": [
+              "sameba"
+            ],
+            "colorFamily": "orange"
+          },
+          {
+            "id": "10",
+            "file": "10.jpg",
+            "title": "Самгорская канатка",
+            "date": "Март 2026",
+            "desc": "Нижняя кабинка заброшенной канатной дороги, соединявшей районы Самгори и Вазисубани.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/10-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/10-2400.webp"
+            },
+            "tags": [
+              "cablecars"
+            ],
+            "colorFamily": "teal"
+          },
+          {
+            "id": "dji-fly-20251004-172428-35-1759584293867-photo-optimized",
+            "title": "Новый мост в парке Вере",
+            "date": "Октябрь 2025",
+            "desc": "Что-то на московском.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20251004-172428-35-1759584293867-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20251004-172428-35-1759584293867-photo-optimized-2400.webp"
+            },
+            "colorFamily": "mono"
+          },
+          {
+            "id": "temp-image-for-default-share-png",
+            "title": "Панорама парка Рике",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/temp-image-for-default-share-png-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/temp-image-for-default-share-png-2400.webp"
+            },
+            "coords": {
+              "lat": 41.69049,
+              "lng": 44.81127166666667
+            },
+            "colorFamily": "yellow"
+          },
+          {
+            "id": "dji-fly-20250803-191336-310-1754234028934-photo-optimized",
+            "title": "Коджори в августе",
+            "date": "Август 2025",
+            "desc": "Вид от крепости на север.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250803-191336-310-1754234028934-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250803-191336-310-1754234028934-photo-optimized-2400.webp"
+            },
+            "coords": {
+              "lat": 41.640878,
+              "lng": 44.690844
+            },
+            "colorFamily": "teal"
+          },
+          {
+            "id": "dji-fly-20260307-163208-945-1772886838874-photo-optimized",
+            "title": "Яхта на Тбилисском море",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-163208-945-1772886838874-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-163208-945-1772886838874-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "tbilisea"
+            ],
+            "colorFamily": "mono"
+          },
+          {
+            "id": "dji-fly-20260307-162332-912-1772886365129-photo-optimized",
+            "title": "მწვანე ",
+            "date": "Март 2026",
+            "desc": "Яхты на тбилисском море.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-162332-912-1772886365129-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-162332-912-1772886365129-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "tbilisea"
+            ],
+            "colorFamily": "green"
+          },
+          {
+            "id": "dji-fly-20260211-113620-286-1770795437065-photo-optimized",
+            "title": "Купол Самебы под снегом",
+            "date": "Февраль 2026",
+            "desc": "Редкие дни, когда в Тбилиси снег не только падает, но и подняться не может.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260211-113620-286-1770795437065-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260211-113620-286-1770795437065-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter",
+              "sameba"
+            ],
+            "colorFamily": "mono"
+          },
+          {
+            "id": "dji-fly-20260213-034524-416-1770940053802-photo-optimized",
+            "title": "Мать грузия и телебашня",
+            "date": "Февраль 2026",
+            "desc": "Мать Грузия хоть и с мечом, но всегда улыбается.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260213-034524-416-1770940053802-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260213-034524-416-1770940053802-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "night"
+            ],
+            "colorFamily": "teal"
+          },
+          {
+            "id": "3c9f8124-60fd-4aac-8d20-5a23f5a0ff76",
+            "title": "Стадион имени Бориса Панчадзе",
+            "date": "Сентябрь 2025",
+            "desc": "Хороший был футбол.",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3c9f8124-60fd-4aac-8d20-5a23f5a0ff76-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3c9f8124-60fd-4aac-8d20-5a23f5a0ff76-2400.webp"
+            },
+            "tags": [
+              "night"
+            ],
+            "colorFamily": "teal"
+          }
+        ]
+      }
+    }
+  },
+  "kz": {
+    "label": "Казахстан",
+    "seriesOrder": [
+      "charyn",
+      "almaty"
+    ],
+    "series": {
       "almaty": {
         "label": "Алматы",
         "photos": [
@@ -497,7 +486,8 @@
             },
             "tags": [
               "mountains"
-            ]
+            ],
+            "colorFamily": "yellow"
           },
           {
             "id": "dji-fly-20260425-153212-419-1777113302139-photo-optimized",
@@ -511,7 +501,57 @@
             "tags": [
               "winter",
               "mountains"
-            ]
+            ],
+            "colorFamily": "teal"
+          }
+        ]
+      },
+      "charyn": {
+        "label": "Чарынский каньон",
+        "photos": [
+          {
+            "id": "2",
+            "title": "Каньон замков 1",
+            "date": "Апрель 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
+            },
+            "colorFamily": "orange"
+          },
+          {
+            "id": "3",
+            "title": "Каньон замков 2",
+            "date": "Апрель 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/3-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
+            },
+            "colorFamily": "orange"
+          },
+          {
+            "id": "1",
+            "title": "Каньон замков 3",
+            "date": "Апрель 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/1-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/1-2400.webp"
+            },
+            "colorFamily": "red"
+          },
+          {
+            "id": "4",
+            "title": "Каньон без замков",
+            "date": "Апрель 2026",
+            "desc": "",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/4-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/4-2400.webp"
+            },
+            "colorFamily": "mono"
           }
         ]
       }

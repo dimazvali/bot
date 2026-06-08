@@ -30,3 +30,10 @@ block content
       button.action-btn(onclick='sharePhoto()') ПОДЕЛИТЬСЯ
       if photo.instagram
         a.action-btn(href=photo.instagram target='_blank' rel='noopener') INSTAGRAM
+    if related && related.length
+      .related
+        .related-label ЕЩЁ ИЗ #{countryLabel.toUpperCase()}
+        .related-strip
+          each r in related
+            a.related-thumb(href=`/${r.countryKey}/${r.seriesKey}/${r.id}` title=r.title)
+              img(src=r.urls.preview alt=r.title loading='lazy' onerror="this.closest('.related-thumb').style.display='none'")

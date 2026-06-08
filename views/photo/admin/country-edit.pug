@@ -36,6 +36,7 @@ html(data-theme='dark')
                 span= `${s.label} (${seriesKey})`
                 if s.archived
                   span.admin-archived [архив]
+                a.admin-link(href=`/admin/${countryKey}/${seriesKey}/edit`) →
 
       if canDelete
         .admin-section

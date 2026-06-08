@@ -18,6 +18,7 @@ html(data-theme='dark')
     if breadcrumbs && breadcrumbs.length
       - var _ldItems = [{"@type":"ListItem","position":1,"name":"Главная","item":"https://photo.dimazvali.com/"}].concat(breadcrumbs.map(function(b,i){return{"@type":"ListItem","position":i+2,"name":b.name,"item":b.url};}))
       script(type='application/ld+json')!= JSON.stringify({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":_ldItems})
+    link(rel='icon' href='/images/photo/ds_georgian.ico')
     link(rel='stylesheet' href='/stylesheets/photo/style.css')
     script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
     script.
