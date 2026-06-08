@@ -106,7 +106,6 @@ router.get('/color/:family', function(req, res) {
     activeSeries: null,
     activeColorFamily: family,
     colorLabel: info.label,
-    colorHex: info.hex,
     photos,
     title: info.label + ' — photo.dimazvali.com',
     desc: info.label + ' — аэрофотосъёмка Дмитрия Шестакова',
