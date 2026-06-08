@@ -26,8 +26,20 @@ html(data-theme='dark')
       gtag('js', new Date());
       gtag('config', 'G-LDMN4XFB42');
   body(data-series-url=seriesUrl || '')
+    header.mobile-header
+      button.burger#burger ☰
+      a.mobile-logo(href='/') dimazvali.com
+      button.theme-toggle(onclick='toggleTheme()' title='Тема') ◐
+    .mobile-colors
+      each family, key in colorFamilies
+        a.color-dot(
+          href=`/color/${key}`
+          title=family.label
+          style=`background:${family.hex}`
+          class=activeColorFamily===key?'active':''
+        )
     .site
-      aside.sidebar
+      aside.sidebar#sidebar
         .sidebar-logo
           a(href='/') dimazvali.com
           span Дмитрий Шестаков
@@ -50,14 +62,23 @@ html(data-theme='dark')
                       href=`/${countryKey}/${seriesKey}`
                       class=activeSeries === seriesKey ? 'active' : ''
                     ) #{series.label}
+        .sidebar-colors
+          each family, key in colorFamilies
+            a.color-dot(
+              href=`/color/${key}`
+              title=family.label
+              style=`background:${family.hex}`
+              class=activeColorFamily===key?'active':''
+            )
         .sidebar-footer
           .sidebar-contacts
             a(href='mailto:dimazvali@gmail.com') dimazvali@gmail.com
             a(href='https://t.me/dimazvali' target='_blank' rel='noopener') @dimazvali
             a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') @dimazvali2
           .sidebar-footer-bottom
-            a(href='/about') О СЕБЕ
+            //- a(href='/about') О СЕБЕ
             button.theme-toggle(onclick='toggleTheme()' title='Переключить тему') ◐
+      .sidebar-overlay#sidebar-overlay
       main.main
         block content
     script(src='/javascripts/photo/main.js')
