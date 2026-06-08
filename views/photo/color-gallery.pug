@@ -1,0 +1,20 @@
+extends layout
+
+block content
+  .gallery-header
+    span.gallery-label #{colorLabel} · #{photos.length} фото
+  .masonry
+    each photo in photos
+      a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
+        img(
+          src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
+          srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined
+          sizes=photo.urls ? '(max-width: 640px) calc(50vw - 12px), 400px' : undefined
+          alt=photo.title
+          loading='lazy'
+          onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+        )
+        .photo-overlay
+          span.photo-title= photo.title
+          if photo.date
+            span.photo-date= photo.date
