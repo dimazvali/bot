@@ -1,0 +1,11 @@
+extends layout
+
+block content
+  .request-sent
+    if err
+      .request-sent-title= lang === 'ru' ? '✗ Заполните все поля' : '✗ Please fill in all fields'
+      .request-sent-text= lang === 'ru' ? 'Вернитесь назад и заполните имя и контакт.' : 'Please go back and fill in your name and contact.'
+    else
+      .request-sent-title= lang === 'ru' ? '✓ Заявка отправлена' : '✓ Request sent'
+      .request-sent-text= lang === 'ru' ? 'Эка свяжется с вами в ближайшее время.' : 'Eka will get back to you shortly.'
+    a.btn(href=`/${lang}/`)= lang === 'ru' ? '← На главную' : '← Home'

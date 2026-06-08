@@ -1,0 +1,13 @@
+extends layout
+
+block content
+  .about-page
+    .about-title= lang === 'ru' ? 'Об Эке' : 'About Eka'
+    .about-photo
+      img(src='' alt='Эка Елисеева')
+    p.about-text= lang === 'ru' ? 'Меня зовут Эка Елисеева. Я живу в Тбилиси уже больше 10 лет и работаю гидом по всей Грузии. За эти годы я объездила каждый уголок страны — от Тушети до Аджарии, от Кахетии до Сванетии.' : 'My name is Eka Eliseeva. I have been living in Tbilisi for over 10 years and working as a guide throughout Georgia. Over the years I have explored every corner of the country — from Tusheti to Adjara, from Kakheti to Svaneti.'
+    p.about-text= lang === 'ru' ? 'Мои туры — авторские: я создаю маршруты сама, включая места, которые не найти в путеводителях, и знакомлю с людьми, которые делают Грузию такой, какая она есть.' : 'My tours are personal: I design routes myself, including places you won\'t find in guidebooks, and introduce you to the people who make Georgia what it is.'
+    .about-contacts
+      a.about-contact-link(href='https://t.me/eka_guide' target='_blank') Telegram: @eka_guide
+      a.about-contact-link(href='mailto:eka@example.com') Email: eka@example.com
+      a.about-contact-link(href='https://instagram.com/eka_guide' target='_blank') Instagram: @eka_guide
