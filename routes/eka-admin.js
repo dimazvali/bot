@@ -10,6 +10,7 @@ var ekaData = require('../lib/eka-data');
 
 // eka Firebase app initialized by eka.js (loaded first via router.use('/admin', ...))
 var ekaApp = getApps().find(function(a) { return a.name === 'eka'; });
+if (!ekaApp) throw new Error('eka-admin: Firebase "eka" app not initialized — load eka.js first');
 var fb = getFirestore(ekaApp);
 var bucket = getStorage(ekaApp).bucket();
 var adminTokens = fb.collection('ekaAdminTokens');
@@ -59,7 +60,7 @@ router.post('/login', express.urlencoded({ extended: false }), async function(re
     return res.render('eka/admin/login', { title: 'Вход — Eka Admin', error: 'Неверный пароль' });
   }
   var doc = await adminTokens.add({ createdAt: new Date() });
-  res.cookie('ekaAdminToken', doc.id, { signed: true, httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
+  res.cookie('ekaAdminToken', doc.id, { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
   res.redirect('/admin/');
 });
 
@@ -158,7 +159,8 @@ router.post('/directions/:id/delete', requireAuth, async function(req, res, next
 
 router.post('/directions/:id/gallery-delete', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
-    var idx = parseInt(req.body.index);
+    var idx = parseInt(req.body.index, 10);
+    if (isNaN(idx)) return res.status(400).send('Bad index');
     var direction = await ekaData.getDirection(req.params.id);
     var gallery = (direction.gallery || []).filter(function(_, i) { return i !== idx; });
     await ekaData.saveDirection(req.params.id, { gallery: gallery });
@@ -231,7 +233,7 @@ router.get('/requests', requireAuth, async function(req, res, next) {
 router.post('/requests/:id/status', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
     await ekaData.updateRequestStatus(req.params.id, req.body.status);
-    res.redirect(req.headers.referer || '/admin/requests');
+    res.redirect('/admin/requests');
   } catch (e) { next(e); }
 });
 
