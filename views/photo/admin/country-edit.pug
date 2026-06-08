@@ -23,6 +23,9 @@ html(data-theme='dark')
         form.admin-form(method='POST' action=`/admin/country/${countryKey}/archive`)
           button.admin-btn(type='submit')= country.archived ? 'РАЗАРХИВИРОВАТЬ' : 'АРХИВИРОВАТЬ'
         p.admin-hint Архивированная страна скрыта на публичном сайте, но доступна в админке.
+        form.admin-form(method='POST' action=`/admin/country/${countryKey}/toggle-feed`)
+          button.admin-btn(type='submit')= country.hiddenFromFeed ? 'ПОКАЗАТЬ В ОБЩЕЙ ВЫДАЧЕ' : 'СКРЫТЬ ИЗ ОБЩЕЙ ВЫДАЧИ'
+        p.admin-hint Страна остаётся доступной по прямой ссылке, но не появляется на главной, в тегах и цветовых фильтрах.
 
       if seriesKeys.length
         .admin-section

@@ -6,11 +6,16 @@ block content
       - const country = data[activeCountry]
       - const series = country.series[activeSeries]
       span.gallery-label #{country.label.toUpperCase()} · #{series.label.toUpperCase()} · #{photos.length} фото
-      button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
+      .gallery-header-right
+        button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
+        if isAdmin
+          a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/upload`) + фото
+          a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/edit`) ✎ серия
     else if activeCountry
       - const country = data[activeCountry]
       span.gallery-label #{country.label.toUpperCase()} · #{photos.length} фото
-      button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
+      .gallery-header-right
+        button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
     else
       span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
   if activeTags && activeTags.length

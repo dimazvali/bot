@@ -153,6 +153,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 }
 .gallery-shuffle:hover { color: var(--text); }
 
+.gallery-header-right { display: flex; align-items: center; gap: 12px; }
+
+.photo-page-back { display: flex; align-items: center; justify-content: space-between; }
+.admin-bar { display: flex; gap: 8px; }
+.admin-bar-btn {
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  font-family: monospace;
+  color: #664;
+  border: 1px solid #332;
+  padding: 3px 8px;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.admin-bar-btn:hover { color: #aa8; border-color: #664; }
+
 /* ─── MASONRY ────────────────────────────────────────────────── */
 .masonry {
   columns: 3;
@@ -209,6 +225,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
   position: relative;
   overflow: hidden;
   min-height: 60vh;
+  display: flex;
+  align-items: center;
   background: linear-gradient(
     90deg,
     var(--shimmer-base) 25%,

@@ -556,5 +556,10 @@
         ]
       }
     }
+  },
+  "food": {
+    "label": "food and drinks",
+    "series": {},
+    "hiddenFromFeed": true
   }
 }

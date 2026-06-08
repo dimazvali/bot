@@ -14,6 +14,7 @@ router.use('/admin', require('./photo-admin'));
 router.use(function(req, res, next) {
   res.locals.colorFamilies = COLOR_FAMILIES;
   res.locals.activeColorFamily = null;
+  res.locals.isAdmin = !!(req.signedCookies && req.signedCookies.photoAdminToken);
   next();
 });
 
@@ -33,7 +34,7 @@ function getAllPhotos() {
   var list = [];
   for (var countryKey of Object.keys(data)) {
     var country = data[countryKey];
-    if (country.archived) continue;
+    if (country.archived || country.hiddenFromFeed) continue;
     for (var seriesKey of getActiveSeries(country)) {
       var series = country.series[seriesKey];
       for (var photo of series.photos) {
@@ -166,7 +167,7 @@ router.get('/:country', (req, res) => {
   var country = data[countryKey];
   if (!country || country.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
 
-  trackView('country', countryKey, req.path);
+  trackView('country', countryKey, req.path, req);
 
   var photos = [];
   for (var seriesKey of getActiveSeries(country)) {
@@ -203,7 +204,7 @@ router.get('/:country/:series', (req, res) => {
   var series = country.series[seriesKey];
   if (!series || series.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
 
-  trackView('series', countryKey + '/' + seriesKey, req.path);
+  trackView('series', countryKey + '/' + seriesKey, req.path, req);
 
   var photos = series.photos.map(p => ({ countryKey, seriesKey, ...p }));
   var allTagsSeries = getTags();
@@ -245,7 +246,7 @@ router.get('/:country/:series/:id', (req, res) => {
   var prev = idx > 0 ? photos[idx - 1] : null;
   var next = idx < photos.length - 1 ? photos[idx + 1] : null;
 
-  trackView('photo', countryKey + '/' + seriesKey + '/' + id, req.path);
+  trackView('photo', countryKey + '/' + seriesKey + '/' + id, req.path, req);
 
   var photoTags = new Set(photo.tags || []);
   var related = [];

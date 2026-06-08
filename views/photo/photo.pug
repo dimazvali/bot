@@ -4,6 +4,10 @@ block content
   .photo-page
     .photo-page-back
       a(href=`/${countryKey}/${seriesKey}`) ← #{seriesLabel.toUpperCase()}
+      if isAdmin
+        .admin-bar
+          a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`) ✎ редактировать
+          a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/upload`) + фото
     .photo-page-image
       .photo-page-bg(style=`background-image: url(${photo.urls ? photo.urls.full : '/images/photo/' + countryKey + '/' + seriesKey + '/' + photo.file})`)
       img(

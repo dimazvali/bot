@@ -146,6 +146,16 @@ router.post('/country/:key/edit', requireAuth, (req, res) => {
   res.redirect(`/admin/country/${key}/edit`);
 });
 
+router.post('/country/:key/toggle-feed', requireAuth, (req, res) => {
+  var { key } = req.params;
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
+  var data = getData();
+  if (!data[key]) return res.redirect('/admin');
+  data[key].hiddenFromFeed = !data[key].hiddenFromFeed;
+  saveData(data);
+  res.redirect(`/admin/country/${key}/edit`);
+});
+
 router.post('/country/:key/archive', requireAuth, (req, res) => {
   var { key } = req.params;
   if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
