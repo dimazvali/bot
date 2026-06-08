@@ -1,0 +1,11 @@
+extends layout
+
+block content
+  .about-page
+    if ok
+      h2.about-title ГОТОВО
+      p.about-text Вы отписались от уведомлений.
+    else
+      h2.about-title ОШИБКА
+      p.about-text Ссылка недействительна или уже использована.
+    a.about-link(href='/') ← на главную

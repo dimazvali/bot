@@ -9,6 +9,7 @@ html(data-theme='dark')
       .admin-header
         a.admin-back(href=`/admin/country/${countryKey}/edit`) ← назад
         span.admin-logo #{countryLabel} · #{series.label}
+        a.admin-link(href=`/admin/${countryKey}/${seriesKey}/upload`) + ДОБАВИТЬ ФОТО
 
       .admin-section
         h2.admin-title ПЕРЕИМЕНОВАТЬ

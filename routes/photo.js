@@ -5,6 +5,7 @@ var { getData } = require('../lib/photo-data');
 var { getTags } = require('../lib/photo-tags');
 var { trackView } = require('../lib/photo-stats');
 var { COLOR_FAMILIES } = require('../lib/color-utils');
+var subscriptions = require('../lib/photo-subscriptions');
 
 router.use(express.static(path.join(__dirname, '../public')));
 
@@ -15,6 +16,7 @@ router.use(function(req, res, next) {
   res.locals.colorFamilies = COLOR_FAMILIES;
   res.locals.activeColorFamily = null;
   res.locals.isAdmin = !!(req.signedCookies && req.signedCookies.photoAdminToken);
+  res.locals.subStatus = req.query.sub || null;
   next();
 });
 
@@ -158,6 +160,34 @@ router.get('/sitemap.xml', (req, res) => {
 router.get('/robots.txt', (req, res) => {
   res.set('Content-Type', 'text/plain');
   res.send('User-agent: *\nAllow: /\nSitemap: https://photo.dimazvali.com/sitemap.xml\n');
+});
+
+// POST /subscribe
+router.post('/subscribe', express.urlencoded({ extended: false }), async (req, res) => {
+  var email = (req.body.email || '').trim().toLowerCase();
+  var back = req.headers.referer || '/';
+  var sep = back.includes('?') ? '&' : '?';
+  if (!email || !email.includes('@')) return res.redirect(back + sep + 'sub=err');
+  try {
+    await subscriptions.subscribe(email);
+    res.redirect(back + sep + 'sub=ok');
+  } catch (e) {
+    console.error('[subscribe]', e);
+    res.redirect(back + sep + 'sub=err');
+  }
+});
+
+// GET /unsubscribe
+router.get('/unsubscribe', async (req, res) => {
+  var { token } = req.query;
+  var ok = false;
+  if (token) ok = await subscriptions.unsubscribe(token).catch(() => false);
+  res.render('photo/unsubscribe', {
+    title: 'Отписка — photo.dimazvali.com',
+    ok,
+    data: getData(),
+    ogImage: null, ogUrl: null, breadcrumbs: null,
+  });
 });
 
 // GET /:country — all photos in a country

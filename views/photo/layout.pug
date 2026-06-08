@@ -76,6 +76,14 @@ html(data-theme='dark')
             a(href='mailto:dimazvali@gmail.com') dimazvali@gmail.com
             a(href='https://t.me/dimazvali' target='_blank' rel='noopener') @dimazvali
             a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') @dimazvali2
+          if subStatus === 'ok'
+            p.subscribe-msg ✓ вы подписаны
+          else if subStatus === 'err'
+            p.subscribe-msg ✗ попробуйте снова
+          else
+            form.subscribe-form(method='POST' action='/subscribe')
+              input.subscribe-input(type='email' name='email' placeholder='подписка на новые фото' required)
+              button.subscribe-btn(type='submit') →
           .sidebar-footer-bottom
             //- a(href='/about') О СЕБЕ
             button.theme-toggle(onclick='toggleTheme()' title='Переключить тему') ◐

@@ -8,6 +8,8 @@ var { getData, saveData, initFromFirestore } = require('../lib/photo-data');
 var { getTags, saveTags, initTagsFromFirestore } = require('../lib/photo-tags');
 var photoStats = require('../lib/photo-stats');
 var { extractColorFamily } = require('../lib/color-utils');
+var subscriptions = require('../lib/photo-subscriptions');
+var mailer = require('../lib/photo-mailer');
 
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
@@ -36,6 +38,8 @@ var adminTokens = fb.collection('PHOTOadminTokens');
 initFromFirestore(fb).catch(console.error);
 initTagsFromFirestore(fb).catch(console.error);
 photoStats.init(fb);
+subscriptions.init(fb);
+mailer.init();
 
 var upload = multer({
   storage: multer.memoryStorage(),
@@ -103,6 +107,43 @@ router.get('/logout', async (req, res) => {
 
 router.get('/', requireAuth, (req, res) => {
   res.render('photo/admin/index', { data: getData(), title: 'photo.dimazvali.com Admin' });
+});
+
+router.get('/stats', requireAuth, async (req, res) => {
+  var days = Math.min(parseInt(req.query.days) || 30, 90);
+  var env = process.env.PHOTO_ENV || 'dev';
+  var since = new Date();
+  since.setDate(since.getDate() - days);
+  try {
+    var snap = await fb.collection('photo_views')
+      .where('env', '==', env)
+      .where('timestamp', '>=', since)
+      .orderBy('timestamp', 'desc')
+      .limit(10000)
+      .get();
+    var byDay = {}, byEntity = {}, byDevice = { desktop: 0, mobile: 0, tablet: 0, unknown: 0 };
+    snap.docs.forEach(function(doc) {
+      var d = doc.data();
+      var ts = d.timestamp ? d.timestamp.toDate() : null;
+      if (!ts) return;
+      var day = ts.toISOString().slice(0, 10);
+      byDay[day] = (byDay[day] || 0) + 1;
+      var key = d.entityType + ':' + d.entityId;
+      byEntity[key] = (byEntity[key] || 0) + 1;
+      if (d.deviceType && byDevice[d.deviceType] !== undefined) byDevice[d.deviceType]++;
+    });
+    var allDays = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var dt = new Date(); dt.setDate(dt.getDate() - i);
+      var dayStr = dt.toISOString().slice(0, 10);
+      allDays.push({ day: dayStr, count: byDay[dayStr] || 0 });
+    }
+    var maxCount = Math.max.apply(null, allDays.map(function(d) { return d.count; }).concat([1]));
+    var topEntities = Object.entries(byEntity).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 20).map(function(e) { return { key: e[0], count: e[1] }; });
+    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: snap.size, allDays: allDays, maxCount: maxCount, topEntities: topEntities, byDevice: byDevice, error: null });
+  } catch (err) {
+    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: 0, allDays: [], maxCount: 1, topEntities: [], byDevice: {}, error: err.message });
+  }
 });
 
 router.post('/country', requireAuth, (req, res) => {
@@ -300,6 +341,13 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     if (colorFamily) photoEntry.colorFamily = colorFamily;
     data[country].series[series].photos.push(photoEntry);
     saveData(data);
+
+    mailer.sendPhotoNotification(photoEntry, {
+      countryLabel: data[country].label,
+      seriesLabel: data[country].series[series].label,
+      countryKey: country,
+      seriesKey: series,
+    }).catch(err => console.error('[mailer] notification error:', err.message));
 
     res.redirect(`/admin/${country}/${series}/upload`);
   } catch (err) {

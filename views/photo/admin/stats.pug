@@ -1,0 +1,47 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo СТАТИСТИКА
+        .stats-period
+          a.admin-link(href='?days=7' class=days===7?'active':'') 7Д
+          a.admin-link(href='?days=30' class=days===30?'active':'') 30Д
+          a.admin-link(href='?days=90' class=days===90?'active':'') 90Д
+
+      if error
+        .admin-section
+          p.admin-hint= error
+
+      else
+        .admin-section
+          h2.admin-title ПРОСМОТРЫ · #{days} ДНЕЙ · ИТОГО #{total}
+          .stats-chart
+            each item in allDays
+              .stats-bar-row
+                span.stats-day= item.day.slice(5)
+                .stats-bar-wrap
+                  if item.count
+                    .stats-bar(style=`width:${Math.round(item.count/maxCount*100)}%`)
+                span.stats-count= item.count || ''
+
+        .admin-section
+          h2.admin-title ТОП СТРАНИЦ
+          .admin-tag-list
+            each item in topEntities
+              .admin-tag-row
+                span.admin-tag-slug= item.key
+                span.admin-tag-label= item.count
+
+        .admin-section
+          h2.admin-title УСТРОЙСТВА
+          .admin-tag-list
+            each count, type in byDevice
+              .admin-tag-row
+                span.admin-tag-slug= type
+                span.admin-tag-label= count
