@@ -1,6 +1,5 @@
 'use strict';
 var https = require('https');
-var sharp = require('sharp');
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { initFromFirestore, getData, saveData } = require('../lib/photo-data');
