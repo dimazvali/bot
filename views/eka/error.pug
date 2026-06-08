@@ -1,1 +1,6 @@
-p Error: #{message}
+extends layout
+
+block content
+  .request-sent
+    .request-sent-title= message || 'Ошибка'
+    a.btn(href=`/${lang || 'ru'}/`) ← #{lang === 'en' ? 'Home' : 'Главная'}

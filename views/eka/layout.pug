@@ -1,0 +1,36 @@
+doctype html
+html(lang=lang)
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    if typeof ogUrl !== 'undefined' && ogUrl
+      link(rel='alternate' hreflang='ru' href=ogUrl.replace('/en/', '/ru/'))
+      link(rel='alternate' hreflang='en' href=ogUrl.replace('/ru/', '/en/'))
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body
+    nav.nav
+      a.nav-logo(href=`/${lang}/`)
+        | Эка Елисеева
+        span.nav-logo-sub= lang === 'ru' ? 'ГИД ПО ГРУЗИИ' : 'GEORGIA GUIDE'
+      .nav-links
+        a(href=`/${lang}/`)= lang === 'ru' ? 'Направления' : 'Directions'
+        a(href=`/${lang}/`)= lang === 'ru' ? 'Туры' : 'Tours'
+        a(href=`/${lang}/about`)= lang === 'ru' ? 'Об Эке' : 'About'
+        - var otherLang = lang === 'ru' ? 'en' : 'ru'
+        - var otherPath = (typeof currentPath !== 'undefined' && currentPath) ? currentPath.replace('/' + lang + '/', '/' + otherLang + '/') : '/' + otherLang + '/'
+        a.lang-toggle(href=otherPath)
+          span.lang-active= lang.toUpperCase()
+          |  / #{otherLang.toUpperCase()}
+    block content
+    footer.footer
+      .footer-name Эка Елисеева
+      .footer-links
+        a(href='https://t.me/eka_guide' target='_blank' rel='noopener') Telegram
+        a(href='https://wa.me/995500000000' target='_blank' rel='noopener') WhatsApp
+        a(href='https://instagram.com/eka_guide' target='_blank' rel='noopener') Instagram
+        a(href='mailto:eka@example.com') Email
+    script(src='/javascripts/eka/main.js')
