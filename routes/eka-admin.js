@@ -17,7 +17,7 @@ var adminTokens = fb.collection('ekaAdminTokens');
 
 var upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 30 * 1024 * 1024 },
+  limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: function(req, file, cb) {
     if (!file.mimetype.startsWith('image/')) return cb(new Error('Images only'));
     cb(null, true);
@@ -239,6 +239,13 @@ router.post('/requests/:id/status', requireAuth, express.urlencoded({ extended: 
     await ekaData.updateRequestStatus(req.params.id, req.body.status);
     res.redirect('/admin/requests');
   } catch (e) { next(e); }
+});
+
+router.use(function(err, req, res, next) {
+  if (err && err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(400).send('Файл слишком большой (макс. 100 МБ). <a href="javascript:history.back()">Назад</a>');
+  }
+  next(err);
 });
 
 module.exports = router;
