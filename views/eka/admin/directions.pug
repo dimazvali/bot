@@ -1,0 +1,43 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .section-header(style='margin-bottom:16px')
+        .admin-title(style='margin:0') Направления
+        a.admin-btn(href='/admin/directions/new') + Новое
+      p(style='font-size:11px;color:#bbb;margin-bottom:12px') Перетащите строки для изменения порядка, затем нажмите «Сохранить порядок».
+      table.admin-table(id='directionsList')
+        thead
+          tr
+            th ☰
+            th Название
+            th Slug
+            th Туров
+            th Статус
+            th
+        tbody
+          each dir in directions
+            tr(draggable='true' data-id=dir.id)
+              td(style='cursor:grab;color:#bbb') ☰
+              td= dir.titleRu
+              td(style='color:#bbb;font-size:11px')= dir.slug
+              td= tourCount[dir.id] || 0
+              td
+                if dir.published
+                  span.badge.badge-published Опубликовано
+                else
+                  span.badge.badge-draft Черновик
+              td: a(href='/admin/directions/' + dir.id + '/edit') Редактировать
+      br
+      button.admin-btn(id='saveOrderBtn') Сохранить порядок
+    script(src='/javascripts/eka/main.js')

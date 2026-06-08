@@ -1,0 +1,101 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title= directionId ? (direction.titleRu || 'Редактировать') : 'Новое направление'
+      - var formAction = directionId ? '/admin/directions/' + directionId + '/edit' : '/admin/directions/new/edit'
+      form.admin-form(method='POST' action=formAction enctype='multipart/form-data')
+        h3(style='font-size:14px;font-weight:500;margin-bottom:16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Основное
+        .admin-2col
+          .admin-field
+            label Заголовок (RU)
+            input(type='text' name='titleRu' value=direction && direction.titleRu || '' required)
+          .admin-field
+            label Title (EN)
+            input(type='text' name='titleEn' value=direction && direction.titleEn || '' required)
+        .admin-field
+          label Slug (URL)
+          input(type='text' name='slug' value=direction && direction.slug || '' placeholder='kazbegi' required)
+          p.admin-hint Только латинские буквы, цифры и дефис. Пример: kazbegi
+        .admin-2col
+          .admin-field
+            label Описание (RU)
+            textarea(name='descRu')= direction && direction.descRu || ''
+          .admin-field
+            label Description (EN)
+            textarea(name='descEn')= direction && direction.descEn || ''
+        .admin-2col
+          .admin-field
+            label Дополнительный текст (RU, необязательно)
+            textarea(name='extraTextRu' style='min-height:140px')= direction && direction.extraTextRu || ''
+            p.admin-hint Отображается после галереи. Абзацы разделяйте двойным переносом строки.
+          .admin-field
+            label Additional text (EN, optional)
+            textarea(name='extraTextEn' style='min-height:140px')= direction && direction.extraTextEn || ''
+
+        h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Мета-данные
+        .admin-2col
+          .admin-field
+            label Длительность (RU)
+            input(type='text' name='metaDurationRu' value=direction && direction.metaDurationRu || '' placeholder='1–2 дня')
+          .admin-field
+            label Duration (EN)
+            input(type='text' name='metaDurationEn' value=direction && direction.metaDurationEn || '' placeholder='1–2 days')
+        .admin-2col
+          .admin-field
+            label Сезон (RU)
+            input(type='text' name='metaSeasonRu' value=direction && direction.metaSeasonRu || '' placeholder='Май — Октябрь')
+          .admin-field
+            label Season (EN)
+            input(type='text' name='metaSeasonEn' value=direction && direction.metaSeasonEn || '' placeholder='May — October')
+        .admin-2col
+          .admin-field
+            label Расстояние (RU)
+            input(type='text' name='metaDistanceRu' value=direction && direction.metaDistanceRu || '' placeholder='150 км от Тбилиси')
+          .admin-field
+            label Distance (EN)
+            input(type='text' name='metaDistanceEn' value=direction && direction.metaDistanceEn || '' placeholder='150 km from Tbilisi')
+        .admin-field
+          label Размер группы
+          input(type='text' name='metaGroupSize' value=direction && direction.metaGroupSize || '' placeholder='до 8 человек / up to 8 people')
+
+        h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Изображения
+        .admin-field
+          label Hero-изображение (загрузить новое)
+          input(type='file' name='heroImage' accept='image/*')
+          if direction && direction.heroImageSizes
+            p.admin-hint(style='margin-top:8px') Текущее:
+            img(src=direction.heroImageSizes.w400 style='max-width:200px;margin-top:4px')
+        .admin-field
+          label Галерея (добавить изображения)
+          input(type='file' name='galleryImages' accept='image/*' multiple)
+          if direction && direction.gallery && direction.gallery.length
+            .admin-img-grid
+              each img, i in direction.gallery
+                .admin-img-item
+                  img(src=img.w400 alt='')
+                  form(method='POST' action='/admin/directions/' + directionId + '/gallery-delete' style='display:inline')
+                    input(type='hidden' name='index' value=i)
+                    button.admin-img-del(type='submit' title='Удалить') ✕
+
+        h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Публикация
+        .admin-field
+          label
+            input(type='checkbox' name='published' checked=direction && direction.published)
+            |  Опубликовано (видно на сайте)
+
+        .admin-field(style='display:flex;gap:12px;align-items:center')
+          button.admin-btn(type='submit') Сохранить
+          if directionId
+            form(method='POST' action='/admin/directions/' + directionId + '/delete' style='display:inline' onsubmit='return confirm("Удалить направление?")')
+              button.admin-btn.admin-btn-danger(type='submit') Удалить

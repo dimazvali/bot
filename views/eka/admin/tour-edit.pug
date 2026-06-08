@@ -1,0 +1,74 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title= tourId ? (tour.titleRu || 'Редактировать') : 'Новый тур'
+      - var formAction = tourId ? '/admin/tours/' + tourId + '/edit' : '/admin/tours/new/edit'
+      form.admin-form(method='POST' action=formAction)
+        .admin-field
+          label Направление
+          select(name='directionId')
+            option(value='') — выберите —
+            each dir in directions
+              option(value=dir.id selected=tour && tour.directionId === dir.id)= dir.titleRu
+        .admin-2col
+          .admin-field
+            label Название (RU)
+            input(type='text' name='titleRu' value=tour && tour.titleRu || '' required)
+          .admin-field
+            label Title (EN)
+            input(type='text' name='titleEn' value=tour && tour.titleEn || '' required)
+        .admin-2col
+          .admin-field
+            label Описание (RU)
+            textarea(name='descRu')= tour && tour.descRu || ''
+          .admin-field
+            label Description (EN)
+            textarea(name='descEn')= tour && tour.descEn || ''
+        .admin-2col
+          .admin-field
+            label Дата
+            - var dateVal = ''
+            if tour && tour.date
+              - var d = tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
+              - dateVal = d.toISOString().slice(0, 10)
+            input(type='date' name='date' value=dateVal required)
+          .admin-field
+            label Цена
+            input(type='number' name='price' value=tour && tour.price || '' placeholder='120')
+        .admin-2col
+          .admin-field
+            label Длительность (RU)
+            input(type='text' name='durationRu' value=tour && tour.durationRu || '' placeholder='1 день')
+          .admin-field
+            label Duration (EN)
+            input(type='text' name='durationEn' value=tour && tour.durationEn || '' placeholder='1 day')
+        .admin-2col
+          .admin-field
+            label Валюта
+            select(name='currency')
+              option(value='USD' selected=tour && tour.currency === 'USD') USD
+              option(value='GEL' selected=tour && tour.currency === 'GEL') GEL
+              option(value='RUB' selected=tour && tour.currency === 'RUB') RUB
+          .admin-field
+            label Макс. участников
+            input(type='number' name='maxParticipants' value=tour && tour.maxParticipants || '' placeholder='8')
+        .admin-field
+          label
+            input(type='checkbox' name='published' checked=tour && tour.published)
+            |  Опубликовано
+        .admin-field(style='display:flex;gap:12px;align-items:center')
+          button.admin-btn(type='submit') Сохранить
+          if tourId
+            form(method='POST' action='/admin/tours/' + tourId + '/delete' style='display:inline' onsubmit='return confirm("Удалить тур?")')
+              button.admin-btn.admin-btn-danger(type='submit') Удалить

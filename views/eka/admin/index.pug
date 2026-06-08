@@ -1,0 +1,45 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title Дашборд
+      .admin-stats
+        .admin-stat
+          .admin-stat-num= newRequestCount
+          .admin-stat-label Новых заявок
+        .admin-stat
+          .admin-stat-num= upcomingTours.length
+          .admin-stat-label Предстоящих туров
+      .section-header(style='margin-bottom:16px')
+        .section-title(style='font-size:16px') Предстоящие туры
+        a.admin-btn.btn-sm(href='/admin/tours/new') + Новый тур
+      if upcomingTours.length
+        table.admin-table
+          thead
+            tr
+              th Дата
+              th Направление
+              th Название
+              th Цена
+          tbody
+            each tour in upcomingTours
+              - var d = tour.date && tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
+              tr
+                td= d.toLocaleDateString('ru-RU')
+                td= tour.directionSlug || '—'
+                td: a(href='/admin/tours/' + tour.id + '/edit')= tour.titleRu
+                td= tour.price + ' ' + (tour.currency || '')
+      else
+        p(style='color:#bbb;font-size:13px') Нет предстоящих туров
+      br
+      a.admin-btn(href='/admin/directions/new') + Новое направление
