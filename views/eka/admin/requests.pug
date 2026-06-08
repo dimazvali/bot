@@ -39,12 +39,12 @@ html
         tbody
           each req in requests
             - var d = req.createdAt && req.createdAt.toDate ? req.createdAt.toDate() : new Date(req.createdAt || 0)
-            tr.req-row(onclick='this.classList.toggle("open")')
+            tr.req-row
               td= d.toLocaleDateString('ru-RU')
               td= req.type === 'tour' ? 'Тур' : 'Направление'
               td= req.directionSlug || req.tourTitle || '—'
               td= req.name
-              td= req.contactType + ': ' + req.contact
+              td= (req.contactType || '?') + ': ' + (req.contact || '?')
               td
                 span.badge(class='badge-' + (req.status || 'new'))= req.status || 'new'
             tr.req-detail
@@ -53,13 +53,15 @@ html
                   p #[strong Даты:] #{req.preferredDates}
                 if req.message
                   p #[strong Сообщение:] #{req.message}
-                p #[strong Язык:] #{req.lang}
+                p #[strong Язык:] #{req.lang || '—'}
                 form(method='POST' action='/admin/requests/' + req.id + '/status' style='margin-top:10px;display:flex;gap:8px')
                   select(name='status')
                     option(value='new' selected=req.status==='new') new
                     option(value='contacted' selected=req.status==='contacted') contacted
                     option(value='done' selected=req.status==='done') done
                   button.admin-btn.btn-sm(type='submit') Сохранить статус
+          else
+            tr: td(colspan='5' style='color:#bbb;text-align:center;padding:20px') Нет заявок
     script.
       document.querySelectorAll('.req-row').forEach(function(row) {
         row.addEventListener('click', function(e) {

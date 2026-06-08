@@ -79,14 +79,6 @@ html
         .admin-field
           label Галерея (добавить изображения)
           input(type='file' name='galleryImages' accept='image/*' multiple)
-          if direction && direction.gallery && direction.gallery.length
-            .admin-img-grid
-              each img, i in direction.gallery
-                .admin-img-item
-                  img(src=img.w400 alt='')
-                  form(method='POST' action='/admin/directions/' + directionId + '/gallery-delete' style='display:inline')
-                    input(type='hidden' name='index' value=i)
-                    button.admin-img-del(type='submit' title='Удалить') ✕
 
         h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Публикация
         .admin-field
@@ -96,6 +88,18 @@ html
 
         .admin-field(style='display:flex;gap:12px;align-items:center')
           button.admin-btn(type='submit') Сохранить
-          if directionId
-            form(method='POST' action='/admin/directions/' + directionId + '/delete' style='display:inline' onsubmit='return confirm("Удалить направление?")')
-              button.admin-btn.admin-btn-danger(type='submit') Удалить
+
+      if direction && direction.gallery && direction.gallery.length
+        .admin-field(style='margin-top:16px')
+          h3(style='font-size:14px;font-weight:500;margin-bottom:12px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Галерея — удаление изображений
+          .admin-img-grid
+            each img, i in direction.gallery
+              .admin-img-item
+                img(src=img.w400 alt='')
+                form(method='POST' action='/admin/directions/' + directionId + '/gallery-delete' style='display:inline')
+                  input(type='hidden' name='index' value=i)
+                  button.admin-img-del(type='submit' title='Удалить') ✕
+
+      if directionId
+        form(method='POST' action='/admin/directions/' + directionId + '/delete' style='margin-top:12px;display:inline' onsubmit='return confirm("Удалить направление?")')
+          button.admin-btn.admin-btn-danger(type='submit') Удалить

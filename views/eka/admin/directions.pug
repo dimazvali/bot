@@ -38,6 +38,8 @@ html
                 else
                   span.badge.badge-draft Черновик
               td: a(href='/admin/directions/' + dir.id + '/edit') Редактировать
+          else
+            tr: td(colspan='5' style='color:#bbb;text-align:center;padding:20px') Нет направлений
       br
       button.admin-btn(id='saveOrderBtn') Сохранить порядок
     script(src='/javascripts/eka/main.js')
