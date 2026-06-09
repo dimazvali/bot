@@ -11,12 +11,13 @@ mixin tourDate(tour)
 block content
   .hero
     .hero-photo
-      if profile && profile.photoSizes
+      - var heroSizes = (profile && profile.photoSizes) || (directions.length && directions[0].heroImageSizes)
+      if heroSizes
         picture
-          source(media='(max-width:800px)' srcset=profile.photoSizes.w800)
-          img(src=profile.photoSizes.w1400 alt='Эка Елисеева')
+          source(media='(max-width:800px)' srcset=heroSizes.w800)
+          img(src=heroSizes.w1400 alt='Эка Елисеева')
       else
-        .hero-photo-placeholder ФОТО ЭКИ
+        .hero-photo-placeholder
     .hero-text
       .hero-eyebrow= lang === 'ru' ? 'Авторские экскурсии · Тбилиси' : 'Private tours · Tbilisi'
       .hero-name
