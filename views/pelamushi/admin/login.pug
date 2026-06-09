@@ -1,0 +1,48 @@
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    title Login | Pelamushi Admin
+    link(rel='stylesheet' href='/stylesheets/pelamushi/admin.css')
+    script(src='https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js')
+    script(src='https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js')
+  body
+    .login-wrap
+      .login-card
+        .logo
+          img(src='/images/pelamushi/logo1.png' alt='Pelamushi')
+        h2 Admin Login
+        if error
+          .alert.alert-error
+            | #{error === 'forbidden' ? 'Access denied' : error === 'expired' ? 'Session expired, please sign in again' : error}
+        .form-row
+          label Email
+          input#email(type='email' placeholder='admin@example.com' autocomplete='email')
+        .form-row
+          label Password
+          input#password(type='password' placeholder='••••••••' autocomplete='current-password')
+        button.btn.btn-primary(onclick='doLogin()' style='width:100%') Sign in
+
+    script.
+      !function() {
+        var cfg = {
+          apiKey: "!{firebaseApiKey}",
+          authDomain: "!{firebaseProjectId}.firebaseapp.com",
+          projectId: "!{firebaseProjectId}",
+        };
+        if (!cfg.apiKey) { document.querySelector('.login-card').innerHTML += '<p style="color:red;margin-top:1rem;font-size:.85rem">Firebase not configured</p>'; return; }
+        firebase.initializeApp(cfg);
+      }();
+
+      async function doLogin() {
+        var email = document.getElementById('email').value;
+        var password = document.getElementById('password').value;
+        try {
+          var cred = await firebase.auth().signInWithEmailAndPassword(email, password);
+          var token = await cred.user.getIdToken();
+          document.cookie = 'pelamushi_token=' + token + '; path=/; max-age=3600; samesite=strict';
+          window.location.href = '/admin';
+        } catch(e) {
+          alert('Error: ' + e.message);
+        }
+      }

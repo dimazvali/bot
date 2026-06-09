@@ -1,0 +1,25 @@
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title Admin | Pelamushi
+    link(rel='stylesheet' href='/stylesheets/pelamushi/admin.css')
+    block head
+  body
+    .admin-wrap
+      .admin-sidebar
+        .logo
+          img(src='/images/pelamushi/logo1.png' alt='Pelamushi')
+        nav
+          a(href='/admin') Dashboard
+          a(href='/admin/about') About
+          a(href='/admin/menus') Menus
+          a(href='/admin/news') News
+          a(href='/admin/logout' style='margin-top:2rem;color:rgba(243,236,224,0.5)') Log out
+      .admin-main
+        .admin-header
+          h1 #{title || 'Admin'}
+          .topbar #{adminEmail}
+        block content
+    block scripts
