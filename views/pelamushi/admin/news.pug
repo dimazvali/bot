@@ -1,0 +1,39 @@
+extends layout
+
+block content
+  .card
+    h2 Articles
+    table.table
+      thead
+        tr
+          th Title (EN)
+          th Slug
+          th Event?
+          th
+      tbody
+        each a in articles
+          tr
+            td
+              a(href=`/admin/news/${a.id}`) #{a.title_en || '(untitled)'}
+            td #{a.slug}
+            td #{a.registration_enabled ? '✓' : ''}
+            td
+              form(action=`/admin/news/${a.id}/delete` method='POST')
+                button.btn.btn-danger.btn-sm(type='submit') Delete
+
+  .card
+    h2 New article
+    form(action='/admin/news/new' method='POST')
+      .form-row
+        label Title EN
+        input(name='title_en')
+      .form-row
+        label Title KA
+        input(name='title_ka')
+      .form-row
+        label Title RU
+        input(name='title_ru')
+      .form-row
+        label Slug (URL-safe)
+        input(name='slug')
+      button.btn.btn-primary(type='submit') Create draft

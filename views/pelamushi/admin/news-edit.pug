@@ -1,0 +1,56 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Saved
+
+  form(action=`/admin/news/${article.id}/save` method='POST' enctype='multipart/form-data')
+    .card
+      h2 Titles & slug
+      .form-row
+        label Title EN
+        input(name='title_en' value=article.title_en)
+      .form-row
+        label Title KA
+        input(name='title_ka' value=article.title_ka)
+      .form-row
+        label Title RU
+        input(name='title_ru' value=article.title_ru)
+      .form-row
+        label Slug
+        input(name='slug' value=article.slug)
+      .form-row
+        label Author
+        input(name='author' value=article.author)
+
+    .card
+      h2 Body (HTML allowed)
+      .form-row
+        label Body EN
+        textarea(name='body_en') #{article.body_en}
+      .form-row
+        label Body KA
+        textarea(name='body_ka') #{article.body_ka}
+      .form-row
+        label Body RU
+        textarea(name='body_ru') #{article.body_ru}
+
+    .card
+      h2 Cover photo
+      if article.photo_url
+        img(src=article.photo_url style='max-height:120px;border-radius:4px;margin-bottom:.75rem')
+      .form-row
+        label Replace photo
+        input(type='file' name='photo' accept='image/*')
+
+    .card
+      h2 Event settings
+      .form-row
+        label
+          input(type='checkbox' name='registration_enabled' checked=article.registration_enabled)
+          |  Enable event registration
+      .form-row
+        label Event date
+        input(type='datetime-local' name='event_date' value=article.event_date ? article.event_date.toDate ? article.event_date.toDate().toISOString().slice(0,16) : new Date(article.event_date).toISOString().slice(0,16) : '')
+
+    button.btn.btn-primary(type='submit') Save

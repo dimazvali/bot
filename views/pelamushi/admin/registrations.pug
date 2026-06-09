@@ -1,0 +1,24 @@
+extends layout
+
+block content
+  .card(style='margin-bottom:.75rem')
+    a.btn.btn-secondary(href='/admin/registrations/export.csv') Download CSV
+
+  .card
+    h2 Registrations
+    table.table
+      thead
+        tr
+          th Event
+          th Name
+          th Email
+          th Phone
+          th Date
+      tbody
+        each r in regs
+          tr
+            td #{newsMap[r.news_id] || r.news_id}
+            td #{r.name}
+            td #{r.email}
+            td #{r.phone || '—'}
+            td #{r.created_at ? new Date(r.created_at.toDate()).toLocaleDateString('en-GB') : ''}
