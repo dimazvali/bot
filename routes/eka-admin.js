@@ -247,6 +247,28 @@ router.post('/requests/:id/status', requireAuth, express.urlencoded({ extended: 
   } catch (e) { next(e); }
 });
 
+// ── PROFILE ──────────────────────────────────────────────
+router.get('/profile', requireAuth, async function(req, res, next) {
+  try {
+    var profile = await ekaData.getProfile();
+    res.render('eka/admin/profile', { title: 'Профиль — Eka Admin', profile: profile });
+  } catch (e) { next(e); }
+});
+
+router.post('/profile', requireAuth, upload.fields([{ name: 'photo', maxCount: 1 }]), async function(req, res, next) {
+  try {
+    var b = req.body;
+    var data = { bioRu: b.bioRu || '', bioEn: b.bioEn || '' };
+    if (req.files && req.files.photo && req.files.photo[0]) {
+      var sizes = await uploadImageSizes(req.files.photo[0].buffer, 'eka/profile/photo-{w}.webp');
+      data.photoSizes = sizes;
+      data.photo = sizes.w800;
+    }
+    await ekaData.saveProfile(data);
+    res.redirect('/admin/profile');
+  } catch (e) { next(e); }
+});
+
 router.use(function(err, req, res, next) {
   if (err && err.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).send('Файл слишком большой (макс. 100 МБ). <a href="javascript:history.back()">Назад</a>');

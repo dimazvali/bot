@@ -85,13 +85,17 @@ router.get('/:lang(ru|en)/tours/:id', async function(req, res, next) {
 });
 
 // ── ABOUT ────────────────────────────────────────────────
-router.get('/:lang(ru|en)/about', function(req, res) {
-  var lang = req.params.lang;
-  res.render('eka/about', {
-    lang,
-    title: lang === 'ru' ? 'Об Эке — Гид по Грузии' : 'About Eka — Georgia Guide',
-    currentPath: '/' + lang + '/about',
-  });
+router.get('/:lang(ru|en)/about', async function(req, res, next) {
+  try {
+    var lang = req.params.lang;
+    var profile = await ekaData.getProfile();
+    res.render('eka/about', {
+      lang,
+      profile,
+      title: lang === 'ru' ? 'Об Эке — Гид по Грузии' : 'About Eka — Georgia Guide',
+      currentPath: '/' + lang + '/about',
+    });
+  } catch (e) { next(e); }
 });
 
 // ── REQUEST SENT ─────────────────────────────────────────

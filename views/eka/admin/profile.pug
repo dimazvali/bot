@@ -1,0 +1,32 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/profile' style='color:#111') Профиль
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title Профиль — Эка Елисеева
+      form.admin-form(method='POST' action='/admin/profile' enctype='multipart/form-data')
+        .admin-field
+          label Фото (загрузить новое)
+          input(type='file' name='photo' accept='image/*')
+          if profile && profile.photoSizes
+            p.admin-hint(style='margin-top:8px') Текущее фото:
+            img(src=profile.photoSizes.w400 style='max-width:200px;margin-top:4px;border-radius:2px')
+        .admin-field
+          label Биография (RU)
+          textarea(name='bioRu' style='min-height:200px')= profile && profile.bioRu || ''
+          p.admin-hint Абзацы разделяйте двойным переносом строки.
+        .admin-field
+          label Biography (EN)
+          textarea(name='bioEn' style='min-height:200px')= profile && profile.bioEn || ''
+        .admin-field
+          button.admin-btn(type='submit') Сохранить
