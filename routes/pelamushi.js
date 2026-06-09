@@ -196,7 +196,7 @@ router.post('/:lang/news/:slug/register', async (req, res) => {
     name: name.trim(),
     email: email.trim().toLowerCase(),
     phone: (phone || '').trim(),
-    created_at: new Date(),
+    created_at: Timestamp.now(),
   });
 
   res.redirect(`/${lang}/news/${req.params.slug}?registered=1`);
