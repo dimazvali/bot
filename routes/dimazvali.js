@@ -96,12 +96,12 @@ let s = getStorage(gcp)
 //         console.log(err)
 //     })
 
-// setTimeout(function () {
-//     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=${ngrok}/dimazvali/hook`).then(() => {
-//         console.log(`dimazvali hook set on ${ngrok}`)
-//     }).catch(handleError)
-// }, 1000)
 
+setTimeout(function () {
+    axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=https://bot.dimazvali.com/hook`).then(() => {
+        console.log(`dimazvali hook set on ${ngrok}`)
+    }).catch(handleError)
+}, 1000)
 
 let adminTokens = fb.collection('DIMAZVALIadminTokens');
 let pages = fb.collection('DIMAZVALIpages');
@@ -361,7 +361,16 @@ router.post(`/hook`, (req, res) => {
 
     let user = {}
 
+
+
     devlog(JSON.stringify(req.body))
+
+    var from = (req.body.message || req.body.edited_message || req.body.callback_query || req.body.inline_query || {}).from;
+    if (from) {
+        getUser(from.id, udb).then(function(u) {
+            if (!u) registerUser(from);
+        });
+    }
 
     if (req.body.edited_message && req.body.edited_message.location) {
         handleLocation(req.body.edited_message.from.id, req.body.edited_message.location)

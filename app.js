@@ -40,18 +40,23 @@ process.on('warning', e => console.warn(e.stack));
 
 app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
 app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
+app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
+app.use('/dimazvali',     require('./routes/dimazvali'));
+
+
 app.use(vhost(`bot.*.*`,require('./routes/dimazvali')))
+app.use(vhost('bot.localhost', require('./routes/dimazvali')))
+
 app.use(vhost('photo.*.*', require('./routes/photo')))
 app.use(vhost('photo.localhost', require('./routes/photo')))
+
 app.use(vhost('eka.*.*', require('./routes/eka')))
 app.use(vhost('eka.localhost', require('./routes/eka')))
 
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
 
-app.use('/dimazvali',     require('./routes/dimazvali'));
 
 
 
