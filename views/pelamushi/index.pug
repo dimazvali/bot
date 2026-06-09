@@ -1,0 +1,33 @@
+extends layout
+
+block content
+  .hero(style=`background-image: url('/images/pelamushi/hero.jpg')`)
+    .hero-content
+      img(src='/images/pelamushi/logo3.png' alt='Pelamushi')
+      blockquote #{t.home.quote}
+
+  if upcomingEvent
+    .container
+      .event-highlight
+        div
+          h3 #{upcomingEvent['title_' + lang]}
+          p
+            | #{upcomingEvent.event_date ? new Date(upcomingEvent.event_date.toDate()).toLocaleDateString(lang === 'ka' ? 'ka-GE' : lang === 'ru' ? 'ru-RU' : 'en-GB', {day:'numeric', month:'long', year:'numeric'}) : ''}
+        a.btn.btn-terra(href=`/${lang}/news/${upcomingEvent.slug}`) #{t.news.register}
+
+  .section-cards
+    .section-card
+      .card-body
+        h3 #{t.home.about_link}
+        p #{about['mission_' + lang] ? about['mission_' + lang].substring(0,120) + '…' : ''}
+        a.card-link(href=`/${lang}/about`) #{t.nav.about} →
+    .section-card
+      .card-body
+        h3 #{t.home.menu_link}
+        p
+        a.card-link(href=`/${lang}/menu`) #{t.nav.menu} →
+    .section-card
+      .card-body
+        h3 #{t.home.news_link}
+        p
+        a.card-link(href=`/${lang}/news`) #{t.nav.news} →
