@@ -143,8 +143,14 @@ router.post('/directions/:id/edit', requireAuth, upload.fields([{ name: 'heroIma
 
     // Gallery images (append)
     if (req.files && req.files.galleryImages && req.files.galleryImages.length) {
-      var existing = (await ekaData.getDirection(savedId)).gallery || [];
-      var idx = existing.length;
+      var existingDoc = await ekaData.getDirection(savedId);
+      var existing = (existingDoc && existingDoc.gallery) || [];
+      // Derive next index from existing URLs so deletion never causes index reuse
+      var maxUsed = existing.reduce(function(max, item) {
+        var m = (item.w400 || '').match(/\/gallery-(\d+)-\d+\.webp/);
+        return m ? Math.max(max, parseInt(m[1], 10)) : max;
+      }, -1);
+      var idx = maxUsed + 1;
       var newItems = await Promise.all(req.files.galleryImages.map(async function(f, i) {
         return uploadImageSizes(f.buffer, 'eka/directions/' + savedId + '/gallery-' + (idx + i) + '-{w}.webp');
       }));
