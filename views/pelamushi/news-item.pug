@@ -1,0 +1,36 @@
+extends layout
+
+block content
+  .container.section
+    .article
+      if article.photo_url
+        .cover
+          img(src=article.photo_url alt=article['title_' + lang])
+      .article-meta
+        | #{article.published_at ? new Date(article.published_at.toDate()).toLocaleDateString(lang === 'ka' ? 'ka-GE' : lang === 'ru' ? 'ru-RU' : 'en-GB', {day:'numeric', month:'long', year:'numeric'}) : ''}
+        if article.author
+          |  · #{article.author}
+      h1 #{article['title_' + lang]}
+      .article-body
+        != article['body_' + lang]
+
+      if article.registration_enabled
+        .registration-form
+          if registered
+            .success-msg #{t.news.success}
+          else
+            h3 #{t.news.registration_title}
+            if article.event_date
+              p(style='color:var(--tan);font-size:.85rem;margin-bottom:1rem')
+                | #{new Date(article.event_date.toDate ? article.event_date.toDate() : article.event_date).toLocaleDateString(lang === 'ka' ? 'ka-GE' : lang === 'ru' ? 'ru-RU' : 'en-GB', {weekday:'long', day:'numeric', month:'long', year:'numeric'})}
+            form(action=`/${lang}/news/${article.slug}/register` method='POST')
+              .form-group
+                label #{t.news.field_name} *
+                input(type='text' name='name' required)
+              .form-group
+                label #{t.news.field_email} *
+                input(type='email' name='email' required)
+              .form-group
+                label #{t.news.field_phone}
+                input(type='tel' name='phone')
+              button.btn.btn-terra(type='submit') #{t.news.submit}
