@@ -1,0 +1,49 @@
+extends layout
+
+block content
+  .page-header
+    h1 #{menu['name_' + lang]}
+    if menu['desc_' + lang]
+      p #{menu['desc_' + lang]}
+
+  .container.section
+    a(href=`/${lang}/menu` style='font-size:.85rem;color:var(--tan)') #{t.menu.back}
+
+  .container.section
+    each cat in grouped
+      if cat.items.length
+        .menu-category
+          h3 #{cat['name_' + lang]}
+          .menu-items-grid
+            each item in cat.items
+              .menu-item
+                if item.photo_url
+                  .item-photo
+                    img(src=item.photo_url alt=item['name_' + lang])
+                .item-body
+                  .item-name #{item['name_' + lang]}
+                  if item['desc_' + lang]
+                    .item-desc #{item['desc_' + lang]}
+                  .item-price #{item.price} ₾
+                  if item.tags && item.tags.length
+                    .item-tags
+                      each tag in item.tags
+                        span.tag #{tag}
+
+    if uncategorized.length
+      .menu-category
+        .menu-items-grid
+          each item in uncategorized
+            .menu-item
+              if item.photo_url
+                .item-photo
+                  img(src=item.photo_url alt=item['name_' + lang])
+              .item-body
+                .item-name #{item['name_' + lang]}
+                if item['desc_' + lang]
+                  .item-desc #{item['desc_' + lang]}
+                .item-price #{item.price} ₾
+                if item.tags && item.tags.length
+                  .item-tags
+                    each tag in item.tags
+                      span.tag #{tag}
