@@ -1,0 +1,29 @@
+extends layout
+
+block content
+  .page-header
+    h1 #{t.about.title}
+
+  .container.section
+    if about['mission_' + lang]
+      p(style='font-size:1.15rem; max-width:720px; line-height:1.8; color:var(--charcoal)')
+        != about['mission_' + lang]
+
+  if gallery.length
+    .container.section
+      h2(style='margin-bottom:1.5rem') #{t.about.interior}
+      .photo-grid
+        each photo in gallery
+          .photo-item
+            img(src=photo.photo_url alt=(photo['caption_' + lang] || ''))
+
+  if team.length
+    .container.section
+      h2(style='margin-bottom:1.5rem') #{t.about.team}
+      .team-grid
+        each member in team
+          .team-card
+            .avatar
+              img(src=member.photo_url alt=member.name)
+            .name #{member.name}
+            .role #{member['role_' + lang]}
