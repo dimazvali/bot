@@ -1,0 +1,68 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Saved
+
+  .card
+    h2 Mission text
+    form(action='/admin/about/mission' method='POST')
+      .form-row
+        label EN
+        textarea(name='mission_en') #{about.mission_en}
+      .form-row
+        label KA
+        textarea(name='mission_ka') #{about.mission_ka}
+      .form-row
+        label RU
+        textarea(name='mission_ru') #{about.mission_ru}
+      button.btn.btn-primary(type='submit') Save
+
+  .card
+    h2 Interior gallery
+    div(style='display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem')
+      each photo in gallery
+        div(style='position:relative')
+          img(src=photo.photo_url style='width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px')
+          form(action=`/admin/about/gallery/${photo.id}/delete` method='POST' style='position:absolute;top:.3rem;right:.3rem')
+            button.btn.btn-danger.btn-sm(type='submit') ×
+    form(action='/admin/about/gallery/add' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Add photo
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Upload
+
+  .card
+    h2 Team
+    table.table
+      thead
+        tr
+          th Name
+          th Role (EN)
+          th
+      tbody
+        each member in team
+          tr
+            td #{member.name}
+            td #{member.role_en}
+            td
+              form(action=`/admin/about/team/${member.id}/delete` method='POST')
+                button.btn.btn-danger.btn-sm(type='submit') Delete
+    h3(style='margin:1.25rem 0 .75rem;font-size:.9rem;color:var(--navy)') Add team member
+    form(action='/admin/about/team/add' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Name
+        input(name='name')
+      .form-row
+        label Role EN
+        input(name='role_en')
+      .form-row
+        label Role KA
+        input(name='role_ka')
+      .form-row
+        label Role RU
+        input(name='role_ru')
+      .form-row
+        label Photo
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Add
