@@ -80,8 +80,10 @@ router.get('/:lang(ru|en)/tours/:id', async function(req, res, next) {
     var tour = await ekaData.getTour(id);
     if (!tour || !tour.published) return res.status(404).render('eka/error', { lang, message: 'Not found', error: {}, title: '404' });
     var direction = tour.directionId ? await ekaData.getDirection(tour.directionId) : null;
+    var bookedCount = tour.maxParticipants ? await ekaData.getBookedCount(id) : 0;
+    var remainingSpots = tour.maxParticipants ? Math.max(0, tour.maxParticipants - bookedCount) : null;
     var title = (lang === 'ru' ? tour.titleRu : tour.titleEn) + ' — Эка Елисеева';
-    res.render('eka/tour', { lang, tour, direction, title, currentPath: '/' + lang + '/tours/' + id });
+    res.render('eka/tour', { lang, tour, direction, remainingSpots, title, currentPath: '/' + lang + '/tours/' + id });
   } catch (e) { next(e); }
 });
 

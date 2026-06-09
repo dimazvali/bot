@@ -30,7 +30,6 @@ block content
 
   .dir-intro
     .dir-intro-text
-      h2= lang === 'ru' ? direction.titleRu : direction.titleEn
       p= lang === 'ru' ? direction.descRu : direction.descEn
     .dir-meta-list
       if direction.metaDistanceRu || direction.metaDistanceEn
@@ -52,8 +51,6 @@ block content
 
   if direction.gallery && direction.gallery.length
     .section
-      .section-header
-        .section-title= lang === 'ru' ? 'Галерея' : 'Gallery'
       .gallery
         each img, i in direction.gallery
           .gallery-item(class=i === 0 ? 'tall' : '')
@@ -74,7 +71,7 @@ block content
   if tours.length
     .section
       .section-header
-        .section-title= lang === 'ru' ? 'Туры в это направление' : 'Tours to this destination'
+        .section-title= lang === 'ru' ? 'Ближайшие даты' : 'Upcoming tours'
       .tours-list
         each tour in tours
           a.tour-row(href=`/${lang}/tours/${tour.id}`)
@@ -89,7 +86,7 @@ block content
               .amount= tour.price + ' ' + (tour.currency || 'USD')
               .currency= lang === 'ru' ? 'за человека' : 'per person'
 
-  .section(style='border-top: 1px solid #e8e8e8')
+  .section
     if tours.length
       .section-no-tours= lang === 'ru' ? 'Нет подходящего тура?' : 'No suitable tour?'
     +requestForm({

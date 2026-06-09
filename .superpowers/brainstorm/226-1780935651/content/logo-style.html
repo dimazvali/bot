@@ -1,0 +1,69 @@
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;700;900&family=Noto+Serif+Georgian:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+  .logo-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 160px;
+    margin-bottom: 12px;
+  }
+  .logo-preview svg {
+    width: 120px;
+    height: 120px;
+  }
+</style>
+
+<h2>Выбери стиль логотипа</h2>
+<p class="subtitle">Буквы დ და შ — три направления</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="circle" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="logo-preview">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="60" r="56" fill="#111"/>
+          <text x="60" y="75" text-anchor="middle" font-family="'Noto Sans Georgian', sans-serif" font-size="44" font-weight="700" fill="white">დშ</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Круг</h3>
+      <p>Тёмный круг, белые буквы. Минималистично, универсально.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="square" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="logo-preview">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="8" width="104" height="104" rx="12" fill="#111"/>
+          <text x="60" y="52" text-anchor="middle" font-family="'Noto Serif Georgian', serif" font-size="34" font-weight="700" fill="white">დ</text>
+          <line x1="30" y1="62" x2="90" y2="62" stroke="white" stroke-width="1.5" opacity="0.4"/>
+          <text x="60" y="93" text-anchor="middle" font-family="'Noto Serif Georgian', serif" font-size="34" font-weight="700" fill="white">შ</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Квадрат / стек</h3>
+      <p>Буквы стопкой с разделителем. Serif, классично.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="outline" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="logo-preview">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#111" stroke-width="3"/>
+          <text x="60" y="75" text-anchor="middle" font-family="'Noto Sans Georgian', sans-serif" font-size="44" font-weight="900" fill="#111">დშ</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Контур</h3>
+      <p>Белый фон, тёмный контур круга и жирные буквы. Чисто.</p>
+    </div>
+  </div>
+
+</div>

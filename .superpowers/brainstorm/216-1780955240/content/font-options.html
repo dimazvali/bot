@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Playfair+Display:wght@400;500&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #111; padding: 32px; }
+  h2 { font-size: 14px; letter-spacing: 3px; color: #aaa; text-transform: uppercase; margin-bottom: 8px; font-family: inherit; font-weight: 400; }
+  p.sub { font-size: 12px; color: #bbb; margin-bottom: 32px; }
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #e8e8e8; border: 1px solid #e8e8e8; }
+  .option { background: #fff; padding: 32px 28px; cursor: pointer; transition: background 0.15s; }
+  .option:hover { background: #fafafa; }
+  .option.selected { background: #f5f5f5; outline: 2px solid #111; outline-offset: -2px; }
+  .tag { font-size: 9px; letter-spacing: 3px; color: #bbb; text-transform: uppercase; margin-bottom: 16px; display: block; }
+  .sample-name { line-height: 1.05; margin-bottom: 16px; color: #111; }
+  .sample-section { font-size: 9px; letter-spacing: 4px; text-transform: uppercase; color: #aaa; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #e8e8e8; }
+  .sample-body { font-size: 11px; line-height: 1.7; color: #666; }
+  .font-name { font-size: 10px; letter-spacing: 1px; color: #aaa; margin-top: 20px; }
+
+  .opt-a .sample-name { font-family: 'Cormorant Garamond', serif; font-size: 42px; font-weight: 300; letter-spacing: -1px; }
+  .opt-b .sample-name { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 400; letter-spacing: -0.5px; }
+  .opt-c .sample-name { font-family: 'DM Serif Display', serif; font-size: 38px; font-weight: 400; letter-spacing: -0.5px; }
+</style>
+<script>
+  function pick(el) {
+    document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    if (window.superpowers) {
+      var choice = el.dataset.choice;
+      var text = el.querySelector('.font-name').textContent;
+      window.superpowers.select(choice, text);
+    }
+  }
+</script>
+</head>
+<body>
+
+<h2>Шрифт для заголовков</h2>
+<p class="sub">Все три — модные засечки, популярны в travel и editorial дизайне. Интерфейс — по-прежнему Helvetica/sans-serif.</p>
+
+<div class="options">
+
+  <div class="option opt-a" data-choice="cormorant" onclick="pick(this)">
+    <span class="tag">Вариант A</span>
+    <div class="sample-section">Направления</div>
+    <div class="sample-name">Эка<br>Елисеева</div>
+    <div class="sample-body">Живу в Грузии 12 лет. Показываю страну такой, какой её не видят из окна туристического автобуса.</div>
+    <div class="font-name">Cormorant Garamond · изящный, тонкий, люксовый</div>
+  </div>
+
+  <div class="option opt-b" data-choice="playfair" onclick="pick(this)">
+    <span class="tag">Вариант B</span>
+    <div class="sample-section">Направления</div>
+    <div class="sample-name">Эка<br>Елисеева</div>
+    <div class="sample-body">Живу в Грузии 12 лет. Показываю страну такой, какой её не видят из окна туристического автобуса.</div>
+    <div class="font-name">Playfair Display · классический, редакционный</div>
+  </div>
+
+  <div class="option opt-c" data-choice="dm-serif" onclick="pick(this)">
+    <span class="tag">Вариант C</span>
+    <div class="sample-section">Направления</div>
+    <div class="sample-name">Эка<br>Елисеева</div>
+    <div class="sample-body">Живу в Грузии 12 лет. Показываю страну такой, какой её не видят из окна туристического автобуса.</div>
+    <div class="font-name">DM Serif Display · современный, контрастный</div>
+  </div>
+
+</div>
+
+</body>
+</html>

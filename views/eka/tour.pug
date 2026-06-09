@@ -11,9 +11,18 @@ block content
       a(href=`/${lang}/directions/${direction.slug}`)= dirTitle
     |  / #{lang === 'ru' ? tour.titleRu : tour.titleEn}
 
-  .tour-page
-    .tour-page-title= lang === 'ru' ? tour.titleRu : tour.titleEn
+  .dir-hero
+    if direction && direction.heroImageSizes
+      picture
+        source(media='(max-width:800px)' srcset=direction.heroImageSizes.w800)
+        source(media='(max-width:1400px)' srcset=direction.heroImageSizes.w1400)
+        img(src=direction.heroImageSizes.w2400 alt=lang === 'ru' ? tour.titleRu : tour.titleEn)
+    .dir-hero-overlay
+    .dir-hero-content
+      .dir-hero-label= lang === 'ru' ? 'Тур' : 'Tour'
+      .dir-hero-title= lang === 'ru' ? tour.titleRu : tour.titleEn
 
+  .tour-page
     .tour-page-meta
       if tour.date
         .tour-meta-item
@@ -32,6 +41,10 @@ block content
         .tour-meta-item
           .tour-meta-label= lang === 'ru' ? 'Группа' : 'Group'
           .tour-meta-value= lang === 'ru' ? 'до ' + tour.maxParticipants + ' человек' : 'up to ' + tour.maxParticipants
+      if remainingSpots !== null
+        .tour-meta-item
+          .tour-meta-label= lang === 'ru' ? 'Осталось мест' : 'Spots left'
+          .tour-meta-value(class=remainingSpots === 0 ? 'spots-none' : remainingSpots <= 2 ? 'spots-low' : '')= remainingSpots === 0 ? (lang === 'ru' ? 'нет мест' : 'sold out') : remainingSpots
 
     if tour.descRu || tour.descEn
       .tour-page-desc= lang === 'ru' ? tour.descRu : tour.descEn

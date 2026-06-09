@@ -1,0 +1,72 @@
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Georgian:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+  .logo-preview {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 160px;
+    margin-bottom: 12px;
+    background: #f5f5f5;
+    border-radius: 8px;
+  }
+  .logo-preview svg { width: 120px; height: 120px; }
+</style>
+
+<h2>Какой вариант квадрата?</h2>
+<p class="subtitle">Цвет, скругление, разделитель</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="dark-rounded" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="logo-preview">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="108" height="108" rx="16" fill="#111"/>
+          <text x="60" y="52" text-anchor="middle" font-family="'Noto Serif Georgian', serif" font-size="36" font-weight="700" fill="white">დ</text>
+          <line x1="28" y1="63" x2="92" y2="63" stroke="white" stroke-width="1" opacity="0.35"/>
+          <text x="60" y="96" text-anchor="middle" font-family="'Noto Serif Georgian', serif" font-size="36" font-weight="700" fill="white">შ</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Тёмный, скруглённый</h3>
+      <p>Мягкие углы, белые буквы. Современно.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="dark-sharp" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="logo-preview">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="108" height="108" rx="0" fill="#111"/>
+          <text x="60" y="52" text-anchor="middle" font-family="'Noto Serif Georgian', serif" font-size="36" font-weight="700" fill="white">დ</text>
+          <line x1="20" y1="63" x2="100" y2="63" stroke="white" stroke-width="1.5" opacity="0.4"/>
+          <text x="60" y="96" text-anchor="middle" font-family="'Noto Serif Georgian', serif" font-size="36" font-weight="700" fill="white">შ</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Тёмный, острый</h3>
+      <p>Чёткие углы. Строго, лаконично.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="light-border" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="logo-preview" style="background: #e8e8e8;">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="108" height="108" rx="12" fill="white" stroke="#111" stroke-width="3"/>
+          <text x="60" y="52" text-anchor="middle" font-family="'Noto Serif Georgian', serif" font-size="36" font-weight="700" fill="#111">დ</text>
+          <line x1="28" y1="63" x2="92" y2="63" stroke="#111" stroke-width="1" opacity="0.3"/>
+          <text x="60" y="96" text-anchor="middle" font-family="'Noto Serif Georgian', serif" font-size="36" font-weight="700" fill="#111">შ</text>
+        </svg>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Светлый, контур</h3>
+      <p>Белый фон с рамкой. Хорошо на тёмном фоне.</p>
+    </div>
+  </div>
+
+</div>

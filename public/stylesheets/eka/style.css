@@ -22,6 +22,10 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
   justify-content: space-between;
   padding: 18px 40px;
   border-bottom: 1px solid #e8e8e8;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 100;
 }
 .nav-logo {
   font-family: 'Playfair Display', Georgia, serif;
@@ -104,7 +108,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .dir-hero-title { font-family: 'Playfair Display', Georgia, serif; font-size: 54px; font-weight: 400; color: #fff; line-height: 1; letter-spacing: -1px; }
 
 /* ── DIRECTION INTRO ── */
-.dir-intro { display: grid; grid-template-columns: 1fr 280px; gap: 60px; padding: 48px 40px; border-bottom: 1px solid #e8e8e8; }
+.dir-intro { display: grid; grid-template-columns: 1fr 280px; gap: 60px; padding: 48px 40px; }
 .dir-intro-text h2 { font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 400; margin-bottom: 16px; }
 .dir-intro-text p { font-size: 13px; line-height: 1.85; color: #666; }
 .dir-meta-list { padding-top: 4px; }
@@ -121,7 +125,7 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .gallery-item.tall { grid-row: span 2; aspect-ratio: unset; }
 
 /* ── EXTRA TEXT ── */
-.extra-text { padding: 36px 40px; border-bottom: 1px solid #e8e8e8; }
+.extra-text { padding: 36px 40px; }
 .extra-text-inner { display: grid; grid-template-columns: 180px 1fr; gap: 48px; }
 .extra-text-label { font-size: 9px; letter-spacing: 3px; color: #bbb; text-transform: uppercase; padding-top: 3px; }
 .extra-text-body { font-size: 13px; line-height: 1.85; color: #666; }
@@ -152,13 +156,14 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .section-no-tours { color: #bbb; font-size: 16px; margin-bottom: 20px; }
 
 /* ── TOUR PAGE ── */
-.tour-page { max-width: 760px; margin: 0 auto; padding: 48px 40px; }
-.tour-page-title { font-family: 'Playfair Display', Georgia, serif; font-size: 40px; font-weight: 400; line-height: 1.1; margin-bottom: 24px; }
-.tour-page-meta { display: flex; gap: 32px; flex-wrap: wrap; padding: 20px 0; border-top: 1px solid #e8e8e8; border-bottom: 1px solid #e8e8e8; margin-bottom: 32px; }
+.tour-page { padding: 48px 40px; }
+.tour-page-meta { display: flex; gap: 32px; flex-wrap: wrap; padding-bottom: 24px; margin-bottom: 32px; }
 .tour-meta-item { }
 .tour-meta-label { font-size: 9px; letter-spacing: 2px; color: #bbb; text-transform: uppercase; margin-bottom: 4px; }
 .tour-meta-value { font-family: 'Playfair Display', Georgia, serif; font-size: 18px; font-weight: 400; }
 .tour-page-desc { font-size: 13px; line-height: 1.85; color: #666; margin-bottom: 40px; }
+.tour-meta-value.spots-low { color: #c07000; }
+.tour-meta-value.spots-none { color: #c00; }
 
 /* ── ABOUT PAGE ── */
 .about-text { font-size: 13px; line-height: 1.85; color: #777; margin-bottom: 14px; }

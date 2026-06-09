@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&display=swap" rel="stylesheet">
+<title>Главная — макет v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #fff; color: #111; font-size: 14px; }
+  .serif { font-family: 'Playfair Display', serif; }
+
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid #e8e8e8; }
+  .nav-logo { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 400; }
+  .nav-logo span { font-family: 'Helvetica Neue', Arial, sans-serif; color: #bbb; font-size: 10px; margin-left: 10px; letter-spacing: 2px; }
+  .nav-links { display: flex; gap: 28px; align-items: center; }
+  .nav-links a { font-size: 10px; letter-spacing: 2px; color: #666; text-decoration: none; text-transform: uppercase; }
+  .nav-links a:hover { color: #111; }
+  .lang-toggle { font-size: 10px; letter-spacing: 2px; border: 1px solid #ddd; padding: 4px 10px; color: #bbb; cursor: pointer; }
+  .lang-toggle .active { color: #111; }
+
+  .hero { display: grid; grid-template-columns: 1fr 1fr; min-height: 500px; }
+  .hero-photo { background: linear-gradient(135deg, #d4c5b0, #c0aa88); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 3px; }
+  .hero-text { padding: 64px 52px; display: flex; flex-direction: column; justify-content: center; border-left: 1px solid #e8e8e8; }
+  .hero-eyebrow { font-size: 9px; letter-spacing: 4px; color: #bbb; text-transform: uppercase; margin-bottom: 20px; }
+  .hero-name { font-family: 'Playfair Display', serif; font-size: 52px; font-weight: 400; line-height: 1.05; letter-spacing: -1px; margin-bottom: 20px; }
+  .hero-bio { font-size: 13px; line-height: 1.85; color: #777; max-width: 360px; margin-bottom: 36px; }
+  .hero-cta { display: flex; gap: 12px; }
+  .btn { font-size: 9px; letter-spacing: 3px; text-transform: uppercase; padding: 11px 24px; text-decoration: none; cursor: pointer; display: inline-block; }
+  .btn-dark { border: 1px solid #111; color: #111; }
+  .btn-dark:hover { background: #111; color: #fff; }
+  .btn-light { border: 1px solid #ddd; color: #aaa; }
+
+  .section { padding: 56px 40px; }
+  .section-header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; padding-bottom: 14px; border-bottom: 1px solid #e8e8e8; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; }
+  .section-link { font-size: 10px; letter-spacing: 2px; color: #bbb; text-decoration: none; }
+
+  .directions-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #e8e8e8; border: 1px solid #e8e8e8; }
+  .dir-card { background: #fff; cursor: pointer; }
+  .dir-image { aspect-ratio: 4/3; display: flex; align-items: flex-end; padding: 16px; position: relative; }
+  .dir-image.c1 { background: linear-gradient(160deg,#c8d8d0,#a0b8b0); }
+  .dir-image.c2 { background: linear-gradient(160deg,#d4c5b0,#b8a080); }
+  .dir-image.c3 { background: linear-gradient(160deg,#c8c0d8,#a090c0); }
+  .dir-image.c4 { background: linear-gradient(160deg,#d8d0c0,#c0b090); }
+  .dir-image.c5 { background: linear-gradient(160deg,#c0d0c0,#90b090); }
+  .dir-image.c6 { background: linear-gradient(160deg,#d8c0c0,#c09090); }
+  .dir-name { font-family: 'Playfair Display', serif; font-size: 17px; color: #fff; text-shadow: 0 1px 6px rgba(0,0,0,0.4); position: relative; z-index: 1; }
+  .dir-meta { font-size: 9px; letter-spacing: 2px; color: rgba(255,255,255,0.7); margin-top: 2px; position: relative; z-index: 1; }
+  .dir-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.18); transition: opacity 0.2s; }
+  .dir-card:hover .dir-overlay { opacity: 0; }
+
+  .tours-list { border: 1px solid #e8e8e8; }
+  .tour-row { display: grid; grid-template-columns: 90px 1fr auto; gap: 24px; align-items: center; padding: 18px 24px; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+  .tour-row:last-child { border-bottom: none; }
+  .tour-row:hover { background: #fafafa; }
+  .tour-date { color: #999; }
+  .tour-date strong { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 400; color: #111; display: block; line-height: 1; }
+  .tour-date span { font-size: 9px; letter-spacing: 2px; }
+  .tour-name { font-size: 14px; margin-bottom: 4px; }
+  .tour-detail { font-size: 10px; letter-spacing: 1px; color: #bbb; }
+  .tour-price .amount { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 400; }
+  .tour-price .cur { font-size: 9px; letter-spacing: 1px; color: #bbb; margin-top: 2px; }
+
+  footer { border-top: 1px solid #e8e8e8; padding: 22px 40px; display: flex; justify-content: space-between; align-items: center; }
+  footer .f-left { font-family: 'Playfair Display', serif; font-size: 13px; color: #999; }
+  footer .f-links { display: flex; gap: 20px; }
+  footer .f-links a { font-size: 10px; letter-spacing: 1px; color: #bbb; text-decoration: none; }
+  footer .f-links a:hover { color: #111; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Эка Елисеева <span>ГИД ПО ГРУЗИИ</span></div>
+  <div class="nav-links">
+    <a href="#">Направления</a>
+    <a href="#">Туры</a>
+    <a href="#">О себе</a>
+    <div class="lang-toggle"><span class="active">RU</span> / EN</div>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-photo">ФОТО ЭКИ</div>
+  <div class="hero-text">
+    <div class="hero-eyebrow">Авторские экскурсии · Тбилиси</div>
+    <div class="hero-name">Эка<br>Елисеева</div>
+    <div class="hero-bio">Живу в Грузии 12 лет. Показываю страну такой, какой её не видят из окна туристического автобуса — через людей, вино, архитектуру и горы.</div>
+    <div class="hero-cta">
+      <a class="btn btn-dark" href="#">Смотреть туры</a>
+      <a class="btn btn-light" href="#">Обо мне</a>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <div class="section-title">Направления</div>
+    <a class="section-link" href="#">Все →</a>
+  </div>
+  <div class="directions-grid">
+    <div class="dir-card"><div class="dir-image c1"><div class="dir-overlay"></div><div><div class="dir-name">Казбеги</div><div class="dir-meta">4 ТУРА · 1–2 ДНЯ</div></div></div></div>
+    <div class="dir-card"><div class="dir-image c2"><div class="dir-overlay"></div><div><div class="dir-name">Сванетия</div><div class="dir-meta">2 ТУРА · 3–4 ДНЯ</div></div></div></div>
+    <div class="dir-card"><div class="dir-image c3"><div class="dir-overlay"></div><div><div class="dir-name">Кахетия</div><div class="dir-meta">3 ТУРА · 1 ДЕНЬ</div></div></div></div>
+    <div class="dir-card"><div class="dir-image c4"><div class="dir-overlay"></div><div><div class="dir-name">Тбилиси</div><div class="dir-meta">5 ТУРОВ · 2–3 ЧАС</div></div></div></div>
+    <div class="dir-card"><div class="dir-image c5"><div class="dir-overlay"></div><div><div class="dir-name">Боржоми</div><div class="dir-meta">НЕТ ТУРОВ</div></div></div></div>
+    <div class="dir-card"><div class="dir-image c6"><div class="dir-overlay"></div><div><div class="dir-name">Батуми</div><div class="dir-meta">1 ТУР · 2 ДНЯ</div></div></div></div>
+  </div>
+</div>
+
+<div class="section" style="padding-top:0">
+  <div class="section-header">
+    <div class="section-title">Ближайшие туры</div>
+    <a class="section-link" href="#">Все туры →</a>
+  </div>
+  <div class="tours-list">
+    <div class="tour-row">
+      <div class="tour-date"><strong>14</strong><span>ИЮН</span></div>
+      <div><div class="tour-name">Казбеги — горы и монастырь Гергети</div><div class="tour-detail">1 ДЕНЬ · ГРУППА ДО 8 ЧЕЛ</div></div>
+      <div class="tour-price"><div class="amount">120 $</div><div class="cur">за человека</div></div>
+    </div>
+    <div class="tour-row">
+      <div class="tour-date"><strong>21</strong><span>ИЮН</span></div>
+      <div><div class="tour-name">Кахетия — вино и монастыри</div><div class="tour-detail">1 ДЕНЬ · ГРУППА ДО 10 ЧЕЛ</div></div>
+      <div class="tour-price"><div class="amount">90 $</div><div class="cur">за человека</div></div>
+    </div>
+    <div class="tour-row">
+      <div class="tour-date"><strong>28</strong><span>ИЮН</span></div>
+      <div><div class="tour-name">Сванетия — 4 дня в горах</div><div class="tour-detail">4 ДНЯ · ГРУППА ДО 6 ЧЕЛ</div></div>
+      <div class="tour-price"><div class="amount">380 $</div><div class="cur">за человека</div></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="f-left">Эка Елисеева</div>
+  <div class="f-links">
+    <a href="#">Telegram</a>
+    <a href="#">WhatsApp</a>
+    <a href="#">Instagram</a>
+    <a href="#">Email</a>
+  </div>
+</footer>
+
+</body>
+</html>
