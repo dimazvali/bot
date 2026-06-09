@@ -19,7 +19,7 @@ block content
     .section-card
       .card-body
         h3 #{t.home.about_link}
-        p #{about['mission_' + lang] ? about['mission_' + lang].substring(0,120) + '…' : ''}
+        p #{about['mission_' + lang] ? about['mission_' + lang].replace(/<[^>]+>/g, '').substring(0,120) + '…' : ''}
         a.card-link(href=`/${lang}/about`) #{t.nav.about} →
     .section-card
       .card-body
