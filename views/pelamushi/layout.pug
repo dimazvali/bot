@@ -1,0 +1,40 @@
+doctype html
+html(lang=lang)
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title #{pageTitle ? pageTitle + ' | ' : ''}ფელამუში · Pelamushi
+    meta(name='description' content=pageDesc || t.footer.tagline)
+    link(rel='icon' href='/images/pelamushi/logo1.png')
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com')
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Noto+Sans+Georgian:wght@400;600&family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Noto+Serif+Georgian:ital,wght@0,400;0,700;1,400&display=swap')
+    link(rel='stylesheet' href='/stylesheets/pelamushi/web.css')
+    block head
+
+  body
+    nav.site-nav
+      .inner
+        a.logo(href=`/${lang}`)
+          img(src='/images/pelamushi/logo1.png' alt='Pelamushi')
+        .links#nav-links
+          a(href=`/${lang}/about`) #{t.nav.about}
+          a(href=`/${lang}/menu`) #{t.nav.menu}
+          a(href=`/${lang}/news`) #{t.nav.news}
+          .lang-switch
+            each code in ['ka', 'en', 'ru']
+              a(href=`/lang/${code}` class=lang === code ? 'active' : '') #{code.toUpperCase()}
+        button.burger(onclick='document.getElementById("nav-links").classList.toggle("open")' aria-label='Menu')
+          span
+          span
+          span
+
+    block content
+
+    footer.site-footer
+      .footer-logo
+        img(src='/images/pelamushi/logo1.png' alt='Pelamushi')
+      p #{t.footer.address}
+      p #{t.footer.tagline}
+
+    block scripts
