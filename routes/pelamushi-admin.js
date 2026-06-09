@@ -4,7 +4,7 @@ const { col } = require('../lib/pelamushi-firebase');
 const { requireAdmin } = require('../lib/pelamushi-auth');
 
 const FIREBASE_API_KEY    = process.env.PELAMUSHI_WEB_API_KEY || '';
-const FIREBASE_PROJECT_ID = process.env.PELAMUSHI_PROJECT_ID  || '';
+const FIREBASE_PROJECT_ID = 'dimazvalimisc';
 
 // Login — no auth required
 router.get('/login', (req, res) => {
