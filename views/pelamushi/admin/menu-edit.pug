@@ -1,0 +1,109 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Saved
+
+  .card
+    h2 Menu settings
+    form(action=`/admin/menus/${menu.id}/save` method='POST')
+      .form-row
+        label Name EN
+        input(name='name_en' value=menu.name_en)
+      .form-row
+        label Name KA
+        input(name='name_ka' value=menu.name_ka)
+      .form-row
+        label Name RU
+        input(name='name_ru' value=menu.name_ru)
+      .form-row
+        label Description EN
+        input(name='desc_en' value=menu.desc_en)
+      .form-row
+        label Description KA
+        input(name='desc_ka' value=menu.desc_ka)
+      .form-row
+        label Description RU
+        input(name='desc_ru' value=menu.desc_ru)
+      .form-row
+        label Slug
+        input(name='slug' value=menu.slug)
+      .form-row
+        label Type
+        select(name='type')
+          option(value='permanent' selected=menu.type==='permanent') Permanent
+          option(value='event' selected=menu.type==='event') Event / Guestshift
+      .form-row
+        label
+          input(type='checkbox' name='active' checked=menu.active)
+          |  Active
+      button.btn.btn-primary(type='submit') Save
+
+  .card
+    h2 Categories
+    table.table
+      thead
+        tr
+          th Name (EN)
+          th
+      tbody
+        each cat in categories
+          tr
+            td #{cat.name_en}
+            td
+              form(action=`/admin/menus/${menu.id}/categories/${cat.id}/delete` method='POST')
+                button.btn.btn-danger.btn-sm(type='submit') Delete
+    form(action=`/admin/menus/${menu.id}/categories/add` method='POST' style='margin-top:1rem')
+      .form-row
+        label Category name EN / KA / RU
+        input(name='name_en' placeholder='EN')
+        input(name='name_ka' placeholder='KA' style='margin-top:.4rem')
+        input(name='name_ru' placeholder='RU' style='margin-top:.4rem')
+      button.btn.btn-secondary.btn-sm(type='submit') Add category
+
+  .card
+    h2 Items
+    table.table
+      thead
+        tr
+          th Name (EN)
+          th Price
+          th Category
+          th
+      tbody
+        each item in items
+          tr
+            td #{item.name_en}
+            td #{item.price} ₾
+            td #{item.category_id ? categories.find(c => c.id === item.category_id) && categories.find(c => c.id === item.category_id).name_en || item.category_id : '—'}
+            td
+              form(action=`/admin/menus/${menu.id}/items/${item.id}/delete` method='POST')
+                button.btn.btn-danger.btn-sm(type='submit') Delete
+    h3(style='margin:1.25rem 0 .75rem;font-size:.9rem;color:var(--navy)') Add item
+    form(action=`/admin/menus/${menu.id}/items/add` method='POST' enctype='multipart/form-data')
+      .form-row
+        label Name EN / KA / RU
+        input(name='name_en' placeholder='EN')
+        input(name='name_ka' placeholder='KA' style='margin-top:.4rem')
+        input(name='name_ru' placeholder='RU' style='margin-top:.4rem')
+      .form-row
+        label Description EN / KA / RU
+        input(name='desc_en' placeholder='EN')
+        input(name='desc_ka' placeholder='KA' style='margin-top:.4rem')
+        input(name='desc_ru' placeholder='RU' style='margin-top:.4rem')
+      .form-row
+        label Price (₾)
+        input(type='number' name='price' step='0.01' min='0')
+      .form-row
+        label Category
+        select(name='category_id')
+          option(value='') — none —
+          each cat in categories
+            option(value=cat.id) #{cat.name_en}
+      .form-row
+        label Tags (comma-separated, e.g. vegan,gluten-free)
+        input(name='tags')
+      .form-row
+        label Photo
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Add item

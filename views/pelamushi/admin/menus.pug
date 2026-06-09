@@ -1,0 +1,53 @@
+extends layout
+
+block content
+  .card
+    h2 All menus
+    table.table
+      thead
+        tr
+          th Name (EN)
+          th Type
+          th Slug
+          th
+      tbody
+        each m in menus
+          tr
+            td
+              a(href=`/admin/menus/${m.id}`) #{m.name_en}
+            td #{m.type}
+            td #{m.slug}
+            td
+              form(action=`/admin/menus/${m.id}/delete` method='POST')
+                button.btn.btn-danger.btn-sm(type='submit') Delete
+
+  .card
+    h2 New menu
+    form(action='/admin/menus/new' method='POST')
+      .form-row
+        label Name EN
+        input(name='name_en')
+      .form-row
+        label Name KA
+        input(name='name_ka')
+      .form-row
+        label Name RU
+        input(name='name_ru')
+      .form-row
+        label Description EN
+        input(name='desc_en')
+      .form-row
+        label Description KA
+        input(name='desc_ka')
+      .form-row
+        label Description RU
+        input(name='desc_ru')
+      .form-row
+        label Slug (URL-safe, e.g. cafe-menu)
+        input(name='slug')
+      .form-row
+        label Type
+        select(name='type')
+          option(value='permanent') Permanent
+          option(value='event') Event / Guestshift
+      button.btn.btn-primary(type='submit') Create

@@ -127,4 +127,242 @@ router.post('/about/team/:id/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Menus ────────────────────────────────────────────────────────────────────
+router.get('/menus', async (req, res, next) => {
+  try {
+    let menus = [];
+    if (col.menus) {
+      const snap = await col.menus.orderBy('order').get();
+      menus = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    res.render('pelamushi/admin/menus', { title: 'Menus', menus });
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/new', async (req, res, next) => {
+  try {
+    const { name_en, name_ka, name_ru, desc_en, desc_ka, desc_ru, slug, type } = req.body;
+    if (col.menus) {
+      const snap = await col.menus.orderBy('order', 'desc').limit(1).get();
+      const nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      await col.menus.add({
+        name_en: name_en || '', name_ka: name_ka || '', name_ru: name_ru || '',
+        desc_en: desc_en || '', desc_ka: desc_ka || '', desc_ru: desc_ru || '',
+        slug: slug || '', type: type || 'permanent',
+        active: true, order: nextOrder, created_at: new Date(),
+      });
+    }
+    res.redirect('/admin/menus');
+  } catch (err) { next(err); }
+});
+
+router.get('/menus/:id', async (req, res, next) => {
+  try {
+    if (!col.menus) return res.render('pelamushi/admin/menu-edit', { title: 'Edit Menu', menu: {}, categories: [], items: [], saved: false });
+    const [menuDoc, catsSnap, itemsSnap] = await Promise.all([
+      col.menus.doc(req.params.id).get(),
+      col.categories.where('menu_id', '==', req.params.id).orderBy('order').get(),
+      col.items.where('menu_id', '==', req.params.id).orderBy('order').get(),
+    ]);
+    if (!menuDoc.exists) return res.status(404).send('Not found');
+    res.render('pelamushi/admin/menu-edit', {
+      title: 'Edit Menu',
+      menu: { id: menuDoc.id, ...menuDoc.data() },
+      categories: catsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      items: itemsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      saved: req.query.saved === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/:id/save', async (req, res, next) => {
+  try {
+    const { name_en, name_ka, name_ru, desc_en, desc_ka, desc_ru, slug, type, active } = req.body;
+    if (col.menus) {
+      await col.menus.doc(req.params.id).update({
+        name_en: name_en || '', name_ka: name_ka || '', name_ru: name_ru || '',
+        desc_en: desc_en || '', desc_ka: desc_ka || '', desc_ru: desc_ru || '',
+        slug: slug || '', type: type || 'permanent',
+        active: active === 'on',
+        updated_at: new Date(),
+      });
+    }
+    res.redirect(`/admin/menus/${req.params.id}?saved=1`);
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/:id/delete', async (req, res, next) => {
+  try {
+    if (col.menus) await col.menus.doc(req.params.id).delete();
+    res.redirect('/admin/menus');
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/:id/categories/add', async (req, res, next) => {
+  try {
+    const { name_en, name_ka, name_ru } = req.body;
+    if (col.categories) {
+      const snap = await col.categories.where('menu_id', '==', req.params.id).orderBy('order', 'desc').limit(1).get();
+      const nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      await col.categories.add({ menu_id: req.params.id, name_en: name_en || '', name_ka: name_ka || '', name_ru: name_ru || '', order: nextOrder });
+    }
+    res.redirect(`/admin/menus/${req.params.id}`);
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/:id/categories/:catId/delete', async (req, res, next) => {
+  try {
+    if (col.categories) await col.categories.doc(req.params.catId).delete();
+    res.redirect(`/admin/menus/${req.params.id}`);
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/:id/items/add', async (req, res, next) => {
+  try {
+    const { name_en, name_ka, name_ru, desc_en, desc_ka, desc_ru, price, category_id, tags } = req.body;
+    let photo_url = '';
+    if (req.files && req.files.photo) {
+      const { uploadPhoto } = require('../lib/pelamushi-upload');
+      photo_url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'menu-items', 'item');
+    }
+    if (col.items) {
+      const snap = await col.items.where('menu_id', '==', req.params.id).orderBy('order', 'desc').limit(1).get();
+      const nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      const tagsArr = tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+      await col.items.add({
+        menu_id: req.params.id,
+        category_id: category_id || null,
+        name_en: name_en || '', name_ka: name_ka || '', name_ru: name_ru || '',
+        desc_en: desc_en || '', desc_ka: desc_ka || '', desc_ru: desc_ru || '',
+        price: parseFloat(price) || 0,
+        tags: tagsArr,
+        photo_url,
+        active: true,
+        order: nextOrder,
+      });
+    }
+    res.redirect(`/admin/menus/${req.params.id}`);
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/:id/items/:itemId/delete', async (req, res, next) => {
+  try {
+    if (col.items) await col.items.doc(req.params.itemId).delete();
+    res.redirect(`/admin/menus/${req.params.id}`);
+  } catch (err) { next(err); }
+});
+
+// ── News ─────────────────────────────────────────────────────────────────────
+router.get('/news', async (req, res, next) => {
+  try {
+    let articles = [];
+    if (col.news) {
+      const snap = await col.news.orderBy('published_at', 'desc').limit(50).get();
+      articles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    res.render('pelamushi/admin/news', { title: 'News', articles });
+  } catch (err) { next(err); }
+});
+
+router.post('/news/new', async (req, res, next) => {
+  try {
+    const { title_en, title_ka, title_ru, slug } = req.body;
+    if (col.news) {
+      const { Timestamp } = require('../lib/pelamushi-firebase');
+      const ref = await col.news.add({
+        title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
+        body_en: '', body_ka: '', body_ru: '',
+        slug: slug || '',
+        author: '',
+        photo_url: '',
+        registration_enabled: false,
+        event_date: null,
+        published_at: Timestamp.now(),
+      });
+      return res.redirect(`/admin/news/${ref.id}`);
+    }
+    res.redirect('/admin/news');
+  } catch (err) { next(err); }
+});
+
+router.get('/news/:id', async (req, res, next) => {
+  try {
+    let article = {};
+    if (col.news) {
+      const doc = await col.news.doc(req.params.id).get();
+      if (!doc.exists) return res.status(404).send('Not found');
+      article = { id: doc.id, ...doc.data() };
+    }
+    res.render('pelamushi/admin/news-edit', {
+      title: 'Edit Article',
+      article,
+      saved: req.query.saved === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/news/:id/save', async (req, res, next) => {
+  try {
+    const { title_en, title_ka, title_ru, body_en, body_ka, body_ru, slug, author, registration_enabled, event_date } = req.body;
+    const update = {
+      title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
+      body_en: body_en || '', body_ka: body_ka || '', body_ru: body_ru || '',
+      slug: slug || '',
+      author: author || '',
+      registration_enabled: registration_enabled === 'on',
+      updated_at: new Date(),
+    };
+    if (event_date) {
+      update.event_date = new Date(event_date);
+    } else {
+      update.event_date = null;
+    }
+    if (req.files && req.files.photo) {
+      const { uploadPhoto } = require('../lib/pelamushi-upload');
+      update.photo_url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'news', 'cover');
+    }
+    if (col.news) await col.news.doc(req.params.id).update(update);
+    res.redirect(`/admin/news/${req.params.id}?saved=1`);
+  } catch (err) { next(err); }
+});
+
+router.post('/news/:id/delete', async (req, res, next) => {
+  try {
+    if (col.news) await col.news.doc(req.params.id).delete();
+    res.redirect('/admin/news');
+  } catch (err) { next(err); }
+});
+
+// ── Registrations ────────────────────────────────────────────────────────────
+router.get('/registrations', async (req, res, next) => {
+  try {
+    let regs = [], newsMap = {};
+    if (col.registrations) {
+      const [regsSnap, newsSnap] = await Promise.all([
+        col.registrations.orderBy('created_at', 'desc').limit(200).get(),
+        col.news.get(),
+      ]);
+      newsMap = Object.fromEntries(newsSnap.docs.map(d => [d.id, d.data().title_en || d.id]));
+      regs = regsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    res.render('pelamushi/admin/registrations', { title: 'Registrations', regs, newsMap });
+  } catch (err) { next(err); }
+});
+
+router.get('/registrations/export.csv', async (req, res, next) => {
+  try {
+    if (!col.registrations) return res.status(503).send('Unavailable');
+    const snap = await col.registrations.orderBy('created_at', 'desc').get();
+    const rows = snap.docs.map(d => {
+      const r = d.data();
+      const date = r.created_at ? r.created_at.toDate().toISOString() : '';
+      return [r.news_id, r.name, r.email, r.phone, date].map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(',');
+    });
+    const csv = 'news_id,name,email,phone,created_at\n' + rows.join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="registrations.csv"');
+    res.send(csv);
+  } catch (err) { next(err); }
+});
+
 module.exports = router;
