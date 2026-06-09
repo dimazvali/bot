@@ -3,6 +3,7 @@ mixin requestForm(opts)
     var formTitle = opts.formTitle
     var formSub = opts.formSub
     var hiddenFields = opts.hiddenFields || {}
+    var isTour = hiddenFields.type === 'tour'
     var err = typeof req !== 'undefined' && req && req.query && req.query.err
   .request-box
     .request-box-title= formTitle
@@ -28,8 +29,12 @@ mixin requestForm(opts)
           label.form-label(id='contactLabel')= lang === 'ru' ? 'Email *' : 'Email *'
           input.form-input(type='text' name='contact' required placeholder='your@email.com' id='contactInput')
         .form-group
-          label.form-label= lang === 'ru' ? 'Удобные даты' : 'Preferred dates'
-          input.form-input(type='text' name='preferredDates' placeholder=lang === 'ru' ? 'Например: июль, выходные' : 'E.g. July, any weekend')
+          if isTour
+            label.form-label= lang === 'ru' ? 'Количество человек' : 'Number of people'
+            input.form-input(type='number' name='participants' min='1' max='20' value='1')
+          else
+            label.form-label= lang === 'ru' ? 'Удобные даты' : 'Preferred dates'
+            input.form-input(type='text' name='preferredDates' placeholder=lang === 'ru' ? 'Например: июль, выходные' : 'E.g. July, any weekend')
       .form-group(style='margin-bottom:20px')
         label.form-label= lang === 'ru' ? 'Комментарий' : 'Message'
         textarea.form-textarea(name='message' placeholder=lang === 'ru' ? 'Особые пожелания, количество человек...' : 'Special requests, number of people...')

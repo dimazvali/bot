@@ -1,0 +1,80 @@
+extends layout
+
+block content
+  .ticket-page
+    .ticket-hero
+      if direction && direction.heroImageSizes
+        picture
+          source(media='(max-width:800px)' srcset=direction.heroImageSizes.w800)
+          img(src=direction.heroImageSizes.w1400 alt='')
+      .ticket-hero-overlay
+      .ticket-hero-content
+        .ticket-eyebrow= lang === 'ru' ? 'Ваш тур · Эка Елисеева' : 'Your tour · Eka Eliseeva'
+        .ticket-title= tour ? (lang === 'ru' ? tour.titleRu : tour.titleEn) : (lang === 'ru' ? 'Тур' : 'Tour')
+
+    .ticket-body
+      .ticket-section
+        .ticket-section-label= lang === 'ru' ? 'Участник' : 'Guest'
+        .ticket-name= booking.name
+        if booking.contact
+          .ticket-contact= (booking.contactType || '') + ' ' + booking.contact
+
+      if tour
+        .ticket-section
+          .ticket-meta-grid
+            if tour.date
+              .ticket-meta-item
+                .ticket-meta-label= lang === 'ru' ? 'Дата' : 'Date'
+                - var d = tour.date && tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
+                .ticket-meta-value= d.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+            if tour.durationRu || tour.durationEn
+              .ticket-meta-item
+                .ticket-meta-label= lang === 'ru' ? 'Длительность' : 'Duration'
+                .ticket-meta-value= lang === 'ru' ? tour.durationRu : tour.durationEn
+            - var meetingPoint = lang === 'ru' ? tour.meetingPointRu : tour.meetingPointEn
+            if meetingPoint
+              .ticket-meta-item.ticket-meta-item--wide
+                .ticket-meta-label= lang === 'ru' ? 'Место сбора' : 'Meeting point'
+                .ticket-meta-value= meetingPoint
+
+      .ticket-section
+        .ticket-meta-grid
+          .ticket-meta-item
+            .ticket-meta-label= lang === 'ru' ? 'Участников' : 'Participants'
+            .ticket-meta-value= booking.participants || 1
+          if cost && tour
+            .ticket-meta-item
+              .ticket-meta-label= lang === 'ru' ? 'Стоимость' : 'Total'
+              .ticket-meta-value= cost + ' ' + (tour.currency || 'USD')
+          .ticket-meta-item
+            .ticket-meta-label= lang === 'ru' ? 'Оплата' : 'Payment'
+            .ticket-meta-value(style=booking.paid ? 'color:#1a7f37' : 'color:#c07000')
+              = booking.paid ? (lang === 'ru' ? '✓ Оплачено' : '✓ Paid') : (lang === 'ru' ? 'Ожидается' : 'Pending')
+
+      .ticket-ref
+        span= lang === 'ru' ? 'Бронь' : 'Booking'
+        span.ticket-ref-id= booking.id
+
+      if !isCancelled
+        - var pastTour = tourDate && tourDate <= new Date()
+        if pastTour
+          .ticket-section
+            .ticket-section-label= lang === 'ru' ? 'Отзыв' : 'Review'
+            if reviewed
+              p.ticket-note= lang === 'ru' ? 'Спасибо! Ваш отзыв получен.' : 'Thank you! Your review has been received.'
+            else if booking.reviewText
+              p.ticket-note= lang === 'ru' ? 'Вы уже оставили отзыв. Можно обновить:' : 'You already left a review. You can update it:'
+            form(method='POST' action='/' + lang + '/ticket/' + booking.id + '/review')
+              textarea.ticket-textarea(name='reviewText' rows='4' placeholder=lang === 'ru' ? 'Расскажите о вашем туре…' : 'Tell us about your tour…')= booking.reviewText || ''
+              button.ticket-btn(type='submit')= lang === 'ru' ? 'Отправить отзыв' : 'Submit review'
+        else
+          .ticket-section
+            .ticket-section-label= lang === 'ru' ? 'Вопрос гиду' : 'Question for the guide'
+            if asked
+              p.ticket-note= lang === 'ru' ? 'Вопрос отправлен, Эка ответит вам в ближайшее время.' : 'Your question has been sent. Eka will get back to you soon.'
+            else
+              if booking.questionText
+                p.ticket-note(style='font-size:13px;color:#888')= lang === 'ru' ? 'Ваш последний вопрос: ' + booking.questionText : 'Your last question: ' + booking.questionText
+              form(method='POST' action='/' + lang + '/ticket/' + booking.id + '/question')
+                textarea.ticket-textarea(name='questionText' rows='3' placeholder=lang === 'ru' ? 'Ваш вопрос…' : 'Your question…')
+                button.ticket-btn(type='submit')= lang === 'ru' ? 'Отправить вопрос' : 'Send question'

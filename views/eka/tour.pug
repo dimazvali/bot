@@ -41,6 +41,11 @@ block content
         .tour-meta-item
           .tour-meta-label= lang === 'ru' ? 'Группа' : 'Group'
           .tour-meta-value= lang === 'ru' ? 'до ' + tour.maxParticipants + ' человек' : 'up to ' + tour.maxParticipants
+      - var meetingPoint = lang === 'ru' ? tour.meetingPointRu : tour.meetingPointEn
+      if meetingPoint
+        .tour-meta-item
+          .tour-meta-label= lang === 'ru' ? 'Место сбора' : 'Meeting point'
+          .tour-meta-value= meetingPoint
       if remainingSpots !== null
         .tour-meta-item
           .tour-meta-label= lang === 'ru' ? 'Осталось мест' : 'Spots left'

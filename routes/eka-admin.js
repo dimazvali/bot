@@ -199,7 +199,8 @@ router.get('/tours/:id/edit', requireAuth, async function(req, res, next) {
     var tour = await ekaData.getTour(req.params.id);
     if (!tour) return res.redirect('/admin/tours');
     var directions = await ekaData.getDirections();
-    res.render('eka/admin/tour-edit', { title: (tour.titleRu || '') + ' — Edit', tour: tour, tourId: req.params.id, directions: directions, error: null });
+    var requests = await ekaData.getRequests({ tourId: req.params.id });
+    res.render('eka/admin/tour-edit', { title: (tour.titleRu || '') + ' — Edit', tour: tour, tourId: req.params.id, directions: directions, requests: requests, error: null });
   } catch (e) { next(e); }
 });
 
@@ -218,10 +219,26 @@ router.post('/tours/:id/edit', requireAuth, express.urlencoded({ extended: false
       price: b.price ? (parseInt(b.price, 10) || 0) : 0,
       currency: b.currency || 'USD',
       maxParticipants: b.maxParticipants ? (parseInt(b.maxParticipants, 10) || 0) : 0,
+      meetingPointRu: b.meetingPointRu || '',
+      meetingPointEn: b.meetingPointEn || '',
       published: b.published === 'on',
     };
     var savedId = await ekaData.saveTour(id, data);
     res.redirect('/admin/tours/' + savedId + '/edit');
+  } catch (e) { next(e); }
+});
+
+router.post('/tours/:id/copy', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var src = await ekaData.getTour(req.params.id);
+    if (!src) return res.redirect('/admin/tours');
+    var newDate = req.body.date ? new Date(req.body.date) : null;
+    var copy = Object.assign({}, src);
+    delete copy.id;
+    copy.date = newDate;
+    copy.published = false;
+    var newId = await ekaData.saveTour(null, copy);
+    res.redirect('/admin/tours/' + newId + '/edit');
   } catch (e) { next(e); }
 });
 
@@ -230,20 +247,53 @@ router.post('/tours/:id/delete', requireAuth, async function(req, res, next) {
 });
 
 // ── REQUESTS ─────────────────────────────────────────────
+var ACTIVE_STATUSES = ['new', 'contacted', 'ready'];
+var ARCHIVE_STATUSES = ['declined', 'no_show', 'cancelled', 'completed'];
+var ALL_STATUSES = ACTIVE_STATUSES.concat(ARCHIVE_STATUSES);
+
 router.get('/requests', requireAuth, async function(req, res, next) {
   try {
-    var status = req.query.status || null;
-    var requests = await ekaData.getRequests(status ? { status: status } : {});
-    res.render('eka/admin/requests', { title: 'Заявки — Eka Admin', requests: requests, activeStatus: status });
+    var filter = req.query.filter || 'active';
+    var opts = filter === 'active' ? { statuses: ACTIVE_STATUSES }
+             : filter === 'archive' ? { statuses: ARCHIVE_STATUSES }
+             : {};
+    var requests = await ekaData.getRequests(opts);
+    var tours = await ekaData.getTours({});
+    var tourMap = {};
+    tours.forEach(function(t) { tourMap[t.id] = t; });
+    res.render('eka/admin/requests', { title: 'Заявки — Eka Admin', requests: requests, activeFilter: filter, tours: tours, tourMap: tourMap });
   } catch (e) { next(e); }
 });
 
 router.post('/requests/:id/status', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
-    var VALID_STATUSES = ['new', 'contacted', 'done'];
-    if (!VALID_STATUSES.includes(req.body.status)) return res.status(400).send('Bad status');
+    if (!ALL_STATUSES.includes(req.body.status)) return res.status(400).send('Bad status');
     await ekaData.updateRequestStatus(req.params.id, req.body.status);
     res.redirect('/admin/requests');
+  } catch (e) { next(e); }
+});
+
+router.post('/requests/:id/update', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var b = req.body;
+    await ekaData.updateRequest(req.params.id, {
+      tourId: b.tourId || null,
+      participants: parseInt(b.participants, 10) || 1,
+      paid: b.paid === 'on',
+    });
+    res.redirect('/admin/requests');
+  } catch (e) { next(e); }
+});
+
+router.post('/requests/:id/review', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var b = req.body;
+    await ekaData.updateRequest(req.params.id, {
+      reviewText: (b.reviewText || '').trim(),
+      reviewPublished: b.reviewPublished === 'on',
+    });
+    var back = b.tourId ? '/admin/tours/' + b.tourId + '/edit' : '/admin/requests';
+    res.redirect(back);
   } catch (e) { next(e); }
 });
 

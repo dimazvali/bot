@@ -4,11 +4,35 @@ html
     title= title
     meta(charset='utf-8')
     link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .cal-wrap { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 4px; padding: 20px 24px; margin-bottom: 28px; }
+      .cal-header { display: flex; align-items: center; gap: 16px; margin-bottom: 14px; }
+      .cal-label { font-size: 13px; font-weight: 600; min-width: 130px; }
+      .cal-nav { background: none; border: 1px solid #ddd; border-radius: 2px; width: 26px; height: 26px; cursor: pointer; font-size: 14px; color: #555; display: flex; align-items: center; justify-content: center; }
+      .cal-nav:hover { background: #eee; }
+      .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+      .cal-dh { text-align: center; font-size: 9px; letter-spacing: 1px; color: #bbb; padding: 3px 0 6px; text-transform: uppercase; }
+      .cal-day { min-height: 40px; padding: 4px 3px; border-radius: 3px; font-size: 11px; color: #aaa; position: relative; }
+      .cal-day.cur-month { color: #333; }
+      .cal-day.today { background: #f0f0f0; }
+      .cal-day.has-tour { cursor: pointer; }
+      .cal-day.has-tour:hover { background: #e8e8f8; }
+      .cal-day.active-day { background: #111; color: #fff !important; border-radius: 3px; }
+      .cal-day.active-day .cal-dots span { background: #fff; }
+      .cal-num { display: block; font-size: 11px; margin-bottom: 2px; }
+      .cal-dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+      .cal-dots span { width: 5px; height: 5px; border-radius: 50%; background: #333; display: block; }
+      .cal-dots span.pub { background: #1a7f37; }
+      .cal-dots span.draft { background: #bbb; }
+      .cal-popup { position: absolute; left: 100%; top: 0; z-index: 20; background: #fff; border: 1px solid #ddd; border-radius: 4px; padding: 8px 10px; min-width: 180px; font-size: 11px; box-shadow: 0 4px 12px rgba(0,0,0,.08); display: none; }
+      .cal-day:hover .cal-popup { display: block; }
+      .cal-popup-item { padding: 2px 0; color: #333; border-bottom: 1px solid #f0f0f0; }
+      .cal-popup-item:last-child { border-bottom: none; }
   body.admin-body
     nav.admin-nav
       a(href='/admin/') Eka Admin
       a(href='/admin/directions') Направления
-      a(href='/admin/tours') Туры
+      a(href='/admin/tours' style='color:#111') Туры
       a(href='/admin/requests') Заявки
       a(href='/admin/profile') Профиль
       a(href='/admin/logout') Выйти
@@ -16,6 +40,14 @@ html
       .section-header(style='margin-bottom:16px')
         .admin-title(style='margin:0') Туры
         a.admin-btn(href='/admin/tours/new') + Новый
+
+      .cal-wrap
+        .cal-header
+          button.cal-nav#cal-prev ‹
+          .cal-label#cal-label —
+          button.cal-nav#cal-next ›
+        .cal-grid#cal-grid
+
       table.admin-table
         thead
           tr
@@ -29,7 +61,7 @@ html
           each tour in tours
             - var d = tour.date && tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
             - var isPast = d < new Date()
-            tr(style=isPast ? 'opacity:0.4' : '')
+            tr(data-tour-row data-date=d.toISOString().slice(0,10) style=isPast ? 'opacity:0.4' : '')
               td= d.toLocaleDateString('ru-RU')
               td= dirMap[tour.directionId] ? dirMap[tour.directionId].titleRu : '—'
               td= tour.titleRu
@@ -41,4 +73,88 @@ html
                   span.badge.badge-draft Черновик
               td: a(href='/admin/tours/' + tour.id + '/edit') Редактировать
           else
-            tr: td(colspan='5' style='color:#bbb;text-align:center;padding:20px') Нет туров
+            tr: td(colspan='6' style='color:#bbb;text-align:center;padding:20px') Нет туров
+
+    - var toursJson = JSON.stringify(tours.map(function(t) { var d = t.date ? (t.date.toDate ? t.date.toDate() : new Date(t.date)) : null; return { id: t.id, date: d ? d.toISOString().slice(0,10) : null, title: t.titleRu || t.titleEn || '—', pub: !!t.published }; }))
+    script.
+      var TOURS = !{toursJson};
+
+      var cur = new Date(); cur.setDate(1);
+      var MONTHS_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      var DAYS_RU = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+
+      function buildTourMap() {
+        var m = {};
+        TOURS.forEach(function(t) {
+          if (!t.date) return;
+          if (!m[t.date]) m[t.date] = [];
+          m[t.date].push(t);
+        });
+        return m;
+      }
+      var tourMap = buildTourMap();
+
+      function render() {
+        var year = cur.getFullYear(), month = cur.getMonth();
+        document.getElementById('cal-label').textContent = MONTHS_RU[month] + ' ' + year;
+        var grid = document.getElementById('cal-grid');
+        grid.innerHTML = '';
+        DAYS_RU.forEach(function(d) {
+          var el = document.createElement('div');
+          el.className = 'cal-dh'; el.textContent = d; grid.appendChild(el);
+        });
+        var first = new Date(year, month, 1);
+        var startDow = (first.getDay() + 6) % 7; // Mon=0
+        var daysInMonth = new Date(year, month + 1, 0).getDate();
+        var today = new Date().toISOString().slice(0,10);
+        for (var i = 0; i < startDow; i++) {
+          grid.appendChild(document.createElement('div'));
+        }
+        for (var day = 1; day <= daysInMonth; day++) {
+          var dateStr = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+          var toursOnDay = tourMap[dateStr] || [];
+          var el = document.createElement('div');
+          el.className = 'cal-day cur-month' + (dateStr === today ? ' today' : '') + (toursOnDay.length ? ' has-tour' : '');
+          el.dataset.date = dateStr;
+          var num = document.createElement('span');
+          num.className = 'cal-num'; num.textContent = day; el.appendChild(num);
+          if (toursOnDay.length) {
+            var dots = document.createElement('div'); dots.className = 'cal-dots';
+            toursOnDay.forEach(function(t) {
+              var dot = document.createElement('span'); dot.className = t.pub ? 'pub' : 'draft'; dots.appendChild(dot);
+            });
+            el.appendChild(dots);
+            var popup = document.createElement('div'); popup.className = 'cal-popup';
+            toursOnDay.forEach(function(t) {
+              var item = document.createElement('div'); item.className = 'cal-popup-item';
+              item.textContent = (t.pub ? '● ' : '○ ') + t.title; popup.appendChild(item);
+            });
+            el.appendChild(popup);
+            el.addEventListener('click', function(e) {
+              var date = this.dataset.date;
+              document.querySelectorAll('.cal-day').forEach(function(d) { d.classList.remove('active-day'); });
+              this.classList.add('active-day');
+              document.querySelectorAll('[data-tour-row]').forEach(function(r) {
+                r.style.outline = r.dataset.date === date ? '2px solid #111' : '';
+                if (r.dataset.date === date) r.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+              });
+            });
+          }
+          grid.appendChild(el);
+        }
+      }
+
+      document.getElementById('cal-prev').addEventListener('click', function() {
+        cur.setMonth(cur.getMonth() - 1); render();
+      });
+      document.getElementById('cal-next').addEventListener('click', function() {
+        cur.setMonth(cur.getMonth() + 1); render();
+      });
+
+      // Start on earliest upcoming tour month if any, else today
+      var upcoming = TOURS.filter(function(t) { return t.date && t.date >= new Date().toISOString().slice(0,10); });
+      if (upcoming.length) {
+        var firstDate = upcoming.sort(function(a,b){ return a.date.localeCompare(b.date); })[0].date;
+        cur = new Date(firstDate); cur.setDate(1);
+      }
+      render();

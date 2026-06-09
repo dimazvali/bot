@@ -4,6 +4,19 @@ html
     title= title
     meta(charset='utf-8')
     link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .tour-card { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 6px; padding: 16px 20px; margin-bottom: 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+      .tour-card-main { flex: 1; min-width: 0; }
+      .tour-card-title { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
+      .tour-card-meta { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 12px; color: #555; }
+      .tour-card-meta span { white-space: nowrap; }
+      .tour-card-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 600; letter-spacing: .5px; text-transform: uppercase; }
+      .tour-card-badge.pub { background: #e6f4ea; color: #1a7f37; }
+      .tour-card-badge.unpub { background: #f0f0f0; color: #888; }
+      .req-row { cursor: pointer; }
+      .req-detail { display: none; padding: 12px 14px; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
+      .req-row.open + .req-detail { display: table-row; }
+      .req-detail td { padding: 12px 14px; font-size: 12px; color: #555; }
   body.admin-body
     nav.admin-nav
       a(href='/admin/') Eka Admin
@@ -13,63 +26,173 @@ html
       a(href='/admin/profile') Профиль
       a(href='/admin/logout') Выйти
     .admin-content
-      .admin-title= tourId ? (tour.titleRu || 'Редактировать') : 'Новый тур'
-      - var formAction = tourId ? '/admin/tours/' + tourId + '/edit' : '/admin/tours/new/edit'
-      form.admin-form(method='POST' action=formAction)
-        .admin-field
-          label Направление
-          select(name='directionId')
-            option(value='') — выберите —
-            each dir in directions
-              option(value=dir.id selected=tour && tour.directionId === dir.id)= dir.titleRu
-        .admin-2col
+      if tourId
+        - var tourDate = tour.date ? (tour.date.toDate ? tour.date.toDate() : new Date(tour.date)) : null
+        - var dirName = directions.find(function(d){ return d.id === tour.directionId; })
+        - var activeReqs = requests && requests.filter(function(r){ return r.status !== 'declined' && r.status !== 'cancelled'; })
+        - var totalPax = activeReqs && activeReqs.reduce(function(s, r){ return s + (r.participants || 1); }, 0)
+        #tour-card.tour-card
+          .tour-card-main
+            .tour-card-title= tour.titleRu || tour.titleEn || '—'
+            .tour-card-meta
+              if tourDate
+                span 📅 #{tourDate.toLocaleDateString('ru-RU')}
+              if dirName
+                span 🗺 #{dirName.titleRu}
+              if tour.price
+                span 💰 #{tour.price} #{tour.currency || 'USD'}
+              if tour.durationRu
+                span ⏱ #{tour.durationRu}
+              if tour.maxParticipants
+                span 👥 макс. #{tour.maxParticipants}
+              if activeReqs && activeReqs.length
+                span ✉️ #{activeReqs.length} заяв. / #{totalPax} чел.
+              span
+                span.tour-card-badge(class=tour.published ? 'pub' : 'unpub')= tour.published ? 'опубликован' : 'черновик'
+          .tour-card-actions(style='display:flex;flex-direction:column;gap:8px;align-items:flex-end')
+            button#btn-edit-tour.admin-btn(type='button') Редактировать
+            button#btn-copy-tour.admin-btn(type='button' style='background:#f5f5f5;color:#444') Скопировать
+            #copy-form(style='display:none')
+              form(method='POST' action='/admin/tours/' + tourId + '/copy' style='display:flex;gap:8px;align-items:center')
+                input(type='date' name='date' required style='font-size:13px;padding:5px 8px')
+                button.admin-btn(type='submit' style='white-space:nowrap') Создать копию
+
+      #tour-form(style=tourId ? 'display:none' : '')
+        .admin-title= tourId ? (tour.titleRu || 'Редактировать') : 'Новый тур'
+        - var formAction = tourId ? '/admin/tours/' + tourId + '/edit' : '/admin/tours/new/edit'
+        form.admin-form(method='POST' action=formAction)
           .admin-field
-            label Название (RU)
-            input(type='text' name='titleRu' value=tour && tour.titleRu || '' required)
+            label Направление
+            select(name='directionId')
+              option(value='') — выберите —
+              each dir in directions
+                option(value=dir.id selected=tour && tour.directionId === dir.id)= dir.titleRu
+          .admin-2col
+            .admin-field
+              label Название (RU)
+              input(type='text' name='titleRu' value=tour && tour.titleRu || '' required)
+            .admin-field
+              label Title (EN)
+              input(type='text' name='titleEn' value=tour && tour.titleEn || '' required)
+          .admin-2col
+            .admin-field
+              label Описание (RU)
+              textarea(name='descRu')= tour && tour.descRu || ''
+            .admin-field
+              label Description (EN)
+              textarea(name='descEn')= tour && tour.descEn || ''
+          .admin-2col
+            .admin-field
+              label Дата
+              - var dateVal = ''
+              if tour && tour.date
+                - var d = tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
+                - dateVal = d.toISOString().slice(0, 10)
+              input(type='date' name='date' value=dateVal required)
+            .admin-field
+              label Цена
+              input(type='number' name='price' value=tour && tour.price || '' placeholder='120')
+          .admin-2col
+            .admin-field
+              label Длительность (RU)
+              input(type='text' name='durationRu' value=tour && tour.durationRu || '' placeholder='1 день')
+            .admin-field
+              label Duration (EN)
+              input(type='text' name='durationEn' value=tour && tour.durationEn || '' placeholder='1 day')
+          .admin-2col
+            .admin-field
+              label Валюта
+              select(name='currency')
+                option(value='USD' selected=tour && tour.currency === 'USD') USD
+                option(value='GEL' selected=tour && tour.currency === 'GEL') GEL
+                option(value='RUB' selected=tour && tour.currency === 'RUB') RUB
+            .admin-field
+              label Макс. участников
+              input(type='number' name='maxParticipants' value=tour && tour.maxParticipants || '' placeholder='8')
+          .admin-2col
+            .admin-field
+              label Место сбора (RU)
+              input(type='text' name='meetingPointRu' value=tour && tour.meetingPointRu || '' placeholder='Метро Руставели, у фонтана')
+            .admin-field
+              label Meeting point (EN)
+              input(type='text' name='meetingPointEn' value=tour && tour.meetingPointEn || '' placeholder='Rustaveli Metro, by the fountain')
           .admin-field
-            label Title (EN)
-            input(type='text' name='titleEn' value=tour && tour.titleEn || '' required)
-        .admin-2col
-          .admin-field
-            label Описание (RU)
-            textarea(name='descRu')= tour && tour.descRu || ''
-          .admin-field
-            label Description (EN)
-            textarea(name='descEn')= tour && tour.descEn || ''
-        .admin-2col
-          .admin-field
-            label Дата
-            - var dateVal = ''
-            if tour && tour.date
-              - var d = tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
-              - dateVal = d.toISOString().slice(0, 10)
-            input(type='date' name='date' value=dateVal required)
-          .admin-field
-            label Цена
-            input(type='number' name='price' value=tour && tour.price || '' placeholder='120')
-        .admin-2col
-          .admin-field
-            label Длительность (RU)
-            input(type='text' name='durationRu' value=tour && tour.durationRu || '' placeholder='1 день')
-          .admin-field
-            label Duration (EN)
-            input(type='text' name='durationEn' value=tour && tour.durationEn || '' placeholder='1 day')
-        .admin-2col
-          .admin-field
-            label Валюта
-            select(name='currency')
-              option(value='USD' selected=tour && tour.currency === 'USD') USD
-              option(value='GEL' selected=tour && tour.currency === 'GEL') GEL
-              option(value='RUB' selected=tour && tour.currency === 'RUB') RUB
-          .admin-field
-            label Макс. участников
-            input(type='number' name='maxParticipants' value=tour && tour.maxParticipants || '' placeholder='8')
-        .admin-field
-          label
-            input(type='checkbox' name='published' checked=tour && tour.published)
-            |  Опубликовано
-        .admin-field(style='display:flex;gap:12px;align-items:center')
-          button.admin-btn(type='submit') Сохранить
-          if tourId
-            form(method='POST' action='/admin/tours/' + tourId + '/delete' style='display:inline' onsubmit='return confirm("Удалить тур?")')
-              button.admin-btn.admin-btn-danger(type='submit') Удалить
+            label
+              input(type='checkbox' name='published' checked=tour && tour.published)
+              |  Опубликовано
+          .admin-field(style='display:flex;gap:12px;align-items:center')
+            button.admin-btn(type='submit') Сохранить
+            button#btn-cancel-edit.admin-btn(type='button' style='background:#f0f0f0;color:#555') Отмена
+            if tourId
+              form(method='POST' action='/admin/tours/' + tourId + '/delete' style='display:inline' onsubmit='return confirm("Удалить тур?")')
+                button.admin-btn.admin-btn-danger(type='submit') Удалить
+
+      if tourId && requests && requests.length
+        h3(style='margin:0 0 12px;font-size:14px;font-weight:600') Заявки (#{requests.length})
+        table.admin-table
+          thead
+            tr
+              th Дата
+              th Имя
+              th Контакт
+              th Статус
+              th Чел.
+          tbody
+            each req in requests
+              - var d = req.createdAt && req.createdAt.toDate ? req.createdAt.toDate() : new Date(req.createdAt || 0)
+              tr.req-row
+                td= d.toLocaleDateString('ru-RU')
+                td= req.name
+                td= (req.contactType || '?') + ': ' + (req.contact || '?')
+                td
+                  span.badge(class='badge-' + (req.status || 'new'))= req.status || 'new'
+                td(style='text-align:center')= req.participants || 1
+              tr.req-detail
+                td(colspan='5')
+                  if req.preferredDates
+                    p #[strong Даты:] #{req.preferredDates}
+                  if req.message
+                    p #[strong Сообщение:] #{req.message}
+                  p #[strong Язык:] #{req.lang || '—'}
+                  a(href='/admin/requests' style='font-size:11px;color:#666') → все заявки
+                  - var notCancelled = req.status !== 'declined' && req.status !== 'cancelled'
+                  - var pastTour = tourDate && tourDate <= new Date()
+                  if notCancelled && pastTour
+                    form(method='POST' action='/admin/requests/' + req.id + '/review' style='margin-top:12px')
+                      input(type='hidden' name='tourId' value=tourId)
+                      div(style='margin-bottom:6px')
+                        textarea(name='reviewText' rows='3' placeholder='Отзыв гостя…' style='width:100%;font-size:12px;padding:6px 8px;box-sizing:border-box')= req.reviewText || ''
+                      div(style='display:flex;align-items:center;gap:12px')
+                        label(style='font-size:12px;display:flex;align-items:center;gap:5px')
+                          input(type='checkbox' name='reviewPublished' checked=req.reviewPublished)
+                          | Опубликовать
+                        button.admin-btn.btn-sm(type='submit') Сохранить отзыв
+                  else if notCancelled && req.questionText
+                    p(style='font-size:11px;color:#888;margin:8px 0 0') #[strong Вопрос от гостя:] #{req.questionText}
+      else if tourId
+        p(style='color:#bbb;font-size:13px;margin:0') Заявок пока нет
+
+    script.
+      var btnEdit = document.getElementById('btn-edit-tour');
+      var btnCancel = document.getElementById('btn-cancel-edit');
+      var card = document.getElementById('tour-card');
+      var form = document.getElementById('tour-form');
+      if (btnEdit) btnEdit.addEventListener('click', function() {
+        card.style.display = 'none';
+        form.style.display = '';
+        form.querySelector('input, select, textarea') && form.querySelector('input, select, textarea').focus();
+      });
+      var btnCopy = document.getElementById('btn-copy-tour');
+      var copyForm = document.getElementById('copy-form');
+      if (btnCopy) btnCopy.addEventListener('click', function() {
+        var visible = copyForm.style.display !== 'none';
+        copyForm.style.display = visible ? 'none' : '';
+        if (!visible) copyForm.querySelector('input[type=date]').focus();
+      });
+      if (btnCancel) btnCancel.addEventListener('click', function() {
+        form.style.display = 'none';
+        card.style.display = '';
+      });
+      document.querySelectorAll('.req-row').forEach(function(row) {
+        row.addEventListener('click', function() { this.classList.toggle('open'); });
+      });

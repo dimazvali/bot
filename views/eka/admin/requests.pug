@@ -9,60 +9,98 @@ html
       .req-detail { display: none; padding: 12px 14px; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
       .req-row.open + .req-detail { display: table-row; }
       .req-detail td { padding: 12px 14px; font-size: 12px; color: #555; }
+      .badge-paid { background: #e6f4ea; color: #1a7f37; padding: 2px 7px; border-radius: 3px; font-size: 10px; letter-spacing: 1px; }
   body.admin-body
     nav.admin-nav
       a(href='/admin/') Eka Admin
       a(href='/admin/directions') Направления
       a(href='/admin/tours') Туры
-      a(href='/admin/requests') Заявки
+      a(href='/admin/requests' style='color:#111') Заявки
       a(href='/admin/profile') Профиль
       a(href='/admin/logout') Выйти
     .admin-content
       .section-header(style='margin-bottom:16px')
         .admin-title(style='margin:0') Заявки
       .admin-field(style='margin-bottom:20px')
-        a.admin-btn.btn-sm(href='/admin/requests' style=!activeStatus?'background:#111;color:#fff':'') Все
+        a.admin-btn.btn-sm(href='/admin/requests' style=activeFilter==='active'?'background:#111;color:#fff':'') Активные
         |
-        a.admin-btn.btn-sm(href='/admin/requests?status=new' style=activeStatus==='new'?'background:#111;color:#fff':'') Новые
+        a.admin-btn.btn-sm(href='/admin/requests?filter=archive' style=activeFilter==='archive'?'background:#111;color:#fff':'') Архив
         |
-        a.admin-btn.btn-sm(href='/admin/requests?status=contacted' style=activeStatus==='contacted'?'background:#111;color:#fff':'') Связались
-        |
-        a.admin-btn.btn-sm(href='/admin/requests?status=done' style=activeStatus==='done'?'background:#111;color:#fff':'') Готово
+        a.admin-btn.btn-sm(href='/admin/requests?filter=all' style=activeFilter==='all'?'background:#111;color:#fff':'') Все
       table.admin-table
         thead
           tr
             th Дата
-            th Тип
-            th Место
+            th Тур / направление
             th Имя
             th Контакт
             th Статус
+            th Оплата
         tbody
+          -
+            var STATUS_LABELS = {
+              new: 'новая', contacted: 'связались', ready: 'к туру',
+              declined: 'отказался', no_show: 'не пришел',
+              cancelled: 'отмена', completed: 'состоялась'
+            }
           each req in requests
             - var d = req.createdAt && req.createdAt.toDate ? req.createdAt.toDate() : new Date(req.createdAt || 0)
+            - var linkedTour = req.tourId && tourMap && tourMap[req.tourId]
+            - var cost = linkedTour && linkedTour.price && req.participants ? linkedTour.price * req.participants : null
+            - var st = req.status || 'new'
             tr.req-row
               td= d.toLocaleDateString('ru-RU')
-              td= req.type === 'tour' ? 'Тур' : 'Направление'
-              td= req.directionSlug || req.tourTitle || '—'
+              td= linkedTour ? (linkedTour.titleRu || linkedTour.titleEn) : (req.directionSlug || req.tourTitle || '—')
               td= req.name
               td= (req.contactType || '?') + ': ' + (req.contact || '?')
               td
-                span.badge(class='badge-' + (req.status || 'new'))= req.status || 'new'
+                span.badge(class='badge-' + st)= STATUS_LABELS[st] || st
+              td
+                if cost
+                  span(style='font-size:11px')= cost + ' ' + (linkedTour.currency || 'USD')
+                if req.paid
+                  |
+                  span.badge-paid ОПЛ
             tr.req-detail
               td(colspan='6')
                 if req.preferredDates
                   p #[strong Даты:] #{req.preferredDates}
                 if req.message
                   p #[strong Сообщение:] #{req.message}
+                if req.participants && req.participants > 1
+                  p #[strong Человек:] #{req.participants}
+                if cost
+                  p #[strong Итого:] #{cost} #{linkedTour.currency || 'USD'}
+                  if req.paid
+                    p(style='color:#1a7f37') ✓ Оплачено
                 p #[strong Язык:] #{req.lang || '—'}
-                form(method='POST' action='/admin/requests/' + req.id + '/status' style='margin-top:10px;display:flex;gap:8px')
-                  select(name='status')
-                    option(value='new' selected=req.status==='new') new
-                    option(value='contacted' selected=req.status==='contacted') contacted
-                    option(value='done' selected=req.status==='done') done
-                  button.admin-btn.btn-sm(type='submit') Сохранить статус
+                if req.tourId
+                  p
+                    a(href='/' + (req.lang || 'ru') + '/ticket/' + req.id target='_blank' style='font-size:11px;color:#005a9e') ↗ Открыть билет
+                .admin-form-row(style='margin-top:12px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end')
+                  form(method='POST' action='/admin/requests/' + req.id + '/status' style='display:flex;gap:8px;align-items:center')
+                    select(name='status')
+                      option(value='new' selected=st==='new') Новая
+                      option(value='contacted' selected=st==='contacted') Связались
+                      option(value='ready' selected=st==='ready') Готово к туру
+                      option(value='declined' selected=st==='declined') Клиент отказался
+                      option(value='no_show' selected=st==='no_show') Клиент не пришел
+                      option(value='cancelled' selected=st==='cancelled') Отмена тура
+                      option(value='completed' selected=st==='completed') Поездка состоялась
+                    button.admin-btn.btn-sm(type='submit') Статус
+                  form(method='POST' action='/admin/requests/' + req.id + '/update' style='display:flex;gap:8px;align-items:center;flex-wrap:wrap')
+                    select(name='tourId' style='font-size:11px;padding:4px 6px')
+                      option(value='') — без тура —
+                      each t in (tours || [])
+                        - var tDate = t.date ? (t.date.toDate ? t.date.toDate() : new Date(t.date)).toLocaleDateString('ru-RU') : ''
+                        option(value=t.id selected=req.tourId===t.id)= (t.titleRu || t.titleEn) + (tDate ? ' · ' + tDate : '')
+                    input(type='number' name='participants' min='1' max='50' value=req.participants||1 style='width:55px;font-size:11px;padding:4px 6px')
+                    label(style='font-size:11px;display:flex;align-items:center;gap:4px;white-space:nowrap')
+                      input(type='checkbox' name='paid' checked=req.paid)
+                      | Оплачено
+                    button.admin-btn.btn-sm(type='submit') Сохранить
           else
-            tr: td(colspan='5' style='color:#bbb;text-align:center;padding:20px') Нет заявок
+            tr: td(colspan='6' style='color:#bbb;text-align:center;padding:20px') Нет заявок
     script.
       document.querySelectorAll('.req-row').forEach(function(row) {
         row.addEventListener('click', function(e) {

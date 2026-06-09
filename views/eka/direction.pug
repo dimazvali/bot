@@ -13,7 +13,7 @@ mixin tourDate(tour)
 block content
   .breadcrumb
     a(href=`/${lang}/`)= lang === 'ru' ? 'Главная' : 'Home'
-    |  /
+    |  / 
     a(href=`/${lang}/`)= lang === 'ru' ? 'Направления' : 'Destinations'
     |  / #{lang === 'ru' ? direction.titleRu : direction.titleEn}
 
@@ -70,8 +70,6 @@ block content
 
   if tours.length
     .section
-      .section-header
-        .section-title= lang === 'ru' ? 'Ближайшие даты' : 'Upcoming tours'
       .tours-list
         each tour in tours
           a.tour-row(href=`/${lang}/tours/${tour.id}`)

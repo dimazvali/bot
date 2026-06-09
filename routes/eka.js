@@ -111,6 +111,55 @@ router.get('/:lang(ru|en)/request-sent', function(req, res) {
   });
 });
 
+// ── TICKET ───────────────────────────────────────────────
+router.get('/:lang(ru|en)/ticket/:requestId', async function(req, res, next) {
+  var lang = req.params.lang;
+  try {
+    var booking = await ekaData.getRequest(req.params.requestId);
+    if (!booking) return res.status(404).render('eka/error', { lang, message: 'Бронь не найдена', error: {}, title: '404' });
+    var tour = booking.tourId ? await ekaData.getTour(booking.tourId) : null;
+    var direction = tour && tour.directionId ? await ekaData.getDirection(tour.directionId) : null;
+    var cost = tour && tour.price && booking.participants ? tour.price * booking.participants : null;
+    var tourDate = tour && tour.date ? (tour.date.toDate ? tour.date.toDate() : new Date(tour.date)) : null;
+    var isCancelled = booking.status === 'declined' || booking.status === 'cancelled';
+    res.render('eka/ticket', {
+      lang, booking, tour, direction, cost, tourDate, isCancelled,
+      asked: req.query.asked === '1',
+      reviewed: req.query.reviewed === '1',
+      title: (lang === 'ru' ? 'Ваш тур' : 'Your tour') + ' — Эка',
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/:lang(ru|en)/ticket/:requestId/question', express.urlencoded({ extended: false }), async function(req, res, next) {
+  var lang = req.params.lang;
+  try {
+    var booking = await ekaData.getRequest(req.params.requestId);
+    if (!booking) return res.status(404).render('eka/error', { lang, message: 'Бронь не найдена', error: {}, title: '404' });
+    var text = (req.body.questionText || '').trim();
+    if (text) {
+      await ekaData.updateRequest(req.params.requestId, { questionText: text, questionSentAt: new Date() });
+      var tour = booking.tourId ? await ekaData.getTour(booking.tourId) : null;
+      var tourTitle = tour ? (tour.titleRu || tour.titleEn || '') : '';
+      mailer.sendQuestionNotification(booking, text, tourTitle).catch(function(e) { console.error('[eka-mailer question]', e.message); });
+    }
+    res.redirect('/' + lang + '/ticket/' + req.params.requestId + '?asked=1');
+  } catch (e) { next(e); }
+});
+
+router.post('/:lang(ru|en)/ticket/:requestId/review', express.urlencoded({ extended: false }), async function(req, res, next) {
+  var lang = req.params.lang;
+  try {
+    var booking = await ekaData.getRequest(req.params.requestId);
+    if (!booking) return res.status(404).render('eka/error', { lang, message: 'Бронь не найдена', error: {}, title: '404' });
+    var text = (req.body.reviewText || '').trim();
+    if (text) {
+      await ekaData.updateRequest(req.params.requestId, { reviewText: text, reviewPublished: false });
+    }
+    res.redirect('/' + lang + '/ticket/' + req.params.requestId + '?reviewed=1');
+  } catch (e) { next(e); }
+});
+
 // ── POST REQUEST ─────────────────────────────────────────
 router.post('/:lang(ru|en)/request', express.urlencoded({ extended: false }), async function(req, res, next) {
   var lang = req.params.lang;
@@ -128,13 +177,15 @@ router.post('/:lang(ru|en)/request', express.urlencoded({ extended: false }), as
       name: name,
       contactType: b.contactType || 'email',
       contact: contact,
+      participants: parseInt(b.participants, 10) || 1,
       preferredDates: (b.preferredDates || '').trim(),
       message: (b.message || '').trim(),
       lang: lang,
     };
-    await ekaData.saveRequest(data);
+    var requestId = await ekaData.saveRequest(data);
     mailer.sendRequestNotification(data).catch(function(e) { console.error('[eka-mailer]', e.message); });
-    res.redirect('/' + lang + '/request-sent');
+    var isTourBooking = data.type === 'tour' && data.tourId;
+    res.redirect(isTourBooking ? '/' + lang + '/ticket/' + requestId : '/' + lang + '/request-sent');
   } catch (e) { next(e); }
 });
 
