@@ -49,8 +49,9 @@ router.get('/:lang(ru|en)/', async function(req, res, next) {
     var allTours = await ekaData.getTours({ publishedOnly: true, upcomingOnly: true });
     var directions = allDirections.filter(function(d) { return d.published; });
     var upcomingTours = allTours.slice(0, 5);
+    var profile = await ekaData.getProfile();
     res.render('eka/home', {
-      lang, directions, upcomingTours,
+      lang, directions, upcomingTours, profile,
       title: lang === 'ru' ? 'Эка Елисеева — Гид по Грузии' : 'Eka Eliseeva — Georgia Guide',
       currentPath: '/' + lang + '/',
     });

@@ -1,25 +1,28 @@
 extends layout
 
 block content
-  .about-page
-    .about-title= lang === 'ru' ? 'Об Эке' : 'About Eka'
-    if profile && profile.photoSizes
-      .about-photo
+  .hero
+    .hero-photo
+      if profile && profile.photoSizes
         picture
           source(media='(max-width:400px)' srcset=profile.photoSizes.w400)
           source(media='(max-width:800px)' srcset=profile.photoSizes.w800)
           img(src=profile.photoSizes.w1400 alt='Эка Елисеева')
-    else if profile && profile.photo
-      .about-photo
-        img(src=profile.photo alt='Эка Елисеева')
-    - var bio = lang === 'ru' ? (profile && profile.bioRu) : (profile && profile.bioEn)
-    if bio
-      - var paragraphs = bio.split(/\n\n+/)
-      each para in paragraphs
-        p.about-text= para
-    else
-      p.about-text(style='color:#bbb') Биография не заполнена.
-    .about-contacts
-      a.about-contact-link(href='https://t.me/eka_guide' target='_blank') Telegram: @eka_guide
-      a.about-contact-link(href='mailto:eka@example.com') Email: eka@example.com
-      a.about-contact-link(href='https://instagram.com/eka_guide' target='_blank') Instagram: @eka_guide
+      else if profile && profile.photo
+        img(src=profile.photo alt='Эка Елисеева' style='width:100%;height:100%;object-fit:cover')
+      else
+        .hero-photo-placeholder ФОТО ЭКИ
+    .hero-text
+      .hero-eyebrow= lang === 'ru' ? 'Гид по Грузии · Тбилиси' : 'Georgia Guide · Tbilisi'
+      .hero-name= lang === 'ru' ? 'Об Эке' : 'About Eka'
+      - var bio = lang === 'ru' ? (profile && profile.bioRu) : (profile && profile.bioEn)
+      if bio
+        - var paragraphs = bio.split(/\n\n+/)
+        each para in paragraphs
+          p.about-text= para
+      else
+        p.about-text(style='color:#bbb')= lang === 'ru' ? 'Биография не заполнена.' : 'Bio not filled in yet.'
+      .about-contacts
+        a.about-contact-link(href='https://t.me/eka_guide' target='_blank') Telegram: @eka_guide
+        a.about-contact-link(href='mailto:eka@example.com') Email: eka@example.com
+        a.about-contact-link(href='https://instagram.com/eka_guide' target='_blank') Instagram: @eka_guide

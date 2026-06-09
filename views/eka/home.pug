@@ -11,10 +11,10 @@ mixin tourDate(tour)
 block content
   .hero
     .hero-photo
-      if directions.length && directions[0].heroImageSizes
+      if profile && profile.photoSizes
         picture
-          source(media='(max-width:800px)' srcset=directions[0].heroImageSizes.w800)
-          img(src=directions[0].heroImageSizes.w1400 alt='Эка Елисеева')
+          source(media='(max-width:800px)' srcset=profile.photoSizes.w800)
+          img(src=profile.photoSizes.w1400 alt='Эка Елисеева')
       else
         .hero-photo-placeholder ФОТО ЭКИ
     .hero-text
