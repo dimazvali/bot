@@ -15,8 +15,10 @@ html
       a(href='/admin/') Eka Admin
       a(href='/admin/directions') Направления
       a(href='/admin/tours') Туры
-      a(href='/admin/requests' style='color:#111') Заявки
+      a(href='/admin/requests') Заявки
+      a(href='/admin/reviews') Отзывы
       a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
       a(href='/admin/logout') Выйти
     .admin-content
       .section-header(style='margin-bottom:16px')
@@ -30,8 +32,9 @@ html
       table.admin-table
         thead
           tr
-            th Дата
+            th Дата заявки
             th Тур / направление
+            th Дата тура
             th Имя
             th Контакт
             th Статус
@@ -48,9 +51,11 @@ html
             - var linkedTour = req.tourId && tourMap && tourMap[req.tourId]
             - var cost = linkedTour && linkedTour.price && req.participants ? linkedTour.price * req.participants : null
             - var st = req.status || 'new'
+            - var tourDate = linkedTour && linkedTour.date ? (linkedTour.date.toDate ? linkedTour.date.toDate() : new Date(linkedTour.date)) : null
             tr.req-row
               td= d.toLocaleDateString('ru-RU')
               td= linkedTour ? (linkedTour.titleRu || linkedTour.titleEn) : (req.directionSlug || req.tourTitle || '—')
+              td= tourDate ? tourDate.toLocaleDateString('ru-RU') : '—'
               td= req.name
               td= (req.contactType || '?') + ': ' + (req.contact || '?')
               td
@@ -62,7 +67,7 @@ html
                   |
                   span.badge-paid ОПЛ
             tr.req-detail
-              td(colspan='6')
+              td(colspan='7')
                 if req.preferredDates
                   p #[strong Даты:] #{req.preferredDates}
                 if req.message
@@ -100,7 +105,8 @@ html
                       | Оплачено
                     button.admin-btn.btn-sm(type='submit') Сохранить
           else
-            tr: td(colspan='6' style='color:#bbb;text-align:center;padding:20px') Нет заявок
+            tr: td(colspan='7' style='color:#bbb;text-align:center;padding:20px') Нет заявок
+    script(src='/javascripts/eka/admin.js')
     script.
       document.querySelectorAll('.req-row').forEach(function(row) {
         row.addEventListener('click', function(e) {

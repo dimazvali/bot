@@ -57,5 +57,5 @@ block content
     +requestForm({
       formTitle: lang === 'ru' ? 'Записаться на тур' : 'Book this tour',
       formSub: lang === 'ru' ? 'Оставьте заявку — Эка свяжется в течение дня' : 'Leave a request — Eka will get back to you within a day',
-      hiddenFields: { type: 'tour', tourId: tour.id, directionSlug: tour.directionSlug || '', tourTitle: lang === 'ru' ? tour.titleRu : tour.titleEn }
+      hiddenFields: { type: 'tour', tourId: tour.id, directionId: tour.directionId || '', directionSlug: tour.directionSlug || '', tourTitle: lang === 'ru' ? tour.titleRu : tour.titleEn }
     })

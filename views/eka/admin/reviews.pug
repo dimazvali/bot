@@ -1,0 +1,74 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .rev-row { cursor: pointer; }
+      .rev-detail { display: none; padding: 12px 14px; background: #fafafa; border-bottom: 1px solid #f0f0f0; }
+      .rev-row.open + .rev-detail { display: table-row; }
+      .rev-detail td { padding: 12px 14px; font-size: 12px; color: #555; }
+      .rev-published { color: #1a7f37; font-weight: 600; }
+      .rev-unpublished { color: #bbb; }
+      .rev-excerpt { color: #555; font-style: italic; }
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .section-header(style='margin-bottom:16px')
+        .admin-title(style='margin:0') Отзывы
+      table.admin-table
+        thead
+          tr
+            th Дата
+            th Гость
+            th Тур
+            th Отзыв
+            th Статус
+        tbody
+          each rev in reviews
+            - var d = rev.createdAt && rev.createdAt.toDate ? rev.createdAt.toDate() : new Date(rev.createdAt || 0)
+            - var linkedTour = rev.tourId && tourMap && tourMap[rev.tourId]
+            - var excerpt = (rev.reviewText || '').slice(0, 90) + ((rev.reviewText || '').length > 90 ? '…' : '')
+            tr.rev-row
+              td= d.toLocaleDateString('ru-RU')
+              td= rev.name
+              td= linkedTour ? (linkedTour.titleRu || linkedTour.titleEn) : (rev.tourTitle || '—')
+              td.rev-excerpt= excerpt
+              td
+                if rev.reviewPublished
+                  span.rev-published ✓ опубл.
+                else
+                  span.rev-unpublished черновик
+            tr.rev-detail
+              td(colspan='5')
+                p(style='white-space:pre-wrap;font-size:13px;line-height:1.6;color:#333;margin:0 0 12px')= rev.reviewText
+                if rev.tourId
+                  p(style='margin:0 0 10px')
+                    a(href='/' + (rev.lang || 'ru') + '/ticket/' + rev.id target='_blank' style='font-size:11px;color:#005a9e') ↗ Открыть билет
+                form(method='POST' action='/admin/requests/' + rev.id + '/review' style='display:flex;flex-direction:column;gap:8px;max-width:540px')
+                  if rev.tourId
+                    input(type='hidden' name='tourId' value=rev.tourId)
+                  textarea(name='reviewText' rows='4' style='font-size:13px;padding:8px;border:1px solid #ddd;border-radius:3px;resize:vertical')= rev.reviewText || ''
+                  label(style='font-size:12px;display:flex;align-items:center;gap:6px')
+                    input(type='checkbox' name='reviewPublished' checked=rev.reviewPublished)
+                    | Опубликовать на сайте
+                  button.admin-btn.btn-sm(type='submit' style='align-self:flex-start') Сохранить
+          else
+            tr: td(colspan='5' style='color:#bbb;text-align:center;padding:20px') Нет отзывов
+    script(src='/javascripts/eka/admin.js')
+    script.
+      document.querySelectorAll('.rev-row').forEach(function(row) {
+        row.addEventListener('click', function(e) {
+          if (e.target.closest('form') || e.target.tagName === 'A') return;
+          this.classList.toggle('open');
+        });
+      });

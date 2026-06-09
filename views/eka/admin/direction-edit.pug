@@ -10,7 +10,9 @@ html
       a(href='/admin/directions') Направления
       a(href='/admin/tours') Туры
       a(href='/admin/requests') Заявки
+      a(href='/admin/reviews') Отзывы
       a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
       a(href='/admin/logout') Выйти
     .admin-content
       .admin-title= directionId ? (direction.titleRu || 'Редактировать') : 'Новое направление'
@@ -71,12 +73,17 @@ html
           input(type='text' name='metaGroupSize' value=direction && direction.metaGroupSize || '' placeholder='до 8 человек / up to 8 people')
 
         h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Изображения
+        - var heroImg = images && images.find(function(i){ return i.role === 'hero'; })
+        - var heroFallback = !heroImg && direction && direction.heroImageSizes
         .admin-field
           label Hero-изображение (загрузить новое)
           input(type='file' name='heroImage' accept='image/*')
-          if direction && direction.heroImageSizes
+          if heroImg
             p.admin-hint(style='margin-top:8px') Текущее:
-            img(src=direction.heroImageSizes.w400 style='max-width:200px;margin-top:4px')
+            img(src=heroImg.w400 style='max-width:200px;margin-top:4px')
+          else if heroFallback
+            p.admin-hint(style='margin-top:8px') Текущее (старый формат):
+            img(src=heroFallback.w400 style='max-width:200px;margin-top:4px')
         .admin-field
           label Галерея (добавить изображения)
           input(type='file' name='galleryImages' accept='image/*' multiple)
@@ -90,17 +97,28 @@ html
         .admin-field(style='display:flex;gap:12px;align-items:center')
           button.admin-btn(type='submit') Сохранить
 
-      if direction && direction.gallery && direction.gallery.length
+      - var galleryImgs = images && images.filter(function(i){ return i.role === 'gallery'; })
+      - var galleryFallback = (!galleryImgs || !galleryImgs.length) && direction && direction.gallery && direction.gallery.length
+      if galleryImgs && galleryImgs.length
         .admin-field(style='margin-top:16px')
-          h3(style='font-size:14px;font-weight:500;margin-bottom:12px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Галерея — удаление изображений
+          h3(style='font-size:14px;font-weight:500;margin-bottom:12px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Галерея
           .admin-img-grid
-            each img, i in direction.gallery
+            each img in galleryImgs
               .admin-img-item
                 img(src=img.w400 alt='')
-                form(method='POST' action='/admin/directions/' + directionId + '/gallery-delete' style='display:inline')
-                  input(type='hidden' name='index' value=i)
+                form(method='POST' action='/admin/images/' + img.id + '/delete' style='display:inline')
+                  input(type='hidden' name='back' value=directionId)
                   button.admin-img-del(type='submit' title='Удалить') ✕
+      else if galleryFallback
+        .admin-field(style='margin-top:16px')
+          h3(style='font-size:14px;font-weight:500;margin-bottom:12px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Галерея (старый формат)
+          p.admin-hint(style='margin-bottom:8px') Загрузите новые фото — они заменят старые
+          .admin-img-grid
+            each img in direction.gallery
+              .admin-img-item
+                img(src=img.w400 alt='')
 
       if directionId
         form(method='POST' action='/admin/directions/' + directionId + '/delete' style='margin-top:12px;display:inline' onsubmit='return confirm("Удалить направление?")')
           button.admin-btn.admin-btn-danger(type='submit') Удалить
+    script(src='/javascripts/eka/admin.js')

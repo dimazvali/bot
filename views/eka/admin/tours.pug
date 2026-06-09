@@ -32,9 +32,11 @@ html
     nav.admin-nav
       a(href='/admin/') Eka Admin
       a(href='/admin/directions') Направления
-      a(href='/admin/tours' style='color:#111') Туры
+      a(href='/admin/tours') Туры
       a(href='/admin/requests') Заявки
+      a(href='/admin/reviews') Отзывы
       a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
       a(href='/admin/logout') Выйти
     .admin-content
       .section-header(style='margin-bottom:16px')
@@ -75,6 +77,7 @@ html
           else
             tr: td(colspan='6' style='color:#bbb;text-align:center;padding:20px') Нет туров
 
+    script(src='/javascripts/eka/admin.js')
     - var toursJson = JSON.stringify(tours.map(function(t) { var d = t.date ? (t.date.toDate ? t.date.toDate() : new Date(t.date)) : null; return { id: t.id, date: d ? d.toISOString().slice(0,10) : null, title: t.titleRu || t.titleEn || '—', pub: !!t.published }; }))
     script.
       var TOURS = !{toursJson};

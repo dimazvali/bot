@@ -10,7 +10,9 @@ html
       a(href='/admin/directions') Направления
       a(href='/admin/tours') Туры
       a(href='/admin/requests') Заявки
+      a(href='/admin/reviews') Отзывы
       a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
       a(href='/admin/logout') Выйти
     .admin-content
       .section-header(style='margin-bottom:16px')
@@ -43,4 +45,5 @@ html
             tr: td(colspan='5' style='color:#bbb;text-align:center;padding:20px') Нет направлений
       br
       button.admin-btn(id='saveOrderBtn') Сохранить порядок
+    script(src='/javascripts/eka/admin.js')
     script(src='/javascripts/eka/main.js')

@@ -112,7 +112,8 @@ router.get('/directions/:id/edit', requireAuth, async function(req, res, next) {
   try {
     var direction = await ekaData.getDirection(req.params.id);
     if (!direction) return res.redirect('/admin/directions');
-    res.render('eka/admin/direction-edit', { title: direction.titleRu + ' — Edit', direction: direction, directionId: req.params.id, error: null });
+    var images = await ekaData.getImages({ ownerId: req.params.id });
+    res.render('eka/admin/direction-edit', { title: direction.titleRu + ' — Edit', direction: direction, directionId: req.params.id, images: images, error: null });
   } catch (e) { next(e); }
 });
 
@@ -134,27 +135,24 @@ router.post('/directions/:id/edit', requireAuth, upload.fields([{ name: 'heroIma
     if (!id) data.order = 999;
 
     var savedId = await ekaData.saveDirection(id, data);
+    var ts = Date.now();
 
-    // Hero image
+    // Hero image → eka_images
     if (req.files && req.files.heroImage && req.files.heroImage[0]) {
-      var heroSizes = await uploadImageSizes(req.files.heroImage[0].buffer, 'eka/directions/' + savedId + '/hero-{w}.webp');
-      await ekaData.saveDirection(savedId, { heroImageSizes: heroSizes, heroImage: heroSizes.w1400 });
+      var heroSizes = await uploadImageSizes(req.files.heroImage[0].buffer, 'eka/directions/' + savedId + '/hero-' + ts + '-{w}.webp');
+      var existingHeroes = await ekaData.getImages({ ownerId: savedId, role: 'hero' });
+      var heroId = existingHeroes.length ? existingHeroes[0].id : null;
+      await ekaData.saveImage(heroId, { ownerId: savedId, ownerType: 'direction', role: 'hero', order: 0, createdAt: new Date(), w400: heroSizes.w400, w800: heroSizes.w800, w1400: heroSizes.w1400, w2400: heroSizes.w2400 });
     }
 
-    // Gallery images (append)
+    // Gallery images → eka_images (append)
     if (req.files && req.files.galleryImages && req.files.galleryImages.length) {
-      var existingDoc = await ekaData.getDirection(savedId);
-      var existing = (existingDoc && existingDoc.gallery) || [];
-      // Derive next index from existing URLs so deletion never causes index reuse
-      var maxUsed = existing.reduce(function(max, item) {
-        var m = (item.w400 || '').match(/\/gallery-(\d+)-\d+\.webp/);
-        return m ? Math.max(max, parseInt(m[1], 10)) : max;
-      }, -1);
-      var idx = maxUsed + 1;
-      var newItems = await Promise.all(req.files.galleryImages.map(async function(f, i) {
-        return uploadImageSizes(f.buffer, 'eka/directions/' + savedId + '/gallery-' + (idx + i) + '-{w}.webp');
+      var existingGallery = await ekaData.getImages({ ownerId: savedId, role: 'gallery' });
+      var maxOrder = existingGallery.reduce(function(m, img) { return Math.max(m, img.order || 0); }, -1);
+      await Promise.all(req.files.galleryImages.map(async function(f, i) {
+        var sizes = await uploadImageSizes(f.buffer, 'eka/directions/' + savedId + '/gallery-' + ts + '-' + i + '-{w}.webp');
+        return ekaData.saveImage(null, { ownerId: savedId, ownerType: 'direction', role: 'gallery', order: maxOrder + 1 + i, createdAt: new Date(), w400: sizes.w400, w800: sizes.w800, w1400: sizes.w1400, w2400: sizes.w2400 });
       }));
-      await ekaData.saveDirection(savedId, { gallery: existing.concat(newItems) });
     }
 
     res.redirect('/admin/directions/' + savedId + '/edit');
@@ -165,14 +163,12 @@ router.post('/directions/:id/delete', requireAuth, async function(req, res, next
   try { await ekaData.deleteDirection(req.params.id); res.redirect('/admin/directions'); } catch (e) { next(e); }
 });
 
-router.post('/directions/:id/gallery-delete', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+// ── IMAGE DELETE ─────────────────────────────────────────
+router.post('/images/:imageId/delete', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
-    var idx = parseInt(req.body.index, 10);
-    if (isNaN(idx)) return res.status(400).send('Bad index');
-    var direction = await ekaData.getDirection(req.params.id);
-    var gallery = (direction.gallery || []).filter(function(_, i) { return i !== idx; });
-    await ekaData.saveDirection(req.params.id, { gallery: gallery });
-    res.redirect('/admin/directions/' + req.params.id + '/edit');
+    await ekaData.deleteImage(req.params.imageId);
+    var back = req.body.back ? '/admin/directions/' + req.body.back + '/edit' : '/admin/directions';
+    res.redirect(back);
   } catch (e) { next(e); }
 });
 
@@ -242,6 +238,33 @@ router.post('/tours/:id/copy', requireAuth, express.urlencoded({ extended: false
   } catch (e) { next(e); }
 });
 
+router.post('/tours/:id/add-guest', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var b = req.body;
+    var tour = await ekaData.getTour(req.params.id);
+    if (!tour) return res.redirect('/admin/tours');
+    var name = (b.name || '').trim();
+    var contact = (b.contact || '').trim();
+    if (!name || !contact) return res.redirect('/admin/tours/' + req.params.id + '/edit');
+    await ekaData.saveRequest({
+      type: 'tour',
+      tourId: req.params.id,
+      tourTitle: tour.titleRu || tour.titleEn || '',
+      directionId: tour.directionId || null,
+      directionSlug: tour.directionSlug || null,
+      name: name,
+      contactType: b.contactType || 'email',
+      contact: contact,
+      participants: parseInt(b.participants, 10) || 1,
+      preferredDates: (b.preferredDates || '').trim(),
+      message: (b.message || '').trim(),
+      lang: 'ru',
+      source: 'admin',
+    });
+    res.redirect('/admin/tours/' + req.params.id + '/edit');
+  } catch (e) { next(e); }
+});
+
 router.post('/tours/:id/delete', requireAuth, async function(req, res, next) {
   try { await ekaData.deleteTour(req.params.id); res.redirect('/admin/tours'); } catch (e) { next(e); }
 });
@@ -294,6 +317,22 @@ router.post('/requests/:id/review', requireAuth, express.urlencoded({ extended: 
     });
     var back = b.tourId ? '/admin/tours/' + b.tourId + '/edit' : '/admin/requests';
     res.redirect(back);
+  } catch (e) { next(e); }
+});
+
+// ── HELP ─────────────────────────────────────────────────
+router.get('/help', requireAuth, function(req, res) {
+  res.render('eka/admin/help', { title: 'Справка — Eka Admin' });
+});
+
+// ── REVIEWS ──────────────────────────────────────────────
+router.get('/reviews', requireAuth, async function(req, res, next) {
+  try {
+    var reviews = await ekaData.getReviews({});
+    var tours = await ekaData.getTours({});
+    var tourMap = {};
+    tours.forEach(function(t) { tourMap[t.id] = t; });
+    res.render('eka/admin/reviews', { title: 'Отзывы — Eka Admin', reviews: reviews, tourMap: tourMap });
   } catch (e) { next(e); }
 });
 

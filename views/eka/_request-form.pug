@@ -38,4 +38,9 @@ mixin requestForm(opts)
       .form-group(style='margin-bottom:20px')
         label.form-label= lang === 'ru' ? 'Комментарий' : 'Message'
         textarea.form-textarea(name='message' placeholder=lang === 'ru' ? 'Особые пожелания, количество человек...' : 'Special requests, number of people...')
+      input(type='hidden' name='utm_source')
+      input(type='hidden' name='utm_medium')
+      input(type='hidden' name='utm_campaign')
+      input(type='hidden' name='utm_content')
+      input(type='hidden' name='utm_term')
       button.btn(type='submit')= lang === 'ru' ? 'Отправить заявку' : 'Send request'

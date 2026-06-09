@@ -1,0 +1,129 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .help-body { max-width: 720px; }
+      .help-section { margin-bottom: 40px; }
+      .help-section h2 { font-size: 14px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #999; margin: 0 0 16px; padding-bottom: 8px; border-bottom: 1px solid #e8e8e8; }
+      .help-section h3 { font-size: 13px; font-weight: 600; color: #111; margin: 18px 0 6px; }
+      .help-section p { font-size: 13px; color: #444; line-height: 1.6; margin: 0 0 8px; }
+      .help-section ul { font-size: 13px; color: #444; line-height: 1.6; margin: 0 0 8px; padding-left: 18px; }
+      .help-section li { margin-bottom: 4px; }
+      .help-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 10px 0 14px; }
+      .help-flow-step { background: #f5f5f5; border-radius: 3px; padding: 4px 10px; font-size: 12px; color: #333; white-space: nowrap; }
+      .help-flow-arrow { color: #bbb; font-size: 14px; }
+      .help-status { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 500; margin-right: 4px; margin-bottom: 4px; }
+      .s-new { background: #f0f4ff; color: #2255cc; }
+      .s-contacted { background: #fff8e0; color: #8a6000; }
+      .s-ready { background: #e6f4ea; color: #1a7f37; }
+      .s-declined { background: #f5f5f5; color: #888; }
+      .s-no_show { background: #f5f5f5; color: #888; }
+      .s-cancelled { background: #f5f5f5; color: #888; }
+      .s-completed { background: #111; color: #fff; }
+      .help-note { background: #fffbe6; border-left: 3px solid #f5c518; padding: 10px 14px; border-radius: 0 3px 3px 0; font-size: 12px; color: #555; margin: 10px 0; }
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .help-body
+
+        .help-section
+          h2 Общая схема работы
+          .help-flow
+            .help-flow-step Направление
+            .help-flow-arrow →
+            .help-flow-step Тур
+            .help-flow-arrow →
+            .help-flow-step Заявка
+            .help-flow-arrow →
+            .help-flow-step Билет
+            .help-flow-arrow →
+            .help-flow-step Отзыв
+          p Сайт строится вокруг #[strong направлений] (Казбеги, Батуми…). Под каждым направлением — конкретные #[strong туры] с датами и ценой. Гость бронирует тур → получает страницу #[strong билета] → после поездки оставляет #[strong отзыв].
+
+        .help-section
+          h2 Направления
+          p Направление — это постоянная страница маршрута на сайте: описание, галерея, мета-данные, список предстоящих туров и форма заявки.
+          h3 Что делать
+          ul
+            li Создайте направление в разделе #[strong Направления → + Новое].
+            li Заполните заголовок (RU + EN), slug (URL-часть, только латиница), описание и мета.
+            li Загрузите hero-фото и фотографии галереи.
+            li Поставьте галку #[strong Опубликовано] — направление появится на главной.
+          .help-note Slug изменить после публикации нельзя (сломаются ссылки). Выбирайте сразу: #[code kazbegi], #[code batumi].
+
+        .help-section
+          h2 Туры
+          p Тур — конкретная поездка с датой, ценой и лимитом мест.
+          h3 Что делать
+          ul
+            li Создайте тур в разделе #[strong Туры → + Новый] или скопируйте существующий.
+            li Привяжите к направлению, укажите дату, цену, максимальное число участников.
+            li Заполните место сбора (RU + EN) — оно попадёт на страницу тура и в билет гостя.
+            li Поставьте #[strong Опубликовано] — тур появится на странице направления.
+          h3 Календарь
+          p На странице списка туров показывается календарь. Зелёные точки — опубликованные туры, серые — черновики. Клик на дату подсвечивает строку в таблице.
+          h3 Копирование
+          p Кнопка #[strong Скопировать] на странице редактирования тура создаёт черновик с теми же данными — удобно для регулярных туров. Укажите новую дату и отредактируйте при необходимости.
+
+        .help-section
+          h2 Заявки
+          p Заявка создаётся когда гость заполняет форму на сайте. Заявки на конкретный тур автоматически привязываются к нему — гость сразу получает страницу билета.
+          h3 Статусы
+          p Статус меняется вручную в строке заявки (разворачивается кликом):
+          div
+            span.help-status.s-new новая
+            span по умолчанию, заявка только поступила
+          div
+            span.help-status.s-contacted связались
+            span связались с гостем, обсуждаем
+          div
+            span.help-status.s-ready к туру
+            span всё подтверждено, гость готов
+          div(style='margin-top:8px')
+            span.help-status.s-declined отказался
+            span гость передумал
+          div
+            span.help-status.s-no_show не пришел
+            span гость не явился на тур
+          div
+            span.help-status.s-cancelled отмена
+            span тур отменён с нашей стороны
+          div
+            span.help-status.s-completed состоялась
+            span поездка прошла успешно
+          h3 Фильтры
+          p По умолчанию видны только #[strong активные] (новая, связались, к туру). Архивные показываются по кнопке #[strong Архив].
+          h3 Редактирование
+          p В развёрнутой строке можно: изменить статус, перепривязать к другому туру, поправить количество участников, отметить оплату.
+          .help-note Стоимость рассчитывается автоматически: цена тура × количество участников.
+
+        .help-section
+          h2 Билет
+          p Каждая заявка на тур автоматически становится страницей билета: #[code /ru/ticket/&lt;id&gt;]. Гость получает ссылку сразу после бронирования.
+          p На странице билета гость видит: дату тура, место сбора, количество участников, стоимость и статус оплаты. Может задать вопрос гиду или (после тура) оставить отзыв.
+          .help-note Ссылка на билет — публичная, без логина. ID заявки достаточно длинный, чтобы не угадать. При необходимости можно скопировать ссылку из развёрнутой строки в разделе Заявки.
+
+        .help-section
+          h2 Отзывы
+          p После тура гость может оставить отзыв через страницу своего билета. Отзыв сохраняется со статусом «черновик» — на сайте не виден.
+          h3 Публикация
+          ul
+            li Откройте раздел #[strong Отзывы].
+            li Кликните на строку — разворачивается полный текст.
+            li Отредактируйте при необходимости и поставьте галку #[strong Опубликовать на сайте].
+            li Нажмите #[strong Сохранить] — отзыв появится на странице направления.
+
+        .help-section
+          h2 Профиль
+          p Профиль Эки — текст (RU + EN) и фото, которые показываются на странице #[strong О нас]. Меняется в разделе #[strong Профиль].

@@ -11,6 +11,9 @@ block content
       .ticket-hero-content
         .ticket-eyebrow= lang === 'ru' ? 'Ваш тур · Эка Елисеева' : 'Your tour · Eka Eliseeva'
         .ticket-title= tour ? (lang === 'ru' ? tour.titleRu : tour.titleEn) : (lang === 'ru' ? 'Тур' : 'Tour')
+        if direction && direction.slug
+          a.ticket-dir-hero-link(href='/' + lang + '/directions/' + direction.slug)
+            | #{lang === 'ru' ? (direction.titleRu || '') : (direction.titleEn || '')} →
 
     .ticket-body
       .ticket-section
@@ -54,6 +57,10 @@ block content
       .ticket-ref
         span= lang === 'ru' ? 'Бронь' : 'Booking'
         span.ticket-ref-id= booking.id
+
+      if direction && direction.slug
+        a.ticket-dir-btn(href='/' + lang + '/directions/' + direction.slug)
+          = lang === 'ru' ? '← Все туры: ' + (direction.titleRu || '') : '← All tours: ' + (direction.titleEn || '')
 
       if !isCancelled
         - var pastTour = tourDate && tourDate <= new Date()

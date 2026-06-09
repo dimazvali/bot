@@ -23,6 +23,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  // Populate UTM hidden inputs from sessionStorage
+  var utmRaw = sessionStorage.getItem('eka_utms');
+  if (utmRaw) {
+    try {
+      var utms = JSON.parse(utmRaw);
+      document.querySelectorAll('form').forEach(function(form) {
+        Object.keys(utms).forEach(function(k) {
+          var inp = form.querySelector('input[name="' + k + '"]');
+          if (inp) inp.value = utms[k];
+        });
+      });
+    } catch(e) {}
+  }
+
   // Admin drag-to-reorder (directions)
   var dragList = document.getElementById('directionsList');
   if (dragList) {

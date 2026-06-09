@@ -66,9 +66,13 @@ router.get('/:lang(ru|en)/directions/:slug', async function(req, res, next) {
     var direction = await ekaData.getDirectionBySlug(slug);
     if (!direction || !direction.published) return res.status(404).render('eka/error', { lang, message: 'Not found', error: {}, title: '404' });
     var tours = await ekaData.getTours({ directionId: direction.id, publishedOnly: true, upcomingOnly: true });
+    var allDirectionTours = await ekaData.getTours({ directionId: direction.id });
+    var directionTourIds = allDirectionTours.map(function(t) { return t.id; });
+    var reviews = await ekaData.getReviews({ publishedOnly: true, directionId: direction.id, tourIds: directionTourIds });
+    var images = await ekaData.getImages({ ownerId: direction.id });
     var title = (lang === 'ru' ? direction.titleRu : direction.titleEn) + ' — Эка Елисеева';
     var url = 'https://eka.dimazvali.com/' + lang + '/directions/' + slug;
-    res.render('eka/direction', { lang, direction, tours, title, currentPath: '/' + lang + '/directions/' + slug, ogUrl: url });
+    res.render('eka/direction', { lang, direction, tours, reviews, images, title, currentPath: '/' + lang + '/directions/' + slug, ogUrl: url });
   } catch (e) { next(e); }
 });
 
@@ -126,7 +130,12 @@ router.get('/:lang(ru|en)/ticket/:requestId', async function(req, res, next) {
       lang, booking, tour, direction, cost, tourDate, isCancelled,
       asked: req.query.asked === '1',
       reviewed: req.query.reviewed === '1',
-      title: (lang === 'ru' ? 'Ваш тур' : 'Your tour') + ' — Эка',
+      title: (function() {
+        var tourTitle = tour ? (lang === 'ru' ? tour.titleRu : tour.titleEn) : null;
+        var dateStr = tourDate ? tourDate.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'long' }) : null;
+        var parts = [tourTitle, dateStr].filter(Boolean);
+        return (parts.length ? parts.join(', ') : (lang === 'ru' ? 'Ваш тур' : 'Your tour')) + ' — Эка';
+      })(),
     });
   } catch (e) { next(e); }
 });
@@ -181,6 +190,13 @@ router.post('/:lang(ru|en)/request', express.urlencoded({ extended: false }), as
       preferredDates: (b.preferredDates || '').trim(),
       message: (b.message || '').trim(),
       lang: lang,
+      utm: {
+        source: (b.utm_source || '').trim(),
+        medium: (b.utm_medium || '').trim(),
+        campaign: (b.utm_campaign || '').trim(),
+        content: (b.utm_content || '').trim(),
+        term: (b.utm_term || '').trim(),
+      },
     };
     var requestId = await ekaData.saveRequest(data);
     mailer.sendRequestNotification(data).catch(function(e) { console.error('[eka-mailer]', e.message); });
