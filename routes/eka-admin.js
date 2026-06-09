@@ -258,7 +258,7 @@ router.get('/profile', requireAuth, async function(req, res, next) {
 router.post('/profile', requireAuth, upload.fields([{ name: 'photo', maxCount: 1 }]), async function(req, res, next) {
   try {
     var b = req.body;
-    var data = { bioRu: b.bioRu || '', bioEn: b.bioEn || '' };
+    var data = { bioRu: b.bioRu || '', bioEn: b.bioEn || '', taglineRu: b.taglineRu || '', taglineEn: b.taglineEn || '' };
     if (req.files && req.files.photo && req.files.photo[0]) {
       var sizes = await uploadImageSizes(req.files.photo[0].buffer, 'eka/profile/photo-{w}.webp');
       data.photoSizes = sizes;

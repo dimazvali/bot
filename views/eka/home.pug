@@ -23,7 +23,9 @@ block content
         | Эка
         br
         | Елисеева
-      .hero-bio= lang === 'ru' ? 'Живу в Грузии 12 лет. Показываю страну такой, какой её не видят из окна туристического автобуса — через людей, вино, архитектуру и горы.' : 'I have lived in Georgia for 12 years. I show the country as you won\'t see it from a tour bus window — through people, wine, architecture and mountains.'
+      - var tagline = lang === 'ru' ? (profile && profile.taglineRu) : (profile && profile.taglineEn)
+      if tagline
+        .hero-bio= tagline
       .hero-cta
         a.btn(href=`/${lang}/`)= lang === 'ru' ? 'Смотреть туры' : 'See tours'
         a.btn.btn-outline(href=`/${lang}/about`)= lang === 'ru' ? 'Обо мне' : 'About me'

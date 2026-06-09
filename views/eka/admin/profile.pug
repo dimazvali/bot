@@ -22,6 +22,12 @@ html
             p.admin-hint(style='margin-top:8px') Текущее фото:
             img(src=profile.photoSizes.w400 style='max-width:200px;margin-top:4px;border-radius:2px')
         .admin-field
+          label Подпись в шапке (RU) — короткий текст под именем на главной
+          input(type='text' name='taglineRu' value=profile && profile.taglineRu || '' placeholder='Живу в Грузии 12 лет. Показываю страну...')
+        .admin-field
+          label Tagline (EN)
+          input(type='text' name='taglineEn' value=profile && profile.taglineEn || '' placeholder='I have lived in Georgia for 12 years...')
+        .admin-field
           label Биография (RU)
           textarea(name='bioRu' style='min-height:200px')= profile && profile.bioRu || ''
           p.admin-hint Абзацы разделяйте двойным переносом строки.
