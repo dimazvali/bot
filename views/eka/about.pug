@@ -23,6 +23,9 @@ block content
       else
         p.about-text(style='color:#bbb')= lang === 'ru' ? 'Биография не заполнена.' : 'Bio not filled in yet.'
       .about-contacts
-        a.about-contact-link(href='https://t.me/eeliseeva' target='_blank') Telegram: @eka_guide
-        a.about-contact-link(href='mailto:eka@example.com') Email: eka@example.com
-        a.about-contact-link(href='https://instagram.com/eka_guide' target='_blank') Instagram: @eka_guide
+        if profile && profile.telegram
+          a.about-contact-link(href=profile.telegram target='_blank')= 'Telegram: ' + profile.telegram.replace('https://t.me/', '@')
+        if profile && profile.contactEmail
+          a.about-contact-link(href='mailto:' + profile.contactEmail)= 'Email: ' + profile.contactEmail
+        if profile && profile.instagram
+          a.about-contact-link(href=profile.instagram target='_blank')= 'Instagram: ' + profile.instagram.replace('https://instagram.com/', '@').replace('https://www.instagram.com/', '@')

@@ -36,8 +36,9 @@ router.get('/', function(req, res) {
   res.redirect('/' + lang + '/');
 });
 
-router.use('/:lang(ru|en)', function(req, res, next) {
+router.use('/:lang(ru|en)', async function(req, res, next) {
   res.locals.lang = req.params.lang;
+  try { res.locals.siteProfile = await ekaData.getProfile(); } catch(e) { res.locals.siteProfile = {}; }
   next();
 });
 

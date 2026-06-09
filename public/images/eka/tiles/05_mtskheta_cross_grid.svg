@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000" fill="none">
+  <title>Mtskheta Cross Grid Monochrome Pattern</title>
+  <defs>
+    <pattern id="p" width="180" height="180" patternUnits="userSpaceOnUse">
+      <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M90 30v120M30 90h120"/>
+        <path d="M70 42h40v24h24v48h-24v24H70v-24H46V66h24z"/>
+        <circle cx="90" cy="90" r="8" fill="currentColor" stroke="none"/>
+        <path d="M0 0h180v180H0z" opacity=".35"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#p)"/>
+</svg>

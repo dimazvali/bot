@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Путь · Эка Елисеева</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 18px; }
+    body { background: #07101e; overflow-x: hidden; }
+
+    /* ── SCROLL WRAPPER (height set by JS) ── */
+    #journey { position: relative; }
+
+    /* ── STICKY STAGE ── */
+    #stage {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(to bottom,
+        #07101e 0%, #121e30 25%, #1e3048 55%, #3a5060 78%, #6a7e78 100%);
+    }
+
+    /* ── STARS ── */
+    #stars { position: absolute; inset: 0; pointer-events: none; }
+
+    /* ── MOUNTAIN HALVES ── */
+    .ml, .mr {
+      position: absolute;
+      bottom: 0;
+      will-change: transform;
+    }
+    .ml { left: 0; }
+    .mr { right: 0; }
+    .ml svg, .mr svg { display: block; width: 100%; height: 100%; }
+
+    /* ── PATH GLOW ── */
+    #glow {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 3px;
+      transform: translateX(-50%);
+      background: linear-gradient(to top,
+        rgba(255, 210, 120, 0.7) 0%,
+        rgba(255, 190, 80, 0.15) 70%,
+        transparent 100%);
+      pointer-events: none;
+      height: 0;
+      opacity: 0;
+    }
+
+    /* ── CONTENT SLOT ── */
+    #slot {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .blk {
+      position: absolute;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 32px;
+      opacity: 0;
+      will-change: opacity;
+    }
+
+    /* ── BLOCK: TITLE ── */
+    .blk-title {
+      text-align: center;
+      color: #fff;
+    }
+    .eyebrow {
+      font-size: 0.56rem;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+      margin-bottom: 20px;
+    }
+    .big-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(4.5rem, 13vw, 9.5rem);
+      color: #fff;
+      line-height: 1;
+      letter-spacing: -1px;
+    }
+    .big-sub {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: 1rem;
+      color: rgba(255,255,255,0.38);
+      margin-top: 18px;
+      letter-spacing: 1px;
+    }
+    .scroll-hint {
+      margin-top: 48px;
+      font-size: 0.54rem;
+      letter-spacing: 5px;
+      color: rgba(255,255,255,0.28);
+      text-transform: uppercase;
+      animation: bob 2.5s ease-in-out infinite;
+    }
+    @keyframes bob {
+      0%,100% { opacity: 0.28; transform: translateY(0); }
+      50%      { opacity: 0.6;  transform: translateY(5px); }
+    }
+
+    /* ── BLOCK: TEXT ── */
+    .blk-text { max-width: 460px; }
+    .blk-dateline {
+      font-size: 0.54rem;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.3);
+      margin-bottom: 1.1em;
+      align-self: flex-start;
+    }
+    .blk-text p {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 0.95rem;
+      line-height: 1.85;
+      color: rgba(255,255,255,0.82);
+      text-align: left;
+      margin-bottom: 1.2em;
+    }
+    .blk-text p:last-child { margin-bottom: 0; }
+    .blk-text p.lead::first-letter {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 3.8em;
+      font-weight: 700;
+      float: left;
+      line-height: 0.74;
+      margin: 0.06em 0.08em 0 0;
+      color: #fff;
+    }
+
+    /* ── BLOCK: PULL QUOTE ── */
+    .blk-quote { max-width: 420px; text-align: center; }
+    .quote-rule {
+      width: 36px;
+      height: 1px;
+      background: rgba(255,255,255,0.3);
+      margin: 0 auto 1.6rem;
+    }
+    .blk-quote p {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: italic;
+      font-size: clamp(1.05rem, 2.4vw, 1.45rem);
+      line-height: 1.55;
+      color: rgba(255,255,255,0.88);
+    }
+
+    /* ── BLOCK: PHOTO ── */
+    .blk-photo { max-width: min(480px, 80vw); }
+    .photo-frame {
+      width: 100%;
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: #1a2a3a;
+    }
+    .photo-frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-cap {
+      margin-top: 10px;
+      font-size: 0.56rem;
+      letter-spacing: 1px;
+      color: rgba(255,255,255,0.28);
+      text-align: center;
+    }
+
+    /* ── BLOCK: CTA ── */
+    .blk-cta { text-align: center; }
+    .cta-eyebrow {
+      font-size: 0.54rem;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.32);
+      margin-bottom: 24px;
+    }
+    .cta-title {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 400;
+      font-size: clamp(1.8rem, 4.5vw, 3rem);
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 40px;
+    }
+    .cta-link {
+      display: inline-block;
+      font-size: 0.58rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.38);
+      padding: 13px 40px;
+      pointer-events: auto;
+      transition: background 0.2s, color 0.2s;
+      text-decoration: none;
+    }
+    .cta-link:hover { background: rgba(255,255,255,0.12); }
+  </style>
+</head>
+<body>
+
+<div id="journey">
+  <div id="stage">
+
+    <canvas id="stars"></canvas>
+
+    <!-- ── Layer 1: distant ridges, barely move ── -->
+    <div class="ml" style="width:57%;height:28vh" data-f="0.07">
+      <svg viewBox="0 0 570 180" preserveAspectRatio="none">
+        <!-- left: gentle rolling hills, many small undulations -->
+        <path d="M0,180 L0,140 L18,134 L36,137 L55,128 L72,131 L90,122 L108,126 L125,117 L143,121 L160,112 L178,116 L196,107 L215,111 L234,103 L252,108 L270,099 L288,104 L308,098 L326,102 L345,108 L364,103 L385,110 L408,116 L432,121 L458,126 L488,130 L520,134 L570,138 L570,180Z" fill="#8a9aaa"/>
+      </svg>
+    </div>
+    <div class="mr" style="width:57%;height:28vh" data-f="0.07">
+      <svg viewBox="0 0 570 180" preserveAspectRatio="none">
+        <!-- right: different rolling profile, peaks shifted -->
+        <path d="M0,180 L0,136 L25,130 L48,133 L70,124 L92,128 L112,119 L132,123 L152,113 L172,117 L194,106 L214,110 L236,101 L256,106 L278,097 L298,102 L318,110 L340,104 L362,112 L388,118 L415,123 L444,128 L474,133 L508,137 L545,140 L570,142 L570,180Z" fill="#8a9aaa"/>
+      </svg>
+    </div>
+
+    <!-- ── Layer 2 ── -->
+    <div class="ml" style="width:57%;height:44vh" data-f="0.18">
+      <svg viewBox="0 0 570 280" preserveAspectRatio="none">
+        <!-- left: 3 distinct peaks, angular -->
+        <path d="M0,280 L0,210 L28,198 L52,204 L78,186 L100,192 L122,172 L142,180 L162,158 L180,168 L198,148 L215,156 L232,134 L248,142 L265,124 L280,132 L298,118 L312,126 L330,140 L348,130 L368,144 L390,152 L415,160 L442,168 L472,175 L508,181 L545,186 L570,189 L570,280Z" fill="#6e8092"/>
+      </svg>
+    </div>
+    <div class="mr" style="width:57%;height:44vh" data-f="0.18">
+      <svg viewBox="0 0 570 280" preserveAspectRatio="none">
+        <!-- right: different peak positions -->
+        <path d="M0,280 L0,188 L24,180 L50,185 L76,168 L100,174 L124,155 L146,163 L168,142 L188,150 L208,129 L226,138 L244,116 L260,124 L278,108 L294,116 L312,130 L330,120 L352,135 L376,144 L404,152 L432,160 L462,168 L494,175 L528,182 L558,187 L570,190 L570,280Z" fill="#6e8092"/>
+      </svg>
+    </div>
+
+    <!-- ── Layer 3 ── -->
+    <div class="ml" style="width:57%;height:60vh" data-f="0.36">
+      <svg viewBox="0 0 570 365" preserveAspectRatio="none">
+        <!-- left: dramatic range, 4 peaks, main at x~295 -->
+        <path d="M0,365 L0,282 L30,268 L55,275 L82,252 L106,260 L128,238 L148,248 L168,222 L186,232 L204,208 L220,218 L238,194 L254,205 L270,180 L283,168 L296,176 L310,162 L324,175 L340,192 L356,180 L372,195 L390,210 L412,222 L438,232 L465,242 L496,250 L530,257 L570,262 L570,365Z" fill="#4e6072"/>
+      </svg>
+    </div>
+    <div class="mr" style="width:57%;height:60vh" data-f="0.36">
+      <svg viewBox="0 0 570 365" preserveAspectRatio="none">
+        <!-- right: offset peaks, inner edge descends -->
+        <path d="M0,365 L0,260 L28,248 L55,255 L82,235 L108,244 L132,222 L154,232 L175,210 L194,220 L214,196 L232,208 L250,182 L265,170 L280,178 L296,158 L312,170 L328,188 L346,176 L365,192 L388,207 L414,220 L442,230 L472,240 L506,248 L542,255 L570,260 L570,365Z" fill="#4e6072"/>
+      </svg>
+    </div>
+
+    <!-- ── Layer 4 ── -->
+    <div class="ml" style="width:57%;height:79vh" data-f="0.64">
+      <svg viewBox="0 0 570 445" preserveAspectRatio="none">
+        <!-- left: close range, very jagged, deep saddles -->
+        <path d="M0,445 L0,335 L22,318 L42,328 L64,302 L85,315 L105,282 L124,295 L142,260 L158,274 L174,240 L188,255 L202,218 L214,205 L226,218 L240,248 L252,232 L264,198 L276,182 L288,196 L302,228 L316,212 L330,226 L346,248 L362,234 L380,250 L400,264 L422,278 L448,292 L476,308 L508,320 L542,330 L570,338 L570,445Z" fill="#30404e"/>
+      </svg>
+    </div>
+    <div class="mr" style="width:57%;height:79vh" data-f="0.64">
+      <svg viewBox="0 0 570 445" preserveAspectRatio="none">
+        <!-- right: jagged, peaks slightly shifted from left -->
+        <path d="M0,445 L0,338 L22,325 L45,335 L68,308 L90,320 L112,288 L130,302 L148,268 L165,282 L180,248 L195,262 L210,225 L222,210 L235,224 L248,255 L260,238 L272,204 L285,188 L298,202 L312,235 L326,218 L342,232 L360,252 L378,238 L398,255 L420,270 L445,284 L472,298 L502,312 L534,325 L570,338 L570,445Z" fill="#30404e"/>
+      </svg>
+    </div>
+
+    <!-- ── Layer 5: foreground, most dramatic ── -->
+    <div class="ml" style="width:57%;height:95vh" data-f="1.0">
+      <svg viewBox="0 0 570 505" preserveAspectRatio="none">
+        <!-- left: wildest peaks, sharpest angles, distinct silhouette -->
+        <path d="M0,505 L0,395 L18,378 L36,388 L55,362 L74,375 L92,345 L110,358 L128,322 L144,338 L160,298 L174,312 L188,270 L200,284 L212,248 L222,232 L232,248 L245,275 L255,258 L265,222 L274,205 L283,218 L295,255 L305,238 L316,215 L328,200 L340,215 L352,238 L364,222 L376,240 L392,256 L410,242 L428,258 L448,275 L470,290 L495,308 L524,322 L555,335 L570,342 L570,505Z" fill="#18232e"/>
+      </svg>
+    </div>
+    <div class="mr" style="width:57%;height:95vh" data-f="1.0">
+      <svg viewBox="0 0 570 505" preserveAspectRatio="none">
+        <!-- right: completely different shape, own character -->
+        <path d="M0,505 L0,345 L18,332 L38,342 L60,315 L80,328 L100,298 L118,312 L136,278 L152,292 L168,255 L182,268 L196,232 L208,218 L220,232 L232,262 L242,245 L252,208 L262,190 L272,204 L285,242 L296,225 L308,202 L320,185 L332,200 L345,228 L358,212 L372,230 L390,248 L410,232 L432,250 L455,268 L480,285 L508,302 L538,318 L570,332 L570,505Z" fill="#18232e"/>
+      </svg>
+    </div>
+
+    <div id="glow"></div>
+
+    <!-- ── CONTENT SLOT ── -->
+    <div id="slot">
+
+      <!-- 0: TITLE -->
+      <div class="blk blk-title" data-i="0">
+        <div class="eyebrow">Эка Елисеева · Грузия</div>
+        <div class="big-title">ПУТЬ</div>
+        <div class="big-sub">Казбеги</div>
+        <div class="scroll-hint">↓&ensp;прокрути</div>
+      </div>
+
+      <!-- 1: TEXT -->
+      <div class="blk blk-text" data-i="1">
+        <p class="blk-dateline">Военно-грузинская дорога · 150 км от Тбилиси</p>
+        <p class="lead">Дорога уходит в горы как мысль — сначала осторожно, петляя между холмами, потом всё смелее, всё выше, пока асфальт не становится частью неба.</p>
+        <p>Казбеги — не место назначения. Это состояние. Есть только гора, облака и тишина, в которой слышно собственное дыхание.</p>
+      </div>
+
+      <!-- 2: PULL QUOTE -->
+      <div class="blk blk-quote" data-i="2">
+        <div class="quote-rule"></div>
+        <p>«Каждый поворот дороги открывает пейзаж, который кажется невозможным»</p>
+        <div class="quote-rule" style="margin-top:1.6rem"></div>
+      </div>
+
+      <!-- 3: PHOTO -->
+      <div class="blk blk-photo" data-i="3">
+        <div class="photo-frame" style="background:linear-gradient(155deg,#1a2a3a,#263826 50%,#3a2e1e)"></div>
+        <p class="photo-cap">Военно-грузинская дорога, высота 2395 м</p>
+      </div>
+
+      <!-- 4: TEXT -->
+      <div class="blk blk-text" data-i="4">
+        <p>Гергетская церковь стоит на высоте 2170 метров. Путь к ней занимает около двух часов. Наверху — ветер, тишина и ощущение, что отсюда до неба ближе, чем до асфальта.</p>
+        <p>Внизу Степанцминда кажется горстью огней. Казбек закрыт облаками. Потом открывается — весь, сразу.</p>
+      </div>
+
+      <!-- 5: CTA -->
+      <div class="blk blk-cta" data-i="5">
+        <div class="cta-eyebrow">Следующая поездка</div>
+        <div class="cta-title">Отправиться в путь<br>вместе с Экой</div>
+        <a class="cta-link" href="/ru/directions/kazbegi">Смотреть туры →</a>
+      </div>
+
+    </div><!-- /slot -->
+
+  </div><!-- /stage -->
+</div><!-- /journey -->
+
+<script>
+(function () {
+
+  /* ── CONFIG ── */
+  var N   = 6;     // number of content blocks
+  var SPB = 0;     // scroll per block — set in resize()
+
+  // Per-block: how far the foreground layer shifts as a fraction of viewport width (per side).
+  // Visual gap in center ≈ (2 * OPEN[i] - 0.14) * 100vw
+  var OPEN = [0, 0.09, 0.20, 0.33, 0.47, 0.66];
+
+  /* ── DOM ── */
+  var journey = document.getElementById('journey');
+  var lefts   = document.querySelectorAll('.ml');
+  var rights  = document.querySelectorAll('.mr');
+  var glow    = document.getElementById('glow');
+  var blocks  = document.querySelectorAll('.blk');
+
+  /* ── STARS ── */
+  var canvas = document.getElementById('stars');
+  var ctx    = canvas.getContext('2d');
+  var stars  = [];
+
+  function initCanvas() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    stars = [];
+    for (var i = 0; i < 210; i++) {
+      stars.push([
+        Math.random(),
+        Math.random() * 0.62,
+        Math.random() * 1.1 + 0.15,
+        Math.random() * 0.65 + 0.1
+      ]);
+    }
+  }
+
+  function drawStars(dim) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var alpha = Math.max(0, 1 - dim);
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      ctx.beginPath();
+      ctx.arc(s[0] * canvas.width, s[1] * canvas.height, s[2], 0, 6.283);
+      ctx.fillStyle = 'rgba(255,255,255,' + (s[3] * alpha).toFixed(3) + ')';
+      ctx.fill();
+    }
+  }
+
+  /* ── RESIZE ── */
+  function resize() {
+    SPB = window.innerHeight;   // exactly 1 screen per block
+    journey.style.height = (N * SPB + window.innerHeight) + 'px';
+    initCanvas();
+  }
+
+  /* ── EASING ── */
+  function ss(t) {         // smoothstep
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    return t * t * (3 - 2 * t);
+  }
+  function cubicInOut(t) { // snappier for snap-scroll
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  /* ── MAIN UPDATE (driven by scroll position) ── */
+  function update() {
+    var sy = window.scrollY;
+    var bf = sy / SPB;
+    var bi = Math.min(Math.floor(bf), N - 1);
+    var bp = bf - Math.floor(bf);
+
+    var TRANS = 0.42;
+
+    var prev  = bi > 0 ? OPEN[bi - 1] : OPEN[0];
+    var curr  = OPEN[bi];
+    var tease = bi === 0 ? 1 : ss(bp / TRANS);
+    var open  = prev + (curr - prev) * tease;
+    var shift = open * window.innerWidth;
+
+    for (var j = 0; j < lefts.length; j++) {
+      var f = +lefts[j].dataset.f;
+      lefts[j].style.transform  = 'translateX(' + (-shift * f).toFixed(1) + 'px)';
+      rights[j].style.transform = 'translateX(' +  (shift * f).toFixed(1) + 'px)';
+    }
+
+    glow.style.height  = (open * 100).toFixed(1) + 'vh';
+    glow.style.opacity = Math.min(open * 1.8, 1).toFixed(3);
+
+    drawStars(bi / (N - 1) * 0.38);
+
+    for (var k = 0; k < blocks.length; k++) {
+      var op;
+      if (k === bi) {
+        op = bi === 0 ? 1 : ss(bp / TRANS);
+      } else if (k === bi - 1) {
+        op = 1 - ss(bp / (TRANS * 0.62));
+      } else {
+        op = 0;
+      }
+      blocks[k].style.opacity       = op.toFixed(3);
+      blocks[k].style.pointerEvents = op > 0.5 ? 'auto' : 'none';
+    }
+
+    var hint = document.querySelector('.scroll-hint');
+    if (hint) hint.style.opacity = Math.max(0, 1 - sy / 100).toFixed(3);
+  }
+
+  /* ── SNAP SCROLL ── */
+  var curBlock  = 0;
+  var animating = false;
+
+  function scrollToBlock(idx) {
+    idx = Math.max(0, Math.min(N - 1, idx));
+    if (animating || idx === curBlock) return;
+    animating = true;
+    curBlock  = idx;
+
+    var from = window.scrollY;
+    var to   = idx * SPB;
+    var diff = to - from;
+    var dur  = 680;
+    var t0   = null;
+
+    function tick(now) {
+      if (!t0) t0 = now;
+      var p = Math.min((now - t0) / dur, 1);
+      window.scrollTo(0, from + diff * cubicInOut(p));
+      if (p < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        animating = false;
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* wheel → snap */
+  window.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    if (animating) return;
+    scrollToBlock(curBlock + (e.deltaY > 0 ? 1 : -1));
+  }, { passive: false });
+
+  /* keyboard → snap */
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown' || e.key === ' ' || e.key === 'PageDown') {
+      e.preventDefault(); scrollToBlock(curBlock + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault(); scrollToBlock(curBlock - 1);
+    }
+  });
+
+  /* touch swipe → snap */
+  var touchY0 = 0;
+  window.addEventListener('touchstart', function (e) {
+    touchY0 = e.touches[0].clientY;
+  }, { passive: true });
+  window.addEventListener('touchend', function (e) {
+    var dy = touchY0 - e.changedTouches[0].clientY;
+    if (Math.abs(dy) > 32) scrollToBlock(curBlock + (dy > 0 ? 1 : -1));
+  }, { passive: true });
+
+  /* ── BOOT ── */
+  resize();
+  drawStars(0);
+  /* align to nearest block in case page is reloaded mid-scroll */
+  curBlock = Math.max(0, Math.min(N - 1, Math.round(window.scrollY / (window.innerHeight || 1))));
+  update();
+
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', function () { resize(); update(); });
+
+})();
+</script>
+</body>
+</html>

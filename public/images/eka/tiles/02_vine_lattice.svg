@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000" fill="none">
+  <title>Vine Lattice Monochrome Pattern</title>
+  <defs>
+    <pattern id="p" width="220" height="220" patternUnits="userSpaceOnUse">
+      <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 110C35 70 75 70 110 110S185 150 220 110"/>
+        <path d="M110 0C70 35 70 75 110 110S150 185 110 220"/>
+        <path d="M84 84c-16-10-25-26-26-46 20 2 35 10 46 26"/>
+        <path d="M136 84c10-16 26-25 46-26-2 20-10 35-26 46"/>
+        <path d="M84 136c-16 10-25 26-26 46 20-2 35-10 46-26"/>
+        <path d="M136 136c10 16 26 25 46 26-2-20-10-35-26-46"/>
+        <circle cx="110" cy="110" r="8" fill="currentColor" stroke="none"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#p)"/>
+</svg>

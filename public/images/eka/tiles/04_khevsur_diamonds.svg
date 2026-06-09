@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000" fill="none">
+  <title>Khevsur Diamonds Monochrome Pattern</title>
+  <defs>
+    <pattern id="p" width="200" height="200" patternUnits="userSpaceOnUse">
+      <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M100 20 180 100 100 180 20 100Z"/>
+        <path d="M100 52 148 100 100 148 52 100Z"/>
+        <path d="M100 0v40M100 160v40M0 100h40M160 100h40"/>
+        <path d="M70 70h60v60H70z"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#p)"/>
+</svg>

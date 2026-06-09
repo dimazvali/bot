@@ -8,6 +8,7 @@ html
     nav.admin-nav
       a(href='/admin/') Eka Admin
       a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
       a(href='/admin/tours') Туры
       a(href='/admin/requests') Заявки
       a(href='/admin/reviews') Отзывы
@@ -72,6 +73,30 @@ html
           label Размер группы
           input(type='text' name='metaGroupSize' value=direction && direction.metaGroupSize || '' placeholder='до 8 человек / up to 8 people')
 
+        h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Маршрут (координаты)
+        p.admin-hint(style='margin-bottom:12px') Используются для анимации на странице направления. При сохранении маршрут автоматически запрашивается у Google Maps (если настроен ключ API). Десятичные градусы, например: 41.6945, 44.8015
+        .admin-2col
+          .admin-field
+            label Старт — название
+            input(type='text' name='startName' value=direction && direction.startName || '' placeholder='Тбилиси')
+          .admin-field
+            label Финиш — название
+            input(type='text' name='finishName' value=direction && direction.finishName || '' placeholder='Казбеги')
+        .admin-2col
+          .admin-field
+            label Старт — широта (lat)
+            input(type='number' step='0.0001' name='startLat' value=direction && direction.startLat || '' placeholder='41.6945')
+          .admin-field
+            label Старт — долгота (lng)
+            input(type='number' step='0.0001' name='startLng' value=direction && direction.startLng || '' placeholder='44.8015')
+        .admin-2col
+          .admin-field
+            label Финиш — широта (lat)
+            input(type='number' step='0.0001' name='finishLat' value=direction && direction.finishLat || '' placeholder='42.6697')
+          .admin-field
+            label Финиш — долгота (lng)
+            input(type='number' step='0.0001' name='finishLng' value=direction && direction.finishLng || '' placeholder='44.6467')
+
         h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Изображения
         - var heroImg = images && images.find(function(i){ return i.role === 'hero'; })
         - var heroFallback = !heroImg && direction && direction.heroImageSizes
@@ -102,13 +127,95 @@ html
       if galleryImgs && galleryImgs.length
         .admin-field(style='margin-top:16px')
           h3(style='font-size:14px;font-weight:500;margin-bottom:12px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Галерея
-          .admin-img-grid
+          p.admin-hint(style='margin-bottom:8px') Перетащите фото для изменения порядка
+          .admin-img-grid#gallery-grid
             each img in galleryImgs
-              .admin-img-item
-                img(src=img.w400 alt='')
+              .admin-img-item(draggable='true' data-id=img.id)
+                img(src=img.w400 alt=img.caption || '')
                 form(method='POST' action='/admin/images/' + img.id + '/delete' style='display:inline')
                   input(type='hidden' name='back' value=directionId)
                   button.admin-img-del(type='submit' title='Удалить') ✕
+                input.img-caption-input(type='text' placeholder='Подпись к фото' value=img.caption || '' data-id=img.id)
+        script.
+          (function () {
+            /* ── caption save ── */
+            document.querySelectorAll('.img-caption-input').forEach(function(inp) {
+              var saved = inp.value;
+              function save() {
+                if (inp.value === saved) return;
+                saved = inp.value;
+                fetch('/admin/images/' + inp.dataset.id + '/caption', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ caption: inp.value })
+                });
+              }
+              inp.addEventListener('blur', save);
+              inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); save(); inp.blur(); } });
+            });
+
+            /* ── drag-and-drop reorder ── */
+            var grid = document.getElementById('gallery-grid');
+            var dragged = null;
+
+            grid.addEventListener('dragstart', function(e) {
+              dragged = e.target.closest('.admin-img-item');
+              if (!dragged) return;
+              dragged.classList.add('dragging');
+              e.dataTransfer.effectAllowed = 'move';
+            });
+
+            grid.addEventListener('dragend', function() {
+              if (dragged) dragged.classList.remove('dragging');
+              document.querySelectorAll('.admin-img-item.drag-over').forEach(function(el) {
+                el.classList.remove('drag-over');
+              });
+              dragged = null;
+            });
+
+            grid.addEventListener('dragover', function(e) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              var target = e.target.closest('.admin-img-item');
+              if (!target || target === dragged) return;
+              document.querySelectorAll('.admin-img-item.drag-over').forEach(function(el) {
+                el.classList.remove('drag-over');
+              });
+              target.classList.add('drag-over');
+            });
+
+            grid.addEventListener('dragleave', function(e) {
+              var target = e.target.closest('.admin-img-item');
+              if (target) target.classList.remove('drag-over');
+            });
+
+            grid.addEventListener('drop', function(e) {
+              e.preventDefault();
+              var target = e.target.closest('.admin-img-item');
+              if (!target || target === dragged || !dragged) return;
+              target.classList.remove('drag-over');
+
+              /* insert before or after depending on position */
+              var items = Array.from(grid.querySelectorAll('.admin-img-item'));
+              var fromIdx = items.indexOf(dragged);
+              var toIdx   = items.indexOf(target);
+              if (fromIdx < toIdx) {
+                grid.insertBefore(dragged, target.nextSibling);
+              } else {
+                grid.insertBefore(dragged, target);
+              }
+
+              /* persist new order */
+              var newIds = Array.from(grid.querySelectorAll('.admin-img-item')).map(function(el) {
+                return el.dataset.id;
+              });
+              fetch('/admin/images/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: newIds })
+              });
+            });
+          })();
       else if galleryFallback
         .admin-field(style='margin-top:16px')
           h3(style='font-size:14px;font-weight:500;margin-bottom:12px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Галерея (старый формат)

@@ -8,6 +8,7 @@ html
     nav.admin-nav
       a(href='/admin/') Eka Admin
       a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
       a(href='/admin/tours') Туры
       a(href='/admin/requests') Заявки
       a(href='/admin/reviews') Отзывы
@@ -36,6 +37,23 @@ html
         .admin-field
           label Biography (EN)
           textarea(name='bioEn' style='min-height:200px')= profile && profile.bioEn || ''
+
+        h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Контакты
+        .admin-2col
+          .admin-field
+            label Telegram
+            input(type='text' name='telegram' value=profile && profile.telegram || '' placeholder='https://t.me/username')
+          .admin-field
+            label WhatsApp
+            input(type='text' name='whatsapp' value=profile && profile.whatsapp || '' placeholder='https://wa.me/995500000000')
+        .admin-2col
+          .admin-field
+            label Instagram
+            input(type='text' name='instagram' value=profile && profile.instagram || '' placeholder='https://instagram.com/username')
+          .admin-field
+            label Email
+            input(type='email' name='contactEmail' value=profile && profile.contactEmail || '' placeholder='eka@example.com')
+
         .admin-field
           button.admin-btn(type='submit') Сохранить
     script(src='/javascripts/eka/admin.js')

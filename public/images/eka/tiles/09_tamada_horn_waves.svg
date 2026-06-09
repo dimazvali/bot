@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000" fill="none">
+  <title>Tamada Horn Waves Monochrome Pattern</title>
+  <defs>
+    <pattern id="p" width="240" height="180" patternUnits="userSpaceOnUse">
+      <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M30 100c20-30 50-46 92-46h36c16 0 28 12 28 28 0 18-14 30-30 30h-46c-18 0-34 8-44 20"/>
+        <path d="M30 140c28-20 54-28 90-28h30"/>
+        <path d="M186 70c14 8 24 22 26 40"/>
+        <path d="M210 58l10-10M216 82h16M210 106l10 10"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#p)"/>
+</svg>

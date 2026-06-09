@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000" fill="none">
+  <title>Georgian Script Echo Monochrome Pattern</title>
+  <defs>
+    <pattern id="p" width="260" height="180" patternUnits="userSpaceOnUse">
+      <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 110c0-30 18-52 46-52 22 0 38 14 38 34 0 18-14 30-34 30H34c6 18 22 28 42 28 18 0 34-6 46-18"/>
+        <path d="M146 58v92c0 10 8 18 18 18h26"/>
+        <path d="M208 58c0 18 14 32 32 32h0c-18 0-32 14-32 32v28"/>
+        <circle cx="146" cy="48" r="6" fill="currentColor" stroke="none"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#p)"/>
+</svg>

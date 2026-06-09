@@ -42,10 +42,15 @@ html(lang=lang)
     footer.footer
       .footer-name Эка Елисеева
       .footer-links
-        a(href='https://t.me/eeliseeva' target='_blank' rel='noopener') Telegram
-        a(href='https://wa.me/995500000000' target='_blank' rel='noopener') WhatsApp
-        a(href='https://instagram.com/eka_guide' target='_blank' rel='noopener') Instagram
-        a(href='mailto:eka@example.com') Email
+        - var sp = (typeof siteProfile !== 'undefined' && siteProfile) || {}
+        if sp.telegram
+          a(href=sp.telegram target='_blank' rel='noopener') Telegram
+        if sp.whatsapp
+          a(href=sp.whatsapp target='_blank' rel='noopener') WhatsApp
+        if sp.instagram
+          a(href=sp.instagram target='_blank' rel='noopener') Instagram
+        if sp.contactEmail
+          a(href='mailto:' + sp.contactEmail) Email
     script(src='/javascripts/eka/main.js')
     script.
       (function() {

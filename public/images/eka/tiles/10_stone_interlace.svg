@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000" fill="none">
+  <title>Stone Interlace Monochrome Pattern</title>
+  <defs>
+    <pattern id="p" width="240" height="240" patternUnits="userSpaceOnUse">
+      <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 120h60c18 0 30-12 30-30V60c0-18 12-30 30-30h120"/>
+        <path d="M120 0v60c0 18 12 30 30 30h30c18 0 30 12 30 30v120"/>
+        <path d="M240 120h-60c-18 0-30 12-30 30v30c0 18-12 30-30 30H0"/>
+        <path d="M120 240v-60c0-18-12-30-30-30H60c-18 0-30-12-30-30V0"/>
+        <circle cx="120" cy="120" r="18"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#p)"/>
+</svg>

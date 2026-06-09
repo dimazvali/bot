@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000" fill="none">
+  <title>Mountain Meander Monochrome Pattern</title>
+  <defs>
+    <pattern id="p" width="240" height="160" patternUnits="userSpaceOnUse">
+      <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M0 120 40 80 80 120 120 40 160 120 200 80 240 120"/>
+        <path d="M0 60h40v40h40V60h40v40h40V60h40v40h40V60h40"/>
+        <path d="M20 138h200"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#p)"/>
+</svg>

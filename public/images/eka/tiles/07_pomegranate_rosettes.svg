@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000" fill="none">
+  <title>Pomegranate Rosettes Monochrome Pattern</title>
+  <defs>
+    <pattern id="p" width="220" height="220" patternUnits="userSpaceOnUse">
+      <g stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="110" cy="110" r="34"/>
+        <path d="M110 62c6-10 14-18 24-24 2 10 0 20-6 28M110 62c-6-10-14-18-24-24-2 10 0 20 6 28"/>
+        <path d="M110 76v68M76 110h68"/>
+        <circle cx="0" cy="0" r="34"/>
+        <circle cx="220" cy="0" r="34"/>
+        <circle cx="0" cy="220" r="34"/>
+        <circle cx="220" cy="220" r="34"/>
+      </g>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#p)"/>
+</svg>
