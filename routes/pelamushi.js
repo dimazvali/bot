@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { col, Timestamp } = require('../lib/pelamushi-firebase');
+const cache = require('../lib/pelamushi-cache');
 
 const LANGS = ['en', 'ka', 'ru'];
 
@@ -21,8 +22,13 @@ router.param('lang', async (req, res, next, lang) => {
   res.locals.site = {};
   if (col.about) {
     try {
-      const doc = await col.about.doc('main').get();
-      if (doc.exists) res.locals.site = doc.data();
+      let site = cache.get('site');
+      if (site === undefined) {
+        const doc = await col.about.doc('main').get();
+        site = doc.exists ? doc.data() : {};
+        cache.set('site', site);
+      }
+      res.locals.site = site;
     } catch { /* ignore */ }
   }
   next();
@@ -45,35 +51,36 @@ router.get('/lang/:code', (req, res) => {
   const raw = req.headers.referer || `/${code}`;
   let ref;
   try { ref = new URL(raw).pathname; } catch { ref = `/${code}`; }
-  // swap lang segment in the referring pathname
   const swapped = ref.replace(/\/(en|ka|ru)(\/|$)/, `/${code}$2`);
   res.redirect(swapped);
 });
 
-// ── Task 5: Homepage ──────────────────────────────────────────────────────────
+// ── Homepage ──────────────────────────────────────────────────────────────────
 router.get('/:lang', async (req, res, next) => {
   try {
-    const { lang } = res.locals;
-
-    let about = {};
+    // site (about/main) already loaded and cached in router.param
+    const about = res.locals.site;
     let upcomingEvent = null;
 
-    if (col.about) {
-      const aboutDoc = await col.about.doc('main').get();
-      about = aboutDoc.exists ? aboutDoc.data() : {};
-
-      const now = new Date();
+    if (col.news) {
       try {
-        const eventsSnap = await col.news
-          .where('registration_enabled', '==', true)
-          .orderBy('event_date', 'asc')
-          .limit(1)
-          .get();
-        eventsSnap.forEach(doc => {
-          const d = doc.data();
-          const eventDate = d.event_date ? d.event_date.toDate() : null;
-          if (eventDate && eventDate >= now) upcomingEvent = { id: doc.id, ...d };
-        });
+        let evt = cache.get('upcoming_event');
+        if (evt === undefined) {
+          const now = new Date();
+          const eventsSnap = await col.news
+            .where('registration_enabled', '==', true)
+            .orderBy('event_date', 'asc')
+            .limit(1)
+            .get();
+          evt = null;
+          eventsSnap.forEach(doc => {
+            const d = doc.data();
+            const eventDate = d.event_date ? d.event_date.toDate() : null;
+            if (eventDate && eventDate >= now) evt = { id: doc.id, ...d };
+          });
+          cache.set('upcoming_event', evt, 15 * 60 * 1000); // 15 min — time-sensitive
+        }
+        upcomingEvent = evt;
       } catch {
         // Firestore index may not exist yet
       }
@@ -85,147 +92,156 @@ router.get('/:lang', async (req, res, next) => {
   }
 });
 
-// ── Task 6: About page ────────────────────────────────────────────────────────
+// ── About page ────────────────────────────────────────────────────────────────
 router.get('/:lang/about', async (req, res, next) => {
   try {
-    const { lang } = res.locals;
-
-    let about = {}, team = [], gallery = [];
-
-    if (col.about) {
-      const [aboutDoc, teamSnap, gallerySnap] = await Promise.all([
-        col.about.doc('main').get(),
-        col.team.where('active', '==', true).orderBy('order').get(),
-        col.gallery.orderBy('order').get(),
-      ]);
-
-      about = aboutDoc.exists ? aboutDoc.data() : {};
-      team = teamSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let data = cache.get('about');
+    if (data === undefined) {
+      let about = {}, team = [], gallery = [];
+      if (col.about) {
+        const [aboutDoc, teamSnap, gallerySnap] = await Promise.all([
+          col.about.doc('main').get(),
+          col.team.where('active', '==', true).orderBy('order').get(),
+          col.gallery.orderBy('order').get(),
+        ]);
+        about = aboutDoc.exists ? aboutDoc.data() : {};
+        team = teamSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+      data = { about, team, gallery };
+      cache.set('about', data);
     }
-
-    res.render('pelamushi/about', { about, team, gallery, pageTitle: res.locals.t.about.title });
+    res.render('pelamushi/about', { ...data, pageTitle: res.locals.t.about.title });
   } catch (err) {
     next(err);
   }
 });
 
-// ── Task 7: Menu pages ────────────────────────────────────────────────────────
+// ── Menu list ─────────────────────────────────────────────────────────────────
 router.get('/:lang/menu', async (req, res, next) => {
   try {
-    const { lang } = res.locals;
-    const now = new Date();
-    let menus = [];
+    let menus = cache.get('menus');
+    if (menus === undefined) {
+      menus = [];
+      if (col.menus) {
+        const now = new Date();
+        const snap = await col.menus.where('active', '==', true).orderBy('order').get();
+        menus = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(m => {
+            if (m.type === 'bar' || m.type === 'shop') return false;
+            if (m.type === 'event' && m.date_to) return m.date_to.toDate() >= now;
+            return true;
+          });
 
-    if (col.menus) {
-      const snap = await col.menus.where('active', '==', true).orderBy('order').get();
-      menus = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }))
-        .filter(m => {
-          if (m.type === 'event' && m.date_to) {
-            return m.date_to.toDate() >= now;
-          }
-          return true;
-        });
-
-      // For menus without a cover photo, fall back to the first item photo
-      if (col.items) {
-        await Promise.all(menus.map(async m => {
-          if (m.cover_url) return;
-          const itemSnap = await col.items
-            .where('menu_id', '==', m.id)
-            .orderBy('order')
-            .limit(5)
-            .get();
-          const withPhoto = itemSnap.docs.find(d => d.data().photo_url);
-          if (withPhoto) m.cover_url = withPhoto.data().photo_url;
-        }));
+        if (col.items) {
+          await Promise.all(menus.map(async m => {
+            if (m.cover_url) return;
+            const itemSnap = await col.items
+              .where('menu_id', '==', m.id)
+              .orderBy('order')
+              .limit(5)
+              .get();
+            const withPhoto = itemSnap.docs.find(d => d.data().photo_url);
+            if (withPhoto) m.cover_url = withPhoto.data().photo_url;
+          }));
+        }
       }
+      cache.set('menus', menus);
     }
-
     res.render('pelamushi/menu-list', { menus, pageTitle: res.locals.t.menu.title });
   } catch (err) {
     next(err);
   }
 });
 
+// ── Menu detail ───────────────────────────────────────────────────────────────
 router.get('/:lang/menu/:slug', async (req, res, next) => {
   try {
-    const { lang } = res.locals;
     const { slug } = req.params;
+    const cacheKey = `menu:${slug}`;
 
-    if (!col.menus) return res.status(503).send('Unavailable');
+    let data = cache.get(cacheKey);
+    if (data === undefined) {
+      if (!col.menus) return res.status(503).send('Unavailable');
 
-    const menuSnap = await col.menus.where('slug', '==', slug).limit(1).get();
-    if (menuSnap.empty) return res.status(404).send('Menu not found');
+      const menuSnap = await col.menus.where('slug', '==', slug).limit(1).get();
+      if (menuSnap.empty) return res.status(404).send('Menu not found');
 
-    const menuDoc = menuSnap.docs[0];
-    const menu = { id: menuDoc.id, ...menuDoc.data() };
+      const menuDoc = menuSnap.docs[0];
+      const menu = { id: menuDoc.id, ...menuDoc.data() };
 
-    const [catsSnap, itemsSnap] = await Promise.all([
-      col.categories.where('menu_id', '==', menu.id).orderBy('order').get(),
-      col.items.where('menu_id', '==', menu.id).where('active', '==', true).orderBy('order').get(),
-    ]);
+      const [catsSnap, itemsSnap] = await Promise.all([
+        col.categories.where('menu_id', '==', menu.id).orderBy('order').get(),
+        col.items.where('menu_id', '==', menu.id).where('active', '==', true).orderBy('order').get(),
+      ]);
 
-    const categories = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const itemsAll   = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const categories = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const itemsAll   = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const grouped = categories.map(cat => ({
+        ...cat,
+        items: itemsAll.filter(i => i.category_id === cat.id),
+      }));
+      const uncategorized = itemsAll.filter(i => !i.category_id);
 
-    const grouped = categories.map(cat => ({
-      ...cat,
-      items: itemsAll.filter(i => i.category_id === cat.id),
-    }));
-    const uncategorized = itemsAll.filter(i => !i.category_id);
+      data = { menu, grouped, uncategorized };
+      cache.set(cacheKey, data);
+    }
 
     res.render('pelamushi/menu', {
-      menu,
-      grouped,
-      uncategorized,
-      pageTitle: menu['name_' + lang],
+      ...data,
+      pageTitle: data.menu['name_' + res.locals.lang],
     });
   } catch (err) {
     next(err);
   }
 });
 
-// ── Task 8: News pages + registration ─────────────────────────────────────────
+// ── News list ─────────────────────────────────────────────────────────────────
 router.get('/:lang/news', async (req, res, next) => {
   try {
-    const { lang } = res.locals;
-    let articles = [];
-
-    if (col.news) {
-      const snap = await col.news.orderBy('published_at', 'desc').limit(20).get();
-      articles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    let articles = cache.get('news');
+    if (articles === undefined) {
+      articles = [];
+      if (col.news) {
+        const snap = await col.news.orderBy('published_at', 'desc').limit(20).get();
+        articles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+      cache.set('news', articles);
     }
-
     res.render('pelamushi/news-list', { articles, pageTitle: res.locals.t.news.title });
   } catch (err) {
     next(err);
   }
 });
 
+// ── News article ──────────────────────────────────────────────────────────────
 router.get('/:lang/news/:slug', async (req, res, next) => {
   try {
-    const { lang } = res.locals;
+    const { slug } = req.params;
+    const cacheKey = `news-item:${slug}`;
 
-    if (!col.news) return res.status(503).send('Unavailable');
+    let article = cache.get(cacheKey);
+    if (article === undefined) {
+      if (!col.news) return res.status(503).send('Unavailable');
+      const snap = await col.news.where('slug', '==', slug).limit(1).get();
+      if (snap.empty) return res.status(404).send('Not found');
+      article = { id: snap.docs[0].id, ...snap.docs[0].data() };
+      cache.set(cacheKey, article);
+    }
 
-    const snap = await col.news.where('slug', '==', req.params.slug).limit(1).get();
-    if (snap.empty) return res.status(404).send('Not found');
-
-    const article = { id: snap.docs[0].id, ...snap.docs[0].data() };
     const registered = req.query.registered === '1';
-
     res.render('pelamushi/news-item', {
       article,
       registered,
-      pageTitle: article['title_' + lang],
+      pageTitle: article['title_' + res.locals.lang],
     });
   } catch (err) {
     next(err);
   }
 });
 
+// ── Event registration ────────────────────────────────────────────────────────
 router.post('/:lang/news/:slug/register', async (req, res, next) => {
   try {
     const { lang } = res.locals;
@@ -255,6 +271,125 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// ── Shop ──────────────────────────────────────────────────────────────────────
+router.get('/:lang/shop', async (req, res, next) => {
+  try {
+    const { lang } = res.locals;
+    let shop = {}, gallery = [], shopMenus = [];
+    if (col.shop) {
+      const [shopDoc, gallerySnap] = await Promise.all([
+        col.shop.doc('main').get(),
+        col.shop_gallery.orderBy('order').get(),
+      ]);
+      shop = shopDoc.exists ? shopDoc.data() : {};
+      gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    if (col.menus) {
+      const menusSnap = await col.menus.where('active', '==', true).orderBy('order').get();
+      shopMenus = menusSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(m => m.type === 'shop');
+      if (col.items && col.categories && shopMenus.length) {
+        await Promise.all(shopMenus.map(async m => {
+          const [catsSnap, itemsSnap] = await Promise.all([
+            col.categories.where('menu_id', '==', m.id).orderBy('order').get(),
+            col.items.where('menu_id', '==', m.id).where('active', '==', true).orderBy('order').get(),
+          ]);
+          const cats  = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          m.grouped       = cats.map(c => ({ ...c, items: items.filter(i => i.category_id === c.id) }));
+          m.uncategorized = items.filter(i => !i.category_id);
+        }));
+      }
+    }
+    res.render('pelamushi/shop', { shop, gallery, shopMenus, pageTitle: res.locals.t.shop.title });
+  } catch (err) { next(err); }
+});
+
+// ── Rental ────────────────────────────────────────────────────────────────────
+router.get('/:lang/rental', async (req, res, next) => {
+  try {
+    let rental = {}, gallery = [];
+    if (col.rental) {
+      const [rentalDoc, gallerySnap] = await Promise.all([
+        col.rental.doc('main').get(),
+        col.rental_gallery.orderBy('order').get(),
+      ]);
+      rental = rentalDoc.exists ? rentalDoc.data() : {};
+      gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    const booked = req.query.booked === '1';
+    const utm = {
+      source:   req.query.utm_source   || '',
+      medium:   req.query.utm_medium   || '',
+      campaign: req.query.utm_campaign || '',
+      content:  req.query.utm_content  || '',
+      term:     req.query.utm_term     || '',
+    };
+    res.render('pelamushi/rental', { rental, gallery, booked, utm, pageTitle: res.locals.t.rental.title });
+  } catch (err) { next(err); }
+});
+
+router.post('/:lang/rental/book', async (req, res, next) => {
+  try {
+    const { lang } = res.locals;
+    const { name, contact, date, time_slot, message,
+            utm_source, utm_medium, utm_campaign, utm_content, utm_term } = req.body;
+    if (!name || !contact || !date || !time_slot) {
+      return res.redirect(`/${lang}/rental?error=missing`);
+    }
+    if (col.rental_requests) {
+      await col.rental_requests.add({
+        name: name.trim(), contact: contact.trim(),
+        date, time_slot,
+        message: (message || '').trim(),
+        utm_source: utm_source || '', utm_medium: utm_medium || '',
+        utm_campaign: utm_campaign || '', utm_content: utm_content || '',
+        utm_term: utm_term || '',
+        status: 'new',
+        lang,
+        created_at: Timestamp.now(),
+      });
+    }
+    res.redirect(`/${lang}/rental?booked=1`);
+  } catch (err) { next(err); }
+});
+
+// ── Bar ───────────────────────────────────────────────────────────────────────
+router.get('/:lang/bar', async (req, res, next) => {
+  try {
+    const { lang } = res.locals;
+    let bar = {}, gallery = [], barMenus = [];
+    if (col.bar) {
+      const [barDoc, gallerySnap] = await Promise.all([
+        col.bar.doc('main').get(),
+        col.bar_gallery.orderBy('order').get(),
+      ]);
+      bar = barDoc.exists ? barDoc.data() : {};
+      gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    if (col.menus) {
+      const menusSnap = await col.menus.where('active', '==', true).orderBy('order').get();
+      barMenus = menusSnap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(m => m.type === 'bar');
+      if (col.items && col.categories && barMenus.length) {
+        await Promise.all(barMenus.map(async m => {
+          const [catsSnap, itemsSnap] = await Promise.all([
+            col.categories.where('menu_id', '==', m.id).orderBy('order').get(),
+            col.items.where('menu_id', '==', m.id).where('active', '==', true).orderBy('order').get(),
+          ]);
+          const cats  = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          const items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+          m.grouped       = cats.map(c => ({ ...c, items: items.filter(i => i.category_id === c.id) }));
+          m.uncategorized = items.filter(i => !i.category_id);
+        }));
+      }
+    }
+    res.render('pelamushi/bar', { bar, gallery, barMenus, pageTitle: res.locals.t.bar.title });
+  } catch (err) { next(err); }
 });
 
 module.exports = router;

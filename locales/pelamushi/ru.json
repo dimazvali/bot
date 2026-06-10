@@ -2,6 +2,9 @@
   "nav": {
     "about": "О нас",
     "menu": "Меню",
+    "bar": "Бар",
+    "shop": "Магазин",
+    "rental": "Аренда",
     "news": "Новости"
   },
   "footer": {
@@ -9,15 +12,28 @@
     "tagline": "Инклюзивное кафе транзитного трудоустройства"
   },
   "home": {
+    
     "quote": "Мир не идеально ровный, но при правильной опоре и среде можно быть в балансе и быть видимым.",
     "about_link": "О нас",
+    "about_desc": "",
     "menu_link": "Меню",
-    "news_link": "Новости"
+    "menu_desc": "",
+    "bar_link": "Бар",
+    "bar_desc": "",
+    "shop_link": "Магазин",
+    "shop_desc": "",
+    "rental_link": "Аренда",
+    "rental_desc": "",
+    "news_link": "Новости",
+    "news_desc": ""
   },
   "about": {
     "title": "О нас",
     "interior": "Интерьер",
-    "team": "Команда"
+    "team": "Команда",
+    "nav_desc": "О нас",
+    "nav_gallery": "Интерьер",
+    "nav_team": "Команда"
   },
   "menu": {
     "title": "Меню",
@@ -34,6 +50,35 @@
     "field_phone": "Телефон (необязательно)",
     "submit": "Записаться",
     "success": "Спасибо! Ваша заявка принята."
+  },
+  "rental": {
+    "title": "Аренда",
+    "nav_desc": "Описание",
+    "nav_gallery": "Фото",
+    "nav_book": "Заказать",
+    "book_now": "Забронировать",
+    "field_date": "Дата",
+    "field_time": "Время",
+    "time_morning": "Утро (9:00–13:00)",
+    "time_afternoon": "День (13:00–18:00)",
+    "time_evening": "Вечер (18:00–22:00)",
+    "field_name": "Ваше имя",
+    "field_contact": "Телефон или email",
+    "field_message": "Пожелания",
+    "success": "Спасибо! Мы свяжемся с вами."
+  },
+  "shop": {
+    "title": "Магазин",
+    "nav_desc": "Описание",
+    "nav_gallery": "Галерея",
+    "nav_products": "Товары"
+  },
+  "bar": {
+    "title": "Бар",
+    "bar_menu": "Барное меню",
+    "nav_desc": "Описание",
+    "nav_gallery": "Галерея",
+    "nav_menu": "Меню"
   },
   "admin": {
     "dashboard": "Дашборд",

@@ -1,0 +1,51 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Status updated
+
+  .card
+    h2 Rental Requests (#{requests.length})
+    if requests.length
+      table.table
+        thead
+          tr
+            th Date
+            th Name
+            th Contact
+            th Booking date
+            th Time
+            th Message
+            th UTM source
+            th Status
+        tbody
+          each r in requests
+            tr
+              td(style='white-space:nowrap;font-size:.8rem;color:#999')
+                = r.created_at ? r.created_at.toDate().toLocaleDateString('ru-RU') : '—'
+              td #{r.name}
+              td #{r.contact}
+              td(style='white-space:nowrap') #{r.date || '—'}
+              td
+                case r.time_slot
+                  when 'morning'
+                    | Утро
+                  when 'afternoon'
+                    | День
+                  when 'evening'
+                    | Вечер
+                  default
+                    | #{r.time_slot || '—'}
+              td(style='max-width:200px;font-size:.82rem;color:#666') #{r.message || '—'}
+              td(style='font-size:.8rem;color:#999') #{r.utm_source || '—'}
+              td
+                form(action=`/admin/rental/requests/${r.id}/status` method='POST' style='display:flex;gap:.5rem;align-items:center')
+                  select.status-select(name='status' onchange='this.form.submit()')
+                    option(value='new'       selected=r.status==='new')       Новая
+                    option(value='working'   selected=r.status==='working')   В работе
+                    option(value='cancelled' selected=r.status==='cancelled') Отмена
+                    option(value='done'      selected=r.status==='done')      Выполнено
+                span.status-badge(class='status-' + (r.status || 'new'))
+                  = ({ new: 'Новая', working: 'В работе', cancelled: 'Отмена', done: 'Выполнено' })[r.status] || r.status
+    else
+      p(style='color:#999;font-size:.9rem') No requests yet.

@@ -1,0 +1,65 @@
+extends layout
+include includes/page-nav
+
+block content
+  .hero
+    if shop.hero_url
+      .hero-bg
+        img(src=shop.hero_url alt='')
+    .hero-content
+      h1 #{shop['title_' + lang] || t.shop.title}
+
+  -
+    var navItems = [];
+    if (shop['desc_' + lang]) navItems.push({ label: t.shop.nav_desc,     href: '#shop-desc' });
+    if (gallery.length)        navItems.push({ label: t.shop.nav_gallery,  href: '#shop-gallery' });
+    if (shopMenus.length)      navItems.push({ label: t.shop.nav_products, href: '#shop-products' });
+  +pageNav(navItems)
+
+  if shop['desc_' + lang]
+    .container.section#shop-desc
+      .bar-text!= shop['desc_' + lang]
+
+  if gallery.length
+    .container.section#shop-gallery
+      .masonry-grid
+        each photo in gallery
+          .masonry-item
+            img.gallery-photo(src=photo.photo_url alt='')
+
+  if shopMenus.length
+    #shop-products
+      each menu in shopMenus
+        .container.section
+          if shopMenus.length > 1
+            h2(style='margin-bottom:1.5rem') #{menu['name_' + lang]}
+
+          each cat in menu.grouped
+            if cat.items.length
+              .menu-category
+                h3 #{cat['name_' + lang]}
+                .menu-items-grid
+                  each item in cat.items
+                    .menu-item
+                      .item-photo
+                        img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
+                      .item-body
+                        .item-name #{item['name_' + lang]}
+                        if item['desc_' + lang]
+                          .item-desc #{item['desc_' + lang]}
+                        .item-price #{item.price} ₾
+
+          if menu.uncategorized.length
+            .menu-category
+              .menu-items-grid
+                each item in menu.uncategorized
+                  .menu-item
+                    .item-photo
+                      img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
+                    .item-body
+                      .item-name #{item['name_' + lang]}
+                      if item['desc_' + lang]
+                        .item-desc #{item['desc_' + lang]}
+                      .item-price #{item.price} ₾
+
+  include includes/lightbox

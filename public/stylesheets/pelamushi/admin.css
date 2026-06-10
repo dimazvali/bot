@@ -55,3 +55,16 @@ a { color: var(--navy); text-decoration: none; }
 .login-card .logo { text-align: center; margin-bottom: 1.5rem; }
 .login-card .logo img { height: 48px; }
 .login-card h2 { text-align: center; margin-bottom: 1.5rem; font-size: 1.1rem; color: var(--navy); }
+
+/* ── Status badges ── */
+.status-badge { display: inline-block; padding: .2rem .55rem; border-radius: 20px; font-size: .72rem; font-weight: 600; letter-spacing: .04em; vertical-align: middle; }
+.status-new       { background: rgba(151,184,201,.2); color: var(--navy); }
+.status-working   { background: rgba(163,124,84,.15); color: var(--tan); }
+.status-cancelled { background: rgba(192,57,43,.1);   color: #c0392b; }
+.status-done      { background: rgba(39,174,96,.12);  color: #1e8449; }
+
+.status-select { padding: .25rem .5rem; font-size: .8rem; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
+
+/* ── Admin gallery grid ── */
+.admin-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
+.admin-gallery-item { background: #f5f5f5; border-radius: 6px; padding: .5rem; }

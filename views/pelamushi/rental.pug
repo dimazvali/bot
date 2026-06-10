@@ -1,0 +1,67 @@
+extends layout
+include includes/page-nav
+
+block content
+  .hero
+    if rental.hero_url
+      .hero-bg
+        img(src=rental.hero_url alt='')
+    .hero-content
+      h1 #{rental['title_' + lang] || t.rental.title}
+
+  -
+    var navItems = [];
+    if (rental['text_' + lang]) navItems.push({ label: t.rental.nav_desc,    href: '#rental-desc' });
+    if (gallery.length)         navItems.push({ label: t.rental.nav_gallery,  href: '#rental-gallery' });
+    navItems.push({ label: t.rental.nav_book, href: '#rental-book' });
+  +pageNav(navItems)
+
+  if rental['text_' + lang]
+    .container.section#rental-desc
+      .rental-text!= rental['text_' + lang]
+
+  if gallery.length
+    .container.section#rental-gallery
+      .masonry-grid
+        each photo in gallery
+          .masonry-item
+            img.gallery-photo(src=photo.photo_url alt='')
+
+  .container.section#rental-book
+    .booking-box
+      h2(style='margin-bottom:1.5rem') #{t.rental.book_now}
+
+      if booked
+        .booking-success #{t.rental.success}
+      else
+        form.booking-form(action=`/${lang}/rental/book` method='POST')
+          input(type='hidden' name='utm_source'   value=utm.source)
+          input(type='hidden' name='utm_medium'   value=utm.medium)
+          input(type='hidden' name='utm_campaign' value=utm.campaign)
+          input(type='hidden' name='utm_content'  value=utm.content)
+          input(type='hidden' name='utm_term'     value=utm.term)
+
+          .booking-grid
+            .booking-field
+              label #{t.rental.field_name}
+              input(type='text' name='name' required)
+            .booking-field
+              label #{t.rental.field_contact}
+              input(type='text' name='contact' required)
+            .booking-field
+              label #{t.rental.field_date}
+              input(type='date' name='date' required min=new Date().toISOString().slice(0,10))
+            .booking-field
+              label #{t.rental.field_time}
+              select(name='time_slot' required)
+                option(value='') —
+                option(value='morning') #{t.rental.time_morning}
+                option(value='afternoon') #{t.rental.time_afternoon}
+                option(value='evening') #{t.rental.time_evening}
+            .booking-field.booking-field--full
+              label #{t.rental.field_message}
+              textarea(name='message' rows='4')
+
+          button.btn.btn-terra(type='submit') #{t.rental.book_now}
+
+  include includes/lightbox

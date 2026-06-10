@@ -2,6 +2,9 @@
   "nav": {
     "about": "About Us",
     "menu": "Menu",
+    "bar": "Bar",
+    "shop": "Shop",
+    "rental": "Rental",
     "news": "News"
   },
   "footer": {
@@ -11,13 +14,25 @@
   "home": {
     "quote": "The world isn't perfectly level, but with the right support and environment, you can be in balance and be visible.",
     "about_link": "About Us",
+    "about_desc": "we're extraordinary",
     "menu_link": "Our Menu",
-    "news_link": "News & Events"
+    "menu_desc": "and seasonal specials",
+    "bar_link": "Bar",
+    "bar_desc": "from 20:00 till midnight",
+    "shop_link": "Shop",
+    "shop_desc": "and more",
+    "rental_link": "Rental",
+    "rental_desc": "come and stay",
+    "news_link": "News",
+    "news_desc": "and events"
   },
   "about": {
     "title": "About Us",
     "interior": "Interior",
-    "team": "Our Team"
+    "team": "Our Team",
+    "nav_desc": "About",
+    "nav_gallery": "Interior",
+    "nav_team": "Team"
   },
   "menu": {
     "title": "Menu",
@@ -34,6 +49,35 @@
     "field_phone": "Phone (optional)",
     "submit": "Register",
     "success": "Thank you! We have received your registration."
+  },
+  "rental": {
+    "title": "Rental",
+    "nav_desc": "About",
+    "nav_gallery": "Photos",
+    "nav_book": "Book",
+    "book_now": "Book Now",
+    "field_date": "Date",
+    "field_time": "Time",
+    "time_morning": "Morning (9:00–13:00)",
+    "time_afternoon": "Afternoon (13:00–18:00)",
+    "time_evening": "Evening (18:00–22:00)",
+    "field_name": "Your name",
+    "field_contact": "Phone or email",
+    "field_message": "Wishes",
+    "success": "Thank you! We will contact you."
+  },
+  "shop": {
+    "title": "Shop",
+    "nav_desc": "About",
+    "nav_gallery": "Gallery",
+    "nav_products": "Products"
+  },
+  "bar": {
+    "title": "Bar",
+    "bar_menu": "Bar menu",
+    "nav_desc": "About",
+    "nav_gallery": "Gallery",
+    "nav_menu": "Menu"
   },
   "admin": {
     "dashboard": "Dashboard",

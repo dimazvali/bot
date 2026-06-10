@@ -1,0 +1,65 @@
+extends layout
+include includes/page-nav
+
+block content
+  .hero
+    if bar.hero_url
+      .hero-bg
+        img(src=bar.hero_url alt='')
+    .hero-content
+      h1 #{bar['title_' + lang] || t.bar.title}
+
+  -
+    var navItems = [];
+    if (bar['desc_' + lang]) navItems.push({ label: t.bar.nav_desc, href: '#bar-desc' });
+    if (gallery.length)       navItems.push({ label: t.bar.nav_gallery, href: '#bar-gallery' });
+    if (barMenus.length)      navItems.push({ label: t.bar.nav_menu, href: '#bar-menu' });
+  +pageNav(navItems)
+
+  if bar['desc_' + lang]
+    .container.section#bar-desc
+      .bar-text!= bar['desc_' + lang]
+
+  if gallery.length
+    .container.section#bar-gallery
+      .masonry-grid
+        each photo in gallery
+          .masonry-item
+            img.gallery-photo(src=photo.photo_url alt='')
+
+  if barMenus.length
+    #bar-menu
+      each menu in barMenus
+        .container.section
+          if barMenus.length > 1
+            h2(style='margin-bottom:1.5rem') #{menu['name_' + lang]}
+
+          each cat in menu.grouped
+            if cat.items.length
+              .menu-category
+                h3 #{cat['name_' + lang]}
+                .menu-items-grid
+                  each item in cat.items
+                    .menu-item
+                      .item-photo
+                        img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
+                      .item-body
+                        .item-name #{item['name_' + lang]}
+                        if item['desc_' + lang]
+                          .item-desc #{item['desc_' + lang]}
+                        .item-price #{item.price} ₾
+
+          if menu.uncategorized.length
+            .menu-category
+              .menu-items-grid
+                each item in menu.uncategorized
+                  .menu-item
+                    .item-photo
+                      img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
+                    .item-body
+                      .item-name #{item['name_' + lang]}
+                      if item['desc_' + lang]
+                        .item-desc #{item['desc_' + lang]}
+                      .item-price #{item.price} ₾
+
+  include includes/lightbox

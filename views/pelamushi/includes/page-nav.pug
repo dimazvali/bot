@@ -1,0 +1,5 @@
+mixin pageNav(items)
+  if items && items.length > 1
+    nav.page-nav
+      each item in items
+        a.page-nav-btn(href=item.href) #{item.label}

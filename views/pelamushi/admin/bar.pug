@@ -1,0 +1,61 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Saved
+
+  .card
+    h2 Bar page content
+    form(action='/admin/bar/save' method='POST')
+      .form-row
+        label Title EN
+        input(name='title_en' value=bar.title_en)
+      .form-row
+        label Title KA
+        input(name='title_ka' value=bar.title_ka)
+      .form-row
+        label Title RU
+        input(name='title_ru' value=bar.title_ru)
+      .form-row
+        label Description EN
+        textarea(name='desc_en') #{bar.desc_en}
+      .form-row
+        label Description KA
+        textarea(name='desc_ka') #{bar.desc_ka}
+      .form-row
+        label Description RU
+        textarea(name='desc_ru') #{bar.desc_ru}
+      button.btn.btn-primary(type='submit') Save
+
+  .card
+    h2 Hero image
+    if bar.hero_url
+      img(src=bar.hero_url style='width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:1rem')
+    form(action='/admin/bar/hero/save' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Upload hero photo
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Upload
+
+  .card
+    h2 Gallery
+    .admin-gallery-grid
+      each photo in gallery
+        .admin-gallery-item
+          img(src=photo.photo_url style='width:100%;height:100px;object-fit:cover;border-radius:4px')
+          form(action=`/admin/bar/gallery/${photo.id}/delete` method='POST' style='margin-top:.4rem')
+            button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Delete?")') Delete
+    form(action='/admin/bar/gallery/add' method='POST' enctype='multipart/form-data' style='margin-top:1rem')
+      .form-row
+        label Add photos
+        input(type='file' name='photo' accept='image/*' multiple)
+      button.btn.btn-secondary.btn-sm(type='submit') Upload
+
+  .card(style='border-left:3px solid var(--blue)')
+    h2 Bar menu
+    p(style='font-size:.88rem;color:#666;margin-top:.5rem')
+      | Bar menus are managed in the&nbsp;
+      a(href='/admin/menus') Menus section
+      | . Set a menu type to&nbsp;
+      strong Bar
+      |  and it will appear on the bar page.

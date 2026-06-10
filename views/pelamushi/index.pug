@@ -1,7 +1,11 @@
 extends layout
 
 block content
-  .hero(style=`background-image: url('${about.hero_url || '/images/pelamushi/hero.jpg'}')`)
+  .hero
+    picture.hero-bg
+      if about.hero_url_sm
+        source(media='(max-width: 768px)' srcset=about.hero_url_sm)
+      img(src=about.hero_url || '/images/pelamushi/hero.jpg' alt='')
     img.hero-logo(src='/images/pelamushi/logo3.png' alt='')
     .hero-content
       blockquote #{about['quote_' + lang] || t.home.quote}
@@ -16,18 +20,27 @@ block content
         a.btn.btn-terra(href=`/${lang}/news/${upcomingEvent.slug}`) #{t.news.register}
 
   .section-cards
-    .section-card
+    a.section-card(href=`/${lang}/about`)
       .card-body
         h3 #{t.home.about_link}
-        p #{about['mission_' + lang] ? about['mission_' + lang].replace(/<[^>]+>/g, '').substring(0,120) + '…' : ''}
-        a.card-link(href=`/${lang}/about`) #{t.nav.about} →
-    .section-card
+        p #{t.home.about_desc}
+    a.section-card(href=`/${lang}/menu`)
       .card-body
         h3 #{t.home.menu_link}
-        p
-        a.card-link(href=`/${lang}/menu`) #{t.nav.menu} →
-    .section-card
+        p #{t.home.menu_desc}
+    a.section-card(href=`/${lang}/bar`)
+      .card-body
+        h3 #{t.home.bar_link}
+        p #{t.home.bar_desc}
+    a.section-card(href=`/${lang}/shop`)
+      .card-body
+        h3 #{t.home.shop_link}
+        p #{t.home.shop_desc}
+    a.section-card(href=`/${lang}/rental`)
+      .card-body
+        h3 #{t.home.rental_link}
+        p #{t.home.rental_desc}
+    a.section-card(href=`/${lang}/news`)
       .card-body
         h3 #{t.home.news_link}
-        p
-        a.card-link(href=`/${lang}/news`) #{t.nav.news} →
+        p #{t.home.news_desc}

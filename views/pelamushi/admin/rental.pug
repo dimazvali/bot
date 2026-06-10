@@ -1,0 +1,52 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Saved
+
+  .card
+    h2 Content
+    form(action='/admin/rental/save' method='POST')
+      .form-row
+        label Title EN
+        input(name='title_en' value=rental.title_en)
+      .form-row
+        label Title KA
+        input(name='title_ka' value=rental.title_ka)
+      .form-row
+        label Title RU
+        input(name='title_ru' value=rental.title_ru)
+      .form-row
+        label Description / HTML text (EN)
+        textarea(name='text_en' style='min-height:200px;font-family:monospace;font-size:.82rem') #{rental.text_en}
+      .form-row
+        label Description / HTML text (KA)
+        textarea(name='text_ka' style='min-height:200px;font-family:monospace;font-size:.82rem') #{rental.text_ka}
+      .form-row
+        label Description / HTML text (RU)
+        textarea(name='text_ru' style='min-height:200px;font-family:monospace;font-size:.82rem') #{rental.text_ru}
+      button.btn.btn-primary(type='submit') Save
+
+  .card
+    h2 Hero image
+    if rental.hero_url
+      img(src=rental.hero_url style='width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:1rem')
+    form(action='/admin/rental/hero/save' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Upload hero photo
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Upload
+
+  .card
+    h2 Gallery
+    .admin-gallery-grid
+      each photo in gallery
+        .admin-gallery-item
+          img(src=photo.photo_url style='width:100%;height:100px;object-fit:cover;border-radius:4px')
+          form(action=`/admin/rental/gallery/${photo.id}/delete` method='POST' style='margin-top:.4rem')
+            button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Delete?")') Delete
+    form(action='/admin/rental/gallery/add' method='POST' enctype='multipart/form-data' style='margin-top:1rem')
+      .form-row
+        label Add photos
+        input(type='file' name='photo' accept='image/*' multiple)
+      button.btn.btn-secondary.btn-sm(type='submit') Upload

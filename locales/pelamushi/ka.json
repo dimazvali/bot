@@ -2,6 +2,9 @@
   "nav": {
     "about": "ჩვენს შესახებ",
     "menu": "მენიუ",
+    "bar": "ბარი",
+    "shop": "მაღაზია",
+    "rental": "გაქირავება",
     "news": "სიახლეები"
   },
   "footer": {
@@ -11,13 +14,25 @@
   "home": {
     "quote": "სამყარო სრულყოფილად ბრტყელი არ არის, მაგრამ სწორი მხარდაჭერითა და გარემოთი შეგიძლია ბალანსში იყო და ხილული გახდე.",
     "about_link": "ჩვენს შესახებ",
+    "about_desc": "",
     "menu_link": "მენიუ",
-    "news_link": "სიახლეები"
+    "menu_desc": "",
+    "bar_link": "ბარი",
+    "bar_desc": "",
+    "shop_link": "მაღაზია",
+    "shop_desc": "",
+    "rental_link": "გაქირავება",
+    "rental_desc": "",
+    "news_link": "სიახლეები",
+    "news_desc": ""
   },
   "about": {
     "title": "ჩვენს შესახებ",
     "interior": "ინტერიერი",
-    "team": "ჩვენი გუნდი"
+    "team": "ჩვენი გუნდი",
+    "nav_desc": "შესახებ",
+    "nav_gallery": "ინტერიერი",
+    "nav_team": "გუნდი"
   },
   "menu": {
     "title": "მენიუ",
@@ -34,6 +49,35 @@
     "field_phone": "ტელეფონი (არასავალდებულო)",
     "submit": "გაგზავნა",
     "success": "გმადლობთ! თქვენი რეგისტრაცია მიღებულია."
+  },
+  "rental": {
+    "title": "გაქირავება",
+    "nav_desc": "აღწერა",
+    "nav_gallery": "ფოტო",
+    "nav_book": "დაჯავშნა",
+    "book_now": "დაჯავშნა",
+    "field_date": "თარიღი",
+    "field_time": "დრო",
+    "time_morning": "დილა (9:00–13:00)",
+    "time_afternoon": "შუადღე (13:00–18:00)",
+    "time_evening": "საღამო (18:00–22:00)",
+    "field_name": "თქვენი სახელი",
+    "field_contact": "ტელეფონი ან ელფოსტა",
+    "field_message": "სურვილები",
+    "success": "გმადლობთ! ჩვენ დაგიკავშირდებით."
+  },
+  "shop": {
+    "title": "მაღაზია",
+    "nav_desc": "აღწერა",
+    "nav_gallery": "გალერეა",
+    "nav_products": "პროდუქტები"
+  },
+  "bar": {
+    "title": "ბარი",
+    "bar_menu": "ბარის მენიუ",
+    "nav_desc": "აღწერა",
+    "nav_gallery": "გალერეა",
+    "nav_menu": "მენიუ"
   },
   "admin": {
     "dashboard": "მთავარი",

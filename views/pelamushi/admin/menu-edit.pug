@@ -43,6 +43,8 @@ block content
         select(name='type')
           option(value='permanent' selected=menu.type==='permanent') Permanent
           option(value='event' selected=menu.type==='event') Event / Guestshift
+          option(value='bar' selected=menu.type==='bar') Bar
+          option(value='shop' selected=menu.type==='shop') Shop
       .form-row
         label
           input(type='checkbox' name='active' checked=menu.active)

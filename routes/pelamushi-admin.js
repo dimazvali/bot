@@ -3,6 +3,7 @@ const fileUpload = require('express-fileupload');
 const router = express.Router();
 const { col } = require('../lib/pelamushi-firebase');
 const { requireAdmin, cookieToken } = require('../lib/pelamushi-auth');
+const cache = require('../lib/pelamushi-cache');
 
 router.use(fileUpload());
 
@@ -28,6 +29,15 @@ router.get('/logout', (req, res) => {
 
 // All routes below require admin session
 router.use(requireAdmin);
+
+// Flush public cache after any mutating request
+router.use((req, res, next) => {
+  if (req.method !== 'GET') {
+    const orig = res.redirect.bind(res);
+    res.redirect = (...args) => { cache.flush(); return orig(...args); };
+  }
+  next();
+});
 
 // Dashboard
 router.get('/', async (req, res, next) => {
@@ -104,9 +114,9 @@ router.post('/about/quote', async (req, res, next) => {
 router.post('/about/hero', async (req, res, next) => {
   try {
     if (!req.files || !req.files.photo) return res.redirect('/admin/about');
-    const { uploadPhoto } = require('../lib/pelamushi-upload');
-    const url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'hero', 'cover');
-    if (col.about) await col.about.doc('main').set({ hero_url: url }, { merge: true });
+    const { uploadHeroPhoto } = require('../lib/pelamushi-upload');
+    const urls = await uploadHeroPhoto(req.files.photo.data);
+    if (col.about) await col.about.doc('main').set(urls, { merge: true });
     res.redirect('/admin/about?saved=1');
   } catch (err) { next(err); }
 });
@@ -417,6 +427,224 @@ router.get('/registrations/export.csv', async (req, res, next) => {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="registrations.csv"');
     res.send(csv);
+  } catch (err) { next(err); }
+});
+
+// ── Rental ────────────────────────────────────────────────────────────────────
+router.get('/rental', async (req, res, next) => {
+  try {
+    let rental = {}, gallery = [];
+    if (col.rental) {
+      const [rentalDoc, gallerySnap] = await Promise.all([
+        col.rental.doc('main').get(),
+        col.rental_gallery.orderBy('order').get(),
+      ]);
+      rental = rentalDoc.exists ? rentalDoc.data() : {};
+      gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    res.render('pelamushi/admin/rental', { title: 'Rental', rental, gallery, saved: req.query.saved === '1' });
+  } catch (err) { next(err); }
+});
+
+router.post('/rental/save', async (req, res, next) => {
+  try {
+    const { title_en, title_ka, title_ru, text_en, text_ka, text_ru } = req.body;
+    if (col.rental) {
+      await col.rental.doc('main').set(
+        { title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
+          text_en: text_en || '', text_ka: text_ka || '', text_ru: text_ru || '',
+          updated_at: new Date() },
+        { merge: true }
+      );
+    }
+    res.redirect('/admin/rental?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/rental/hero/save', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/rental');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadPhoto(file.data, file.name, 'rental-hero', 'rental');
+    if (col.rental) await col.rental.doc('main').set({ hero_url: url }, { merge: true });
+    res.redirect('/admin/rental?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/rental/gallery/add', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/rental');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const files = Array.isArray(req.files.photo) ? req.files.photo : [req.files.photo];
+    if (col.rental_gallery) {
+      const snap = await col.rental_gallery.orderBy('order', 'desc').limit(1).get();
+      let nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      for (const file of files) {
+        const url = await uploadPhoto(file.data, file.name, 'rental-gallery', 'rental');
+        await col.rental_gallery.add({ photo_url: url, order: nextOrder++ });
+      }
+    }
+    res.redirect('/admin/rental');
+  } catch (err) { next(err); }
+});
+
+router.post('/rental/gallery/:id/delete', async (req, res, next) => {
+  try {
+    if (col.rental_gallery) await col.rental_gallery.doc(req.params.id).delete();
+    res.redirect('/admin/rental');
+  } catch (err) { next(err); }
+});
+
+router.get('/rental/requests', async (req, res, next) => {
+  try {
+    let requests = [];
+    if (col.rental_requests) {
+      const snap = await col.rental_requests.orderBy('created_at', 'desc').limit(200).get();
+      requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    res.render('pelamushi/admin/rental-requests', { title: 'Rental Requests', requests, saved: req.query.saved === '1' });
+  } catch (err) { next(err); }
+});
+
+router.post('/rental/requests/:id/status', async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    if (!['new', 'working', 'cancelled', 'done'].includes(status)) return res.redirect('/admin/rental/requests');
+    if (col.rental_requests) await col.rental_requests.doc(req.params.id).update({ status });
+    res.redirect('/admin/rental/requests?saved=1');
+  } catch (err) { next(err); }
+});
+
+// ── Bar ───────────────────────────────────────────────────────────────────────
+router.get('/bar', async (req, res, next) => {
+  try {
+    let bar = {}, gallery = [];
+    if (col.bar) {
+      const [barDoc, gallerySnap] = await Promise.all([
+        col.bar.doc('main').get(),
+        col.bar_gallery.orderBy('order').get(),
+      ]);
+      bar = barDoc.exists ? barDoc.data() : {};
+      gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    res.render('pelamushi/admin/bar', { title: 'Bar', bar, gallery, saved: req.query.saved === '1' });
+  } catch (err) { next(err); }
+});
+
+router.post('/bar/save', async (req, res, next) => {
+  try {
+    const { title_en, title_ka, title_ru, desc_en, desc_ka, desc_ru } = req.body;
+    if (col.bar) {
+      await col.bar.doc('main').set(
+        { title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
+          desc_en: desc_en || '', desc_ka: desc_ka || '', desc_ru: desc_ru || '',
+          updated_at: new Date() },
+        { merge: true }
+      );
+    }
+    res.redirect('/admin/bar?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/bar/hero/save', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/bar');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadPhoto(file.data, file.name, 'bar-hero', 'bar');
+    if (col.bar) await col.bar.doc('main').set({ hero_url: url }, { merge: true });
+    res.redirect('/admin/bar?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/bar/gallery/add', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/bar');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const files = Array.isArray(req.files.photo) ? req.files.photo : [req.files.photo];
+    if (col.bar_gallery) {
+      const snap = await col.bar_gallery.orderBy('order', 'desc').limit(1).get();
+      let nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      for (const file of files) {
+        const url = await uploadPhoto(file.data, file.name, 'bar-gallery', 'bar');
+        await col.bar_gallery.add({ photo_url: url, order: nextOrder++ });
+      }
+    }
+    res.redirect('/admin/bar');
+  } catch (err) { next(err); }
+});
+
+router.post('/bar/gallery/:id/delete', async (req, res, next) => {
+  try {
+    if (col.bar_gallery) await col.bar_gallery.doc(req.params.id).delete();
+    res.redirect('/admin/bar');
+  } catch (err) { next(err); }
+});
+
+// ── Shop ──────────────────────────────────────────────────────────────────────
+router.get('/shop', async (req, res, next) => {
+  try {
+    let shop = {}, gallery = [];
+    if (col.shop) {
+      const [shopDoc, gallerySnap] = await Promise.all([
+        col.shop.doc('main').get(),
+        col.shop_gallery.orderBy('order').get(),
+      ]);
+      shop = shopDoc.exists ? shopDoc.data() : {};
+      gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    res.render('pelamushi/admin/shop', { title: 'Shop', shop, gallery, saved: req.query.saved === '1' });
+  } catch (err) { next(err); }
+});
+
+router.post('/shop/save', async (req, res, next) => {
+  try {
+    const { title_en, title_ka, title_ru, desc_en, desc_ka, desc_ru } = req.body;
+    if (col.shop) {
+      await col.shop.doc('main').set(
+        { title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
+          desc_en: desc_en || '', desc_ka: desc_ka || '', desc_ru: desc_ru || '',
+          updated_at: new Date() },
+        { merge: true }
+      );
+    }
+    res.redirect('/admin/shop?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/shop/hero/save', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/shop');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadPhoto(file.data, file.name, 'shop-hero', 'cover');
+    if (col.shop) await col.shop.doc('main').set({ hero_url: url }, { merge: true });
+    res.redirect('/admin/shop?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/shop/gallery/add', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/shop');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const files = Array.isArray(req.files.photo) ? req.files.photo : [req.files.photo];
+    if (col.shop_gallery) {
+      const snap = await col.shop_gallery.orderBy('order', 'desc').limit(1).get();
+      let nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      for (const file of files) {
+        const url = await uploadPhoto(file.data, file.name, 'shop-gallery', 'gallery');
+        await col.shop_gallery.add({ photo_url: url, order: nextOrder++ });
+      }
+    }
+    res.redirect('/admin/shop');
+  } catch (err) { next(err); }
+});
+
+router.post('/shop/gallery/:id/delete', async (req, res, next) => {
+  try {
+    if (col.shop_gallery) await col.shop_gallery.doc(req.params.id).delete();
+    res.redirect('/admin/shop');
   } catch (err) { next(err); }
 });
 
