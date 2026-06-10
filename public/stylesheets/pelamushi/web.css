@@ -89,7 +89,7 @@ img { display: block; max-width: 100%; height: auto; }
   position: relative; z-index: 1;
   padding: 2rem;
 }
-.hero-content img { height: 80px; margin: 0 auto 1.5rem; filter: brightness(0) invert(1); }
+.hero-content img { height: 160px; margin: 0 auto 1.5rem; filter: brightness(0) invert(1); }
 .hero-content blockquote {
   font-family: 'Noto Serif', 'Noto Serif Georgian', serif;
   font-style: italic;
