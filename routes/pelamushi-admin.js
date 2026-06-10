@@ -92,11 +92,14 @@ router.post('/about/gallery/add', async (req, res, next) => {
   try {
     if (!req.files || !req.files.photo) return res.redirect('/admin/about');
     const { uploadPhoto } = require('../lib/pelamushi-upload');
-    const url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'gallery', 'gallery');
+    const files = Array.isArray(req.files.photo) ? req.files.photo : [req.files.photo];
     if (col.gallery) {
       const snap = await col.gallery.orderBy('order', 'desc').limit(1).get();
-      const nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
-      await col.gallery.add({ photo_url: url, caption_en: '', caption_ka: '', caption_ru: '', order: nextOrder });
+      let nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      for (const file of files) {
+        const url = await uploadPhoto(file.data, file.name, 'gallery', 'gallery');
+        await col.gallery.add({ photo_url: url, caption_en: '', caption_ka: '', caption_ru: '', order: nextOrder++ });
+      }
     }
     res.redirect('/admin/about');
   } catch (err) { next(err); }
