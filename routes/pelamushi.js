@@ -55,6 +55,61 @@ router.get('/lang/:code', (req, res) => {
   res.redirect(swapped);
 });
 
+// ── Sitemap & robots ─────────────────────────────────────────────────────────
+const BASE = 'https://pelamushi.ge';
+const STATIC_PATHS = ['', '/about', '/menu', '/bar', '/shop', '/rental', '/news'];
+
+router.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(`User-agent: *\nAllow: /\nSitemap: ${BASE}/sitemap.xml\n`);
+});
+
+router.get('/sitemap.xml', async (req, res, next) => {
+  try {
+    let xml = cache.get('sitemap');
+    if (xml === undefined) {
+      let menuSlugs = [], newsSlugs = [];
+
+      if (col.menus) {
+        const snap = await col.menus.where('active', '==', true).get();
+        menuSlugs = snap.docs.map(d => d.data().slug).filter(Boolean);
+      }
+      if (col.news) {
+        const snap = await col.news.orderBy('published_at', 'desc').get();
+        newsSlugs = snap.docs.map(d => d.data().slug).filter(Boolean);
+      }
+
+      const allPaths = [
+        ...STATIC_PATHS,
+        ...menuSlugs.map(s => `/menu/${s}`),
+        ...newsSlugs.map(s => `/news/${s}`),
+      ];
+
+      const rows = allPaths.map(path => {
+        const alts = LANGS.map(l =>
+          `    <xhtml:link rel="alternate" hreflang="${l}" href="${BASE}/${l}${path}"/>`
+        ).join('\n');
+        return LANGS.map(l =>
+          `  <url>\n    <loc>${BASE}/${l}${path}</loc>\n${alts}\n  </url>`
+        ).join('\n');
+      });
+
+      xml = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"',
+        '        xmlns:xhtml="http://www.w3.org/1999/xhtml">',
+        ...rows,
+        '</urlset>',
+      ].join('\n');
+
+      cache.set('sitemap', xml);
+    }
+
+    res.type('application/xml').send(xml);
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── Homepage ──────────────────────────────────────────────────────────────────
 router.get('/:lang', async (req, res, next) => {
   try {

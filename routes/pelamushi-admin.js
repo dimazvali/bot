@@ -350,6 +350,25 @@ router.post('/news/new', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/news/registrations', async (req, res, next) => {
+  try {
+    let registrations = [], newsMap = {};
+    if (col.registrations) {
+      const [regSnap, newsSnap] = await Promise.all([
+        col.registrations.orderBy('created_at', 'desc').get(),
+        col.news ? col.news.get() : Promise.resolve({ docs: [] }),
+      ]);
+      newsSnap.docs.forEach(d => { newsMap[d.id] = d.data(); });
+      registrations = regSnap.docs.map(d => {
+        const r = { id: d.id, ...d.data() };
+        r.event = newsMap[r.news_id] || null;
+        return r;
+      });
+    }
+    res.render('pelamushi/admin/news-registrations', { title: 'Registrations', registrations });
+  } catch (err) { next(err); }
+});
+
 router.get('/news/:id', async (req, res, next) => {
   try {
     let article = {};
