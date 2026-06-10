@@ -56,6 +56,9 @@ app.use(vhost('eka.localhost', require('./routes/eka')))
 app.use(vhost('pelamushi.*.*', require('./routes/pelamushi')))
 app.use(vhost('pelamushi.localhost', require('./routes/pelamushi')))
 
+app.use(vhost('pelamushi.ge', require('./routes/pelamushi')))
+app.use(vhost('www.pelamushi.ge', require('./routes/pelamushi')))
+
 
 app.use(express.static(path.join(__dirname, 'public')));
 
