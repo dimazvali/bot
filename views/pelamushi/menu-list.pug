@@ -8,8 +8,12 @@ block content
     .menu-cards
       each m in menus
         a.menu-card(href=`/${lang}/menu/${m.slug}` style='display:block; text-decoration:none; color:inherit')
-          if m.type === 'event'
-            span.event-badge #{t.news.event_badge}
-          h3 #{m['name_' + lang]}
-          if m['desc_' + lang]
-            p #{m['desc_' + lang]}
+          if m.cover_url
+            .menu-card-photo
+              img(src=m.cover_url alt=m['name_' + lang])
+          .menu-card-body
+            if m.type === 'event'
+              span.event-badge #{t.news.event_badge}
+            h3 #{m['name_' + lang]}
+            if m['desc_' + lang]
+              p #{m['desc_' + lang]}

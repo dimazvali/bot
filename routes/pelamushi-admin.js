@@ -207,6 +207,16 @@ router.get('/menus/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/menus/:id/cover', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect(`/admin/menus/${req.params.id}`);
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'menus', 'cover');
+    if (col.menus) await col.menus.doc(req.params.id).update({ cover_url: url });
+    res.redirect(`/admin/menus/${req.params.id}?saved=1`);
+  } catch (err) { next(err); }
+});
+
 router.post('/menus/:id/save', async (req, res, next) => {
   try {
     const { name_en, name_ka, name_ru, desc_en, desc_ka, desc_ru, slug, type, active } = req.body;

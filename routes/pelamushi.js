@@ -127,6 +127,20 @@ router.get('/:lang/menu', async (req, res, next) => {
           }
           return true;
         });
+
+      // For menus without a cover photo, fall back to the first item photo
+      if (col.items) {
+        await Promise.all(menus.map(async m => {
+          if (m.cover_url) return;
+          const itemSnap = await col.items
+            .where('menu_id', '==', m.id)
+            .orderBy('order')
+            .limit(5)
+            .get();
+          const withPhoto = itemSnap.docs.find(d => d.data().photo_url);
+          if (withPhoto) m.cover_url = withPhoto.data().photo_url;
+        }));
+      }
     }
 
     res.render('pelamushi/menu-list', { menus, pageTitle: res.locals.t.menu.title });
