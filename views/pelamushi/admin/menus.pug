@@ -1,13 +1,37 @@
 extends layout
 
 block content
+  if saved
+    .alert.alert-success Сохранено
+
   .card
-    h2 All menus
+    h2 Фото героя (раздел меню)
+    if site && site.menu_hero_url
+      img(src=site.menu_hero_url style='width:100%;max-height:180px;object-fit:cover;border-radius:6px;margin-bottom:.75rem')
+    form(action='/admin/menus/hero' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Загрузить фото
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Иконка (раздел меню)
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Маленькое изображение над заголовком
+    if site && site.menu_icon_url
+      img(src=site.menu_icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
+    form(action='/admin/menus/icon' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Загрузить иконку
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Все меню
     table.table
       thead
         tr
-          th Name (EN)
-          th Type
+          th Название (EN)
+          th Тип
           th Slug
           th
       tbody
@@ -19,35 +43,35 @@ block content
             td #{m.slug}
             td
               form(action=`/admin/menus/${m.id}/delete` method='POST')
-                button.btn.btn-danger.btn-sm(type='submit') Delete
+                button.btn.btn-danger.btn-sm(type='submit') Удалить
 
   .card
-    h2 New menu
+    h2 Новое меню
     form(action='/admin/menus/new' method='POST')
       .form-row
-        label Name EN
+        label Название EN
         input(name='name_en')
       .form-row
-        label Name KA
+        label Название KA
         input(name='name_ka')
       .form-row
-        label Name RU
+        label Название RU
         input(name='name_ru')
       .form-row
-        label Description EN
+        label Описание EN
         input(name='desc_en')
       .form-row
-        label Description KA
+        label Описание KA
         input(name='desc_ka')
       .form-row
-        label Description RU
+        label Описание RU
         input(name='desc_ru')
       .form-row
-        label Slug (URL-safe, e.g. cafe-menu)
+        label Slug (URL, напр. cafe-menu)
         input(name='slug')
       .form-row
-        label Type
+        label Тип
         select(name='type')
-          option(value='permanent') Permanent
-          option(value='event') Event / Guestshift
-      button.btn.btn-primary(type='submit') Create
+          option(value='permanent') Постоянное
+          option(value='event') Событие / Гостевой
+      button.btn.btn-primary(type='submit') Создать

@@ -1,13 +1,14 @@
 extends layout
+include includes/hero
 
 block content
-  .page-header
+  +hero(site && (site.menu_hero_url || site.hero_url), site && site.menu_icon_url)
     h1 #{t.menu.title}
 
   .container.section
     .menu-cards
       each m in menus
-        a.menu-card(href=`/${lang}/menu/${m.slug}` style='display:block; text-decoration:none; color:inherit')
+        a.menu-card(href=`/${lang}/menu/${m.slug}`)
           if m.cover_url
             .menu-card-photo
               img(src=m.cover_url alt=m['name_' + lang])

@@ -2,55 +2,55 @@ extends layout
 
 block content
   if saved
-    .alert.alert-success Saved
+    .alert.alert-success Сохранено
 
   form(action=`/admin/news/${article.id}/save` method='POST' enctype='multipart/form-data')
     .card
-      h2 Titles & slug
+      h2 Заголовки и slug
       .form-row
-        label Title EN
+        label Заголовок EN
         input(name='title_en' value=article.title_en)
       .form-row
-        label Title KA
+        label Заголовок KA
         input(name='title_ka' value=article.title_ka)
       .form-row
-        label Title RU
+        label Заголовок RU
         input(name='title_ru' value=article.title_ru)
       .form-row
         label Slug
         input(name='slug' value=article.slug)
       .form-row
-        label Author
+        label Автор
         input(name='author' value=article.author)
 
     .card
-      h2 Body (HTML allowed)
+      h2 Текст (HTML разрешён)
       .form-row
-        label Body EN
+        label Текст EN
         textarea(name='body_en') #{article.body_en}
       .form-row
-        label Body KA
+        label Текст KA
         textarea(name='body_ka') #{article.body_ka}
       .form-row
-        label Body RU
+        label Текст RU
         textarea(name='body_ru') #{article.body_ru}
 
     .card
-      h2 Cover photo
+      h2 Фото обложки
       if article.photo_url
         img(src=article.photo_url style='max-height:120px;border-radius:4px;margin-bottom:.75rem')
       .form-row
-        label Replace photo
+        label Заменить фото
         input(type='file' name='photo' accept='image/*')
 
     .card
-      h2 Event settings
+      h2 Настройки события
       .form-row
         label
           input(type='checkbox' name='registration_enabled' checked=article.registration_enabled)
-          |  Enable event registration
+          |  Включить регистрацию на событие
       .form-row
-        label Event date
+        label Дата события
         input(type='datetime-local' name='event_date' value=article.event_date ? article.event_date.toDate ? article.event_date.toDate().toISOString().slice(0,16) : new Date(article.event_date).toISOString().slice(0,16) : '')
 
-    button.btn.btn-primary(type='submit') Save
+    button.btn.btn-primary(type='submit') Сохранить

@@ -3,7 +3,7 @@ html
   head
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    title Admin | Pelamushi
+    title Админ | Pelamushi
     link(rel='stylesheet' href='/stylesheets/pelamushi/admin.css')
     block head
   body
@@ -12,19 +12,21 @@ html
         .logo
           img(src='/images/pelamushi/logo1.png' alt='Pelamushi')
         nav
-          a(href='/admin') Dashboard
-          a(href='/admin/about') About
-          a(href='/admin/menus') Menus
-          a(href='/admin/news') News
-          a(href='/admin/news/registrations') ↳ Registrations
-          a(href='/admin/bar') Bar
-          a(href='/admin/shop') Shop
-          a(href='/admin/rental') Rental
-          a(href='/admin/rental/requests') ↳ Requests
-          a(href='/admin/logout' style='margin-top:2rem;color:rgba(243,236,224,0.5)') Log out
+          a(href='/admin') Главная
+          a(href='/admin/about') О нас
+          a(href='/admin/menus') Меню
+          a(href='/admin/news') Новости
+          a(href='/admin/news/registrations') ↳ Регистрации
+          a(href='/admin/bar') Бар
+          a(href='/admin/shop') Магазин
+          a(href='/admin/rental') Аренда
+          a(href='/admin/rental/requests') ↳ Заявки
+          a(href='/admin/translate') Переводчик
+          a(href='/admin/admins') Администраторы
+          a(href='/admin/logout' style='margin-top:2rem;color:rgba(243,236,224,0.5)') Выйти
       .admin-main
         .admin-header
-          h1 #{title || 'Admin'}
-          .topbar #{adminEmail}
+          h1 #{title || 'Админ'}
+          .topbar #{adminName || ''}
         block content
     block scripts

@@ -2,18 +2,18 @@ extends layout
 
 block content
   .card
-    h2 Event registrations
+    h2 Регистрации на события
     if !registrations.length
-      p(style='color:#999;font-size:.88rem') No registrations yet.
+      p(style='color:#999;font-size:.88rem') Регистраций пока нет.
     else
       table.table
         thead
           tr
-            th Date
-            th Event
-            th Name
+            th Дата
+            th Событие
+            th Имя
             th Email
-            th Phone
+            th Телефон
         tbody
           each r in registrations
             tr

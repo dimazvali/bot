@@ -1,0 +1,88 @@
+extends layout
+
+block content
+  .card(style='max-width:720px')
+    h2(style='margin-bottom:1.25rem') Переводчик
+    .form-row
+      label Текст на русском
+      textarea#ru-input(rows='6' placeholder='Введите текст на русском...' style='resize:vertical')
+    button.btn.btn-primary#translate-btn(type='button' style='margin-top:.25rem')
+      span#btn-label Перевести
+    #translate-error(style='display:none;margin-top:.75rem;color:#c0392b;font-size:.88rem')
+
+  .card#results(style='max-width:720px;display:none')
+    .translate-result
+      .translate-lang EN
+      textarea#en-output(rows='5' readonly style='resize:vertical;background:#f9f9f7')
+      button.btn.btn-secondary.btn-sm.copy-btn(data-target='en-output' style='margin-top:.4rem') Скопировать
+
+    .translate-result(style='margin-top:1.25rem')
+      .translate-lang KA
+      textarea#ka-output(rows='5' readonly style='resize:vertical;background:#f9f9f7')
+      button.btn.btn-secondary.btn-sm.copy-btn(data-target='ka-output' style='margin-top:.4rem') Скопировать
+
+  if history && history.length
+    .card(style='max-width:720px')
+      h2 История переводов
+      .translate-history
+        each r in history
+          .translate-history-row
+            .translate-history-meta
+              span.translate-history-who #{r.admin_name}
+              span.translate-history-when
+                = r.created_at ? new Date(r.created_at.toDate ? r.created_at.toDate() : r.created_at).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'
+            .translate-history-texts
+              .translate-history-lang RU
+              .translate-history-text #{r.ru}
+            .translate-history-texts
+              .translate-history-lang EN
+              .translate-history-text #{r.en}
+            .translate-history-texts
+              .translate-history-lang KA
+              .translate-history-text #{r.ka}
+
+block scripts
+  script.
+    const btn = document.getElementById('translate-btn');
+    const label = document.getElementById('btn-label');
+    const errBox = document.getElementById('translate-error');
+    const results = document.getElementById('results');
+
+    btn.addEventListener('click', async () => {
+      const text = document.getElementById('ru-input').value.trim();
+      if (!text) return;
+      btn.disabled = true;
+      label.textContent = 'Перевожу…';
+      errBox.style.display = 'none';
+      results.style.display = 'none';
+
+      try {
+        const resp = await fetch('/admin/translate/run', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error);
+        document.getElementById('en-output').value = data.en;
+        document.getElementById('ka-output').value = data.ka;
+        results.style.display = 'block';
+      } catch (e) {
+        errBox.textContent = e.message;
+        errBox.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        label.textContent = 'Перевести';
+      }
+    });
+
+    document.querySelectorAll('.copy-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        const ta = document.getElementById(b.dataset.target);
+        navigator.clipboard.writeText(ta.value).then(() => {
+          const orig = b.textContent;
+          b.textContent = 'Скопировано!';
+          setTimeout(() => b.textContent = orig, 1500);
+        });
+      });
+    });

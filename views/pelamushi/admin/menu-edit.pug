@@ -2,61 +2,72 @@ extends layout
 
 block content
   if saved
-    .alert.alert-success Saved
+    .alert.alert-success Сохранено
 
   .card
-    h2 Cover photo
+    h2 Фото обложки
     if menu.cover_url
       img(src=menu.cover_url style='width:100%;max-height:180px;object-fit:cover;border-radius:6px;margin-bottom:.75rem')
     form(action=`/admin/menus/${menu.id}/cover` method='POST' enctype='multipart/form-data')
       .form-row
-        label Replace cover image
+        label Заменить обложку
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Menu settings
+    h2 Иконка
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Маленькое изображение над заголовком в hero
+    if menu.icon_url
+      img(src=menu.icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
+    form(action=`/admin/menus/${menu.id}/icon` method='POST' enctype='multipart/form-data')
+      .form-row
+        label Загрузить иконку
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Настройки меню
     form(action=`/admin/menus/${menu.id}/save` method='POST')
       .form-row
-        label Name EN
+        label Название EN
         input(name='name_en' value=menu.name_en)
       .form-row
-        label Name KA
+        label Название KA
         input(name='name_ka' value=menu.name_ka)
       .form-row
-        label Name RU
+        label Название RU
         input(name='name_ru' value=menu.name_ru)
       .form-row
-        label Description EN
+        label Описание EN
         input(name='desc_en' value=menu.desc_en)
       .form-row
-        label Description KA
+        label Описание KA
         input(name='desc_ka' value=menu.desc_ka)
       .form-row
-        label Description RU
+        label Описание RU
         input(name='desc_ru' value=menu.desc_ru)
       .form-row
         label Slug
         input(name='slug' value=menu.slug)
       .form-row
-        label Type
+        label Тип
         select(name='type')
-          option(value='permanent' selected=menu.type==='permanent') Permanent
-          option(value='event' selected=menu.type==='event') Event / Guestshift
-          option(value='bar' selected=menu.type==='bar') Bar
-          option(value='shop' selected=menu.type==='shop') Shop
+          option(value='permanent' selected=menu.type==='permanent') Постоянное
+          option(value='event' selected=menu.type==='event') Событие / Гостевой
+          option(value='bar' selected=menu.type==='bar') Бар
+          option(value='shop' selected=menu.type==='shop') Магазин
       .form-row
         label
           input(type='checkbox' name='active' checked=menu.active)
-          |  Active
-      button.btn.btn-primary(type='submit') Save
+          |  Активно
+      button.btn.btn-primary(type='submit') Сохранить
 
   .card
-    h2 Categories
+    h2 Категории
     table.table
       thead
         tr
-          th Name (EN)
+          th Название (EN)
           th
       tbody
         each cat in categories
@@ -64,23 +75,23 @@ block content
             td #{cat.name_en}
             td
               form(action=`/admin/menus/${menu.id}/categories/${cat.id}/delete` method='POST')
-                button.btn.btn-danger.btn-sm(type='submit') Delete
+                button.btn.btn-danger.btn-sm(type='submit') Удалить
     form(action=`/admin/menus/${menu.id}/categories/add` method='POST' style='margin-top:1rem')
       .form-row
-        label Category name EN / KA / RU
+        label Название категории EN / KA / RU
         input(name='name_en' placeholder='EN')
         input(name='name_ka' placeholder='KA' style='margin-top:.4rem')
         input(name='name_ru' placeholder='RU' style='margin-top:.4rem')
-      button.btn.btn-secondary.btn-sm(type='submit') Add category
+      button.btn.btn-secondary.btn-sm(type='submit') Добавить категорию
 
   .card
-    h2 Items
+    h2 Позиции
     table.table
       thead
         tr
-          th Name (EN)
-          th Price
-          th Category
+          th Название (EN)
+          th Цена
+          th Категория
           th
       tbody
         each item in items
@@ -90,32 +101,32 @@ block content
             td #{item.category_id ? categories.find(c => c.id === item.category_id) && categories.find(c => c.id === item.category_id).name_en || item.category_id : '—'}
             td
               form(action=`/admin/menus/${menu.id}/items/${item.id}/delete` method='POST')
-                button.btn.btn-danger.btn-sm(type='submit') Delete
-    h3(style='margin:1.25rem 0 .75rem;font-size:.9rem;color:var(--navy)') Add item
+                button.btn.btn-danger.btn-sm(type='submit') Удалить
+    h3(style='margin:1.25rem 0 .75rem;font-size:.9rem;color:var(--navy)') Добавить позицию
     form(action=`/admin/menus/${menu.id}/items/add` method='POST' enctype='multipart/form-data')
       .form-row
-        label Name EN / KA / RU
+        label Название EN / KA / RU
         input(name='name_en' placeholder='EN')
         input(name='name_ka' placeholder='KA' style='margin-top:.4rem')
         input(name='name_ru' placeholder='RU' style='margin-top:.4rem')
       .form-row
-        label Description EN / KA / RU
+        label Описание EN / KA / RU
         input(name='desc_en' placeholder='EN')
         input(name='desc_ka' placeholder='KA' style='margin-top:.4rem')
         input(name='desc_ru' placeholder='RU' style='margin-top:.4rem')
       .form-row
-        label Price (₾)
+        label Цена (₾)
         input(type='number' name='price' step='0.01' min='0')
       .form-row
-        label Category
+        label Категория
         select(name='category_id')
-          option(value='') — none —
+          option(value='') — нет —
           each cat in categories
             option(value=cat.id) #{cat.name_en}
       .form-row
-        label Tags (comma-separated, e.g. vegan,gluten-free)
+        label Теги (через запятую, напр. vegan,gluten-free)
         input(name='tags')
       .form-row
-        label Photo
+        label Фото
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Add item
+      button.btn.btn-secondary.btn-sm(type='submit') Добавить позицию

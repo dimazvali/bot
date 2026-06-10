@@ -1,13 +1,11 @@
 extends layout
+include includes/hero
 
 block content
-  .page-header
+  +hero(menu.cover_url, menu.icon_url)
     h1 #{menu['name_' + lang]}
     if menu['desc_' + lang]
-      p #{menu['desc_' + lang]}
-
-  .container.section
-    a(href=`/${lang}/menu` style='font-size:.85rem;color:var(--tan)') #{t.menu.back}
+      p.hero-subtitle #{menu['desc_' + lang]}
 
   .container.section
     each cat in grouped

@@ -1,39 +1,63 @@
 extends layout
 
 block content
+  if saved
+    .alert.alert-success Сохранено
+
   .card
-    h2 Articles
+    h2 Фото героя (раздел новостей)
+    if site && site.news_hero_url
+      img(src=site.news_hero_url style='width:100%;max-height:180px;object-fit:cover;border-radius:6px;margin-bottom:.75rem')
+    form(action='/admin/news/hero' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Загрузить фото
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Иконка (раздел новостей)
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Маленькое изображение над заголовком
+    if site && site.news_icon_url
+      img(src=site.news_icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
+    form(action='/admin/news/icon' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Загрузить иконку
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Статьи
     table.table
       thead
         tr
-          th Title (EN)
+          th Заголовок (EN)
           th Slug
-          th Event?
+          th Событие?
           th
       tbody
         each a in articles
           tr
             td
-              a(href=`/admin/news/${a.id}`) #{a.title_en || '(untitled)'}
+              a(href=`/admin/news/${a.id}`) #{a.title_en || '(без заголовка)'}
             td #{a.slug}
             td #{a.registration_enabled ? '✓' : ''}
             td
               form(action=`/admin/news/${a.id}/delete` method='POST')
-                button.btn.btn-danger.btn-sm(type='submit') Delete
+                button.btn.btn-danger.btn-sm(type='submit') Удалить
 
   .card
-    h2 New article
+    h2 Новая статья
     form(action='/admin/news/new' method='POST')
       .form-row
-        label Title EN
+        label Заголовок EN
         input(name='title_en')
       .form-row
-        label Title KA
+        label Заголовок KA
         input(name='title_ka')
       .form-row
-        label Title RU
+        label Заголовок RU
         input(name='title_ru')
       .form-row
-        label Slug (URL-safe)
+        label Slug (URL)
         input(name='slug')
-      button.btn.btn-primary(type='submit') Create draft
+      button.btn.btn-primary(type='submit') Создать черновик

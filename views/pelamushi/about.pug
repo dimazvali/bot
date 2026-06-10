@@ -34,6 +34,6 @@ block content
       .masonry-grid
         each photo in gallery
           .masonry-item
-            img.gallery-photo(src=photo.photo_url alt=(photo['caption_' + lang] || ''))
+            img.gallery-photo(src=photo.photo_url alt=(photo['caption_' + lang] || '') data-caption=(photo['caption_' + lang] || ''))
 
   include includes/lightbox

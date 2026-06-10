@@ -2,18 +2,18 @@ extends layout
 
 block content
   .card(style='margin-bottom:.75rem')
-    a.btn.btn-secondary(href='/admin/registrations/export.csv') Download CSV
+    a.btn.btn-secondary(href='/admin/registrations/export.csv') Скачать CSV
 
   .card
-    h2 Registrations
+    h2 Регистрации
     table.table
       thead
         tr
-          th Event
-          th Name
+          th Событие
+          th Имя
           th Email
-          th Phone
-          th Date
+          th Телефон
+          th Дата
       tbody
         each r in regs
           tr
@@ -21,4 +21,4 @@ block content
             td #{r.name}
             td #{r.email}
             td #{r.phone || '—'}
-            td #{r.created_at ? new Date(r.created_at.toDate()).toLocaleDateString('en-GB') : ''}
+            td #{r.created_at ? new Date(r.created_at.toDate()).toLocaleDateString('ru-RU') : ''}

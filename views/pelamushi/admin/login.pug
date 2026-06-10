@@ -2,19 +2,19 @@ doctype html
 html
   head
     meta(charset='utf-8')
-    title Login | Pelamushi Admin
+    title Вход | Pelamushi Admin
     link(rel='stylesheet' href='/stylesheets/pelamushi/admin.css')
   body
     .login-wrap
       .login-card
         .logo
           img(src='/images/pelamushi/logo1.png' alt='Pelamushi')
-        h2 Admin Login
+        h2 Вход в админку
         if error
           .alert.alert-error
-            | #{error === 'wrong' ? 'Wrong password' : error}
+            | #{error === 'wrong' ? 'Неверный пароль' : error}
         form(action='/admin/login' method='POST')
           .form-row
-            label Password
+            label Пароль
             input(type='password' name='password' placeholder='••••••••' autocomplete='current-password' autofocus)
-          button.btn.btn-primary(type='submit' style='width:100%') Sign in
+          button.btn.btn-primary(type='submit' style='width:100%') Войти

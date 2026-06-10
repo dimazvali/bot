@@ -2,62 +2,72 @@ extends layout
 
 block content
   if saved
-    .alert.alert-success Saved
+    .alert.alert-success Сохранено
 
   .card
-    h2 Content
+    h2 Контент
     form(action='/admin/rental/save' method='POST')
       .form-row
-        label Title EN
+        label Заголовок EN
         input(name='title_en' value=rental.title_en)
       .form-row
-        label Title KA
+        label Заголовок KA
         input(name='title_ka' value=rental.title_ka)
       .form-row
-        label Title RU
+        label Заголовок RU
         input(name='title_ru' value=rental.title_ru)
       .form-row
-        label Description / HTML text (EN)
+        label Описание / HTML текст (EN)
         textarea(name='text_en' style='min-height:200px;font-family:monospace;font-size:.82rem') #{rental.text_en}
       .form-row
-        label Description / HTML text (KA)
+        label Описание / HTML текст (KA)
         textarea(name='text_ka' style='min-height:200px;font-family:monospace;font-size:.82rem') #{rental.text_ka}
       .form-row
-        label Description / HTML text (RU)
+        label Описание / HTML текст (RU)
         textarea(name='text_ru' style='min-height:200px;font-family:monospace;font-size:.82rem') #{rental.text_ru}
-      button.btn.btn-primary(type='submit') Save
+      button.btn.btn-primary(type='submit') Сохранить
 
   .card
-    h2 Hero image
+    h2 Фото героя
     if rental.hero_url
       img(src=rental.hero_url style='width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:1rem')
     form(action='/admin/rental/hero/save' method='POST' enctype='multipart/form-data')
       .form-row
-        label Upload hero photo
+        label Загрузить фото
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Hero icon
-    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Small image shown above the title in hero
+    h2 Иконка
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Маленькое изображение над заголовком
     if rental.icon_url
       img(src=rental.icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
     form(action='/admin/rental/icon/save' method='POST' enctype='multipart/form-data')
       .form-row
-        label Upload icon
+        label Загрузить иконку
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Gallery
-    .admin-gallery-grid
-      each photo in gallery
-        .admin-gallery-item
-          img(src=photo.photo_url style='width:100%;height:100px;object-fit:cover;border-radius:4px')
-          form(action=`/admin/rental/gallery/${photo.id}/delete` method='POST' style='margin-top:.4rem')
-            button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Delete?")') Delete
+    h2 Галерея
+    if gallery.length
+      form(action='/admin/rental/gallery/update' method='POST')
+        .gallery-edit-list
+          each photo, i in gallery
+            .gallery-edit-row
+              img(src=photo.photo_url alt='')
+              .gallery-edit-fields
+                input(type='hidden' name=`photos[${i}][id]` value=photo.id)
+                .order-row
+                  span #
+                  input(type='number' name=`photos[${i}][order]` value=(photo.order !== undefined ? photo.order : i) min='0')
+                input(type='text' name=`photos[${i}][caption_en]` placeholder='Подпись EN' value=(photo.caption_en || ''))
+                input(type='text' name=`photos[${i}][caption_ka]` placeholder='Подпись KA' value=(photo.caption_ka || ''))
+                input(type='text' name=`photos[${i}][caption_ru]` placeholder='Подпись RU' value=(photo.caption_ru || ''))
+              button.btn.btn-danger.btn-sm(type='submit' formaction=`/admin/rental/gallery/${photo.id}/delete` onclick='return confirm("Удалить?")') ×
+        button.btn.btn-primary.btn-sm(type='submit') Сохранить порядок и подписи
     form(action='/admin/rental/gallery/add' method='POST' enctype='multipart/form-data' style='margin-top:1rem')
       .form-row
-        label Add photos
+        label Добавить фото
         input(type='file' name='photo' accept='image/*' multiple)
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить

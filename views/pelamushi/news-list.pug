@@ -2,7 +2,7 @@ extends layout
 include includes/hero
 
 block content
-  +hero(site && site.hero_url, site && site.icon_url)
+  +hero(site && (site.news_hero_url || site.hero_url), site && site.news_icon_url)
     h1 #{t.news.title}
 
   .container.section

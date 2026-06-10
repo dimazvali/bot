@@ -2,31 +2,31 @@ extends layout
 
 block content
   if saved
-    .alert.alert-success Saved
+    .alert.alert-success Сохранено
 
   .card
-    h2 Hero background photo
+    h2 Фото подложки (героя)
     if about.hero_url
       img(src=about.hero_url style='width:100%;max-height:200px;object-fit:cover;border-radius:6px;margin-bottom:.75rem')
     form(action='/admin/about/hero' method='POST' enctype='multipart/form-data')
       .form-row
-        label Replace hero image
+        label Заменить фото
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Hero icon
-    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Small image shown above the title in hero
+    h2 Иконка
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Маленькое изображение над заголовком
     if about.icon_url
       img(src=about.icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
     form(action='/admin/about/icon' method='POST' enctype='multipart/form-data')
       .form-row
-        label Upload icon
+        label Загрузить иконку
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Hero quote
+    h2 Цитата
     form(action='/admin/about/quote' method='POST')
       .form-row
         label EN
@@ -37,10 +37,10 @@ block content
       .form-row
         label RU
         textarea(name='quote_ru') #{about.quote_ru}
-      button.btn.btn-primary(type='submit') Save
+      button.btn.btn-primary(type='submit') Сохранить
 
   .card
-    h2 Mission text
+    h2 Текст о нас
     form(action='/admin/about/mission' method='POST')
       .form-row
         label EN
@@ -51,10 +51,10 @@ block content
       .form-row
         label RU
         textarea(name='mission_ru') #{about.mission_ru}
-      button.btn.btn-primary(type='submit') Save
+      button.btn.btn-primary(type='submit') Сохранить
 
   .card
-    h2 Contact & Social links
+    h2 Контакты и соцсети
     form(action='/admin/about/social' method='POST')
       .form-row
         label Facebook URL
@@ -66,58 +66,70 @@ block content
         label Google Maps URL
         input(type='url' name='maps_url' value=about.maps_url placeholder='https://maps.app.goo.gl/...')
       .form-row
-        label Phone (tel: link)
+        label Телефон (ссылка tel:)
         input(type='tel' name='phone' value=about.phone placeholder='+995 555 000000')
       .form-row
-        label WhatsApp number (digits only, with country code)
+        label WhatsApp (только цифры, с кодом страны)
         input(type='tel' name='whatsapp' value=about.whatsapp placeholder='995555000000')
-      button.btn.btn-primary(type='submit') Save
+      button.btn.btn-primary(type='submit') Сохранить
 
   .card
-    h2 Interior gallery
-    div(style='display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem')
-      each photo in gallery
-        div(style='position:relative')
-          img(src=photo.photo_url style='width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px')
-          form(action=`/admin/about/gallery/${photo.id}/delete` method='POST' style='position:absolute;top:.3rem;right:.3rem')
-            button.btn.btn-danger.btn-sm(type='submit') ×
-    form(action='/admin/about/gallery/add' method='POST' enctype='multipart/form-data')
+    h2 Интерьер
+    if gallery.length
+      form(action='/admin/about/gallery/update' method='POST')
+        .gallery-edit-list
+          each photo, i in gallery
+            .gallery-edit-row
+              img(src=photo.photo_url alt='')
+              .gallery-edit-fields
+                input(type='hidden' name=`photos[${i}][id]` value=photo.id)
+                .order-row
+                  span #
+                  input(type='number' name=`photos[${i}][order]` value=(photo.order !== undefined ? photo.order : i) min='0')
+                input(type='text' name=`photos[${i}][caption_en]` placeholder='Подпись EN' value=(photo.caption_en || ''))
+                input(type='text' name=`photos[${i}][caption_ka]` placeholder='Подпись KA' value=(photo.caption_ka || ''))
+                input(type='text' name=`photos[${i}][caption_ru]` placeholder='Подпись RU' value=(photo.caption_ru || ''))
+              button.btn.btn-danger.btn-sm(type='submit' formaction=`/admin/about/gallery/${photo.id}/delete` onclick='return confirm("Удалить?")') ×
+        button.btn.btn-primary.btn-sm(type='submit') Сохранить порядок и подписи
+    form(action='/admin/about/gallery/add' method='POST' enctype='multipart/form-data' style='margin-top:1rem')
       .form-row
-        label Add photo
+        label Добавить фото
         input(type='file' name='photo' accept='image/*' multiple)
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Team
+    h2 Команда
     table.table
       thead
         tr
-          th Name
-          th Role (EN)
+          th Имя
+          th Роль (EN)
           th
       tbody
         each member in team
           tr
             td #{member.name}
             td #{member.role_en}
-            td
-              form(action=`/admin/about/team/${member.id}/delete` method='POST')
-                button.btn.btn-danger.btn-sm(type='submit') Delete
-    h3(style='margin:1.25rem 0 .75rem;font-size:.9rem;color:var(--navy)') Add team member
+            td(style='white-space:nowrap')
+              a.btn.btn-secondary.btn-sm(href=`/admin/about/team/${member.id}`) Изменить
+              |
+              form(action=`/admin/about/team/${member.id}/delete` method='POST' style='display:inline')
+                button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Удалить?")') Удалить
+    h3(style='margin:1.25rem 0 .75rem;font-size:.9rem;color:var(--navy)') Добавить участника
     form(action='/admin/about/team/add' method='POST' enctype='multipart/form-data')
       .form-row
-        label Name
+        label Имя
         input(name='name')
       .form-row
-        label Role EN
+        label Роль EN
         input(name='role_en')
       .form-row
-        label Role KA
+        label Роль KA
         input(name='role_ka')
       .form-row
-        label Role RU
+        label Роль RU
         input(name='role_ru')
       .form-row
-        label Photo
+        label Фото
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Add
+      button.btn.btn-secondary.btn-sm(type='submit') Добавить

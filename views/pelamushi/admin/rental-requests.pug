@@ -2,22 +2,30 @@ extends layout
 
 block content
   if saved
-    .alert.alert-success Status updated
+    .alert.alert-success Статус обновлён
 
   .card
-    h2 Rental Requests (#{requests.length})
+    .requests-header
+      h2 Заявки на аренду (#{requests.length}#{statusFilter ? ' — фильтр: ' + {new:'Новые',working:'В работе',cancelled:'Отмена',done:'Выполнено'}[statusFilter] : ''})
+      .status-filter
+        a.status-pill(href='/admin/rental/requests' class=!statusFilter ? 'active' : '') Все
+        a.status-pill.status-new(href='/admin/rental/requests?status=new' class=statusFilter==='new' ? 'active' : '') Новые
+        a.status-pill.status-working(href='/admin/rental/requests?status=working' class=statusFilter==='working' ? 'active' : '') В работе
+        a.status-pill.status-cancelled(href='/admin/rental/requests?status=cancelled' class=statusFilter==='cancelled' ? 'active' : '') Отмена
+        a.status-pill.status-done(href='/admin/rental/requests?status=done' class=statusFilter==='done' ? 'active' : '') Выполнено
+
     if requests.length
       table.table
         thead
           tr
-            th Date
-            th Name
-            th Contact
-            th Booking date
-            th Time
-            th Message
-            th UTM source
-            th Status
+            th Дата
+            th Имя
+            th Контакт
+            th Дата бронирования
+            th Время
+            th Сообщение
+            th UTM источник
+            th Статус
         tbody
           each r in requests
             tr
@@ -45,7 +53,5 @@ block content
                     option(value='working'   selected=r.status==='working')   В работе
                     option(value='cancelled' selected=r.status==='cancelled') Отмена
                     option(value='done'      selected=r.status==='done')      Выполнено
-                span.status-badge(class='status-' + (r.status || 'new'))
-                  = ({ new: 'Новая', working: 'В работе', cancelled: 'Отмена', done: 'Выполнено' })[r.status] || r.status
     else
-      p(style='color:#999;font-size:.9rem') No requests yet.
+      p(style='color:#999;font-size:.9rem') Заявок пока нет.

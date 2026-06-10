@@ -65,6 +65,43 @@ a { color: var(--navy); text-decoration: none; }
 
 .status-select { padding: .25rem .5rem; font-size: .8rem; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
 
+/* ── Requests header + filter pills ── */
+.requests-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; }
+.requests-header h2 { margin: 0; }
+.status-filter { display: flex; gap: .4rem; flex-wrap: wrap; }
+.status-pill { display: inline-block; padding: .28rem .75rem; border-radius: 20px; font-size: .78rem; font-weight: 600; text-decoration: none; border: 1px solid transparent; color: var(--navy); background: rgba(151,184,201,.1); transition: background .15s; }
+.status-pill:hover { background: rgba(151,184,201,.25); }
+.status-pill.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.status-pill.status-working       { color: var(--tan); background: rgba(163,124,84,.1); }
+.status-pill.status-working.active { background: var(--tan); color: #fff; border-color: var(--tan); }
+.status-pill.status-cancelled       { color: #c0392b; background: rgba(192,57,43,.08); }
+.status-pill.status-cancelled.active { background: #c0392b; color: #fff; border-color: #c0392b; }
+.status-pill.status-done       { color: #1e8449; background: rgba(39,174,96,.1); }
+.status-pill.status-done.active { background: #1e8449; color: #fff; border-color: #1e8449; }
+
+/* ── Translate widget ── */
+.translate-result .translate-lang { font-size: .72rem; font-weight: 700; letter-spacing: .08em; color: var(--navy); text-transform: uppercase; margin-bottom: .4rem; }
+.translate-result textarea { width: 100%; box-sizing: border-box; }
+
+.translate-history { display: flex; flex-direction: column; gap: .75rem; }
+.translate-history-row { border: 1px solid #eee; border-radius: 6px; padding: .75rem 1rem; }
+.translate-history-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+.translate-history-who { font-size: .78rem; font-weight: 600; color: var(--navy); }
+.translate-history-when { font-size: .75rem; color: #999; }
+.translate-history-texts { display: grid; grid-template-columns: 28px 1fr; gap: .25rem .5rem; align-items: baseline; margin-bottom: .25rem; }
+.translate-history-lang { font-size: .68rem; font-weight: 700; letter-spacing: .06em; color: var(--tan); text-transform: uppercase; }
+.translate-history-text { font-size: .82rem; color: var(--charcoal); line-height: 1.4; }
+
 /* ── Admin gallery grid ── */
 .admin-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
 .admin-gallery-item { background: #f5f5f5; border-radius: 6px; padding: .5rem; }
+
+/* ── Admin gallery edit list ── */
+.gallery-edit-list { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+.gallery-edit-row { display: grid; grid-template-columns: 80px 1fr auto; gap: .6rem; align-items: start; background: #f9f9f9; border-radius: 6px; padding: .5rem; }
+.gallery-edit-row img { width: 80px; height: 60px; object-fit: cover; border-radius: 4px; }
+.gallery-edit-fields { display: flex; flex-direction: column; gap: .3rem; }
+.gallery-edit-fields .order-row { display: flex; align-items: center; gap: .4rem; }
+.gallery-edit-fields .order-row span { font-size: .75rem; color: #999; }
+.gallery-edit-fields .order-row input { width: 3.5rem; }
+.gallery-edit-fields input[type=text] { font-size: .82rem; }

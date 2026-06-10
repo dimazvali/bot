@@ -2,24 +2,30 @@
   var lb = document.getElementById('lightbox');
   if (!lb) return;
 
-  var lbImg = document.getElementById('lightbox-img');
-  var photos = [];
-  var current = 0;
+  var lbImg     = document.getElementById('lightbox-img');
+  var lbCaption = document.getElementById('lightbox-caption');
+  var photos    = [];
+  var current   = 0;
   var touchStartX = 0;
 
   document.querySelectorAll('.gallery-photo').forEach(function (img, i) {
-    photos.push(img.src);
+    photos.push({ src: img.src, caption: img.dataset.caption || '' });
     img.addEventListener('click', function () {
       current = i;
-      lbImg.src = photos[current];
+      showPhoto(current);
       lb.classList.add('open');
     });
   });
 
+  function showPhoto(i) {
+    lbImg.src = photos[i].src;
+    if (lbCaption) lbCaption.textContent = photos[i].caption;
+  }
+
   window.lbNav = function (dir) {
     if (!photos.length) return;
     current = (current + dir + photos.length) % photos.length;
-    lbImg.src = photos[current];
+    showPhoto(current);
   };
 
   document.addEventListener('keydown', function (e) {

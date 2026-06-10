@@ -2,71 +2,81 @@ extends layout
 
 block content
   if saved
-    .alert.alert-success Saved
+    .alert.alert-success Сохранено
 
   .card
-    h2 Bar page content
+    h2 Контент страницы Бар
     form(action='/admin/bar/save' method='POST')
       .form-row
-        label Title EN
+        label Заголовок EN
         input(name='title_en' value=bar.title_en)
       .form-row
-        label Title KA
+        label Заголовок KA
         input(name='title_ka' value=bar.title_ka)
       .form-row
-        label Title RU
+        label Заголовок RU
         input(name='title_ru' value=bar.title_ru)
       .form-row
-        label Description EN
+        label Описание EN
         textarea(name='desc_en') #{bar.desc_en}
       .form-row
-        label Description KA
+        label Описание KA
         textarea(name='desc_ka') #{bar.desc_ka}
       .form-row
-        label Description RU
+        label Описание RU
         textarea(name='desc_ru') #{bar.desc_ru}
-      button.btn.btn-primary(type='submit') Save
+      button.btn.btn-primary(type='submit') Сохранить
 
   .card
-    h2 Hero image
+    h2 Фото героя
     if bar.hero_url
       img(src=bar.hero_url style='width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:1rem')
     form(action='/admin/bar/hero/save' method='POST' enctype='multipart/form-data')
       .form-row
-        label Upload hero photo
+        label Загрузить фото
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Hero icon
-    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Small image shown above the title in hero
+    h2 Иконка
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Маленькое изображение над заголовком
     if bar.icon_url
       img(src=bar.icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
     form(action='/admin/bar/icon/save' method='POST' enctype='multipart/form-data')
       .form-row
-        label Upload icon
+        label Загрузить иконку
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Gallery
-    .admin-gallery-grid
-      each photo in gallery
-        .admin-gallery-item
-          img(src=photo.photo_url style='width:100%;height:100px;object-fit:cover;border-radius:4px')
-          form(action=`/admin/bar/gallery/${photo.id}/delete` method='POST' style='margin-top:.4rem')
-            button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Delete?")') Delete
+    h2 Галерея
+    if gallery.length
+      form(action='/admin/bar/gallery/update' method='POST')
+        .gallery-edit-list
+          each photo, i in gallery
+            .gallery-edit-row
+              img(src=photo.photo_url alt='')
+              .gallery-edit-fields
+                input(type='hidden' name=`photos[${i}][id]` value=photo.id)
+                .order-row
+                  span #
+                  input(type='number' name=`photos[${i}][order]` value=(photo.order !== undefined ? photo.order : i) min='0')
+                input(type='text' name=`photos[${i}][caption_en]` placeholder='Подпись EN' value=(photo.caption_en || ''))
+                input(type='text' name=`photos[${i}][caption_ka]` placeholder='Подпись KA' value=(photo.caption_ka || ''))
+                input(type='text' name=`photos[${i}][caption_ru]` placeholder='Подпись RU' value=(photo.caption_ru || ''))
+              button.btn.btn-danger.btn-sm(type='submit' formaction=`/admin/bar/gallery/${photo.id}/delete` onclick='return confirm("Удалить?")') ×
+        button.btn.btn-primary.btn-sm(type='submit') Сохранить порядок и подписи
     form(action='/admin/bar/gallery/add' method='POST' enctype='multipart/form-data' style='margin-top:1rem')
       .form-row
-        label Add photos
+        label Добавить фото
         input(type='file' name='photo' accept='image/*' multiple)
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card(style='border-left:3px solid var(--blue)')
-    h2 Bar menu
+    h2 Меню бара
     p(style='font-size:.88rem;color:#666;margin-top:.5rem')
-      | Bar menus are managed in the&nbsp;
-      a(href='/admin/menus') Menus section
-      | . Set a menu type to&nbsp;
-      strong Bar
-      |  and it will appear on the bar page.
+      | Меню бара управляются в разделе&nbsp;
+      a(href='/admin/menus') Меню
+      | . Установите тип меню&nbsp;
+      strong Бар
+      |  — и оно появится на странице бара.

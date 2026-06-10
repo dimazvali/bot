@@ -1,0 +1,35 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Сохранено
+
+  .card
+    h2 Фото
+    if member.photo_url
+      img(src=member.photo_url style='max-height:160px;max-width:160px;object-fit:cover;border-radius:8px;margin-bottom:.75rem;background:#f5f5f5')
+    form(action=`/admin/about/team/${member.id}/photo` method='POST' enctype='multipart/form-data')
+      .form-row
+        label Заменить фото
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Данные
+    form(action=`/admin/about/team/${member.id}/save` method='POST')
+      .form-row
+        label Имя
+        input(name='name' value=member.name)
+      .form-row
+        label Роль EN
+        input(name='role_en' value=member.role_en)
+      .form-row
+        label Роль KA
+        input(name='role_ka' value=member.role_ka)
+      .form-row
+        label Роль RU
+        input(name='role_ru' value=member.role_ru)
+      button.btn.btn-primary(type='submit') Сохранить
+
+  p(style='margin-top:.5rem')
+    a(href='/admin/about' style='font-size:.85rem;color:var(--tan)') ← Назад

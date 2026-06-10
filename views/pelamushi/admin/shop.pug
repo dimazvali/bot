@@ -2,71 +2,81 @@ extends layout
 
 block content
   if saved
-    .alert.alert-success Saved
+    .alert.alert-success Сохранено
 
   .card
-    h2 Hero image
+    h2 Фото героя
     if shop.hero_url
       img(src=shop.hero_url style='width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:1rem')
     form(action='/admin/shop/hero/save' method='POST' enctype='multipart/form-data')
       .form-row
-        label Upload hero photo
+        label Загрузить фото
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Hero icon
-    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Small image shown above the title in hero
+    h2 Иконка
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Маленькое изображение над заголовком
     if shop.icon_url
       img(src=shop.icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
     form(action='/admin/shop/icon/save' method='POST' enctype='multipart/form-data')
       .form-row
-        label Upload icon
+        label Загрузить иконку
         input(type='file' name='photo' accept='image/*')
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Shop page content
+    h2 Контент страницы Магазин
     form(action='/admin/shop/save' method='POST')
       .form-row
-        label Title EN
+        label Заголовок EN
         input(name='title_en' value=shop.title_en)
       .form-row
-        label Title KA
+        label Заголовок KA
         input(name='title_ka' value=shop.title_ka)
       .form-row
-        label Title RU
+        label Заголовок RU
         input(name='title_ru' value=shop.title_ru)
       .form-row
-        label Description EN
+        label Описание EN
         textarea(name='desc_en') #{shop.desc_en}
       .form-row
-        label Description KA
+        label Описание KA
         textarea(name='desc_ka') #{shop.desc_ka}
       .form-row
-        label Description RU
+        label Описание RU
         textarea(name='desc_ru') #{shop.desc_ru}
-      button.btn.btn-primary(type='submit') Save
+      button.btn.btn-primary(type='submit') Сохранить
 
   .card
-    h2 Gallery
-    .admin-gallery-grid
-      each photo in gallery
-        .admin-gallery-item
-          img(src=photo.photo_url style='width:100%;height:100px;object-fit:cover;border-radius:4px')
-          form(action=`/admin/shop/gallery/${photo.id}/delete` method='POST' style='margin-top:.4rem')
-            button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Delete?")') Delete
+    h2 Галерея
+    if gallery.length
+      form(action='/admin/shop/gallery/update' method='POST')
+        .gallery-edit-list
+          each photo, i in gallery
+            .gallery-edit-row
+              img(src=photo.photo_url alt='')
+              .gallery-edit-fields
+                input(type='hidden' name=`photos[${i}][id]` value=photo.id)
+                .order-row
+                  span #
+                  input(type='number' name=`photos[${i}][order]` value=(photo.order !== undefined ? photo.order : i) min='0')
+                input(type='text' name=`photos[${i}][caption_en]` placeholder='Подпись EN' value=(photo.caption_en || ''))
+                input(type='text' name=`photos[${i}][caption_ka]` placeholder='Подпись KA' value=(photo.caption_ka || ''))
+                input(type='text' name=`photos[${i}][caption_ru]` placeholder='Подпись RU' value=(photo.caption_ru || ''))
+              button.btn.btn-danger.btn-sm(type='submit' formaction=`/admin/shop/gallery/${photo.id}/delete` onclick='return confirm("Удалить?")') ×
+        button.btn.btn-primary.btn-sm(type='submit') Сохранить порядок и подписи
     form(action='/admin/shop/gallery/add' method='POST' enctype='multipart/form-data' style='margin-top:1rem')
       .form-row
-        label Add photos
+        label Добавить фото
         input(type='file' name='photo' accept='image/*' multiple)
-      button.btn.btn-secondary.btn-sm(type='submit') Upload
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card(style='border-left:3px solid var(--blue)')
-    h2 Products
+    h2 Товары
     p(style='font-size:.88rem;color:#666;margin-top:.5rem')
-      | Products are managed in the&nbsp;
-      a(href='/admin/menus') Menus section
-      | . Set a menu type to&nbsp;
-      strong Shop
-      |  and it will appear on this page (and will be hidden from the main menu).
+      | Товары управляются в разделе&nbsp;
+      a(href='/admin/menus') Меню
+      | . Установите тип меню&nbsp;
+      strong Магазин
+      |  — товары появятся на этой странице (и будут скрыты из основного меню).

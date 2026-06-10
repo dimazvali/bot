@@ -6,6 +6,7 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
     "@google-cloud/local-auth": "^2.1.0",
     "@google-cloud/storage": "^7.10.0",
     "axios": "^0.26.1",
