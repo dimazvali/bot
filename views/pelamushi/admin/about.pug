@@ -29,6 +29,26 @@ block content
       button.btn.btn-primary(type='submit') Save
 
   .card
+    h2 Contact & Social links
+    form(action='/admin/about/social' method='POST')
+      .form-row
+        label Facebook URL
+        input(type='url' name='facebook_url' value=about.facebook_url placeholder='https://facebook.com/...')
+      .form-row
+        label Instagram URL
+        input(type='url' name='instagram_url' value=about.instagram_url placeholder='https://instagram.com/...')
+      .form-row
+        label Google Maps URL
+        input(type='url' name='maps_url' value=about.maps_url placeholder='https://maps.app.goo.gl/...')
+      .form-row
+        label Phone (tel: link)
+        input(type='tel' name='phone' value=about.phone placeholder='+995 555 000000')
+      .form-row
+        label WhatsApp number (digits only, with country code)
+        input(type='tel' name='whatsapp' value=about.whatsapp placeholder='995555000000')
+      button.btn.btn-primary(type='submit') Save
+
+  .card
     h2 Interior gallery
     div(style='display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem')
       each photo in gallery

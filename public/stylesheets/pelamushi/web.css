@@ -321,6 +321,9 @@ img { display: block; max-width: 100%; height: auto; }
 }
 .site-footer .footer-logo img { height: 36px; filter: brightness(0) invert(1); margin: 0 auto 1rem; opacity: 0.8; }
 .site-footer a { color: var(--blue); }
+.footer-social { display: flex; gap: 1rem; justify-content: center; margin-top: 1.25rem; }
+.footer-social a { color: rgba(243,236,224,0.55); display: flex; align-items: center; transition: color 0.15s; }
+.footer-social a:hover { color: var(--blue); }
 
 /* ── Page header ───────────────────────────────────────── */
 .page-header {

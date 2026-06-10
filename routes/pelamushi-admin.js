@@ -75,6 +75,19 @@ router.get('/about', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/about/social', async (req, res, next) => {
+  try {
+    const { facebook_url, instagram_url, maps_url, phone, whatsapp } = req.body;
+    if (col.about) {
+      await col.about.doc('main').set(
+        { facebook_url: facebook_url || '', instagram_url: instagram_url || '', maps_url: maps_url || '', phone: phone || '', whatsapp: whatsapp || '' },
+        { merge: true }
+      );
+    }
+    res.redirect('/admin/about?saved=1');
+  } catch (err) { next(err); }
+});
+
 router.post('/about/hero', async (req, res, next) => {
   try {
     if (!req.files || !req.files.photo) return res.redirect('/admin/about');

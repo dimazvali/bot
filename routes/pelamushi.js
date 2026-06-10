@@ -14,10 +14,17 @@ const locales = {
 router.use('/admin', require('./pelamushi-admin'));
 
 // Language param middleware — fires for ANY route containing :lang
-router.param('lang', (req, res, next, lang) => {
+router.param('lang', async (req, res, next, lang) => {
   if (!LANGS.includes(lang)) return res.status(404).send('Not found');
   res.locals.lang = lang;
   res.locals.t = locales[lang];
+  res.locals.site = {};
+  if (col.about) {
+    try {
+      const doc = await col.about.doc('main').get();
+      if (doc.exists) res.locals.site = doc.data();
+    } catch { /* ignore */ }
+  }
   next();
 });
 
