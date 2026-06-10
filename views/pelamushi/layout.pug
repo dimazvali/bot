@@ -43,6 +43,13 @@ html(lang=lang)
 
     script(type='application/ld+json') !{JSON.stringify(_ld)}
 
+    script(async src='https://www.googletagmanager.com/gtag/js?id=G-D95RSCMJWF')
+    script.
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-D95RSCMJWF');
+
     link(rel='icon' href='/images/pelamushi/logo1.png')
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com')
