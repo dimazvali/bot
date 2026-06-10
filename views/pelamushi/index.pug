@@ -2,8 +2,8 @@ extends layout
 
 block content
   .hero(style=`background-image: url('${about.hero_url || '/images/pelamushi/hero.jpg'}')`)
+    img.hero-logo(src='/images/pelamushi/logo3.png' alt='')
     .hero-content
-      img(src='/images/pelamushi/logo3.png' alt='Pelamushi')
       blockquote #{about['quote_' + lang] || t.home.quote}
 
   if upcomingEvent
