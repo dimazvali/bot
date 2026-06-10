@@ -425,6 +425,7 @@ img.section-card-icon {
 .site-footer .footer-logo img { height: 36px; filter: brightness(0) invert(1); margin: 0 auto 1rem; opacity: 0.8; }
 .site-footer a { color: var(--blue); }
 .footer-social { display: flex; gap: 1rem; justify-content: center; margin-top: 1.25rem; }
+.footer-credit { margin-top: 1.5rem; font-size: 0.72rem; opacity: 0.45; letter-spacing: 0.04em; }
 .footer-social a { color: rgba(243,236,224,0.55); display: flex; align-items: center; transition: color 0.15s; }
 .footer-social a:hover { color: var(--blue); }
 
@@ -688,7 +689,9 @@ img.section-card-icon {
 }
 
 /* ── Custom cursor ─────────────────────────────────────── */
+#custom-cursor { display: none; }
 @media (pointer: fine) {
+  #custom-cursor { display: block; }
   html, * { cursor: none !important; }
   #custom-cursor {
     position: fixed;
