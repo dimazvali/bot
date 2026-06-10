@@ -1,7 +1,7 @@
 extends layout
 
 block content
-  .hero(style=`background-image: url('/images/pelamushi/hero.jpg')`)
+  .hero(style=`background-image: url('${about.hero_url || '/images/pelamushi/hero.jpg'}')`)
     .hero-content
       img(src='/images/pelamushi/logo3.png' alt='Pelamushi')
       blockquote #{t.home.quote}

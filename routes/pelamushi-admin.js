@@ -75,6 +75,16 @@ router.get('/about', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/about/hero', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/about');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'hero', 'cover');
+    if (col.about) await col.about.doc('main').set({ hero_url: url }, { merge: true });
+    res.redirect('/admin/about?saved=1');
+  } catch (err) { next(err); }
+});
+
 router.post('/about/mission', async (req, res, next) => {
   try {
     const { mission_en, mission_ka, mission_ru } = req.body;

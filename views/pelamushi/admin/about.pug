@@ -5,6 +5,16 @@ block content
     .alert.alert-success Saved
 
   .card
+    h2 Hero background photo
+    if about.hero_url
+      img(src=about.hero_url style='width:100%;max-height:200px;object-fit:cover;border-radius:6px;margin-bottom:.75rem')
+    form(action='/admin/about/hero' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Replace hero image
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Upload
+
+  .card
     h2 Mission text
     form(action='/admin/about/mission' method='POST')
       .form-row
