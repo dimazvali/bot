@@ -29,8 +29,10 @@ router.param('lang', async (req, res, next, lang) => {
         cache.set('site', site);
       }
       res.locals.site = site;
+      res.locals.ogImage = (site && site.hero_url) || '';
     } catch { /* ignore */ }
   }
+  res.locals.basePath = req.path.replace(/^\/(en|ka|ru)/, '');
   next();
 });
 
@@ -141,7 +143,8 @@ router.get('/:lang', async (req, res, next) => {
       }
     }
 
-    res.render('pelamushi/index', { about, upcomingEvent });
+    const pageDesc = (about['quote_' + res.locals.lang] || '').replace(/<[^>]+>/g, '').substring(0, 160);
+    res.render('pelamushi/index', { about, upcomingEvent, pageDesc, ogImage: about.hero_url || '' });
   } catch (err) {
     next(err);
   }
@@ -166,7 +169,8 @@ router.get('/:lang/about', async (req, res, next) => {
       data = { about, team, gallery };
       cache.set('about', data);
     }
-    res.render('pelamushi/about', { ...data, pageTitle: res.locals.t.about.title });
+    const pageDesc = (data.about['mission_' + res.locals.lang] || '').replace(/<[^>]+>/g, '').substring(0, 160);
+    res.render('pelamushi/about', { ...data, pageTitle: res.locals.t.about.title, pageDesc, ogImage: data.about.hero_url || '' });
   } catch (err) {
     next(err);
   }
@@ -246,6 +250,8 @@ router.get('/:lang/menu/:slug', async (req, res, next) => {
     res.render('pelamushi/menu', {
       ...data,
       pageTitle: data.menu['name_' + res.locals.lang],
+      pageDesc: data.menu['desc_' + res.locals.lang] || '',
+      ogImage: data.menu.cover_url || '',
     });
   } catch (err) {
     next(err);
@@ -286,10 +292,13 @@ router.get('/:lang/news/:slug', async (req, res, next) => {
     }
 
     const registered = req.query.registered === '1';
+    const pageDesc = (article['body_' + res.locals.lang] || '').replace(/<[^>]+>/g, '').substring(0, 160);
     res.render('pelamushi/news-item', {
       article,
       registered,
       pageTitle: article['title_' + res.locals.lang],
+      pageDesc,
+      ogImage: article.photo_url || '',
     });
   } catch (err) {
     next(err);

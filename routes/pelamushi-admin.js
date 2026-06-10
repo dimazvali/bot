@@ -121,6 +121,17 @@ router.post('/about/hero', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/about/icon', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/about');
+    const { uploadIconPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadIconPhoto(file.data, 'about');
+    if (col.about) await col.about.doc('main').set({ icon_url: url }, { merge: true });
+    res.redirect('/admin/about?saved=1');
+  } catch (err) { next(err); }
+});
+
 router.post('/about/mission', async (req, res, next) => {
   try {
     const { mission_en, mission_ka, mission_ru } = req.body;
@@ -491,6 +502,17 @@ router.post('/rental/hero/save', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/rental/icon/save', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/rental');
+    const { uploadIconPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadIconPhoto(file.data, 'rental');
+    if (col.rental) await col.rental.doc('main').set({ icon_url: url }, { merge: true });
+    res.redirect('/admin/rental?saved=1');
+  } catch (err) { next(err); }
+});
+
 router.post('/rental/gallery/add', async (req, res, next) => {
   try {
     if (!req.files || !req.files.photo) return res.redirect('/admin/rental');
@@ -577,6 +599,17 @@ router.post('/bar/hero/save', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/bar/icon/save', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/bar');
+    const { uploadIconPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadIconPhoto(file.data, 'bar');
+    if (col.bar) await col.bar.doc('main').set({ icon_url: url }, { merge: true });
+    res.redirect('/admin/bar?saved=1');
+  } catch (err) { next(err); }
+});
+
 router.post('/bar/gallery/add', async (req, res, next) => {
   try {
     if (!req.files || !req.files.photo) return res.redirect('/admin/bar');
@@ -639,6 +672,17 @@ router.post('/shop/hero/save', async (req, res, next) => {
     const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
     const url = await uploadPhoto(file.data, file.name, 'shop-hero', 'cover');
     if (col.shop) await col.shop.doc('main').set({ hero_url: url }, { merge: true });
+    res.redirect('/admin/shop?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/shop/icon/save', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/shop');
+    const { uploadIconPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadIconPhoto(file.data, 'shop');
+    if (col.shop) await col.shop.doc('main').set({ icon_url: url }, { merge: true });
     res.redirect('/admin/shop?saved=1');
   } catch (err) { next(err); }
 });

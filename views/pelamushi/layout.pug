@@ -5,6 +5,44 @@ html(lang=lang)
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
     title #{pageTitle ? pageTitle + ' | ' : ''}ფელამუში · Pelamushi
     meta(name='description' content=pageDesc || t.footer.tagline)
+    -
+      var _S    = 'https://pelamushi.ge'
+      var _base = basePath || ''
+      var _url  = _S + '/' + lang + _base
+      var _title = (pageTitle ? pageTitle + ' | ' : '') + 'ფელამუში · Pelamushi'
+      var _desc  = pageDesc || t.footer.tagline
+      var _img   = ogImage || (site && site.hero_url) || (_S + '/images/pelamushi/logo1.png')
+      var _loc   = ({ en: 'en_US', ka: 'ka_GE', ru: 'ru_RU' })[lang] || 'en_US'
+      var _sameAs = []
+      if (site && site.facebook_url)  _sameAs.push(site.facebook_url)
+      if (site && site.instagram_url) _sameAs.push(site.instagram_url)
+      var _ld = {
+        '@context': 'https://schema.org', '@type': 'CafeOrCoffeeShop',
+        name: 'Pelamushi', url: _S, image: _img,
+        address: { '@type': 'PostalAddress', streetAddress: '60 Paliashvili St', addressLocality: 'Tbilisi', addressCountry: 'GE' }
+      }
+      if (site && site.phone) _ld.telephone = site.phone
+      if (_sameAs.length) _ld.sameAs = _sameAs
+
+    link(rel='canonical' href=_url)
+    each _l in ['en', 'ka', 'ru']
+      link(rel='alternate' hreflang=_l href=`${_S}/${_l}${_base}`)
+    link(rel='alternate' hreflang='x-default' href=`${_S}/en${_base}`)
+
+    meta(property='og:type' content='website')
+    meta(property='og:site_name' content='Pelamushi')
+    meta(property='og:title' content=_title)
+    meta(property='og:description' content=_desc)
+    meta(property='og:url' content=_url)
+    meta(property='og:image' content=_img)
+    meta(property='og:locale' content=_loc)
+    meta(name='twitter:card' content='summary_large_image')
+    meta(name='twitter:title' content=_title)
+    meta(name='twitter:description' content=_desc)
+    meta(name='twitter:image' content=_img)
+
+    script(type='application/ld+json') !{JSON.stringify(_ld)}
+
     link(rel='icon' href='/images/pelamushi/logo1.png')
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com')

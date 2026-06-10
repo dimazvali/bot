@@ -1,16 +1,20 @@
 extends layout
+include includes/hero
 
 block content
+  - const pubDate = article.published_at ? new Date(article.published_at.toDate()).toLocaleDateString(lang === 'ka' ? 'ka-GE' : lang === 'ru' ? 'ru-RU' : 'en-GB', {day:'numeric', month:'long', year:'numeric'}) : ''
+
+  +hero(article.photo_url, null)
+    if article.registration_enabled
+      span.event-badge #{t.news.event_badge}
+    .hero-meta
+      | #{pubDate}
+      if article.author
+        |  · #{article.author}
+    h1 #{article['title_' + lang]}
+
   .container.section
     .article
-      if article.photo_url
-        .cover
-          img(src=article.photo_url alt=article['title_' + lang])
-      .article-meta
-        | #{article.published_at ? new Date(article.published_at.toDate()).toLocaleDateString(lang === 'ka' ? 'ka-GE' : lang === 'ru' ? 'ru-RU' : 'en-GB', {day:'numeric', month:'long', year:'numeric'}) : ''}
-        if article.author
-          |  · #{article.author}
-      h1 #{article['title_' + lang]}
       .article-body
         != article['body_' + lang]
 

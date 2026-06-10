@@ -38,6 +38,17 @@ block content
       button.btn.btn-secondary.btn-sm(type='submit') Upload
 
   .card
+    h2 Hero icon
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Small image shown above the title in hero
+    if bar.icon_url
+      img(src=bar.icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
+    form(action='/admin/bar/icon/save' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Upload icon
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Upload
+
+  .card
     h2 Gallery
     .admin-gallery-grid
       each photo in gallery

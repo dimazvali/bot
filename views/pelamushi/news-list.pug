@@ -1,21 +1,25 @@
 extends layout
+include includes/hero
 
 block content
-  .page-header
+  +hero(site && site.hero_url, site && site.icon_url)
     h1 #{t.news.title}
 
   .container.section
     .news-list
       each article in articles
-        a.news-card(href=`/${lang}/news/${article.slug}` style='text-decoration:none;color:inherit')
+        - const locale = lang === 'ka' ? 'ka-GE' : lang === 'ru' ? 'ru-RU' : 'en-GB'
+        - const pubDate = article.published_at ? new Date(article.published_at.toDate()).toLocaleDateString(locale, {day:'numeric', month:'long', year:'numeric'}) : ''
+        - const rawBody = (article['body_' + lang] || '').replace(/<[^>]+>/g, '')
+        - const excerpt = rawBody.length > 160 ? rawBody.substring(0, 160) + '…' : rawBody
+        a.news-card(href=`/${lang}/news/${article.slug}`)
           if article.photo_url
             .card-photo
               img(src=article.photo_url alt=article['title_' + lang])
           .card-body
             if article.registration_enabled
               span.event-badge #{t.news.event_badge}
-            .card-date
-              | #{article.published_at ? new Date(article.published_at.toDate()).toLocaleDateString(lang === 'ka' ? 'ka-GE' : lang === 'ru' ? 'ru-RU' : 'en-GB', {day:'numeric', month:'long', year:'numeric'}) : ''}
+            .card-date #{pubDate}
             h3 #{article['title_' + lang]}
-            .card-excerpt #{(article['body_' + lang] || '').replace(/<[^>]+>/g, '').substring(0, 160)}…
+            .card-excerpt #{excerpt}
             span.read-more #{t.news.read_more} →

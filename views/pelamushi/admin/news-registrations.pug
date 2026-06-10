@@ -1,0 +1,27 @@
+extends layout
+
+block content
+  .card
+    h2 Event registrations
+    if !registrations.length
+      p(style='color:#999;font-size:.88rem') No registrations yet.
+    else
+      table.table
+        thead
+          tr
+            th Date
+            th Event
+            th Name
+            th Email
+            th Phone
+        tbody
+          each r in registrations
+            tr
+              td(style='white-space:nowrap;font-size:.82rem;color:#999')
+                = r.created_at ? new Date(r.created_at.toDate()).toLocaleDateString('ru-RU', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'
+              td(style='font-size:.85rem')
+                = r.event ? (r.event.title_ru || r.event.title_en || r.news_id) : r.news_id
+              td #{r.name}
+              td
+                a(href=`mailto:${r.email}`) #{r.email}
+              td #{r.phone || '—'}

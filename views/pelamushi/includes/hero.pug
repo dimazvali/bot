@@ -1,0 +1,9 @@
+mixin hero(bgUrl, iconUrl)
+  .hero
+    if bgUrl
+      .hero-bg
+        img(src=bgUrl alt='')
+    .hero-content
+      if iconUrl
+        img.hero-icon(src=iconUrl alt='')
+      block

@@ -1,13 +1,10 @@
 extends layout
 include includes/page-nav
+include includes/hero
 
 block content
-  .hero
-    if bar.hero_url
-      .hero-bg
-        img(src=bar.hero_url alt='')
-    .hero-content
-      h1 #{bar['title_' + lang] || t.bar.title}
+  +hero(bar.hero_url, bar.icon_url)
+    h1 #{bar['title_' + lang] || t.bar.title}
 
   -
     var navItems = [];
