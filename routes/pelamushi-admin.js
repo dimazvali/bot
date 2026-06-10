@@ -1,7 +1,10 @@
 const express = require('express');
+const fileUpload = require('express-fileupload');
 const router = express.Router();
 const { col } = require('../lib/pelamushi-firebase');
 const { requireAdmin, cookieToken } = require('../lib/pelamushi-auth');
+
+router.use(fileUpload());
 
 // Login — no auth required
 router.get('/login', (req, res) => {
