@@ -44,3 +44,24 @@
     if (Math.abs(dx) > 50) lbNav(dx < 0 ? 1 : -1);
   });
 })();
+
+(function () {
+  var LABELS = {
+    en: ['Show all', 'Collapse'],
+    ka: ['ყველა', 'დახუჭვა'],
+    ru: ['Показать все', 'Свернуть']
+  };
+  var m = window.location.pathname.match(/^\/(en|ka|ru)/);
+  var pair = LABELS[m ? m[1] : 'en'];
+
+  document.querySelectorAll('.masonry-grid').forEach(function (grid) {
+    var btn = document.createElement('button');
+    btn.className = 'gallery-expand-btn';
+    btn.textContent = pair[0];
+    grid.parentNode.insertBefore(btn, grid.nextSibling);
+    btn.addEventListener('click', function () {
+      var expanded = grid.classList.toggle('expanded');
+      btn.textContent = expanded ? pair[1] : pair[0];
+    });
+  });
+})();

@@ -11,7 +11,7 @@ block content
     if (rental['text_' + lang]) navItems.push({ label: t.rental.nav_desc,    href: '#rental-desc' });
     if (gallery.length)         navItems.push({ label: t.rental.nav_gallery,  href: '#rental-gallery' });
     navItems.push({ label: t.rental.nav_book, href: '#rental-book' });
-  +pageNav(navItems)
+  +pageNav(navItems, rental['title_' + lang] || t.rental.title)
 
   if rental['text_' + lang]
     .container.section#rental-desc

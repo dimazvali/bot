@@ -11,7 +11,7 @@ block content
     if (bar['desc_' + lang]) navItems.push({ label: t.bar.nav_desc, href: '#bar-desc' });
     if (gallery.length)       navItems.push({ label: t.bar.nav_gallery, href: '#bar-gallery' });
     if (barMenus.length)      navItems.push({ label: t.bar.nav_menu, href: '#bar-menu' });
-  +pageNav(navItems)
+  +pageNav(navItems, bar['title_' + lang] || t.bar.title)
 
   if bar['desc_' + lang]
     .container.section#bar-desc

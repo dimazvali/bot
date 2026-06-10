@@ -1,5 +1,7 @@
-mixin pageNav(items)
+mixin pageNav(items, sectionTitle)
   if items && items.length > 1
     nav.page-nav
-      each item in items
-        a.page-nav-btn(href=item.href) #{item.label}
+      span.page-nav-label #{sectionTitle || items[0].label}
+      .page-nav-scroll
+        each item in items
+          a.page-nav-btn(href=item.href) #{item.label}

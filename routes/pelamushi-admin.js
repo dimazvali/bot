@@ -130,6 +130,16 @@ router.post('/about/quote', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/about/home-hero', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/about');
+    const { uploadHeroPhoto } = require('../lib/pelamushi-upload');
+    const { hero_url, hero_url_sm } = await uploadHeroPhoto(req.files.photo.data);
+    if (col.about) await col.about.doc('main').set({ home_hero_url: hero_url, home_hero_url_sm: hero_url_sm }, { merge: true });
+    res.redirect('/admin/about?saved=1');
+  } catch (err) { next(err); }
+});
+
 router.post('/about/hero', async (req, res, next) => {
   try {
     if (!req.files || !req.files.photo) return res.redirect('/admin/about');
@@ -410,6 +420,10 @@ router.post('/menus/:id/items/add', async (req, res, next) => {
     if (req.files && req.files.photo) {
       const { uploadPhoto } = require('../lib/pelamushi-upload');
       photo_url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'menu-items', 'item');
+    }
+    if (!photo_url) {
+      const label = encodeURIComponent(req.body.name_en || req.body.name_ru || 'Item');
+      photo_url = `https://placehold.co/400x300/1C2E4A/F3ECE0?text=${label}`;
     }
     if (col.items) {
       const snap = await col.items.where('menu_id', '==', req.params.id).orderBy('order', 'desc').limit(1).get();

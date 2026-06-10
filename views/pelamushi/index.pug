@@ -3,9 +3,9 @@ extends layout
 block content
   .hero
     picture.hero-bg
-      if about.hero_url_sm
-        source(media='(max-width: 768px)' srcset=about.hero_url_sm)
-      img(src=about.hero_url || '/images/pelamushi/hero.jpg' alt='')
+      if about.home_hero_url_sm || about.hero_url_sm
+        source(media='(max-width: 768px)' srcset=about.home_hero_url_sm || about.hero_url_sm)
+      img(src=about.home_hero_url || about.hero_url || '/images/pelamushi/hero.jpg' alt='')
     img.hero-logo(src='/images/pelamushi/logo3.png' alt='')
     .hero-content
       blockquote #{about['quote_' + lang] || t.home.quote}
@@ -21,26 +21,38 @@ block content
 
   .section-cards
     a.section-card(href=`/${lang}/about`)
+      if sectionIcons.about
+        img.section-card-icon(src=sectionIcons.about alt='')
       .card-body
         h3 #{t.home.about_link}
         p #{t.home.about_desc}
     a.section-card(href=`/${lang}/menu`)
+      if sectionIcons.menu
+        img.section-card-icon(src=sectionIcons.menu alt='')
       .card-body
         h3 #{t.home.menu_link}
         p #{t.home.menu_desc}
     a.section-card(href=`/${lang}/bar`)
+      if sectionIcons.bar
+        img.section-card-icon(src=sectionIcons.bar alt='')
       .card-body
         h3 #{t.home.bar_link}
         p #{t.home.bar_desc}
     a.section-card(href=`/${lang}/shop`)
+      if sectionIcons.shop
+        img.section-card-icon(src=sectionIcons.shop alt='')
       .card-body
         h3 #{t.home.shop_link}
         p #{t.home.shop_desc}
     a.section-card(href=`/${lang}/rental`)
+      if sectionIcons.rental
+        img.section-card-icon(src=sectionIcons.rental alt='')
       .card-body
         h3 #{t.home.rental_link}
         p #{t.home.rental_desc}
     a.section-card(href=`/${lang}/news`)
+      if sectionIcons.news
+        img.section-card-icon(src=sectionIcons.news alt='')
       .card-body
         h3 #{t.home.news_link}
         p #{t.home.news_desc}

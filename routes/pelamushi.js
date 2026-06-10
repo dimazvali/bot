@@ -143,8 +143,26 @@ router.get('/:lang', async (req, res, next) => {
       }
     }
 
+    let sectionIcons = cache.get('section_icons');
+    if (sectionIcons === undefined) {
+      const [barDoc, shopDoc, rentalDoc] = await Promise.all([
+        col.bar    ? col.bar.doc('main').get()    : Promise.resolve({ exists: false }),
+        col.shop   ? col.shop.doc('main').get()   : Promise.resolve({ exists: false }),
+        col.rental ? col.rental.doc('main').get() : Promise.resolve({ exists: false }),
+      ]);
+      sectionIcons = {
+        about:  about.icon_url  || null,
+        menu:   about.menu_icon_url  || null,
+        bar:    barDoc.exists    ? (barDoc.data().icon_url    || null) : null,
+        shop:   shopDoc.exists   ? (shopDoc.data().icon_url   || null) : null,
+        rental: rentalDoc.exists ? (rentalDoc.data().icon_url || null) : null,
+        news:   about.news_icon_url  || null,
+      };
+      cache.set('section_icons', sectionIcons);
+    }
+
     const pageDesc = (about['quote_' + res.locals.lang] || '').replace(/<[^>]+>/g, '').substring(0, 160);
-    res.render('pelamushi/index', { about, upcomingEvent, pageDesc, ogImage: about.hero_url || '' });
+    res.render('pelamushi/index', { about, upcomingEvent, sectionIcons, pageDesc, ogImage: about.home_hero_url || about.hero_url || '' });
   } catch (err) {
     next(err);
   }
@@ -229,6 +247,7 @@ router.get('/:lang/menu/:slug', async (req, res, next) => {
 
       const menuDoc = menuSnap.docs[0];
       const menu = { id: menuDoc.id, ...menuDoc.data() };
+      if (!menu.active) return res.status(404).send('Menu not found');
 
       const [catsSnap, itemsSnap] = await Promise.all([
         col.categories.where('menu_id', '==', menu.id).orderBy('order').get(),

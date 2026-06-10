@@ -11,7 +11,7 @@ block content
     if (shop['desc_' + lang]) navItems.push({ label: t.shop.nav_desc,     href: '#shop-desc' });
     if (gallery.length)        navItems.push({ label: t.shop.nav_gallery,  href: '#shop-gallery' });
     if (shopMenus.length)      navItems.push({ label: t.shop.nav_products, href: '#shop-products' });
-  +pageNav(navItems)
+  +pageNav(navItems, shop['title_' + lang] || t.shop.title)
 
   if shop['desc_' + lang]
     .container.section#shop-desc

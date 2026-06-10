@@ -11,7 +11,7 @@ block content
     if (about['mission_' + lang]) navItems.push({ label: t.about.nav_desc,    href: '#about-desc' });
     if (team.length)              navItems.push({ label: t.about.nav_team,     href: '#about-team' });
     if (gallery.length)           navItems.push({ label: t.about.nav_gallery,  href: '#about-gallery' });
-  +pageNav(navItems)
+  +pageNav(navItems, t.about.title)
 
   if about['mission_' + lang]
     .container.section#about-desc

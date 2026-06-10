@@ -5,7 +5,17 @@ block content
     .alert.alert-success Сохранено
 
   .card
-    h2 Фото подложки (героя)
+    h2 Фото подложки (главная страница)
+    if about.home_hero_url
+      img(src=about.home_hero_url style='width:100%;max-height:200px;object-fit:cover;border-radius:6px;margin-bottom:.75rem')
+    form(action='/admin/about/home-hero' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Заменить фото
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Фото подложки (о нас)
     if about.hero_url
       img(src=about.hero_url style='width:100%;max-height:200px;object-fit:cover;border-radius:6px;margin-bottom:.75rem')
     form(action='/admin/about/hero' method='POST' enctype='multipart/form-data')

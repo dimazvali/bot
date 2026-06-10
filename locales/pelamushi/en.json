@@ -36,7 +36,8 @@
   },
   "menu": {
     "title": "Menu",
-    "back": "← All Menus"
+    "back": "← All Menus",
+    "other": "Other"
   },
   "news": {
     "title": "News & Events",

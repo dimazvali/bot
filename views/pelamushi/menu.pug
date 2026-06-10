@@ -1,16 +1,64 @@
 extends layout
 include includes/hero
+include includes/page-nav
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      const siteNav = document.querySelector('.site-nav');
+      const pageNav = document.querySelector('.page-nav');
+      function updateHeights() {
+        if (siteNav) document.documentElement.style.setProperty('--nav-h', siteNav.offsetHeight + 'px');
+        if (pageNav) document.documentElement.style.setProperty('--page-nav-h', pageNav.offsetHeight + 'px');
+      }
+      updateHeights();
+      window.addEventListener('resize', updateHeights);
+
+      const sections = Array.from(document.querySelectorAll('.menu-category[id]'));
+      const navBtns  = Array.from(document.querySelectorAll('.page-nav-btn'));
+      if (!sections.length || !navBtns.length) return;
+
+      const label = pageNav && pageNav.querySelector('.page-nav-label');
+      function setActive(id) {
+        navBtns.forEach(btn => btn.classList.toggle('active', btn.getAttribute('href') === '#' + id));
+        const active = pageNav && pageNav.querySelector('.page-nav-btn.active');
+        if (active) {
+          active.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+          if (label) label.textContent = active.textContent;
+        }
+      }
+
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => { if (e.isIntersecting) setActive(e.target.id); });
+      }, { rootMargin: '-15% 0px -65% 0px' });
+      sections.forEach(s => observer.observe(s));
+
+      navBtns.forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.preventDefault();
+          const target = document.querySelector(btn.getAttribute('href'));
+          if (!target) return;
+          const offset = (siteNav ? siteNav.offsetHeight : 64) + (pageNav ? pageNav.offsetHeight : 48) + 16;
+          window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
+        });
+      });
+    });
 
 block content
+  - const navItems = grouped.filter(c => c.items.length).map(c => ({ href: '#cat-' + c.id, label: c['name_' + lang] }))
+  - if (uncategorized.length) navItems.push({ href: '#cat-other', label: t.menu.other })
+
   +hero(menu.cover_url, menu.icon_url)
     h1 #{menu['name_' + lang]}
     if menu['desc_' + lang]
       p.hero-subtitle #{menu['desc_' + lang]}
 
+  +pageNav(navItems)
+
   .container.section
     each cat in grouped
       if cat.items.length
-        .menu-category
+        .menu-category(id='cat-' + cat.id)
           h3 #{cat['name_' + lang]}
           .menu-items-grid
             each item in cat.items
@@ -28,7 +76,7 @@ block content
                         span.tag #{tag}
 
     if uncategorized.length
-      .menu-category
+      .menu-category#cat-other
         .menu-items-grid
           each item in uncategorized
             .menu-item
