@@ -88,6 +88,19 @@ router.post('/about/social', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/about/quote', async (req, res, next) => {
+  try {
+    const { quote_en, quote_ka, quote_ru } = req.body;
+    if (col.about) {
+      await col.about.doc('main').set(
+        { quote_en: quote_en || '', quote_ka: quote_ka || '', quote_ru: quote_ru || '' },
+        { merge: true }
+      );
+    }
+    res.redirect('/admin/about?saved=1');
+  } catch (err) { next(err); }
+});
+
 router.post('/about/hero', async (req, res, next) => {
   try {
     if (!req.files || !req.files.photo) return res.redirect('/admin/about');

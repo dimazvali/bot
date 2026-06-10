@@ -15,6 +15,20 @@ block content
       button.btn.btn-secondary.btn-sm(type='submit') Upload
 
   .card
+    h2 Hero quote
+    form(action='/admin/about/quote' method='POST')
+      .form-row
+        label EN
+        textarea(name='quote_en') #{about.quote_en}
+      .form-row
+        label KA
+        textarea(name='quote_ka') #{about.quote_ka}
+      .form-row
+        label RU
+        textarea(name='quote_ru') #{about.quote_ru}
+      button.btn.btn-primary(type='submit') Save
+
+  .card
     h2 Mission text
     form(action='/admin/about/mission' method='POST')
       .form-row
