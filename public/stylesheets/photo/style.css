@@ -762,3 +762,85 @@ body.sidebar-open { overflow: hidden; }
   .mobile-colors .color-dot { flex-shrink: 0; }
 }
 .lb-close:hover { color: #fff; }
+
+/* ── Photo inquiry form ──────────────────────────────────────────────────── */
+.photo-inquiry {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.inquiry-title {
+  font-size: 0.5625rem;
+  letter-spacing: 3px;
+  color: var(--text-dim);
+  font-weight: 400;
+  margin-bottom: 14px;
+}
+.inquiry-form { display: flex; flex-direction: column; gap: 8px; }
+.inquiry-type {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.inquiry-radio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.inquiry-radio input[type=radio] { display: none; }
+.inquiry-radio span {
+  font-size: 0.5625rem;
+  letter-spacing: 2px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  transition: border-color 0.15s, color 0.15s;
+  cursor: pointer;
+}
+.inquiry-radio input[type=radio]:checked + span {
+  border-color: var(--text-muted);
+  color: var(--accent);
+}
+.inquiry-radio:hover span { border-color: var(--text-muted); }
+.inquiry-input {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: monospace;
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  padding: 8px 10px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s;
+  resize: vertical;
+}
+.inquiry-input::placeholder { color: var(--text-dim); }
+.inquiry-input:focus { border-color: var(--text-muted); }
+.inquiry-textarea { min-height: 72px; }
+.inquiry-submit {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.5625rem;
+  letter-spacing: 2px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.inquiry-submit:hover { border-color: var(--text-muted); color: var(--accent); }
+.inquiry-success {
+  font-size: 0.5625rem;
+  letter-spacing: 2px;
+  color: #4caf50;
+}
+.inquiry-error {
+  font-size: 0.5625rem;
+  letter-spacing: 2px;
+  color: #e57373;
+  margin-bottom: 8px;
+}

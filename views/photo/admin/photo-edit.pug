@@ -13,13 +13,19 @@ html(data-theme='dark')
       .admin-section
         h2.admin-title РЕДАКТИРОВАТЬ ФОТО
         if photo.urls
-          img(src=photo.urls.preview alt=photo.title style='width:100%;max-width:480px;height:auto;display:block;margin-bottom:16px;')
+          .copyright-preview-row
+            img(src=photo.urls.preview alt=photo.title style='width:100%;max-width:480px;height:auto;display:block;')
+            a.admin-link(href=`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(photo.urls.full || photo.urls.preview)}` target='_blank' rel='noopener' style='display:inline-block;margin-top:6px;font-size:.6875rem') 🔍 Проверить в Google Lens
         form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit` enctype='multipart/form-data')
           input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
           p.admin-hint ЗАМЕНИТЬ ФАЙЛ (необязательно):
           input.admin-input(type='file' name='photo' accept='image/*')
           input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. Май 2024)')
-          textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='3')= photo.desc || ''
+          .admin-desc-row
+            textarea.admin-input#photo-desc(name='desc' placeholder='описание (необязательно)' rows='3')= photo.desc || ''
+            button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать описание и ключевые слова через AI') 🤖
+          input.admin-input#photo-keywords(type='text' name='seo_keywords' value=photo.seo_keywords || '' placeholder='ключевые слова (SEO, необязательно)')
+          p.admin-hint#gen-seo-status(style='display:none')
           input.admin-input(type='url' name='instagram' value=photo.instagram || '' placeholder='ссылка на публикацию в instagram (необязательно)')
           .admin-coords
             input.admin-input(type='text' name='lat' value=(photo.coords ? photo.coords.lat : '') placeholder='широта (напр. 41.693)')
@@ -33,3 +39,42 @@ html(data-theme='dark')
                   input(type='checkbox' name='tags' value=slug checked=(photo.tags && photo.tags.includes(slug)))
                   span= tag.label
           button.admin-btn(type='submit') СОХРАНИТЬ
+
+    style.
+      .admin-desc-row { position: relative; }
+      .admin-desc-row textarea { padding-right: 3rem; }
+      .admin-btn-ai { position: absolute; top: 6px; right: 6px; background: #1a1a2e; border: 1px solid #444; color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 1rem; cursor: pointer; line-height: 1; }
+      .admin-btn-ai:hover { background: #2a2a4e; }
+      .admin-btn-ai:disabled { opacity: .4; cursor: wait; }
+      #gen-seo-status { font-size: .75rem; margin: 2px 0 0; }
+
+    script.
+      document.getElementById('gen-seo-btn').addEventListener('click', async function() {
+        var btn = this;
+        var status = document.getElementById('gen-seo-status');
+        btn.disabled = true;
+        btn.textContent = '⏳';
+        status.style.display = 'block';
+        status.style.color = '#aaa';
+        status.textContent = 'Генерирую…';
+        try {
+          var force = !!document.getElementById('photo-desc').value.trim();
+          var resp = await fetch(window.location.pathname.replace('/edit', '/generate-seo'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force }),
+          });
+          var data = await resp.json();
+          if (!resp.ok || !data.ok) throw new Error(data.error || 'Ошибка');
+          document.getElementById('photo-desc').value = data.desc;
+          document.getElementById('photo-keywords').value = data.keywords;
+          status.style.color = '#4caf50';
+          status.textContent = '✓ Готово — не забудьте сохранить';
+        } catch (e) {
+          status.style.color = '#f44336';
+          status.textContent = '✗ ' + e.message;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '🤖';
+        }
+      });

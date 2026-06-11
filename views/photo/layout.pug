@@ -5,6 +5,8 @@ html(data-theme='dark')
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
     - var _desc = desc || 'Аэрофотосъёмка — Дмитрий Шестаков'
     meta(name='description' content=_desc)
+    if keywords
+      meta(name='keywords' content=keywords)
     meta(property='og:title' content=title)
     meta(property='og:description' content=_desc)
     meta(property='og:type' content='website')
@@ -18,6 +20,7 @@ html(data-theme='dark')
     if breadcrumbs && breadcrumbs.length
       - var _ldItems = [{"@type":"ListItem","position":1,"name":"Главная","item":"https://photo.dimazvali.com/"}].concat(breadcrumbs.map(function(b,i){return{"@type":"ListItem","position":i+2,"name":b.name,"item":b.url};}))
       script(type='application/ld+json')!= JSON.stringify({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":_ldItems})
+    block head
     link(rel='icon' href='/images/photo/ds_georgian.ico')
     link(rel='stylesheet' href='/stylesheets/photo/style.css')
     script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')

@@ -10,6 +10,8 @@ var photoStats = require('../lib/photo-stats');
 var { extractColorFamily } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var mailer = require('../lib/photo-mailer');
+var copyright = require('../lib/photo-copyright');
+var copyrightCheck = require('../lib/photo-copyright-check');
 
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
@@ -40,6 +42,7 @@ initTagsFromFirestore(fb).catch(console.error);
 photoStats.init(fb);
 subscriptions.init(fb);
 mailer.init();
+copyright.init(fb);
 
 var upload = multer({
   storage: multer.memoryStorage(),
@@ -342,6 +345,24 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     data[country].series[series].photos.push(photoEntry);
     saveData(data);
 
+    // Auto-generate SEO desc+keywords async (fire-and-forget)
+    (function() {
+      var { generatePhotoSeo } = require('../lib/photo-seo');
+      generatePhotoSeo(photoEntry, {
+        countryLabel: data[country].label,
+        seriesLabel: data[country].series[series].label,
+        allTags: getTags(),
+      }).then(function(result) {
+        var d2 = getData();
+        var p = d2[country] && d2[country].series[series] && d2[country].series[series].photos.find(function(x) { return x.id === photoEntry.id; });
+        if (p) {
+          if (!p.desc) p.desc = result.desc;
+          p.seo_keywords = result.keywords;
+          saveData(d2);
+        }
+      }).catch(function(e) { console.error('[auto-seo]', e.message); });
+    }());
+
     mailer.sendPhotoNotification(photoEntry, {
       countryLabel: data[country].label,
       seriesLabel: data[country].series[series].label,
@@ -595,6 +616,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
     return res.redirect('/admin');
   }
   var { title, date, desc } = req.body;
+  var seoKeywords = (req.body.seo_keywords || '').trim();
   if (!title || !title.trim()) return res.redirect(`/admin/${country}/${seriesKey}/${id}/edit`);
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
@@ -621,6 +643,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   }
   if (!isNaN(altEditRaw) && altEditRaw >= 0) { photo.altitude = Math.round(altEditRaw); } else { delete photo.altitude; }
   if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
+  if (seoKeywords) { photo.seo_keywords = seoKeywords; } else { delete photo.seo_keywords; }
   try {
     if (req.file) {
       var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
@@ -646,6 +669,93 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   } catch (err) {
     console.error('Photo edit error:', err);
     res.status(500).send('Ошибка при замене фото: ' + err.message);
+  }
+});
+
+// ── Copyright hits ────────────────────────────────────────────────────────────
+
+router.get('/copyright', requireAuth, async (req, res) => {
+  var onlyNew = req.query.filter !== 'all';
+  try {
+    var hits = await copyright.getHits({ onlyNew });
+    var total = hits.length;
+    // group by photo
+    var byPhoto = {};
+    hits.forEach(function(h) {
+      var key = h.countryKey + '/' + h.seriesKey + '/' + h.photoId;
+      if (!byPhoto[key]) byPhoto[key] = { photoTitle: h.photoTitle, countryKey: h.countryKey, seriesKey: h.seriesKey, photoId: h.photoId, imageUrl: h.imageUrl, hits: [] };
+      byPhoto[key].hits.push(h);
+    });
+    res.render('photo/admin/copyright', {
+      title: 'Использования — AERO Admin',
+      groups: Object.values(byPhoto),
+      total,
+      onlyNew,
+      error: null,
+    });
+  } catch (err) {
+    res.render('photo/admin/copyright', { title: 'Использования — AERO Admin', groups: [], total: 0, onlyNew, error: err.message });
+  }
+});
+
+router.post('/copyright/run', requireAuth, (req, res) => {
+  var started = copyrightCheck.run(fb, getData(), process.env.PHOTO_ENV || 'dev');
+  res.json({ ok: true, started });
+});
+
+router.get('/copyright/run/status', requireAuth, (req, res) => {
+  res.json(copyrightCheck.getState());
+});
+
+router.post('/copyright/clear-photo', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var photoId = (req.body.photoId || '').trim();
+  if (photoId) {
+    try { await copyright.clearPhoto(photoId); } catch (e) { console.error(e.message); }
+  }
+  res.redirect(req.headers.referer || '/admin/copyright');
+});
+
+router.post('/copyright/:id/dismiss', requireAuth, async (req, res) => {
+  try { await copyright.dismissHit(req.params.id); } catch (e) { console.error(e.message); }
+  res.redirect(req.headers.referer || '/admin/copyright');
+});
+
+router.post('/copyright/:id/undismiss', requireAuth, async (req, res) => {
+  try { await copyright.undismissHit(req.params.id); } catch (e) { console.error(e.message); }
+  res.redirect(req.headers.referer || '/admin/copyright');
+});
+
+router.post('/copyright/:id/delete', requireAuth, async (req, res) => {
+  try { await copyright.deleteHit(req.params.id); } catch (e) { console.error(e.message); }
+  res.redirect(req.headers.referer || '/admin/copyright');
+});
+
+// POST /admin/:country/:series/:id/generate-seo — AI SEO generation for single photo
+router.post('/:country/:series/:id/generate-seo', requireAuth, express.json(), async (req, res) => {
+  var { country, series: seriesKey, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
+    return res.status(400).json({ error: 'Invalid params' });
+  }
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.status(404).json({ error: 'Not found' });
+  var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.status(404).json({ error: 'Not found' });
+
+  try {
+    var { generatePhotoSeo } = require('../lib/photo-seo');
+    var result = await generatePhotoSeo(photo, {
+      countryLabel: data[country].label,
+      seriesLabel: data[country].series[seriesKey].label,
+      allTags: getTags(),
+    });
+    var force = req.body && req.body.force;
+    if (!photo.desc || force) photo.desc = result.desc;
+    photo.seo_keywords = result.keywords;
+    saveData(data);
+    res.json({ ok: true, desc: photo.desc, keywords: photo.seo_keywords });
+  } catch (err) {
+    console.error('[generate-seo]', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 

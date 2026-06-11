@@ -98,17 +98,11 @@ async function processPhoto(photo, countryKey, seriesKey, env, newHits) {
 
   var candidates = [];
 
+  // Only exact image matches — pagesWithMatchingImages produces too many false positives
   for (var img of (detection.fullMatchingImages || [])) {
     if (!isOwnUrl(img.url) && !seen.has(img.url)) {
       seen.add(img.url);
       candidates.push({ matchUrl: img.url, pageUrl: null, pageTitle: null, matchType: 'full_image' });
-    }
-  }
-
-  for (var page of (detection.pagesWithMatchingImages || [])) {
-    if (!isOwnUrl(page.url) && !seen.has(page.url)) {
-      seen.add(page.url);
-      candidates.push({ matchUrl: page.url, pageUrl: page.url, pageTitle: page.pageTitle || null, matchType: 'page' });
     }
   }
 

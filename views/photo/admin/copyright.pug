@@ -1,0 +1,145 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo ИСПОЛЬЗОВАНИЯ
+        .copyright-filter
+          a.admin-link(href='?filter=new' class=onlyNew?'active':'') только новые
+          a.admin-link(href='?filter=all' class=!onlyNew?'active':'') все
+        button.admin-btn#run-check-btn(type='button') ▶ ПРОВЕРИТЬ
+
+      .admin-section#run-status(style='display:none')
+        .copyright-progress
+          .copyright-progress-bar
+            .copyright-progress-fill#progress-fill
+          span#progress-text
+
+      if error
+        .admin-section
+          p.admin-hint(style='color:#e57373') #{error}
+
+      else if !total
+        .admin-section
+          p.admin-hint #{onlyNew ? 'Новых использований не найдено' : 'Использований не найдено'}
+
+      else
+        .admin-section
+          p.admin-hint #{total} записей
+
+        each group in groups
+          .admin-section.copyright-group
+            .copyright-photo-header
+              if group.imageUrl
+                img.copyright-thumb(src=group.imageUrl alt=group.photoTitle loading='lazy')
+              .copyright-photo-meta
+                a.copyright-photo-title(href=`/${group.countryKey}/${group.seriesKey}/${group.photoId}` target='_blank')= group.photoTitle
+                span.copyright-photo-loc= `${group.countryKey} / ${group.seriesKey}`
+              a.admin-link(href=`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(group.imageUrl)}` target='_blank' rel='noopener') 🔍 Google Lens
+              form(method='POST' action='/admin/copyright/clear-photo' style='display:inline')
+                input(type='hidden' name='photoId' value=group.photoId)
+                button.admin-link(type='submit' onclick='return confirm("Удалить все совпадения для этого фото?")' style='color:#e57373') ✕ очистить
+
+            each hit in group.hits
+              .copyright-hit(class=hit.dismissed?'is-dismissed':'')
+                .copyright-hit-main
+                  a.copyright-hit-url(href=hit.matchUrl target='_blank' rel='noopener')= hit.matchUrl
+                  if hit.pageTitle
+                    span.copyright-hit-page= hit.pageTitle
+                .copyright-hit-meta
+                  span.copyright-hit-type= hit.matchType === 'full_image' ? 'точное совпадение' : 'страница'
+                  if hit.firstSeen
+                    span.copyright-hit-date= new Date(hit.firstSeen.toDate ? hit.firstSeen.toDate() : hit.firstSeen).toLocaleDateString('ru')
+                  if hit.lastSeen && hit.lastSeen !== hit.firstSeen
+                    span.copyright-hit-date(style='color:#555') обновлено: #{new Date(hit.lastSeen.toDate ? hit.lastSeen.toDate() : hit.lastSeen).toLocaleDateString('ru')}
+                .copyright-hit-actions
+                  if hit.dismissed
+                    form(method='POST' action=`/admin/copyright/${hit.id}/undismiss` style='display:inline')
+                      button.admin-link(type='submit') восстановить
+                  else
+                    form(method='POST' action=`/admin/copyright/${hit.id}/dismiss` style='display:inline')
+                      button.admin-link(type='submit') отклонить
+                  form(method='POST' action=`/admin/copyright/${hit.id}/delete` style='display:inline')
+                    button.admin-link(type='submit' onclick='return confirm("Удалить запись?")' style='color:#e57373') удалить
+
+    script.
+      var runBtn = document.getElementById('run-check-btn');
+      var statusBox = document.getElementById('run-status');
+      var fill = document.getElementById('progress-fill');
+      var txt = document.getElementById('progress-text');
+      var pollTimer = null;
+
+      function pollStatus() {
+        fetch('/admin/copyright/run/status')
+          .then(function(r){ return r.json(); })
+          .then(function(s) {
+            if (!s.running && !s.finishedAt) return; // never ran
+            statusBox.style.display = 'block';
+            var pct = s.total ? Math.round(s.done / s.total * 100) : 0;
+            fill.style.width = pct + '%';
+            if (s.running) {
+              runBtn.disabled = true;
+              runBtn.textContent = '⏳ ' + s.done + ' / ' + s.total;
+              txt.textContent = 'Проверено: ' + s.done + ' из ' + s.total + (s.newHits ? ', новых: ' + s.newHits : '') + (s.errors ? ', ошибок: ' + s.errors : '');
+              pollTimer = setTimeout(pollStatus, 2000);
+            } else {
+              runBtn.disabled = false;
+              runBtn.textContent = '▶ ПРОВЕРИТЬ';
+              txt.textContent = '✓ Готово — ' + s.done + ' фото, новых совпадений: ' + s.newHits + (s.errors ? ', ошибок: ' + s.errors : '') + '. Обновите страницу для актуального списка.';
+            }
+          })
+          .catch(function(){});
+      }
+
+      runBtn.addEventListener('click', function() {
+        runBtn.disabled = true;
+        runBtn.textContent = '⏳ запуск…';
+        fetch('/admin/copyright/run', { method: 'POST' })
+          .then(function(r){ return r.json(); })
+          .then(function(d) {
+            if (d.started === false) {
+              txt.textContent = 'Уже выполняется.';
+              statusBox.style.display = 'block';
+            }
+            pollStatus();
+          })
+          .catch(function(e) {
+            runBtn.disabled = false;
+            runBtn.textContent = '▶ ПРОВЕРИТЬ';
+            alert('Ошибка: ' + e.message);
+          });
+      });
+
+      // Resume polling if a check is already running
+      pollStatus();
+
+    style.
+      .copyright-filter { display:flex; gap:12px; }
+      .copyright-group { display:flex; flex-direction:column; gap:8px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+      .copyright-group:last-child { border-bottom:none; }
+      .copyright-photo-header { display:flex; align-items:center; gap:12px; margin-bottom:4px; }
+      .copyright-thumb { width:60px; height:45px; object-fit:cover; opacity:.8; flex-shrink:0; }
+      .copyright-photo-meta { flex:1; display:flex; flex-direction:column; gap:2px; }
+      .copyright-photo-title { font-size:.75rem; color:var(--accent); text-decoration:none; letter-spacing:1px; }
+      .copyright-photo-title:hover { text-decoration:underline; }
+      .copyright-photo-loc { font-size:.5625rem; letter-spacing:2px; color:var(--text-dim); }
+      .copyright-hit { display:flex; flex-direction:column; gap:4px; padding:8px 10px; background:var(--border); font-size:.75rem; }
+      .copyright-hit.is-dismissed { opacity:.4; }
+      .copyright-hit-main { display:flex; flex-direction:column; gap:2px; }
+      .copyright-hit-url { color:var(--text-muted); word-break:break-all; text-decoration:none; font-size:.6875rem; font-family:monospace; }
+      .copyright-hit-url:hover { color:var(--accent); }
+      .copyright-hit-page { font-size:.6875rem; color:var(--text-dim); }
+      .copyright-hit-meta { display:flex; gap:12px; font-size:.5625rem; letter-spacing:1px; color:var(--text-dim); }
+      .copyright-hit-type { color:#888; }
+      .copyright-hit-actions { display:flex; gap:12px; }
+      .copyright-hit-actions button { background:none; border:none; padding:0; cursor:pointer; font-family:monospace; font-size:.5625rem; letter-spacing:1px; }
+      .copyright-progress { display:flex; flex-direction:column; gap:6px; }
+      .copyright-progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+      .copyright-progress-fill { height:100%; background:var(--accent); width:0%; transition:width .4s; }
+      #progress-text { font-size:.6875rem; color:var(--text-muted); font-family:monospace; }
+      #run-check-btn { margin-left:auto; }

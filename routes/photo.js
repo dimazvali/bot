@@ -6,6 +6,7 @@ var { getTags } = require('../lib/photo-tags');
 var { trackView } = require('../lib/photo-stats');
 var { COLOR_FAMILIES } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
+var { buildPageKeywords, BASE_KEYWORDS } = require('../lib/photo-seo');
 
 router.use(express.static(path.join(__dirname, '../public')));
 
@@ -58,6 +59,7 @@ router.get('/', (req, res) => {
     photos,
     title: 'photo.dimazvali.com',
     desc: 'Аэрофотосъёмка — Дмитрий Шестаков. Серийная документальная фотография с воздуха.',
+    keywords: buildPageKeywords(photos, getTags(), Object.keys(data).map(k => data[k].label)),
     ogImage: ogImg(photos[0]),
     ogUrl: BASE + '/',
     breadcrumbs: null,
@@ -90,7 +92,8 @@ router.get('/tag/:slug', (req, res) => {
     tagSlug: slug,
     photos,
     title: `${tags[slug].label} — photo.dimazvali.com`,
-    desc: `${tags[slug].label} — аэрофотосъёмка Дмитрия Шестакова`,
+    desc: `${photos.length} аэрофотоснимков по теме «${tags[slug].label}» — Дмитрий Шестаков`,
+    keywords: tags[slug].label + ', ' + BASE_KEYWORDS,
     ogImage: ogImg(photos[0]),
     ogUrl: `${BASE}/tag/${slug}`,
     breadcrumbs: [{ name: tags[slug].label, url: `${BASE}/tag/${slug}` }],
@@ -112,10 +115,49 @@ router.get('/color/:family', function(req, res) {
     photos,
     title: info.label + ' — photo.dimazvali.com',
     desc: info.label + ' — аэрофотосъёмка Дмитрия Шестакова',
+    keywords: info.label + ', ' + BASE_KEYWORDS,
     ogImage: ogImg(photos[0]),
     ogUrl: BASE + '/color/' + family,
     breadcrumbs: [{ name: info.label, url: BASE + '/color/' + family }],
   });
+});
+
+// POST /:country/:series/:id/inquiry — photo inquiry form
+router.post('/:country/:series/:id/inquiry', express.urlencoded({ extended: false }), async (req, res) => {
+  var { country: countryKey, series: seriesKey, id } = req.params;
+  var data = getData();
+  var country = data[countryKey];
+  if (!country || country.archived) return res.status(404).send('Not found');
+  var series = country.series[seriesKey];
+  if (!series || series.archived) return res.status(404).send('Not found');
+  var photo = series.photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.status(404).send('Not found');
+
+  var name    = (req.body.name    || '').trim();
+  var email   = (req.body.email   || '').trim().toLowerCase();
+  var type    = ['print', 'license', 'other'].includes(req.body.type) ? req.body.type : 'other';
+  var message = (req.body.message || '').trim().substring(0, 1000);
+
+  var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!name || !emailRe.test(email)) {
+    return res.redirect(`/${countryKey}/${seriesKey}/${id}?inquiry=err`);
+  }
+
+  try {
+    var { sendMessage2 } = require('./methods');
+    var typeLabel = { print: 'Отпечаток', license: 'Лицензия', other: 'Вопрос' }[type] || type;
+    var photoUrl = BASE + '/' + countryKey + '/' + seriesKey + '/' + id;
+    var text = '📷 <b>Заявка: ' + typeLabel + '</b>\n'
+      + 'Фото: <a href="' + photoUrl + '">' + photo.title + '</a>\n'
+      + 'Имя: ' + name + '\n'
+      + 'Email: ' + email
+      + (message ? '\n\n' + message : '');
+    await sendMessage2({ chat_id: 144489840, text, parse_mode: 'HTML' }, false, process.env.dimazvaliToken);
+  } catch (e) {
+    console.error('[inquiry]', e.message);
+  }
+
+  res.redirect(`/${countryKey}/${seriesKey}/${id}?inquiry=ok`);
 });
 
 // GET /sitemap.xml
@@ -146,9 +188,38 @@ router.get('/sitemap.xml', (req, res) => {
     }
   }
 
-  var xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+  // Build photo URL → image metadata map
+  var photoImageMap = {};
+  for (var ck of Object.keys(data)) {
+    var co = data[ck];
+    if (co.archived) continue;
+    for (var sk of getActiveSeries(co)) {
+      var se = co.series[sk];
+      for (var ph of se.photos) {
+        var pageUrl = base + '/' + ck + '/' + sk + '/' + ph.id;
+        if (ph.urls && (ph.urls.full || ph.urls.preview)) {
+          photoImageMap[pageUrl] = { loc: ph.urls.full || ph.urls.preview, title: ph.title };
+        }
+      }
+    }
+  }
+
+  var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
+    + '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
   for (var url of urls) {
-    xml += '  <url><loc>' + url + '</loc></url>\n';
+    var img = photoImageMap[url];
+    if (img) {
+      xml += '  <url>\n'
+        + '    <loc>' + url + '</loc>\n'
+        + '    <image:image>\n'
+        + '      <image:loc>' + img.loc + '</image:loc>\n'
+        + '      <image:title>' + img.title.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</image:title>\n'
+        + '    </image:image>\n'
+        + '  </url>\n';
+    } else {
+      xml += '  <url><loc>' + url + '</loc></url>\n';
+    }
   }
   xml += '</urlset>';
 
@@ -211,6 +282,7 @@ router.get('/:country', (req, res) => {
   photos.forEach(function (p) { if (p.tags) p.tags.forEach(function (t) { tagSet.add(t); }); });
   var activeTags = Array.from(tagSet).filter(function (k) { return allTags[k]; }).map(function (k) { return { key: k, label: allTags[k].label }; });
 
+  var seriesLabels = getActiveSeries(country).map(k => country.series[k].label);
   res.render('photo/gallery', {
     data,
     activeCountry: countryKey,
@@ -218,7 +290,8 @@ router.get('/:country', (req, res) => {
     photos,
     activeTags,
     title: `${country.label} — photo.dimazvali.com`,
-    desc: `${country.label} — аэрофотосъёмка Дмитрия Шестакова`,
+    desc: `${country.label} — ${photos.length} аэрофотоснимков в ${seriesLabels.length} сери${seriesLabels.length === 1 ? 'и' : 'ях'}. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
+    keywords: buildPageKeywords(photos, getTags(), [country.label, ...seriesLabels]),
     ogImage: ogImg(photos[0]),
     ogUrl: `${BASE}/${countryKey}`,
     breadcrumbs: [{ name: country.label, url: `${BASE}/${countryKey}` }],
@@ -249,7 +322,8 @@ router.get('/:country/:series', (req, res) => {
     photos,
     activeTags,
     title: `${series.label} · ${country.label} — photo.dimazvali.com`,
-    desc: `${series.label} · ${country.label} — аэрофотосъёмка Дмитрия Шестакова`,
+    desc: `${series.label}, ${country.label} — ${photos.length} аэрофотоснимков. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
+    keywords: buildPageKeywords(photos, getTags(), [country.label, series.label]),
     ogImage: ogImg(photos[0]),
     ogUrl: `${BASE}/${countryKey}/${seriesKey}`,
     breadcrumbs: [
@@ -293,7 +367,10 @@ router.get('/:country/:series/:id', (req, res) => {
     }
   }
 
+  var allTagsPhoto = getTags();
+  var inquiryStatus = req.query.inquiry || null;
   res.render('photo/photo', {
+    inquiryStatus,
     data,
     activeCountry: countryKey,
     activeSeries: seriesKey,
@@ -304,11 +381,12 @@ router.get('/:country/:series/:id', (req, res) => {
     seriesKey,
     countryLabel: country.label,
     seriesLabel: series.label,
-    allTags: getTags(),
+    allTags: allTagsPhoto,
     related,
     seriesUrl: `/${countryKey}/${seriesKey}`,
     title: `${photo.title} — photo.dimazvali.com`,
-    desc: photo.desc || `${photo.title} · ${series.label} · ${country.label}`,
+    desc: photo.desc || `${photo.title} · ${series.label} · ${country.label} — аэрофотоснимок Дмитрия Шестакова`,
+    keywords: photo.seo_keywords || buildPageKeywords([photo], allTagsPhoto, [country.label, series.label]),
     ogImage: photo.urls ? photo.urls.full : null,
     ogUrl: `${BASE}/${countryKey}/${seriesKey}/${photo.id}`,
     breadcrumbs: [
