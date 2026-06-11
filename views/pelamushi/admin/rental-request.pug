@@ -1,0 +1,75 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Сохранено
+
+  a.back-link(href='/admin/rental/requests') ← Все заявки
+
+  - const STATUS_LABELS = { new: 'Новая', working: 'В работе', cancelled: 'Отмена', done: 'Выполнено' }
+  - const TIME_LABELS = { morning: 'Утро', afternoon: 'День', evening: 'Вечер' }
+
+  .card
+    h2 Заявка
+    .request-fields
+      .field-row
+        span.field-label Дата заявки
+        span= request.created_at ? request.created_at.toDate().toLocaleString('ru-RU') : '—'
+      .field-row
+        span.field-label Имя
+        span= request.name || '—'
+      .field-row
+        span.field-label Контакт
+        span= request.contact || '—'
+      .field-row
+        span.field-label Дата бронирования
+        span= request.date || '—'
+      .field-row
+        span.field-label Время
+        span= TIME_LABELS[request.time_slot] || request.time_slot || '—'
+      if request.message
+        .field-row
+          span.field-label Сообщение
+          span.field-value-wrap= request.message
+      if request.utm_source
+        .field-row
+          span.field-label UTM источник
+          span= request.utm_source
+
+  .card
+    h2 Статус
+    .status-current
+      | Текущий:
+      span.status-badge(class='status-' + (request.status || 'new'))
+        = STATUS_LABELS[request.status] || 'Новая'
+    form.status-buttons(action=`/admin/rental/requests/${request.id}/status?back=detail` method='POST')
+      each pair in [['new','Новая'],['working','В работе'],['cancelled','Отмена'],['done','Выполнено']]
+        button.btn.btn-sm(
+          type='submit'
+          name='status'
+          value=pair[0]
+          class=(request.status === pair[0] ? 'status-btn active' : 'status-btn') + ' status-btn-' + pair[0]
+        )= pair[1]
+
+  .card
+    h2 Комментарий
+    form(action=`/admin/rental/requests/${request.id}/comment` method='POST')
+      .form-row
+        textarea(name='text' rows='3' placeholder='Добавить заметку...')
+      button.btn.btn-primary(type='submit') Добавить
+
+  if logs.length
+    .card
+      h2 История
+      .request-log
+        each log in logs
+          .log-entry(class='log-' + log.type)
+            .log-meta
+              span.log-who= log.admin || 'admin'
+              span.log-when= log.created_at ? log.created_at.toDate().toLocaleString('ru-RU') : ''
+            if log.type === 'status_change'
+              .log-body
+                | Статус →
+                span.status-badge(class='status-' + log.status)= STATUS_LABELS[log.status] || log.status
+            else
+              .log-body= log.text

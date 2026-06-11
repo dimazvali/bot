@@ -2,6 +2,59 @@ extends layout
 include includes/hero
 include includes/page-nav
 
+block head
+  -
+    function buildMenuLd(menu, grouped, uncategorized, lang) {
+      const clean = (s) => s ? String(s).trim() : undefined;
+      const makeItem = (item) => {
+        const o = { '@type': 'MenuItem', name: clean(item['name_' + lang]) };
+        const desc = clean(item['desc_' + lang]);
+        if (desc) o.description = desc;
+        if (item.price) o.offers = { '@type': 'Offer', price: String(item.price), priceCurrency: 'GEL', availability: 'https://schema.org/InStock' };
+        if (item.photo_url && !item.photo_url.includes('placehold.co')) o.image = item.photo_url;
+        return o;
+      };
+      const ld = {
+        '@context': 'https://schema.org',
+        '@type': 'Menu',
+        name: clean(menu['name_' + lang]),
+        url: 'https://pelamushi.ge/' + lang + '/menu/' + menu.slug,
+        hasMenuSection: [],
+      };
+      const desc = clean(menu['desc_' + lang]);
+      if (desc) ld.description = desc;
+      grouped.filter(c => c.items.length).forEach(cat => {
+        const section = { '@type': 'MenuSection', name: clean(cat['name_' + lang]), hasMenuItem: cat.items.map(makeItem) };
+        const sd = clean(cat['desc_' + lang]);
+        if (sd) section.description = sd;
+        ld.hasMenuSection.push(section);
+      });
+      if (uncategorized.length) {
+        ld.hasMenuSection.push({ '@type': 'MenuSection', name: 'Other', hasMenuItem: uncategorized.map(makeItem) });
+      }
+      return ld;
+    }
+  script(type='application/ld+json') !{JSON.stringify(buildMenuLd(menu, grouped, uncategorized, lang))}
+
+mixin menuItem(item)
+  .menu-item(data-id=item.id data-name=item['name_' + lang] data-price=item.price)
+    .item-photo
+      img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
+    .item-body
+      .item-name #{item['name_' + lang]}
+      if item['desc_' + lang]
+        .item-desc #{item['desc_' + lang]}
+      .item-footer
+        .item-price #{item.price} ₾
+        .item-qty
+          button.qty-btn.qty-dec(type='button') −
+          span.qty-val 0
+          button.qty-btn.qty-inc(type='button') +
+      if item.tags && item.tags.length
+        .item-tags
+          each tag in item.tags
+            span.tag #{tag}
+
 block scripts
   script.
     document.addEventListener('DOMContentLoaded', () => {
@@ -43,6 +96,7 @@ block scripts
         });
       });
     });
+  script(src=`/javascripts/pelamushi/order.js?v=${v}`)
 
 block content
   - const navItems = grouped.filter(c => c.items.length).map(c => ({ href: '#cat-' + c.id, label: c['name_' + lang] }))
@@ -65,32 +119,27 @@ block content
               span.menu-category-desc #{cat['desc_' + lang]}
           .menu-items-grid
             each item in cat.items
-              .menu-item
-                .item-photo
-                  img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
-                .item-body
-                  .item-name #{item['name_' + lang]}
-                  if item['desc_' + lang]
-                    .item-desc #{item['desc_' + lang]}
-                  .item-price #{item.price} ₾
-                  if item.tags && item.tags.length
-                    .item-tags
-                      each tag in item.tags
-                        span.tag #{tag}
+              +menuItem(item)
 
     if uncategorized.length
       .menu-category#cat-other
         .menu-items-grid
           each item in uncategorized
-            .menu-item
-              .item-photo
-                img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
-              .item-body
-                .item-name #{item['name_' + lang]}
-                if item['desc_' + lang]
-                  .item-desc #{item['desc_' + lang]}
-                .item-price #{item.price} ₾
-                if item.tags && item.tags.length
-                  .item-tags
-                    each tag in item.tags
-                      span.tag #{tag}
+            +menuItem(item)
+
+  #order-bar.order-bar.hidden
+    .order-bar-inner
+      .order-bar-info
+        span.order-bar-count
+        span.order-bar-total
+      span.order-bar-cta
+
+  #order-popup.order-popup.hidden
+    .order-popup-overlay
+    .order-popup-box
+      button.order-popup-close(type='button') ×
+      h2.order-popup-title
+      .order-popup-items
+      .order-popup-footer
+        span.order-popup-sum
+        button.order-popup-clear(type='button')

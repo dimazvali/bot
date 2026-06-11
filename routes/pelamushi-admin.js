@@ -83,22 +83,25 @@ router.get('/', async (req, res, next) => {
 // ── About ────────────────────────────────────────────────────────────────────
 router.get('/about', async (req, res, next) => {
   try {
-    let about = {}, team = [], gallery = [];
+    let about = {}, team = [], gallery = [], mentions = [];
     if (col.about) {
-      const [aboutDoc, teamSnap, gallerySnap] = await Promise.all([
+      const [aboutDoc, teamSnap, gallerySnap, mentionsSnap] = await Promise.all([
         col.about.doc('main').get(),
         col.team.orderBy('order').get(),
         col.gallery.orderBy('order').get(),
+        col.mentions ? col.mentions.orderBy('order').get() : Promise.resolve({ docs: [] }),
       ]);
       about = aboutDoc.exists ? aboutDoc.data() : {};
       team = teamSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      mentions = mentionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
     res.render('pelamushi/admin/about', {
       title: 'About',
       about,
       team,
       gallery,
+      mentions,
       saved: req.query.saved === '1',
     });
   } catch (err) { next(err); }
@@ -276,6 +279,56 @@ router.post('/about/team/:id/delete', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/about/mentions/add', async (req, res, next) => {
+  try {
+    const { name, quote, url } = req.body;
+    let logo_url = '';
+    if (req.files && req.files.logo) {
+      const { uploadIconPhoto } = require('../lib/pelamushi-upload');
+      logo_url = await uploadIconPhoto(req.files.logo.data, 'mentions');
+    }
+    if (col.mentions) {
+      const snap = await col.mentions.orderBy('order', 'desc').limit(1).get();
+      const nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      await col.mentions.add({ name: name || '', quote: quote || '', url: url || '', logo_url, order: nextOrder });
+    }
+    res.redirect('/admin/about?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.get('/about/mentions/:id', async (req, res, next) => {
+  try {
+    if (!col.mentions) return res.redirect('/admin/about');
+    const doc = await col.mentions.doc(req.params.id).get();
+    if (!doc.exists) return res.status(404).send('Not found');
+    res.render('pelamushi/admin/mention-edit', {
+      title: 'Упоминание',
+      mention: { id: doc.id, ...doc.data() },
+      saved: req.query.saved === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/about/mentions/:id/save', async (req, res, next) => {
+  try {
+    const { name, quote, url, order } = req.body;
+    const update = { name: name || '', quote: quote || '', url: url || '', order: parseInt(order) || 0 };
+    if (req.files && req.files.logo) {
+      const { uploadIconPhoto } = require('../lib/pelamushi-upload');
+      update.logo_url = await uploadIconPhoto(req.files.logo.data, 'mentions');
+    }
+    if (col.mentions) await col.mentions.doc(req.params.id).update(update);
+    res.redirect(`/admin/about/mentions/${req.params.id}?saved=1`);
+  } catch (err) { next(err); }
+});
+
+router.post('/about/mentions/:id/delete', async (req, res, next) => {
+  try {
+    if (col.mentions) await col.mentions.doc(req.params.id).delete();
+    res.redirect('/admin/about');
+  } catch (err) { next(err); }
+});
+
 // ── Menus ────────────────────────────────────────────────────────────────────
 router.get('/menus', async (req, res, next) => {
   try {
@@ -305,6 +358,8 @@ router.post('/menus/new', async (req, res, next) => {
         active: true, order: nextOrder, created_at: new Date(),
       });
     }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `🍽 <b>Создано меню</b>: ${name_ru || name_en || slug}\nАдмин: ${res.locals.adminName}`);
     res.redirect('/admin/menus');
   } catch (err) { next(err); }
 });
@@ -383,21 +438,29 @@ router.post('/menus/:id/save', async (req, res, next) => {
         updated_at: new Date(),
       });
     }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `🍽 <b>Обновлено меню</b>: ${name_ru || name_en || slug}\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/menus/${req.params.id}?saved=1`);
   } catch (err) { next(err); }
 });
 
 router.post('/menus/:id/delete', async (req, res, next) => {
   try {
-    if (col.menus) await col.menus.doc(req.params.id).delete();
+    let name = req.params.id;
+    if (col.menus) {
+      const doc = await col.menus.doc(req.params.id).get();
+      if (doc.exists) name = doc.data().name_ru || doc.data().name_en || name;
+      await col.menus.doc(req.params.id).delete();
+    }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `🗑 <b>Удалено меню</b>: ${name}\nАдмин: ${res.locals.adminName}`);
     res.redirect('/admin/menus');
   } catch (err) { next(err); }
 });
 
 router.post('/menus/:id/categories/add', async (req, res, next) => {
   try {
-    const { name_en, name_ka, name_ru } = req.body;
-    const { desc_en, desc_ka, desc_ru } = req.body;
+    const { name_en, name_ka, name_ru, desc_en, desc_ka, desc_ru } = req.body;
     if (col.categories) {
       const snap = await col.categories.where('menu_id', '==', req.params.id).orderBy('order', 'desc').limit(1).get();
       const nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
@@ -408,6 +471,8 @@ router.post('/menus/:id/categories/add', async (req, res, next) => {
         order: nextOrder,
       });
     }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `📂 <b>Добавлен раздел</b>: ${name_ru || name_en}\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/menus/${req.params.id}`);
   } catch (err) { next(err); }
 });
@@ -440,13 +505,22 @@ router.post('/menus/:id/categories/:catId/save', async (req, res, next) => {
         order: parseInt(order) || 0,
       });
     }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `✏️ <b>Изменён раздел</b>: ${name_ru || name_en}\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/menus/${req.params.id}/categories/${req.params.catId}/edit?saved=1`);
   } catch (err) { next(err); }
 });
 
 router.post('/menus/:id/categories/:catId/delete', async (req, res, next) => {
   try {
-    if (col.categories) await col.categories.doc(req.params.catId).delete();
+    let name = req.params.catId;
+    if (col.categories) {
+      const doc = await col.categories.doc(req.params.catId).get();
+      if (doc.exists) name = doc.data().name_ru || doc.data().name_en || name;
+      await col.categories.doc(req.params.catId).delete();
+    }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `🗑 <b>Удалён раздел</b>: ${name}\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/menus/${req.params.id}`);
   } catch (err) { next(err); }
 });
@@ -479,6 +553,8 @@ router.post('/menus/:id/items/add', async (req, res, next) => {
         order: nextOrder,
       });
     }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `➕ <b>Добавлено блюдо</b>: ${name_ru || name_en} — ${price || 0} ₾\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/menus/${req.params.id}`);
   } catch (err) { next(err); }
 });
@@ -519,13 +595,22 @@ router.post('/menus/:id/items/:itemId/save', async (req, res, next) => {
       update.photo_url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'menu-items', 'item');
     }
     if (col.items) await col.items.doc(req.params.itemId).update(update);
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `✏️ <b>Изменено блюдо</b>: ${name_ru || name_en} — ${price || 0} ₾\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/menus/${req.params.id}/items/${req.params.itemId}/edit?saved=1`);
   } catch (err) { next(err); }
 });
 
 router.post('/menus/:id/items/:itemId/delete', async (req, res, next) => {
   try {
-    if (col.items) await col.items.doc(req.params.itemId).delete();
+    let name = req.params.itemId;
+    if (col.items) {
+      const doc = await col.items.doc(req.params.itemId).get();
+      if (doc.exists) name = doc.data().name_ru || doc.data().name_en || name;
+      await col.items.doc(req.params.itemId).delete();
+    }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('menu', `🗑 <b>Удалено блюдо</b>: ${name}\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/menus/${req.params.id}`);
   } catch (err) { next(err); }
 });
@@ -645,6 +730,8 @@ router.post('/news/:id/save', async (req, res, next) => {
       update.photo_url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'news', 'cover');
     }
     if (col.news) await col.news.doc(req.params.id).update(update);
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('news', `📰 <b>Обновлена новость</b>: ${title_ru || title_en || slug}\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/news/${req.params.id}?saved=1`);
   } catch (err) { next(err); }
 });
@@ -798,12 +885,75 @@ router.get('/rental/requests', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.get('/rental/requests/:id', async (req, res, next) => {
+  try {
+    if (!col.rental_requests) return res.status(404).send('Not found');
+    const [doc, logsSnap] = await Promise.all([
+      col.rental_requests.doc(req.params.id).get(),
+      col.rental_request_logs
+        ? col.rental_request_logs.where('request_id', '==', req.params.id).orderBy('created_at', 'desc').limit(100).get()
+        : Promise.resolve({ docs: [] }),
+    ]);
+    if (!doc.exists) return res.status(404).send('Not found');
+    res.render('pelamushi/admin/rental-request', {
+      title: doc.data().name || 'Заявка',
+      request: { id: doc.id, ...doc.data() },
+      logs: logsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      saved: req.query.saved === '1',
+    });
+  } catch (err) { next(err); }
+});
+
 router.post('/rental/requests/:id/status', async (req, res, next) => {
   try {
     const { status } = req.body;
-    if (!['new', 'working', 'cancelled', 'done'].includes(status)) return res.redirect('/admin/rental/requests');
-    if (col.rental_requests) await col.rental_requests.doc(req.params.id).update({ status });
-    res.redirect('/admin/rental/requests?saved=1');
+    const VALID = ['new', 'working', 'cancelled', 'done'];
+    if (!VALID.includes(status)) return res.redirect('/admin/rental/requests');
+    const STATUS_LABELS = { new: 'Новая', working: 'В работе', cancelled: 'Отменена', done: 'Выполнена' };
+    let reqName = '', reqDate = '';
+    if (col.rental_requests) {
+      const doc = await col.rental_requests.doc(req.params.id).get();
+      if (doc.exists) { reqName = doc.data().name || ''; reqDate = doc.data().date || ''; }
+      await col.rental_requests.doc(req.params.id).update({ status, updated_at: new Date() });
+    }
+    if (col.rental_request_logs) {
+      await col.rental_request_logs.add({
+        request_id: req.params.id,
+        type: 'status_change',
+        status,
+        admin: res.locals.adminName || 'admin',
+        created_at: new Date(),
+      });
+    }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('rental', `🔄 <b>Статус заявки изменён</b>: ${STATUS_LABELS[status]}\nЗаявитель: ${reqName}${reqDate ? ', ' + reqDate : ''}\nАдмин: ${res.locals.adminName}`);
+    const back = req.query.back === 'detail'
+      ? `/admin/rental/requests/${req.params.id}?saved=1`
+      : '/admin/rental/requests?saved=1';
+    res.redirect(back);
+  } catch (err) { next(err); }
+});
+
+router.post('/rental/requests/:id/comment', async (req, res, next) => {
+  try {
+    const text = (req.body.text || '').trim();
+    let reqName = '';
+    if (text && col.rental_request_logs) {
+      if (col.rental_requests) {
+        const doc = await col.rental_requests.doc(req.params.id).get();
+        if (doc.exists) reqName = doc.data().name || '';
+      }
+      await col.rental_request_logs.add({
+        request_id: req.params.id,
+        type: 'comment',
+        text,
+        admin: res.locals.adminName || 'admin',
+        created_at: new Date(),
+      });
+      const { notify } = require('../lib/pelamushi-notify');
+      notify('rental', `💬 <b>Комментарий к заявке</b>${reqName ? ' (' + reqName + ')' : ''}\n${text}\nАдмин: ${res.locals.adminName}`);
+    }
+    res.redirect(`/admin/rental/requests/${req.params.id}?saved=1`);
   } catch (err) { next(err); }
 });
 
@@ -1068,6 +1218,22 @@ router.get('/admins', async (req, res, next) => {
       saved: req.query.saved === '1',
       err: req.query.err || null,
     });
+  } catch (err) { next(err); }
+});
+
+router.post('/admins/:id/settings', async (req, res, next) => {
+  try {
+    const { tg_id, notify_rental, notify_registration, notify_menu, notify_news } = req.body;
+    if (col.admins) {
+      await col.admins.doc(req.params.id).update({
+        tg_id: tg_id ? String(tg_id).trim() : '',
+        notify_rental:       notify_rental === 'on',
+        notify_registration: notify_registration === 'on',
+        notify_menu:         notify_menu === 'on',
+        notify_news:         notify_news === 'on',
+      });
+    }
+    res.redirect('/admin/admins?saved=1');
   } catch (err) { next(err); }
 });
 

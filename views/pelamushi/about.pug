@@ -8,9 +8,10 @@ block content
 
   -
     var navItems = [];
-    if (about['mission_' + lang]) navItems.push({ label: t.about.nav_desc,    href: '#about-desc' });
-    if (team.length)              navItems.push({ label: t.about.nav_team,     href: '#about-team' });
-    if (gallery.length)           navItems.push({ label: t.about.nav_gallery,  href: '#about-gallery' });
+    if (about['mission_' + lang]) navItems.push({ label: t.about.nav_desc,     href: '#about-desc' });
+    if (team.length)              navItems.push({ label: t.about.nav_team,      href: '#about-team' });
+    if (gallery.length)           navItems.push({ label: t.about.nav_gallery,   href: '#about-gallery' });
+    if (mentions && mentions.length) navItems.push({ label: t.about.nav_mentions, href: '#about-mentions' });
   +pageNav(navItems, t.about.title)
 
   if about['mission_' + lang]
@@ -35,5 +36,16 @@ block content
         each photo in gallery
           .masonry-item
             img.gallery-photo(src=photo.photo_url alt=(photo['caption_' + lang] || '') data-caption=(photo['caption_' + lang] || ''))
+
+  if mentions && mentions.length
+    .container.section#about-mentions
+      h2(style='margin-bottom:1.5rem') #{t.about.mentions}
+      .mentions-grid
+        each m in mentions
+          a.mention-card(href=m.url target='_blank' rel='nofollow noopener')
+            .mention-logo
+              img(src=m.logo_url alt=m.name)
+            blockquote.mention-quote #{m.quote}
+            .mention-source — #{m.name}
 
   include includes/lightbox

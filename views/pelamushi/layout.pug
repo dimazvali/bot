@@ -23,6 +23,9 @@ html(lang=lang)
       }
       if (site && site.phone) _ld.telephone = site.phone
       if (_sameAs.length) _ld.sameAs = _sameAs
+      _ld.hasMenu = _S + '/' + (typeof lang !== 'undefined' ? lang : 'en') + '/menu'
+      if (site && site.maps_url) _ld.hasMap = site.maps_url
+      if (site && site.price_range) _ld.priceRange = site.price_range
 
     link(rel='canonical' href=_url)
     each _l in ['en', 'ka', 'ru']
@@ -54,7 +57,7 @@ html(lang=lang)
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com')
     link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Noto+Sans+Georgian:wght@400;600&family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Noto+Serif+Georgian:ital,wght@0,400;0,700;1,400&display=swap')
-    link(rel='stylesheet' href='/stylesheets/pelamushi/web.css')
+    link(rel='stylesheet' href=`/stylesheets/pelamushi/web.css?v=${v}`)
     block head
 
   body
@@ -114,6 +117,13 @@ html(lang=lang)
 
       p.footer-credit shot, designed and built by #[a(href='http://dimazvali.com' target='_blank') dimazvali.com]
 
-    script(src='/javascripts/pelamushi/lightbox.js')
-    script(src='/javascripts/pelamushi/cursor.js')
+    if isAdmin && adminEditUrl
+      a.admin-edit-btn(href=adminEditUrl title='Редактировать')
+        svg(viewBox='0 0 24 24' width='18' height='18' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round')
+          path(d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7')
+          path(d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z')
+        span Редактировать
+
+    script(src=`/javascripts/pelamushi/lightbox.js?v=${v}`)
+    script(src=`/javascripts/pelamushi/cursor.js?v=${v}`)
     block scripts

@@ -60,7 +60,10 @@ app.use(vhost('pelamushi.ge', require('./routes/pelamushi')))
 app.use(vhost('www.pelamushi.ge', require('./routes/pelamushi')))
 
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1y',
+  immutable: true,
+}));
 
 
 

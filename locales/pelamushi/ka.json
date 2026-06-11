@@ -32,7 +32,9 @@
     "team": "ჩვენი გუნდი",
     "nav_desc": "შესახებ",
     "nav_gallery": "ინტერიერი",
-    "nav_team": "გუნდი"
+    "nav_team": "გუნდი",
+    "nav_mentions": "პრესა",
+    "mentions": "პრესა"
   },
   "menu": {
     "title": "მენიუ",

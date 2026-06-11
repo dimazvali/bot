@@ -195,6 +195,41 @@ a { color: var(--navy); text-decoration: none; }
   }
 }
 
+/* ── Rental request detail ── */
+.back-link { display: inline-block; margin-bottom: 1rem; font-size: .85rem; color: var(--tan); }
+.back-link:hover { color: var(--navy); }
+
+.request-fields { display: flex; flex-direction: column; gap: .1rem; }
+.field-row { display: flex; gap: 1rem; padding: .45rem 0; border-bottom: 1px solid #f0f0f0; font-size: .88rem; }
+.field-row:last-child { border-bottom: none; }
+.field-label { flex: 0 0 140px; color: var(--tan); font-size: .75rem; font-weight: 600; padding-top: .1rem; }
+.field-value-wrap { white-space: pre-wrap; line-height: 1.5; }
+
+.status-current { display: flex; align-items: center; gap: .6rem; margin-bottom: .85rem; font-size: .85rem; color: #777; }
+.status-buttons { display: flex; flex-wrap: wrap; gap: .5rem; }
+.status-btn { background: #f0f0f0; color: var(--charcoal); border: 1px solid #ddd; transition: background .15s, color .15s; }
+.status-btn:hover { background: #e0e0e0; }
+.status-btn.active,
+.status-btn-new.active      { background: rgba(151,184,201,.25); color: var(--navy); border-color: var(--blue); }
+.status-btn-working.active  { background: rgba(163,124,84,.18); color: var(--tan); border-color: var(--tan); }
+.status-btn-cancelled.active{ background: rgba(192,57,43,.12); color: #c0392b; border-color: #c0392b; }
+.status-btn-done.active     { background: rgba(39,174,96,.15); color: #1e8449; border-color: #1e8449; }
+
+.request-log { display: flex; flex-direction: column; gap: .6rem; }
+.log-entry { padding: .6rem .85rem; border-radius: 6px; background: #fafafa; border-left: 3px solid #e0e0e0; }
+.log-status_change { border-left-color: var(--blue); }
+.log-comment { border-left-color: var(--tan); }
+.log-meta { display: flex; justify-content: space-between; gap: .5rem; margin-bottom: .3rem; }
+.log-who { font-size: .75rem; font-weight: 600; color: var(--navy); }
+.log-when { font-size: .72rem; color: #aaa; }
+.log-body { font-size: .85rem; color: var(--charcoal); display: flex; align-items: center; gap: .4rem; }
+
+@media (max-width: 480px) {
+  .field-row { flex-direction: column; gap: .15rem; }
+  .field-label { flex: none; }
+  .status-buttons { gap: .4rem; }
+}
+
 /* ── Admin gallery edit list ── */
 .gallery-edit-list { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
 .gallery-edit-row { display: grid; grid-template-columns: 80px 1fr auto; gap: .6rem; align-items: start; background: #f9f9f9; border-radius: 6px; padding: .5rem; }
@@ -204,3 +239,17 @@ a { color: var(--navy); text-decoration: none; }
 .gallery-edit-fields .order-row span { font-size: .75rem; color: #999; }
 .gallery-edit-fields .order-row input { width: 3.5rem; }
 .gallery-edit-fields input[type=text] { font-size: .82rem; }
+
+
+/* ── Admin cards ── */
+.admin-card-header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+.admin-card-name { font-size: 1rem; font-weight: 600; color: var(--navy); }
+.admin-self-badge { display: inline-block; padding: .1rem .45rem; border-radius: 20px; font-size: .7rem; font-weight: 600; background: rgba(151,184,201,.2); color: var(--navy); margin-left: .4rem; vertical-align: middle; }
+.admin-card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+@media (max-width: 600px) { .admin-card-body { grid-template-columns: 1fr; } }
+.admin-card-col {}
+.admin-col-label { font-size: .75rem; color: var(--tan); font-weight: 600; letter-spacing: .04em; margin-bottom: .5rem; }
+.admin-tg-row { display: flex; gap: .5rem; align-items: center; margin-bottom: .75rem; }
+.admin-notif-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem .75rem; }
+.notif-label { display: flex; align-items: center; gap: .4rem; font-size: .82rem; cursor: pointer; }
+.notif-label input[type=checkbox] { width: auto; margin: 0; }

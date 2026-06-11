@@ -33,7 +33,9 @@
     "team": "Команда",
     "nav_desc": "О нас",
     "nav_gallery": "Интерьер",
-    "nav_team": "Команда"
+    "nav_team": "Команда",
+    "nav_mentions": "Пресса",
+    "mentions": "Упоминания"
   },
   "menu": {
     "title": "Меню",

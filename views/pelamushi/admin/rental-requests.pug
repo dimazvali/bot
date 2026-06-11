@@ -31,7 +31,8 @@ block content
             tr
               td(data-label='Дата' style='white-space:nowrap;font-size:.8rem;color:#999')
                 = r.created_at ? r.created_at.toDate().toLocaleDateString('ru-RU') : '—'
-              td(data-label='Имя') #{r.name}
+              td(data-label='Имя')
+                a(href=`/admin/rental/requests/${r.id}`)= r.name
               td(data-label='Контакт') #{r.contact}
               td(data-label='Дата брони' style='white-space:nowrap') #{r.date || '—'}
               td(data-label='Время')

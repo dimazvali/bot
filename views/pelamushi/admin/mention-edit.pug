@@ -1,0 +1,33 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Сохранено
+
+  a.back-link(href='/admin/about') ← Назад
+
+  .card
+    h2 Упоминание
+    form(action=`/admin/about/mentions/${mention.id}/save` method='POST' enctype='multipart/form-data')
+      if mention.logo_url
+        img(src=mention.logo_url style='max-height:72px;max-width:200px;object-fit:contain;background:#f5f5f5;padding:.5rem;border-radius:4px;margin-bottom:.75rem;display:block')
+      .form-row
+        label Логотип (новый файл заменит текущий)
+        input(type='file' name='logo' accept='image/*')
+      .form-row
+        label Название медиа
+        input(name='name' value=mention.name required)
+      .form-row
+        label Цитата
+        textarea(name='quote' rows='4')= mention.quote
+      .form-row
+        label Ссылка
+        input(type='url' name='url' value=mention.url placeholder='https://...')
+      .form-row
+        label Порядок
+        input(type='number' name='order' value=(mention.order !== undefined ? mention.order : 0) min='0' style='width:6rem')
+      button.btn.btn-primary(type='submit') Сохранить
+
+  .card
+    form(action=`/admin/about/mentions/${mention.id}/delete` method='POST')
+      button.btn.btn-danger(type='submit' onclick='return confirm("Удалить упоминание?")') Удалить упоминание

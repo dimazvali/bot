@@ -32,7 +32,9 @@
     "team": "Our Team",
     "nav_desc": "About",
     "nav_gallery": "Interior",
-    "nav_team": "Team"
+    "nav_team": "Team",
+    "nav_mentions": "Press",
+    "mentions": "Press & Media"
   },
   "menu": {
     "title": "Menu",

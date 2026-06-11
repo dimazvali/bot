@@ -7,32 +7,44 @@ block content
   if err === 'self'
     .alert.alert-error Нельзя удалить себя
 
-  .card
-    h2 Администраторы
-    if admins.length
-      table.table
-        thead
-          tr
-            th Имя
-            th
-            th
-        tbody
-          each a in admins
-            tr
-              td
-                | #{a.name}
-                if a.password_hash === currentHash
-                  span(style='font-size:.75rem;color:#999;margin-left:.5rem') (вы)
-              td
-                form(action=`/admin/admins/${a.id}/password` method='POST' style='display:flex;gap:.5rem;align-items:center')
-                  input(type='password' name='password' placeholder='Новый пароль' style='padding:.25rem .5rem;font-size:.82rem;border:1px solid #ddd;border-radius:4px;width:160px')
-                  button.btn.btn-secondary.btn-sm(type='submit') Изменить
-              td
-                if a.password_hash !== currentHash
-                  form(action=`/admin/admins/${a.id}/delete` method='POST')
-                    button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Удалить администратора?")') Удалить
-    else
-      p(style='color:#999;font-size:.88rem') Администраторов пока нет. Добавьте ниже.
+  each a in admins
+    .card
+      .admin-card-header
+        span.admin-card-name
+          | #{a.name}
+          if a.password_hash === currentHash
+            span.admin-self-badge вы
+
+      .admin-card-body
+        .admin-card-col
+          p.admin-col-label Telegram ID
+          form(action=`/admin/admins/${a.id}/settings` method='POST')
+            .admin-tg-row
+              input(name='tg_id' value=a.tg_id || '' placeholder='числовой chat_id' style='width:160px')
+              button.btn.btn-secondary.btn-sm(type='submit') Сохранить
+            .admin-notif-grid
+              label.notif-label
+                input(type='checkbox' name='notify_rental' checked=a.notify_rental)
+                span 🏠 Аренда
+              label.notif-label
+                input(type='checkbox' name='notify_registration' checked=a.notify_registration)
+                span 📋 Регистрации
+              label.notif-label
+                input(type='checkbox' name='notify_menu' checked=a.notify_menu)
+                span 🍽 Меню
+              label.notif-label
+                input(type='checkbox' name='notify_news' checked=a.notify_news)
+                span 📰 Новости
+
+        .admin-card-col
+          p.admin-col-label Пароль
+          form(action=`/admin/admins/${a.id}/password` method='POST' style='display:flex;gap:.5rem;align-items:center')
+            input(type='password' name='password' placeholder='Новый пароль' style='width:160px')
+            button.btn.btn-secondary.btn-sm(type='submit') Изменить
+
+          if a.password_hash !== currentHash
+            form(action=`/admin/admins/${a.id}/delete` method='POST' style='margin-top:.75rem')
+              button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Удалить администратора?")') Удалить
 
   .card
     h2 Добавить администратора

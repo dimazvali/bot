@@ -143,3 +143,39 @@ block content
         label Фото
         input(type='file' name='photo' accept='image/*')
       button.btn.btn-secondary.btn-sm(type='submit') Добавить
+
+  .card
+    h2 Упоминания в прессе
+    if mentions && mentions.length
+      table.table(style='margin-bottom:1.25rem')
+        thead
+          tr
+            th Лого
+            th Медиа
+            th Цитата
+            th
+        tbody
+          each m in mentions
+            tr
+              td
+                if m.logo_url
+                  img(src=m.logo_url style='height:32px;width:auto;object-fit:contain;background:#f5f5f5;padding:2px;border-radius:3px')
+              td(style='font-weight:600') #{m.name}
+              td(style='max-width:260px;font-size:.82rem;color:#666') #{(m.quote || '').substring(0, 80)}#{(m.quote || '').length > 80 ? '…' : ''}
+              td(style='white-space:nowrap')
+                a.btn.btn-secondary.btn-sm(href=`/admin/about/mentions/${m.id}`) Изменить
+    h3(style='margin:1.25rem 0 .75rem;font-size:.9rem;color:var(--navy)') Добавить упоминание
+    form(action='/admin/about/mentions/add' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Логотип
+        input(type='file' name='logo' accept='image/*')
+      .form-row
+        label Название медиа
+        input(name='name' required)
+      .form-row
+        label Цитата
+        textarea(name='quote' rows='3')
+      .form-row
+        label Ссылка
+        input(type='url' name='url' placeholder='https://...')
+      button.btn.btn-secondary.btn-sm(type='submit') Добавить

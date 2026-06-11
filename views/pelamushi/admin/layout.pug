@@ -4,7 +4,7 @@ html
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
     title Админ | Pelamushi
-    link(rel='stylesheet' href='/stylesheets/pelamushi/admin.css')
+    link(rel='stylesheet' href=`/stylesheets/pelamushi/admin.css?v=${v}`)
     block head
   body
     button.admin-sidebar-toggle(onclick='toggleAdminSidebar()' aria-label='Меню')
@@ -43,5 +43,5 @@ html
         document.getElementById('admin-sidebar').classList.remove('open');
         document.getElementById('admin-overlay').classList.remove('open');
       }
-    script(src='/javascripts/pelamushi/admin.js')
+    script(src=`/javascripts/pelamushi/admin.js?v=${v}`)
     block scripts
