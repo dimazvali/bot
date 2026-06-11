@@ -10,6 +10,35 @@ a { color: var(--navy); text-decoration: none; }
   width: 220px; background: var(--navy); color: var(--cream);
   padding: 1.5rem 0; flex-shrink: 0;
 }
+.admin-sidebar-toggle { display: none; }
+.admin-overlay { display: none; }
+
+@media (max-width: 768px) {
+  .admin-sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0; z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .admin-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+  }
+  .admin-main { padding: 1rem 1rem 1rem 1rem; padding-top: 3.5rem; }
+  .admin-sidebar-toggle {
+    display: flex; flex-direction: column; gap: 4px;
+    position: fixed; top: 0.8rem; left: 0.8rem; z-index: 201;
+    background: var(--navy); border: none; border-radius: 4px;
+    padding: 0.45rem 0.5rem; cursor: pointer;
+  }
+  .admin-sidebar-toggle span { display: block; width: 20px; height: 2px; background: var(--cream); }
+  .admin-overlay {
+    display: block; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 199;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .admin-overlay.open { opacity: 1; pointer-events: auto; }
+}
 .admin-sidebar .logo { padding: 0 1.25rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
 .admin-sidebar .logo img { height: 36px; filter: brightness(0) invert(1); }
 .admin-sidebar nav { padding: 1rem 0; }
@@ -34,6 +63,44 @@ a { color: var(--navy); text-decoration: none; }
 }
 .form-row textarea { min-height: 140px; resize: vertical; }
 .form-row input:focus, .form-row textarea:focus { outline: none; border-color: var(--blue); }
+
+/* ── Drag-and-drop image zones ── */
+.drop-zone {
+  position: relative;
+  border: 2px dashed #d0d5dd;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+  background: #fafafa;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--blue);
+  background: rgba(151, 184, 201, 0.08);
+}
+.drop-zone input[type=file] {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+  padding: 0; border: none;
+}
+.drop-zone-placeholder {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem 1rem;
+  color: #aaa;
+  font-size: 0.8rem;
+  text-align: center;
+  pointer-events: none;
+}
+.drop-zone-placeholder svg { color: #c0c8d4; }
+.drop-zone-preview {
+  display: block;
+  width: 100%; max-height: 200px;
+  object-fit: cover;
+  border-radius: 4px;
+}
 .btn { display: inline-block; padding: 0.55rem 1.25rem; border-radius: 4px; font-size: 0.85rem; cursor: pointer; border: none; }
 .btn-primary { background: var(--terra); color: #fff; }
 .btn-secondary { background: var(--navy); color: #fff; }
@@ -95,6 +162,38 @@ a { color: var(--navy); text-decoration: none; }
 /* ── Admin gallery grid ── */
 .admin-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .75rem; margin-bottom: 1rem; }
 .admin-gallery-item { background: #f5f5f5; border-radius: 6px; padding: .5rem; }
+
+/* ── Responsive table (mobile cards) ── */
+@media (max-width: 640px) {
+  .table-responsive thead { display: none; }
+  .table-responsive tbody tr {
+    display: block;
+    background: #fff;
+    border-radius: 6px;
+    margin-bottom: .75rem;
+    padding: .6rem .75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+  }
+  .table-responsive td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: .5rem;
+    padding: .35rem 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: .85rem;
+  }
+  .table-responsive td:last-child { border-bottom: none; }
+  .table-responsive td::before {
+    content: attr(data-label);
+    font-size: .72rem;
+    color: var(--tan);
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding-top: .1rem;
+  }
+}
 
 /* ── Admin gallery edit list ── */
 .gallery-edit-list { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }

@@ -397,12 +397,50 @@ router.post('/menus/:id/delete', async (req, res, next) => {
 router.post('/menus/:id/categories/add', async (req, res, next) => {
   try {
     const { name_en, name_ka, name_ru } = req.body;
+    const { desc_en, desc_ka, desc_ru } = req.body;
     if (col.categories) {
       const snap = await col.categories.where('menu_id', '==', req.params.id).orderBy('order', 'desc').limit(1).get();
       const nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
-      await col.categories.add({ menu_id: req.params.id, name_en: name_en || '', name_ka: name_ka || '', name_ru: name_ru || '', order: nextOrder });
+      await col.categories.add({
+        menu_id: req.params.id,
+        name_en: name_en || '', name_ka: name_ka || '', name_ru: name_ru || '',
+        desc_en: desc_en || '', desc_ka: desc_ka || '', desc_ru: desc_ru || '',
+        order: nextOrder,
+      });
     }
     res.redirect(`/admin/menus/${req.params.id}`);
+  } catch (err) { next(err); }
+});
+
+router.get('/menus/:id/categories/:catId/edit', async (req, res, next) => {
+  try {
+    if (!col.categories) return res.redirect(`/admin/menus/${req.params.id}`);
+    const doc = await col.categories.doc(req.params.catId).get();
+    if (!doc.exists) return res.status(404).send('Not found');
+    res.render('pelamushi/admin/menu-category-edit', {
+      title: 'Редактировать категорию',
+      menuId: req.params.id,
+      cat: { id: doc.id, ...doc.data() },
+      saved: req.query.saved === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/:id/categories/:catId/save', async (req, res, next) => {
+  try {
+    const { name_en, name_ka, name_ru, desc_en, desc_ka, desc_ru, order } = req.body;
+    if (col.categories) {
+      await col.categories.doc(req.params.catId).update({
+        name_en: name_en || '',
+        name_ka: name_ka || '',
+        name_ru: name_ru || '',
+        desc_en: desc_en || '',
+        desc_ka: desc_ka || '',
+        desc_ru: desc_ru || '',
+        order: parseInt(order) || 0,
+      });
+    }
+    res.redirect(`/admin/menus/${req.params.id}/categories/${req.params.catId}/edit?saved=1`);
   } catch (err) { next(err); }
 });
 
@@ -442,6 +480,46 @@ router.post('/menus/:id/items/add', async (req, res, next) => {
       });
     }
     res.redirect(`/admin/menus/${req.params.id}`);
+  } catch (err) { next(err); }
+});
+
+router.get('/menus/:id/items/:itemId/edit', async (req, res, next) => {
+  try {
+    if (!col.items) return res.redirect(`/admin/menus/${req.params.id}`);
+    const [itemDoc, catsSnap] = await Promise.all([
+      col.items.doc(req.params.itemId).get(),
+      col.categories.where('menu_id', '==', req.params.id).orderBy('order').get(),
+    ]);
+    if (!itemDoc.exists) return res.status(404).send('Not found');
+    res.render('pelamushi/admin/menu-item-edit', {
+      title: 'Редактировать позицию',
+      menuId: req.params.id,
+      item: { id: itemDoc.id, ...itemDoc.data() },
+      categories: catsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      saved: req.query.saved === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/menus/:id/items/:itemId/save', async (req, res, next) => {
+  try {
+    const { name_en, name_ka, name_ru, desc_en, desc_ka, desc_ru, price, category_id, tags, active, order } = req.body;
+    const update = {
+      name_en: name_en || '', name_ka: name_ka || '', name_ru: name_ru || '',
+      desc_en: desc_en || '', desc_ka: desc_ka || '', desc_ru: desc_ru || '',
+      price: parseFloat(price) || 0,
+      category_id: category_id || null,
+      tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      active: active === 'on',
+      order: parseInt(order) || 0,
+      updated_at: new Date(),
+    };
+    if (req.files && req.files.photo) {
+      const { uploadPhoto } = require('../lib/pelamushi-upload');
+      update.photo_url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'menu-items', 'item');
+    }
+    if (col.items) await col.items.doc(req.params.itemId).update(update);
+    res.redirect(`/admin/menus/${req.params.id}/items/${req.params.itemId}/edit?saved=1`);
   } catch (err) { next(err); }
 });
 

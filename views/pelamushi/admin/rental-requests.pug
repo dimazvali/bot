@@ -15,26 +15,26 @@ block content
         a.status-pill.status-done(href='/admin/rental/requests?status=done' class=statusFilter==='done' ? 'active' : '') Выполнено
 
     if requests.length
-      table.table
+      table.table.table-responsive
         thead
           tr
             th Дата
             th Имя
             th Контакт
-            th Дата бронирования
+            th Дата брони
             th Время
             th Сообщение
-            th UTM источник
+            th UTM
             th Статус
         tbody
           each r in requests
             tr
-              td(style='white-space:nowrap;font-size:.8rem;color:#999')
+              td(data-label='Дата' style='white-space:nowrap;font-size:.8rem;color:#999')
                 = r.created_at ? r.created_at.toDate().toLocaleDateString('ru-RU') : '—'
-              td #{r.name}
-              td #{r.contact}
-              td(style='white-space:nowrap') #{r.date || '—'}
-              td
+              td(data-label='Имя') #{r.name}
+              td(data-label='Контакт') #{r.contact}
+              td(data-label='Дата брони' style='white-space:nowrap') #{r.date || '—'}
+              td(data-label='Время')
                 case r.time_slot
                   when 'morning'
                     | Утро
@@ -44,10 +44,10 @@ block content
                     | Вечер
                   default
                     | #{r.time_slot || '—'}
-              td(style='max-width:200px;font-size:.82rem;color:#666') #{r.message || '—'}
-              td(style='font-size:.8rem;color:#999') #{r.utm_source || '—'}
-              td
-                form(action=`/admin/rental/requests/${r.id}/status` method='POST' style='display:flex;gap:.5rem;align-items:center')
+              td(data-label='Сообщение' style='font-size:.82rem;color:#666') #{r.message || '—'}
+              td(data-label='UTM' style='font-size:.8rem;color:#999') #{r.utm_source || '—'}
+              td(data-label='Статус')
+                form(action=`/admin/rental/requests/${r.id}/status` method='POST')
                   select.status-select(name='status' onchange='this.form.submit()')
                     option(value='new'       selected=r.status==='new')       Новая
                     option(value='working'   selected=r.status==='working')   В работе

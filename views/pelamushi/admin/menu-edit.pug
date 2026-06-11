@@ -73,15 +73,19 @@ block content
         each cat in categories
           tr
             td #{cat.name_en}
-            td
-              form(action=`/admin/menus/${menu.id}/categories/${cat.id}/delete` method='POST')
-                button.btn.btn-danger.btn-sm(type='submit') Удалить
+            td(style='white-space:nowrap')
+              a.btn.btn-secondary.btn-sm(href=`/admin/menus/${menu.id}/categories/${cat.id}/edit`) Редактировать
     form(action=`/admin/menus/${menu.id}/categories/add` method='POST' style='margin-top:1rem')
       .form-row
-        label Название категории EN / KA / RU
+        label Название EN / KA / RU
         input(name='name_en' placeholder='EN')
         input(name='name_ka' placeholder='KA' style='margin-top:.4rem')
         input(name='name_ru' placeholder='RU' style='margin-top:.4rem')
+      .form-row
+        label Описание EN / KA / RU
+        input(name='desc_en' placeholder='EN (напр. 10:00 — 20:00)')
+        input(name='desc_ka' placeholder='KA' style='margin-top:.4rem')
+        input(name='desc_ru' placeholder='RU' style='margin-top:.4rem')
       button.btn.btn-secondary.btn-sm(type='submit') Добавить категорию
 
   .card
@@ -89,19 +93,21 @@ block content
     table.table
       thead
         tr
-          th Название (EN)
-          th Цена
-          th Категория
+          th
+          th(data-sort='text') Название (EN)
+          th(data-sort='num') Цена
+          th(data-sort='text') Категория
           th
       tbody
         each item in items
           tr
+            td(style='width:52px;padding:0.35rem 0.5rem')
+              img(src=item.photo_url style='width:48px;height:36px;object-fit:cover;border-radius:4px;display:block')
             td #{item.name_en}
             td #{item.price} ₾
-            td #{item.category_id ? categories.find(c => c.id === item.category_id) && categories.find(c => c.id === item.category_id).name_en || item.category_id : '—'}
-            td
-              form(action=`/admin/menus/${menu.id}/items/${item.id}/delete` method='POST')
-                button.btn.btn-danger.btn-sm(type='submit') Удалить
+            td #{item.category_id ? (categories.find(c => c.id === item.category_id) || {}).name_en || '—' : '—'}
+            td(style='white-space:nowrap')
+              a.btn.btn-secondary.btn-sm(href=`/admin/menus/${menu.id}/items/${item.id}/edit`) Редактировать
     h3(style='margin:1.25rem 0 .75rem;font-size:.9rem;color:var(--navy)') Добавить позицию
     form(action=`/admin/menus/${menu.id}/items/add` method='POST' enctype='multipart/form-data')
       .form-row

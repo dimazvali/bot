@@ -7,26 +7,41 @@ html
     link(rel='stylesheet' href='/stylesheets/pelamushi/admin.css')
     block head
   body
+    button.admin-sidebar-toggle(onclick='toggleAdminSidebar()' aria-label='Меню')
+      span
+      span
+      span
+    .admin-overlay#admin-overlay(onclick='toggleAdminSidebar()')
     .admin-wrap
-      .admin-sidebar
+      .admin-sidebar#admin-sidebar
         .logo
           img(src='/images/pelamushi/logo1.png' alt='Pelamushi')
         nav
-          a(href='/admin') Главная
-          a(href='/admin/about') О нас
-          a(href='/admin/menus') Меню
-          a(href='/admin/news') Новости
-          a(href='/admin/news/registrations') ↳ Регистрации
-          a(href='/admin/bar') Бар
-          a(href='/admin/shop') Магазин
-          a(href='/admin/rental') Аренда
-          a(href='/admin/rental/requests') ↳ Заявки
-          a(href='/admin/translate') Переводчик
-          a(href='/admin/admins') Администраторы
+          a(href='/admin' onclick='closeSidebar()') Главная
+          a(href='/admin/about' onclick='closeSidebar()') О нас
+          a(href='/admin/menus' onclick='closeSidebar()') Меню
+          a(href='/admin/news' onclick='closeSidebar()') Новости
+          a(href='/admin/news/registrations' onclick='closeSidebar()') ↳ Регистрации
+          a(href='/admin/bar' onclick='closeSidebar()') Бар
+          a(href='/admin/shop' onclick='closeSidebar()') Магазин
+          a(href='/admin/rental' onclick='closeSidebar()') Аренда
+          a(href='/admin/rental/requests' onclick='closeSidebar()') ↳ Заявки
+          a(href='/admin/translate' onclick='closeSidebar()') Переводчик
+          a(href='/admin/admins' onclick='closeSidebar()') Администраторы
           a(href='/admin/logout' style='margin-top:2rem;color:rgba(243,236,224,0.5)') Выйти
       .admin-main
         .admin-header
           h1 #{title || 'Админ'}
           .topbar #{adminName || ''}
         block content
+    script.
+      function toggleAdminSidebar() {
+        document.getElementById('admin-sidebar').classList.toggle('open');
+        document.getElementById('admin-overlay').classList.toggle('open');
+      }
+      function closeSidebar() {
+        document.getElementById('admin-sidebar').classList.remove('open');
+        document.getElementById('admin-overlay').classList.remove('open');
+      }
+    script(src='/javascripts/pelamushi/admin.js')
     block scripts

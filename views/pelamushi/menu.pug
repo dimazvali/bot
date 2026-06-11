@@ -59,7 +59,10 @@ block content
     each cat in grouped
       if cat.items.length
         .menu-category(id='cat-' + cat.id)
-          h3 #{cat['name_' + lang]}
+          .menu-category-header
+            h3 #{cat['name_' + lang]}
+            if cat['desc_' + lang]
+              span.menu-category-desc #{cat['desc_' + lang]}
           .menu-items-grid
             each item in cat.items
               .menu-item

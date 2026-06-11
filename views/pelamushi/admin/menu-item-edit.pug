@@ -1,0 +1,61 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Сохранено
+
+  .card
+    .card-header(style='display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem')
+      h2(style='margin:0') #{item.name_en || 'Позиция'}
+      a(href=`/admin/menus/${menuId}` style='font-size:.82rem;color:var(--tan)') ← Назад к меню
+
+    if item.photo_url
+      img(src=item.photo_url style='width:180px;height:135px;object-fit:cover;border-radius:6px;margin-bottom:1rem')
+
+    form(action=`/admin/menus/${menuId}/items/${item.id}/save` method='POST' enctype='multipart/form-data')
+      .form-row
+        label Название EN
+        input(name='name_en' value=item.name_en)
+      .form-row
+        label Название KA
+        input(name='name_ka' value=item.name_ka)
+      .form-row
+        label Название RU
+        input(name='name_ru' value=item.name_ru)
+      .form-row
+        label Описание EN
+        textarea(name='desc_en' rows='2') #{item.desc_en}
+      .form-row
+        label Описание KA
+        textarea(name='desc_ka' rows='2') #{item.desc_ka}
+      .form-row
+        label Описание RU
+        textarea(name='desc_ru' rows='2') #{item.desc_ru}
+      .form-row
+        label Цена (₾)
+        input(type='number' name='price' step='0.01' min='0' value=item.price)
+      .form-row
+        label Категория
+        select(name='category_id')
+          option(value='') — нет —
+          each cat in categories
+            option(value=cat.id selected=item.category_id===cat.id) #{cat.name_en}
+      .form-row
+        label Порядок
+        input(type='number' name='order' value=item.order min='0')
+      .form-row
+        label Теги (через запятую)
+        input(name='tags' value=Array.isArray(item.tags) ? item.tags.join(', ') : (item.tags || ''))
+      .form-row
+        label Новое фото
+        input(type='file' name='photo' accept='image/*')
+      .form-row
+        label
+          input(type='checkbox' name='active' checked=item.active)
+          |  Активна
+      button.btn.btn-primary(type='submit') Сохранить
+
+  .card(style='border-color:var(--terra)')
+    h2(style='color:var(--terra)') Удалить позицию
+    form(action=`/admin/menus/${menuId}/items/${item.id}/delete` method='POST')
+      button.btn.btn-danger(type='submit') Удалить позицию

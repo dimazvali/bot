@@ -1,0 +1,40 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Сохранено
+
+  .card
+    .card-header(style='display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem')
+      h2(style='margin:0') #{cat.name_en || 'Категория'}
+      a(href=`/admin/menus/${menuId}` style='font-size:.82rem;color:var(--tan)') ← Назад к меню
+
+    form(action=`/admin/menus/${menuId}/categories/${cat.id}/save` method='POST')
+      .form-row
+        label Название EN
+        input(name='name_en' value=cat.name_en)
+      .form-row
+        label Название KA
+        input(name='name_ka' value=cat.name_ka)
+      .form-row
+        label Название RU
+        input(name='name_ru' value=cat.name_ru)
+      .form-row
+        label Описание EN
+        input(name='desc_en' value=cat.desc_en placeholder='напр. 10:00 — 20:00')
+      .form-row
+        label Описание KA
+        input(name='desc_ka' value=cat.desc_ka placeholder='напр. 10:00 — 20:00-მდე')
+      .form-row
+        label Описание RU
+        input(name='desc_ru' value=cat.desc_ru placeholder='напр. 10:00 — 20:00')
+      .form-row
+        label Порядок
+        input(type='number' name='order' value=cat.order min='0')
+      button.btn.btn-primary(type='submit') Сохранить
+
+  .card(style='border-color:var(--terra)')
+    h2(style='color:var(--terra)') Удалить категорию
+    p(style='font-size:.85rem;color:#666;margin-bottom:1rem') Позиции в этой категории останутся — они станут «без категории».
+    form(action=`/admin/menus/${menuId}/categories/${cat.id}/delete` method='POST')
+      button.btn.btn-danger(type='submit') Удалить категорию
