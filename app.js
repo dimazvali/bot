@@ -39,16 +39,19 @@ bodyParser.json({limit: '50mb'})
 process.on('warning', e => console.warn(e.stack));
 
 app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
-app.use(vhost(`dimazvali.*.*`,require('./routes/dimazvali')))
+app.use(vhost('dimazvali.com',     require('./routes/dimazvali')))
+app.use(vhost('www.dimazvali.com', require('./routes/dimazvali')))
+app.use(vhost(`dimazvali.*.*`,     require('./routes/dimazvali')))
 app.use(vhost(`dimazvali.localhost`,require('./routes/dimazvali')))
-app.use('/dimazvali',     require('./routes/dimazvali'));
+app.use('/dimazvali',              require('./routes/dimazvali'));
 
 
 app.use(vhost(`bot.*.*`,require('./routes/dimazvali')))
 app.use(vhost('bot.localhost', require('./routes/dimazvali')))
 
-app.use(vhost('it.*.*', require('./routes/it')))
-app.use(vhost('it.localhost', require('./routes/it')))
+app.use(vhost('it.dimazvali.com', require('./routes/it')))
+app.use(vhost('it.*.*',          require('./routes/it')))
+app.use(vhost('it.localhost',    require('./routes/it')))
 
 app.use(vhost('photo.*.*', require('./routes/photo')))
 app.use(vhost('photo.localhost', require('./routes/photo')))
