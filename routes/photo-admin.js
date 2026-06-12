@@ -307,7 +307,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
   try {
     var baseName = path.basename(req.file.originalname, path.extname(req.file.originalname));
     var existingIds = data[country].series[series].photos.map(p => p.id);
-    var id = uniqueId(slugify(baseName), existingIds);
+    var id = uniqueId(slugify((title && title.trim()) || baseName), existingIds);
 
     var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
