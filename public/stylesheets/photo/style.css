@@ -171,7 +171,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
 /* ─── MASONRY ────────────────────────────────────────────────── */
 .masonry {
-  columns: 3;
+  columns: 4;
   column-gap: 8px;
 }
 
@@ -620,6 +620,11 @@ body.sidebar-open { overflow: hidden; }
   padding: 6px 8px;
 }
 .burger:hover { color: var(--text); }
+
+/* ≤1200px: 3 masonry columns */
+@media (max-width: 1200px) {
+  .masonry { columns: 3; }
+}
 
 /* ≤900px: 2 masonry columns */
 @media (max-width: 900px) {
