@@ -55,6 +55,8 @@ app.use(vhost('eka.localhost', require('./routes/eka')))
 
 app.use(vhost('tbiliseli.*.*', require('./routes/tbiliseli')))
 app.use(vhost('tbiliseli.localhost', require('./routes/tbiliseli')))
+app.use(vhost('tbiliseli.com', require('./routes/tbiliseli')))
+app.use(vhost('www.tbiliseli.com', require('./routes/tbiliseli')))
 
 app.use(vhost('pelamushi.*.*', require('./routes/pelamushi')))
 app.use(vhost('pelamushi.localhost', require('./routes/pelamushi')))
