@@ -1,12 +1,25 @@
 var express = require('express');
 var router = express.Router();
 var path = require('path');
+var axios = require('axios');
 var { getData } = require('../lib/photo-data');
 var { getTags } = require('../lib/photo-tags');
 var { trackView } = require('../lib/photo-stats');
 var { COLOR_FAMILIES } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var { buildPageKeywords, BASE_KEYWORDS } = require('../lib/photo-seo');
+
+var DIMA_CHAT_ID = 144489840;
+
+function tgSend(text) {
+  var token = process.env.dimazvaliToken;
+  if (!token) return;
+  axios.post('https://api.telegram.org/bot' + token + '/sendMessage', {
+    chat_id: DIMA_CHAT_ID,
+    text: text,
+    parse_mode: 'HTML',
+  }).catch(function(e) { console.error('tg:', e.message); });
+}
 
 router.use(express.static(path.join(__dirname, '../public')));
 
@@ -75,7 +88,29 @@ router.get('/about', (req, res) => {
     ogImage: null,
     ogUrl: BASE + '/about',
     breadcrumbs: [{ name: 'О себе', url: BASE + '/about' }],
+    sent: req.query.sent || null,
   });
+});
+
+// POST /contact
+router.post('/contact', express.urlencoded({ extended: false }), (req, res) => {
+  var email = (req.body.email || '').trim().slice(0, 200);
+  var message = (req.body.message || '').trim().slice(0, 2000);
+  if (message) {
+
+    tgSend('<b>📬 Сообщение с photo.dimazvali.com</b>\n' + (email ? 'От: ' + email + '\n' : '') + '\n' + message);
+  }
+  res.redirect('/about?sent=contact');
+});
+
+// POST /review
+router.post('/review', express.urlencoded({ extended: false }), (req, res) => {
+  var name = (req.body.name || '').trim().slice(0, 100);
+  var text = (req.body.text || '').trim().slice(0, 2000);
+  if (text) {
+    tgSend('<b>⭐ Отзыв с photo.dimazvali.com</b>\n' + (name ? 'Автор: ' + name + '\n' : '') + '\n' + text);
+  }
+  res.redirect('/about?sent=review');
 });
 
 // GET /tag/:slug — gallery filtered by tag
@@ -158,6 +193,33 @@ router.post('/:country/:series/:id/inquiry', express.urlencoded({ extended: fals
   }
 
   res.redirect(`/${countryKey}/${seriesKey}/${id}?inquiry=ok`);
+});
+
+// POST /:country/:series/:id/review — photo review
+router.post('/:country/:series/:id/review', express.urlencoded({ extended: false }), async (req, res) => {
+  var { country: countryKey, series: seriesKey, id } = req.params;
+  var data = getData();
+  var country = data[countryKey];
+  if (!country) return res.status(404).send('Not found');
+  var series = country.series && country.series[seriesKey];
+  if (!series) return res.status(404).send('Not found');
+  var photo = series.photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.status(404).send('Not found');
+
+  var name = (req.body.name || '').trim().slice(0, 100);
+  var text = (req.body.text || '').trim().slice(0, 2000);
+  if (text) {
+    try {
+      var { sendMessage2 } = require('./methods');
+      var photoUrl = BASE + '/' + countryKey + '/' + seriesKey + '/' + id;
+      var msg = '⭐ <b>Отзыв</b>\n'
+        + 'Фото: <a href="' + photoUrl + '">' + photo.title + '</a>\n'
+        + (name ? 'Автор: ' + name + '\n' : '')
+        + '\n' + text;
+      await sendMessage2({ chat_id: 144489840, text: msg, parse_mode: 'HTML' }, false, process.env.dimazvaliToken);
+    } catch (e) { console.error('[review]', e.message); }
+  }
+  res.redirect('/' + countryKey + '/' + seriesKey + '/' + id + '?review=ok');
 });
 
 // GET /sitemap.xml
@@ -369,8 +431,10 @@ router.get('/:country/:series/:id', (req, res) => {
 
   var allTagsPhoto = getTags();
   var inquiryStatus = req.query.inquiry || null;
+  var reviewStatus  = req.query.review  || null;
   res.render('photo/photo', {
     inquiryStatus,
+    reviewStatus,
     data,
     activeCountry: countryKey,
     activeSeries: seriesKey,

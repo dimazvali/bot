@@ -1139,18 +1139,7 @@ router.get(`/web`, (req, res) => {
 
 
 router.get(`/`, (req, res) => {
-    getDoc(settings, `start`).then(about => {
-        devlog(about)
-        pages
-            .where(`active`, '==', true)
-            .get()
-            .then(col => {
-                about.pages = handleQuery(col, true)
-                res.render(`${host}/start`,
-                    about
-                )
-            })
-    })
+    res.render(`${host}/home`)
 })
 
 

@@ -71,22 +71,34 @@ block content
       if photo.instagram
         a.action-btn(href=photo.instagram target='_blank' rel='noopener') INSTAGRAM
     .photo-inquiry
-      h2.inquiry-title ЗАЯВКА
-      if inquiryStatus === 'ok'
-        p.inquiry-success ✓ ОТПРАВЛЕНО — ОТВЕЧУ В ТЕЧЕНИЕ 24 ЧАСОВ
-      else
-        if inquiryStatus === 'err'
-          p.inquiry-error ✗ ПРОВЕРЬТЕ ИМЯ И EMAIL
-        form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/inquiry`)
-          .inquiry-type
-            each opt in [['print','ОТПЕЧАТОК'],['license','ЛИЦЕНЗИЯ'],['other','ВОПРОС']]
-              label.inquiry-radio
-                input(type='radio' name='type' value=opt[0] checked=opt[0]==='print')
-                span= opt[1]
-          input.inquiry-input(type='text' name='name' placeholder='ИМЯ' required autocomplete='name')
-          input.inquiry-input(type='email' name='email' placeholder='EMAIL' required autocomplete='email')
-          textarea.inquiry-input.inquiry-textarea(name='message' placeholder='СООБЩЕНИЕ (НЕОБЯЗАТЕЛЬНО)' rows='3')
-          button.inquiry-submit(type='submit') ОТПРАВИТЬ →
+      - var activeTab = inquiryStatus ? 'inquiry' : 'review'
+      .inquiry-tabs
+        button.inquiry-tab(type='button' data-tab='review' class=(activeTab==='review' ? 'is-active' : '')) ОТЗЫВ
+        button.inquiry-tab(type='button' data-tab='inquiry' class=(activeTab==='inquiry' ? 'is-active' : '')) ЗАЯВКА
+      .inquiry-tab-panel(data-panel='review' style=(activeTab==='review' ? '' : 'display:none'))
+        if reviewStatus === 'ok'
+          p.inquiry-success ✓ СПАСИБО ЗА ОТЗЫВ!
+        else
+          form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/review`)
+            input.inquiry-input(type='text' name='name' placeholder='ИМЯ (НЕОБЯЗАТЕЛЬНО)' autocomplete='name')
+            textarea.inquiry-input.inquiry-textarea(name='text' placeholder='ТЕКСТ ОТЗЫВА' required rows='4')
+            button.inquiry-submit(type='submit') ОТПРАВИТЬ →
+      .inquiry-tab-panel(data-panel='inquiry' style=(activeTab==='inquiry' ? '' : 'display:none'))
+        if inquiryStatus === 'ok'
+          p.inquiry-success ✓ ОТПРАВЛЕНО — ОТВЕЧУ В ТЕЧЕНИЕ 24 ЧАСОВ
+        else
+          if inquiryStatus === 'err'
+            p.inquiry-error ✗ ПРОВЕРЬТЕ ИМЯ И EMAIL
+          form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/inquiry`)
+            .inquiry-type
+              each opt in [['print','ОТПЕЧАТОК'],['license','ЛИЦЕНЗИЯ'],['other','ВОПРОС']]
+                label.inquiry-radio
+                  input(type='radio' name='type' value=opt[0] checked=opt[0]==='print')
+                  span= opt[1]
+            input.inquiry-input(type='text' name='name' placeholder='ИМЯ' required autocomplete='name')
+            input.inquiry-input(type='email' name='email' placeholder='EMAIL' required autocomplete='email')
+            textarea.inquiry-input.inquiry-textarea(name='message' placeholder='СООБЩЕНИЕ (НЕОБЯЗАТЕЛЬНО)' rows='3')
+            button.inquiry-submit(type='submit') ОТПРАВИТЬ →
 
     .annot-popup#annot-popup
       button.annot-popup-close#annot-popup-close ×
@@ -157,3 +169,16 @@ block content
       document.addEventListener('click', function() { popup.style.display = 'none'; });
       popup.addEventListener('click', function(e) { e.stopPropagation(); });
     }());
+
+    // ── Inquiry/review tabs ──
+    document.querySelectorAll('.inquiry-tab').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var tab = btn.dataset.tab;
+        document.querySelectorAll('.inquiry-tab').forEach(function(b) {
+          b.classList.toggle('is-active', b.dataset.tab === tab);
+        });
+        document.querySelectorAll('.inquiry-tab-panel').forEach(function(p) {
+          p.style.display = p.dataset.panel === tab ? '' : 'none';
+        });
+      });
+    });

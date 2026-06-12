@@ -1,0 +1,180 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title dimazvali.com
+    meta(name='description' content='Дмитрий Шестаков — проджект-менеджер, фотограф, велосипедист')
+    link(rel='icon' type='image/x-icon' href='/images/dimazvali/favicon.ico')
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+Georgian:wght@500;700&display=swap' rel='stylesheet')
+    style.
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; background: #f4f1ea; color: #15120f; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; }
+      a { text-decoration: none; color: inherit; }
+      ::selection { background: #15120f; color: #f4f1ea; }
+
+      .card-link { display: block; position: relative; min-height: clamp(380px,46vw,520px); overflow: hidden; background: #15120f; transition: transform .35s ease; }
+      .card-link:hover { transform: translateY(-4px); }
+      .card-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .55s ease, opacity .35s ease; }
+      .card-link:hover .card-img { transform: scale(1.04); opacity: .95 !important; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .card-link, .card-link:hover { transform: none; }
+        .card-img { transition: none; }
+      }
+
+  body
+    // ── HEADER ──
+    header(style='max-width:1320px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 28px;')
+      span(style='font-family:Oswald,sans-serif; font-weight:700; font-size:17px; letter-spacing:.02em;') dimazvali.com
+      a(href='mailto:dimazvali@gmail.com' style='font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.08em; color:#56514a; border-bottom:1px solid #c8c3b8; padding-bottom:2px;')
+        | dimazvali
+        span @
+        | gmail.com
+
+    // ── HERO ──
+    section(style='max-width:1320px; margin:0 auto; padding:clamp(18px,2.5vw,36px) 28px clamp(34px,4.5vw,60px); display:flex; flex-wrap:wrap; gap:clamp(28px,4vw,60px); align-items:center;')
+      div(style='flex:1 1 470px; min-width:300px;')
+        div(style='font-family:Lora,serif; font-style:italic; font-size:clamp(30px,5vw,56px); line-height:1; color:#15120f;') გამარჯობა!
+        h1#hero-name(style='margin:14px 0 0; font-family:Oswald,"Noto Sans Georgian",sans-serif; font-weight:700; font-size:clamp(46px,8.4vw,116px); line-height:.9; letter-spacing:-.012em; text-transform:uppercase; min-height:1.8em;')
+          | Дмитрий
+          br
+          | Шестаков
+        div(style='margin-top:24px; display:flex; gap:9px; flex-wrap:wrap; font-size:12.5px; letter-spacing:.06em; color:#56514a;')
+          each tag in ['проджект-менеджер', 'фотограф', 'велосипедист']
+            span(style='border:1px solid #c8c3b8; padding:6px 13px;')= tag
+        p(style='margin:28px 0 0; max-width:520px; font-family:Lora,serif; font-size:clamp(20px,2vw,27px); line-height:1.42; color:#15120f;')
+          | Вообще-то я проджект-менеджер из&nbsp;Тбилиси. Но в&nbsp;частности — фотограф. Или велосипедист.&nbsp;
+          em По обстоятельствам.
+      div(style='flex:1 1 330px; min-width:280px; position:relative; align-self:stretch;')
+        img(src='https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-05065-800.webp' srcset='https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-05065-800.webp 800w, https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-05065-2400.webp 2400w' sizes='(max-width:900px) 100vw, 50vw' alt='Дмитрий Шестаков' style='width:100%; height:100%; min-height:clamp(440px,58vh,640px); object-fit:cover; object-position:center 18%; display:block; background:#15120f;')
+        div(style='position:absolute; left:0; bottom:0; padding:14px 16px; font-size:11px; letter-spacing:.12em; color:#f4f1ea; background:linear-gradient(180deg,transparent,rgba(21,18,15,.7));') ТБИЛИСИ
+
+    // ── STATEMENT ──
+    section(style='position:relative; background:#0c0b0a;')
+      img(src='https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-05295-800.webp' srcset='https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-05295-800.webp 800w, https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-05295-2400.webp 2400w' sizes='100vw' alt='' style='width:100%; height:clamp(360px,62vh,720px); object-fit:cover; object-position:center 38%; display:block; opacity:.92;')
+      div(style='position:absolute; inset:0; background:linear-gradient(90deg,rgba(12,11,10,.78) 0%,rgba(12,11,10,.32) 46%,rgba(12,11,10,0) 72%);')
+      div(style='position:absolute; inset:0; display:flex; align-items:center;')
+        div(style='max-width:1320px; width:100%; margin:0 auto; padding:0 28px;')
+          blockquote(style='margin:0; max-width:600px;')
+            p(style='margin:0; font-family:Lora,serif; font-style:italic; font-size:clamp(24px,3.4vw,44px); line-height:1.28; color:#f4f1ea;') Вообще-то пиарщик. Но только по&nbsp;диплому.
+
+    // ── DIRECTIONS ──
+    section(style='max-width:1320px; margin:0 auto; padding:clamp(44px,6vw,90px) 28px clamp(24px,3vw,44px);')
+      div(style='display:flex; align-items:baseline; gap:14px; margin-bottom:28px;')
+        h2(style='margin:0; font-family:Oswald,sans-serif; font-weight:700; font-size:clamp(20px,2.6vw,30px); letter-spacing:.04em; text-transform:uppercase;') Куда дальше
+        span(style='height:1px; flex:1; background:#d8d3c8; display:block;')
+        span(style='font-size:11px; letter-spacing:.12em; color:#9a948b;') два мира
+      div(style='display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:16px;')
+
+        a.card-link(href='https://photo.dimazvali.com')
+          img.card-img(src='https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-04803-800.webp' srcset='https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-04803-800.webp 800w, https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-04803-2400.webp 2400w' sizes='(max-width:700px) 100vw, 50vw' alt='' style='object-position:center 30%; opacity:.82;')
+          div(style='position:absolute; inset:0; background:linear-gradient(180deg,rgba(12,11,10,.15) 0%,rgba(12,11,10,.2) 45%,rgba(12,11,10,.9) 100%);')
+          div(style='position:absolute; inset:0; padding:clamp(24px,3vw,38px); display:flex; flex-direction:column; justify-content:space-between; color:#f4f1ea;')
+            div(style='display:flex; justify-content:space-between; align-items:flex-start; font-size:12px; letter-spacing:.14em;')
+              span(style='opacity:.8;') 01 — ФОТОГРАФИЯ
+              span(style='font-size:20px; line-height:1;') →
+            div
+              div(style='font-family:Oswald,sans-serif; font-weight:700; font-size:clamp(44px,7vw,82px); line-height:.92; text-transform:uppercase;') Фото
+              div(style='font-size:clamp(13px,1.5vw,17px); letter-spacing:.06em; color:#b7b2aa; margin-top:6px;') photo.dimazvali.com
+              p(style='margin:12px 0 0; font-family:Lora,serif; font-size:16px; line-height:1.55; color:#dedad3; max-width:420px;') Документальные чёрно-белые серии, портреты, репортаж. Грузия, Казахстан, Черногория.
+
+        a.card-link(href='https://it.dimazvali.com')
+          img.card-img(src='https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-04770-800.webp' srcset='https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-04770-800.webp 800w, https://storage.googleapis.com/photo-dimazvalimisc/dimazvali/home/ks-04770-2400.webp 2400w' sizes='(max-width:700px) 100vw, 50vw' alt='' style='object-position:center 28%; opacity:.8;')
+          div(style='position:absolute; inset:0; background:linear-gradient(180deg,rgba(12,11,10,.2) 0%,rgba(12,11,10,.25) 45%,rgba(12,11,10,.92) 100%);')
+          div(style='position:absolute; inset:0; padding:clamp(24px,3vw,38px); display:flex; flex-direction:column; justify-content:space-between; color:#f4f1ea;')
+            div(style='display:flex; justify-content:space-between; align-items:flex-start; font-size:12px; letter-spacing:.14em;')
+              span(style='opacity:.8;') 02 — IT & ПРОДЖЕКТ-МЕНЕДЖМЕНТ
+              span(style='font-size:20px; line-height:1;') →
+            div
+              div(style='font-family:Oswald,sans-serif; font-weight:700; font-size:clamp(44px,7vw,82px); line-height:.92; text-transform:uppercase;') IT&nbsp;/&nbsp;PM
+              div(style='font-size:clamp(13px,1.5vw,17px); letter-spacing:.06em; color:#b7b2aa; margin-top:6px;') it.dimazvali.com
+              p(style='margin:12px 0 0; font-family:Lora,serif; font-size:16px; line-height:1.55; color:#dedad3; max-width:420px;') Истории про продукты, команды и&nbsp;разработку. Как доводить сложное до&nbsp;запуска.
+
+    // ── FOOTER ──
+    footer(style='background:#15120f; color:#f4f1ea; margin-top:clamp(40px,6vw,80px);')
+      div(style='max-width:1320px; margin:0 auto; padding:clamp(40px,5vw,68px) 28px; display:flex; flex-wrap:wrap; gap:32px; align-items:flex-end; justify-content:space-between;')
+        div
+          div(style='font-size:12px; letter-spacing:.3em; text-transform:uppercase; color:#7c776f;') Связаться
+          div(style='margin-top:14px; font-family:Oswald,sans-serif; font-weight:600; font-size:clamp(26px,4vw,46px); line-height:1.05; letter-spacing:.01em;') Напишите мне
+        div(style='display:flex; flex-direction:column; gap:10px; font-size:14px; letter-spacing:.03em;')
+          a(href='mailto:dimazvali@gmail.com' style='display:flex; gap:14px;')
+            span(style='color:#7c776f; width:78px;') email
+            span dimazvali@gmail.com
+          a(href='https://t.me/dimazvali' style='display:flex; gap:14px;')
+            span(style='color:#7c776f; width:78px;') telegram
+            span @dimazvali
+          a(href='https://instagram.com/dimazvali2' style='display:flex; gap:14px;')
+            span(style='color:#7c776f; width:78px;') instagram
+            span @dimazvali2
+      div(style='border-top:1px solid #2a2622;')
+        div(style='max-width:1320px; margin:0 auto; padding:16px 28px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:11px; letter-spacing:.08em; color:#6c675f;')
+          span © dimazvali.com
+          span გამარჯობა!
+
+    script.
+      (function() {
+        var el = document.getElementById('hero-name');
+        if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        var variants = [
+          ['Дмитрий', 'Шестаков'],
+          ['Dmitry',  'Shestakov'],
+          ['დმიტრი',  'შესტაკოვი'],
+        ];
+        var pool = 'абвгдежзийклмнопрстухцчшщыэ' + 'abcdefghijkmnopqrstuvxyz' + 'აბგდევზთიკლმნოპრსტუფქღშჩცძწჭხჯჰ';
+
+        var idx = 0;
+        var current = variants[0];
+        var queues, frame, raf;
+
+        function rand() { return pool[Math.floor(Math.random() * pool.length)]; }
+
+        function setText(newPair) {
+          var oldPair = current;
+          current = newPair;
+          queues = [0, 1].map(function(w) {
+            var from = oldPair[w] || '', to = newPair[w] || '';
+            var len = Math.max(from.length, to.length), q = [];
+            for (var i = 0; i < len; i++) {
+              var start = Math.floor(Math.random() * 22);
+              q.push({ fromC: from[i] || '', toC: to[i] || '', start: start, end: start + 12 + Math.floor(Math.random() * 24), char: null });
+            }
+            return q;
+          });
+          frame = 0;
+          cancelAnimationFrame(raf);
+          update();
+        }
+
+        function update() {
+          var done = true;
+          var out = queues.map(function(q) {
+            var s = '';
+            for (var i = 0; i < q.length; i++) {
+              var it = q[i];
+              if (frame >= it.end) {
+                s += it.toC;
+              } else if (frame >= it.start) {
+                done = false;
+                if (it.char === null || Math.random() < 0.3) it.char = rand();
+                s += '<span style="opacity:.5;font-weight:500">' + it.char + '</span>';
+              } else {
+                done = false;
+                s += it.fromC;
+              }
+            }
+            return s;
+          });
+          el.innerHTML = out[0] + '<br>' + out[1];
+          frame++;
+          if (!done) raf = requestAnimationFrame(update);
+        }
+
+        setInterval(function() {
+          idx = (idx + 1) % variants.length;
+          setText(variants[idx]);
+        }, 3400);
+      }());

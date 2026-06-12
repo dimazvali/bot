@@ -12,4 +12,34 @@ block content
       a.about-link(href='mailto:dimazvali@gmail.com') email
       a.about-link(href='https://t.me/dimazvali') telegram
       a.about-link(href='https://www.instagram.com/dimazvali2') instagram
-      
+
+    if sent === 'contact'
+      p.about-sent ✓ Сообщение отправлено
+    if sent === 'review'
+      p.about-sent ✓ Отзыв отправлен, спасибо!
+
+    .about-accordion
+      button.about-accordion-btn(type='button' aria-expanded='false' data-target='#about-contact-form') НАПИСАТЬ МНЕ
+      .about-accordion-body#about-contact-form
+        form.about-form(method='POST' action='/contact')
+          input.about-input(type='email' name='email' placeholder='ваш e-mail (необязательно)')
+          textarea.about-input(name='message' rows='4' placeholder='сообщение' required)
+          button.about-submit(type='submit') ОТПРАВИТЬ
+
+    .about-accordion
+      button.about-accordion-btn(type='button' aria-expanded='false' data-target='#about-review-form') ОСТАВИТЬ ОТЗЫВ
+      .about-accordion-body#about-review-form
+        form.about-form(method='POST' action='/review')
+          input.about-input(type='text' name='name' placeholder='ваше имя (необязательно)')
+          textarea.about-input(name='text' rows='4' placeholder='отзыв' required)
+          button.about-submit(type='submit') ОТПРАВИТЬ
+
+  script.
+    document.querySelectorAll('.about-accordion-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var expanded = btn.getAttribute('aria-expanded') === 'true';
+        btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+        var body = document.querySelector(btn.dataset.target);
+        body.style.maxHeight = expanded ? '0' : body.scrollHeight + 'px';
+      });
+    });
