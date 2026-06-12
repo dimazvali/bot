@@ -126,9 +126,9 @@ app.use('/homeless',        require('./routes/homelessBot'));
 // catch 404 and forward to error handler
 app.use((req,res,next)=>{
   // devlog(req);
-  if(!process.env.develop) alertMe({
-    text: `404: ${req.originalUrl}`
-  })
+  // if(!process.env.develop) alertMe({
+  //   text: `404: ${req.originalUrl}`
+  // })
   next()
 })
 
