@@ -106,24 +106,71 @@
     var lbClose = document.createElement('button');
     lbClose.className = 'lb-close';
     lbClose.textContent = '✕';
+    var lbWrap = document.createElement('div');
+    lbWrap.className = 'lb-wrap';
     var lbImg = document.createElement('img');
     lbImg.className = 'lb-img';
+    lbWrap.appendChild(lbImg);
     lb.appendChild(lbClose);
-    lb.appendChild(lbImg);
+    lb.appendChild(lbWrap);
     document.body.appendChild(lb);
 
+    var lbPopup = document.getElementById('annot-popup');
+    var lbPopupText = document.getElementById('annot-popup-text');
+
+    function addLbAnnots() {
+      lbWrap.querySelectorAll('.lb-annot').forEach(function (el) { el.remove(); });
+      document.querySelectorAll('.photo-image-wrap .photo-annot').forEach(function (btn) {
+        var marker = document.createElement('button');
+        marker.type = 'button';
+        marker.className = 'photo-annot lb-annot';
+        marker.textContent = btn.textContent;
+        marker.style.left = btn.dataset.x + '%';
+        marker.style.top  = btn.dataset.y + '%';
+        marker.dataset.text = btn.dataset.text;
+        lbWrap.appendChild(marker);
+      });
+    }
+
     function openLb() {
+      if (lbPopup) lbPopup.style.display = 'none';
       lbImg.src = photoPageImg.src;
       lb.classList.add('lb-open');
       document.body.style.overflow = 'hidden';
+      if (lbImg.complete && lbImg.naturalWidth) {
+        addLbAnnots();
+      } else {
+        lbImg.addEventListener('load', addLbAnnots, { once: true });
+      }
     }
     function closeLb() {
       lb.classList.remove('lb-open');
       document.body.style.overflow = '';
+      if (lbPopup) lbPopup.style.display = 'none';
     }
 
     photoPageImg.addEventListener('click', openLb);
-    lb.addEventListener('click', closeLb);
+    lb.addEventListener('click', function (e) {
+      if (e.target.closest('.lb-annot')) {
+        e.stopPropagation();
+        if (lbPopup && lbPopupText) {
+          var annotBtn = e.target.closest('.lb-annot');
+          lbPopupText.textContent = annotBtn.dataset.text;
+          var rect = annotBtn.getBoundingClientRect();
+          var popW = 240;
+          var top = rect.bottom + 10;
+          var left = rect.left + rect.width / 2 - popW / 2;
+          left = Math.max(10, Math.min(window.innerWidth - popW - 10, left));
+          if (top + 120 > window.innerHeight) top = rect.top - 130;
+          if (top < 10) top = 10;
+          lbPopup.style.top = top + 'px';
+          lbPopup.style.left = left + 'px';
+          lbPopup.style.display = 'block';
+        }
+        return;
+      }
+      closeLb();
+    });
     lbClose.addEventListener('click', function (e) { e.stopPropagation(); closeLb(); });
   }
 

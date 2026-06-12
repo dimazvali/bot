@@ -275,6 +275,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
   var { country, series } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
   var { title, date, desc } = req.body;
+  var photoType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'copter';
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
   var data = getData();
@@ -331,6 +332,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
       title: title || baseName,
       date: date || '',
       desc: desc || '',
+      type: photoType,
       urls: {
         thumb: `${base}/${path400}`,
         preview: `${base}/${path800}`,
@@ -617,6 +619,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   }
   var { title, date, desc } = req.body;
   var seoKeywords = (req.body.seo_keywords || '').trim();
+  var photoType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'copter';
   if (!title || !title.trim()) return res.redirect(`/admin/${country}/${seriesKey}/${id}/edit`);
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
@@ -644,6 +647,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (!isNaN(altEditRaw) && altEditRaw >= 0) { photo.altitude = Math.round(altEditRaw); } else { delete photo.altitude; }
   if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
   if (seoKeywords) { photo.seo_keywords = seoKeywords; } else { delete photo.seo_keywords; }
+  photo.type = photoType;
   try {
     if (req.file) {
       var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
@@ -728,6 +732,68 @@ router.post('/copyright/:id/undismiss', requireAuth, async (req, res) => {
 router.post('/copyright/:id/delete', requireAuth, async (req, res) => {
   try { await copyright.deleteHit(req.params.id); } catch (e) { console.error(e.message); }
   res.redirect(req.headers.referer || '/admin/copyright');
+});
+
+// ── Annotations ──────────────────────────────────────────────────────────────
+
+router.post('/:country/:series/:id/annotation/add', requireAuth, express.json(), (req, res) => {
+  var { country, series: seriesKey, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
+    return res.status(400).json({ ok: false, error: 'invalid params' });
+  }
+  var x = parseFloat(req.body.x);
+  var y = parseFloat(req.body.y);
+  var text = (req.body.text || '').trim();
+  if (!text || isNaN(x) || isNaN(y) || x < 0 || x > 100 || y < 0 || y > 100) {
+    return res.status(400).json({ ok: false, error: 'invalid data' });
+  }
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.status(404).json({ ok: false });
+  var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.status(404).json({ ok: false });
+  var annot = { id: Date.now().toString(), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, text };
+  if (!photo.annotations) photo.annotations = [];
+  photo.annotations.push(annot);
+  saveData(data);
+  res.json({ ok: true, annotation: annot });
+});
+
+router.post('/:country/:series/:id/annotation/:annotId/move', requireAuth, express.json(), (req, res) => {
+  var { country, series: seriesKey, id, annotId } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
+    return res.status(400).json({ ok: false });
+  }
+  var x = parseFloat(req.body.x);
+  var y = parseFloat(req.body.y);
+  if (isNaN(x) || isNaN(y) || x < 0 || x > 100 || y < 0 || y > 100) {
+    return res.status(400).json({ ok: false, error: 'invalid coords' });
+  }
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.status(404).json({ ok: false });
+  var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
+  if (!photo || !photo.annotations) return res.status(404).json({ ok: false });
+  var annot = photo.annotations.find(function(a) { return a.id === annotId; });
+  if (!annot) return res.status(404).json({ ok: false });
+  annot.x = Math.round(x * 100) / 100;
+  annot.y = Math.round(y * 100) / 100;
+  saveData(data);
+  res.json({ ok: true });
+});
+
+router.post('/:country/:series/:id/annotation/:annotId/delete', requireAuth, (req, res) => {
+  var { country, series: seriesKey, id, annotId } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
+    return res.redirect('/admin');
+  }
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
+  if (photo && photo.annotations) {
+    photo.annotations = photo.annotations.filter(function(a) { return a.id !== annotId; });
+    if (!photo.annotations.length) delete photo.annotations;
+    saveData(data);
+  }
+  res.redirect('/admin/' + country + '/' + seriesKey + '/' + id + '/edit');
 });
 
 // POST /admin/:country/:series/:id/generate-seo — AI SEO generation for single photo

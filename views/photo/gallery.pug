@@ -1,4 +1,5 @@
 extends layout
+include mixins
 
 block content
   .gallery-header
@@ -18,13 +19,22 @@ block content
         button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
     else
       span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
+  -
+    var _types = photos.reduce(function(s,p){ s.add(p.type||'copter'); return s; }, new Set());
+    var _showFilter = _types.size > 1;
   if activeTags && activeTags.length
     .gallery-tags
       each tag in activeTags
         a.gallery-tag(href=`/tag/${tag.key}`) #{tag.label.toUpperCase()}
+  if _showFilter
+    .type-filter
+      each t in ['copter','camera','mobile']
+        if _types.has(t)
+          button.type-filter-btn(data-type=t title=t)
+            +typeIcon(t)
   .masonry
     each photo in photos
-      a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
+      a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}` data-type=photo.type||'copter')
         img(
           src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
           srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined
@@ -37,3 +47,25 @@ block content
           span.photo-title= photo.title
           if photo.date
             span.photo-date= photo.date
+
+  if _showFilter
+    script.
+      (function() {
+        var btns = document.querySelectorAll('.type-filter-btn');
+        var cards = document.querySelectorAll('.photo-card[data-type]');
+        var active = null;
+        btns.forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var t = btn.dataset.type;
+            if (active === t) {
+              active = null;
+              btns.forEach(function(b){ b.classList.remove('active'); });
+              cards.forEach(function(c){ c.removeAttribute('data-hidden'); });
+            } else {
+              active = t;
+              btns.forEach(function(b){ b.classList.toggle('active', b.dataset.type === t); });
+              cards.forEach(function(c){ c.toggleAttribute('data-hidden', c.dataset.type !== t); });
+            }
+          });
+        });
+      }());

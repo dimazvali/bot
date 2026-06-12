@@ -251,9 +251,14 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
   z-index: 0;
 }
 
-.photo-page-image img {
+.photo-image-wrap {
   position: relative;
   z-index: 1;
+  width: 100%;
+}
+
+.photo-page-image img {
+  display: block;
   width: 100%;
   height: auto;
   max-height: 70vh;
@@ -284,6 +289,33 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .nav-btn:hover { color: var(--accent); border-color: var(--text-muted); }
 
 .photo-page-desc { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.7; max-width: 560px; }
+
+.photo-annot-list { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; max-width: 560px; }
+.photo-annot-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.photo-annot-num {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 10px;
+  font-style: italic;
+  font-family: Georgia, serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  align-self: flex-start;
+  margin-top: 2px;
+}
+.photo-annot-item-text { flex: 1; }
 
 /* ─── ABOUT PAGE ─────────────────────────────────────────────── */
 .about-page { max-width: 800px; padding-top: 12px; overflow: hidden; }
@@ -381,7 +413,9 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
   width: 100%;
 }
 .admin-input:focus { border-color: var(--text-muted); }
-textarea.admin-input { resize: vertical; }
+textarea.admin-input { resize: vertical; width: 100%; box-sizing: border-box; }
+.copyright-preview-row { width: 100%; }
+.admin-desc-row { position: relative; width: 100%; }
 
 .admin-btn {
   background: none;
@@ -689,6 +723,11 @@ body.sidebar-open { overflow: hidden; }
   opacity: 1;
   pointer-events: auto;
 }
+.lb-wrap {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
 .lb-img {
   max-width: 100vw;
   max-height: 100vh;
@@ -697,6 +736,7 @@ body.sidebar-open { overflow: hidden; }
   object-fit: contain;
   pointer-events: none;
 }
+.lb-wrap .photo-annot { pointer-events: auto; }
 .lb-close {
   position: fixed;
   top: 16px;
@@ -844,3 +884,182 @@ body.sidebar-open { overflow: hidden; }
   color: #e57373;
   margin-bottom: 8px;
 }
+
+/* ── Photo type filter & badge ───────────────────────────────────────────── */
+.type-filter {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+.type-filter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+  padding: 0;
+}
+.type-filter-btn:hover { border-color: var(--text-muted); color: var(--text); }
+.type-filter-btn.active { border-color: var(--accent); color: var(--accent); }
+.type-filter-btn svg { width: 14px; height: 14px; }
+
+.photo-card[data-hidden] { display: none; }
+
+.photo-type-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 2;
+}
+.photo-type-badge svg { width: 14px; height: 14px; }
+
+.type-radio-group {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.type-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.type-radio-label input[type=radio] { display: none; }
+.type-radio-label span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .5625rem;
+  letter-spacing: 2px;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  transition: border-color .15s, color .15s;
+}
+.type-radio-label span svg { width: 12px; height: 12px; }
+.type-radio-label input[type=radio]:checked + span { border-color: var(--text-muted); color: var(--accent); }
+.type-radio-label:hover span { border-color: var(--text-muted); }
+
+/* ─── АННОТАЦИИ — публичная страница ─────────────────────────── */
+.photo-annot {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.48);
+  border: 1.5px solid rgba(255, 255, 255, 0.65);
+  color: #fff;
+  font-size: 11px;
+  font-family: var(--font-mono, monospace);
+  font-style: normal;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  transition: background 0.15s, border-color 0.15s;
+  padding: 0;
+}
+.photo-annot:hover { background: rgba(0, 0, 0, 0.78); border-color: #fff; }
+
+.annot-popup {
+  position: fixed;
+  z-index: 9999;
+  background: rgba(8, 8, 12, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e8e8e8;
+  padding: 10px 34px 10px 14px;
+  border-radius: 6px;
+  width: 240px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  backdrop-filter: blur(6px);
+  display: none;
+}
+.annot-popup-close {
+  position: absolute;
+  top: 5px;
+  right: 9px;
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  line-height: 1;
+}
+.annot-popup-close:hover { color: #ccc; }
+.annot-popup-text { margin: 0; white-space: pre-wrap; }
+
+/* ─── АННОТАЦИИ — admin ───────────────────────────────────────── */
+.annot-canvas {
+  position: relative;
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  cursor: crosshair;
+  user-select: none;
+}
+.annot-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  color: #fff;
+  font-size: 12px;
+  font-style: italic;
+  font-family: Georgia, serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  cursor: grab;
+  z-index: 2;
+}
+.annot-marker--pending { border-style: dashed; opacity: 0.8; pointer-events: none; cursor: default; }
+.annot-list { margin-top: 10px; }
+.annot-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+}
+.annot-list-badge {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+  font-family: Georgia, serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.annot-list-text { flex: 1; color: var(--text-muted); line-height: 1.4; }
+.annot-pending-form { display: none; margin-top: 10px; }

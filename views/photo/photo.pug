@@ -1,4 +1,5 @@
 extends layout
+include mixins
 
 block head
   -
@@ -33,11 +34,17 @@ block content
           a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/upload`) + фото
     .photo-page-image
       .photo-page-bg(style=`background-image: url(${photo.urls ? photo.urls.full : '/images/photo/' + countryKey + '/' + seriesKey + '/' + photo.file})`)
-      img(
-        src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
-        alt=photo.title
-        onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
-      )
+      .photo-image-wrap
+        .photo-type-badge(title=photo.type||'copter')
+          +typeIcon(photo.type||'copter')
+        if photo.annotations && photo.annotations.length
+          each a, idx in photo.annotations
+            button.photo-annot(type='button' data-x=a.x data-y=a.y data-text=a.text)= idx + 1
+        img(
+          src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
+          alt=photo.title
+          onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+        )
     .photo-page-info
       .photo-page-meta
         h1.photo-page-title= photo.title
@@ -49,6 +56,12 @@ block content
           a.nav-btn(href=`/${countryKey}/${seriesKey}/${next.id}` data-dir='next') СЛЕД. →
     if photo.desc
       p.photo-page-desc= photo.desc
+    if photo.annotations && photo.annotations.length
+      .photo-annot-list
+        each a, i in photo.annotations
+          .photo-annot-item
+            span.photo-annot-num= i + 1
+            span.photo-annot-item-text= a.text
     if photo.tags && photo.tags.length
       .photo-tags
         each tag in photo.tags
@@ -75,6 +88,10 @@ block content
           textarea.inquiry-input.inquiry-textarea(name='message' placeholder='СООБЩЕНИЕ (НЕОБЯЗАТЕЛЬНО)' rows='3')
           button.inquiry-submit(type='submit') ОТПРАВИТЬ →
 
+    .annot-popup#annot-popup
+      button.annot-popup-close#annot-popup-close ×
+      p.annot-popup-text#annot-popup-text
+
     if related && related.length
       .related
         .related-label ЕЩЁ ИЗ #{countryLabel.toUpperCase()}
@@ -82,3 +99,61 @@ block content
           each r in related
             a.related-thumb(href=`/${r.countryKey}/${r.seriesKey}/${r.id}` title=r.title)
               img(src=r.urls.preview alt=r.title loading='lazy' onerror="this.closest('.related-thumb').style.display='none'")
+
+  script.
+    (function() {
+      var popup = document.getElementById('annot-popup');
+      if (!popup) return;
+      var popupText = document.getElementById('annot-popup-text');
+      var closeBtn = document.getElementById('annot-popup-close');
+      var annots = document.querySelectorAll('.photo-image-wrap .photo-annot');
+      if (!annots.length) return;
+
+      // object-fit:contain letterboxing compensation:
+      // actual rendered image area inside the element may have empty margins
+      var pageImg = document.querySelector('.photo-image-wrap img');
+      function repositionAnnots() {
+        if (!pageImg || !pageImg.naturalWidth) return;
+        var W = pageImg.clientWidth;
+        var H = pageImg.clientHeight;
+        var scale = Math.min(W / pageImg.naturalWidth, H / pageImg.naturalHeight);
+        var rW = pageImg.naturalWidth * scale;
+        var rH = pageImg.naturalHeight * scale;
+        var rL = (W - rW) / 2;
+        var rT = (H - rH) / 2;
+        annots.forEach(function(btn) {
+          btn.style.left = (rL + rW * parseFloat(btn.dataset.x) / 100) + 'px';
+          btn.style.top  = (rT + rH * parseFloat(btn.dataset.y) / 100) + 'px';
+        });
+      }
+      if (pageImg) {
+        if (pageImg.complete && pageImg.naturalWidth) repositionAnnots();
+        else pageImg.addEventListener('load', repositionAnnots);
+        window.addEventListener('resize', repositionAnnots);
+      }
+
+      annots.forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          popupText.textContent = btn.dataset.text;
+          var rect = btn.getBoundingClientRect();
+          var popW = 240;
+          var top = rect.bottom + 10;
+          var left = rect.left + rect.width / 2 - popW / 2;
+          left = Math.max(10, Math.min(window.innerWidth - popW - 10, left));
+          if (top + 120 > window.innerHeight) top = rect.top - 130;
+          if (top < 10) top = 10;
+          popup.style.top = top + 'px';
+          popup.style.left = left + 'px';
+          popup.style.display = 'block';
+        });
+      });
+
+      closeBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        popup.style.display = 'none';
+      });
+
+      document.addEventListener('click', function() { popup.style.display = 'none'; });
+      popup.addEventListener('click', function(e) { e.stopPropagation(); });
+    }());
