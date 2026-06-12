@@ -1,0 +1,38 @@
+extends layout
+
+block content
+  .dir-hero
+    img(src='/images/eka/v2/AboutMe.jpg' alt='About')
+    .dir-hero-overlay
+    .dir-hero-content
+      .dir-hero-label= lang === 'ru' ? 'Гид по Тбилиси' : 'Tbilisi Guide'
+      .dir-hero-title= lang === 'ru' ? 'О гиде' : 'About'
+
+  .section
+    .section-inner
+      .about-body
+        .about-photo
+          if profile && profile.photoSizes
+            picture
+              source(media='(max-width:400px)' srcset=profile.photoSizes.w400)
+              img(src=profile.photoSizes.w800 alt='Гид')
+          else if profile && profile.photo
+            img(src=profile.photo alt='Гид')
+        .about-text-block
+          - var bio = lang === 'ru' ? (profile && profile.bioRu) : (profile && profile.bioEn)
+          if bio
+            - var paragraphs = bio.split(/\n\n+/)
+            each para in paragraphs
+              p= para
+          else
+            p(style='color:#888')= lang === 'ru' ? 'Биография не заполнена.' : 'Bio not filled in yet.'
+          .about-contacts
+            if profile && profile.telegram
+              a.about-contact-link(href=profile.telegram target='_blank' rel='noopener')
+                | Telegram: #{profile.telegram.replace('https://t.me/', '@')}
+            if profile && profile.contactEmail
+              a.about-contact-link(href='mailto:' + profile.contactEmail)
+                | Email: #{profile.contactEmail}
+            if profile && profile.instagram
+              a.about-contact-link(href=profile.instagram target='_blank' rel='noopener')
+                | Instagram: #{profile.instagram.replace('https://instagram.com/', '@').replace('https://www.instagram.com/', '@')}

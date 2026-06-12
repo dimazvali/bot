@@ -1,0 +1,65 @@
+extends layout
+
+include _request-form
+
+block content
+  - var dirTitle = direction ? (lang === 'ru' ? direction.titleRu : direction.titleEn) : ''
+  .breadcrumb
+    a(href=`/${lang}/`)= lang === 'ru' ? 'Главная' : 'Home'
+    if direction
+      span  /
+      a(href=`/${lang}/directions/${direction.slug}`)= dirTitle
+    span  / #{lang === 'ru' ? tour.titleRu : tour.titleEn}
+
+  .dir-hero
+    if direction && direction.heroImageSizes
+      picture
+        source(media='(max-width:800px)' srcset=direction.heroImageSizes.w800)
+        source(media='(max-width:1400px)' srcset=direction.heroImageSizes.w1400)
+        img(src=direction.heroImageSizes.w2400 alt=lang === 'ru' ? tour.titleRu : tour.titleEn)
+    else
+      img(src='/images/eka/v2/3.jpg' alt=lang === 'ru' ? tour.titleRu : tour.titleEn style='width:100%;height:100%;object-fit:cover')
+    .dir-hero-overlay
+    .dir-hero-content
+      .dir-hero-label= lang === 'ru' ? 'Тур' : 'Tour'
+      .dir-hero-title= lang === 'ru' ? tour.titleRu : tour.titleEn
+
+  .section
+    .section-inner
+      .tour-page
+        .tour-page-meta
+          if tour.date
+            .tour-meta-item
+              .tour-meta-label= lang === 'ru' ? 'Дата' : 'Date'
+              - var d = tour.date && tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
+              .tour-meta-value= d.toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+          if tour.durationRu || tour.durationEn
+            .tour-meta-item
+              .tour-meta-label= lang === 'ru' ? 'Длительность' : 'Duration'
+              .tour-meta-value= lang === 'ru' ? tour.durationRu : tour.durationEn
+          if tour.price
+            .tour-meta-item
+              .tour-meta-label= lang === 'ru' ? 'Стоимость' : 'Price'
+              .tour-meta-value= tour.price + ' ' + (tour.currency || 'USD') + (lang === 'ru' ? ' / чел' : ' / person')
+          if tour.maxParticipants
+            .tour-meta-item
+              .tour-meta-label= lang === 'ru' ? 'Группа' : 'Group'
+              .tour-meta-value= lang === 'ru' ? 'до ' + tour.maxParticipants + ' человек' : 'up to ' + tour.maxParticipants
+          - var meetingPoint = lang === 'ru' ? tour.meetingPointRu : tour.meetingPointEn
+          if meetingPoint
+            .tour-meta-item
+              .tour-meta-label= lang === 'ru' ? 'Место сбора' : 'Meeting point'
+              .tour-meta-value= meetingPoint
+          if remainingSpots !== null
+            .tour-meta-item
+              .tour-meta-label= lang === 'ru' ? 'Осталось мест' : 'Spots left'
+              .tour-meta-value(class=remainingSpots === 0 ? 'spots-none' : remainingSpots <= 2 ? 'spots-low' : '')= remainingSpots === 0 ? (lang === 'ru' ? 'нет мест' : 'sold out') : remainingSpots
+
+        if tour.descRu || tour.descEn
+          .tour-page-desc= lang === 'ru' ? tour.descRu : tour.descEn
+
+        +requestForm({
+          formTitle: lang === 'ru' ? 'Записаться на тур' : 'Book this tour',
+          formSub: lang === 'ru' ? 'Оставьте заявку — Эка свяжется в течение дня' : 'Leave a request — Eka will get back to you within a day',
+          hiddenFields: { type: 'tour', tourId: tour.id, directionId: tour.directionId || '', directionSlug: tour.directionSlug || '', tourTitle: lang === 'ru' ? tour.titleRu : tour.titleEn }
+        })

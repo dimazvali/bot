@@ -1,0 +1,88 @@
+doctype html
+html(lang=lang)
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    if typeof ogUrl !== 'undefined' && ogUrl
+      link(rel='alternate' hreflang='ru' href=ogUrl.replace('/en/', '/ru/'))
+      link(rel='alternate' hreflang='en' href=ogUrl.replace('/ru/', '/en/'))
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap')
+    link(rel='stylesheet' href='/stylesheets/tbiliseli/style.css')
+    block head
+  body
+    - var otherLang = lang === 'ru' ? 'en' : 'ru'
+    - var otherPath = (typeof currentPath !== 'undefined' && currentPath) ? currentPath.replace('/' + lang + '/', '/' + otherLang + '/') : '/' + otherLang + '/'
+    nav.nav
+      a.nav-logo(href=`/${lang}/`)
+        img(src='/images/eka/v2/logo.png' alt='TbiLiSELi')
+      .nav-links
+        a(href=`/${lang}/`)= lang === 'ru' ? 'Направления' : 'Directions'
+        a(href=`/${lang}/`)= lang === 'ru' ? 'Туры' : 'Tours'
+        a(href=`/${lang}/about`)= lang === 'ru' ? 'О гиде' : 'About'
+        a.lang-toggle(href=otherPath)
+          span.lang-active= lang.toUpperCase()
+          |  / #{otherLang.toUpperCase()}
+      button.nav-burger#nav-burger(aria-label='Меню' aria-expanded='false')
+        span
+        span
+        span
+
+    .nav-overlay#nav-overlay(aria-hidden='true')
+      a.nav-overlay-link(href=`/${lang}/`)= lang === 'ru' ? 'Направления' : 'Directions'
+      a.nav-overlay-link(href=`/${lang}/`)= lang === 'ru' ? 'Туры' : 'Tours'
+      a.nav-overlay-link(href=`/${lang}/about`)= lang === 'ru' ? 'О гиде' : 'About'
+      a.nav-overlay-link(href=otherPath)
+        span.lang-active= lang.toUpperCase()
+        |  / #{otherLang.toUpperCase()}
+
+    block content
+
+    footer.footer
+      a.footer-logo(href=`/${lang}/`)
+        img(src='/images/eka/v2/logo.png' alt='TbiLiSELi')
+      .footer-links
+        - var sp = (typeof siteProfile !== 'undefined' && siteProfile) || {}
+        if sp.telegram
+          a(href=sp.telegram target='_blank' rel='noopener') Telegram
+        if sp.whatsapp
+          a(href=sp.whatsapp target='_blank' rel='noopener') WhatsApp
+        if sp.instagram
+          a(href=sp.instagram target='_blank' rel='noopener') Instagram
+        if sp.contactEmail
+          a(href='mailto:' + sp.contactEmail) Email
+
+    script(src='/javascripts/eka/main.js')
+    script.
+      (function() {
+        var p = new URLSearchParams(location.search);
+        var keys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
+        if (keys.some(function(k){ return p.get(k); })) {
+          var utms = {};
+          keys.forEach(function(k){ utms[k] = p.get(k) || ''; });
+          sessionStorage.setItem('eka_utms', JSON.stringify(utms));
+        }
+      })();
+    script.
+      (function() {
+        var burger = document.getElementById('nav-burger');
+        var overlay = document.getElementById('nav-overlay');
+        burger.addEventListener('click', function() {
+          var open = overlay.classList.toggle('open');
+          burger.classList.toggle('open', open);
+          burger.setAttribute('aria-expanded', open);
+          overlay.setAttribute('aria-hidden', !open);
+          document.body.style.overflow = open ? 'hidden' : '';
+        });
+        overlay.addEventListener('click', function(e) {
+          if (e.target === overlay) {
+            overlay.classList.remove('open');
+            burger.classList.remove('open');
+            burger.setAttribute('aria-expanded', 'false');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+          }
+        });
+      })();

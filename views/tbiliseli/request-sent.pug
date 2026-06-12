@@ -1,0 +1,15 @@
+extends layout
+
+block content
+  .section
+    .section-inner
+      .request-sent
+        if err
+          h1.request-sent-title= lang === 'ru' ? 'Ошибка' : 'Error'
+          p.request-sent-text= lang === 'ru' ? 'Пожалуйста, заполните имя и контакт.' : 'Please fill in your name and contact.'
+          a.btn.btn-red(href='javascript:history.back()')= lang === 'ru' ? 'Назад' : 'Back'
+        else
+          .request-sent-icon ✓
+          h1.request-sent-title= lang === 'ru' ? 'Заявка отправлена' : 'Request sent'
+          p.request-sent-text= lang === 'ru' ? 'Эка свяжется с вами в течение дня.' : 'Eka will get back to you within a day.'
+          a.btn.btn-red(href=`/${lang}/`)= lang === 'ru' ? 'На главную' : 'Back to home'

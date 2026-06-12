@@ -1,0 +1,81 @@
+extends layout
+
+mixin tourDate(tour)
+  - var d = tour.date && tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
+  - var months_ru = ['ЯНВ','ФЕВ','МАР','АПР','МАЙ','ИЮН','ИЮЛ','АВГ','СЕН','ОКТ','НОЯ','ДЕК']
+  - var months_en = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+  .tour-date
+    strong= d.getDate()
+    span= lang === 'ru' ? months_ru[d.getMonth()] : months_en[d.getMonth()]
+
+block content
+  .hero
+    .hero-panel
+      .hero-eyebrow= lang === 'ru' ? 'Авторские экскурсии · Тбилиси' : 'Private tours · Tbilisi'
+      h1.hero-heading
+        if lang === 'ru'
+          | ЧАСТНЫЕ
+          br
+          | ТУРЫ
+          br
+          | В ТБИЛИСИ
+        else
+          | PRIVATE
+          br
+          | TOURS
+          br
+          | IN TBILISI
+      - var tagline = lang === 'ru' ? (profile && profile.taglineRu) : (profile && profile.taglineEn)
+      if tagline
+        p.hero-tagline= tagline
+      .hero-ctas
+        a.btn.btn-white(href=`/${lang}/`)= lang === 'ru' ? 'Смотреть туры' : 'See tours'
+        a.btn.btn-outline-white(href=`/${lang}/about`)= lang === 'ru' ? 'О гиде' : 'About'
+    .hero-photo
+      - var heroSizes = (profile && profile.photoSizes) || (directions.length && directions[0].heroImageSizes)
+      if heroSizes
+        picture
+          source(media='(max-width:800px)' srcset=heroSizes.w800)
+          img(src=heroSizes.w1400 alt='TbiLiSELi')
+      else
+        img(src='/images/eka/v2/1.jpg' alt='Тбилиси')
+
+  if directions.length
+    .section
+      .section-inner
+        .section-header
+          span.section-title= lang === 'ru' ? 'Направления' : 'Destinations'
+          .section-line
+        .directions-grid
+          each dir in directions
+            a.dir-card(href=`/${lang}/directions/${dir.slug}`)
+              .dir-image
+                if dir.heroImageSizes
+                  picture
+                    source(media='(max-width:400px)' srcset=dir.heroImageSizes.w400)
+                    img(src=dir.heroImageSizes.w800 alt=lang === 'ru' ? dir.titleRu : dir.titleEn)
+                else
+                  img(src='/images/eka/v2/Neutral.jpg' alt=lang === 'ru' ? dir.titleRu : dir.titleEn)
+              .dir-overlay
+              .dir-label
+                .dir-name= lang === 'ru' ? dir.titleRu : dir.titleEn
+
+  if upcomingTours.length
+    .tours-section
+      .section-inner
+        .section-header
+          span.section-title= lang === 'ru' ? 'Ближайшие туры' : 'Upcoming tours'
+          .section-line
+        .tours-list
+          each tour in upcomingTours
+            a.tour-row(href=`/${lang}/tours/${tour.id}`)
+              +tourDate(tour)
+              .tour-info
+                .tour-name= lang === 'ru' ? tour.titleRu : tour.titleEn
+                .tour-detail
+                  | #{lang === 'ru' ? tour.durationRu : tour.durationEn}
+                  if tour.maxParticipants
+                    |  · #{lang === 'ru' ? 'до ' + tour.maxParticipants + ' чел' : 'up to ' + tour.maxParticipants}
+              .tour-price
+                .amount= tour.price + ' ' + (tour.currency || 'USD')
+                .currency= lang === 'ru' ? 'за человека' : 'per person'

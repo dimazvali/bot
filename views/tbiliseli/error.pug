@@ -1,0 +1,9 @@
+extends layout
+
+block content
+  .section
+    .section-inner
+      .request-sent
+        h1.request-sent-title= typeof title !== 'undefined' ? title : 'Ошибка'
+        p.request-sent-text= typeof message !== 'undefined' ? message : 'Что-то пошло не так.'
+        a.btn.btn-red(href=`/${typeof lang !== 'undefined' ? lang : 'ru'}/`)= typeof lang !== 'undefined' && lang === 'en' ? 'Back to home' : 'На главную'

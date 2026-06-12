@@ -1,0 +1,121 @@
+extends layout
+
+include _request-form
+
+mixin tourDate(tour)
+  - var d = tour.date && tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
+  - var months_ru = ['ЯНВ','ФЕВ','МАР','АПР','МАЙ','ИЮН','ИЮЛ','АВГ','СЕН','ОКТ','НОЯ','ДЕК']
+  - var months_en = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC']
+  .tour-date
+    strong= d.getDate()
+    span= lang === 'ru' ? months_ru[d.getMonth()] : months_en[d.getMonth()]
+
+block content
+  .breadcrumb
+    a(href=`/${lang}/`)= lang === 'ru' ? 'Главная' : 'Home'
+    span  /
+    a(href=`/${lang}/`)= lang === 'ru' ? 'Направления' : 'Destinations'
+    span  / #{lang === 'ru' ? direction.titleRu : direction.titleEn}
+
+  - var heroImg = images && images.find(function(i){ return i.role === 'hero'; }) || direction.heroImageSizes
+  .dir-hero
+    if heroImg
+      picture
+        source(media='(max-width:800px)' srcset=heroImg.w800)
+        source(media='(max-width:1400px)' srcset=heroImg.w1400)
+        img(src=heroImg.w2400 alt=lang === 'ru' ? direction.titleRu : direction.titleEn)
+    else
+      img(src='/images/eka/v2/2.jpg' alt=lang === 'ru' ? direction.titleRu : direction.titleEn style='width:100%;height:100%;object-fit:cover')
+    .dir-hero-overlay
+    .dir-hero-content
+      .dir-hero-label= lang === 'ru' ? 'Направление' : 'Destination'
+      .dir-hero-title= lang === 'ru' ? direction.titleRu : direction.titleEn
+
+  .section
+    .section-inner
+      .dir-body
+        .dir-intro-text
+          p= lang === 'ru' ? direction.descRu : direction.descEn
+        .dir-meta-list
+          if direction.metaDistanceRu || direction.metaDistanceEn
+            .meta-item
+              .meta-label= lang === 'ru' ? 'Расстояние' : 'Distance'
+              .meta-value= lang === 'ru' ? direction.metaDistanceRu : direction.metaDistanceEn
+          if direction.metaDurationRu || direction.metaDurationEn
+            .meta-item
+              .meta-label= lang === 'ru' ? 'Длительность' : 'Duration'
+              .meta-value= lang === 'ru' ? direction.metaDurationRu : direction.metaDurationEn
+          if direction.metaGroupSize
+            .meta-item
+              .meta-label= lang === 'ru' ? 'Группа' : 'Group size'
+              .meta-value= direction.metaGroupSize
+          if direction.metaSeasonRu || direction.metaSeasonEn
+            .meta-item
+              .meta-label= lang === 'ru' ? 'Сезон' : 'Season'
+              .meta-value= lang === 'ru' ? direction.metaSeasonRu : direction.metaSeasonEn
+
+  - var galleryImgs = (images && images.filter(function(i){ return i.role === 'gallery'; })) || []
+  - var galleryList = galleryImgs.length ? galleryImgs : (direction.gallery || [])
+  if galleryList.length
+    .section(style='padding-top:0')
+      .section-inner
+        .gallery
+          each item, i in galleryList
+            - var caption = item.caption || ''
+            .gallery-item(class=i === 0 ? 'tall' : '' data-lb=i data-src=item.w1400 || item.w800 data-caption=caption)
+              picture
+                source(media='(max-width:400px)' srcset=item.w400)
+                source(media='(max-width:800px)' srcset=item.w800)
+                img(src=item.w1400 alt=caption loading='lazy')
+
+  - var extraText = lang === 'ru' ? direction.extraTextRu : direction.extraTextEn
+  if extraText
+    .extra-text
+      .extra-text-inner
+        .extra-text-label= lang === 'ru' ? 'Подробнее' : 'More'
+        .extra-text-body
+          each para in extraText.split('\n\n')
+            p= para
+
+  if tours.length
+    .tours-section
+      .section-inner
+        .section-header
+          span.section-title= lang === 'ru' ? 'Ближайшие туры' : 'Upcoming tours'
+          .section-line
+        .tours-list
+          each tour in tours
+            a.tour-row(href=`/${lang}/tours/${tour.id}`)
+              +tourDate(tour)
+              .tour-info
+                .tour-name= lang === 'ru' ? tour.titleRu : tour.titleEn
+                .tour-detail
+                  | #{lang === 'ru' ? tour.durationRu : tour.durationEn}
+                  if tour.maxParticipants
+                    |  · #{lang === 'ru' ? 'до ' + tour.maxParticipants + ' чел' : 'up to ' + tour.maxParticipants}
+              .tour-price
+                .amount= tour.price + ' ' + (tour.currency || 'USD')
+                .currency= lang === 'ru' ? 'за человека' : 'per person'
+
+  if reviews && reviews.length
+    .extra-text
+      .extra-text-inner
+        .extra-text-label= lang === 'ru' ? 'Отзывы' : 'Reviews'
+        .reviews-list
+          each review in reviews
+            .review-card
+              .review-text= review.reviewText
+              .review-author
+                | — #{review.name}
+                if review.tourTitle
+                  | , #{review.tourTitle}
+
+  .section
+    .section-inner
+      if tours.length
+        .section-no-tours= lang === 'ru' ? 'Нет подходящего тура?' : 'No suitable tour?'
+      +requestForm({
+        formTitle: lang === 'ru' ? 'Хочу в ' + direction.titleRu : 'I want to visit ' + direction.titleEn,
+        formSub: lang === 'ru' ? 'Оставьте заявку — Эка свяжется и обсудит удобные даты' : 'Leave a request — Eka will get in touch to discuss dates',
+        hiddenFields: { type: 'direction', directionId: direction.id, directionSlug: direction.slug }
+      })
