@@ -155,7 +155,7 @@ router.post('/country', requireAuth, (req, res) => {
   var data = getData();
   var k = slugify(key);
   if (!data[k]) {
-    data[k] = { label, series: {} };
+    data[k] = { label, series: {}, createdAt: new Date().toISOString().slice(0, 10) };
     saveData(data);
   }
   res.redirect('/admin');
@@ -186,6 +186,12 @@ router.post('/country/:key/edit', requireAuth, (req, res) => {
   var data = getData();
   if (!data[key]) return res.redirect('/admin');
   data[key].label = label.trim();
+  var defaultPhotoType = req.body.defaultPhotoType;
+  if (['copter', 'camera', 'mobile'].includes(defaultPhotoType)) {
+    data[key].defaultPhotoType = defaultPhotoType;
+  } else {
+    delete data[key].defaultPhotoType;
+  }
   saveData(data);
   res.redirect(`/admin/country/${key}/edit`);
 });
@@ -246,7 +252,7 @@ router.post('/series/:country', requireAuth, (req, res) => {
   if (!data[country]) return res.redirect('/admin');
   var k = slugify(key);
   if (!data[country].series[k]) {
-    data[country].series[k] = { label, photos: [] };
+    data[country].series[k] = { label, photos: [], createdAt: new Date().toISOString().slice(0, 10) };
     if (data[country].seriesOrder) {
       data[country].seriesOrder.push(k);
     }
@@ -268,6 +274,7 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
     countryLabel: data[country].label,
     photos: data[country].series[series].photos,
     tags: getTags(),
+    defaultPhotoType: data[country].defaultPhotoType || 'copter',
   });
 });
 
@@ -333,6 +340,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
       date: date || '',
       desc: desc || '',
       type: photoType,
+      createdAt: new Date().toISOString().slice(0, 10),
       urls: {
         thumb: `${base}/${path400}`,
         preview: `${base}/${path800}`,
@@ -358,7 +366,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
         var d2 = getData();
         var p = d2[country] && d2[country].series[series] && d2[country].series[series].photos.find(function(x) { return x.id === photoEntry.id; });
         if (p) {
-          if (!p.desc) p.desc = result.desc;
+          p.seo_desc = result.desc;
           p.seo_keywords = result.keywords;
           saveData(d2);
         }
@@ -417,7 +425,7 @@ router.post('/tags', requireAuth, (req, res) => {
   if (!clean) return res.redirect('/admin/tags');
   var tags = getTags();
   if (!tags[clean]) {
-    tags[clean] = { label };
+    tags[clean] = { label, createdAt: new Date().toISOString().slice(0, 10) };
     saveTags(tags);
   }
   res.redirect('/admin/tags');
@@ -618,6 +626,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
     return res.redirect('/admin');
   }
   var { title, date, desc } = req.body;
+  var seoDesc = (req.body.seo_desc || '').trim();
   var seoKeywords = (req.body.seo_keywords || '').trim();
   var photoType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'copter';
   if (!title || !title.trim()) return res.redirect(`/admin/${country}/${seriesKey}/${id}/edit`);
@@ -646,6 +655,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   }
   if (!isNaN(altEditRaw) && altEditRaw >= 0) { photo.altitude = Math.round(altEditRaw); } else { delete photo.altitude; }
   if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
+  if (seoDesc) { photo.seo_desc = seoDesc; } else { delete photo.seo_desc; }
   if (seoKeywords) { photo.seo_keywords = seoKeywords; } else { delete photo.seo_keywords; }
   photo.type = photoType;
   try {
@@ -751,7 +761,7 @@ router.post('/:country/:series/:id/annotation/add', requireAuth, express.json(),
   if (!data[country] || !data[country].series[seriesKey]) return res.status(404).json({ ok: false });
   var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
   if (!photo) return res.status(404).json({ ok: false });
-  var annot = { id: Date.now().toString(), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, text };
+  var annot = { id: Date.now().toString(), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, text, createdAt: new Date().toISOString().slice(0, 10) };
   if (!photo.annotations) photo.annotations = [];
   photo.annotations.push(annot);
   saveData(data);
@@ -814,11 +824,10 @@ router.post('/:country/:series/:id/generate-seo', requireAuth, express.json(), a
       seriesLabel: data[country].series[seriesKey].label,
       allTags: getTags(),
     });
-    var force = req.body && req.body.force;
-    if (!photo.desc || force) photo.desc = result.desc;
+    photo.seo_desc = result.desc;
     photo.seo_keywords = result.keywords;
     saveData(data);
-    res.json({ ok: true, desc: photo.desc, keywords: photo.seo_keywords });
+    res.json({ ok: true, desc: photo.seo_desc, keywords: photo.seo_keywords });
   } catch (err) {
     console.error('[generate-seo]', err.message);
     res.status(500).json({ error: err.message });

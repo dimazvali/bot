@@ -385,7 +385,7 @@ router.get('/:country/:series/:id', (req, res) => {
     related,
     seriesUrl: `/${countryKey}/${seriesKey}`,
     title: `${photo.title} — photo.dimazvali.com`,
-    desc: photo.desc || `${photo.title} · ${series.label} · ${country.label} — аэрофотоснимок Дмитрия Шестакова`,
+    desc: photo.seo_desc || photo.desc || `${photo.title} · ${series.label} · ${country.label} — аэрофотоснимок Дмитрия Шестакова`,
     keywords: photo.seo_keywords || buildPageKeywords([photo], allTagsPhoto, [country.label, series.label]),
     ogImage: photo.urls ? photo.urls.full : null,
     ogUrl: `${BASE}/${countryKey}/${seriesKey}/${photo.id}`,

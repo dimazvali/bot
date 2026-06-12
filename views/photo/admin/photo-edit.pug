@@ -39,9 +39,10 @@ html(data-theme='dark')
           p.admin-hint ЗАМЕНИТЬ ФАЙЛ (необязательно):
           input.admin-input(type='file' name='photo' accept='image/*')
           input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. Май 2024)')
+          textarea.admin-input#photo-desc(name='desc' placeholder='описание для сайта (необязательно)' rows='3')= photo.desc || ''
           .admin-desc-row
-            textarea.admin-input#photo-desc(name='desc' placeholder='описание (необязательно)' rows='3')= photo.desc || ''
-            button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать описание и ключевые слова через AI') 🤖
+            input.admin-input#photo-seo-desc(type='text' name='seo_desc' value=photo.seo_desc || '' placeholder='meta-описание (только в метатегах, SEO)')
+            button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать meta-описание и ключевые слова через AI') 🤖
           input.admin-input#photo-keywords(type='text' name='seo_keywords' value=photo.seo_keywords || '' placeholder='ключевые слова (SEO, необязательно)')
           p.admin-hint#gen-seo-status(style='display:none')
           input.admin-input(type='url' name='instagram' value=photo.instagram || '' placeholder='ссылка на публикацию в instagram (необязательно)')
@@ -212,15 +213,14 @@ html(data-theme='dark')
         status.style.color = '#aaa';
         status.textContent = 'Генерирую…';
         try {
-          var force = !!document.getElementById('photo-desc').value.trim();
           var resp = await fetch(window.location.pathname.replace('/edit', '/generate-seo'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ force }),
+            body: JSON.stringify({}),
           });
           var data = await resp.json();
           if (!resp.ok || !data.ok) throw new Error(data.error || 'Ошибка');
-          document.getElementById('photo-desc').value = data.desc;
+          document.getElementById('photo-seo-desc').value = data.desc;
           document.getElementById('photo-keywords').value = data.keywords;
           status.style.color = '#4caf50';
           status.textContent = '✓ Готово — не забудьте сохранить';

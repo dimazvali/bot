@@ -33,7 +33,7 @@ html(data-theme='dark')
           .type-radio-group
             each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
               label.type-radio-label
-                input(type='radio' name='type' value=t[0] checked=t[0]==='copter')
+                input(type='radio' name='type' value=t[0] checked=t[0]===(defaultPhotoType||'copter'))
                 span
                   svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
                     if t[0]==='camera'
