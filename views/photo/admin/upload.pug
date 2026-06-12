@@ -14,7 +14,12 @@ html(data-theme='dark')
         h2.admin-title ЗАГРУЗИТЬ ФОТО
         p.admin-hint Файл будет конвертирован в WebP и загружен в Firebase Storage в двух размерах (800px и 2400px).
         form.admin-form(method='POST' action=`/admin/${country}/${series}/upload` enctype='multipart/form-data')
-          input.admin-input#photo-file(type='file' name='photo' accept='image/*' required)
+          input#photo-file(type='file' name='photo' accept='image/*' required style='display:none')
+          .drop-zone#drop-zone
+            img#drop-preview(alt='preview')
+            .drop-zone-hint#drop-hint
+              .drop-zone-icon ↑
+              span ПЕРЕТАЩИТЕ ФОТО ИЛИ НАЖМИТЕ
           span.admin-hint#exif-status
           input.admin-input#photo-title(type='text' name='title' placeholder='название снимка')
           input.admin-input#photo-date(type='text' name='date' placeholder='дата (напр. Май 2024)')
@@ -77,37 +82,78 @@ html(data-theme='dark')
     script.
       var MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
-      document.getElementById('photo-file').addEventListener('change', async function (e) {
-        var file = e.target.files[0];
-        var status = document.getElementById('exif-status');
-        status.textContent = '';
-        if (!file) return;
+      var fileInput = document.getElementById('photo-file');
+      var dropZone  = document.getElementById('drop-zone');
+      var preview   = document.getElementById('drop-preview');
+      var hint      = document.getElementById('drop-hint');
+      var status    = document.getElementById('exif-status');
 
+      function showPreview(file) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+          hint.style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+      }
+
+      async function readExif(file) {
+        status.textContent = '';
         try {
           var exif = await exifr.parse(file, { gps: true, pick: ['DateTimeOriginal', 'GPSAltitude'] });
           if (!exif) return;
-
           var filled = [];
-
           if (exif.DateTimeOriginal) {
             var d = new Date(exif.DateTimeOriginal);
             document.getElementById('photo-date').value = MONTHS[d.getMonth()] + ' ' + d.getFullYear();
             filled.push('дата');
           }
-
           if (exif.latitude != null) {
             document.getElementById('photo-lat').value = exif.latitude.toFixed(6);
             document.getElementById('photo-lng').value = exif.longitude.toFixed(6);
             filled.push('координаты');
           }
-
           if (exif.GPSAltitude != null) {
             document.getElementById('photo-altitude').value = Math.round(exif.GPSAltitude);
             filled.push('высота');
           }
-
           if (filled.length) status.textContent = '✓ из EXIF: ' + filled.join(', ');
-        } catch (err) {
-          // EXIF unavailable — silent
-        }
+        } catch (err) {}
+      }
+
+      function handleFile(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+        showPreview(file);
+        readExif(file);
+      }
+
+      // Click zone → open file dialog
+      dropZone.addEventListener('click', function() { fileInput.click(); });
+
+      // Native input change (click or keyboard)
+      fileInput.addEventListener('change', function() {
+        if (fileInput.files[0]) handleFile(fileInput.files[0]);
+      });
+
+      // Drag events
+      dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+      });
+      dropZone.addEventListener('dragleave', function(e) {
+        if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+      });
+      dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        var file = e.dataTransfer.files[0];
+        if (!file) return;
+        // Assign to the hidden input so the form sends it
+        try {
+          var dt = new DataTransfer();
+          dt.items.add(file);
+          fileInput.files = dt.files;
+        } catch(err) {}
+        handleFile(file);
       });

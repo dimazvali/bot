@@ -4,6 +4,10 @@
     "archived": true,
     "series": {}
   },
+  "food": {
+    "label": "food and drinks",
+    "series": {}
+  },
   "georgia": {
     "label": "Грузия",
     "seriesOrder": [
@@ -23,37 +27,34 @@
             "id": "dji-fly-20260312-182322-174-1773325565022-photo-optimized",
             "title": "Медея",
             "date": "январь 2026",
-            "desc": "Вид на Медею в Батуми с высоты птичьего полета. Грузия, январь 2026. Аэрофотография побережья Черного моря.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182322-174-1773325565022-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182322-174-1773325565022-photo-optimized-2400.webp"
             },
-            "colorFamily": "teal",
-            "seo_keywords": "Медея Батуми, aerial photography Грузия, фотография с дрона, Батуми побережье, Черное море аэросъемка, drone photography Georgia, Medea statue aerial view"
+            "colorFamily": "teal"
           },
           {
             "id": "dji-fly-20260311-181456-64-1773238727064-photo-optimized",
             "title": "Берег на закате",
             "date": "",
-            "desc": "Вид с дрона на побережье Батуми во время захода солнца. Золотой час над Черным морем и береговой линией Грузии.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181456-64-1773238727064-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181456-64-1773238727064-photo-optimized-2400.webp"
             },
-            "colorFamily": "teal",
-            "seo_keywords": "Батуми береговая линия, Черное море дрон, закат Грузия, aerial photography Батуми, прибрежный пейзаж, drone sunset, побережье Батуми"
+            "colorFamily": "teal"
           },
           {
             "id": "dji-fly-20260312-174722-156-1773323498033-photo-optimized",
             "title": "Корабель",
             "date": "",
-            "desc": "Вид с воздуха на корабль в Батуми. Снимок береговой линии Грузии с дронов.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-174722-156-1773323498033-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-174722-156-1773323498033-photo-optimized-2400.webp"
             },
-            "colorFamily": "blue",
-            "seo_keywords": "Батуми с дрона, aerial photography Georgia, корабль Батуми, drone shot Batumi, морская фотография, coastal Georgia, береговая фотография"
+            "colorFamily": "blue"
           }
         ]
       },
@@ -73,14 +74,13 @@
               "lat": 42.549444,
               "lng": 45.078992
             },
-            "colorFamily": "mono",
-            "seo_keywords": "Кистани деревня, Хевсуретия Грузия, aerial photography Georgia, горная деревня, traditional towers, кавказские горы, drone photography, август 2025"
+            "colorFamily": "mono"
           },
           {
             "id": "dji-fly-20250823-173544-554-1755956274563-photo-optimized",
             "title": "Крепость Кистани",
             "date": "Август 2025",
-            "desc": "Вид с дрона на крепость Кистани в Хевсуретии. Древняя грузинская крепость среди горных ландшафтов Кавказа, аэрофотография августа 2025",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-173544-554-1755956274563-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-173544-554-1755956274563-photo-optimized-2400.webp"
@@ -89,8 +89,7 @@
               "lat": 42.561933,
               "lng": 45.083325
             },
-            "colorFamily": "mono",
-            "seo_keywords": "Крепость Кистани, Хевсуретия, aerial photography Грузия, древние крепости, горы Кавказа, drone photography Georgia, грузинские памятники"
+            "colorFamily": "mono"
           }
         ]
       },
@@ -106,7 +105,7 @@
             "id": "dji-fly-20260124-154640-923-1769255271622-photo-optimized",
             "title": "Вид на Джвари с воды",
             "date": "Январь 2026",
-            "desc": "Вид на монастырь Джвари с реки Мтквари в зимний день. Древний храм на скале в Мцхета, Грузия. Аэрофотография.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-154640-923-1769255271622-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-154640-923-1769255271622-photo-optimized-2400.webp"
@@ -114,8 +113,7 @@
             "tags": [
               "winter"
             ],
-            "colorFamily": "teal",
-            "seo_keywords": "Джвари монастырь, Мцхета Грузия, aerial photography Georgia, древний храм, вид с воды, зимний пейзаж, Mtkvari river, аэрофото"
+            "colorFamily": "teal"
           }
         ]
       },
@@ -126,13 +124,12 @@
             "id": "dji-fly-20260510-172130-503-1778419845999-photo-optimized",
             "title": "Амфитеатр",
             "date": "",
-            "desc": "Амфитеатр в ущелье Панкиси, Грузия. Аэрофотография природного образования в горной местности Кавказа.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-2400.webp"
             },
-            "colorFamily": "green",
-            "seo_keywords": "амфитеатр Панкиси, Грузия aerial photography, ущелье Панкиси, горная Грузия, drone photography Georgia, природа Кавказа, аэрофото ландшафт"
+            "colorFamily": "green"
           }
         ]
       },
@@ -143,31 +140,29 @@
             "id": "dji-0610",
             "title": "Каньон",
             "date": "Апрель 2026",
-            "desc": "Каньон в регионе Самегрело, Грузия. Апрель 2026. Воздушная съёмка горного ущелья с видом на скальные стены и водный поток.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-2400.webp"
             },
-            "colorFamily": "mono",
-            "seo_keywords": "каньон Грузия, Самегрело, aerial photography canyon, горное ущелье, drone photography, грузинские пейзажи, водный каньон, скальные образования"
+            "colorFamily": "mono"
           },
           {
             "id": "dji-0573",
             "title": "Балда",
             "date": "",
-            "desc": "Вид с воздуха на село Балда в регионе Самегрело, Грузия. Архитектура и ландшафт западной части страны.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-2400.webp"
             },
-            "colorFamily": "teal",
-            "seo_keywords": "Балда Грузия, Самегрело aerial, село Балда, aerial photography Georgia, Западная Грузия, drone photo Samegrelo"
+            "colorFamily": "teal"
           },
           {
             "id": "dji-0624",
             "title": "Патара Водопади",
             "date": "Май 2026",
-            "desc": "Вид с дрона на водопады Патара в регионе Самегрело, Грузия. Май 2026. Природная красота и горные ландшафты с высоты птичьего полета.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0624-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0624-2400.webp"
@@ -176,14 +171,13 @@
               "lat": 42.491987,
               "lng": 42.42731
             },
-            "colorFamily": "mono",
-            "seo_keywords": "Патара водопады Грузия, aerial photography Georgia, Самегрело дрон, waterfall drone shot, грузинские водопады, Самегрело природа, drone landscape Georgia"
+            "colorFamily": "mono"
           },
           {
             "id": "dji-0617",
             "title": "Налево пойдешь",
             "date": "",
-            "desc": "Аэрофотография грузинского региона Самегрело. Панорамный вид лесистой местности с дорогами и поселениями в западной части страны.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0617-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0617-2400.webp"
@@ -192,14 +186,13 @@
               "lat": 42.49188,
               "lng": 42.42784
             },
-            "colorFamily": "mono",
-            "seo_keywords": "aerial photography Georgia, Samegrelo, аэрофото Грузия, пейзаж с высоты, грузинская природа, drone photography, западная Грузия, аэросъемка"
+            "colorFamily": "mono"
           },
           {
             "id": "dji-0616-2",
             "title": "Направо пойдешь",
             "date": "Май 2026",
-            "desc": "Воздушный снимок грузинского региона Самегрело. Природные ландшафты и архитектура края, снятые дроном в май 2026 года.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0616-2-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0616-2-2400.webp"
@@ -208,8 +201,7 @@
               "lat": 42.491919,
               "lng": 42.427769
             },
-            "colorFamily": "mono",
-            "seo_keywords": "Грузия Самегрело, aerial photography Georgia, drone Mingrelian, грузинский пейзаж, фотография с дрона, landscape photography Samegrelo, аэрофотография"
+            "colorFamily": "mono"
           }
         ]
       },
@@ -230,7 +222,14 @@
               "mtkvari"
             ],
             "colorFamily": "mono",
-            "seo_keywords": "Метехский мост, Тбилиси, aerial photography, Грузия, Мтквари река, низкая вода, drone shot, Georgian landmarks"
+            "annotations": [
+              {
+                "id": "1781264811479",
+                "x": 38.43,
+                "y": 44.44,
+                "text": "дядька нра коне"
+              }
+            ]
           },
           {
             "id": "2",
@@ -242,8 +241,7 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/2-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/2-2400.webp"
             },
-            "colorFamily": "mono",
-            "seo_keywords": "aerial photography Tbilisi, аэрофотография Грузия, Тбилиси с воздуха, городская аэрофотография, drone photography Georgia, фотография с дрона, Грузия вид сверху, городской пейзаж"
+            "colorFamily": "mono"
           },
           {
             "id": "3",
@@ -255,8 +253,7 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3-2400.webp"
             },
-            "colorFamily": "blue",
-            "seo_keywords": "aerial photography Georgia, аэрофотография Грузия, горные альпинисты, воздушный шар Тбилиси, mountain climbing aerial, высокогорная фотография, альпинизм с дрона, горы Кавказа"
+            "colorFamily": "blue"
           },
           {
             "id": "4",
@@ -271,15 +268,14 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/4-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/4-2400.webp"
             },
-            "colorFamily": "blue",
-            "seo_keywords": "Тбилиси aerial photography, Дворец юстиции Грузия, река Мтквари, прогулочные лодки, Tbilisi drone, Palace of Justice, aerial view Georgia"
+            "colorFamily": "blue"
           },
           {
             "id": "5",
             "file": "5.jpg",
             "title": "Снежные Хроники Грузии",
             "date": "Март 2026",
-            "desc": "Вид на монументальнейший монумент Зураба Церетели и Тбилисское море.",
+            "desc": "Вид с воздуха на заснеженный Тбилиси в марте. Зимняя архитектура грузинской столицы, контрастные крыши и горные пейзажи",
             "tags": [
               "winter",
               "chronicles"
@@ -289,7 +285,7 @@
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/5-2400.webp"
             },
             "colorFamily": "teal",
-            "seo_keywords": "aerial photography Georgia, аэрофотография Грузия, Тбилиси зима, снежный Тбилиси, drone photography, aerial view, зимний Тбилиси"
+            "seo_keywords": "aerial photography Грузия, Тбилиси с воздуха, зимний Тбилиси, drone footage Georgia, снежные хроники, грузинская архитектура, winter landscape, aerial view города"
           },
           {
             "id": "6",
@@ -304,8 +300,7 @@
             "tags": [
               "tbilisea"
             ],
-            "colorFamily": "mono",
-            "seo_keywords": "Тбилисское море, Tbilisi Sea, аэрофотография Грузия, aerial photography Georgia, водохранилище Тбилиси, drone photography, Грузия с воздуха"
+            "colorFamily": "mono"
           },
           {
             "id": "7",
@@ -320,8 +315,7 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/7-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/7-2400.webp"
             },
-            "colorFamily": "teal",
-            "seo_keywords": "Метехи Тбилиси, aerial photography Грузия, монастырь Мтквари, весенний Тбилиси, drone photography Georgia, историческая архитектура, Метехи с воздуха"
+            "colorFamily": "teal"
           },
           {
             "id": "8",
@@ -336,8 +330,7 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/8-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/8-2400.webp"
             },
-            "colorFamily": "mono",
-            "seo_keywords": "Тбилиси аэрофото, Грузия с воздуха, Мтквари, aerial photography Georgia, захоронение Илии II, Tbilisi from above, церемония захоронения"
+            "colorFamily": "mono"
           },
           {
             "id": "9",
@@ -352,8 +345,7 @@
             "tags": [
               "sameba"
             ],
-            "colorFamily": "orange",
-            "seo_keywords": "Самеба Тбилиси, aerial photography Грузия, церковь Самеба, поминовение Илии II, Тбилиси с воздуха, Georgian churches, drone photography Грузия"
+            "colorFamily": "orange"
           },
           {
             "id": "10",
@@ -369,7 +361,7 @@
               "cablecars"
             ],
             "colorFamily": "teal",
-            "seo_keywords": "Самгорская канатка, Тбилиси канатка, aerial photography Грузия, канатная дорога Тбилиси, drone photography Грузия, Самгора, городская панорама"
+            "type": "camera"
           },
           {
             "id": "dji-fly-20251004-172428-35-1759584293867-photo-optimized",
@@ -380,14 +372,13 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20251004-172428-35-1759584293867-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20251004-172428-35-1759584293867-photo-optimized-2400.webp"
             },
-            "colorFamily": "mono",
-            "seo_keywords": "аэрофотография Тбилиси, парк Вере, новый мост, aerial photography Georgia, drone photography Tbilisi, архитектура Грузии, вид с дрона"
+            "colorFamily": "mono"
           },
           {
             "id": "temp-image-for-default-share-png",
             "title": "Панорама парка Рике",
             "date": "",
-            "desc": "Панорама парка Рике в Тбилиси. Вид сверху на озеро, парковые зоны и архитектурные объекты. Аэрофотография Грузии.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/temp-image-for-default-share-png-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/temp-image-for-default-share-png-2400.webp"
@@ -396,8 +387,7 @@
               "lat": 41.69049,
               "lng": 44.81127166666667
             },
-            "colorFamily": "yellow",
-            "seo_keywords": "парк Рике Тбилиси, aerial photography Грузия, панорама парка, Тбилиси с воздуха, озеро Рике, достопримечательности Грузии, drone photography Tbilisi"
+            "colorFamily": "yellow"
           },
           {
             "id": "dji-fly-20250803-191336-310-1754234028934-photo-optimized",
@@ -412,14 +402,13 @@
               "lat": 41.640878,
               "lng": 44.690844
             },
-            "colorFamily": "teal",
-            "seo_keywords": "Коджори Тбилиси, aerial photography Грузия, горы Кавказа, август 2025, drone footage, Коджори пейзаж, аэрофотография Грузии, горный район Тбилиси"
+            "colorFamily": "teal"
           },
           {
             "id": "dji-fly-20260307-163208-945-1772886838874-photo-optimized",
             "title": "Яхта на Тбилисском море",
             "date": "Март 2026",
-            "desc": "Вид с воздуха на яхту в Тбилисском море. Аэрофотография Грузии, март 2026. Панорама водного ландшафта.",
+            "desc": "Аэрофотография яхты на Тбилисском море. Вид сверху на водную гладь близ Тбилиси, Грузия. Март 2026.",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-163208-945-1772886838874-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-163208-945-1772886838874-photo-optimized-2400.webp"
@@ -428,7 +417,7 @@
               "tbilisea"
             ],
             "colorFamily": "mono",
-            "seo_keywords": "яхта Тбилисское море, Tbilisi Sea aerial, аэрофотография Грузия, Грузия с дрона, водная фотография, морской пейзаж, Тбилиси март"
+            "seo_keywords": "яхта Тбилисское море, aerial photography Грузия, drone shot Tbilisi, Тбилиси с дрона, водная съемка, yacht photography, Грузия аэрофото"
           },
           {
             "id": "dji-fly-20260307-162332-912-1772886365129-photo-optimized",
@@ -442,8 +431,7 @@
             "tags": [
               "tbilisea"
             ],
-            "colorFamily": "green",
-            "seo_keywords": "Тбилисское море, аэрофотография Грузии, Tbilisi aerial, водохранилище Грузия, съемка с дрона, ландшафт Tbilisi, природа Грузии, March 2026"
+            "colorFamily": "green"
           },
           {
             "id": "dji-fly-20260211-113620-286-1770795437065-photo-optimized",
@@ -458,14 +446,13 @@
               "winter",
               "sameba"
             ],
-            "colorFamily": "mono",
-            "seo_keywords": "Самеба Тбилиси, aerial photography Georgia, собор Самеба зима, Грузия с воздуха, Tbilisi drone, снежный Тбилиси, Метехи церковь, Georgian cathedral"
+            "colorFamily": "mono"
           },
           {
             "id": "dji-fly-20260213-034524-416-1770940053802-photo-optimized",
             "title": "Мать грузия и телебашня",
             "date": "Февраль 2026",
-            "desc": "Мать Грузия хоть и с мечом, но всегда улыбается.",
+            "desc": "Аэрофото памятника Мать Грузия и телебашни Тбилиси ночью. Февраль 2026",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260213-034524-416-1770940053802-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260213-034524-416-1770940053802-photo-optimized-2400.webp"
@@ -474,7 +461,7 @@
               "night"
             ],
             "colorFamily": "teal",
-            "seo_keywords": "Тбилиси ночь, Мать Грузия, Телебашня Грузия, aerial photography Tbilisi, памятник Тбилиси, ночная съемка дрон"
+            "seo_keywords": "Тбилиси аэрофото, Мать Грузия, телебашня, aerial photography Tbilisi, ночной город Грузия, памятник с воздуха, Georgia drone"
           },
           {
             "id": "3c9f8124-60fd-4aac-8d20-5a23f5a0ff76",
@@ -488,8 +475,7 @@
             "tags": [
               "night"
             ],
-            "colorFamily": "teal",
-            "seo_keywords": "стадион Панчадзе, Tbilisi aerial photography, Грузия спорт, ночная аэрофотография, Boris Panchadzе stadium, Тбилиси с воздуха, aerial sports venue, drone photography Georgia"
+            "colorFamily": "teal"
           }
         ]
       }
@@ -509,7 +495,7 @@
             "id": "dji-fly-20251016-122444-196-1760599729359-photo-optimized",
             "title": "Дорога к Медео",
             "date": "Октябрь 2025",
-            "desc": "Вид сверху на дорогу к ущелью Медео в Алматы. Горные серпантины и осенний пейзаж Казахстана в октябре.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251016-122444-196-1760599729359-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251016-122444-196-1760599729359-photo-optimized-2400.webp"
@@ -517,8 +503,7 @@
             "tags": [
               "mountains"
             ],
-            "colorFamily": "yellow",
-            "seo_keywords": "Медео Алматы, дорога к Медео, aerial photography Казахстан, горы Алматы, ущелье Медео, дроны фотография, осень в горах"
+            "colorFamily": "yellow"
           },
           {
             "id": "dji-fly-20260425-153212-419-1777113302139-photo-optimized",
@@ -533,8 +518,7 @@
               "winter",
               "mountains"
             ],
-            "colorFamily": "teal",
-            "seo_keywords": "БАО Алматы, aerial photography Казахстан, зимние горы, аэрофото, горы Алматы, winter landscape Kazakhstan, съёмка дронов"
+            "colorFamily": "teal"
           }
         ]
       },
@@ -545,57 +529,48 @@
             "id": "2",
             "title": "Каньон замков 1",
             "date": "Апрель 2026",
-            "desc": "Вид с дрона на Чарынский каньон в Казахстане. Красные скалы и необычные природные образования, напоминающие замки. Апрель.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
             },
-            "colorFamily": "orange",
-            "seo_keywords": "Чарынский каньон, Казахстан, аэрофотография, drone photography, красные скалы, каньон замков, природа Казахстана, aerial landscape"
+            "colorFamily": "orange"
           },
           {
             "id": "3",
             "title": "Каньон замков 2",
             "date": "Апрель 2026",
-            "desc": "Чарынский каньон в Казахстане. Апрельский вид на скальные образования, напоминающие замки. Аэрофотография каньона.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/3-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
             },
-            "colorFamily": "orange",
-            "seo_keywords": "Чарынский каньон, Казахстан, aerial photography, каньон замков, drone photo, красные скалы, природа Казахстана"
+            "colorFamily": "orange"
           },
           {
             "id": "1",
             "title": "Каньон замков 3",
             "date": "Апрель 2026",
-            "desc": "Чарынский каньон в Казахстане. Апрельский вид на скальные образования, похожие на средневековые замки. Аэрофотография каньона.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/1-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/1-2400.webp"
             },
-            "colorFamily": "red",
-            "seo_keywords": "Чарынский каньон, Казахстан, aerial photography, каньон замков, скальные образования, drone photography, пейзажная аэрофотография, природа Казахстана"
+            "colorFamily": "red"
           },
           {
             "id": "4",
             "title": "Каньон без замков",
             "date": "Апрель 2026",
-            "desc": "Чарынский каньон в Казахстане. Апрельские пейзажи красных скал и каменных формаций, снятые с воздуха.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/4-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/4-2400.webp"
             },
-            "colorFamily": "mono",
-            "seo_keywords": "Чарынский каньон, Казахстан, aerial photography, каньон Казахстана, красные скалы, landscape drone, canyon photography"
+            "colorFamily": "mono"
           }
         ]
       }
     }
-  },
-  "food": {
-    "label": "food and drinks",
-    "series": {},
-    "hiddenFromFeed": true
   }
 }
