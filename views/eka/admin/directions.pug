@@ -11,7 +11,9 @@ html
       a(href='/admin/attractions') Места
       a(href='/admin/tours') Туры
       a(href='/admin/requests') Заявки
+      a(href='/admin/clients') Клиенты
       a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
       a(href='/admin/profile') Профиль
       a(href='/admin/help') Справка
       a(href='/admin/logout') Выйти
@@ -48,3 +50,45 @@ html
       button.admin-btn(id='saveOrderBtn') Сохранить порядок
     script(src='/javascripts/eka/admin.js')
     script(src='/javascripts/eka/main.js')
+    script.
+      (function() {
+        var tbody = document.querySelector('#directionsList tbody');
+        var saveBtn = document.getElementById('saveOrderBtn');
+        var dragging = null;
+
+        tbody.addEventListener('dragstart', function(e) {
+          dragging = e.target.closest('tr');
+          dragging.style.opacity = '.4';
+        });
+        tbody.addEventListener('dragend', function() {
+          dragging.style.opacity = '';
+          dragging = null;
+        });
+        tbody.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          var target = e.target.closest('tr');
+          if (!target || target === dragging) return;
+          var rows = Array.from(tbody.querySelectorAll('tr'));
+          var fromIdx = rows.indexOf(dragging);
+          var toIdx = rows.indexOf(target);
+          if (fromIdx < toIdx) target.after(dragging);
+          else target.before(dragging);
+        });
+
+        saveBtn.addEventListener('click', function() {
+          var ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(function(r) { return r.dataset.id; });
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Сохраняю…';
+          fetch('/admin/directions/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids }),
+          }).then(function(r) { return r.json(); }).then(function(d) {
+            saveBtn.textContent = d.ok ? 'Сохранено ✓' : 'Ошибка';
+            saveBtn.disabled = false;
+          }).catch(function() {
+            saveBtn.textContent = 'Ошибка';
+            saveBtn.disabled = false;
+          });
+        });
+      }());

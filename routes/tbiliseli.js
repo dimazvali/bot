@@ -27,6 +27,7 @@ var fb = getFirestore(ekaApp);
 ekaData.init(fb);
 mailer.init();
 
+router.use('/admin', require('./eka-admin'));
 router.use(express.static(path.join(__dirname, '../public')));
 
 router.get('/', function(req, res) {
@@ -38,6 +39,7 @@ router.get('/', function(req, res) {
 router.use('/:lang(ru|en)', async function(req, res, next) {
   res.locals.lang = req.params.lang;
   try { res.locals.siteProfile = await ekaData.getProfile(); } catch(e) { res.locals.siteProfile = {}; }
+  try { res.locals.activeDiscounts = await ekaData.getActiveDiscounts(); } catch(e) { res.locals.activeDiscounts = []; }
   next();
 });
 
@@ -66,13 +68,31 @@ router.get('/:lang(ru|en)/directions/:slug', async function(req, res, next) {
     var direction = await ekaData.getDirectionBySlug(slug);
     if (!direction || !direction.published) return res.status(404).render('tbiliseli/error', { lang, message: 'Not found', error: {}, title: '404' });
     var tours = await ekaData.getTours({ directionId: direction.id, publishedOnly: true, upcomingOnly: true });
+    var individualTours = await ekaData.getTours({ directionId: direction.id, publishedOnly: true, individualOnly: true });
     var allDirectionTours = await ekaData.getTours({ directionId: direction.id });
     var directionTourIds = allDirectionTours.map(function(t) { return t.id; });
     var reviews = await ekaData.getReviews({ publishedOnly: true, directionId: direction.id, tourIds: directionTourIds });
     var images = await ekaData.getImages({ ownerId: direction.id });
+    var attractions = await ekaData.getAttractions({ directionId: direction.id, publishedOnly: true });
+    var attrHeroes = await Promise.all(attractions.map(function(a) { return ekaData.getImages({ ownerId: a.id, role: 'hero' }); }));
+    attractions.forEach(function(a, i) { a.heroImg = attrHeroes[i][0] || null; });
     var title = (lang === 'ru' ? direction.titleRu : direction.titleEn) + ' — TbiLiSELi';
     var url = 'https://tbiliseli.dimazvali.com/' + lang + '/directions/' + slug;
-    res.render('tbiliseli/direction', { lang, direction, tours, reviews, images, title, currentPath: '/' + lang + '/directions/' + slug, ogUrl: url });
+    res.render('tbiliseli/direction', { lang, direction, tours, individualTours, reviews, images, attractions, title, currentPath: '/' + lang + '/directions/' + slug, ogUrl: url });
+  } catch (e) { next(e); }
+});
+
+// ── ATTRACTION ───────────────────────────────────────────
+router.get('/:lang(ru|en)/attractions/:slug', async function(req, res, next) {
+  var lang = req.params.lang;
+  try {
+    var attraction = await ekaData.getAttractionBySlug(req.params.slug) || await ekaData.getAttraction(req.params.slug);
+    if (!attraction || !attraction.published) return res.status(404).render('tbiliseli/error', { lang, message: 'Not found', error: {}, title: '404' });
+    var images = await ekaData.getImages({ ownerId: attraction.id });
+    var direction = attraction.directionId ? await ekaData.getDirection(attraction.directionId) : null;
+    var title = (lang === 'ru' ? attraction.titleRu : attraction.titleEn) + ' — TbiLiSELi';
+    var url = 'https://tbiliseli.dimazvali.com/' + lang + '/attractions/' + req.params.slug;
+    res.render('tbiliseli/attraction', { lang, attraction, images, direction, title, currentPath: req.path, ogUrl: url });
   } catch (e) { next(e); }
 });
 

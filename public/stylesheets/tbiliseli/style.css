@@ -588,6 +588,115 @@ button { cursor: pointer; font-family: inherit; }
   margin-bottom: 1.5rem;
 }
 
+/* ── ATTRACTIONS ────────────────────────────────────────── */
+.attractions-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--gray) transparent;
+}
+.attractions-scroll::-webkit-scrollbar { height: 3px; }
+.attractions-scroll::-webkit-scrollbar-thumb { background: var(--gray); }
+
+.attraction-card {
+  flex: 0 0 100px;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+  text-align: center;
+}
+.attraction-card-img-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto 8px;
+  background: #e8e8e8;
+}
+.attraction-card-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+  transition: transform 0.25s;
+}
+.attraction-card:hover .attraction-card-img { transform: scale(1.05); }
+.attraction-card-title {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--black);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── AUDIO GUIDE ────────────────────────────────────────── */
+.audio-guide-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 12px 2rem;
+  background: var(--black);
+  color: var(--white);
+}
+.audio-play-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid var(--white);
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition: background 0.2s, color 0.2s;
+  color: var(--white);
+}
+.audio-play-btn:hover, .audio-play-btn.playing {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--white);
+}
+.audio-info { flex: 1; min-width: 0; }
+.audio-guide-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--gray);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.audio-progress-wrap { display: flex; align-items: center; gap: 10px; }
+.audio-progress-bar {
+  flex: 1;
+  height: 2px;
+  background: rgba(255,255,255,0.2);
+  cursor: pointer;
+  position: relative;
+}
+.audio-progress-fill {
+  height: 100%;
+  background: var(--red);
+  width: 0;
+  pointer-events: none;
+}
+.audio-time {
+  font-size: 10px;
+  color: var(--gray);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+
 /* ── REQUEST FORM ───────────────────────────────────────── */
 .request-box {
   background: var(--black);

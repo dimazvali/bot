@@ -19,7 +19,7 @@ var upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: function(req, file, cb) {
-    if (!file.mimetype.startsWith('image/')) return cb(new Error('Images only'));
+    if (!file.mimetype.startsWith('image/') && !file.mimetype.startsWith('audio/')) return cb(new Error('Images and audio only'));
     cb(null, true);
   },
 });
@@ -128,6 +128,7 @@ router.post('/directions/:id/edit', requireAuth, upload.fields([{ name: 'heroIma
       extraTextRu: b.extraTextRu || '', extraTextEn: b.extraTextEn || '',
       metaDurationRu: b.metaDurationRu || '', metaDurationEn: b.metaDurationEn || '',
       metaGroupSize: b.metaGroupSize || '',
+      metaGroupSizeRu: b.metaGroupSizeRu || '', metaGroupSizeEn: b.metaGroupSizeEn || '',
       metaSeasonRu: b.metaSeasonRu || '', metaSeasonEn: b.metaSeasonEn || '',
       metaDistanceRu: b.metaDistanceRu || '', metaDistanceEn: b.metaDistanceEn || '',
       startName: b.startName || '', startLat: parseFloat(b.startLat) || 0, startLng: parseFloat(b.startLng) || 0,
@@ -235,7 +236,7 @@ router.get('/tours', requireAuth, async function(req, res, next) {
 router.get('/tours/new', requireAuth, async function(req, res, next) {
   try {
     var directions = await ekaData.getDirections();
-    res.render('eka/admin/tour-edit', { title: 'Новый тур', tour: null, tourId: null, directions: directions, error: null });
+    res.render('eka/admin/tour-edit', { title: 'Новый тур', tour: null, tourId: null, directions: directions, clients: [], clientMap: {}, error: null });
   } catch (e) { next(e); }
 });
 
@@ -245,7 +246,10 @@ router.get('/tours/:id/edit', requireAuth, async function(req, res, next) {
     if (!tour) return res.redirect('/admin/tours');
     var directions = await ekaData.getDirections();
     var requests = await ekaData.getRequests({ tourId: req.params.id });
-    res.render('eka/admin/tour-edit', { title: (tour.titleRu || '') + ' — Edit', tour: tour, tourId: req.params.id, directions: directions, requests: requests, error: null });
+    var clients = await ekaData.getClients();
+    var clientMap = {};
+    clients.forEach(function(c) { clientMap[c.id] = c; });
+    res.render('eka/admin/tour-edit', { title: (tour.titleRu || '') + ' — Edit', tour: tour, tourId: req.params.id, directions: directions, requests: requests, clients: clients, clientMap: clientMap, error: null });
   } catch (e) { next(e); }
 });
 
@@ -254,15 +258,18 @@ router.post('/tours/:id/edit', requireAuth, express.urlencoded({ extended: false
   try {
     var b = req.body;
     var direction = b.directionId ? await ekaData.getDirection(b.directionId) : null;
+    var isIndividual = b.tourType === 'individual';
     var data = {
+      tourType: isIndividual ? 'individual' : 'group',
       directionId: b.directionId || null,
       directionSlug: direction ? direction.slug : null,
       titleRu: b.titleRu || '', titleEn: b.titleEn || '',
       descRu: b.descRu || '', descEn: b.descEn || '',
-      date: b.date ? new Date(b.date) : null,
+      date: (!isIndividual && b.date) ? new Date(b.date) : null,
       durationRu: b.durationRu || '', durationEn: b.durationEn || '',
       price: b.price ? (parseInt(b.price, 10) || 0) : 0,
       currency: b.currency || 'USD',
+      minGroupPrice: b.minGroupPrice ? (parseInt(b.minGroupPrice, 10) || 0) : 0,
       maxParticipants: b.maxParticipants ? (parseInt(b.maxParticipants, 10) || 0) : 0,
       meetingPointRu: b.meetingPointRu || '',
       meetingPointEn: b.meetingPointEn || '',
@@ -314,6 +321,27 @@ router.post('/tours/:id/add-guest', requireAuth, express.urlencoded({ extended: 
   } catch (e) { next(e); }
 });
 
+router.post('/translate', requireAuth, express.json(), async function(req, res, next) {
+  try {
+    var texts = req.body && req.body.texts;
+    if (!texts || !Object.keys(texts).length) return res.status(400).json({ error: 'No texts provided' });
+    var Anthropic = require('@anthropic-ai/sdk');
+    var apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set' });
+    var client = new Anthropic({ apiKey });
+    var prompt = 'Translate the following Russian field values to English for a travel/tourism website about Georgia (the country in the Caucasus). Return ONLY a valid JSON object with the same keys but "Ru" replaced with "En" in each key name. Be concise and natural.\n\nInput: ' + JSON.stringify(texts);
+    var msg = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    var raw = msg.content[0].text.trim();
+    var jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+    var result = JSON.parse(jsonStr);
+    res.json(result);
+  } catch (e) { next(e); }
+});
+
 router.post('/tours/:id/delete', requireAuth, async function(req, res, next) {
   try { await ekaData.deleteTour(req.params.id); res.redirect('/admin/tours'); } catch (e) { next(e); }
 });
@@ -333,7 +361,10 @@ router.get('/requests', requireAuth, async function(req, res, next) {
     var tours = await ekaData.getTours({});
     var tourMap = {};
     tours.forEach(function(t) { tourMap[t.id] = t; });
-    res.render('eka/admin/requests', { title: 'Заявки — Eka Admin', requests: requests, activeFilter: filter, tours: tours, tourMap: tourMap });
+    var clients = await ekaData.getClients();
+    var clientMap = {};
+    clients.forEach(function(c) { clientMap[c.id] = c; });
+    res.render('eka/admin/requests', { title: 'Заявки — Eka Admin', requests: requests, activeFilter: filter, tours: tours, tourMap: tourMap, clients: clients, clientMap: clientMap });
   } catch (e) { next(e); }
 });
 
@@ -341,19 +372,23 @@ router.post('/requests/:id/status', requireAuth, express.urlencoded({ extended: 
   try {
     if (!ALL_STATUSES.includes(req.body.status)) return res.status(400).send('Bad status');
     await ekaData.updateRequestStatus(req.params.id, req.body.status);
-    res.redirect('/admin/requests');
+    var back = req.body.back ? '/admin/tours/' + req.body.back + '/edit' : '/admin/requests';
+    res.redirect(back);
   } catch (e) { next(e); }
 });
 
 router.post('/requests/:id/update', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
     var b = req.body;
-    await ekaData.updateRequest(req.params.id, {
+    var update = {
       tourId: b.tourId || null,
       participants: parseInt(b.participants, 10) || 1,
       paid: b.paid === 'on',
-    });
-    res.redirect('/admin/requests');
+    };
+    if (typeof b.note !== 'undefined') update.note = (b.note || '').trim();
+    await ekaData.updateRequest(req.params.id, update);
+    var back = b.back ? '/admin/tours/' + b.back + '/edit' : '/admin/requests';
+    res.redirect(back);
   } catch (e) { next(e); }
 });
 
@@ -366,6 +401,50 @@ router.post('/requests/:id/review', requireAuth, express.urlencoded({ extended: 
     });
     var back = b.tourId ? '/admin/tours/' + b.tourId + '/edit' : '/admin/requests';
     res.redirect(back);
+  } catch (e) { next(e); }
+});
+
+// ── DISCOUNTS ─────────────────────────────────────────────
+router.get('/discounts', requireAuth, async function(req, res, next) {
+  try {
+    var discounts = await ekaData.getDiscounts();
+    res.render('eka/admin/discounts', { title: 'Скидки — Eka Admin', discounts: discounts });
+  } catch (e) { next(e); }
+});
+
+router.post('/discounts/new', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var b = req.body;
+    await ekaData.saveDiscount(null, {
+      name: (b.name || '').trim(),
+      percent: parseFloat(b.percent) || 0,
+      utmCampaign: (b.utmCampaign || '').trim(),
+      startDate: b.startDate ? new Date(b.startDate) : null,
+      endDate: b.endDate ? new Date(b.endDate) : null,
+      createdAt: new Date(),
+    });
+    res.redirect('/admin/discounts');
+  } catch (e) { next(e); }
+});
+
+router.post('/discounts/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var b = req.body;
+    await ekaData.saveDiscount(req.params.id, {
+      name: (b.name || '').trim(),
+      percent: parseFloat(b.percent) || 0,
+      utmCampaign: (b.utmCampaign || '').trim(),
+      startDate: b.startDate ? new Date(b.startDate) : null,
+      endDate: b.endDate ? new Date(b.endDate) : null,
+    });
+    res.redirect('/admin/discounts');
+  } catch (e) { next(e); }
+});
+
+router.post('/discounts/:id/delete', requireAuth, async function(req, res, next) {
+  try {
+    await ekaData.deleteDiscount(req.params.id);
+    res.redirect('/admin/discounts');
   } catch (e) { next(e); }
 });
 
@@ -408,6 +487,79 @@ router.post('/profile', requireAuth, upload.fields([{ name: 'photo', maxCount: 1
   } catch (e) { next(e); }
 });
 
+// ── CLIENTS ──────────────────────────────────────────────
+
+router.get('/clients', requireAuth, async function(req, res, next) {
+  try {
+    var clients = await ekaData.getClients();
+    var requests = await ekaData.getRequests({});
+    var lastVisit = {};
+    requests.forEach(function(r) {
+      if (!r.clientId) return;
+      var d = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt || 0);
+      if (!lastVisit[r.clientId] || d > lastVisit[r.clientId]) lastVisit[r.clientId] = d;
+    });
+    res.render('eka/admin/clients', { title: 'Клиенты — Eka Admin', clients: clients, lastVisit: lastVisit });
+  } catch (e) { next(e); }
+});
+
+router.get('/clients/new', requireAuth, async function(req, res, next) {
+  try {
+    res.render('eka/admin/client-edit', { title: 'Новый клиент — Eka Admin', client: null, clientId: null, trips: [] });
+  } catch (e) { next(e); }
+});
+
+router.get('/clients/:id/edit', requireAuth, async function(req, res, next) {
+  try {
+    var client = await ekaData.getClient(req.params.id);
+    if (!client) return res.redirect('/admin/clients');
+    var trips = await ekaData.getRequests({ clientId: req.params.id });
+    var tours = await ekaData.getTours({});
+    var tourMap = {};
+    tours.forEach(function(t) { tourMap[t.id] = t; });
+    trips.forEach(function(r) { r._tour = r.tourId ? tourMap[r.tourId] : null; });
+    res.render('eka/admin/client-edit', { title: (client.firstName || '') + ' ' + (client.lastName || '') + ' — Eka Admin', client: client, clientId: req.params.id, trips: trips });
+  } catch (e) { next(e); }
+});
+
+router.post('/clients/:id/edit', requireAuth, upload.fields([{ name: 'photo', maxCount: 1 }]), async function(req, res, next) {
+  var id = req.params.id === 'new' ? null : req.params.id;
+  try {
+    var b = req.body;
+    var createdAt = b.createdAt ? new Date(b.createdAt) : (id ? undefined : new Date());
+    var data = {
+      firstName: (b.firstName || '').trim(),
+      lastName: (b.lastName || '').trim(),
+      lang: b.lang || 'ru',
+      notes: (b.notes || '').trim(),
+      tgId: (b.tgId || '').trim(),
+      email: (b.email || '').trim(),
+      phone: (b.phone || '').trim(),
+    };
+    if (createdAt) data.createdAt = createdAt;
+    if (req.files && req.files.photo && req.files.photo[0]) {
+      var tmpId = id || ('tmp-' + Date.now());
+      var sizes = await uploadImageSizes(req.files.photo[0].buffer, 'eka/clients/' + tmpId + '/photo-{w}.webp');
+      data.photo = sizes.w400;
+    }
+    var savedId = await ekaData.saveClient(id, data);
+    res.redirect('/admin/clients/' + savedId + '/edit');
+  } catch (e) { next(e); }
+});
+
+router.post('/clients/:id/delete', requireAuth, async function(req, res, next) {
+  try { await ekaData.deleteClient(req.params.id); res.redirect('/admin/clients'); } catch (e) { next(e); }
+});
+
+router.post('/requests/:id/link-client', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var clientId = (req.body.clientId || '').trim() || null;
+    await ekaData.updateRequest(req.params.id, { clientId: clientId });
+    var back = req.body.back;
+    res.redirect(back || '/admin/requests');
+  } catch (e) { next(e); }
+});
+
 // ── ATTRACTIONS ──────────────────────────────────────────
 router.get('/attractions', requireAuth, async function(req, res, next) {
   try {
@@ -436,16 +588,18 @@ router.get('/attractions/:id/edit', requireAuth, async function(req, res, next) 
   } catch (e) { next(e); }
 });
 
-router.post('/attractions/:id/edit', requireAuth, upload.fields([{ name: 'heroImage', maxCount: 1 }, { name: 'galleryImages', maxCount: 20 }]), async function(req, res, next) {
+router.post('/attractions/:id/edit', requireAuth, upload.fields([{ name: 'heroImage', maxCount: 1 }, { name: 'galleryImages', maxCount: 20 }, { name: 'audioFileRu', maxCount: 1 }, { name: 'audioFileEn', maxCount: 1 }]), async function(req, res, next) {
   var id = req.params.id === 'new' ? null : req.params.id;
   try {
     var b = req.body;
+    var slug = (b.slug || '').trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') || null;
     var data = {
       titleRu: b.titleRu || '', titleEn: b.titleEn || '',
       descRu: b.descRu || '', descEn: b.descEn || '',
       directionId: b.directionId || null,
       published: b.published === 'on',
     };
+    if (slug) data.slug = slug;
     var savedId = await ekaData.saveAttraction(id, data);
     var ts = Date.now();
     if (req.files && req.files.heroImage && req.files.heroImage[0]) {
@@ -462,6 +616,20 @@ router.post('/attractions/:id/edit', requireAuth, upload.fields([{ name: 'heroIm
         return ekaData.saveImage(null, { ownerId: savedId, ownerType: 'attraction', role: 'gallery', order: maxOrder + 1 + i, createdAt: new Date(), w400: sizes.w400, w800: sizes.w800, w1400: sizes.w1400, w2400: sizes.w2400 });
       }));
     }
+    var audioUpdate = {};
+    for (var lang of ['Ru', 'En']) {
+      var fieldName = 'audioFile' + lang;
+      if (req.files && req.files[fieldName] && req.files[fieldName][0]) {
+        var af = req.files[fieldName][0];
+        var ext = (af.originalname.split('.').pop() || 'mp3').toLowerCase();
+        var audioPath = 'eka/attractions/' + savedId + '/audio-' + lang.toLowerCase() + '-' + ts + '.' + ext;
+        var audioRef = bucket.file(audioPath);
+        await audioRef.save(af.buffer, { metadata: { contentType: af.mimetype } });
+        await audioRef.makePublic();
+        audioUpdate['audioUrl' + lang] = 'https://storage.googleapis.com/' + bucket.name + '/' + audioPath;
+      }
+    }
+    if (Object.keys(audioUpdate).length) await ekaData.saveAttraction(savedId, audioUpdate);
     res.redirect('/admin/attractions/' + savedId + '/edit');
   } catch (e) { next(e); }
 });

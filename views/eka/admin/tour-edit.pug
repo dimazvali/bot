@@ -24,7 +24,9 @@ html
       a(href='/admin/attractions') Места
       a(href='/admin/tours') Туры
       a(href='/admin/requests') Заявки
+      a(href='/admin/clients') Клиенты
       a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
       a(href='/admin/profile') Профиль
       a(href='/admin/help') Справка
       a(href='/admin/logout') Выйти
@@ -117,17 +119,25 @@ html
             .admin-field
               label Description (EN)
               textarea(name='descEn')= tour && tour.descEn || ''
-          .admin-2col
+          .admin-field
+            label Тип тура
+            select#tourTypeSelect(name='tourType' onchange='onTourTypeChange()')
+              option(value='group' selected=!tour || tour.tourType !== 'individual') Групповой (известная дата)
+              option(value='individual' selected=tour && tour.tourType === 'individual') Индивидуальный (без даты)
+          .admin-2col#fieldGroupDate
             .admin-field
               label Дата
               - var dateVal = ''
               if tour && tour.date
                 - var d = tour.date.toDate ? tour.date.toDate() : new Date(tour.date)
                 - dateVal = d.toISOString().slice(0, 10)
-              input(type='date' name='date' value=dateVal required)
+              input#inputDate(type='date' name='date' value=dateVal)
             .admin-field
-              label Цена
+              label Цена за человека
               input(type='number' name='price' value=tour && tour.price || '' placeholder='120')
+          .admin-field#fieldIndividualPrice(style='display:none')
+            label Минимальная стоимость группы
+            input(type='number' name='minGroupPrice' value=tour && tour.minGroupPrice || '' placeholder='500')
           .admin-2col
             .admin-field
               label Длительность (RU)
@@ -156,8 +166,9 @@ html
             label
               input(type='checkbox' name='published' checked=tour && tour.published)
               |  Опубликовано
-          .admin-field(style='display:flex;gap:12px;align-items:center')
+          .admin-field(style='display:flex;gap:12px;align-items:center;flex-wrap:wrap')
             button.admin-btn(type='submit') Сохранить
+            button#btn-translate.admin-btn(type='button' style='background:#f0f4ff;color:#2255cc') Перевести RU→EN
             button#btn-cancel-edit.admin-btn(type='button' style='background:#f0f0f0;color:#555') Отмена
             if tourId
               form(method='POST' action='/admin/tours/' + tourId + '/delete' style='display:inline' onsubmit='return confirm("Удалить тур?")')
@@ -185,26 +196,66 @@ html
                 td(style='text-align:center')= req.participants || 1
               tr.req-detail
                 td(colspan='5')
-                  if req.preferredDates
-                    p #[strong Даты:] #{req.preferredDates}
-                  if req.message
-                    p #[strong Сообщение:] #{req.message}
-                  p #[strong Язык:] #{req.lang || '—'}
-                  a(href='/admin/requests' style='font-size:11px;color:#666') → все заявки
                   - var notCancelled = req.status !== 'declined' && req.status !== 'cancelled'
                   - var pastTour = tourDate && tourDate <= new Date()
+                  - var reqCost = tour && tour.price && req.participants ? tour.price * req.participants : null
+                  - var SLABELS = { new: 'Новая', contacted: 'Связались', ready: 'К туру', declined: 'Клиент отказался', no_show: 'Не пришёл', cancelled: 'Отмена', completed: 'Состоялась' }
+                  if req.preferredDates
+                    p(style='font-size:12px;margin-bottom:4px') #[strong Даты:] #{req.preferredDates}
+                  if req.message
+                    p(style='font-size:12px;margin-bottom:4px') #[strong Сообщение:] #{req.message}
+                  if req.note
+                    p(style='font-size:12px;margin-bottom:4px;color:#c07000') #[strong Примечание:] #{req.note}
+                  if reqCost
+                    p(style='font-size:12px;margin-bottom:4px') #[strong Итого:] #{reqCost} #{tour.currency || 'USD'}
+                      if req.paid
+                        |  #[span(style='color:#1a7f37;font-weight:600') ✓ оплачено]
+                  if req.questionText
+                    p(style='font-size:11px;color:#888;margin-bottom:8px') #[strong Вопрос:] #{req.questionText}
+                  if req.tourId
+                    p(style='margin-bottom:8px')
+                      a(href='/ru/ticket/' + req.id target='_blank' style='font-size:11px;color:#005a9e') ↗ Открыть билет
+                  - var linkedClient = req.clientId && clientMap && clientMap[req.clientId]
+                  p(style='font-size:12px;margin-bottom:6px;display:flex;align-items:center;gap:8px')
+                    strong Клиент:
+                    if linkedClient
+                      a(href='/admin/clients/' + req.clientId + '/edit' style='color:#005a9e')= (linkedClient.firstName || '') + ' ' + (linkedClient.lastName || '')
+                    else
+                      span(style='color:#bbb') не привязан
+                  form(method='POST' action='/admin/requests/' + req.id + '/link-client' style='display:flex;gap:6px;align-items:center;margin-bottom:8px')
+                    input(type='hidden' name='back' value='/admin/tours/' + tourId + '/edit')
+                    select(name='clientId' style='font-size:12px;padding:4px 6px')
+                      option(value='') — не привязан —
+                      each c in (clients || [])
+                        option(value=c.id selected=req.clientId===c.id)= (c.firstName || '') + ' ' + (c.lastName || '')
+                    button.admin-btn.btn-sm(type='submit') Привязать
+                    a.admin-btn.btn-sm(href='/admin/clients/new' style='background:#f0f4ff;color:#2255cc;text-decoration:none') + Новый клиент
+                  .admin-form-row(style='margin-top:10px;display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end')
+                    form(method='POST' action='/admin/requests/' + req.id + '/status' style='display:flex;gap:6px;align-items:center')
+                      input(type='hidden' name='back' value=tourId)
+                      select(name='status' style='font-size:12px;padding:4px 6px')
+                        each val, label in SLABELS
+                          option(value=val selected=(req.status||'new')===val)= label
+                      button.admin-btn.btn-sm(type='submit') Статус
+                    form(method='POST' action='/admin/requests/' + req.id + '/update' style='display:flex;gap:6px;align-items:center;flex-wrap:wrap')
+                      input(type='hidden' name='back' value=tourId)
+                      input(type='hidden' name='tourId' value=req.tourId || '')
+                      input(type='number' name='participants' min='1' max='50' value=req.participants||1 style='width:52px;font-size:12px;padding:4px 6px' title='Участников')
+                      label(style='font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap')
+                        input(type='checkbox' name='paid' checked=req.paid)
+                        | Оплачено
+                      input(type='text' name='note' value=req.note||'' placeholder='Примечание…' style='font-size:12px;padding:4px 6px;width:180px')
+                      button.admin-btn.btn-sm(type='submit') Сохранить
                   if notCancelled && pastTour
-                    form(method='POST' action='/admin/requests/' + req.id + '/review' style='margin-top:12px')
+                    form(method='POST' action='/admin/requests/' + req.id + '/review' style='margin-top:10px')
                       input(type='hidden' name='tourId' value=tourId)
                       div(style='margin-bottom:6px')
-                        textarea(name='reviewText' rows='3' placeholder='Отзыв гостя…' style='width:100%;font-size:12px;padding:6px 8px;box-sizing:border-box')= req.reviewText || ''
-                      div(style='display:flex;align-items:center;gap:12px')
-                        label(style='font-size:12px;display:flex;align-items:center;gap:5px')
+                        textarea(name='reviewText' rows='2' placeholder='Отзыв гостя…' style='width:100%;font-size:12px;padding:6px 8px;box-sizing:border-box')= req.reviewText || ''
+                      div(style='display:flex;align-items:center;gap:10px')
+                        label(style='font-size:12px;display:flex;align-items:center;gap:4px')
                           input(type='checkbox' name='reviewPublished' checked=req.reviewPublished)
                           | Опубликовать
-                        button.admin-btn.btn-sm(type='submit') Сохранить отзыв
-                  else if notCancelled && req.questionText
-                    p(style='font-size:11px;color:#888;margin:8px 0 0') #[strong Вопрос от гостя:] #{req.questionText}
+                        button.admin-btn.btn-sm(type='submit') Отзыв
       else if tourId
         p(style='color:#bbb;font-size:13px;margin:0') Заявок пока нет
 
@@ -239,5 +290,61 @@ html
       });
       document.querySelectorAll('.req-row').forEach(function(row) {
         row.addEventListener('click', function() { this.classList.toggle('open'); });
+      });
+
+      function onTourTypeChange() {
+        var sel = document.getElementById('tourTypeSelect');
+        var isIndividual = sel && sel.value === 'individual';
+        var fieldDate = document.getElementById('fieldGroupDate');
+        var fieldIndPrice = document.getElementById('fieldIndividualPrice');
+        var inputDate = document.getElementById('inputDate');
+        if (fieldDate) fieldDate.style.display = isIndividual ? 'none' : '';
+        if (fieldIndPrice) fieldIndPrice.style.display = isIndividual ? '' : 'none';
+        if (inputDate) inputDate.required = !isIndividual;
+      }
+      onTourTypeChange();
+
+      var btnTranslate = document.getElementById('btn-translate');
+      if (btnTranslate) btnTranslate.addEventListener('click', function() {
+        var pairs = [
+          ['titleRu', 'titleEn'],
+          ['descRu', 'descEn'],
+          ['durationRu', 'durationEn'],
+          ['meetingPointRu', 'meetingPointEn']
+        ];
+        var texts = {};
+        pairs.forEach(function(p) {
+          var ruEl = document.querySelector('[name="' + p[0] + '"]');
+          var enEl = document.querySelector('[name="' + p[1] + '"]');
+          if (ruEl && enEl && ruEl.value.trim() && !enEl.value.trim()) {
+            texts[p[0]] = ruEl.value.trim();
+          }
+        });
+        if (!Object.keys(texts).length) {
+          alert('Нет полей для перевода — все EN поля уже заполнены');
+          return;
+        }
+        btnTranslate.disabled = true;
+        btnTranslate.textContent = 'Переводим…';
+        fetch('/admin/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: texts })
+        }).then(function(res) {
+          return res.json().then(function(data) {
+            if (!res.ok) throw new Error(data.error || 'Ошибка ' + res.status);
+            return data;
+          });
+        }).then(function(data) {
+          pairs.forEach(function(p) {
+            var enEl = document.querySelector('[name="' + p[1] + '"]');
+            if (enEl && data[p[1]]) enEl.value = data[p[1]];
+          });
+        }).catch(function(e) {
+          alert('Ошибка перевода: ' + e.message);
+        }).finally(function() {
+          btnTranslate.disabled = false;
+          btnTranslate.textContent = 'Перевести RU→EN';
+        });
       });
     script(src='/javascripts/eka/admin.js')

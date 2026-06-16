@@ -40,6 +40,8 @@ html(lang=lang)
 
     block content
 
+    block audioPlayer
+
     footer.footer
       a.footer-logo(href=`/${lang}/`)
         img(src='/images/eka/v2/logo.png' alt='TbiLiSELi')
@@ -55,6 +57,48 @@ html(lang=lang)
           a(href='mailto:' + sp.contactEmail) Email
 
     script(src='/javascripts/eka/main.js')
+    if typeof activeDiscounts !== 'undefined' && activeDiscounts && activeDiscounts.length
+      script.
+        (function() {
+          var discounts = !{JSON.stringify(activeDiscounts.map(function(d){ return { utmCampaign: d.utmCampaign, percent: d.percent, name: d.name }; }))};
+          var utms = {};
+          try { utms = JSON.parse(sessionStorage.getItem('eka_utms') || '{}'); } catch(e) {}
+          var campaign = utms.utm_campaign || '';
+          if (!campaign) return;
+          var disc = discounts.find(function(d) { return d.utmCampaign === campaign; });
+          if (!disc) return;
+          var pct = disc.percent;
+          function applyDiscount() {
+            document.querySelectorAll('.tour-price .amount').forEach(function(el) {
+              if (el.dataset.discounted) return;
+              el.dataset.discounted = '1';
+              var text = el.textContent.trim();
+              var m = text.match(/^([\d.]+)\s*(.*)/);
+              if (!m) return;
+              var orig = parseFloat(m[1]);
+              var cur = m[2];
+              var discounted = Math.round(orig * (1 - pct / 100));
+              el.innerHTML = '<s style="color:#aaa;font-size:.85em;font-weight:400">' + text + '</s><br>' + discounted + (cur ? ' ' + cur : '');
+            });
+            document.querySelectorAll('.tour-meta-value').forEach(function(el) {
+              if (el.dataset.discounted) return;
+              var text = el.textContent.trim();
+              var m = text.match(/^([\d.]+)\s+(USD|GEL|RUB|EUR)(.*)/);
+              if (!m) return;
+              el.dataset.discounted = '1';
+              var orig = parseFloat(m[1]);
+              var cur = m[2];
+              var suffix = m[3];
+              var discounted = Math.round(orig * (1 - pct / 100));
+              el.innerHTML = '<s style="color:#aaa">' + m[1] + ' ' + cur + '</s> ' + discounted + ' ' + cur + suffix;
+            });
+          }
+          applyDiscount();
+          var badge = document.createElement('div');
+          badge.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#E8000D;color:#fff;padding:10px 16px;font-size:13px;font-weight:700;border-radius:2px;z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,.18);letter-spacing:.5px;font-family:\'Barlow Condensed\',sans-serif;text-transform:uppercase';
+          badge.textContent = '−' + pct + '% ' + (disc.name || 'скидка');
+          document.body.appendChild(badge);
+        })();
     script.
       (function() {
         var p = new URLSearchParams(location.search);

@@ -1,0 +1,88 @@
+extends layout
+
+block content
+  - var heroImg = images && images.find(function(i){ return i.role === 'hero'; })
+  - var galleryImgs = (images && images.filter(function(i){ return i.role === 'gallery'; })) || []
+  - var attrTitle = lang === 'ru' ? attraction.titleRu : attraction.titleEn
+  - var attrDesc = lang === 'ru' ? attraction.descRu : attraction.descEn
+  - var dirTitle = direction ? (lang === 'ru' ? direction.titleRu : direction.titleEn) : null
+
+  .breadcrumb
+    a(href=`/${lang}/`)= lang === 'ru' ? 'Главная' : 'Home'
+    if direction
+      span  /
+      a(href=`/${lang}/directions/${direction.slug}`)= dirTitle
+    span  / #{attrTitle}
+
+  .dir-hero
+    if heroImg
+      picture
+        source(media='(max-width:800px)' srcset=heroImg.w800)
+        source(media='(max-width:1400px)' srcset=heroImg.w1400)
+        img(src=heroImg.w2400 alt=attrTitle)
+    else
+      img(src='/images/eka/v2/2.jpg' alt=attrTitle style='width:100%;height:100%;object-fit:cover')
+    .dir-hero-overlay
+    .dir-hero-content
+      .dir-hero-label= lang === 'ru' ? 'Место' : 'Place'
+      .dir-hero-title= attrTitle
+
+  .section
+    .section-inner
+      .tour-page
+        if attrDesc
+          .tour-page-desc= attrDesc
+
+
+  if galleryImgs.length
+    .section(style='padding-top:0')
+      .section-inner
+        .gallery
+          each item, i in galleryImgs
+            - var caption = item.caption || ''
+            .gallery-item(class=i === 0 ? 'tall' : '' data-lb=i data-src=item.w1400 || item.w800 data-caption=caption)
+              picture
+                source(media='(max-width:400px)' srcset=item.w400)
+                source(media='(max-width:800px)' srcset=item.w800)
+                img(src=item.w1400 alt=caption loading='lazy')
+
+- var audioUrl = lang === 'ru' ? (attraction.audioUrlRu || attraction.audioUrl) : (attraction.audioUrlEn || attraction.audioUrl)
+
+block audioPlayer
+  if audioUrl
+    .audio-guide-bar
+      button.audio-play-btn(type='button' aria-label='Play') ▶
+      .audio-info
+        .audio-guide-label= lang === 'ru' ? 'Аудиогид' : 'Audio guide'
+        .audio-progress-wrap
+          .audio-progress-bar
+            .audio-progress-fill
+          span.audio-time 0:00
+      audio#audio-el(src=audioUrl preload='metadata')
+    script.
+      (function() {
+        var audio = document.getElementById('audio-el');
+        var btn = document.querySelector('.audio-play-btn');
+        var fill = document.querySelector('.audio-progress-fill');
+        var bar = document.querySelector('.audio-progress-bar');
+        var timeEl = document.querySelector('.audio-time');
+        function fmt(s) {
+          s = Math.floor(s || 0);
+          return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+        }
+        btn.addEventListener('click', function() {
+          if (audio.paused) { audio.play(); btn.textContent = '❚❚'; btn.classList.add('playing'); }
+          else { audio.pause(); btn.textContent = '▶'; btn.classList.remove('playing'); }
+        });
+        audio.addEventListener('timeupdate', function() {
+          var pct = audio.duration ? (audio.currentTime / audio.duration * 100) : 0;
+          fill.style.width = pct + '%';
+          timeEl.textContent = fmt(audio.currentTime) + ' / ' + fmt(audio.duration);
+        });
+        audio.addEventListener('ended', function() { btn.textContent = '▶'; btn.classList.remove('playing'); });
+        bar.addEventListener('click', function(e) {
+          if (!audio.duration) return;
+          var rect = bar.getBoundingClientRect();
+          audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration;
+        });
+      })();

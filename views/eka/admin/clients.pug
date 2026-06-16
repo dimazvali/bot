@@ -1,0 +1,57 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a.active(href='/admin/clients') Клиенты
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title-row
+        .admin-title Клиенты
+        a.admin-btn(href='/admin/clients/new') + Новый клиент
+      if clients.length
+        table.admin-table
+          thead
+            tr
+              th Клиент
+              th Язык
+              th Контакт
+              th Последний визит
+              th
+          tbody
+            each c in clients
+              - var lv = lastVisit[c.id]
+              tr
+                td
+                  .admin-name-cell
+                    if c.photo
+                      img.admin-avatar(src=c.photo alt='')
+                    div
+                      a(href='/admin/clients/' + c.id + '/edit')= (c.firstName || '') + ' ' + (c.lastName || '')
+                      if c.notes
+                        .admin-sub= c.notes
+                td= c.lang || '—'
+                td
+                  if c.email
+                    div= c.email
+                  if c.phone
+                    div= c.phone
+                  if c.tgId
+                    div @#{c.tgId}
+                td= lv ? lv.toLocaleDateString('ru-RU') : '—'
+                td
+                  a.admin-link(href='/admin/clients/' + c.id + '/edit') Изменить
+      else
+        p(style='color:#bbb;margin:40px 0;text-align:center') Клиентов пока нет

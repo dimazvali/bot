@@ -1,0 +1,84 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .disc-active { color: #1a7f37; font-weight: 600; }
+      .disc-expired { color: #aaa; }
+      .inline-form { display: inline; }
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/clients') Клиенты
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title Скидки
+
+      if discounts && discounts.length
+        table.admin-table(style='margin-bottom:2rem')
+          thead
+            tr
+              th Название
+              th %
+              th UTM campaign
+              th Начало
+              th Конец
+              th Статус
+              th
+          tbody
+            each d in discounts
+              - var now = new Date()
+              - var start = d.startDate ? (d.startDate.toDate ? d.startDate.toDate() : new Date(d.startDate)) : null
+              - var end = d.endDate ? (d.endDate.toDate ? d.endDate.toDate() : new Date(d.endDate)) : null
+              - var active = (!start || start <= now) && (!end || end >= now)
+              - var startVal = start ? start.toISOString().slice(0,10) : ''
+              - var endVal = end ? end.toISOString().slice(0,10) : ''
+              tr
+                td(colspan=5)
+                  form(method='POST' action='/admin/discounts/' + d.id + '/edit' style='display:flex;gap:6px;align-items:center;flex-wrap:wrap')
+                    input(type='text' name='name' value=d.name style='font-size:12px;padding:3px 6px;width:140px' title='Название')
+                    input(type='number' name='percent' value=d.percent min='1' max='99' step='1' style='font-size:12px;padding:3px 6px;width:52px' title='%')
+                    input(type='text' name='utmCampaign' value=d.utmCampaign style='font-size:12px;padding:3px 6px;width:140px' title='utm_campaign')
+                    input(type='date' name='startDate' value=startVal style='font-size:12px;padding:3px 4px' title='Начало')
+                    input(type='date' name='endDate' value=endVal style='font-size:12px;padding:3px 4px' title='Конец')
+                    button.admin-btn.btn-sm(type='submit') Сохранить
+                td
+                  span(class=active ? 'disc-active' : 'disc-expired')= active ? '● активна' : '○ неактивна'
+                td
+                  form.inline-form(method='POST' action='/admin/discounts/' + d.id + '/delete' onsubmit='return confirm("Удалить скидку?")')
+                    button.admin-btn.btn-sm.admin-btn-danger(type='submit') ×
+      else
+        p(style='color:#bbb;font-size:13px;margin-bottom:2rem') Скидок нет
+
+      h3(style='font-size:14px;font-weight:600;margin-bottom:12px') Добавить скидку
+      form.admin-form(method='POST' action='/admin/discounts/new')
+        .admin-2col
+          .admin-field
+            label Название
+            input(type='text' name='name' required placeholder='Летняя скидка')
+          .admin-field
+            label Размер скидки, %
+            input(type='number' name='percent' min='1' max='99' step='1' required placeholder='10')
+        .admin-2col
+          .admin-field
+            label Значение utm_campaign
+            input(type='text' name='utmCampaign' required placeholder='summer2026')
+          .admin-field
+        .admin-2col
+          .admin-field
+            label Дата начала
+            input(type='date' name='startDate' required)
+          .admin-field
+            label Дата окончания
+            input(type='date' name='endDate' required)
+        button.admin-btn(type='submit') Добавить

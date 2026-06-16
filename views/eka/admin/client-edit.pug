@@ -1,0 +1,102 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .client-photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; }
+      .trip-row td { vertical-align: middle; }
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a.active(href='/admin/clients') Клиенты
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title-row
+        a(href='/admin/clients' style='font-size:13px;color:#888;text-decoration:none') ← Все клиенты
+      .admin-title= clientId ? ((client.firstName || '') + ' ' + (client.lastName || '') || 'Клиент') : 'Новый клиент'
+
+      - var formAction = clientId ? '/admin/clients/' + clientId + '/edit' : '/admin/clients/new/edit'
+      form.admin-form(method='POST' action=formAction enctype='multipart/form-data')
+        if client && client.photo
+          div(style='margin-bottom:12px')
+            img.client-photo(src=client.photo alt='')
+        .admin-2col
+          .admin-field
+            label Имя
+            input(type='text' name='firstName' value=client && client.firstName || '' required placeholder='Нино')
+          .admin-field
+            label Фамилия
+            input(type='text' name='lastName' value=client && client.lastName || '' placeholder='Мгебришвили')
+        .admin-2col
+          .admin-field
+            label Email
+            input(type='email' name='email' value=client && client.email || '' placeholder='nino@example.com')
+          .admin-field
+            label Телефон
+            input(type='text' name='phone' value=client && client.phone || '' placeholder='+995 555 000 000')
+        .admin-2col
+          .admin-field
+            label Telegram
+            input(type='text' name='tgId' value=client && client.tgId || '' placeholder='username без @')
+          .admin-field
+            label Язык
+            select(name='lang')
+              option(value='ru' selected=!client || client.lang === 'ru') Русский
+              option(value='en' selected=client && client.lang === 'en') English
+              option(value='other' selected=client && client.lang === 'other') Другой
+        .admin-2col
+          .admin-field
+            label Фото
+            input(type='file' name='photo' accept='image/*')
+          .admin-field
+            label Дата появления
+            - var createdVal = ''
+            if client && client.createdAt
+              - var cd = client.createdAt.toDate ? client.createdAt.toDate() : new Date(client.createdAt)
+              - createdVal = cd.toISOString().slice(0, 10)
+            input(type='date' name='createdAt' value=createdVal)
+        .admin-field
+          label Примечания
+          textarea(name='notes' rows='3' placeholder='Особые пожелания, предпочтения…')= client && client.notes || ''
+        .admin-field(style='display:flex;gap:12px;align-items:center')
+          button.admin-btn(type='submit') Сохранить
+          a.admin-btn(href='/admin/clients' style='background:#f0f0f0;color:#555;text-decoration:none') Отмена
+          if clientId
+            form(method='POST' action='/admin/clients/' + clientId + '/delete' style='display:inline' onsubmit='return confirm("Удалить клиента?")')
+              button.admin-btn.admin-btn-danger(type='submit') Удалить
+
+      if clientId && trips && trips.length
+        h3(style='margin:32px 0 12px;font-size:14px;font-weight:600') История поездок (#{trips.length})
+        table.admin-table
+          thead
+            tr
+              th Дата заявки
+              th Тур
+              th Статус
+              th Чел.
+          tbody
+            each r in trips
+              - var d = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt || 0)
+              - var SLABELS = { new: 'Новая', contacted: 'Связались', ready: 'К туру', declined: 'Отказ', no_show: 'Не пришёл', cancelled: 'Отмена', completed: 'Состоялась' }
+              tr.trip-row
+                td= d.toLocaleDateString('ru-RU')
+                td
+                  if r._tour
+                    a(href='/admin/tours/' + r.tourId + '/edit')= r._tour.titleRu || r._tour.titleEn || r.tourId
+                  else
+                    span(style='color:#bbb') —
+                td
+                  span.badge(class='badge-' + (r.status || 'new'))= SLABELS[r.status || 'new'] || r.status
+                td(style='text-align:center')= r.participants || 1
+      else if clientId
+        p(style='color:#bbb;font-size:13px;margin:24px 0') Поездок пока нет

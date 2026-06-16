@@ -53,6 +53,8 @@ app.use(vhost('it.dimazvali.com', require('./routes/it')))
 app.use(vhost('it.*.*',          require('./routes/it')))
 app.use(vhost('it.localhost',    require('./routes/it')))
 
+app.use(vhost('photo2.*.*', require('./routes/photo2')))
+app.use(vhost('photo2.localhost', require('./routes/photo2')))
 app.use(vhost('photo.*.*', require('./routes/photo')))
 app.use(vhost('photo.localhost', require('./routes/photo')))
 

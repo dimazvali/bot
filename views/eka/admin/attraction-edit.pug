@@ -11,7 +11,9 @@ html
       a(href='/admin/attractions') Места
       a(href='/admin/tours') Туры
       a(href='/admin/requests') Заявки
+      a(href='/admin/clients') Клиенты
       a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
       a(href='/admin/profile') Профиль
       a(href='/admin/logout') Выйти
     .admin-content
@@ -32,31 +34,52 @@ html
           .admin-field
             label Description (EN)
             textarea(name='descEn')= attraction && attraction.descEn || ''
-        .admin-field
-          label Регион
-          select(name='directionId')
-            option(value='') — без привязки —
-            each dir in directions
-              option(value=dir.id selected=attraction && attraction.directionId === dir.id)= dir.titleRu
+        .admin-2col
+          .admin-field
+            label Регион
+            select(name='directionId')
+              option(value='') — без привязки —
+              each dir in directions
+                option(value=dir.id selected=attraction && attraction.directionId === dir.id)= dir.titleRu
+          .admin-field
+            label URL-slug (латиница, для адреса страницы)
+            input(type='text' name='slug' value=attraction && attraction.slug || '' placeholder='mtskheta-monastery')
 
         h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Изображения
         - var heroImg = images && images.find(function(i){ return i.role === 'hero'; })
         .admin-field
-          label Hero-изображение (загрузить новое)
+          label Главная картинка (загрузить новую)
           input(type='file' name='heroImage' accept='image/*')
           if heroImg
             p.admin-hint(style='margin-top:8px') Текущее:
-            img(src=heroImg.w400 style='max-width:200px;margin-top:4px')
+            img(src=heroImg.w400 style='max-width:200px;margin-top:4px;display:block')
         .admin-field
           label Галерея (добавить изображения)
           input(type='file' name='galleryImages' accept='image/*' multiple)
 
-        .admin-field
-          label
-            input(type='checkbox' name='published' checked=attraction && attraction.published)
-            |  Опубликовано (видно на сайте)
-        .admin-field(style='display:flex;gap:12px;align-items:center')
+        h3(style='font-size:14px;font-weight:500;margin:24px 0 16px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Аудиогид
+        .admin-2col
+          .admin-field
+            label Аудио RU (mp3 / m4a / ogg)
+            input(type='file' name='audioFileRu' accept='audio/*')
+            if attraction && attraction.audioUrlRu
+              audio(controls src=attraction.audioUrlRu style='margin-top:8px;max-width:100%')
+          .admin-field
+            label Audio EN (mp3 / m4a / ogg)
+            input(type='file' name='audioFileEn' accept='audio/*')
+            if attraction && attraction.audioUrlEn
+              audio(controls src=attraction.audioUrlEn style='margin-top:8px;max-width:100%')
+
+        .admin-field(style='display:flex;align-items:center;gap:8px')
+          input(type='checkbox' name='published' id='published' checked=attraction && attraction.published)
+          label(for='published') Опубликовано (видно на сайте)
+        .admin-field(style='display:flex;gap:12px;align-items:center;flex-wrap:wrap')
           button.admin-btn(type='submit') Сохранить
+          if attractionId
+            if attraction && attraction.slug
+              a.admin-btn(href='/ru/attractions/' + attraction.slug target='_blank' style='text-decoration:none;background:#f5f5f5;color:#444') ↗ На сайте
+            else
+              span(style='font-size:11px;color:#bbb') Укажите slug, чтобы опубликовать страницу
 
       - var galleryImgs = images && images.filter(function(i){ return i.role === 'gallery'; })
       if galleryImgs && galleryImgs.length

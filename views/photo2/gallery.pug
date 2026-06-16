@@ -1,0 +1,325 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title= title
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap' rel='stylesheet')
+    style.
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; background: #0c0b0a; }
+      a { text-decoration: none; color: inherit; }
+      ::selection { background: #f4f1ea; color: #0c0b0a; }
+      button { font-family: inherit; cursor: pointer; }
+      img { display: block; }
+
+      .wrap { max-width: 1480px; margin: 0 auto; padding: 0 clamp(18px,3vw,40px); }
+
+      /* masthead */
+      #masthead { padding: clamp(22px,3vw,40px) 0 clamp(20px,2.5vw,32px); }
+      .mast-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+      .mast-logo { font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 17px; letter-spacing: .02em; color: #f4f1ea; }
+      .mast-contacts { display: flex; gap: 18px; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: .04em; color: #9b9791; flex-wrap: wrap; }
+      .mast-contacts a:hover { color: #f4f1ea; }
+      .mast-back { color: #f4f1ea !important; border-bottom: 1px solid #3a3733; padding-bottom: 2px; }
+      h1 { margin: clamp(26px,4vw,52px) 0 0; font-family: 'Oswald', sans-serif; font-weight: 700; font-size: clamp(40px,8vw,112px); line-height: .9; letter-spacing: -.014em; text-transform: uppercase; color: #f4f1ea; }
+      .mast-sub { margin: 22px 0 0; max-width: 620px; font-family: 'Lora', serif; font-size: clamp(17px,1.7vw,22px); line-height: 1.5; color: #c9c5be; }
+
+      /* filter bar */
+      #filterbar { position: sticky; top: 0; z-index: 30; background: rgba(12,11,10,.9); backdrop-filter: blur(12px); border-top: 1px solid #211f1c; border-bottom: 1px solid #211f1c; }
+      .filterbar-main { display: flex; align-items: center; gap: clamp(16px,3vw,40px); flex-wrap: wrap; padding: 14px 0; }
+      #cat-nav { display: flex; gap: clamp(20px,2.4vw,36px); flex-wrap: wrap; align-items: flex-start; }
+      .cat-btn { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; background: none; padding: 5px 0 6px; border: none; border-bottom: 2px solid transparent; color: #7c776f; transition: color .2s, border-color .2s; display: inline-block; }
+      .cat-btn.active { color: #f4f1ea; border-bottom-color: #f4f1ea; }
+      .cat-btn:hover { color: #c9c5be; }
+
+      .filterbar-right { display: flex; align-items: center; gap: clamp(14px,2vw,28px); margin-left: auto; flex-wrap: wrap; }
+
+      /* cam segmented */
+      .cam-wrap { display: flex; align-items: center; gap: 10px; }
+      .cam-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #615e59; }
+      .cam-seg { display: flex; border: 1px solid #2a2622; }
+      .cam-btn { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; border: none; padding: 7px 13px; transition: all .18s ease; background: transparent; color: #b7b2aa; }
+      .cam-btn.active { background: #f4f1ea; color: #0c0b0a; }
+
+      /* color dots */
+      .color-wrap { display: flex; align-items: center; gap: 11px; }
+      .color-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #615e59; }
+      .color-dots { display: flex; gap: 9px; align-items: center; }
+      .color-dot { width: 21px; height: 21px; border-radius: 50%; border: none; padding: 0; opacity: .92; transition: transform .15s, box-shadow .15s; }
+      .color-dot.active { transform: scale(1.12); }
+
+      /* subloc bar */
+      #subloc-bar { border-top: 1px solid #1a1815; display: none; }
+      #subloc-bar.visible { display: block; }
+      .subloc-inner { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 11px 0; }
+      .subloc-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #615e59; }
+      #subloc-nav { display: flex; gap: clamp(16px,2vw,26px); flex-wrap: wrap; }
+      .subloc-btn { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; background: none; border: none; border-bottom: 1px solid transparent; padding: 3px 0; color: #7c776f; transition: color .2s, border-color .2s; display: inline-block; }
+      .subloc-btn.active { color: #f4f1ea; border-bottom-color: #f4f1ea; }
+      .subloc-btn:hover { color: #c9c5be; }
+
+      /* tags bar */
+      #tags-bar { display: none; max-width: 1480px; margin: 0 auto; padding: clamp(18px,3vw,30px) clamp(18px,3vw,40px) 0; align-items: center; gap: 13px; flex-wrap: wrap; }
+      #tags-bar.visible { display: flex; }
+      .tags-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: #615e59; }
+      .tag-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+      .tag-btn { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; padding: 5px 11px; border: 1px solid #2a2622; background: transparent; color: #b7b2aa; transition: all .18s ease; }
+      .tag-btn.active { background: #f4f1ea; color: #0c0b0a; border-color: #f4f1ea; }
+
+      /* count */
+      #count-bar { display: flex; align-items: baseline; gap: 12px; padding: clamp(18px,3vw,32px) 0 14px; }
+      #count-label { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: #f4f1ea; white-space: nowrap; }
+      .count-line { height: 1px; flex: 1; background: #211f1c; }
+
+      /* masonry */
+      #grid-wrap { padding: 6px 0 clamp(48px,6vw,90px); }
+      #grid { column-width: 320px; column-gap: 14px; }
+      .grid-item { display: block; position: relative; break-inside: avoid; margin: 0 0 14px; overflow: hidden; background: #161513; color: #f4f1ea; }
+      .grid-item img { width: 100%; display: block; }
+      .grid-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 14px 12px; background: linear-gradient(180deg, rgba(8,8,8,0), rgba(8,8,8,.9)); opacity: 0; transition: opacity .25s ease; pointer-events: none; }
+      .grid-item:hover .grid-overlay { opacity: 1; }
+      .grid-overlay-title { font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 16px; line-height: 1.1; letter-spacing: .01em; }
+      .grid-overlay-meta { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: .06em; color: #c9c5be; margin-top: 3px; }
+
+      #empty { display: none; padding: 60px 0; text-align: center; font-family: 'Lora', serif; font-style: italic; font-size: 20px; color: #7c776f; }
+      #empty.visible { display: block; }
+
+      /* footer */
+      .site-footer { background: #15120f; color: #f4f1ea; margin-top: clamp(40px,6vw,80px); background-image: url(https://storage.googleapis.com/photo-dimazvalimisc/images/ks-05287-1781288494378-2400.webp); background-size: cover; background-position: 50%; overflow: hidden; }
+      .footer-top { max-width: 1480px; margin: 0 auto; padding: clamp(40px,5vw,68px) clamp(18px,3vw,40px); display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between; }
+      .footer-contact-label { font-size: 12px; letter-spacing: .3em; text-transform: uppercase; color: #7c776f; }
+      .footer-contact-title { margin-top: 14px; font-family: 'Oswald', sans-serif; font-weight: 600; font-size: clamp(26px,4vw,46px); line-height: 1.05; letter-spacing: .01em; }
+      .footer-links { display: flex; flex-direction: column; gap: 10px; font-size: 14px; letter-spacing: .03em; }
+      .footer-link { display: flex; gap: 14px; }
+      .footer-link-label { color: #7c776f; width: 78px; }
+      .footer-bottom-wrap { border-top: 1px solid #2a2622; }
+      .footer-bottom { max-width: 1480px; margin: 0 auto; padding: 16px clamp(18px,3vw,40px); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11px; letter-spacing: .08em; color: #6c675f; }
+
+  body(style='background:#0c0b0a; color:#f4f1ea; font-family:"JetBrains Mono",monospace; min-height:100vh; overflow-x:hidden;')
+
+    section#masthead
+      .wrap
+        .mast-top
+          .mast-logo photo.dimazvali.com
+          .mast-contacts
+            a(href='mailto:dimazvali@gmail.com') dimazvali@gmail.com
+            a(href='https://t.me/dimazvali' target='_blank' rel='noopener') @dimazvali
+            a.mast-back(href='https://dimazvali.com') ↩ на главную
+        if pageH1
+          h1= pageH1
+          if pageDesc
+            p.mast-sub= pageDesc
+        else
+          h1 Города сверху,#[br] люди&nbsp;— в&nbsp;упор
+          p.mast-sub Снимаю с&nbsp;дрона и&nbsp;на&nbsp;камеру. Грузия, Казахстан и&nbsp;не&nbsp;только.
+
+    div#filterbar
+      .wrap
+        .filterbar-main
+          nav#cat-nav
+          .filterbar-right
+            .cam-wrap
+              span.cam-label Съёмка
+              div.cam-seg#cam-seg
+            .color-wrap
+              span.color-label Цвет
+              div.color-dots#color-dots
+        div#subloc-bar
+          .subloc-inner
+            span.subloc-label#subloc-label
+            nav#subloc-nav
+
+    div#tags-bar
+      span.tags-label Темы
+      div.tag-chips#tag-chips
+
+    section
+      .wrap
+        div#count-bar
+          span#count-label
+          span.count-line
+        div#grid-wrap
+          div#grid
+          div#empty Под этот фильтр кадров пока нет.
+
+    include _footer.pug
+    +siteFooter()
+
+    script.
+      var __photos  = !{photos};
+      var __cats    = !{cats};
+      var __colors  = !{colors};
+      var __cams    = !{cams};
+      var __tagDefs = !{tagDefs};
+
+      var state = { cat: '!{initialCat}', loc: '!{initialLoc}', col: 'все', cam: 'все', tag: '!{initialTag}' };
+
+      function plural(n) {
+        var a = Math.abs(n) % 100, b = n % 10;
+        if (a > 10 && a < 20) return 'кадров';
+        if (b > 1 && b < 5) return 'кадра';
+        if (b === 1) return 'кадр';
+        return 'кадров';
+      }
+
+      function filtered() {
+        return __photos.filter(function(p) {
+          return (state.cat === 'все' || p.cat === state.cat) &&
+                 (state.loc === 'все' || p.locKey === state.loc) &&
+                 (state.col === 'все' || p.col === state.col) &&
+                 (state.cam === 'все' || p.cam === state.cam) &&
+                 (state.tag === 'все' || (p.tags || []).indexOf(state.tag) > -1);
+        });
+      }
+
+      function catHref(key) { return key === 'все' ? '/' : '/' + key; }
+      function locHref(catKey, locKey) { return locKey === 'все' ? '/' + catKey : '/' + catKey + '/' + locKey; }
+
+      function renderCats() {
+        var nav = document.getElementById('cat-nav');
+        var all = [{ key: 'все', label: 'Все' }].concat(__cats);
+        nav.innerHTML = all.map(function(c) {
+          return '<a class="cat-btn' + (c.key === state.cat ? ' active' : '') + '" href="' + catHref(c.key) + '">' + c.label + '</a>';
+        }).join('');
+      }
+
+      function renderSubLocs() {
+        var bar = document.getElementById('subloc-bar');
+        var nav = document.getElementById('subloc-nav');
+        var label = document.getElementById('subloc-label');
+        if (state.cat === 'все') { bar.classList.remove('visible'); return; }
+        var cat = __cats.find(function(c) { return c.key === state.cat; });
+        if (!cat) { bar.classList.remove('visible'); return; }
+        var serKeys = Object.keys(cat.series);
+        if (!serKeys.length) { bar.classList.remove('visible'); return; }
+        bar.classList.add('visible');
+        label.textContent = cat.label + ' /';
+        var allKeys = ['все'].concat(serKeys);
+        var allLabels = ['Все'].concat(serKeys.map(function(k) { return cat.series[k]; }));
+        nav.innerHTML = allKeys.map(function(k, i) {
+          return '<a class="subloc-btn' + (k === state.loc ? ' active' : '') + '" href="' + locHref(state.cat, k) + '">' + allLabels[i] + '</a>';
+        }).join('');
+      }
+
+      function renderTags() {
+        var bar = document.getElementById('tags-bar');
+        var wrap = document.getElementById('tag-chips');
+        if (state.cat === 'все') { bar.classList.remove('visible'); return; }
+
+        // collect tags from currently visible (pre-tag-filter) photos
+        var scope = __photos.filter(function(p) {
+          return (state.cat === 'все' || p.cat === state.cat) &&
+                 (state.loc === 'все' || p.locKey === state.loc) &&
+                 (state.cam === 'все' || p.cam === state.cam) &&
+                 (state.col === 'все' || p.col === state.col);
+        });
+        var tagSet = {};
+        scope.forEach(function(p) { (p.tags || []).forEach(function(t) { tagSet[t] = true; }); });
+        var tags = Object.keys(tagSet).sort();
+        if (!tags.length) { bar.classList.remove('visible'); return; }
+        bar.classList.add('visible');
+        wrap.innerHTML = tags.map(function(slug) {
+          var label = (__tagDefs[slug] && __tagDefs[slug].label) || slug;
+          return '<button class="tag-btn' + (slug === state.tag ? ' active' : '') + '" data-tag="' + slug + '">' + label + '</button>';
+        }).join('');
+        wrap.querySelectorAll('.tag-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            state.tag = state.tag === btn.dataset.tag ? 'все' : btn.dataset.tag;
+            render();
+          });
+        });
+      }
+
+      function renderCams() {
+        var seg = document.getElementById('cam-seg');
+        var base = __photos.filter(function(p) {
+          return (state.cat === 'все' || p.cat === state.cat) &&
+                 (state.loc === 'все' || p.locKey === state.loc) &&
+                 (state.col === 'все' || p.col === state.col) &&
+                 (state.tag === 'все' || (p.tags || []).indexOf(state.tag) > -1);
+        });
+        var availCams = {};
+        base.forEach(function(p) { if (p.cam) availCams[p.cam] = true; });
+        var visible = __cams.filter(function(m) { return m.k === 'все' || availCams[m.k]; });
+        var camWrap = seg.closest('.cam-wrap');
+        if (camWrap) camWrap.style.display = visible.length <= 1 ? 'none' : '';
+        seg.innerHTML = visible.map(function(m) {
+          return '<button class="cam-btn' + (m.k === state.cam ? ' active' : '') + '" data-cam="' + m.k + '">' + m.l + '</button>';
+        }).join('');
+        seg.querySelectorAll('.cam-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            state.cam = btn.dataset.cam;
+            render();
+          });
+        });
+      }
+
+      function renderColors() {
+        var wrap = document.getElementById('color-dots');
+        wrap.innerHTML = __colors.map(function(d) {
+          var active = d.k === state.col;
+          var bg = d.hex === 'mono' ? 'linear-gradient(135deg,#cfccc6,#3a3733)' : d.hex;
+          var ring = d.hex === 'mono' ? '#cfccc6' : d.hex;
+          return '<button class="color-dot' + (active ? ' active' : '') + '" data-col="' + d.k + '" title="' + d.l + '"'
+            + ' style="background:' + bg + ';'
+            + (active ? ' box-shadow:0 0 0 2px #0c0b0a,0 0 0 4px ' + ring + '; transform:scale(1.12);' : '')
+            + '"></button>';
+        }).join('');
+        wrap.querySelectorAll('.color-dot').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            state.col = state.col === btn.dataset.col ? 'все' : btn.dataset.col;
+            render();
+          });
+        });
+      }
+
+      function renderGrid() {
+        var list = filtered();
+        var grid    = document.getElementById('grid');
+        var empty   = document.getElementById('empty');
+        var countEl = document.getElementById('count-label');
+
+        countEl.textContent = list.length + ' ' + plural(list.length);
+
+        if (!list.length) {
+          grid.innerHTML = '';
+          empty.classList.add('visible');
+          return;
+        }
+        empty.classList.remove('visible');
+        grid.innerHTML = list.map(function(p) {
+          return '<a class="grid-item" href="' + p.href + '">'
+            + '<img src="' + p.src + '" alt="' + p.t.replace(/"/g, '&quot;') + '" loading="lazy">'
+            + '<div class="grid-overlay">'
+              + '<div class="grid-overlay-title">' + p.t + '</div>'
+              + '<div class="grid-overlay-meta">' + p.loc + (p.d ? ' · ' + p.d : '') + '</div>'
+            + '</div>'
+          + '</a>';
+        }).join('');
+      }
+
+      function render() {
+        renderCats();
+        renderSubLocs();
+        renderCams();
+        renderColors();
+        renderTags();
+        renderGrid();
+      }
+
+      render();
+
+      (function() {
+        function updateTbilisiTime() {
+          var now = new Date(Date.now() + 4 * 3600000);
+          var h = now.getUTCHours(), m = now.getUTCMinutes();
+          var hh = String(h).padStart(2,'0'), mm = String(m).padStart(2,'0');
+          var ft = document.getElementById('footer-time');
+          if (ft) ft.textContent = h < 12 ? 'учтите, у меня ' + hh + ':' + mm + ' утра' : 'учтите, у меня ' + hh + ':' + mm;
+        }
+        updateTbilisiTime();
+        setInterval(updateTbilisiTime, 60000);
+      }());

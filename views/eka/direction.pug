@@ -54,10 +54,11 @@ block content
         .meta-item
           .meta-label= lang === 'ru' ? 'Длительность' : 'Duration'
           .meta-value= lang === 'ru' ? direction.metaDurationRu : direction.metaDurationEn
-      if direction.metaGroupSize
+      - var groupVal = lang === 'ru' ? (direction.metaGroupSizeRu || direction.metaGroupSize) : (direction.metaGroupSizeEn || direction.metaGroupSize)
+      if groupVal
         .meta-item
           .meta-label= lang === 'ru' ? 'Группа' : 'Group size'
-          .meta-value= direction.metaGroupSize
+          .meta-value= groupVal
       if direction.metaSeasonRu || direction.metaSeasonEn
         .meta-item
           .meta-label= lang === 'ru' ? 'Сезон' : 'Season'
@@ -156,6 +157,22 @@ block content
               .amount= tour.price + ' ' + (tour.currency || 'USD')
               .currency= lang === 'ru' ? 'за человека' : 'per person'
 
+  if individualTours && individualTours.length
+    .section
+      .section-label= lang === 'ru' ? 'Индивидуальные туры' : 'Private tours'
+      .tours-list
+        each tour in individualTours
+          a.tour-row(href=`/${lang}/tours/${tour.id}`)
+            .tour-date-private
+              span= lang === 'ru' ? 'любая' : 'any'
+              span= lang === 'ru' ? 'ДАТА' : 'DATE'
+            div
+              .tour-name= lang === 'ru' ? tour.titleRu : tour.titleEn
+              .tour-detail= lang === 'ru' ? tour.durationRu : tour.durationEn
+            .tour-price
+              .amount= tour.minGroupPrice + ' ' + (tour.currency || 'USD')
+              .currency= lang === 'ru' ? 'за группу' : 'per group'
+
   if reviews && reviews.length
     .extra-text
       .extra-text-inner
@@ -168,6 +185,19 @@ block content
                 | — #{review.name}
                 if review.tourTitle
                   | , #{review.tourTitle}
+
+  if attractions && attractions.length
+    .section
+      .section-header
+        span.section-title= lang === 'ru' ? 'Интересные места' : 'Places to see'
+        .section-line
+      .attractions-scroll
+        each a in attractions
+          a.attraction-card(href='/' + lang + '/attractions/' + (a.slug || a.id))
+            .attraction-card-img-wrap
+              if a.heroImg
+                img.attraction-card-img(src=a.heroImg.w800 alt=lang === 'ru' ? a.titleRu : a.titleEn loading='lazy')
+            .attraction-card-title= lang === 'ru' ? a.titleRu : a.titleEn
 
   .section
     if tours.length

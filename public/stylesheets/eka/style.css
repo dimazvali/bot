@@ -94,6 +94,9 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .tour-date { color: #999; }
 .tour-date strong { font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 400; color: #111; display: block; line-height: 1; }
 .tour-date span { font-size: 9px; letter-spacing: 2px; }
+.tour-date-private { color: #999; min-width: 44px; }
+.tour-date-private span { font-size: 9px; letter-spacing: 2px; display: block; }
+.tour-date-private span:first-child { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 400; color: #111; line-height: 1; letter-spacing: 0; }
 .tour-name { font-size: 14px; margin-bottom: 4px; }
 .tour-detail { font-size: 10px; letter-spacing: 1px; color: #bbb; }
 .tour-price .amount { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 400; }
@@ -172,6 +175,24 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .ct-option.active { border-color: #111; color: #111; }
 .form-error { font-size: 11px; color: #c00; margin-bottom: 16px; letter-spacing: 1px; }
 .section-no-tours { color: #bbb; font-size: 16px; margin-bottom: 20px; }
+.attractions-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: #ccc transparent; }
+.attractions-scroll::-webkit-scrollbar { height: 4px; }
+.attractions-scroll::-webkit-scrollbar-track { background: transparent; }
+.attractions-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 2px; }
+.attraction-card { flex: 0 0 100px; text-decoration: none; color: inherit; display: block; text-align: center; }
+.attraction-card:hover .attraction-card-img { transform: scale(1.05); }
+.attraction-card-img-wrap { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; margin: 0 auto 8px; background: #e8e8e8; }
+.attraction-card-img { width: 80px; height: 80px; object-fit: cover; border-radius: 50%; display: block; transition: transform 0.25s; }
+.attraction-card-title { font-size: 11px; line-height: 1.4; color: #333; }
+.audio-guide { display: flex; align-items: center; gap: 16px; padding: 18px 20px; background: #f5f3ef; margin: 24px 0; }
+.audio-play-btn { width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid #111; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; transition: background 0.2s, color 0.2s; color: #111; }
+.audio-play-btn:hover, .audio-play-btn.playing { background: #111; color: #fff; }
+.audio-info { flex: 1; min-width: 0; }
+.audio-guide-label { font-size: 8px; letter-spacing: 3px; color: #bbb; text-transform: uppercase; margin-bottom: 8px; }
+.audio-progress-wrap { display: flex; align-items: center; gap: 10px; }
+.audio-progress-bar { flex: 1; height: 2px; background: #ddd; cursor: pointer; position: relative; }
+.audio-progress-fill { height: 100%; background: #111; width: 0; pointer-events: none; }
+.audio-time { font-size: 10px; color: #bbb; white-space: nowrap; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
 
 /* ── TOUR PAGE ── */
 .tour-page { padding: 48px 40px; }
@@ -245,6 +266,13 @@ button, input, select, textarea { font-family: inherit; font-size: inherit; }
 .admin-nav a.active { color: #fff; }
 .admin-content { padding: 32px 24px; max-width: 1000px; margin: 0 auto; }
 .admin-title { font-size: 20px; font-weight: 400; margin-bottom: 24px; color: #111; }
+.admin-title-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.admin-title-row .admin-title { margin-bottom: 0; }
+.admin-link { font-size: 11px; color: #888; text-decoration: none; }
+.admin-link:hover { color: #111; text-decoration: underline; }
+.admin-sub { font-size: 11px; color: #bbb; margin-top: 2px; }
+.admin-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.admin-name-cell { display: flex; align-items: center; gap: 10px; }
 .admin-table { width: 100%; border-collapse: collapse; background: #fff; }
 .admin-table th { font-size: 9px; letter-spacing: 2px; color: #aaa; text-align: left; padding: 10px 14px; border-bottom: 2px solid #e8e8e8; text-transform: uppercase; }
 .sort-th { cursor: pointer; user-select: none; white-space: nowrap; }

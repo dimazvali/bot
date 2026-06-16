@@ -32,7 +32,7 @@ html(data-theme='dark')
   body(data-series-url=seriesUrl || '')
     header.mobile-header
       button.burger#burger ☰
-      a.mobile-logo(href='/') dimazvali.com
+      a.mobile-logo(href='https://dimazvali.com') dimazvali.com
       button.theme-toggle(onclick='toggleTheme()' title='Тема') ◐
     .mobile-colors
       each family, key in colorFamilies
@@ -45,7 +45,7 @@ html(data-theme='dark')
     .site
       aside.sidebar#sidebar
         .sidebar-logo
-          a(href='/') dimazvali.com
+          a(href='https://dimazvali.com') dimazvali.com
           span Дмитрий Шестаков
         nav.sidebar-nav
           each country, countryKey in data
