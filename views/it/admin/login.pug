@@ -1,0 +1,28 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title Вход — IT Admin
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap')
+    style.
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #f4f1ea; color: #15120f; font-family: 'JetBrains Mono', monospace; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+      .card { background: #fff; border: 1px solid #d8d4cb; padding: 48px 40px; width: 100%; max-width: 360px; }
+      h1 { font-family: 'Oswald', sans-serif; font-size: 28px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; margin-bottom: 32px; }
+      label { display: block; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #6b6459; margin-bottom: 6px; }
+      input[type=password] { width: 100%; border: 1px solid #d8d4cb; background: #f4f1ea; color: #15120f; font-family: inherit; font-size: 14px; padding: 10px 12px; outline: none; margin-bottom: 20px; }
+      input[type=password]:focus { border-color: #15120f; }
+      button { width: 100%; background: #15120f; color: #f4f1ea; border: none; font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 12px; cursor: pointer; }
+      button:hover { background: #2a241c; }
+      .error { font-size: 12px; color: #c0392b; margin-bottom: 16px; }
+  body
+    .card
+      h1 IT Admin
+      form(method='POST' action='/admin/login')
+        label(for='pass') Пароль
+        input#pass(type='password' name='pass' autofocus autocomplete='current-password')
+        if error
+          p.error= error
+        button(type='submit') Войти

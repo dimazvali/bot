@@ -1,0 +1,77 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title Проекты — IT Admin
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap')
+    style.
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #f4f1ea; color: #15120f; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+      header { background: #15120f; color: #f4f1ea; padding: 0 32px; display: flex; align-items: center; gap: 24px; height: 52px; }
+      header h1 { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+      header nav { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+      header a { color: #c8c0b0; text-decoration: none; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+      header a:hover { color: #f4f1ea; }
+      main { padding: 32px; max-width: 1100px; }
+      .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+      .top h2 { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+      .btn-new { background: #15120f; color: #f4f1ea; text-decoration: none; font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 8px 18px; }
+      .btn-new:hover { background: #2a241c; }
+      table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d8d4cb; }
+      thead th { background: #f4f1ea; border-bottom: 1px solid #d8d4cb; padding: 10px 14px; text-align: left; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6b6459; font-weight: 500; }
+      tbody td { padding: 11px 14px; border-bottom: 1px solid #ece9e2; vertical-align: middle; }
+      tbody tr:last-child td { border-bottom: none; }
+      tbody tr:hover td { background: #faf8f4; }
+      .tag { display: inline-block; background: #f4f1ea; border: 1px solid #d8d4cb; font-size: 10px; letter-spacing: .05em; padding: 2px 7px; margin: 1px 2px 1px 0; }
+      .pub { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #27ae60; }
+      .pub.off { background: #ccc; }
+      .actions { display: flex; gap: 10px; }
+      .actions a { color: #15120f; text-decoration: none; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid currentColor; }
+      .actions a:hover { color: #555; }
+      .actions form { display: inline; }
+      .actions button { background: none; border: none; cursor: pointer; color: #c0392b; font-family: inherit; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid currentColor; padding: 0; }
+      .empty { padding: 40px; text-align: center; color: #6b6459; font-size: 13px; }
+  body
+    header
+      h1 IT Admin
+      nav
+        a(href='/') ← Сайт
+        a(href='/admin/logout') Выйти
+    main
+      .top
+        h2 Проекты
+        a.btn-new(href='/admin/projects/new') + Новый проект
+      if projects.length === 0
+        .empty Проектов пока нет. Создайте первый.
+      else
+        table
+          thead
+            tr
+              th #
+              th Название
+              th Slug
+              th Теги
+              th Опубликован
+              th Полная страница
+              th Действия
+          tbody
+            each p in projects
+              tr
+                td= p.order || 0
+                td= p.name
+                td
+                  span(style='color:#6b6459')= p.slug
+                td
+                  each t in (p.tags || [])
+                    span.tag= t
+                td
+                  span.pub(class=p.published ? '' : 'off' title=p.published ? 'да' : 'нет')
+                td
+                  span.pub(class=p.full ? '' : 'off' title=p.full ? 'да' : 'нет')
+                td
+                  .actions
+                    a(href='/admin/projects/' + p.id + '/edit') Редактировать
+                    form(method='POST' action='/admin/projects/' + p.id + '/delete' onsubmit='return confirm("Удалить проект?")')
+                      button(type='submit') Удалить

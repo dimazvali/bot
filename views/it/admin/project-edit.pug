@@ -1,0 +1,142 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title= (projectId ? 'Редактировать' : 'Новый проект') + ' — IT Admin'
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap')
+    style.
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #f4f1ea; color: #15120f; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+      header { background: #15120f; color: #f4f1ea; padding: 0 32px; display: flex; align-items: center; gap: 24px; height: 52px; }
+      header h1 { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+      header nav { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+      header a { color: #c8c0b0; text-decoration: none; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+      header a:hover { color: #f4f1ea; }
+      main { padding: 32px; max-width: 800px; }
+      h2 { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 28px; }
+      .section { margin-bottom: 32px; }
+      .section-title { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #6b6459; font-weight: 500; margin-bottom: 14px; border-bottom: 1px solid #d8d4cb; padding-bottom: 6px; }
+      .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+      .row.single { grid-template-columns: 1fr; }
+      .row.trio { grid-template-columns: 1fr 1fr 1fr; }
+      .field { display: flex; flex-direction: column; gap: 5px; }
+      label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6b6459; }
+      input[type=text], input[type=url], input[type=number], textarea, input[type=file] {
+        background: #fff; border: 1px solid #d8d4cb; color: #15120f; font-family: 'JetBrains Mono', monospace;
+        font-size: 13px; padding: 8px 10px; width: 100%; outline: none;
+      }
+      input:focus, textarea:focus { border-color: #15120f; }
+      textarea { resize: vertical; line-height: 1.5; }
+      .check-row { display: flex; gap: 24px; margin-bottom: 14px; }
+      .check-row label { display: flex; align-items: center; gap: 7px; font-size: 12px; letter-spacing: .04em; text-transform: none; color: #15120f; cursor: pointer; }
+      input[type=checkbox] { width: 15px; height: 15px; accent-color: #15120f; cursor: pointer; }
+      .hint { font-size: 11px; color: #6b6459; margin-top: 3px; }
+      .cover-preview { margin-top: 10px; }
+      .cover-preview img { max-width: 320px; max-height: 180px; display: block; border: 1px solid #d8d4cb; object-fit: cover; }
+      .actions { display: flex; gap: 16px; align-items: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #d8d4cb; }
+      .btn-save { background: #15120f; color: #f4f1ea; border: none; font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 11px 28px; cursor: pointer; }
+      .btn-save:hover { background: #2a241c; }
+      .btn-cancel { color: #15120f; text-decoration: none; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid currentColor; }
+      .btn-cancel:hover { color: #555; }
+      .btn-delete { margin-left: auto; background: none; border: 1px solid #c0392b; color: #c0392b; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; }
+      .btn-delete:hover { background: #c0392b; color: #fff; }
+  body
+    header
+      h1 IT Admin
+      nav
+        a(href='/admin/') ← Проекты
+        a(href='/admin/logout') Выйти
+
+    main
+      h2= projectId ? 'Редактировать проект' : 'Новый проект'
+
+      form(method='POST' action='/admin/projects/' + (projectId || 'new') + '/edit' enctype='multipart/form-data')
+
+        .section
+          .section-title Основное
+          .row
+            .field
+              label(for='name') Название
+              input#name(type='text' name='name' value=project.name || '' required)
+            .field
+              label(for='slug') Slug (URL)
+              input#slug(type='text' name='slug' value=project.slug || '' placeholder='my-project-slug')
+          .row.single
+            .field
+              label(for='short') Краткое описание (для карточки)
+              textarea#short(name='short' rows='3')= project.short || ''
+          .row.trio
+            .field
+              label(for='tags') Теги (через запятую)
+              input#tags(type='text' name='tags' value=Array.isArray(project.tags) ? project.tags.join(', ') : (project.tags || '') placeholder='менеджмент, разработка')
+            .field
+              label(for='order') Порядок
+              input#order(type='number' name='order' value=project.order || 0 style='width:100px')
+          .check-row
+            label
+              input(type='checkbox' name='published' checked=project.published ? 'checked' : undefined)
+              | Опубликован
+            label
+              input(type='checkbox' name='full' checked=project.full ? 'checked' : undefined)
+              | Полная страница
+
+        .section
+          .section-title Мета-информация
+          .row
+            .field
+              label(for='role') Роль
+              input#role(type='text' name='role' value=project.role || '' placeholder='Project Manager')
+            .field
+              label(for='period') Период
+              input#period(type='text' name='period' value=project.period || '' placeholder='2024 — 2025')
+          .row
+            .field
+              label(for='stack') Стек / инструменты
+              input#stack(type='text' name='stack' value=project.stack || '' placeholder='React · Notion · Figma')
+            .field
+              label(for='link') Ссылка
+              input#link(type='url' name='link' value=project.link || '' placeholder='https://')
+
+        .section
+          .section-title Обложка
+          if project.cover
+            .cover-preview
+              img(src=project.cover alt='Текущая обложка')
+          .field(style='margin-top:12px')
+            label(for='coverImage') Загрузить новую (JPEG/PNG, до 20 МБ — конвертируется в WebP 1600px)
+            input#coverImage(type='file' name='coverImage' accept='image/*')
+
+        .section
+          .section-title Контент
+          .row.single
+            .field
+              label(for='context') Контекст
+              p.hint Абзацы разделяйте пустой строкой (↵↵)
+              textarea#context(name='context' rows='8')= project.context || ''
+          .row.single
+            .field
+              label(for='quote') Цитата / ключевая мысль
+              textarea#quote(name='quote' rows='3')= project.quote || ''
+          .row.single
+            .field
+              label(for='actions') Что я сделал
+              p.hint Один пункт на строку
+              textarea#actions(name='actions' rows='6')= project.actions || ''
+          .row.single
+            .field
+              label(for='result') Результат
+              textarea#result(name='result' rows='4')= project.result || ''
+          .row.single
+            .field
+              label(for='metrics') Метрики
+              p.hint Одна метрика на строку: значение | подпись (например: 3× | рост конверсии)
+              textarea#metrics(name='metrics' rows='4')= project.metrics || ''
+
+        .actions
+          button.btn-save(type='submit') Сохранить
+          a.btn-cancel(href='/admin/') Отмена
+          if projectId
+            form(method='POST' action='/admin/projects/' + projectId + '/delete' style='margin-left:auto' onsubmit='return confirm("Удалить проект?")')
+              button.btn-delete(type='submit') Удалить проект
