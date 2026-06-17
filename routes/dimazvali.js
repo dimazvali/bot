@@ -134,6 +134,12 @@ let sections = fb.collection('DIMAZVALIsections');
 let views = fb.collection(`DIMAZVALIviews`);
 let logs = fb.collection(`DIMAZVALIlogs`);
 let udb = fb.collection(`DIMAZVALIusers`);
+
+function isAdmin(id) {
+    return getUser(id, udb).then(function(u) {
+        return !!(u && u.admin);
+    });
+}
 let settings = fb.collection(`DIMAZVALIsettings`);
 let tags = fb.collection(`DIMAZVALItags`);
 let landMarks = fb.collection(`DIMAZVALIlandMarks`);

@@ -43,6 +43,7 @@ html
     #menu(onclick="toggleDrawer()")
 
     #main
+    script var logs = !{JSON.stringify(logs || [])}
     script(src='/javascripts/dimazvali/common-admin.js')
     script(src='/javascripts/dimazvali/router.js')
     script(src='/javascripts/dimazvali/geo.js')
