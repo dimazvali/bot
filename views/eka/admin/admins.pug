@@ -1,0 +1,56 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/clients') Клиенты
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
+      a(href='/admin/stickers') Стикеры
+      a(href='/admin/admins') Администраторы
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title Администраторы
+
+      if saved
+        p(style='color:#1a7f37;font-size:13px;margin-bottom:16px') ✓ Сохранено
+
+      if admins && admins.length
+        table.admin-table(style='margin-bottom:2rem')
+          thead
+            tr
+              th Имя
+              th Добавлен
+              th
+          tbody
+            each a in admins
+              - var d = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0)
+              tr
+                td= a.name
+                td(style='color:#888;font-size:12px')= d.toLocaleDateString('ru-RU')
+                td
+                  form(method='POST' action='/admin/admins/' + a.id + '/delete' style='display:inline' onsubmit='return confirm("Удалить администратора " + "' + a.name + '" + "?")')
+                    button.admin-btn.btn-sm.admin-btn-danger(type='submit') Удалить
+      else
+        p(style='color:#bbb;font-size:13px;margin-bottom:2rem') Дополнительных администраторов нет.
+
+      h3(style='font-size:14px;font-weight:600;margin-bottom:12px') Добавить администратора
+      form.admin-form(method='POST' action='/admin/admins/add')
+        .admin-2col
+          .admin-field
+            label Имя
+            input(type='text' name='name' required placeholder='Например: Дима')
+          .admin-field
+            label Пароль
+            input(type='password' name='password' required placeholder='Минимум 8 символов')
+        button.admin-btn(type='submit') Добавить

@@ -98,6 +98,34 @@ html(lang='ru')
       .footer-bottom-wrap { border-top: 1px solid #2a2622; }
       .footer-bottom { max-width: 1480px; margin: 0 auto; padding: 16px clamp(18px,3vw,40px); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 11px; letter-spacing: .08em; color: #6c675f; }
 
+      /* filter toggle (mobile) */
+      #filter-toggle { display: none; align-items: center; gap: 8px; margin-left: auto; background: none; border: 1px solid #2a2622; padding: 7px 14px; font-family: 'Oswald',sans-serif; font-weight: 600; font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: #b7b2aa; cursor: pointer; }
+      #filter-toggle-count { background: #f4f1ea; color: #0c0b0a; border-radius: 50%; width: 18px; height: 18px; font-size: 10px; display: none; align-items: center; justify-content: center; }
+      #filter-toggle-count.has-active { display: flex; }
+      /* filter drawer */
+      #filter-drawer { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+      #filter-drawer.open { pointer-events: auto; }
+      .fdr-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.55); opacity: 0; transition: opacity .3s; }
+      #filter-drawer.open .fdr-overlay { opacity: 1; }
+      .fdr-panel { position: absolute; bottom: 0; left: 0; right: 0; background: #1a1815; border-top: 1px solid #2a2622; transform: translateY(100%); transition: transform .35s cubic-bezier(.32,.72,0,1); max-height: 82vh; overflow-y: auto; }
+      #filter-drawer.open .fdr-panel { transform: translateY(0); }
+      .fdr-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 16px; border-bottom: 1px solid #211f1c; }
+      .fdr-title { font-family: 'Oswald',sans-serif; font-weight: 600; font-size: 16px; letter-spacing: .08em; text-transform: uppercase; }
+      .fdr-close { background: none; border: none; color: #7c776f; font-size: 20px; line-height: 1; padding: 4px 8px; cursor: pointer; }
+      .fdr-section { padding: 18px 20px; border-bottom: 1px solid #211f1c; }
+      .fdr-section-label { font-family: 'JetBrains Mono',monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #615e59; display: block; margin-bottom: 12px; }
+      #drawer-subloc-nav { display: flex; flex-wrap: wrap; gap: 12px; }
+      #drawer-tag-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .fdr-reset { display: block; width: calc(100% - 40px); margin: 16px 20px; padding: 14px; background: none; border: 1px solid #2a2622; cursor: pointer; font-family: 'Oswald',sans-serif; font-weight: 600; font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: #7c776f; }
+      @media (max-width: 600px) {
+        #filter-toggle { display: flex; }
+        .filterbar-right { display: none !important; }
+        #subloc-bar { display: none !important; }
+        #tags-bar { display: none !important; }
+        .mast-contacts a:not(.mast-back) { display: none; }
+      }
+      @media (min-width: 601px) { #filter-drawer { display: none; } }
+
   body(style='background:#0c0b0a; color:#f4f1ea; font-family:"JetBrains Mono",monospace; min-height:100vh; overflow-x:hidden;')
 
     section#masthead
@@ -127,6 +155,9 @@ html(lang='ru')
             .color-wrap
               span.color-label Цвет
               div.color-dots#color-dots
+          button#filter-toggle(type='button')
+            span Фильтры
+            span#filter-toggle-count
         div#subloc-bar
           .subloc-inner
             span.subloc-label#subloc-label
@@ -145,6 +176,25 @@ html(lang='ru')
           div#grid
           div#empty Под этот фильтр кадров пока нет.
 
+    div#filter-drawer
+      div.fdr-overlay
+      div.fdr-panel
+        div.fdr-header
+          span.fdr-title Фильтры
+          button.fdr-close(type='button') ✕
+        div#drawer-subloc-section.fdr-section(style='display:none')
+          span.fdr-section-label Локация
+          nav#drawer-subloc-nav
+        div.fdr-section
+          span.fdr-section-label Съёмка
+          div#drawer-cam-seg.cam-seg
+        div.fdr-section
+          span.fdr-section-label Цвет
+          div#drawer-color-dots.color-dots
+        div#drawer-tags-section.fdr-section(style='display:none')
+          span.fdr-section-label Темы
+          div#drawer-tag-chips.tag-chips
+        button#fdr-reset.fdr-reset(type='button') Сбросить фильтры
     include _footer.pug
     +siteFooter()
 
@@ -190,24 +240,37 @@ html(lang='ru')
         var bar = document.getElementById('subloc-bar');
         var nav = document.getElementById('subloc-nav');
         var label = document.getElementById('subloc-label');
-        if (state.cat === 'все') { bar.classList.remove('visible'); return; }
-        var cat = __cats.find(function(c) { return c.key === state.cat; });
-        if (!cat) { bar.classList.remove('visible'); return; }
-        var serKeys = Object.keys(cat.series);
-        if (!serKeys.length) { bar.classList.remove('visible'); return; }
-        bar.classList.add('visible');
-        label.textContent = cat.label + ' /';
+        var dSec = document.getElementById('drawer-subloc-section');
+        var dNav = document.getElementById('drawer-subloc-nav');
+        var cat = state.cat !== 'все' ? __cats.find(function(c) { return c.key === state.cat; }) : null;
+        var serKeys = cat ? Object.keys(cat.series) : [];
+        if (!cat || !serKeys.length) {
+          bar.classList.remove('visible');
+          if (dSec) dSec.style.display = 'none';
+          return;
+        }
         var allKeys = ['все'].concat(serKeys);
         var allLabels = ['Все'].concat(serKeys.map(function(k) { return cat.series[k]; }));
-        nav.innerHTML = allKeys.map(function(k, i) {
+        var subHTML = allKeys.map(function(k, i) {
           return '<a class="subloc-btn' + (k === state.loc ? ' active' : '') + '" href="' + locHref(state.cat, k) + '">' + allLabels[i] + '</a>';
         }).join('');
+        bar.classList.add('visible');
+        label.textContent = cat.label + ' /';
+        nav.innerHTML = subHTML;
+        if (dSec) { dSec.style.display = ''; dNav.innerHTML = subHTML; }
       }
 
       function renderTags() {
         var bar = document.getElementById('tags-bar');
         var wrap = document.getElementById('tag-chips');
-        if (state.cat === 'все') { bar.classList.remove('visible'); return; }
+        var dTSec = document.getElementById('drawer-tags-section');
+        var dTChips = document.getElementById('drawer-tag-chips');
+
+        if (state.cat === 'все') {
+          bar.classList.remove('visible');
+          if (dTSec) dTSec.style.display = 'none';
+          return;
+        }
 
         // collect tags from currently visible (pre-tag-filter) photos
         var scope = __photos.filter(function(p) {
@@ -219,22 +282,33 @@ html(lang='ru')
         var tagSet = {};
         scope.forEach(function(p) { (p.tags || []).forEach(function(t) { tagSet[t] = true; }); });
         var tags = Object.keys(tagSet).sort();
-        if (!tags.length) { bar.classList.remove('visible'); return; }
-        bar.classList.add('visible');
-        wrap.innerHTML = tags.map(function(slug) {
-          var label = (__tagDefs[slug] && __tagDefs[slug].label) || slug;
-          return '<button class="tag-btn' + (slug === state.tag ? ' active' : '') + '" data-tag="' + slug + '">' + label + '</button>';
-        }).join('');
-        wrap.querySelectorAll('.tag-btn').forEach(function(btn) {
-          btn.addEventListener('click', function() {
-            state.tag = state.tag === btn.dataset.tag ? 'все' : btn.dataset.tag;
-            render();
+
+        if (!tags.length) {
+          bar.classList.remove('visible');
+          if (dTSec) dTSec.style.display = 'none';
+          return;
+        }
+
+        function buildTagHTML(target) {
+          target.innerHTML = tags.map(function(slug) {
+            var lbl = (__tagDefs[slug] && __tagDefs[slug].label) || slug;
+            return '<button class="tag-btn' + (slug === state.tag ? ' active' : '') + '" data-tag="' + slug + '">' + lbl + '</button>';
+          }).join('');
+          target.querySelectorAll('.tag-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+              state.tag = state.tag === btn.dataset.tag ? 'все' : btn.dataset.tag;
+              render();
+            });
           });
-        });
+        }
+
+        bar.classList.add('visible');
+        buildTagHTML(wrap);
+        if (dTSec) { dTSec.style.display = ''; buildTagHTML(dTChips); }
       }
 
-      function renderCams() {
-        var seg = document.getElementById('cam-seg');
+      function renderCams(seg) {
+        seg = seg || document.getElementById('cam-seg');
         var base = __photos.filter(function(p) {
           return (state.cat === 'все' || p.cat === state.cat) &&
                  (state.loc === 'все' || p.locKey === state.loc) &&
@@ -257,8 +331,8 @@ html(lang='ru')
         });
       }
 
-      function renderColors() {
-        var wrap = document.getElementById('color-dots');
+      function renderColors(wrap) {
+        wrap = wrap || document.getElementById('color-dots');
         wrap.innerHTML = __colors.map(function(d) {
           var active = d.k === state.col;
           var bg = d.hex === 'mono' ? 'linear-gradient(135deg,#cfccc6,#3a3733)' : d.hex;
@@ -301,16 +375,46 @@ html(lang='ru')
         }).join('');
       }
 
+      function updateFilterBadge() {
+        var n = (state.cam !== 'все' ? 1 : 0) + (state.col !== 'все' ? 1 : 0)
+              + (state.loc !== 'все' ? 1 : 0) + (state.tag !== 'все' ? 1 : 0);
+        var badge = document.getElementById('filter-toggle-count');
+        if (!badge) return;
+        badge.textContent = n || '';
+        badge.classList.toggle('has-active', n > 0);
+      }
+
       function render() {
         renderCats();
         renderSubLocs();
         renderCams();
+        renderCams(document.getElementById('drawer-cam-seg'));
         renderColors();
+        renderColors(document.getElementById('drawer-color-dots'));
         renderTags();
         renderGrid();
+        updateFilterBadge();
       }
 
       render();
+
+      (function() {
+        var drawer = document.getElementById('filter-drawer');
+        if (!drawer) return;
+        var overlay = drawer.querySelector('.fdr-overlay');
+        var closeBtn = drawer.querySelector('.fdr-close');
+        var toggleBtn = document.getElementById('filter-toggle');
+        var resetBtn = document.getElementById('fdr-reset');
+        function openDrawer() { drawer.classList.add('open'); document.body.style.overflow = 'hidden'; }
+        function closeDrawer() { drawer.classList.remove('open'); document.body.style.overflow = ''; }
+        toggleBtn && toggleBtn.addEventListener('click', openDrawer);
+        overlay && overlay.addEventListener('click', closeDrawer);
+        closeBtn && closeBtn.addEventListener('click', closeDrawer);
+        resetBtn && resetBtn.addEventListener('click', function() {
+          state.cam = 'все'; state.col = 'все'; state.tag = 'все';
+          render(); closeDrawer();
+        });
+      }());
 
       (function() {
         function updateTbilisiTime() {

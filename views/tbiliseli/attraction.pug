@@ -46,9 +46,8 @@ block content
                 source(media='(max-width:800px)' srcset=item.w800)
                 img(src=item.w1400 alt=caption loading='lazy')
 
-- var audioUrl = lang === 'ru' ? (attraction.audioUrlRu || attraction.audioUrl) : (attraction.audioUrlEn || attraction.audioUrl)
-
 block audioPlayer
+  - var audioUrl = lang === 'ru' ? (attraction.audioUrlRu || attraction.audioUrl) : (attraction.audioUrlEn || attraction.audioUrl)
   if audioUrl
     .audio-guide-bar
       button.audio-play-btn(type='button' aria-label='Play') ▶

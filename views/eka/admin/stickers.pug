@@ -1,0 +1,85 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .sticker-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 24px;
+        padding: 24px 0;
+      }
+      .sticker-card {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .sticker-card img {
+        width: 360px;
+        height: 245px;
+        display: block;
+        box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      }
+      .sticker-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: #333;
+      }
+      .sticker-meta {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .sticker-url {
+        font-size: 10px;
+        color: #aaa;
+        text-decoration: none;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .sticker-url:hover { color: #E8000D; }
+      @media print {
+        .no-print, nav.admin-nav, .admin-title { display: none !important; }
+        .sticker-meta, .sticker-name, .sticker-url { display: none !important; }
+        body.admin-body { background: white; margin: 0; padding: 0; }
+        .admin-content { padding: 0; margin: 0; }
+        .sticker-grid { gap: 6mm; padding: 0; }
+        .sticker-card img { box-shadow: none; }
+      }
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/clients') Клиенты
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
+      a(href='/admin/stickers') Стикеры
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title Стикеры с QR-кодами
+
+      .no-print(style='margin-bottom:24px;display:flex;align-items:center;gap:12px')
+        button.admin-btn(onclick='window.print()') Печать
+        if stickers && stickers.length
+          span(style='font-size:13px;color:#888')= stickers.length + ' ' + (stickers.length === 1 ? 'стикер' : stickers.length < 5 ? 'стикера' : 'стикеров')
+
+      if stickers && stickers.length
+        .sticker-grid
+          each s in stickers
+            .sticker-card(id=s.attraction.slug)
+              .sticker-name= s.attraction.titleRu || s.attraction.titleEn || s.attraction.slug
+              img(src='/admin/stickers/' + s.attraction.slug + '/svg' alt=s.attraction.titleRu)
+              .sticker-meta
+                a.sticker-url(href=s.url target='_blank')= s.url
+                a.admin-btn.btn-sm(href='/admin/stickers/' + s.attraction.slug + '/svg' download=s.attraction.slug + '-sticker.svg' style='white-space:nowrap') ↓ SVG
+      else
+        p(style='color:#bbb;font-size:13px') Нет опубликованных достопримечательностей со slug.

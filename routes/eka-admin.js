@@ -1,8 +1,12 @@
 'use strict';
 var express = require('express');
 var router = express.Router();
+var path = require('path');
+var fs = require('fs');
+var crypto = require('crypto');
 var multer = require('multer');
 var sharp = require('sharp');
+var QRCode = require('qrcode');
 var { getApps } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { getStorage } = require('firebase-admin/storage');
@@ -14,6 +18,10 @@ if (!ekaApp) throw new Error('eka-admin: Firebase "eka" app not initialized — 
 var fb = getFirestore(ekaApp);
 var bucket = getStorage(ekaApp).bucket();
 var adminTokens = fb.collection('ekaAdminTokens');
+var ekaAdmins = fb.collection('ekaAdmins');
+function cookieToken(pass) {
+  return crypto.createHash('sha256').update('eka:' + pass).digest('hex');
+}
 
 var upload = multer({
   storage: multer.memoryStorage(),
@@ -41,13 +49,21 @@ async function uploadImageSizes(buffer, storagePath) {
 
 // ── AUTH ────────────────────────────────────────────────
 async function requireAuth(req, res, next) {
-  var tokenId = req.signedCookies && req.signedCookies.ekaAdminToken;
-  if (!tokenId) return res.redirect('/admin/login');
+  var val = req.cookies && req.cookies.ekaAdminToken;
+  if (!val) return res.redirect('/admin/login');
+  var envPass = process.env.EKA_ADMIN_PASS;
+  if (envPass && val === cookieToken(envPass)) {
+    res.locals.adminName = 'admin';
+    return next();
+  }
   try {
-    var doc = await adminTokens.doc(tokenId).get();
-    if (!doc.exists) return res.redirect('/admin/login');
-    next();
-  } catch (e) { res.redirect('/admin/login'); }
+    var snap = await ekaAdmins.where('password_hash', '==', val).limit(1).get();
+    if (!snap.empty) {
+      res.locals.adminName = snap.docs[0].data().name || 'admin';
+      return next();
+    }
+  } catch(e) {}
+  res.redirect('/admin/login');
 }
 
 router.get('/login', function(req, res) {
@@ -55,18 +71,23 @@ router.get('/login', function(req, res) {
 });
 
 router.post('/login', express.urlencoded({ extended: false }), async function(req, res) {
-  var pass = req.body.pass || '';
-  if (pass !== process.env.EKA_ADMIN_PASS) {
-    return res.render('eka/admin/login', { title: 'Вход — Eka Admin', error: 'Неверный пароль' });
+  var pass = (req.body.pass || '').trim();
+  if (!pass) return res.render('eka/admin/login', { title: 'Вход — Eka Admin', error: 'Введите пароль' });
+  var hash = cookieToken(pass);
+  var envPass = process.env.EKA_ADMIN_PASS;
+  var ok = !!(envPass && pass === envPass);
+  if (!ok) {
+    try {
+      var snap = await ekaAdmins.where('password_hash', '==', hash).limit(1).get();
+      ok = !snap.empty;
+    } catch(e) {}
   }
-  var doc = await adminTokens.add({ createdAt: new Date() });
-  res.cookie('ekaAdminToken', doc.id, { signed: true, httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+  if (!ok) return res.render('eka/admin/login', { title: 'Вход — Eka Admin', error: 'Неверный пароль' });
+  res.cookie('ekaAdminToken', hash, { httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
   res.redirect('/admin/');
 });
 
-router.get('/logout', async function(req, res) {
-  var tokenId = req.signedCookies && req.signedCookies.ekaAdminToken;
-  if (tokenId) { try { await adminTokens.doc(tokenId).delete(); } catch (e) {} }
+router.get('/logout', function(req, res) {
   res.clearCookie('ekaAdminToken');
   res.redirect('/admin/login');
 });
@@ -446,6 +467,75 @@ router.post('/discounts/:id/delete', requireAuth, async function(req, res, next)
     await ekaData.deleteDiscount(req.params.id);
     res.redirect('/admin/discounts');
   } catch (e) { next(e); }
+});
+
+// ── ADMINS ───────────────────────────────────────────────
+router.get('/admins', requireAuth, async function(req, res, next) {
+  try {
+    var snap = await ekaAdmins.orderBy('createdAt').get();
+    var admins = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    res.render('eka/admin/admins', { title: 'Администраторы — Eka Admin', admins: admins, saved: req.query.saved });
+  } catch(e) { next(e); }
+});
+
+router.post('/admins/add', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var name = (req.body.name || '').trim();
+    var pass = (req.body.password || '').trim();
+    if (!name || !pass) return res.redirect('/admin/admins');
+    await ekaAdmins.add({ name: name, password_hash: cookieToken(pass), createdAt: new Date() });
+    res.redirect('/admin/admins?saved=1');
+  } catch(e) { next(e); }
+});
+
+router.post('/admins/:id/delete', requireAuth, async function(req, res, next) {
+  try {
+    await ekaAdmins.doc(req.params.id).delete();
+    res.redirect('/admin/admins');
+  } catch(e) { next(e); }
+});
+
+// ── STICKERS ─────────────────────────────────────────────
+router.get('/stickers', requireAuth, async function(req, res, next) {
+  try {
+    var attractions = await ekaData.getAttractions({ publishedOnly: true });
+    var stickers = attractions.filter(function(a) { return a.slug; }).map(function(a) {
+      return { attraction: a, url: 'https://tbiliseli.com/ru/attractions/' + a.slug };
+    });
+    res.render('eka/admin/stickers', { title: 'Стикеры — Eka Admin', stickers });
+  } catch(e) { next(e); }
+});
+
+router.get('/stickers/:slug/svg', requireAuth, async function(req, res, next) {
+  try {
+    var attractions = await ekaData.getAttractions({ publishedOnly: true });
+    var attraction = attractions.find(function(a) { return a.slug === req.params.slug; });
+    if (!attraction) return res.status(404).send('Not found');
+
+    var stickerUrl = 'https://tbiliseli.com/ru/attractions/' + attraction.slug;
+    var qrBuf = await QRCode.toBuffer(stickerUrl, { type: 'png', width: 200, margin: 1, color: { dark: '#111111', light: '#ffffff' } });
+    var qrB64 = qrBuf.toString('base64');
+
+    var logoPath = path.join(__dirname, '../public/images/eka/v2/logo.png');
+    var logoB64 = fs.readFileSync(logoPath).toString('base64');
+
+    // SVG canvas: 360×245 (≈90×61mm at 96dpi)
+    // QR: y=14..176, text tops start at y=184 → 8px gap
+    var cx = 271; // horizontal center of right column (190 + 162/2)
+    var svg = [
+      '<svg width="360" height="245" xmlns="http://www.w3.org/2000/svg">',
+      '<rect width="360" height="245" fill="#E8000D"/>',
+      '<image x="8" y="8" width="178" height="229" href="data:image/png;base64,' + logoB64 + '" preserveAspectRatio="xMidYMid meet"/>',
+      '<image x="190" y="14" width="162" height="162" href="data:image/png;base64,' + qrB64 + '"/>',
+      '<text x="' + cx + '" y="198" font-family="\'Barlow Condensed\',Arial,sans-serif" font-weight="900" font-size="17" fill="#ffffff" text-anchor="middle" letter-spacing="2">ВЫ ТОЛЬКО</text>',
+      '<text x="' + cx + '" y="220" font-family="\'Barlow Condensed\',Arial,sans-serif" font-weight="900" font-size="17" fill="#ffffff" text-anchor="middle" letter-spacing="2">ПОСЛУШАЙТЕ</text>',
+      '</svg>',
+    ].join('\n');
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Content-Disposition', 'attachment; filename="' + attraction.slug + '-sticker.svg"');
+    res.send(svg);
+  } catch(e) { next(e); }
 });
 
 // ── HELP ─────────────────────────────────────────────────

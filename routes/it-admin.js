@@ -15,7 +15,7 @@ var adminTokens = fb.collection('it_admin_tokens');
 
 var upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 20 * 1024 * 1024 },
+  limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: function(req, file, cb) {
     if (!file.mimetype.startsWith('image/')) return cb(new Error('Images only'));
     cb(null, true);
