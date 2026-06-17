@@ -102,6 +102,25 @@ function picUrl(pic) {
 //         console.log(err)
 //     })
 
+let bucket = s.bucket('dimazvalimisc.appspot.com')
+
+var multer = require('multer')
+var sharp = require('sharp')
+var upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } })
+
+var UPLOAD_SIZES = [400, 800, 1400]
+async function uploadImageSizes(buffer, storagePath) {
+  var urls = {}
+  await Promise.all(UPLOAD_SIZES.map(async function(w) {
+    var webp = await sharp(buffer).resize(w, null, { withoutEnlargement: true }).webp({ quality: 85 }).toBuffer()
+    var file = bucket.file(storagePath.replace('{w}', w))
+    await file.save(webp, { metadata: { contentType: 'image/webp' } })
+    await file.makePublic()
+    urls['w' + w] = 'https://storage.googleapis.com/' + bucket.name + '/' + file.name
+  }))
+  return urls
+}
+
 
 setTimeout(function () {
     axios.get(`https://api.telegram.org/bot${token}/setWebHook?url=https://bot.dimazvali.com/hook`).then(() => {
@@ -668,6 +687,29 @@ router.all(`/api/:method/:id`, (req, res) => {
             res.sendStatus(404)
         }
     }
+})
+
+router.post('/admin/upload-image', upload.single('pic'), function(req, res) {
+  if (!req.signedCookies.adminToken) return res.status(401).send('Вы кто вообще?')
+  if (!req.file) return res.status(400).send('no file')
+  var collection = req.body.collection
+  var id = req.body.id
+  if (!collection || !id) return res.status(400).send('collection and id required')
+
+  adminTokens.doc(req.signedCookies.adminToken).get().then(function(doc) {
+    if (!doc.exists) return res.sendStatus(403)
+    var token = handleDoc(doc)
+    getUser(token.user, udb).then(function(admin) {
+      if (!admin.admin) return res.sendStatus(403)
+      var storagePath = 'media/' + collection + '/' + id + '_{w}.webp'
+      uploadImageSizes(req.file.buffer, storagePath).then(function(urls) {
+        res.json(urls)
+      }).catch(function(err) {
+        console.error('upload error', err)
+        res.status(500).send(err.message)
+      })
+    })
+  })
 })
 
 router.all(`/admin/:method/:id`, (req, res) => {
