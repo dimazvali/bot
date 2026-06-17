@@ -17,52 +17,35 @@ html
     link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap")
     link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&family=Rubik+80s+Fade&display=swap")
     link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;900&display=swap")
-    script(src="https://cdn.amcharts.com/lib/5/index.js")
-    script!=`let start="${start}"`
-    script(src="https://cdn.amcharts.com/lib/5/xy.js")
-    script(src="https://cdn.amcharts.com/lib/5/themes/Animated.js")
     link(rel="stylesheet", href="https://fonts.googleapis.com/css2?family=Oi&family=Oswald:wght@400;700;900&display=swap")
     script(src="https://cdn.tiny.cloud/1/"+wysykey+"/tinymce/6/tinymce.min.js" referrerpolicy="origin")
   body.mobile
     
     #left
-        h3(onclick="s(this),showPages()")       Страницы
-        h3(onclick="s(this),showSections()")    Разделы
-        h3(onclick="s(this),showTags()")        Теги
-        br
-        h3(onclick="s(this),showReestr()")      Реестр
-        br
-        h3(onclick="s(this),showCities()")      Города
-        h3(onclick="s(this),showLandmarks()")   Достопримечательности
-        h3(onclick="s(this),showTours()")       Экскурсии
-        br
-        br
-        h3(onclick="s(this),showAuthors()")     Ведущие
-        h3(onclick="s(this),showPrograms()")    Программы
-        h3(onclick="s(this),showShows()")       Выпуски
-        
-        
+      .sidebar-primary
+        .sidebar-heading 🗺 Города
+        #city-list
+        button.sidebar-add(onclick="navigate('#cities')") + добавить город
+      hr.sidebar-divider
+      .sidebar-secondary
+        h3(onclick="navigate('#pages')") Страницы
+        h3(onclick="navigate('#sections')") Разделы
+        h3(onclick="navigate('#tags')") Теги
+        h3(onclick="navigate('#reestr')") Реестр
+        h3(onclick="navigate('#authors')") Ведущие
+        h3(onclick="navigate('#programs')") Программы
+        h3(onclick="navigate('#shows')") Выпуски
 
         
 
         
     
-    #menu(onclick="left.classList.toggle('active')")
+    #menu(onclick="toggleDrawer()")
 
     #main
-        h2 Логи
-        for l in logs 
-            .divided
-                p.info!=new Date(l.createdAt._seconds*1000).toLocaleString()
-                p!=l.text
-                if(l.ticket)
-                  button(onclick!="showTicket(false,'"+l.ticket+"')") открыть билет
-                if(l.course) 
-                  button(onclick!="showCourse(false,'"+l.course+"')") открыть курс
-                if(l.class) 
-                  button(onclick!="showClass(false,'"+l.class+"')") открыть ивент
-                if(l.user) 
-                  button(onclick!="showUser(false,'"+l.user+"')") открыть профиль
-                if(l.author) 
-                  button(onclick!="showAuthor(false,'"+l.author+"')") открыть автора
+    script(src='/javascripts/dimazvali/common-admin.js')
+    script(src='/javascripts/dimazvali/router.js')
+    script(src='/javascripts/dimazvali/geo.js')
+    script(src='/javascripts/dimazvali/content.js')
+    script(src='/javascripts/dimazvali/media.js')
     script(src='/javascripts/dimazvali/web.js')
