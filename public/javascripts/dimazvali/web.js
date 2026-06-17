@@ -111,6 +111,33 @@ function messageLine(m) {
   return c;
 }
 
+// ── Google Maps ───────────────────────────────────────────────────────────────
+
+var map;
+
+function initMap(form, lat, lng) {
+  var center = { lat: lat || 41.710950, lng: lng || 44.783232 };
+  map = new google.maps.Map(document.getElementById('map'), {
+    zoom: 15,
+    center: center,
+    mapTypeId: 'terrain'
+  });
+  if (lat && lng) addMarker({ lat: lat, lng: lng });
+  map.addListener('click', function(event) {
+    addMarker(event.latLng);
+    if (form) {
+      if (form.querySelector('[name="lat"]')) form.querySelector('[name="lat"]').remove();
+      if (form.querySelector('[name="lng"]')) form.querySelector('[name="lng"]').remove();
+      form.append(ce('input', false, false, false, { type: 'text', name: 'lat', value: event.latLng.lat() }));
+      form.append(ce('input', false, false, false, { type: 'text', name: 'lng', value: event.latLng.lng() }));
+    }
+  });
+}
+
+function addMarker(location) {
+  new google.maps.Marker({ position: location, map: map });
+}
+
 // ── Step line (used in tour panel via geo.js) ─────────────────────────────────
 
 function showStepLine(step) {
