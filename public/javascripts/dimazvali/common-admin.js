@@ -53,3 +53,8 @@ function renderPanel() {
   main.append(div);
   return div;
 }
+
+function picUrl(pic) {
+  if (!pic) return null;
+  return typeof pic === 'string' ? pic : (pic.w800 || pic.w400 || pic.w1400);
+}

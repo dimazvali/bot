@@ -185,12 +185,12 @@ function showLandmarkPanel(id) {
       { attr: 'greetings',   label: 'Приветствие', type: 'textarea' },
       { attr: 'goodbyes',    label: 'Прощание',    type: 'textarea' },
       { attr: 'voice',       label: 'Голосовое',   type: 'text' },
-      { attr: 'pic',         label: 'Фото (URL)',  type: 'text' },
     ].forEach(function(f) {
       panel.append(ce('p', false, 'editable', f.label + ': ' + (l[f.attr] || 'добавить'), {
         onclick: function() { edit('landmarks', id, f.attr, f.type, l[f.attr] || null, this); }
       }));
     });
+    panel.append(picWidget('landmarks', id, l.pic));
 
     // Google Map
     panel.append(ce('div', 'map'));
@@ -220,7 +220,6 @@ function addLandmarkForm(cityId) {
     description: { placeholder: 'Описание', type: 'textarea' },
     greetings:   { placeholder: 'Текст приветствия' },
     goodbyes:    { placeholder: 'Текст прощания' },
-    pic:         { placeholder: 'Фото (URL)' },
     voice:       { placeholder: 'Голосовое (ID файла)' },
     proximity:   { placeholder: 'Радиус срабатывания (м)' }
   });
@@ -256,12 +255,12 @@ function showTourPanel(id) {
     [
       { attr: 'description', label: 'Описание',  type: 'textarea' },
       { attr: 'voice',       label: 'Голосовое', type: 'text' },
-      { attr: 'pic',         label: 'Фото (URL)',type: 'text' },
     ].forEach(function(f) {
       panel.append(ce('p', false, 'editable', f.label + ': ' + (t[f.attr] || 'добавить'), {
         onclick: function() { edit('tours', id, f.attr, f.type, t[f.attr] || null, this); }
       }));
     });
+    panel.append(picWidget('tours', id, t.pic));
 
     // Steps
     var stepsDiv = ce('div');
@@ -299,7 +298,71 @@ function addTourForm(cityId) {
     name:        { placeholder: 'Название' },
     city:        { selector: 'cities', placeholder: 'Город', id: cityId },
     description: { placeholder: 'Описание', type: 'textarea' },
-    pic:         { placeholder: 'Фото (URL)' },
     voice:       { placeholder: 'Голосовое начало (ID файла)' }
   });
+}
+
+function picWidget(collection, id, currentPic) {
+  var wrap = ce('div', false, 'pic-widget');
+
+  var thumb = ce('div', false, 'pic-thumb');
+  var url = picUrl(currentPic);
+  if (url) {
+    var img = ce('img');
+    img.src = url;
+    img.style.cssText = 'width:120px;height:80px;object-fit:cover;border-radius:6px;display:block';
+    thumb.append(img);
+  } else {
+    thumb.style.cssText = 'width:120px;height:80px;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999';
+    thumb.textContent = 'нет фото';
+  }
+  wrap.append(thumb);
+
+  var status = ce('span', false, 'info', '');
+  var inp = ce('input', false, false, false, { type: 'file', accept: 'image/*' });
+  inp.style.display = 'none';
+
+  var btn = ce('button', false, false, 'Загрузить фото', {
+    onclick: function() { inp.click(); }
+  });
+
+  inp.addEventListener('change', function() {
+    if (!inp.files || !inp.files[0]) return;
+    status.textContent = 'Загружаем...';
+    btn.setAttribute('disabled', true);
+
+    var fd = new FormData();
+    fd.append('pic', inp.files[0]);
+    fd.append('collection', collection);
+    fd.append('id', id);
+
+    axios.post('/dimazvali/admin/upload-image', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }).then(function(r) {
+      var urls = r.data;
+      return axios.put('/dimazvali/admin/' + collection + '/' + id, {
+        attr: 'pic',
+        value: urls
+      }).then(function() {
+        thumb.innerHTML = '';
+        var img = ce('img');
+        img.src = urls.w800 || urls.w400;
+        img.style.cssText = 'width:120px;height:80px;object-fit:cover;border-radius:6px;display:block';
+        thumb.append(img);
+        status.textContent = '✓ Сохранено';
+        btn.removeAttribute('disabled');
+        _geoLandmarks = null;
+        _geoTours = null;
+      });
+    }).catch(function(err) {
+      handleError(err);
+      status.textContent = '';
+      btn.removeAttribute('disabled');
+    });
+  });
+
+  wrap.append(btn);
+  wrap.append(inp);
+  wrap.append(status);
+  return wrap;
 }
