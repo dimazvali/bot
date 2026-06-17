@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const { col, Timestamp } = require('../lib/pelamushi-firebase');
 const cache = require('../lib/pelamushi-cache');
 
@@ -118,6 +119,8 @@ router.get('/sitemap.xml', async (req, res, next) => {
     next(err);
   }
 });
+
+router.use(express.static(path.join(__dirname, '../public')))
 
 // ── Homepage ──────────────────────────────────────────────────────────────────
 router.get('/:lang', async (req, res, next) => {
