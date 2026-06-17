@@ -6,7 +6,8 @@ var express = require('express');
 var router = express.Router();
 var axios = require('axios');
 var cors = require('cors')
-var fs = require('fs');
+var fs = require('fs')
+var path = require('path');
 
 
 const {
@@ -1209,6 +1210,8 @@ router.post(`/tgStats`,(req,res)=>{
     
 })
 
+
+router.use(express.static(path.join(__dirname, '../public')))
 
 router.get(`/:page`, (req, res) => {
     let ref = pages.doc(req.params.page);
