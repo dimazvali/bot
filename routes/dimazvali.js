@@ -88,6 +88,11 @@ let gcp = initializeApp({
 let fb = getFirestore(gcp);
 let s = getStorage(gcp)
 
+function picUrl(pic) {
+  if (!pic) return null;
+  return typeof pic === 'string' ? pic : (pic.w800 || pic.w400 || pic.w1400);
+}
+
 // s.bucket(`dimazvalimisc`)
 //     .upload(__dirname + `/../public/sounds/123.mp3`)
 //     .then(s=>{
@@ -265,9 +270,8 @@ function handleLocation(userId, loc) {
                                 text: `*${place.name}*\n${place.greetings||place.description}`
                             }
 
-                            if (place.pic) {
-                                m.caption = m.text
-                            }
+                            var placePic = picUrl(place.pic);
+                            if (placePic) { m.caption = m.text; m.photo = placePic; }
 
 
                             usersLandmarks.add({
@@ -282,7 +286,7 @@ function handleLocation(userId, loc) {
 
                             alertedUsers[userId][place.id] = true;
 
-                            sendMessage2(m, m.pic ? 'sendPhoto' : false, token, messages).then(() => {
+                            sendMessage2(m, placePic ? 'sendPhoto' : false, token, messages).then(() => {
                                 if (place.voice) sendMessage2({
                                     chat_id: userId,
                                     voice: place.voice
@@ -481,11 +485,9 @@ function sendTour(user, tour, res) {
             ]
         }
     }
-    if (tour.pic) {
-        m.caption = m.text;
-        m.photo = tour.pic;
-    }
-    sendMessage2(m, tour.pic ? `sendPhoto` : false, token, messages)
+    var tourPic = picUrl(tour.pic);
+    if (tourPic) { m.caption = m.text; m.photo = tourPic; }
+    sendMessage2(m, tourPic ? 'sendPhoto' : false, token, messages)
 
     if (res) res.sendStatus(200)
 }
