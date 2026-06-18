@@ -840,7 +840,8 @@ function newCity(req, res, admin) {
             description: req.body.description || null,
             name: req.body.name || null,
             pic: req.body.pic || null,
-            // voice:          req.body.voice || null
+            lat: req.body.lat ? +req.body.lat : null,
+            lng: req.body.lng ? +req.body.lng : null,
         }).then(rec => {
             res.redirect(`/${host}/web?page=cities_${rec.id}`)
             log({

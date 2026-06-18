@@ -73,6 +73,12 @@ function showCityPanel(id) {
     panel.append(ce('p', false, 'editable', city.description || 'Добавить описание', {
       onclick: function() { edit('cities', id, 'description', 'textarea', city.description, this); }
     }));
+    panel.append(ce('p', false, 'editable', 'lat: ' + (city.lat || 'не задано'), {
+      onclick: function() { edit('cities', id, 'lat', 'number', city.lat, this); }
+    }));
+    panel.append(ce('p', false, 'editable', 'lng: ' + (city.lng || 'не задано'), {
+      onclick: function() { edit('cities', id, 'lng', 'number', city.lng, this); }
+    }));
     panel.append(deleteButton('cities', id, !city.active));
 
     // Landmarks section
@@ -129,6 +135,8 @@ function addCityForm() {
     name:        { placeholder: 'Название' },
     slug:        { placeholder: 'slug (латиницей)' },
     description: { placeholder: 'Описание', type: 'textarea' },
+    lat:         { placeholder: 'Широта (lat)', type: 'number' },
+    lng:         { placeholder: 'Долгота (lng)', type: 'number' },
     pic:         { placeholder: 'Фото (URL)' }
   });
 }
@@ -224,7 +232,14 @@ function addLandmarkForm(cityId) {
     proximity:   { placeholder: 'Радиус срабатывания (м)' }
   });
   p.append(ce('div', 'map'));
-  initMap(p.querySelector('form'));
+  var form = p.querySelector('form');
+  if (cityId) {
+    load('cities', cityId).then(function(city) {
+      initMap(form, city.lat ? +city.lat : null, city.lng ? +city.lng : null);
+    });
+  } else {
+    initMap(form);
+  }
 }
 
 // ── Tours ─────────────────────────────────────────────────────────────────────
