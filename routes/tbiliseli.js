@@ -9,6 +9,7 @@ var ekaData = require('../lib/eka-data');
 var mailer = require('../lib/eka-mailer');
 var ekaNotify = require('../lib/eka-notify');
 var ekaBot = require('../lib/eka-bot');
+var ekaReminders = require('../lib/eka-reminders');
 
 var ekaApp = getApps().find(function(a) { return a.name === 'eka'; }) || initializeApp({
   credential: cert({
@@ -31,6 +32,7 @@ ekaData.init(fb);
 mailer.init();
 ekaNotify.init(fb);
 ekaBot.init(fb, process.env.EKA_BOT_TOKEN, getStorage(ekaApp).bucket());
+ekaReminders.init(fb);
 if (process.env.develop !== 'true' && process.env.EKA_BOT_TOKEN && process.env.EKA_BOT_WEBHOOK_URL) {
   ekaBot.setWebhook(process.env.EKA_BOT_WEBHOOK_URL)
     .then(function(r) { console.log('[eka-bot] webhook set:', r.description); })
