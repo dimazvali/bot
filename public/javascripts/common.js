@@ -672,7 +672,7 @@ function addScreen(collection,name,o,callback){
             c.append(yes)
             f.append(c)
         } else {
-            let el = ce(input.tag||`input`,false,false,false,{
+            let el = ce(input.tag || (input.type === `textarea` ? `textarea` : `input`),false,false,false,{
                 placeholder:    input.placeholder || null,
                 type:           input.type || `text`,
                 name:           k,
