@@ -4,8 +4,11 @@ var router = express.Router();
 var path = require('path');
 var { getApps, initializeApp, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
+var { getStorage } = require('firebase-admin/storage');
 var ekaData = require('../lib/eka-data');
 var mailer = require('../lib/eka-mailer');
+var ekaNotify = require('../lib/eka-notify');
+var ekaBot = require('../lib/eka-bot');
 
 var ekaApp = getApps().find(function(a) { return a.name === 'eka'; }) || initializeApp({
   credential: cert({
@@ -26,6 +29,16 @@ var ekaApp = getApps().find(function(a) { return a.name === 'eka'; }) || initial
 var fb = getFirestore(ekaApp);
 ekaData.init(fb);
 mailer.init();
+ekaNotify.init(fb);
+ekaBot.init(fb, process.env.EKA_BOT_TOKEN, getStorage(ekaApp).bucket());
+
+router.post('/bot', express.json(), function(req, res) {
+  res.sendStatus(200);
+  ekaBot.handleUpdate(req.body, function(fromId, fromLabel, text) {
+    var notifText = '💬 <b>Сообщение от подписчика</b>\n<b>От:</b> ' + fromLabel + '\n<b>Текст:</b> ' + text;
+    ekaNotify.notify('messages', notifText).catch(function(){});
+  }).catch(function(e) { console.error('[eka-bot webhook]', e.message); });
+});
 
 router.use('/admin', require('./eka-admin'));
 router.use(express.static(path.join(__dirname, '../public')));
@@ -148,6 +161,7 @@ router.get('/:lang(ru|en)/ticket/:requestId', async function(req, res, next) {
     var isCancelled = booking.status === 'declined' || booking.status === 'cancelled';
     res.render('tbiliseli/ticket', {
       lang, booking, tour, direction, cost, tourDate, isCancelled,
+      botUsername: process.env.EKA_BOT_USERNAME || '',
       asked: req.query.asked === '1',
       reviewed: req.query.reviewed === '1',
       title: (function() {

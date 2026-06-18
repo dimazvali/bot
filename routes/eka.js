@@ -6,6 +6,7 @@ var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var ekaData = require('../lib/eka-data');
 var mailer = require('../lib/eka-mailer');
+var ekaNotify = require('../lib/eka-notify');
 
 var ekaApp = getApps().find(function(a) { return a.name === 'eka'; }) || initializeApp({
   credential: cert({
@@ -26,6 +27,7 @@ var ekaApp = getApps().find(function(a) { return a.name === 'eka'; }) || initial
 var fb = getFirestore(ekaApp);
 ekaData.init(fb);
 mailer.init();
+ekaNotify.init(fb);
 
 router.use(express.static(path.join(__dirname, '../public')));
 
@@ -219,6 +221,14 @@ router.post('/:lang(ru|en)/request', express.urlencoded({ extended: false }), as
     };
     var requestId = await ekaData.saveRequest(data);
     mailer.sendRequestNotification(data).catch(function(e) { console.error('[eka-mailer]', e.message); });
+    (function() {
+      var lines = ['🔔 <b>Новая заявка — TbiLiSELi</b>', '<b>Имя:</b> ' + (data.name || '—'), '<b>Контакт:</b> ' + (data.contactType || '') + ': ' + (data.contact || '—')];
+      if (data.tourTitle) lines.push('<b>Тур:</b> ' + data.tourTitle);
+      if (data.directionSlug) lines.push('<b>Направление:</b> ' + data.directionSlug);
+      if (data.preferredDates) lines.push('<b>Даты:</b> ' + data.preferredDates);
+      if (data.message) lines.push('<b>Сообщение:</b> ' + data.message);
+      ekaNotify.notify('requests', lines.join('\n')).catch(function(){});
+    })();
     var isTourBooking = data.type === 'tour' && data.tourId;
     res.redirect(isTourBooking ? '/' + lang + '/ticket/' + requestId : '/' + lang + '/request-sent');
   } catch (e) { next(e); }

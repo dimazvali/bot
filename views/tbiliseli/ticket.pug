@@ -64,6 +64,14 @@ block content
         a.ticket-dir-btn(href='/' + lang + '/directions/' + direction.slug)
           = lang === 'ru' ? '← Все туры: ' + (direction.titleRu || '') : '← All tours: ' + (direction.titleEn || '')
 
+      if botUsername && !booking.tg_user_id && !isCancelled
+        .ticket-section
+          .ticket-section-label= lang === 'ru' ? 'Уведомления' : 'Notifications'
+          p.ticket-note(style='margin-bottom:12px')
+            = lang === 'ru' ? 'Чтобы оперативно получать уведомления по туру — откройте нашего бота и нажмите Старт. Остальное произойдёт как по волшебству 🪄' : 'To get live updates about your tour — open our bot and tap Start. The rest will happen like magic 🪄'
+          a.ticket-btn(href='https://t.me/' + botUsername + '?start=req_' + booking.id target='_blank' rel='noopener')
+            = lang === 'ru' ? '✈ Открыть бот TbiLiSELi' : '✈ Open TbiLiSELi bot'
+
       if !isCancelled
         - var pastTour = tourDate && tourDate <= new Date()
         if pastTour

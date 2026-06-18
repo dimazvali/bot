@@ -11,6 +11,7 @@ var { getApps } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { getStorage } = require('firebase-admin/storage');
 var ekaData = require('../lib/eka-data');
+var ekaNotify = require('../lib/eka-notify');
 
 // eka Firebase app initialized by eka.js (loaded first via router.use('/admin', ...))
 var ekaApp = getApps().find(function(a) { return a.name === 'eka'; });
@@ -19,6 +20,7 @@ var fb = getFirestore(ekaApp);
 var bucket = getStorage(ekaApp).bucket();
 var adminTokens = fb.collection('ekaAdminTokens');
 var ekaAdmins = fb.collection('ekaAdmins');
+ekaNotify.init(fb);
 function cookieToken(pass) {
   return crypto.createHash('sha256').update('eka:' + pass).digest('hex');
 }
@@ -392,7 +394,18 @@ router.get('/requests', requireAuth, async function(req, res, next) {
 router.post('/requests/:id/status', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
     if (!ALL_STATUSES.includes(req.body.status)) return res.status(400).send('Bad status');
+    var req2 = await ekaData.getRequest(req.params.id);
     await ekaData.updateRequestStatus(req.params.id, req.body.status);
+    if (req2) {
+      var STATUS_LABELS = { new: 'новая', contacted: 'связались', ready: 'к туру', declined: 'отказался', no_show: 'не пришел', cancelled: 'отмена', completed: 'состоялась' };
+      var statusLabel = STATUS_LABELS[req.body.status] || req.body.status;
+      ekaNotify.notify('updates', '✏️ <b>Статус заявки изменён</b>\n<b>Имя:</b> ' + (req2.name || '—') + '\n<b>Статус:</b> ' + statusLabel).catch(function(){});
+      if (req2.tg_user_id) {
+        var USER_STATUS_LABELS = { contacted: 'Мы свяжемся с вами в ближайшее время.', ready: 'Всё готово — ждём вас на туре! 🎉', declined: 'К сожалению, ваша заявка отклонена.', cancelled: 'Ваша заявка отменена.', completed: 'Спасибо, что были с нами! 🙏', no_show: null };
+        var userMsg = USER_STATUS_LABELS[req.body.status];
+        if (userMsg) ekaBot.sendMessage(req2.tg_user_id, '📋 <b>Обновление по вашей заявке</b>\n' + userMsg).catch(function(){});
+      }
+    }
     var back = req.body.back ? '/admin/tours/' + req.body.back + '/edit' : '/admin/requests';
     res.redirect(back);
   } catch (e) { next(e); }
@@ -407,10 +420,31 @@ router.post('/requests/:id/update', requireAuth, express.urlencoded({ extended: 
       paid: b.paid === 'on',
     };
     if (typeof b.note !== 'undefined') update.note = (b.note || '').trim();
+    var req2 = await ekaData.getRequest(req.params.id);
     await ekaData.updateRequest(req.params.id, update);
+    if (req2) {
+      var parts = [];
+      parts.push('<b>Имя:</b> ' + (req2.name || '—'));
+      parts.push('<b>Участников:</b> ' + update.participants);
+      if (update.paid) parts.push('<b>Оплачено</b> ✓');
+      if (update.note) parts.push('<b>Примечание:</b> ' + update.note);
+      ekaNotify.notify('updates', '✏️ <b>Заявка обновлена</b>\n' + parts.join('\n')).catch(function(){});
+    }
     var back = b.back ? '/admin/tours/' + b.back + '/edit' : '/admin/requests';
     res.redirect(back);
   } catch (e) { next(e); }
+});
+
+router.post('/requests/:id/message', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var text = (req.body.text || '').trim();
+    var request = await ekaData.getRequest(req.params.id);
+    if (text && request && request.tg_user_id) {
+      await ekaBot.sendMessage(request.tg_user_id, text);
+    }
+    var back = req.body.back || '/admin/requests';
+    res.redirect(back);
+  } catch(e) { next(e); }
 });
 
 router.post('/requests/:id/review', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
@@ -469,12 +503,56 @@ router.post('/discounts/:id/delete', requireAuth, async function(req, res, next)
   } catch (e) { next(e); }
 });
 
+// ── BOT SETTINGS ─────────────────────────────────────────
+var ekaBot = require('../lib/eka-bot');
+
+router.get('/bot', requireAuth, async function(req, res, next) {
+  try {
+    var messages = await ekaBot.getBotMessages();
+    var users = await ekaBot.getUsers();
+    var activeCount = users.filter(function(u) { return u.active; }).length;
+    res.render('eka/admin/bot', { title: 'Бот — Eka Admin', messages: messages, totalUsers: users.length, activeUsers: activeCount, saved: req.query.saved });
+  } catch(e) { next(e); }
+});
+
+var botPhotoFields = ['welcome_ru', 'welcome_en', 'return_ru', 'return_en'].map(function(k) { return { name: 'photo_' + k, maxCount: 1 }; });
+
+router.post('/bot/messages', requireAuth, upload.fields(botPhotoFields), async function(req, res, next) {
+  try {
+    var existing = await ekaBot.getBotMessages();
+    var data = {
+      welcome_ru: (req.body.welcome_ru || '').trim(),
+      welcome_en: (req.body.welcome_en || '').trim(),
+      return_ru: (req.body.return_ru || '').trim(),
+      return_en: (req.body.return_en || '').trim(),
+    };
+    var keys = ['welcome_ru', 'welcome_en', 'return_ru', 'return_en'];
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      var photoKey = k + '_photo';
+      if (req.body['delete_photo_' + k] === 'on') {
+        data[photoKey] = null;
+      } else if (req.files && req.files['photo_' + k] && req.files['photo_' + k][0]) {
+        var f = req.files['photo_' + k][0];
+        var ext = f.originalname.match(/\.[^.]+$/) ? f.originalname.match(/\.[^.]+$/)[0] : '.jpg';
+        var dest = bucket.file('bot/msg_' + k + ext);
+        await dest.save(f.buffer, { contentType: f.mimetype, public: true });
+        data[photoKey] = dest.publicUrl();
+      } else {
+        data[photoKey] = existing[photoKey] || null;
+      }
+    }
+    await ekaBot.saveBotMessages(data);
+    res.redirect('/admin/bot?saved=1');
+  } catch(e) { next(e); }
+});
+
 // ── ADMINS ───────────────────────────────────────────────
 router.get('/admins', requireAuth, async function(req, res, next) {
   try {
     var snap = await ekaAdmins.orderBy('createdAt').get();
     var admins = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
-    res.render('eka/admin/admins', { title: 'Администраторы — Eka Admin', admins: admins, saved: req.query.saved });
+    res.render('eka/admin/admins', { title: 'Администраторы — Eka Admin', admins: admins, saved: req.query.saved, remind_ok: req.query.remind_ok, remind_err: req.query.remind_err });
   } catch(e) { next(e); }
 });
 
@@ -483,8 +561,51 @@ router.post('/admins/add', requireAuth, express.urlencoded({ extended: false }),
     var name = (req.body.name || '').trim();
     var pass = (req.body.password || '').trim();
     if (!name || !pass) return res.redirect('/admin/admins');
-    await ekaAdmins.add({ name: name, password_hash: cookieToken(pass), createdAt: new Date() });
+    await ekaAdmins.add({
+      name: name,
+      password_hash: cookieToken(pass),
+      tg_id: (req.body.tg_id || '').trim(),
+      notify_requests: req.body.notify_requests === 'on',
+      notify_updates: req.body.notify_updates === 'on',
+      notify_stats: req.body.notify_stats === 'on',
+      notify_messages: req.body.notify_messages === 'on',
+      createdAt: new Date(),
+    });
     res.redirect('/admin/admins?saved=1');
+  } catch(e) { next(e); }
+});
+
+router.post('/admins/:id/settings', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var update = {
+      tg_id: (req.body.tg_id || '').trim(),
+      notify_requests: req.body.notify_requests === 'on',
+      notify_updates: req.body.notify_updates === 'on',
+      notify_stats: req.body.notify_stats === 'on',
+      notify_messages: req.body.notify_messages === 'on',
+    };
+    if ((req.body.password || '').trim()) {
+      update.password_hash = cookieToken(req.body.password.trim());
+    }
+    await ekaAdmins.doc(req.params.id).update(update);
+    res.redirect('/admin/admins?saved=1');
+  } catch(e) { next(e); }
+});
+
+router.post('/admins/:id/remind-password', requireAuth, async function(req, res, next) {
+  try {
+    var doc = await ekaAdmins.doc(req.params.id).get();
+    if (!doc.exists) return res.redirect('/admin/admins');
+    var admin = Object.assign({ id: doc.id }, doc.data());
+    if (!admin.tg_id) return res.redirect('/admin/admins?remind_err=no_tg');
+    var token = process.env.dimazvaliToken;
+    if (!token) return res.redirect('/admin/admins?remind_err=no_token');
+    var { sendMessage2 } = require('../routes/methods');
+    var chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    var newPass = Array.from({ length: 12 }, function() { return chars[Math.floor(Math.random() * chars.length)]; }).join('');
+    await ekaAdmins.doc(req.params.id).update({ password_hash: cookieToken(newPass) });
+    await sendMessage2({ chat_id: String(admin.tg_id), text: '🔑 <b>Ваш новый пароль для TbiLiSELi Admin:</b>\n<code>' + newPass + '</code>\n\nВойдите и смените на свой.', parse_mode: 'HTML' }, false, token);
+    res.redirect('/admin/admins?remind_ok=' + encodeURIComponent(admin.name));
   } catch(e) { next(e); }
 });
 

@@ -21,6 +21,7 @@ html
       a(href='/admin/reviews') Отзывы
       a(href='/admin/discounts') Скидки
       a(href='/admin/stickers') Стикеры
+      a(href='/admin/bot') Бот
       a(href='/admin/admins') Администраторы
       a(href='/admin/profile') Профиль
       a(href='/admin/help') Справка
@@ -108,6 +109,16 @@ html
                       option(value=c.id selected=req.clientId===c.id)= (c.firstName || '') + ' ' + (c.lastName || '')
                   button.admin-btn.btn-sm(type='submit') Привязать
                   a.admin-btn.btn-sm(href='/admin/clients/new' style='background:#f0f4ff;color:#2255cc;text-decoration:none') + Новый клиент
+                if req.tg_user_id
+                  form(method='POST' action='/admin/requests/' + req.id + '/message' style='margin-top:12px;margin-bottom:12px')
+                    input(type='hidden' name='back' value='/admin/requests' + (activeFilter !== 'active' ? '?filter=' + activeFilter : ''))
+                    p(style='font-size:11px;color:#555;margin:0 0 6px')
+                      | ✉ Telegram (id: #{req.tg_user_id})
+                    div(style='display:flex;gap:8px;align-items:flex-end')
+                      textarea(name='text' rows='2' required placeholder='Сообщение пользователю...' style='flex:1;font-size:12px;padding:6px 8px;border:1px solid #ddd;border-radius:4px;resize:vertical;font-family:inherit;line-height:1.4')
+                      button.admin-btn.btn-sm(type='submit') Отправить
+                else
+                  p(style='font-size:11px;color:#ccc;margin:12px 0') Telegram не привязан
                 .admin-form-row(style='margin-top:4px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end')
                   form(method='POST' action='/admin/requests/' + req.id + '/status' style='display:flex;gap:8px;align-items:center')
                     select(name='status')

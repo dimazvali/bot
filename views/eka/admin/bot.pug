@@ -1,0 +1,88 @@
+mixin photoField(key, currentUrl)
+  .photo-row(style='margin-top:8px')
+    if currentUrl
+      img.photo-preview(src=currentUrl alt='фото')
+    .photo-actions
+      input(type='file' name='photo_' + key accept='image/*' style='font-size:12px')
+      if currentUrl
+        label.photo-delete-row
+          input(type='checkbox' name='delete_photo_' + key value='on' style='margin:0')
+          | Удалить фото
+
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .bot-stats { display: flex; gap: 24px; margin-bottom: 24px; }
+      .bot-stat { background: #f7f7f7; border-radius: 6px; padding: 14px 20px; text-align: center; min-width: 100px; }
+      .bot-stat strong { display: block; font-size: 28px; font-weight: 700; color: #111; }
+      .bot-stat span { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .5px; }
+      .msg-group { border: 1px solid #eee; border-radius: 6px; padding: 18px; margin-bottom: 18px; }
+      .msg-group h3 { font-size: 13px; font-weight: 600; margin: 0 0 14px; color: #555; text-transform: uppercase; letter-spacing: .5px; }
+      .msg-hint { font-size: 11px; color: #aaa; margin: 4px 0 0; }
+      textarea { width: 100%; box-sizing: border-box; min-height: 90px; resize: vertical; font-family: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; line-height: 1.5; }
+      textarea:focus { outline: none; border-color: #c00; }
+      .photo-row { display: flex; gap: 14px; align-items: flex-start; margin-top: 8px; }
+      .photo-preview { width: 90px; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid #eee; flex-shrink: 0; }
+      .photo-actions { display: flex; flex-direction: column; gap: 6px; }
+      .photo-delete-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #c00; cursor: pointer; }
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/clients') Клиенты
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
+      a(href='/admin/stickers') Стикеры
+      a(href='/admin/bot') Бот
+      a(href='/admin/admins') Администраторы
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title Бот
+
+      .bot-stats
+        .bot-stat
+          strong= totalUsers
+          span Всего
+        .bot-stat
+          strong= activeUsers
+          span Активных
+
+      if saved
+        p(style='color:#1a7f37;font-size:13px;margin-bottom:16px') ✓ Сохранено
+
+      form(method='POST' action='/admin/bot/messages' enctype='multipart/form-data')
+        .msg-group
+          h3 👋 Приветствие — новый пользователь
+          .admin-field
+            label На русском
+            textarea(name='welcome_ru' placeholder='Привет! Рады тебя видеть...')= messages.welcome_ru || ''
+            +photoField('welcome_ru', messages.welcome_ru_photo)
+          .admin-field
+            label На английском
+            textarea(name='welcome_en' placeholder='Hey! Welcome to...')= messages.welcome_en || ''
+            +photoField('welcome_en', messages.welcome_en_photo)
+          p.msg-hint Отправляется при /start, если пользователь раньше не запускал бота
+
+        .msg-group
+          h3 🔄 Приветствие — вернувшийся пользователь
+          .admin-field
+            label На русском
+            textarea(name='return_ru' placeholder='С возвращением!...')= messages.return_ru || ''
+            +photoField('return_ru', messages.return_ru_photo)
+          .admin-field
+            label На английском
+            textarea(name='return_en' placeholder='Welcome back!...')= messages.return_en || ''
+            +photoField('return_en', messages.return_en_photo)
+          p.msg-hint Отправляется при /start, если пользователь уже есть в базе
+
+        p.msg-hint(style='margin-bottom:12px') Поддерживается HTML-разметка Telegram: &lt;b&gt;, &lt;i&gt;, &lt;a href=""&gt;, &lt;code&gt;
+        button.admin-btn(type='submit') Сохранить
