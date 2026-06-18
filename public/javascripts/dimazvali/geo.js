@@ -290,7 +290,17 @@ function showTourPanel(id) {
       stepsDiv.append(ce('button', false, false, '+ Добавить точку', {
         onclick: function() {
           var m = modal('Добавить шаг');
-          var sel = selector('landmarks', 'Выберите точку');
+          var sel = ce('select');
+          sel.append(ce('option', false, false, 'Выберите точку', { value: '' }));
+          loadGeoData(function() {
+            var cityLandmarks = _geoLandmarks.filter(function(l) {
+              return l.active && (!t.city || l.city === t.city);
+            });
+            cityLandmarks.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+            cityLandmarks.forEach(function(l) {
+              sel.append(ce('option', false, false, l.name, { value: l.id }));
+            });
+          });
           m.append(sel);
           m.append(ce('button', false, false, 'Добавить', {
             onclick: function() {
