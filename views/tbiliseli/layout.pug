@@ -55,6 +55,8 @@ html(lang=lang)
           a(href=sp.instagram target='_blank' rel='noopener') Instagram
         if sp.contactEmail
           a(href='mailto:' + sp.contactEmail) Email
+        if botUsername
+          a(href='https://t.me/' + botUsername target='_blank' rel='noopener') Бот в Telegram
 
     script(src='/javascripts/eka/main.js')
     if typeof activeDiscounts !== 'undefined' && activeDiscounts && activeDiscounts.length

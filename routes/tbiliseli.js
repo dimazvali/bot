@@ -37,12 +37,69 @@ if (process.env.develop !== 'true' && process.env.EKA_BOT_TOKEN && process.env.E
     .catch(function(e) { console.error('[eka-bot] setWebhook failed:', e.message); });
 }
 
+async function sendToursReply(msg) {
+  var isRu = msg.from && (msg.from.language_code || '').startsWith('ru');
+  var lang = isRu ? 'ru' : 'en';
+  var siteUrl = (process.env.EKA_SITE_URL || 'https://tbiliseli.dimazvali.com').replace(/\/$/, '');
+  try {
+    var tours = await ekaData.getTours({ publishedOnly: true, upcomingOnly: true });
+    if (!tours.length) {
+      await ekaBot.sendMessage(msg.chat.id, isRu ? 'На ближайшее время туров не запланировано 🙁' : 'No upcoming tours at the moment 🙁');
+      return;
+    }
+    for (var i = 0; i < Math.min(tours.length, 6); i++) {
+      var tour = tours[i];
+      var title = (isRu ? tour.titleRu : tour.titleEn) || '';
+      var desc = (isRu ? tour.descRu : tour.descEn) || '';
+      var tourDate = tour.date ? (tour.date.toDate ? tour.date.toDate() : new Date(tour.date)) : null;
+      var dateStr = tourDate ? tourDate.toLocaleDateString(isRu ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+      var text = '<b>' + title + '</b>';
+      if (dateStr) text += '\n📅 ' + dateStr;
+      if (tour.price) text += '\n💰 ' + tour.price + ' ' + (tour.currency || 'USD');
+      if (desc) text += '\n\n' + desc.replace(/<[^>]*>/g, '').slice(0, 280) + (desc.length > 280 ? '…' : '');
+      var keyboard = { inline_keyboard: [[{ text: isRu ? '🎒 Подробнее и запись' : '🎒 Learn more & book', url: siteUrl + '/' + lang + '/tours/' + tour.id }]] };
+      var images = await ekaData.getImages({ ownerId: tour.id });
+      var img = images[0];
+      var imgUrl = img && (img.w800 || img.w1400 || img.w400);
+      if (imgUrl) {
+        await ekaBot.sendMedia(msg.chat.id, 'photo', imgUrl, text, { reply_markup: keyboard }).catch(function() {
+          return ekaBot.sendMessage(msg.chat.id, text, { reply_markup: keyboard });
+        });
+      } else {
+        await ekaBot.sendMessage(msg.chat.id, text, { reply_markup: keyboard });
+      }
+    }
+  } catch(e) {
+    console.error('[bot /tours]', e.message);
+    await ekaBot.sendMessage(msg.chat.id, isRu ? 'Не удалось загрузить туры 😔' : 'Could not load tours 😔').catch(function(){});
+  }
+}
+
+async function forwardMediaToAdmins(msg) {
+  var snap = await fb.collection('ekaAdmins').where('notify_messages', '==', true).get();
+  var admins = snap.docs.map(function(d) { return d.data(); }).filter(function(a) { return a.tg_id; });
+  for (var i = 0; i < admins.length; i++) {
+    await ekaBot.forwardMessage(admins[i].tg_id, msg.chat.id, msg.message_id).catch(function(){});
+  }
+}
+
 router.post('/bot', express.json(), function(req, res) {
   res.sendStatus(200);
-  ekaBot.handleUpdate(req.body, function(fromId, fromLabel, text) {
-    var notifText = '💬 <b>Сообщение от подписчика</b>\n<b>От:</b> ' + fromLabel + '\n<b>Текст:</b> ' + text;
-    ekaNotify.notify('messages', notifText).catch(function(){});
-  }).catch(function(e) { console.error('[eka-bot webhook]', e.message); });
+  ekaBot.handleUpdate(
+    req.body,
+    function(fromId, fromLabel, text, rawMsg) {
+      var isMedia = rawMsg && !rawMsg.text;
+      if (isMedia) {
+        forwardMediaToAdmins(rawMsg).catch(function(){});
+      } else {
+        var notifText = '💬 <b>Сообщение от подписчика</b>\n<b>От:</b> ' + fromLabel + '\n<b>Текст:</b> ' + (text.length > 1000 ? text.slice(0, 1000) + '…' : text);
+        ekaNotify.notify('messages', notifText).catch(function(){});
+      }
+    },
+    async function(command, msg) {
+      if (command === 'tours') await sendToursReply(msg);
+    }
+  ).catch(function(e) { console.error('[eka-bot webhook]', e.message); });
 });
 
 router.use('/admin', require('./eka-admin'));
@@ -58,6 +115,7 @@ router.use('/:lang(ru|en)', async function(req, res, next) {
   res.locals.lang = req.params.lang;
   try { res.locals.siteProfile = await ekaData.getProfile(); } catch(e) { res.locals.siteProfile = {}; }
   try { res.locals.activeDiscounts = await ekaData.getActiveDiscounts(); } catch(e) { res.locals.activeDiscounts = []; }
+  res.locals.botUsername = process.env.EKA_BOT_NAME || '';
   next();
 });
 
@@ -166,7 +224,7 @@ router.get('/:lang(ru|en)/ticket/:requestId', async function(req, res, next) {
     var isCancelled = booking.status === 'declined' || booking.status === 'cancelled';
     res.render('tbiliseli/ticket', {
       lang, booking, tour, direction, cost, tourDate, isCancelled,
-      botUsername: process.env.EKA_BOT_USERNAME || '',
+      botUsername: process.env.EKA_BOT_NAME || '',
       asked: req.query.asked === '1',
       reviewed: req.query.reviewed === '1',
       title: (function() {
@@ -190,6 +248,9 @@ router.post('/:lang(ru|en)/ticket/:requestId/question', express.urlencoded({ ext
       var tour = booking.tourId ? await ekaData.getTour(booking.tourId) : null;
       var tourTitle = tour ? (tour.titleRu || tour.titleEn || '') : '';
       mailer.sendQuestionNotification(booking, text, tourTitle).catch(function(e) { console.error('[tbiliseli-mailer question]', e.message); });
+      var notifQuestion = text.length > 1000 ? text.slice(0, 1000) + '…' : text;
+      var notifText = '❓ <b>Вопрос от участника</b>\n<b>Имя:</b> ' + (booking.name || '?') + (tourTitle ? '\n<b>Тур:</b> ' + tourTitle : '') + '\n<b>Вопрос:</b> ' + notifQuestion;
+      ekaNotify.notify('messages', notifText).catch(function(){});
     }
     res.redirect('/' + lang + '/ticket/' + req.params.requestId + '?asked=1');
   } catch (e) { next(e); }
