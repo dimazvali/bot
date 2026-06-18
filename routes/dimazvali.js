@@ -787,6 +787,24 @@ router.all(`/admin/:method`, upload.any(), (req, res) => {
                 case `usersLandMarks`: {
                     if (req.method == `GET`) return usersLandmarks.where(`landmark`, '==', req.query.landmark).get().then(col => res.json(handleQuery(col, true)))
                 }
+                case `toursSteps`: {
+                    if (req.method == `GET`) {
+                        let q = toursSteps;
+                        if (req.query.tour) q = q.where(`tour`, '==', req.query.tour);
+                        return q.get().then(col => res.json(handleQuery(col, true)));
+                    }
+                    if (req.method == `POST`) return datatypes[req.params.method].newDoc(req, res, admin, datatypes[req.params.method].extras)
+                    return res.sendStatus(404)
+                }
+                case `messages`: {
+                    if (req.method == `GET`) {
+                        let q = messages;
+                        if (req.query.user) q = q.where(`user`, '==', +req.query.user);
+                        return q.orderBy(`createdAt`, `desc`).limit(100).get().then(col => res.json(handleQuery(col, true)));
+                    }
+                    if (req.method == `POST`) return datatypes[req.params.method] ? datatypes[req.params.method].newDoc(req, res, admin) : res.sendStatus(404)
+                    return res.sendStatus(404)
+                }
                 case `about`: {
                     if (req.method == `GET`) return settings.doc(`about`).get().then(d => res.json(handleDoc(d, true)))
                     if (req.method == `PUT`) return updateEntity(req, res, settings.doc(`about`), admin)
