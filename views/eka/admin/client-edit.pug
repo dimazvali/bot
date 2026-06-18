@@ -78,6 +78,36 @@ html
             form(method='POST' action='/admin/clients/' + clientId + '/delete' style='display:inline' onsubmit='return confirm("Удалить клиента?")')
               button.admin-btn.admin-btn-danger(type='submit') Удалить
 
+      if clientId
+        h3(style='margin:32px 0 12px;font-size:14px;font-weight:600') Пользователи бота
+        if linkedBotUsers && linkedBotUsers.length
+          each u in linkedBotUsers
+            .admin-card(style='display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:8px')
+              if u.avatarUrl
+                img(src=u.avatarUrl style='width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0')
+              else
+                div(style='width:40px;height:40px;border-radius:50%;background:#e8e8e8;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px') 👤
+              div(style='flex:1;min-width:0')
+                div(style='font-weight:500;font-size:14px')= (u.first_name || '') + (u.last_name ? ' ' + u.last_name : '')
+                div(style='font-size:12px;color:#888')
+                  if u.username
+                    span @#{u.username} &nbsp;·&nbsp;
+                  span ID: #{u.id}
+                  if !u.active
+                    span(style='color:#e06060') &nbsp;· неактивен
+              form(method='POST' action='/admin/clients/' + clientId + '/unlink-bot-user/' + u.id onsubmit='return confirm("Отвязать пользователя?")')
+                button.admin-btn(type='submit' style='background:#f0f0f0;color:#555;font-size:12px;padding:4px 10px') Отвязать
+        else
+          if allBotUsers && allBotUsers.length
+            form.admin-form(method='POST' action='/admin/clients/' + clientId + '/link-bot-user' style='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:0')
+              select(name='botUserId' style='flex:1;min-width:200px;max-width:320px')
+                option(value='') — выберите пользователя —
+                each u in allBotUsers
+                  option(value=u.id)= (u.first_name || '') + (u.last_name ? ' ' + u.last_name : '') + (u.username ? ' (@' + u.username + ')' : '') + ' · ' + u.id
+              button.admin-btn(type='submit') Привязать
+          else
+            p(style='color:#bbb;font-size:13px;margin:4px 0') Нет свободных пользователей бота
+
       if clientId && trips && trips.length
         h3(style='margin:32px 0 12px;font-size:14px;font-weight:600') История поездок (#{trips.length})
         table.admin-table

@@ -570,11 +570,17 @@ router.post('/bot/users/:id/link-client', requireAuth, express.urlencoded({ exte
   } catch(e) { next(e); }
 });
 
-router.post('/bot/users/:id/message', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+router.post('/bot/users/:id/message', requireAuth, upload.single('photo'), async function(req, res, next) {
   try {
     var text = (req.body.text || '').trim();
-    if (text) await ekaBot.sendMessage(req.params.id, text);
-    res.redirect('/admin/bot/users?sent=' + encodeURIComponent(req.params.id));
+    var chatId = req.params.id;
+    if (req.file) {
+      var photoUrl = await resizeBotPhoto(req.file.buffer, 'msg_' + chatId + '_' + Date.now());
+      await ekaBot.sendMedia(chatId, 'photo', photoUrl, text || undefined);
+    } else if (text) {
+      await ekaBot.sendMessage(chatId, text);
+    }
+    res.redirect('/admin/bot/users?sent=' + encodeURIComponent(chatId));
   } catch(e) { next(e); }
 });
 
@@ -798,7 +804,17 @@ router.get('/clients/:id/edit', requireAuth, async function(req, res, next) {
     var tourMap = {};
     tours.forEach(function(t) { tourMap[t.id] = t; });
     trips.forEach(function(r) { r._tour = r.tourId ? tourMap[r.tourId] : null; });
-    res.render('eka/admin/client-edit', { title: (client.firstName || '') + ' ' + (client.lastName || '') + ' — Eka Admin', client: client, clientId: req.params.id, trips: trips });
+
+    var linkedSnap = await fb.collection('eka_bot_users').where('client_id', '==', req.params.id).get();
+    var linkedBotUsers = linkedSnap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    var allBotUsers = [];
+    if (!linkedBotUsers.length) {
+      allBotUsers = await ekaBot.getUsers();
+      allBotUsers = allBotUsers.filter(function(u) { return !u.client_id; });
+      allBotUsers.sort(function(a, b) { return (a.first_name || '').localeCompare(b.first_name || ''); });
+    }
+
+    res.render('eka/admin/client-edit', { title: (client.firstName || '') + ' ' + (client.lastName || '') + ' — Eka Admin', client: client, clientId: req.params.id, trips: trips, linkedBotUsers: linkedBotUsers, allBotUsers: allBotUsers });
   } catch (e) { next(e); }
 });
 
@@ -824,6 +840,21 @@ router.post('/clients/:id/edit', requireAuth, upload.fields([{ name: 'photo', ma
     }
     var savedId = await ekaData.saveClient(id, data);
     res.redirect('/admin/clients/' + savedId + '/edit');
+  } catch (e) { next(e); }
+});
+
+router.post('/clients/:id/link-bot-user', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var botUserId = (req.body.botUserId || '').trim();
+    if (botUserId) await fb.collection('eka_bot_users').doc(botUserId).update({ client_id: req.params.id });
+    res.redirect('/admin/clients/' + req.params.id + '/edit');
+  } catch (e) { next(e); }
+});
+
+router.post('/clients/:id/unlink-bot-user/:botUserId', requireAuth, async function(req, res, next) {
+  try {
+    await fb.collection('eka_bot_users').doc(req.params.botUserId).update({ client_id: null });
+    res.redirect('/admin/clients/' + req.params.id + '/edit');
   } catch (e) { next(e); }
 });
 
