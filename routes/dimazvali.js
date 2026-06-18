@@ -762,7 +762,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
     })
 })
 
-router.all(`/admin/:method`, upload.none(), (req, res) => {
+router.all(`/admin/:method`, upload.any(), (req, res) => {
 
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
 
