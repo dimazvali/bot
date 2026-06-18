@@ -46,6 +46,9 @@ function route() {
     case 'logs':
       showLogsPanel();
       break;
+    case 'help':
+      showHelpPanel();
+      break;
     default:
       showLogsPanel();
       break;
