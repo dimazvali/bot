@@ -94,7 +94,8 @@ router.post('/bot', express.json(), function(req, res) {
       if (isMedia) {
         forwardMediaToAdmins(rawMsg).catch(function(){});
       } else {
-        var notifText = '💬 <b>Сообщение от подписчика</b>\n<b>От:</b> ' + fromLabel + '\n<b>Текст:</b> ' + (text.length > 1000 ? text.slice(0, 1000) + '…' : text) + '\n#user_' + fromId;
+        var adminUrl = (process.env.EKA_BOT_WEBHOOK_URL || '').replace(/\/bot$/, '') + '/admin/bot/users/' + fromId;
+        var notifText = '💬 <b>Сообщение от подписчика</b>\n<b>От:</b> ' + fromLabel + '\n<b>Текст:</b> ' + (text.length > 1000 ? text.slice(0, 1000) + '…' : text) + '\n#user_' + fromId + '\n<a href="' + adminUrl + '">открыть переписку</a>';
         ekaNotify.notify('messages', notifText).catch(function(){});
       }
     },
@@ -104,7 +105,8 @@ router.post('/bot', express.json(), function(req, res) {
     function(user) {
       var name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Без имени';
       var tag = user.username ? ' @' + user.username : ' id:' + user.id;
-      ekaNotify.notify('messages', '🆕 <b>Новый подписчик бота</b>\n' + name + tag + '\n#user_' + user.id).catch(function(){});
+      var newUserAdminUrl = (process.env.EKA_BOT_WEBHOOK_URL || '').replace(/\/bot$/, '') + '/admin/bot/users/' + user.id;
+      ekaNotify.notify('messages', '🆕 <b>Новый подписчик бота</b>\n' + name + tag + '\n#user_' + user.id + '\n<a href="' + newUserAdminUrl + '">открыть переписку</a>').catch(function(){});
     }
   ).catch(function(e) { console.error('[eka-bot webhook]', e.message); });
 });
