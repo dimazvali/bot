@@ -49,6 +49,14 @@ async function uploadImageSizes(buffer, storagePath) {
   return urls; // { w400, w800, w1400, w2400 }
 }
 
+async function resizeBotPhoto(buffer, name) {
+  var webp = await sharp(buffer).resize(1280, null, { withoutEnlargement: true }).webp({ quality: 88 }).toBuffer();
+  var dest = bucket.file('bot/' + name + '.webp');
+  await dest.save(webp, { metadata: { contentType: 'image/webp' }, public: true });
+  await dest.makePublic();
+  return 'https://storage.googleapis.com/' + bucket.name + '/' + dest.name;
+}
+
 // ── AUTH ────────────────────────────────────────────────
 async function requireAuth(req, res, next) {
   var val = req.cookies && req.cookies.ekaAdminToken;
@@ -534,16 +542,77 @@ router.post('/bot/messages', requireAuth, upload.fields(botPhotoFields), async f
         data[photoKey] = null;
       } else if (req.files && req.files['photo_' + k] && req.files['photo_' + k][0]) {
         var f = req.files['photo_' + k][0];
-        var ext = f.originalname.match(/\.[^.]+$/) ? f.originalname.match(/\.[^.]+$/)[0] : '.jpg';
-        var dest = bucket.file('bot/msg_' + k + ext);
-        await dest.save(f.buffer, { contentType: f.mimetype, public: true });
-        data[photoKey] = dest.publicUrl();
+        data[photoKey] = await resizeBotPhoto(f.buffer, 'msg_' + k);
       } else {
         data[photoKey] = existing[photoKey] || null;
       }
     }
     await ekaBot.saveBotMessages(data);
     res.redirect('/admin/bot?saved=1');
+  } catch(e) { next(e); }
+});
+
+router.get('/bot/users', requireAuth, async function(req, res, next) {
+  try {
+    var users = await ekaBot.getUsers();
+    var clients = await ekaData.getClients();
+    var clientMap = {};
+    clients.forEach(function(c) { clientMap[c.id] = c; });
+    res.render('eka/admin/bot-users', { title: 'Пользователи бота — Eka Admin', users: users, clients: clients, clientMap: clientMap, sent: req.query.sent });
+  } catch(e) { next(e); }
+});
+
+router.post('/bot/users/:id/link-client', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var clientId = (req.body.clientId || '').trim();
+    await fb.collection('eka_bot_users').doc(req.params.id).update({ client_id: clientId || null });
+    res.redirect('/admin/bot/users');
+  } catch(e) { next(e); }
+});
+
+router.post('/bot/users/:id/message', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var text = (req.body.text || '').trim();
+    if (text) await ekaBot.sendMessage(req.params.id, text);
+    res.redirect('/admin/bot/users?sent=' + encodeURIComponent(req.params.id));
+  } catch(e) { next(e); }
+});
+
+router.get('/bot/broadcast', requireAuth, async function(req, res, next) {
+  try {
+    var users = await ekaBot.getUsers({ active: true });
+    res.render('eka/admin/bot-broadcast', { title: 'Рассылка — Eka Admin', totalActive: users.length, sent: req.query.sent, error: req.query.error });
+  } catch(e) { next(e); }
+});
+
+router.post('/bot/broadcast', requireAuth, upload.single('photo'), async function(req, res, next) {
+  try {
+    var text = (req.body.text || '').trim();
+    if (!text) return res.redirect('/admin/bot/broadcast?error=empty');
+    var lang = req.body.lang || 'all';
+    var filters = { active: true };
+    if (lang !== 'all') filters.lang = lang;
+    var users = await ekaBot.getUsers(filters);
+    var photoUrl = null;
+    if (req.file) {
+      photoUrl = await resizeBotPhoto(req.file.buffer, 'broadcast_' + Date.now());
+    }
+    var count = 0;
+    for (var i = 0; i < users.length; i++) {
+      try {
+        if (photoUrl) {
+          await ekaBot.sendMedia(users[i].id, 'photo', photoUrl, text);
+        } else {
+          await ekaBot.sendMessage(users[i].id, text);
+        }
+        count++;
+      } catch(e) {
+        if (e.response && e.response.data && e.response.data.error_code === 403) {
+          await fb.collection('eka_bot_users').doc(users[i].id).update({ active: false }).catch(function(){});
+        }
+      }
+    }
+    res.redirect('/admin/bot/broadcast?sent=' + count);
   } catch(e) { next(e); }
 });
 
