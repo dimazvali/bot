@@ -24,6 +24,9 @@ html(lang='ru')
       tbody td { padding: 11px 14px; border-bottom: 1px solid #ece9e2; vertical-align: middle; }
       tbody tr:last-child td { border-bottom: none; }
       tbody tr:hover td { background: #faf8f4; }
+      .drag-handle { cursor: grab; color: #bbb; font-size: 16px; user-select: none; padding-right: 4px; }
+      .drag-handle:active { cursor: grabbing; }
+      tr.drag-over td { background: #e8f0ff; }
       .tag { display: inline-block; background: #f4f1ea; border: 1px solid #d8d4cb; font-size: 10px; letter-spacing: .05em; padding: 2px 7px; margin: 1px 2px 1px 0; }
       .pub { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #27ae60; }
       .pub.off { background: #ccc; }
@@ -49,7 +52,7 @@ html(lang='ru')
         table
           thead
             tr
-              th #
+              th
               th Название
               th Slug
               th Теги
@@ -58,8 +61,8 @@ html(lang='ru')
               th Действия
           tbody
             each p in projects
-              tr
-                td= p.order || 0
+              tr(draggable='true' data-id=p.id)
+                td: span.drag-handle ⠿
                 td= p.name
                 td
                   span(style='color:#6b6459')= p.slug
@@ -75,3 +78,53 @@ html(lang='ru')
                     a(href='/admin/projects/' + p.id + '/edit') Редактировать
                     form(method='POST' action='/admin/projects/' + p.id + '/delete' onsubmit='return confirm("Удалить проект?")')
                       button(type='submit') Удалить
+
+    script.
+      (function() {
+        var tbody = document.querySelector('tbody');
+        if (!tbody) return;
+        var dragged = null;
+
+        tbody.addEventListener('dragstart', function(e) {
+          dragged = e.target.closest('tr');
+          dragged.style.opacity = '0.4';
+        });
+
+        tbody.addEventListener('dragend', function(e) {
+          var row = e.target.closest('tr');
+          row.style.opacity = '';
+          tbody.querySelectorAll('tr').forEach(function(r) { r.classList.remove('drag-over'); });
+        });
+
+        tbody.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          var target = e.target.closest('tr');
+          if (!target || target === dragged) return;
+          tbody.querySelectorAll('tr').forEach(function(r) { r.classList.remove('drag-over'); });
+          target.classList.add('drag-over');
+        });
+
+        tbody.addEventListener('drop', function(e) {
+          e.preventDefault();
+          var target = e.target.closest('tr');
+          if (!target || target === dragged) return;
+          var rows = Array.from(tbody.querySelectorAll('tr'));
+          var fromIdx = rows.indexOf(dragged);
+          var toIdx = rows.indexOf(target);
+          if (fromIdx < toIdx) {
+            target.after(dragged);
+          } else {
+            target.before(dragged);
+          }
+          saveOrder();
+        });
+
+        function saveOrder() {
+          var ids = Array.from(tbody.querySelectorAll('tr[data-id]')).map(function(r) { return r.dataset.id; });
+          fetch('/admin/projects/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids })
+          });
+        }
+      })();

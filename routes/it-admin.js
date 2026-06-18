@@ -101,6 +101,12 @@ router.post('/projects/:id/edit', requireAuth, upload.single('coverImage'), asyn
       metrics:   b.metrics   || '',
     };
 
+    var detailTitles = [].concat(b.detail_title || []);
+    var detailDescs  = [].concat(b.detail_desc  || []);
+    data.details = detailTitles
+      .map(function(t, i) { return { title: t.trim(), desc: (detailDescs[i] || '').trim() }; })
+      .filter(function(d) { return d.title || d.desc; });
+
     var savedId = await itData.saveProject(id, data);
 
     // Cover image upload
@@ -118,6 +124,16 @@ router.post('/projects/:id/edit', requireAuth, upload.single('coverImage'), asyn
     }
 
     res.redirect('/admin/projects/' + savedId + '/edit');
+  } catch (e) { next(e); }
+});
+
+// ── REORDER PROJECTS ─────────────────────────────────────
+router.post('/projects/reorder', requireAuth, express.json(), async function(req, res, next) {
+  try {
+    var ids = req.body.ids;
+    if (!Array.isArray(ids)) return res.status(400).json({ error: 'ids required' });
+    await itData.reorderProjects(ids);
+    res.json({ ok: true });
   } catch (e) { next(e); }
 });
 
