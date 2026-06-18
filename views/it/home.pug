@@ -8,99 +8,79 @@ html(lang='ru')
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
     link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap' rel='stylesheet')
+    link(rel='stylesheet' href='/stylesheets/it/style.css')
     script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
     script.
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-LDMN4XFB42');
-    style.
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; }
-      a { text-decoration: none; color: inherit; }
-      ::selection { background: #15120f; color: #f4f1ea; }
-      .tag-btn { transition: background .15s, color .15s, border-color .15s; }
-      .project-card { transition: box-shadow .15s; }
-      .project-card:hover { box-shadow: 0 4px 20px rgba(21,18,15,.1); }
-  body(style='background:#f4f1ea; color:#15120f; font-family:"JetBrains Mono",monospace; min-height:100vh; overflow-x:hidden;')
 
-    header(style='max-width:1320px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 28px;')
-      div(style='font-family:"Oswald",sans-serif; font-weight:700; font-size:17px; letter-spacing:.02em;') it.dimazvali.com
-      a(href='https://dimazvali.com' style='font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.08em; color:#56514a;') ← dimazvali.com
+  body
 
-    section(style='max-width:1320px; margin:0 auto; padding:clamp(30px,5vw,72px) 28px clamp(28px,4vw,52px);')
-      div(style='font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.34em; text-transform:uppercase; color:#9a948b;') IT &amp; проджект-менеджмент
-      h1(style='margin:16px 0 0; font-family:"Oswald",sans-serif; font-weight:700; font-size:clamp(44px,9vw,108px); line-height:.9; letter-spacing:-.012em; text-transform:uppercase;')
+    header.site-header
+      div.site-logo it.dimazvali.com
+      a.site-back(href='https://dimazvali.com') ← dimazvali.com
+
+    section.hero
+      div.hero-eyebrow IT &amp; проджект-менеджмент
+      h1.hero-title
         | Проекты
         br
         | и&nbsp;продукты
-      p(style='margin:26px 0 0; max-width:640px; font-family:"Lora",serif; font-size:clamp(18px,2vw,24px); line-height:1.5; color:#3f3a33;') То, что я&nbsp;собираю днём: продукты, команды и&nbsp;запуски. Здесь — короткие карточки проектов; некоторые со&nbsp;временем дорастут до&nbsp;полных историй.
+      p.hero-desc То, что я&nbsp;собираю днём: продукты, команды и&nbsp;запуски. Здесь — короткие карточки проектов; некоторые со&nbsp;временем дорастут до&nbsp;полных историй.
 
-    section(style='max-width:1320px; margin:0 auto; padding:0 28px clamp(20px,3vw,36px);')
-      - var allTags = ['все', 'разработка', 'менеджмент', 'продюсирование']
-      div(style='display:flex; align-items:center; gap:12px; flex-wrap:wrap; border-top:1px solid #d8d3c8; padding-top:22px;')
-        span(style='font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:#9a948b;') Фильтр
-        div(style='display:flex; gap:8px; flex-wrap:wrap;')
+    section.filter-section
+      - var allTags = ['все', 'разработка', 'менеджмент', 'продюсирование', 'фан']
+      div.filter-bar
+        span.filter-label Фильтр
+        div.filter-tags
           each tag in allTags
-            button.tag-btn(
-              data-tag=tag
-              style='font-family:Oswald,sans-serif; font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; padding:7px 14px; cursor:pointer; background:transparent; color:#56514a; border:1px solid #c8c3b8;'
-            )= tag
-        span#count(style='margin-left:auto; font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.1em; color:#9a948b;')
+            button.tag-btn(data-tag=tag)= tag
+        span#count.filter-count
 
-    section(style='max-width:1320px; margin:0 auto; padding:clamp(8px,1.5vw,20px) 28px clamp(56px,8vw,110px);')
-      div#grid(style='display:grid; grid-template-columns:repeat(auto-fill,minmax(330px,1fr)); gap:18px;')
+    section.projects-section
+      div#grid.projects-grid
         each p in projects
-          article.project-card(
-            data-tags=p.tags.join(',')
-            style='background:#fbfaf6; border:1px solid #e0dcd2; display:flex; flex-direction:column; overflow:hidden;'
-          )
+          article.project-card(data-tags=p.tags.join(','))
             if p.cover
-              div(style='aspect-ratio:16/10; overflow:hidden; background:#15120f;')
-                img(src=p.cover alt=p.name style='width:100%; height:100%; object-fit:cover; display:block;')
+              div.card-cover
+                img(src=p.cover alt=p.name)
             else
-              div(style='aspect-ratio:16/10; background:#15120f; color:#f4f1ea; position:relative; display:flex; flex-direction:column; justify-content:space-between; padding:20px 22px;')
-                div(style='font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.1em; color:#7c776f;') it.dimazvali.com/#{p.slug}
-                div(style='font-family:"Oswald",sans-serif; font-weight:700; font-size:clamp(28px,3.4vw,40px); line-height:.96; letter-spacing:-.01em; text-transform:uppercase;')= p.name
-                div(style='position:absolute; right:18px; top:16px; font-family:"Oswald",sans-serif; font-weight:700; font-size:13px; color:#2f2b27;') ◆
-            div(style='display:flex; flex-direction:column; gap:14px; padding:22px 22px 20px; flex:1;')
-              div(style='display:flex; gap:7px; flex-wrap:wrap;')
+              div.card-placeholder
+                div.card-placeholder-url it.dimazvali.com/#{p.slug}
+                div.card-placeholder-name= p.name
+                div.card-placeholder-diamond ◆
+            div.card-body
+              div.card-tags
                 each tag in p.tags
-                  span(style='font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:#56514a; border:1px solid #d8d3c8; padding:4px 9px;')= tag
+                  span.card-tag= tag
               if p.cover
-                h3(style='margin:0; font-family:"Oswald",sans-serif; font-weight:600; font-size:24px; line-height:1.04; letter-spacing:.01em;')= p.name
-              p(style='margin:0; font-family:"Lora",serif; font-size:15.5px; line-height:1.6; color:#4a453e;')= p.short
+                h3.card-title= p.name
+              p.card-desc= p.short
               if p.full
-                a(
-                  href='/'+p.slug
-                  style='margin-top:auto; align-self:flex-start; display:inline-flex; align-items:center; gap:8px; font-family:"Oswald",sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#15120f; border-bottom:2px solid #15120f; padding-bottom:3px;'
-                )
+                a.card-link(href='/'+p.slug)
                   | Подробнее&nbsp;
                   span →
               else if p.link
-                a(
-                  href=p.link
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  style='margin-top:auto; align-self:flex-start; display:inline-flex; align-items:center; gap:8px; font-family:"Oswald",sans-serif; font-weight:600; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:#15120f; border-bottom:2px solid #15120f; padding-bottom:3px;'
-                )
+                a.card-link(href=p.link target='_blank' rel='noopener noreferrer')
                   | Открыть проект&nbsp;
                   span ↗
 
-    footer(style='background:#15120f; color:#f4f1ea;')
-      div(style='max-width:1320px; margin:0 auto; padding:clamp(36px,5vw,60px) 28px; display:flex; flex-wrap:wrap; gap:24px; align-items:flex-end; justify-content:space-between;')
+    footer
+      div.footer-inner
         div
-          div(style='font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.3em; text-transform:uppercase; color:#7c776f;') Связаться
-          div(style='margin-top:12px; font-family:"Oswald",sans-serif; font-weight:600; font-size:clamp(24px,4vw,40px);') Обсудить проект
-        div(style='display:flex; flex-direction:column; gap:9px; font-family:"JetBrains Mono",monospace; font-size:14px;')
-          a(href='mailto:dimazvali@gmail.com' style='display:flex; gap:14px;')
-            span(style='color:#7c776f; width:78px;') email
+          div.footer-cta-label Связаться
+          div.footer-cta-title Обсудить проект
+        div.footer-contacts
+          a.footer-contact-row(href='mailto:dimazvali@gmail.com')
+            span.footer-contact-type email
             span dimazvali@gmail.com
-          a(href='https://t.me/dimazvali' style='display:flex; gap:14px;')
-            span(style='color:#7c776f; width:78px;') telegram
+          a.footer-contact-row(href='https://t.me/dimazvali')
+            span.footer-contact-type telegram
             span @dimazvali
-      div(style='border-top:1px solid #2a2622;')
-        div(style='max-width:1320px; margin:0 auto; padding:16px 28px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.08em; color:#6c675f;')
+      div.footer-bottom
+        div.footer-bottom-inner
           span © it.dimazvali.com
           span გამარჯობა!
 
