@@ -27,9 +27,22 @@ block content
     else
       img(src='/images/eka/v2/2.jpg' alt=lang === 'ru' ? direction.titleRu : direction.titleEn style='width:100%;height:100%;object-fit:cover')
     .dir-hero-overlay
+    if direction.startLat && direction.finishLat
+      canvas#route-map(
+        data-start-lat=direction.startLat
+        data-start-lng=direction.startLng
+        data-finish-lat=direction.finishLat
+        data-finish-lng=direction.finishLng
+        data-start-name=direction.startName || (lang === 'ru' ? 'Старт' : 'Start')
+        data-finish-name=direction.finishName || (lang === 'ru' ? 'Финиш' : 'Finish')
+        data-polyline=direction.routePolyline || ''
+      )
     .dir-hero-content
       .dir-hero-label= lang === 'ru' ? 'Направление' : 'Destination'
       .dir-hero-title= lang === 'ru' ? direction.titleRu : direction.titleEn
+
+  if direction.startLat && direction.finishLat
+    script(src='/javascripts/eka/route-map.js')
 
   .section
     .section-inner

@@ -567,7 +567,11 @@ ekaEvents.on('bot:message', function(data) {
   clients.forEach(function(res) { res.write(payload); });
 });
 
-router.get('/bot', requireAuth, async function(req, res, next) {
+router.get('/bot', requireAuth, function(req, res) {
+  res.redirect('/admin/bot/users');
+});
+
+router.get('/bot/messages', requireAuth, async function(req, res, next) {
   try {
     var messages = await ekaBot.getBotMessages();
     var users = await ekaBot.getUsers();
@@ -694,13 +698,18 @@ router.post('/bot/users/:id/message', requireAuth, upload.single('photo'), async
     var text = (req.body.text || '').trim();
     var chatId = req.params.id;
     var adminName = res.locals.adminName || 'admin';
+    var outMsg = null;
     if (req.file) {
       var photoUrl = await resizeBotPhoto(req.file.buffer, 'msg_' + chatId + '_' + Date.now());
       await ekaBot.sendMedia(chatId, 'photo', photoUrl, text || undefined);
-      ekaBot.saveMessage(chatId, { direction: 'out', text: text || null, mediaType: 'photo', sentBy: adminName }).catch(function(){});
+      outMsg = { direction: 'out', text: text || null, mediaType: 'photo', sentBy: adminName, createdAt: new Date() };
     } else if (text) {
       await ekaBot.sendMessage(chatId, text);
-      ekaBot.saveMessage(chatId, { direction: 'out', text: text, mediaType: null, sentBy: adminName }).catch(function(){});
+      outMsg = { direction: 'out', text: text, mediaType: null, sentBy: adminName, createdAt: new Date() };
+    }
+    if (outMsg) {
+      ekaEvents.emit('bot:message', { userId: chatId, message: outMsg });
+      ekaBot.saveMessage(chatId, outMsg).catch(function(){});
     }
     res.redirect('/admin/bot/users/' + chatId + '?sent=1');
   } catch(e) { next(e); }
