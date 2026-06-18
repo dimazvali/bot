@@ -493,6 +493,21 @@ router.post(`/hook`, (req, res) => {
         },`answerInlineQuery`,token)
     }
 
+    if (req.body.message) {
+        let msg = req.body.message;
+        let uid = msg.from && msg.from.id;
+
+        if (msg.location) {
+            handleLocation(uid, msg.location);
+        }
+
+        if (msg.text && uid) {
+            let text = msg.text.trim();
+            if (text === `/start` || text === `/tours`) {
+                sendTours(uid);
+            }
+        }
+    }
 
 })
 
