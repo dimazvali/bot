@@ -290,26 +290,71 @@ function showTourPanel(id) {
       stepsDiv.append(ce('button', false, false, '+ Добавить точку', {
         onclick: function() {
           var m = modal('Добавить шаг');
-          var sel = ce('select');
-          sel.append(ce('option', false, false, 'Выберите точку', { value: '' }));
+          m.style.cssText += ';min-width:min(560px,90vw);max-height:80vh;overflow-y:auto';
+
+          var alreadyAdded = {};
+          steps.forEach(function(s) { alreadyAdded[s.landmark] = true; });
+
           loadGeoData(function() {
             var cityLandmarks = _geoLandmarks.filter(function(l) {
               return l.active && (!t.city || l.city === t.city);
             });
             cityLandmarks.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
-            cityLandmarks.forEach(function(l) {
-              sel.append(ce('option', false, false, l.name, { value: l.id }));
-            });
-          });
-          m.append(sel);
-          m.append(ce('button', false, false, 'Добавить', {
-            onclick: function() {
-              if (!sel.value) return;
-              axios.post('/dimazvali/admin/toursSteps', { tour: id, landmark: sel.value })
-                .then(function() { m.remove(); showTourPanel(id); })
-                .catch(handleError);
+
+            if (!cityLandmarks.length) {
+              m.append(ce('p', false, 'info', 'Нет точек в этом городе'));
+              return;
             }
-          }));
+
+            var grid = ce('div');
+            grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:0.75rem';
+
+            cityLandmarks.forEach(function(l) {
+              var added = alreadyAdded[l.id];
+              var card = ce('div');
+              card.style.cssText = 'border-radius:6px;overflow:hidden;cursor:' + (added ? 'default' : 'pointer') +
+                ';border:1px solid #e4e4e8;opacity:' + (added ? '0.4' : '1') +
+                ';transition:box-shadow 0.12s';
+
+              var thumb = ce('div');
+              thumb.style.cssText = 'height:80px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:1.5rem';
+              var url = picUrl(l.pic);
+              if (url) {
+                var img = ce('img');
+                img.src = url;
+                img.style.cssText = 'width:100%;height:80px;object-fit:cover;display:block';
+                thumb.append(img);
+              } else {
+                thumb.textContent = '📍';
+              }
+              card.append(thumb);
+
+              var label = ce('div');
+              label.style.cssText = 'padding:6px 8px;font-size:0.78rem;font-weight:500;line-height:1.3';
+              label.textContent = l.name;
+              if (added) {
+                var badge = ce('span');
+                badge.style.cssText = 'display:block;font-size:0.68rem;color:#888;font-weight:400';
+                badge.textContent = 'уже добавлена';
+                label.append(badge);
+              }
+              card.append(label);
+
+              if (!added) {
+                card.onmouseenter = function() { card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.14)'; };
+                card.onmouseleave = function() { card.style.boxShadow = ''; };
+                card.onclick = function() {
+                  card.style.opacity = '0.5';
+                  axios.post('/dimazvali/admin/toursSteps', { tour: id, landmark: l.id })
+                    .then(function() { m.remove(); showTourPanel(id); })
+                    .catch(function(err) { handleError(err); card.style.opacity = '1'; });
+                };
+              }
+              grid.append(card);
+            });
+
+            m.append(grid);
+          });
         }
       }));
     });
