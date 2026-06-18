@@ -4,6 +4,7 @@ html
     title= title
     meta(charset='utf-8')
     link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    script(src='https://maps.googleapis.com/maps/api/js?key=AIzaSyDtoqBwHVsUdk8OUwl-v82s2vsLEfuR5tM')
     style.
       .tour-card { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 6px; padding: 16px 20px; margin-bottom: 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
       .tour-card-main { flex: 1; min-width: 0; }
@@ -152,6 +153,19 @@ html
               label Meeting point (EN)
               input(type='text' name='meetingPointEn' value=tour && tour.meetingPointEn || '' placeholder='Rustaveli Metro, by the fountain')
           .admin-field
+            label Точка сбора на карте
+            #meeting-map(style='height:260px;border-radius:4px;border:1px solid #ddd;margin-top:4px;background:#f5f5f5')
+            - var mpLat = tour && tour.meetingPointLat
+            - var mpLng = tour && tour.meetingPointLng
+            input(type='hidden' name='meetingPointLat' id='meetingPointLat' value=mpLat || '')
+            input(type='hidden' name='meetingPointLng' id='meetingPointLng' value=mpLng || '')
+            p(style='font-size:11px;color:#aaa;margin-top:4px')
+              | Нажмите на карту, чтобы поставить метку.
+              if mpLat && mpLng
+                |  Текущие координаты: #{(+mpLat).toFixed(5)}, #{(+mpLng).toFixed(5)}
+              else
+                |  Координаты не заданы.
+          .admin-field
             label
               input(type='checkbox' name='published' checked=tour && tour.published)
               |  Опубликовано
@@ -273,6 +287,30 @@ html
           p(style='color:#bbb;font-size:13px;margin:0') Никто из гостей ещё не подключился к боту
 
     script.
+      (function() {
+        var mapEl = document.getElementById('meeting-map');
+        if (!mapEl || typeof google === 'undefined') return;
+        var initLat = parseFloat(document.getElementById('meetingPointLat').value) || 41.6938;
+        var initLng = parseFloat(document.getElementById('meetingPointLng').value) || 44.8015;
+        var hasPin = !!document.getElementById('meetingPointLat').value;
+        var map = new google.maps.Map(mapEl, {
+          center: { lat: initLat, lng: initLng },
+          zoom: hasPin ? 15 : 13,
+          mapTypeId: 'roadmap'
+        });
+        var marker = null;
+        if (hasPin) {
+          marker = new google.maps.Marker({ position: { lat: initLat, lng: initLng }, map: map });
+        }
+        map.addListener('click', function(e) {
+          var lat = e.latLng.lat(), lng = e.latLng.lng();
+          document.getElementById('meetingPointLat').value = lat;
+          document.getElementById('meetingPointLng').value = lng;
+          if (marker) marker.setMap(null);
+          marker = new google.maps.Marker({ position: { lat: lat, lng: lng }, map: map });
+        });
+      })();
+
       var btnEdit = document.getElementById('btn-edit-tour');
       var btnCancel = document.getElementById('btn-cancel-edit');
       var card = document.getElementById('tour-card');

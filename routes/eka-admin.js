@@ -346,6 +346,8 @@ router.post('/tours/:id/edit', requireAuth, express.urlencoded({ extended: false
       maxParticipants: b.maxParticipants ? (parseInt(b.maxParticipants, 10) || 0) : 0,
       meetingPointRu: b.meetingPointRu || '',
       meetingPointEn: b.meetingPointEn || '',
+      meetingPointLat: b.meetingPointLat ? parseFloat(b.meetingPointLat) : null,
+      meetingPointLng: b.meetingPointLng ? parseFloat(b.meetingPointLng) : null,
       published: b.published === 'on',
     };
     var savedId = await ekaData.saveTour(id, data);
