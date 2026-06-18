@@ -1,0 +1,85 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .bot-nav { display: flex; gap: 8px; margin-bottom: 20px; }
+      .lang-filter { display: flex; gap: 12px; margin-bottom: 16px; }
+      .lang-filter label { display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer; }
+      .recipient-count { font-size: 12px; color: #888; margin-bottom: 12px; }
+      textarea { width: 100%; box-sizing: border-box; min-height: 120px; resize: vertical; font-family: inherit; font-size: 13px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 4px; line-height: 1.5; }
+      textarea:focus { outline: none; border-color: #c00; }
+      .photo-upload { margin-top: 12px; }
+  body.admin-body
+    nav.admin-nav
+      a(href='/admin/') Eka Admin
+      a(href='/admin/directions') Направления
+      a(href='/admin/attractions') Места
+      a(href='/admin/tours') Туры
+      a(href='/admin/requests') Заявки
+      a(href='/admin/clients') Клиенты
+      a(href='/admin/reviews') Отзывы
+      a(href='/admin/discounts') Скидки
+      a(href='/admin/stickers') Стикеры
+      a(href='/admin/bot') Бот
+      a(href='/admin/admins') Администраторы
+      a(href='/admin/profile') Профиль
+      a(href='/admin/help') Справка
+      a(href='/admin/logout') Выйти
+    .admin-content
+      .admin-title Рассылка
+
+      .bot-nav
+        a.admin-btn.btn-sm(href='/admin/bot') Приветствия
+        a.admin-btn.btn-sm(href='/admin/bot/users') Пользователи
+        a.admin-btn.btn-sm(href='/admin/bot/broadcast' style='background:#111;color:#fff') Рассылка
+
+      if sent
+        p(style='color:#1a7f37;font-size:13px;margin-bottom:16px') ✓ Отправлено #{sent} пользователям
+      if error === 'empty'
+        p(style='color:#c00;font-size:13px;margin-bottom:16px') Введите текст сообщения
+
+      form.admin-form(method='POST' action='/admin/bot/broadcast' enctype='multipart/form-data')
+        .admin-field
+          label Аудитория
+          .lang-filter
+            label
+              input(type='radio' name='lang' value='all' checked)
+              | Все активные (#{totalActive})
+            label
+              input(type='radio' name='lang' value='ru')
+              | Русскоязычные
+            label
+              input(type='radio' name='lang' value='en')
+              | Англоязычные (и остальные)
+
+        .admin-field
+          label Текст
+          textarea(name='text' placeholder='Текст сообщения...\n\nПоддерживается HTML-разметка Telegram: <b>, <i>, <a href="">, <code>')
+          p(style='font-size:11px;color:#aaa;margin-top:4px') Поддерживается HTML-разметка Telegram: &lt;b&gt;, &lt;i&gt;, &lt;a href=""&gt;
+
+        .admin-field
+          label Фото (необязательно)
+          .photo-upload
+            input(type='file' name='photo' accept='image/*')
+
+        button.admin-btn(type='submit' onclick='return confirm("Отправить рассылку?")') Разослать
+
+      if history && history.length
+        h3(style='margin:40px 0 16px;font-size:14px;font-weight:600') История рассылок
+        each b in history
+          - var d = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0)
+          - var langLabel = b.lang === 'ru' ? 'ru' : b.lang === 'en' ? 'en' : 'all'
+          .admin-card(style='margin-bottom:12px;padding:14px 16px')
+            div(style='display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap')
+              span(style='font-size:12px;color:#888')= d.toLocaleString('ru-RU')
+              span(style='font-size:12px;color:#888') #{b.sentBy}
+              span(style='font-size:11px;background:#f0f0f0;border-radius:10px;padding:2px 8px') #{langLabel}
+              span(style='font-size:12px;color:#1a7f37') ✓ #{b.sent}
+                if b.total && b.total !== b.sent
+                  |  / #{b.total}
+            if b.photoUrl
+              img(src=b.photoUrl style='width:80px;height:60px;object-fit:cover;border-radius:4px;margin-bottom:8px;display:block')
+            p(style='font-size:13px;white-space:pre-wrap;margin:0')!= b.text

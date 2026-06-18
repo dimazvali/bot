@@ -552,6 +552,38 @@ router.post('/bot/messages', requireAuth, upload.fields(botPhotoFields), async f
   } catch(e) { next(e); }
 });
 
+router.get('/bot/profile', requireAuth, async function(req, res, next) {
+  try {
+    var profile = await ekaBot.getBotProfile();
+    var commandsText = profile.commands.map(function(c) { return c.command + ' - ' + c.description; }).join('\n');
+    res.render('eka/admin/bot-profile', { title: 'Профиль бота — Eka Admin', profile: profile, commandsText: commandsText, saved: req.query.saved, error: req.query.error });
+  } catch(e) { next(e); }
+});
+
+router.post('/bot/profile', requireAuth, upload.single('photo'), async function(req, res, next) {
+  try {
+    var data = {
+      name: (req.body.name || '').trim(),
+      description: (req.body.description || '').trim(),
+      short_description: (req.body.short_description || '').trim(),
+    };
+    var commandsRaw = (req.body.commands || '').trim();
+    data.commands = commandsRaw
+      ? commandsRaw.split('\n').map(function(l) { return l.trim(); }).filter(Boolean).map(function(line) {
+          var sep = line.indexOf(' - ');
+          return { command: line.slice(0, sep < 0 ? line.indexOf('-') : sep).trim().replace(/^\//, ''), description: line.slice((sep < 0 ? line.indexOf('-') : sep + 2) + 1).trim() };
+        }).filter(function(c) { return c.command && c.description; })
+      : [];
+    await ekaBot.setBotProfile(data);
+    if (req.file) await ekaBot.setBotPhoto(req.file.buffer, req.file.mimetype);
+    res.redirect('/admin/bot/profile?saved=1');
+  } catch(e) {
+    var errMsg = (e.response && e.response.data && e.response.data.description) || e.message;
+    console.error('[bot/profile]', errMsg);
+    res.redirect('/admin/bot/profile?error=' + encodeURIComponent(errMsg));
+  }
+});
+
 router.get('/bot/users', requireAuth, async function(req, res, next) {
   try {
     var users = await ekaBot.getUsers();
@@ -587,7 +619,9 @@ router.post('/bot/users/:id/message', requireAuth, upload.single('photo'), async
 router.get('/bot/broadcast', requireAuth, async function(req, res, next) {
   try {
     var users = await ekaBot.getUsers({ active: true });
-    res.render('eka/admin/bot-broadcast', { title: 'Рассылка — Eka Admin', totalActive: users.length, sent: req.query.sent, error: req.query.error });
+    var histSnap = await fb.collection('eka_broadcasts').orderBy('createdAt', 'desc').limit(30).get();
+    var history = histSnap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    res.render('eka/admin/bot-broadcast', { title: 'Рассылка — Eka Admin', totalActive: users.length, sent: req.query.sent, error: req.query.error, history: history });
   } catch(e) { next(e); }
 });
 
@@ -618,6 +652,15 @@ router.post('/bot/broadcast', requireAuth, upload.single('photo'), async functio
         }
       }
     }
+    await fb.collection('eka_broadcasts').add({
+      createdAt: new Date(),
+      sentBy: res.locals.adminName || 'admin',
+      text: text,
+      photoUrl: photoUrl || null,
+      lang: lang,
+      sent: count,
+      total: users.length
+    });
     res.redirect('/admin/bot/broadcast?sent=' + count);
   } catch(e) { next(e); }
 });
