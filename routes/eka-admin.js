@@ -647,10 +647,18 @@ router.post('/bot/broadcast', requireAuth, upload.single('photo'), async functio
         }
         count++;
       } catch(e) {
-        if (e.response && e.response.data && e.response.data.error_code === 403) {
+        var errData = e.response && e.response.data;
+        if (errData && errData.error_code === 429) {
+          var wait = ((errData.parameters && errData.parameters.retry_after) || 5) * 1000;
+          await new Promise(function(r) { setTimeout(r, wait); });
+          i--; // повторить этого пользователя
+          continue;
+        }
+        if (errData && errData.error_code === 403) {
           await fb.collection('eka_bot_users').doc(users[i].id).update({ active: false }).catch(function(){});
         }
       }
+      if (i < users.length - 1) await new Promise(function(r) { setTimeout(r, 50); });
     }
     await fb.collection('eka_broadcasts').add({
       createdAt: new Date(),
