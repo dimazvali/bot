@@ -16,3 +16,4 @@ ssl/*
 .superpowers/
 design_extract
 design_download.bin
+docs/superpowers/ 
