@@ -92,12 +92,17 @@ router.post('/bot', express.json(), function(req, res) {
       if (isMedia) {
         forwardMediaToAdmins(rawMsg).catch(function(){});
       } else {
-        var notifText = '💬 <b>Сообщение от подписчика</b>\n<b>От:</b> ' + fromLabel + '\n<b>Текст:</b> ' + (text.length > 1000 ? text.slice(0, 1000) + '…' : text);
+        var notifText = '💬 <b>Сообщение от подписчика</b>\n<b>От:</b> ' + fromLabel + '\n<b>Текст:</b> ' + (text.length > 1000 ? text.slice(0, 1000) + '…' : text) + '\n#user_' + fromId;
         ekaNotify.notify('messages', notifText).catch(function(){});
       }
     },
     async function(command, msg) {
       if (command === 'tours') await sendToursReply(msg);
+    },
+    function(user) {
+      var name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Без имени';
+      var tag = user.username ? ' @' + user.username : ' id:' + user.id;
+      ekaNotify.notify('messages', '🆕 <b>Новый подписчик бота</b>\n' + name + tag + '\n#user_' + user.id).catch(function(){});
     }
   ).catch(function(e) { console.error('[eka-bot webhook]', e.message); });
 });
