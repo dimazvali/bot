@@ -248,6 +248,30 @@ html
       else if tourId
         p(style='color:#bbb;font-size:13px;margin:0') Заявок пока нет
 
+      if tourId
+        - var tgGuests = requests ? requests.filter(function(r){ return r.tg_user_id && r.status !== 'declined' && r.status !== 'cancelled'; }) : []
+        - var uniqueTgCount = (function(arr){ var s={}; arr.forEach(function(r){s[r.tg_user_id]=1;}); return Object.keys(s).length; })(tgGuests)
+        h3(style='margin:28px 0 12px;font-size:14px;font-weight:600')
+          | Сообщение гостям в Telegram
+          span(style='font-weight:400;color:#888;margin-left:8px;font-size:12px') #{uniqueTgCount} из #{requests ? requests.filter(function(r){return r.status!=='declined'&&r.status!=='cancelled';}).length : 0} подключились к боту
+
+        if guestsSent !== undefined
+          p(style='color:#1a7f37;font-size:13px;margin-bottom:12px') ✓ Отправлено #{guestsSent} гостям
+        if guestsError === 'empty'
+          p(style='color:#c00;font-size:13px;margin-bottom:12px') Введите текст сообщения
+
+        if uniqueTgCount
+          form.admin-form(method='POST' action='/admin/tours/' + tourId + '/message-guests' enctype='multipart/form-data')
+            .admin-field
+              label Текст
+              textarea(name='text' rows='4' placeholder='Текст сообщения для гостей тура...\n\nПоддерживается HTML-разметка Telegram: <b>, <i>, <a href="">')
+            .admin-field
+              label Фото (необязательно)
+              input(type='file' name='photo' accept='image/*')
+            button.admin-btn(type='submit' onclick='return confirm("Отправить сообщение ' + uniqueTgCount + ' гостям?")') Отправить гостям
+        else
+          p(style='color:#bbb;font-size:13px;margin:0') Никто из гостей ещё не подключился к боту
+
     script.
       var btnEdit = document.getElementById('btn-edit-tour');
       var btnCancel = document.getElementById('btn-cancel-edit');

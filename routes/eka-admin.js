@@ -290,8 +290,40 @@ router.get('/tours/:id/edit', requireAuth, async function(req, res, next) {
     var clients = await ekaData.getClients();
     var clientMap = {};
     clients.forEach(function(c) { clientMap[c.id] = c; });
-    res.render('eka/admin/tour-edit', { title: (tour.titleRu || '') + ' — Edit', tour: tour, tourId: req.params.id, directions: directions, requests: requests, clients: clients, clientMap: clientMap, error: null });
+    res.render('eka/admin/tour-edit', { title: (tour.titleRu || '') + ' — Edit', tour: tour, tourId: req.params.id, directions: directions, requests: requests, clients: clients, clientMap: clientMap, error: null, guestsSent: req.query.guests_sent, guestsError: req.query.guests_error });
   } catch (e) { next(e); }
+});
+
+router.post('/tours/:id/message-guests', requireAuth, upload.single('photo'), async function(req, res, next) {
+  try {
+    var text = (req.body.text || '').trim();
+    if (!text) return res.redirect('/admin/tours/' + req.params.id + '/edit?guests_error=empty');
+    var requests = await ekaData.getRequests({ tourId: req.params.id });
+    var seen = {};
+    var targets = requests.filter(function(r) {
+      if (!r.tg_user_id || r.status === 'declined' || r.status === 'cancelled') return false;
+      if (seen[r.tg_user_id]) return false;
+      seen[r.tg_user_id] = true;
+      return true;
+    });
+    var photoUrl = null;
+    if (req.file) {
+      photoUrl = await resizeBotPhoto(req.file.buffer, 'tour_msg_' + req.params.id + '_' + Date.now());
+    }
+    var count = 0;
+    for (var i = 0; i < targets.length; i++) {
+      try {
+        if (photoUrl) {
+          await ekaBot.sendMedia(targets[i].tg_user_id, 'photo', photoUrl, text);
+        } else {
+          await ekaBot.sendMessage(targets[i].tg_user_id, text);
+        }
+        count++;
+      } catch(e) {}
+      if (i < targets.length - 1) await new Promise(function(r) { setTimeout(r, 50); });
+    }
+    res.redirect('/admin/tours/' + req.params.id + '/edit?guests_sent=' + count);
+  } catch(e) { next(e); }
 });
 
 router.post('/tours/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
@@ -607,11 +639,15 @@ router.get('/bot/users/:id/stream', requireAuth, function(req, res) {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (res.socket) res.socket.setNoDelay(true);
   res.flushHeaders();
   var userId = req.params.id;
   if (!_sseClients.has(userId)) _sseClients.set(userId, new Set());
   _sseClients.get(userId).add(res);
+  var heartbeat = setInterval(function() { res.write(': ping\n\n'); }, 25000);
   req.on('close', function() {
+    clearInterval(heartbeat);
     var s = _sseClients.get(userId);
     if (s) s.delete(res);
   });
