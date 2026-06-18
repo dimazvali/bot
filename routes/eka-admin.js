@@ -64,16 +64,26 @@ async function requireAuth(req, res, next) {
   var envPass = process.env.EKA_ADMIN_PASS;
   if (envPass && val === cookieToken(envPass)) {
     res.locals.adminName = 'admin';
+    res.locals.adminId = null;
+    res.locals.isSuperadmin = true;
     return next();
   }
   try {
     var snap = await ekaAdmins.where('password_hash', '==', val).limit(1).get();
     if (!snap.empty) {
-      res.locals.adminName = snap.docs[0].data().name || 'admin';
+      var d = snap.docs[0];
+      res.locals.adminName = d.data().name || 'admin';
+      res.locals.adminId = d.id;
+      res.locals.isSuperadmin = !!d.data().superadmin;
       return next();
     }
   } catch(e) {}
   res.redirect('/admin/login');
+}
+
+function requireSuperAdmin(req, res, next) {
+  if (res.locals.isSuperadmin) return next();
+  res.status(403).send('Доступ запрещён — только для суперадминистратора');
 }
 
 router.get('/login', function(req, res) {
@@ -678,11 +688,11 @@ router.get('/admins', requireAuth, async function(req, res, next) {
   try {
     var snap = await ekaAdmins.orderBy('createdAt').get();
     var admins = snap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
-    res.render('eka/admin/admins', { title: 'Администраторы — Eka Admin', admins: admins, saved: req.query.saved, remind_ok: req.query.remind_ok, remind_err: req.query.remind_err });
+    res.render('eka/admin/admins', { title: 'Администраторы — Eka Admin', admins: admins, saved: req.query.saved, remind_ok: req.query.remind_ok, remind_err: req.query.remind_err, isSuperadmin: res.locals.isSuperadmin, currentAdminId: res.locals.adminId });
   } catch(e) { next(e); }
 });
 
-router.post('/admins/add', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+router.post('/admins/add', requireAuth, requireSuperAdmin, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
     var name = (req.body.name || '').trim();
     var pass = (req.body.password || '').trim();
@@ -702,6 +712,9 @@ router.post('/admins/add', requireAuth, express.urlencoded({ extended: false }),
 });
 
 router.post('/admins/:id/settings', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  if (!res.locals.isSuperadmin && res.locals.adminId !== req.params.id) {
+    return res.status(403).send('Нельзя редактировать чужой аккаунт');
+  }
   try {
     var update = {
       tg_id: (req.body.tg_id || '').trim(),
@@ -735,7 +748,7 @@ router.post('/admins/:id/remind-password', requireAuth, async function(req, res,
   } catch(e) { next(e); }
 });
 
-router.post('/admins/:id/delete', requireAuth, async function(req, res, next) {
+router.post('/admins/:id/delete', requireAuth, requireSuperAdmin, async function(req, res, next) {
   try {
     await ekaAdmins.doc(req.params.id).delete();
     res.redirect('/admin/admins');
