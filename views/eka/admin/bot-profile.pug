@@ -1,0 +1,84 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    style.
+      .bot-nav { display: flex; gap: 8px; margin-bottom: 20px; }
+      textarea { width: 100%; box-sizing: border-box; resize: vertical; font-family: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; line-height: 1.5; }
+      textarea:focus { outline: none; border-color: #c00; }
+      .field-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
+      .char-count { font-size: 11px; color: #aaa; text-align: right; margin-top: 2px; }
+      .photo-preview { display: none; width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; margin-top: 8px; }
+  body.admin-body
+    include _nav
+    .admin-content
+      .admin-title Профиль бота
+
+      .bot-nav
+        a.admin-btn.btn-sm(href='/admin/bot') Приветствия
+        a.admin-btn.btn-sm(href='/admin/bot/profile' style='background:#111;color:#fff') Профиль бота
+        a.admin-btn.btn-sm(href='/admin/bot/users') Пользователи
+        a.admin-btn.btn-sm(href='/admin/bot/broadcast') Рассылка
+
+      if saved
+        p(style='color:#1a7f37;font-size:13px;margin-bottom:16px') ✓ Сохранено
+      if error
+        p(style='color:#c00;font-size:13px;margin-bottom:16px') ✗ Ошибка: #{error}
+
+      p(style='font-size:12px;color:#aaa;margin-bottom:20px')
+        | @#{profile.username}
+
+      form.admin-form(method='POST' action='/admin/bot/profile' enctype='multipart/form-data')
+        .admin-field
+          label Имя бота
+          input(type='text' name='name' value=profile.name maxlength='64' placeholder='Название бота' oninput='updateCount(this)')
+          .char-count#name-count #{(profile.name||'').length} / 64
+          p.field-hint Отображается в контактах и поиске
+
+        .admin-field
+          label Описание
+          textarea(name='description' rows='4' maxlength='512' placeholder='Описание, которое видит пользователь перед первым сообщением' oninput='updateCount(this)')= profile.description || ''
+          .char-count#description-count #{(profile.description||'').length} / 512
+          p.field-hint Виден на экране «Что может делать этот бот?» до отправки /start
+
+        .admin-field
+          label Краткое описание
+          textarea(name='short_description' rows='2' maxlength='120' placeholder='Короткая подпись под кнопкой «Написать»' oninput='updateCount(this)')= profile.short_description || ''
+          .char-count#short_description-count #{(profile.short_description||'').length} / 120
+          p.field-hint Отображается в списке чатов и при шэринге
+
+        .admin-field
+          label Команды меню
+          textarea(name='commands' rows='6' placeholder='start - Начать\nhelp - Помощь')= commandsText || ''
+          p.field-hint Формат: <code>команда - Описание</code> (по одной на строку, без слэша)
+
+        .admin-field
+          label Фото профиля
+          input#photo-input(type='file' name='photo' accept='image/*')
+          img#photo-preview.photo-preview(src='' alt='')
+          p.field-hint Загрузите новое фото чтобы заменить текущее
+
+        button.admin-btn(type='submit') Сохранить
+
+    script.
+      function updateCount(el) {
+        var id = el.name + '-count';
+        var counter = document.getElementById(id);
+        if (counter) {
+          var max = el.maxLength;
+          counter.textContent = el.value.length + ' / ' + max;
+          counter.style.color = el.value.length > max * 0.9 ? '#c07000' : '#aaa';
+        }
+      }
+      var photoInput = document.getElementById('photo-input');
+      var photoPreview = document.getElementById('photo-preview');
+      photoInput.addEventListener('change', function() {
+        if (photoInput.files && photoInput.files[0]) {
+          photoPreview.src = URL.createObjectURL(photoInput.files[0]);
+          photoPreview.style.display = 'block';
+        } else {
+          photoPreview.style.display = 'none';
+        }
+      });

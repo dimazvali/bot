@@ -5,21 +5,7 @@ html
     meta(charset='utf-8')
     link(rel='stylesheet' href='/stylesheets/eka/style.css')
   body.admin-body
-    nav.admin-nav
-      a(href='/admin/') Eka Admin
-      a(href='/admin/directions') Направления
-      a(href='/admin/attractions') Места
-      a(href='/admin/tours') Туры
-      a(href='/admin/requests') Заявки
-      a.active(href='/admin/clients') Клиенты
-      a(href='/admin/reviews') Отзывы
-      a(href='/admin/discounts') Скидки
-      a(href='/admin/stickers') Стикеры
-      a(href='/admin/bot') Бот
-      a(href='/admin/admins') Администраторы
-      a(href='/admin/profile') Профиль
-      a(href='/admin/help') Справка
-      a(href='/admin/logout') Выйти
+    include _nav
     .admin-content
       .admin-title-row
         .admin-title Клиенты
