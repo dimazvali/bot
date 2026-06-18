@@ -58,3 +58,36 @@ function picUrl(pic) {
   if (!pic) return null;
   return typeof pic === 'string' ? pic : (pic.w800 || pic.w400 || pic.w1400);
 }
+
+function edit(entity, id, attr, type, value, container) {
+  var m = modal();
+  m.append(ce('h2', false, false, 'Редактировать ' + attr));
+
+  var f;
+  if (type === 'textarea') {
+    f = ce('textarea', false, false, false, { placeholder: 'Новое значение' });
+    f.value = value || '';
+  } else {
+    f = ce('input', false, false, false, { type: type || 'text', placeholder: 'Новое значение' });
+    f.value = value || '';
+  }
+  m.append(f);
+  setTimeout(function() { f.focus(); }, 50);
+
+  m.append(ce('button', false, false, 'Сохранить', {
+    onclick: function() {
+      axios.put('/' + host + '/admin/' + entity + '/' + id, { attr: attr, value: f.value || null })
+        .then(function(d) { handleSave(d); m.remove(); if (container) container.textContent = f.value; })
+        .catch(handleError);
+    }
+  }));
+
+  m.append(ce('button', false, false, 'Удалить', {
+    onclick: function() {
+      if (!confirm('Удалить значение?')) return;
+      axios.put('/' + host + '/admin/' + entity + '/' + id, { attr: attr, value: null })
+        .then(function(d) { handleSave(d); m.remove(); if (container) container.textContent = 'добавить'; })
+        .catch(handleError);
+    }
+  }));
+}
