@@ -8,92 +8,89 @@ html(lang='ru')
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
     link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap' rel='stylesheet')
+    link(rel='stylesheet' href='/stylesheets/it/style.css')
     script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
     script.
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-LDMN4XFB42');
-    style.
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; }
-      a { text-decoration: none; color: inherit; }
-      ::selection { background: #15120f; color: #f4f1ea; }
-  body(style='background:#f4f1ea; color:#15120f; font-family:"JetBrains Mono",monospace; min-height:100vh; overflow-x:hidden;')
 
-    header(style='max-width:1180px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:22px 28px;')
-      a(href='/' style='font-family:"JetBrains Mono",monospace; font-size:12px; letter-spacing:.08em; color:#56514a;') ← Проекты
-      div(style='font-family:"Oswald",sans-serif; font-weight:700; font-size:15px; letter-spacing:.02em;') it.dimazvali.com
+  body
 
-    section(style='max-width:1180px; margin:0 auto; padding:clamp(28px,5vw,64px) 28px clamp(24px,3vw,40px);')
-      div(style='display:flex; gap:7px; flex-wrap:wrap; margin-bottom:22px;')
+    header.project-header
+      a.project-back(href='/') ← Проекты
+      div.project-wordmark it.dimazvali.com
+
+    section.project-intro
+      div.project-intro-tags
         each tag in project.tags
-          span(style='font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#56514a; border:1px solid #c8c3b8; padding:5px 11px;')= tag
-      h1(style='margin:0; max-width:14ch; font-family:"Oswald",sans-serif; font-weight:700; font-size:clamp(42px,8.5vw,104px); line-height:.92; letter-spacing:-.012em; text-transform:uppercase;')= project.name
-      p(style='margin:26px 0 0; max-width:660px; font-family:"Lora",serif; font-size:clamp(19px,2.1vw,26px); line-height:1.5; color:#3f3a33;')= project.short
+          span.project-intro-tag= tag
+      h1.project-title= project.name
+      p.project-short= project.short
 
-    section(style='max-width:1180px; margin:0 auto; padding:0 28px clamp(28px,4vw,48px);')
-      div(style='display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1px; background:#d8d3c8; border:1px solid #d8d3c8;')
+    section.project-meta-section
+      div.project-meta-grid
         if project.role
-          div(style='background:#f4f1ea; padding:18px 20px;')
-            div(style='font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#9a948b;') Роль
-            div(style='margin-top:8px; font-family:"Oswald",sans-serif; font-weight:600; font-size:17px;')= project.role
+          div.project-meta-cell
+            div.project-meta-label Роль
+            div.project-meta-value= project.role
         if project.period
-          div(style='background:#f4f1ea; padding:18px 20px;')
-            div(style='font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#9a948b;') Период
-            div(style='margin-top:8px; font-family:"Oswald",sans-serif; font-weight:600; font-size:17px;')= project.period
+          div.project-meta-cell
+            div.project-meta-label Период
+            div.project-meta-value= project.period
         if project.stack
-          div(style='background:#f4f1ea; padding:18px 20px;')
-            div(style='font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#9a948b;') Стек / инструменты
-            div(style='margin-top:8px; font-family:"Oswald",sans-serif; font-weight:600; font-size:17px;')= project.stack
+          div.project-meta-cell
+            div.project-meta-label Стек / инструменты
+            div.project-meta-value= project.stack
         if project.link
-          div(style='background:#f4f1ea; padding:18px 20px;')
-            div(style='font-family:"JetBrains Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:#9a948b;') Ссылка
-            a(href=project.link target='_blank' style='margin-top:8px; display:inline-flex; align-items:center; gap:7px; font-family:"Oswald",sans-serif; font-weight:600; font-size:17px; border-bottom:2px solid #15120f; padding-bottom:2px;')
+          div.project-meta-cell
+            div.project-meta-label Ссылка
+            a.project-meta-link(href=project.link target='_blank')
               | Открыть&nbsp;
               span ↗
 
     if project.cover
-      figure(style='max-width:1180px; margin:0 auto clamp(40px,6vw,76px); padding:0 28px;')
-        div(style='aspect-ratio:16/9; overflow:hidden; background:#15120f;')
-          img(src=project.cover alt=project.name style='width:100%; height:100%; object-fit:cover; object-position:center 35%; display:block;')
+      figure.project-cover-figure
+        div.project-cover-wrap
+          img(src=project.cover alt=project.name)
 
-    article(style='max-width:720px; margin:0 auto; padding:0 28px;')
+    article.project-article
       if project.context && project.context.length
-        h2(style='margin:0 0 18px; font-family:"Oswald",sans-serif; font-weight:700; font-size:clamp(24px,3vw,32px); letter-spacing:.01em; text-transform:uppercase;') Контекст
+        h2.project-section-title Контекст
         each para in project.context
-          p(style='margin:0 0 20px; font-family:"Lora",serif; font-size:18px; line-height:1.74; color:#2e2a24;')= para
+          p.project-para= para
 
       if project.quote
-        blockquote(style='margin:0 0 44px; padding:6px 0 6px 26px; border-left:3px solid #15120f;')
-          p(style='margin:0; font-family:"Lora",serif; font-style:italic; font-size:clamp(22px,2.6vw,30px); line-height:1.34; color:#15120f;')= project.quote
+        blockquote.project-quote
+          p= project.quote
 
       if project.actions && project.actions.length
-        h2(style='margin:0 0 18px; font-family:"Oswald",sans-serif; font-weight:700; font-size:clamp(24px,3vw,32px); letter-spacing:.01em; text-transform:uppercase;') Что я сделал
-        ul(style='margin:0 0 40px; padding:0; list-style:none; display:flex; flex-direction:column; gap:14px;')
+        h2.project-section-title Что я сделал
+        ul.project-actions
           each action, i in project.actions
-            li(style='display:flex; gap:14px; font-family:"Lora",serif; font-size:18px; line-height:1.6; color:#2e2a24;')
-              span(style='font-family:"JetBrains Mono",monospace; font-size:13px; color:#9a948b; padding-top:3px; flex-shrink:0;')= ('0' + (i + 1)).slice(-2)
+            li.project-action
+              span.project-action-num= ('0' + (i + 1)).slice(-2)
               span= action
 
     if project.result
-      article(style='max-width:720px; margin:0 auto; padding:0 28px clamp(56px,8vw,100px);')
-        h2(style='margin:0 0 18px; font-family:"Oswald",sans-serif; font-weight:700; font-size:clamp(24px,3vw,32px); letter-spacing:.01em; text-transform:uppercase;') Результат
-        p(style='margin:0 0 28px; font-family:"Lora",serif; font-size:18px; line-height:1.74; color:#2e2a24;')= project.result
+      article.project-article-bottom
+        h2.project-section-title Результат
+        p.project-result-para= project.result
         if project.metrics && project.metrics.length
-          div(style='display:flex; gap:36px; flex-wrap:wrap; padding-top:8px; border-top:1px solid #d8d3c8;')
+          div.project-metrics
             each m in project.metrics
-              div(style='padding-top:20px;')
-                div(style='font-family:"Oswald",sans-serif; font-weight:700; font-size:clamp(34px,4vw,48px); line-height:1;')= m.value
-                div(style='margin-top:6px; font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.08em; color:#8a857d; max-width:170px;')= m.label
+              div.project-metric
+                div.project-metric-value= m.value
+                div.project-metric-label= m.label
 
-    footer(style='background:#15120f; color:#f4f1ea;')
-      a(href='/' style='display:block; border-bottom:1px solid #2a2622;')
-        div(style='max-width:1180px; margin:0 auto; padding:clamp(30px,4vw,48px) 28px; display:flex; align-items:center; justify-content:space-between; gap:20px;')
+    footer
+      a.project-footer-nav(href='/')
+        div.project-footer-nav-inner
           div
-            div(style='font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#7c776f;') Дальше
-            div(style='margin-top:10px; font-family:"Oswald",sans-serif; font-weight:600; font-size:clamp(24px,4vw,40px);') Все проекты
-          span(style='font-family:"Oswald",sans-serif; font-weight:700; font-size:clamp(30px,5vw,52px);') →
-      div(style='max-width:1180px; margin:0 auto; padding:18px 28px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.08em; color:#6c675f;')
+            div.project-footer-nav-label Дальше
+            div.project-footer-nav-title Все проекты
+          span.project-footer-nav-arrow →
+      div.project-footer-bottom
         span © it.dimazvali.com
         a(href='mailto:dimazvali@gmail.com') dimazvali@gmail.com
