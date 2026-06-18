@@ -50,7 +50,7 @@ html
                 .user-avatar-placeholder 👤
               div
                 .user-name
-                  = name
+                  a(href='/admin/bot/users/' + u.id style='color:inherit;text-decoration:none')= name
                   span.user-badge(class=u.active ? 'badge-active' : 'badge-inactive')= u.active ? 'активен' : 'заблокировал'
                   span.user-badge(class=u.lang && u.lang.startsWith('ru') ? 'badge-ru' : 'badge-en')= u.lang || '?'
                 .user-meta

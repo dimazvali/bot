@@ -523,6 +523,15 @@ router.post('/discounts/:id/delete', requireAuth, async function(req, res, next)
 
 // ── BOT SETTINGS ─────────────────────────────────────────
 var ekaBot = require('../lib/eka-bot');
+var ekaEvents = require('../lib/eka-events');
+
+var _sseClients = new Map(); // userId -> Set<res>
+ekaEvents.on('bot:message', function(data) {
+  var clients = _sseClients.get(data.userId);
+  if (!clients || !clients.size) return;
+  var payload = 'data: ' + JSON.stringify(data.message) + '\n\n';
+  clients.forEach(function(res) { res.write(payload); });
+});
 
 router.get('/bot', requireAuth, async function(req, res, next) {
   try {
@@ -594,6 +603,36 @@ router.post('/bot/profile', requireAuth, upload.single('photo'), async function(
   }
 });
 
+router.get('/bot/users/:id/stream', requireAuth, function(req, res) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  var userId = req.params.id;
+  if (!_sseClients.has(userId)) _sseClients.set(userId, new Set());
+  _sseClients.get(userId).add(res);
+  req.on('close', function() {
+    var s = _sseClients.get(userId);
+    if (s) s.delete(res);
+  });
+});
+
+router.get('/bot/users/:id', requireAuth, async function(req, res, next) {
+  try {
+    var userId = req.params.id;
+    var userSnap = await fb.collection('eka_bot_users').doc(userId).get();
+    if (!userSnap.exists) return res.redirect('/admin/bot/users');
+    var user = Object.assign({ id: userId }, userSnap.data());
+    var msgsSnap = await fb.collection('eka_bot_users').doc(userId).collection('messages')
+      .orderBy('createdAt', 'asc').limit(200).get();
+    var messages = msgsSnap.docs.map(function(d) { return Object.assign({ id: d.id }, d.data()); });
+    res.render('eka/admin/bot-user', {
+      title: ([user.first_name, user.last_name].filter(Boolean).join(' ') || 'Пользователь') + ' — Бот',
+      user: user, messages: messages, sent: !!req.query.sent
+    });
+  } catch(e) { next(e); }
+});
+
 router.get('/bot/users', requireAuth, async function(req, res, next) {
   try {
     var users = await ekaBot.getUsers();
@@ -616,13 +655,16 @@ router.post('/bot/users/:id/message', requireAuth, upload.single('photo'), async
   try {
     var text = (req.body.text || '').trim();
     var chatId = req.params.id;
+    var adminName = res.locals.adminName || 'admin';
     if (req.file) {
       var photoUrl = await resizeBotPhoto(req.file.buffer, 'msg_' + chatId + '_' + Date.now());
       await ekaBot.sendMedia(chatId, 'photo', photoUrl, text || undefined);
+      ekaBot.saveMessage(chatId, { direction: 'out', text: text || null, mediaType: 'photo', sentBy: adminName }).catch(function(){});
     } else if (text) {
       await ekaBot.sendMessage(chatId, text);
+      ekaBot.saveMessage(chatId, { direction: 'out', text: text, mediaType: null, sentBy: adminName }).catch(function(){});
     }
-    res.redirect('/admin/bot/users?sent=' + encodeURIComponent(chatId));
+    res.redirect('/admin/bot/users/' + chatId + '?sent=1');
   } catch(e) { next(e); }
 });
 
