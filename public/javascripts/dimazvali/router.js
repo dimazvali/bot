@@ -43,6 +43,9 @@ function route() {
     case 'shows':
       showShowsPanel();
       break;
+    case 'logs':
+      showLogsPanel();
+      break;
     default:
       showLogsPanel();
       break;
@@ -53,14 +56,22 @@ function updateSidebarActive(section, id) {
   document.querySelectorAll('#city-list .city-item').forEach(function(el) {
     el.classList.remove('selected');
   });
+  document.querySelectorAll('.sidebar-secondary a').forEach(function(el) {
+    el.classList.remove('active');
+  });
+
   if (section === 'cities' && id) {
     var el = document.querySelector('.city-item[data-id="' + id + '"]');
     if (el) el.classList.add('selected');
   }
+
+  var navEl = document.querySelector('.sidebar-secondary a[data-section="' + section + '"]');
+  if (navEl) navEl.classList.add('active');
 }
 
 function toggleDrawer() {
-  document.getElementById('left').classList.toggle('active');
+  document.getElementById('admin-sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
 }
 
 function initRouter() {
