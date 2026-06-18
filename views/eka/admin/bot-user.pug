@@ -38,7 +38,7 @@ html
     include _nav
     .admin-content
       .bot-nav
-        a.admin-btn.btn-sm(href='/admin/bot') Приветствия
+        a.admin-btn.btn-sm(href='/admin/bot/messages') Приветствия
         a.admin-btn.btn-sm(href='/admin/bot/profile') Профиль бота
         a.admin-btn.btn-sm(href='/admin/bot/users' style='background:#111;color:#fff') Пользователи
         a.admin-btn.btn-sm(href='/admin/bot/broadcast') Рассылка
@@ -82,10 +82,10 @@ html
           p.sent-ok ✓ Сообщение отправлено
         if user.active
           form.send-box(method='POST' action='/admin/bot/users/' + user.id + '/message' enctype='multipart/form-data')
-            textarea(name='text' placeholder='Написать сообщение...')
+            textarea(name='text' placeholder='Написать сообщение...' tabindex='1')
             .send-row
-              input#photo-input(type='file' name='photo' accept='image/*')
-              button.admin-btn(type='submit') Отправить
+              input#photo-input(type='file' name='photo' accept='image/*' tabindex='3')
+              button.admin-btn(type='submit' tabindex='2') Отправить
             img#photo-preview.photo-preview(src='' alt='')
         else
           p.inactive-note Пользователь заблокировал бота — отправка недоступна
