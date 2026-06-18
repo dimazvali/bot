@@ -61,6 +61,10 @@ function picUrl(pic) {
 
 function edit(entity, id, attr, type, value, container) {
   var m = modal();
+  m.style.position = 'relative';
+  var closeBtn = ce('button', false, false, '✕', { onclick: function() { m.remove(); } });
+  closeBtn.style.cssText = 'position:absolute;top:0.75rem;right:0.75rem;background:none;color:#999;font-size:1rem;padding:0.2rem 0.4rem;margin:0;border:none;cursor:pointer';
+  m.append(closeBtn);
   m.append(ce('h2', false, false, 'Редактировать ' + attr));
 
   var f;
