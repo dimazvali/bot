@@ -45,6 +45,7 @@ html(lang=lang)
     footer.footer
       a.footer-logo(href=`/${lang}/`)
         img(src='/images/eka/v2/logo.png' alt='TbiLiSELi')
+      a.footer-made(href='https://dimazvali.com' target='_blank' rel='noopener') made by dimazvali.com
       .footer-links
         - var sp = (typeof siteProfile !== 'undefined' && siteProfile) || {}
         if sp.telegram

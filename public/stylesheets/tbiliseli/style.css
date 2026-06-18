@@ -1110,6 +1110,9 @@ button { cursor: pointer; font-family: inherit; }
 
 .footer-links a:hover { color: var(--red); }
 
+.footer-made { font-size: 11px; color: rgba(255,255,255,0.2); text-decoration: none; letter-spacing: .03em; align-self: center; }
+.footer-made:hover { color: rgba(255,255,255,0.45); }
+
 /* ── RESPONSIVE ─────────────────────────────────────────── */
 @media (max-width: 900px) {
   .hero { grid-template-columns: 1fr; min-height: auto; }
