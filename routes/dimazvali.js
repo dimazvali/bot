@@ -505,6 +505,17 @@ router.post(`/hook`, (req, res) => {
             let text = msg.text.trim();
             if (text === `/start` || text === `/tours`) {
                 sendTours(uid);
+            } else {
+                messages.add({
+                    createdAt: new Date(),
+                    user: +uid,
+                    text: text,
+                    isReply: false
+                })
+                alertAdmins({
+                    text: `💬 Новое сообщение от ${uname(msg.from, uid)}:\n${text}`,
+                    user_id: uid
+                })
             }
         }
     }
