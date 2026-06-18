@@ -31,6 +31,11 @@ ekaData.init(fb);
 mailer.init();
 ekaNotify.init(fb);
 ekaBot.init(fb, process.env.EKA_BOT_TOKEN, getStorage(ekaApp).bucket());
+if (process.env.develop !== 'true' && process.env.EKA_BOT_TOKEN && process.env.EKA_BOT_WEBHOOK_URL) {
+  ekaBot.setWebhook(process.env.EKA_BOT_WEBHOOK_URL)
+    .then(function(r) { console.log('[eka-bot] webhook set:', r.description); })
+    .catch(function(e) { console.error('[eka-bot] setWebhook failed:', e.message); });
+}
 
 router.post('/bot', express.json(), function(req, res) {
   res.sendStatus(200);
