@@ -762,7 +762,7 @@ router.all(`/admin/:method/:id`, (req, res) => {
     })
 })
 
-router.all(`/admin/:method`, (req, res) => {
+router.all(`/admin/:method`, upload.none(), (req, res) => {
 
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
 
@@ -826,6 +826,7 @@ function updateEntity(req, res, ref, admin) {
 
 
 function newCity(req, res, admin) {
+    
     if (!req.body.name) return res.status(400).send(`no name`)
 
     cities.doc(req.body.slug).get().then(s => {
