@@ -59,11 +59,11 @@ html(lang='ru')
       if project.context && project.context.length
         h2.project-section-title Контекст
         each para in project.context
-          p.project-para= para
+          div.project-content!= para
 
       if project.quote
         blockquote.project-quote
-          p= project.quote
+          p!= project.quote
 
       if project.actions && project.actions.length
         h2.project-section-title Что я сделал
@@ -71,18 +71,26 @@ html(lang='ru')
           each action, i in project.actions
             li.project-action
               span.project-action-num= ('0' + (i + 1)).slice(-2)
-              span= action
+              span!= action
 
     if project.result
       article.project-article-bottom
         h2.project-section-title Результат
-        p.project-result-para= project.result
+        div.project-content!= project.result
         if project.metrics && project.metrics.length
           div.project-metrics
             each m in project.metrics
               div.project-metric
                 div.project-metric-value= m.value
                 div.project-metric-label= m.label
+
+    if project.details && project.details.length
+      article.project-article
+        h2.project-section-title Детали
+      each detail in project.details
+        article.project-article
+          h3.project-detail-title!= detail.title
+          div.project-content!= detail.desc || ''
 
     footer
       a.project-footer-nav(href='/')

@@ -1,25 +1,42 @@
 extends site
 
 block content
-    
-    for c in classes.slice(0,1)
-        //- include classLine
-        if(c.pic)
-            img.cover.up(src!=c.pic onclick="window.location.pathname='/classes/"+c.id+"'")
-        else
-            include classLine
-    h1 А дальше?..
-    for c in classes.slice(1,3)
-        include classLine
-    .sDivided
-        h3(onclick='window.open("/classes")') Расписание 
-    .sDivided
-        h2(onclick='window.open("/coworking")') Коворкинг
-    .sDivided
-        h2(onclick='window.open("/coworking/pKpZXjdqRX4UcFawHb9I")') Подкаст-студия
-    .sDivided
-        h2(onclick='window.open("/authors")') Резиденты
-    .sDivided
-        h2(onclick='window.open("/staff")') Редакция
-    for p in pages
-        h2(onclick='window.open("/static/'+p.slug+'")')!=p.name
+  - var isRu = lang !== 'en'
+  - var featured = classes && classes[0]
+  - var rest = classes ? classes.slice(1) : []
+
+  .p-content
+    if featured
+      a.p-hero(href='/classes/' + featured.id)
+        if featured.pic
+          .p-hero-img: img(src=featured.pic alt=featured.name)
+        .p-hero-overlay
+        .p-hero-body
+          .p-hero-kicker= isRu ? 'Ближайшее событие' : 'Up next'
+          h2.p-hero-title= featured.name
+          .p-hero-meta
+            span.p-hero-date!= drawDate(featured.date, false, {time: true})
+            if featured.price
+              span.p-hero-price ₾#{featured.price}
+            else
+              span.p-hero-price= isRu ? 'Бесплатно' : 'Free'
+            span.p-btn-hero= isRu ? 'Подробнее' : 'Learn more'
+
+    if rest.length
+      .p-section-label= isRu ? 'Предстоящие события' : 'Upcoming events'
+      .p-grid
+        each c in rest
+          a.p-card(href='/classes/' + c.id)
+            .p-card-photo
+              if c.pic
+                img(src=c.pic alt=c.name)
+            .p-card-body
+              h3.p-card-title= c.name
+              .p-card-date!= drawDate(c.date, false, {time: true})
+              .p-card-footer
+                span.p-card-price
+                  if c.price
+                    | ₾#{c.price}
+                  else
+                    = isRu ? 'Бесплатно' : 'Free'
+                span.p-btn-card= isRu ? 'Подробнее' : 'More'

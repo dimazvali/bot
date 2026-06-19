@@ -1,7 +1,42 @@
 extends site
-block back
-    a.headerA(href="/") На главную
+
 block content
-    h2!=translations.schedule[lang] 
-    for c in classes
-        include classLine
+  - var isRu = lang !== 'en'
+  - var featured = classes && classes[0]
+  - var rest = classes ? classes.slice(1) : []
+
+  .p-content
+    if featured
+      a.p-hero(href='/classes/' + featured.id)
+        if featured.pic
+          .p-hero-img: img(src=featured.pic alt=featured.name)
+        .p-hero-overlay
+        .p-hero-body
+          .p-hero-kicker= isRu ? 'Ближайшее событие' : 'Up next'
+          h2.p-hero-title= featured.name
+          .p-hero-meta
+            span.p-hero-date!= drawDate(featured.date, false, {time: true})
+            if featured.price
+              span.p-hero-price ₾#{featured.price}
+            else
+              span.p-hero-price= isRu ? 'Бесплатно' : 'Free'
+            span.p-btn-hero= isRu ? 'Подробнее' : 'Learn more'
+
+    if rest.length
+      .p-section-label= isRu ? 'Предстоящие события' : 'Upcoming events'
+      .p-grid
+        each c in rest
+          a.p-card(href='/classes/' + c.id)
+            .p-card-photo
+              if c.pic
+                img(src=c.pic alt=c.name)
+            .p-card-body
+              h3.p-card-title= c.name
+              .p-card-date!= drawDate(c.date, false, {time: true})
+              .p-card-footer
+                span.p-card-price
+                  if c.price
+                    | ₾#{c.price}
+                  else
+                    = isRu ? 'Бесплатно' : 'Free'
+                span.p-btn-card= isRu ? 'Подробнее' : 'More'

@@ -479,6 +479,16 @@ footer {
   text-transform: uppercase;
 }
 
+.project-detail-title {
+  margin: 0 0 14px;
+  font-family: "Oswald", sans-serif;
+  font-weight: 600;
+  font-size: clamp(17px, 2vw, 20px);
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: #5a544c;
+}
+
 .project-para {
   margin: 0 0 20px;
   font-family: "Lora", serif;
@@ -486,6 +496,31 @@ footer {
   line-height: 1.74;
   color: #2e2a24;
 }
+
+.project-content {
+  margin: 0 0 40px;
+}
+.project-content p {
+  margin: 0 0 20px;
+  font-family: "Lora", serif;
+  font-size: 18px;
+  line-height: 1.74;
+  color: #2e2a24;
+}
+.project-content p:last-child { margin-bottom: 0; }
+.project-content ul,
+.project-content ol {
+  margin: 0 0 20px;
+  padding-left: 26px;
+  font-family: "Lora", serif;
+  font-size: 18px;
+  line-height: 1.74;
+  color: #2e2a24;
+}
+.project-content strong { font-weight: 600; }
+.project-content em { font-style: italic; }
+.project-content a { color: #15120f; }
+.project-content a:hover { opacity: .7; }
 
 .project-quote {
   margin: 0 0 44px;

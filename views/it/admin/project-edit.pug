@@ -6,6 +6,7 @@ html(lang='ru')
     title= (projectId ? 'Редактировать' : 'Новый проект') + ' — IT Admin'
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap')
+    link(rel='stylesheet' href='https://cdn.quilljs.com/1.3.7/quill.snow.css')
     style.
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       body { background: #f4f1ea; color: #15120f; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
@@ -42,6 +43,10 @@ html(lang='ru')
       .btn-cancel:hover { color: #555; }
       .btn-delete { margin-left: auto; background: none; border: 1px solid #c0392b; color: #c0392b; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; }
       .btn-delete:hover { background: #c0392b; color: #fff; }
+      .ql-toolbar.ql-snow { border: 1px solid #d8d4cb !important; background: #faf9f7; padding: 6px 8px; }
+      .ql-container.ql-snow { border: 1px solid #d8d4cb !important; border-top: 0 !important; }
+      .ql-editor { min-height: 130px; font-size: 13px; font-family: 'JetBrains Mono', monospace; background: #fff; line-height: 1.55; }
+      .ql-editor.ql-blank::before { color: #aaa; font-style: normal; }
   body
     header
       h1 IT Admin
@@ -112,9 +117,9 @@ html(lang='ru')
           .section-title Контент
           .row.single
             .field
-              label(for='context') Контекст
-              p.hint Абзацы разделяйте пустой строкой (↵↵)
-              textarea#context(name='context' rows='8')= project.context || ''
+              label Контекст
+              div#editor-context
+              input(type='hidden' name='context' id='input-context')
           .row.single
             .field
               label(for='quote') Цитата / ключевая мысль
@@ -126,13 +131,30 @@ html(lang='ru')
               textarea#actions(name='actions' rows='6')= project.actions || ''
           .row.single
             .field
-              label(for='result') Результат
-              textarea#result(name='result' rows='4')= project.result || ''
+              label Результат
+              div#editor-result
+              input(type='hidden' name='result' id='input-result')
           .row.single
             .field
               label(for='metrics') Метрики
               p.hint Одна метрика на строку: значение | подпись (например: 3× | рост конверсии)
               textarea#metrics(name='metrics' rows='4')= project.metrics || ''
+
+        .section#details-section
+          .section-title Детали
+          #details-list
+            if project.details && project.details.length
+              each d, i in project.details
+                .detail-block(style='border:1px solid #d8d4cb;padding:14px 16px;margin-bottom:12px;position:relative;')
+                  .field(style='margin-bottom:10px;')
+                    label Название
+                    input(type='text' name='detail_title[]' value=d.title placeholder='История подвешенного вина')
+                  .field
+                    label Описание
+                    .quill-desc
+                    input.detail-desc-input(type='hidden' name='detail_desc[]' value=d.desc || '')
+                  button.btn-remove-detail(type='button' style='position:absolute;top:10px;right:12px;background:none;border:none;font-size:16px;cursor:pointer;color:#aaa;' onclick='this.closest(".detail-block").remove()') ×
+          button(type='button' id='add-detail' style='background:none;border:1px solid #15120f;color:#15120f;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:7px 14px;cursor:pointer;margin-top:4px;') + Добавить блок
 
         .actions
           button.btn-save(type='submit') Сохранить
@@ -140,3 +162,45 @@ html(lang='ru')
           if projectId
             form(method='POST' action='/admin/projects/' + projectId + '/delete' style='margin-left:auto' onsubmit='return confirm("Удалить проект?")')
               button.btn-delete(type='submit') Удалить проект
+
+    script(src='https://cdn.quilljs.com/1.3.7/quill.min.js')
+    script.
+      var TOOLBAR = [['bold','italic','underline'],[{list:'ordered'},{list:'bullet'}],['link'],['clean']];
+
+      var quillContext = new Quill('#editor-context', { theme: 'snow', modules: { toolbar: TOOLBAR }, placeholder: 'Контекст проекта…' });
+      var contextHtml = !{JSON.stringify(project.context || '')};
+      if (contextHtml) quillContext.clipboard.dangerouslyPasteHTML(contextHtml);
+
+      var quillResult = new Quill('#editor-result', { theme: 'snow', modules: { toolbar: TOOLBAR }, placeholder: 'Результат…' });
+      var resultHtml = !{JSON.stringify(project.result || '')};
+      if (resultHtml) quillResult.clipboard.dangerouslyPasteHTML(resultHtml);
+
+      function initDetailEditor(block) {
+        var container = block.querySelector('.quill-desc');
+        var input = block.querySelector('.detail-desc-input');
+        var q = new Quill(container, { theme: 'snow', modules: { toolbar: TOOLBAR }, placeholder: 'Описание…' });
+        if (input && input.value) q.clipboard.dangerouslyPasteHTML(input.value);
+        block._quill = q;
+      }
+      document.querySelectorAll('.detail-block').forEach(initDetailEditor);
+
+      document.getElementById('add-detail').addEventListener('click', function() {
+        var block = document.createElement('div');
+        block.className = 'detail-block';
+        block.style.cssText = 'border:1px solid #d8d4cb;padding:14px 16px;margin-bottom:12px;position:relative;';
+        block.innerHTML = '<div class="field" style="margin-bottom:10px;"><label>Название</label><input type="text" name="detail_title[]" placeholder="Название блока" style="background:#fff;border:1px solid #d8d4cb;color:#15120f;font-family:JetBrains Mono,monospace;font-size:13px;padding:8px 10px;width:100%;outline:none;"></div><div class="field"><label>Описание</label><div class="quill-desc"></div><input type="hidden" name="detail_desc[]" class="detail-desc-input"></div><button type="button" onclick="this.closest(\'.detail-block\').remove()" style="position:absolute;top:10px;right:12px;background:none;border:none;font-size:16px;cursor:pointer;color:#aaa;">×</button>';
+        document.getElementById('details-list').appendChild(block);
+        initDetailEditor(block);
+        block.querySelector('input[name="detail_title[]"]').focus();
+      });
+
+      document.querySelector('form[method="POST"]').addEventListener('submit', function() {
+        document.getElementById('input-context').value = quillContext.getText().trim() ? quillContext.root.innerHTML : '';
+        document.getElementById('input-result').value = quillResult.getText().trim() ? quillResult.root.innerHTML : '';
+        document.querySelectorAll('.detail-block').forEach(function(block) {
+          if (block._quill) {
+            var input = block.querySelector('.detail-desc-input');
+            if (input) input.value = block._quill.getText().trim() ? block._quill.root.innerHTML : '';
+          }
+        });
+      });

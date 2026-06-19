@@ -1,7 +1,41 @@
 extends site
-block back
-    a.headerA(href="/")!=`❰ На главную`
+
 block content
-    h2!=translations.staff[lang] 
-    for a in staff
-        include staffLine
+  - var isRu = lang !== 'en'
+
+  .p-content
+    .p-contacts-head
+      div
+        .p-contacts-kicker= isRu ? 'Papers Space · Тбилиси' : 'Papers Space · Tbilisi'
+        h2.p-contacts-title= isRu ? 'Контакты' : 'Contacts'
+      .p-contacts-tagline
+        = isRu ? 'На связи 24/7' : 'In touch 24/7'
+        span.p-contacts-tagline-dot .
+
+    .p-contacts-body
+      .p-contacts-team
+        .p-section-label= isRu ? 'Команда' : 'Team'
+        each a in staff
+          - var initials = ((a.first_name || '')[0] + (a.last_name || '')[0]).toUpperCase()
+          - var name = [a.first_name, a.last_name].filter(Boolean).join(' ')
+          .p-staff-card
+            .p-staff-avatar= initials
+            .p-staff-info
+              h3.p-staff-name= name
+              if a.about
+                p.p-staff-role= a.about
+              if a.email
+                a.p-staff-email-link(href='mailto:' + a.email)
+                  span.p-staff-email-dot
+                  | #{a.email}
+
+      .p-contacts-address
+        .p-section-label= isRu ? 'Адрес' : 'Address'
+        .p-address-card
+          .p-address-map
+          .p-address-body
+            .p-address-name Papers Space
+            .p-address-text
+              | 1 Veriko Anjaparidze St
+              br
+              | #{isRu ? 'Тбилиси, Грузия' : 'Tbilisi, Georgia'}
