@@ -207,80 +207,80 @@ html(lang='ru')
               .card-domain it.dimazvali.com
               p.card-desc Истории про продукты, команды и&nbsp;разработку. Как доводить сложное до&nbsp;запуска.
 
-    -
-      var globeCountries = [
-        // Кавказ и СНГ
-        { name: 'Грузия',              id: 268 },
-        { name: 'Армения',             id: 51  },
-        { name: 'Азербайджан',         id: 31  },
-        { name: 'Россия',              id: 643 },
-        { name: 'Казахстан',           id: 398 },
-        { name: 'Украина',             id: 804 },
-        { name: 'Беларусь',            id: 112 },
-        { name: 'Молдова',             id: 498 },
-        // Балканы
-        { name: 'Турция',              id: 792 },
-        { name: 'Сербия',              id: 688 },
-        { name: 'Черногория',          id: 499 },
-        { name: 'Хорватия',            id: 191 },
-        { name: 'Босния',              id: 70  },
-        { name: 'Северная Македония',  id: 807 },
-        { name: 'Албания',             id: 8   },
-        { name: 'Болгария',            id: 100 },
-        { name: 'Румыния',             id: 642 },
-        { name: 'Греция',              id: 300 },
-        { name: 'Кипр',                id: 196 },
-        // Центральная Европа
-        { name: 'Польша',              id: 616 },
-        { name: 'Чехия',               id: 203 },
-        { name: 'Словакия',            id: 703 },
-        { name: 'Словения',            id: 705 },
-        { name: 'Венгрия',             id: 348 },
-        { name: 'Австрия',             id: 40  },
-        { name: 'Швейцария',           id: 756 },
-        { name: 'Лихтенштейн',         id: 438 },
-        // Западная Европа
-        { name: 'Германия',            id: 276 },
-        { name: 'Нидерланды',          id: 528 },
-        { name: 'Бельгия',             id: 56  },
-        { name: 'Люксембург',          id: 442 },
-        { name: 'Франция',             id: 250 },
-        { name: 'Монако',              id: 492 },
-        { name: 'Андорра',             id: 20  },
-        { name: 'Испания',             id: 724 },
-        { name: 'Португалия',          id: 620 },
-        { name: 'Италия',              id: 380 },
-        { name: 'Сан-Марино',          id: 674 },
-        // Северная Европа
-        { name: 'Финляндия',           id: 246 },
-        { name: 'Эстония',             id: 233 },
-        { name: 'Латвия',              id: 428 },
-        { name: 'Литва',               id: 440 },
-        { name: 'Дания',               id: 208 },
-        { name: 'Швеция',              id: 752 },
-        { name: 'Норвегия',            id: 578 },
-        { name: 'Исландия',            id: 352 },
-        { name: 'Ирландия',            id: 372 },
-        { name: 'Великобритания',      id: 826 },
-        { name: 'Мальта',              id: 470 },
-        // Северная Африка
-        { name: 'Марокко',             id: 504 },
-        { name: 'Алжир',               id: 12  },
-        { name: 'Тунис',               id: 788 },
-        { name: 'Ливия',               id: 434 },
-        { name: 'Египет',              id: 818 },
-      ]
-    section.globe-section
-      .directions-header
-        h2.directions-title Где был
-        span.directions-rule
-        span.directions-label= globeCountries.length + ' стран и территорий'
-      .globe-wrap#globe-container
-        svg#globe-svg
-        .globe-list
-          span.globe-list-label Страны
-          each c in globeCountries
-            button.globe-list-item(data-id=String(c.id) type='button')= c.name
+    //- -
+    //-   var globeCountries = [
+    //-     // Кавказ и СНГ
+    //-     { name: 'Грузия',              id: 268 },
+    //-     { name: 'Армения',             id: 51  },
+    //-     { name: 'Азербайджан',         id: 31  },
+    //-     { name: 'Россия',              id: 643 },
+    //-     { name: 'Казахстан',           id: 398 },
+    //-     { name: 'Украина',             id: 804 },
+    //-     { name: 'Беларусь',            id: 112 },
+    //-     { name: 'Молдова',             id: 498 },
+    //-     // Балканы
+    //-     { name: 'Турция',              id: 792 },
+    //-     { name: 'Сербия',              id: 688 },
+    //-     { name: 'Черногория',          id: 499 },
+    //-     { name: 'Хорватия',            id: 191 },
+    //-     { name: 'Босния',              id: 70  },
+    //-     { name: 'Северная Македония',  id: 807 },
+    //-     { name: 'Албания',             id: 8   },
+    //-     { name: 'Болгария',            id: 100 },
+    //-     { name: 'Румыния',             id: 642 },
+    //-     { name: 'Греция',              id: 300 },
+    //-     { name: 'Кипр',                id: 196 },
+    //-     // Центральная Европа
+    //-     { name: 'Польша',              id: 616 },
+    //-     { name: 'Чехия',               id: 203 },
+    //-     { name: 'Словакия',            id: 703 },
+    //-     { name: 'Словения',            id: 705 },
+    //-     { name: 'Венгрия',             id: 348 },
+    //-     { name: 'Австрия',             id: 40  },
+    //-     { name: 'Швейцария',           id: 756 },
+    //-     { name: 'Лихтенштейн',         id: 438 },
+    //-     // Западная Европа
+    //-     { name: 'Германия',            id: 276 },
+    //-     { name: 'Нидерланды',          id: 528 },
+    //-     { name: 'Бельгия',             id: 56  },
+    //-     { name: 'Люксембург',          id: 442 },
+    //-     { name: 'Франция',             id: 250 },
+    //-     { name: 'Монако',              id: 492 },
+    //-     { name: 'Андорра',             id: 20  },
+    //-     { name: 'Испания',             id: 724 },
+    //-     { name: 'Португалия',          id: 620 },
+    //-     { name: 'Италия',              id: 380 },
+    //-     { name: 'Сан-Марино',          id: 674 },
+    //-     // Северная Европа
+    //-     { name: 'Финляндия',           id: 246 },
+    //-     { name: 'Эстония',             id: 233 },
+    //-     { name: 'Латвия',              id: 428 },
+    //-     { name: 'Литва',               id: 440 },
+    //-     { name: 'Дания',               id: 208 },
+    //-     { name: 'Швеция',              id: 752 },
+    //-     { name: 'Норвегия',            id: 578 },
+    //-     { name: 'Исландия',            id: 352 },
+    //-     { name: 'Ирландия',            id: 372 },
+    //-     { name: 'Великобритания',      id: 826 },
+    //-     { name: 'Мальта',              id: 470 },
+    //-     // Северная Африка
+    //-     { name: 'Марокко',             id: 504 },
+    //-     { name: 'Алжир',               id: 12  },
+    //-     { name: 'Тунис',               id: 788 },
+    //-     { name: 'Ливия',               id: 434 },
+    //-     { name: 'Египет',              id: 818 },
+    //-   ]
+    //- section.globe-section
+    //-   .directions-header
+    //-     h2.directions-title Где был
+    //-     span.directions-rule
+    //-     span.directions-label= globeCountries.length + ' стран и территорий'
+    //-   .globe-wrap#globe-container
+    //-     svg#globe-svg
+    //-     .globe-list
+    //-       span.globe-list-label Страны
+    //-       each c in globeCountries
+    //-         button.globe-list-item(data-id=String(c.id) type='button')= c.name
 
     footer.site-footer
       .footer-top
@@ -412,105 +412,105 @@ html(lang='ru')
           setText(variants[idx]);
         }, 3400);
       }());
-    script(src='https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js' defer)
-    script(src='https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js' defer)
-    script.
-      document.addEventListener('DOMContentLoaded', function() {
-        var COUNTRIES = !{JSON.stringify(globeCountries)};
-        var VISITED_IDS = new Set(COUNTRIES.map(function(c) { return c.id; }));
+    //- script(src='https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js' defer)
+    //- script(src='https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js' defer)
+    //- script.
+    //-   document.addEventListener('DOMContentLoaded', function() {
+    //-     var COUNTRIES = !{JSON.stringify(globeCountries)};
+    //-     var VISITED_IDS = new Set(COUNTRIES.map(function(c) { return c.id; }));
 
-        var container = document.getElementById('globe-container');
-        if (!container || typeof d3 === 'undefined' || typeof topojson === 'undefined') return;
+    //-     var container = document.getElementById('globe-container');
+    //-     if (!container || typeof d3 === 'undefined' || typeof topojson === 'undefined') return;
 
-        var size = Math.min(container.clientWidth - 200, 480);
-        if (size < 220) size = 220;
-        var r = size / 2 - 4;
+    //-     var size = Math.min(container.clientWidth - 200, 480);
+    //-     if (size < 220) size = 220;
+    //-     var r = size / 2 - 4;
 
-        var svg = d3.select('#globe-svg')
-          .attr('width', size)
-          .attr('height', size);
+    //-     var svg = d3.select('#globe-svg')
+    //-       .attr('width', size)
+    //-       .attr('height', size);
 
-        var projection = d3.geoOrthographic()
-          .scale(r)
-          .translate([size / 2, size / 2])
-          .clipAngle(90)
-          .rotate([15, -42]);
+    //-     var projection = d3.geoOrthographic()
+    //-       .scale(r)
+    //-       .translate([size / 2, size / 2])
+    //-       .clipAngle(90)
+    //-       .rotate([15, -42]);
 
-        var pathGen = d3.geoPath().projection(projection);
+    //-     var pathGen = d3.geoPath().projection(projection);
 
-        svg.append('circle')
-          .attr('class', 'globe-sphere')
-          .attr('cx', size / 2).attr('cy', size / 2).attr('r', r);
+    //-     svg.append('circle')
+    //-       .attr('class', 'globe-sphere')
+    //-       .attr('cx', size / 2).attr('cy', size / 2).attr('r', r);
 
-        var gratPath = svg.append('path').attr('class', 'globe-grat');
+    //-     var gratPath = svg.append('path').attr('class', 'globe-grat');
 
-        var landGroup = svg.append('g');
+    //-     var landGroup = svg.append('g');
 
-        svg.append('circle')
-          .attr('class', 'globe-ring')
-          .attr('cx', size / 2).attr('cy', size / 2).attr('r', r);
+    //-     svg.append('circle')
+    //-       .attr('class', 'globe-ring')
+    //-       .attr('cx', size / 2).attr('cy', size / 2).attr('r', r);
 
-        function render() {
-          gratPath.attr('d', pathGen(d3.geoGraticule()()));
-          landGroup.selectAll('path').attr('d', pathGen);
-        }
+    //-     function render() {
+    //-       gratPath.attr('d', pathGen(d3.geoGraticule()()));
+    //-       landGroup.selectAll('path').attr('d', pathGen);
+    //-     }
 
-        fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
-          .then(function(res) { return res.json(); })
-          .then(function(world) {
-            var features = topojson.feature(world, world.objects.countries).features;
+    //-     fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')
+    //-       .then(function(res) { return res.json(); })
+    //-       .then(function(world) {
+    //-         var features = topojson.feature(world, world.objects.countries).features;
 
-            var centroids = {};
-            features.forEach(function(f) { centroids[+f.id] = d3.geoCentroid(f); });
+    //-         var centroids = {};
+    //-         features.forEach(function(f) { centroids[+f.id] = d3.geoCentroid(f); });
 
-            landGroup.selectAll('path')
-              .data(features)
-              .enter().append('path')
-              .attr('class', function(d) {
-                return VISITED_IDS.has(+d.id) ? 'globe-country globe-visited' : 'globe-country';
-              })
-              .attr('d', pathGen);
+    //-         landGroup.selectAll('path')
+    //-           .data(features)
+    //-           .enter().append('path')
+    //-           .attr('class', function(d) {
+    //-             return VISITED_IDS.has(+d.id) ? 'globe-country globe-visited' : 'globe-country';
+    //-           })
+    //-           .attr('d', pathGen);
 
-            render();
+    //-         render();
 
-            var dragOrigin = null;
-            svg.call(d3.drag()
-              .on('start', function(event) {
-                dragOrigin = { x: event.x, y: event.y, r: projection.rotate().slice() };
-              })
-              .on('drag', function(event) {
-                if (!dragOrigin) return;
-                projection.rotate([
-                  dragOrigin.r[0] + (event.x - dragOrigin.x) * 0.35,
-                  dragOrigin.r[1] - (event.y - dragOrigin.y) * 0.35
-                ]);
-                render();
-              })
-            );
+    //-         var dragOrigin = null;
+    //-         svg.call(d3.drag()
+    //-           .on('start', function(event) {
+    //-             dragOrigin = { x: event.x, y: event.y, r: projection.rotate().slice() };
+    //-           })
+    //-           .on('drag', function(event) {
+    //-             if (!dragOrigin) return;
+    //-             projection.rotate([
+    //-               dragOrigin.r[0] + (event.x - dragOrigin.x) * 0.35,
+    //-               dragOrigin.r[1] - (event.y - dragOrigin.y) * 0.35
+    //-             ]);
+    //-             render();
+    //-           })
+    //-         );
 
-            document.querySelectorAll('.globe-list-item').forEach(function(btn) {
-              btn.addEventListener('click', function() {
-                var id = +btn.dataset.id;
-                var centroid = centroids[id];
-                if (!centroid) return;
+    //-         document.querySelectorAll('.globe-list-item').forEach(function(btn) {
+    //-           btn.addEventListener('click', function() {
+    //-             var id = +btn.dataset.id;
+    //-             var centroid = centroids[id];
+    //-             if (!centroid) return;
 
-                document.querySelectorAll('.globe-list-item').forEach(function(b) {
-                  b.classList.remove('active');
-                });
-                btn.classList.add('active');
+    //-             document.querySelectorAll('.globe-list-item').forEach(function(b) {
+    //-               b.classList.remove('active');
+    //-             });
+    //-             btn.classList.add('active');
 
-                var from = projection.rotate().slice();
-                var to = [-centroid[0], -centroid[1]];
-                var interp = d3.interpolate(from, to);
+    //-             var from = projection.rotate().slice();
+    //-             var to = [-centroid[0], -centroid[1]];
+    //-             var interp = d3.interpolate(from, to);
 
-                d3.transition().duration(800).ease(d3.easeCubicInOut)
-                  .tween('rotate', function() {
-                    return function(t) {
-                      projection.rotate(interp(t));
-                      render();
-                    };
-                  });
-              });
-            });
-          });
-      });
+    //-             d3.transition().duration(800).ease(d3.easeCubicInOut)
+    //-               .tween('rotate', function() {
+    //-                 return function(t) {
+    //-                   projection.rotate(interp(t));
+    //-                   render();
+    //-                 };
+    //-               });
+    //-           });
+    //-         });
+    //-       });
+    //-   });
