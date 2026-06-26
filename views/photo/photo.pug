@@ -2,33 +2,33 @@ extends layout
 include mixins
 
 block head
-  -
-    var _imgUrl = photo.urls ? (photo.urls.full || photo.urls.preview) : null
-    var _ld = {
-      '@context': 'https://schema.org',
-      '@type': 'ImageObject',
-      name: photo.title,
-      contentUrl: _imgUrl,
-      thumbnailUrl: photo.urls ? photo.urls.preview : null,
-      url: 'https://photo.dimazvali.com/' + countryKey + '/' + seriesKey + '/' + photo.id,
-      creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: 'https://photo.dimazvali.com/about' },
-      copyrightHolder: { '@type': 'Person', name: 'Dmitry Shestakov' },
-      copyrightYear: photo.date ? photo.date.match(/\d{4}/) && photo.date.match(/\d{4}/)[0] : null,
-      acquireLicensePage: 'https://photo.dimazvali.com/' + countryKey + '/' + seriesKey + '/' + photo.id + '?inquiry=license',
-    }
-    if (photo.desc) _ld.description = photo.desc
-    if (photo.coords) _ld.locationCreated = { '@type': 'Place', geo: { '@type': 'GeoCoordinates', latitude: photo.coords.lat, longitude: photo.coords.lng }, name: countryLabel }
-    if (photo.altitude) _ld.altitude = photo.altitude
-    if (photo.tags && photo.tags.length) _ld.keywords = photo.tags.map(function(t){ return allTags[t] ? allTags[t].label : t }).join(', ')
-    // remove nulls
-    Object.keys(_ld).forEach(function(k){ if (_ld[k] == null) delete _ld[k] })
-  script(type='application/ld+json')!= JSON.stringify(_ld)
+  if !isShoot
+    -
+      var _imgUrl = photo.urls ? (photo.urls.full || photo.urls.preview) : null
+      var _ld = {
+        '@context': 'https://schema.org',
+        '@type': 'ImageObject',
+        name: photo.title,
+        contentUrl: _imgUrl,
+        thumbnailUrl: photo.urls ? photo.urls.preview : null,
+        url: 'https://photo.dimazvali.com/' + countryKey + '/' + seriesKey + '/' + photo.id,
+        creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: 'https://photo.dimazvali.com/about' },
+        copyrightHolder: { '@type': 'Person', name: 'Dmitry Shestakov' },
+        copyrightYear: photo.date ? photo.date.match(/\d{4}/) && photo.date.match(/\d{4}/)[0] : null,
+        acquireLicensePage: 'https://photo.dimazvali.com/' + countryKey + '/' + seriesKey + '/' + photo.id + '?inquiry=license',
+      }
+      if (photo.desc) _ld.description = photo.desc
+      if (photo.coords) _ld.locationCreated = { '@type': 'Place', geo: { '@type': 'GeoCoordinates', latitude: photo.coords.lat, longitude: photo.coords.lng }, name: countryLabel }
+      if (photo.altitude) _ld.altitude = photo.altitude
+      if (photo.tags && photo.tags.length) _ld.keywords = photo.tags.map(function(t){ return allTags[t] ? allTags[t].label : t }).join(', ')
+      Object.keys(_ld).forEach(function(k){ if (_ld[k] == null) delete _ld[k] })
+    script(type='application/ld+json')!= JSON.stringify(_ld)
 
 block content
   .photo-page
     .photo-page-back
-      a(href=`/${countryKey}/${seriesKey}`) ← #{seriesLabel.toUpperCase()}
-      if isAdmin
+      a(href=isShoot ? `/shoot/${shootSlug}` : `/${countryKey}/${seriesKey}`) ← #{isShoot ? backLabel.toUpperCase() : seriesLabel.toUpperCase()}
+      if isAdmin && !isShoot
         .admin-bar
           a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`) ✎ редактировать
           a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/upload`) + фото
@@ -48,12 +48,16 @@ block content
     .photo-page-info
       .photo-page-meta
         h1.photo-page-title= photo.title
-        .photo-page-loc #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
+        .photo-page-loc
+          if isShoot
+            | #{backLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
+          else
+            | #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
       .photo-page-nav
         if prev
-          a.nav-btn(href=`/${countryKey}/${seriesKey}/${prev.id}` data-dir='prev') ← ПРЕД.
+          a.nav-btn(href=isShoot ? `/shoot/${shootSlug}/${prev.id}` : `/${countryKey}/${seriesKey}/${prev.id}` data-dir='prev') ← ПРЕД.
         if next
-          a.nav-btn(href=`/${countryKey}/${seriesKey}/${next.id}` data-dir='next') СЛЕД. →
+          a.nav-btn(href=isShoot ? `/shoot/${shootSlug}/${next.id}` : `/${countryKey}/${seriesKey}/${next.id}` data-dir='next') СЛЕД. →
     if photo.desc
       p.photo-page-desc= photo.desc
     if photo.annotations && photo.annotations.length
@@ -70,41 +74,42 @@ block content
       button.action-btn(onclick='sharePhoto()') ПОДЕЛИТЬСЯ
       if photo.instagram
         a.action-btn(href=photo.instagram target='_blank' rel='noopener') INSTAGRAM
-    .photo-inquiry
-      - var activeTab = inquiryStatus ? 'inquiry' : 'review'
-      .inquiry-tabs
-        button.inquiry-tab(type='button' data-tab='review' class=(activeTab==='review' ? 'is-active' : '')) ОТЗЫВ
-        button.inquiry-tab(type='button' data-tab='inquiry' class=(activeTab==='inquiry' ? 'is-active' : '')) ЗАЯВКА
-      .inquiry-tab-panel(data-panel='review' style=(activeTab==='review' ? '' : 'display:none'))
-        if reviewStatus === 'ok'
-          p.inquiry-success ✓ СПАСИБО ЗА ОТЗЫВ!
-        else
-          form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/review`)
-            input.inquiry-input(type='text' name='name' placeholder='ИМЯ (НЕОБЯЗАТЕЛЬНО)' autocomplete='name')
-            textarea.inquiry-input.inquiry-textarea(name='text' placeholder='ТЕКСТ ОТЗЫВА' required rows='4')
-            button.inquiry-submit(type='submit') ОТПРАВИТЬ →
-      .inquiry-tab-panel(data-panel='inquiry' style=(activeTab==='inquiry' ? '' : 'display:none'))
-        if inquiryStatus === 'ok'
-          p.inquiry-success ✓ ОТПРАВЛЕНО — ОТВЕЧУ В ТЕЧЕНИЕ 24 ЧАСОВ
-        else
-          if inquiryStatus === 'err'
-            p.inquiry-error ✗ ПРОВЕРЬТЕ ИМЯ И EMAIL
-          form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/inquiry`)
-            .inquiry-type
-              each opt in [['print','ОТПЕЧАТОК'],['license','ЛИЦЕНЗИЯ'],['other','ВОПРОС']]
-                label.inquiry-radio
-                  input(type='radio' name='type' value=opt[0] checked=opt[0]==='print')
-                  span= opt[1]
-            input.inquiry-input(type='text' name='name' placeholder='ИМЯ' required autocomplete='name')
-            input.inquiry-input(type='email' name='email' placeholder='EMAIL' required autocomplete='email')
-            textarea.inquiry-input.inquiry-textarea(name='message' placeholder='СООБЩЕНИЕ (НЕОБЯЗАТЕЛЬНО)' rows='3')
-            button.inquiry-submit(type='submit') ОТПРАВИТЬ →
+    if !isShoot
+      .photo-inquiry
+        - var activeTab = inquiryStatus ? 'inquiry' : 'review'
+        .inquiry-tabs
+          button.inquiry-tab(type='button' data-tab='review' class=(activeTab==='review' ? 'is-active' : '')) ОТЗЫВ
+          button.inquiry-tab(type='button' data-tab='inquiry' class=(activeTab==='inquiry' ? 'is-active' : '')) ЗАЯВКА
+        .inquiry-tab-panel(data-panel='review' style=(activeTab==='review' ? '' : 'display:none'))
+          if reviewStatus === 'ok'
+            p.inquiry-success ✓ СПАСИБО ЗА ОТЗЫВ!
+          else
+            form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/review`)
+              input.inquiry-input(type='text' name='name' placeholder='ИМЯ (НЕОБЯЗАТЕЛЬНО)' autocomplete='name')
+              textarea.inquiry-input.inquiry-textarea(name='text' placeholder='ТЕКСТ ОТЗЫВА' required rows='4')
+              button.inquiry-submit(type='submit') ОТПРАВИТЬ →
+        .inquiry-tab-panel(data-panel='inquiry' style=(activeTab==='inquiry' ? '' : 'display:none'))
+          if inquiryStatus === 'ok'
+            p.inquiry-success ✓ ОТПРАВЛЕНО — ОТВЕЧУ В ТЕЧЕНИЕ 24 ЧАСОВ
+          else
+            if inquiryStatus === 'err'
+              p.inquiry-error ✗ ПРОВЕРЬТЕ ИМЯ И EMAIL
+            form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/inquiry`)
+              .inquiry-type
+                each opt in [['print','ОТПЕЧАТОК'],['license','ЛИЦЕНЗИЯ'],['other','ВОПРОС']]
+                  label.inquiry-radio
+                    input(type='radio' name='type' value=opt[0] checked=opt[0]==='print')
+                    span= opt[1]
+              input.inquiry-input(type='text' name='name' placeholder='ИМЯ' required autocomplete='name')
+              input.inquiry-input(type='email' name='email' placeholder='EMAIL' required autocomplete='email')
+              textarea.inquiry-input.inquiry-textarea(name='message' placeholder='СООБЩЕНИЕ (НЕОБЯЗАТЕЛЬНО)' rows='3')
+              button.inquiry-submit(type='submit') ОТПРАВИТЬ →
 
     .annot-popup#annot-popup
       button.annot-popup-close#annot-popup-close ×
       p.annot-popup-text#annot-popup-text
 
-    if related && related.length
+    if !isShoot && related && related.length
       .related
         .related-label ЕЩЁ ИЗ #{countryLabel.toUpperCase()}
         .related-strip
