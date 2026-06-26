@@ -12,7 +12,7 @@ var crypto = require('crypto');
 var shoots = require('../lib/photo-shoots');
 
 function shootCookieToken(password, slug) {
-  var secret = process.env.papersToken || '';
+  var secret = process.env.papersToken;
   return crypto.createHmac('sha256', secret).update(slug + ':' + password).digest('hex');
 }
 
@@ -336,7 +336,7 @@ function requireShootAuth(shoot, slug, req, res, next) {
   if (!shoot.password) return next();
   var cookieKey = 'shoot_' + slug;
   if (req.signedCookies && req.signedCookies[cookieKey] === shootCookieToken(shoot.password, slug)) return next();
-  res.render('photo/shoot-password', {
+  return res.render('photo/shoot-password', {
     title: shoot.label + ' — photo.dimazvali.com',
     slug,
     label: shoot.label,
@@ -430,7 +430,9 @@ router.post('/shoot/:slug/auth', express.urlencoded({ extended: false }), (req, 
   if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
 
   var { password } = req.body;
-  if (password && password === shoot.password) {
+  if (password && shoot.password &&
+    password.length === shoot.password.length &&
+    crypto.timingSafeEqual(Buffer.from(password), Buffer.from(shoot.password))) {
     res.cookie('shoot_' + slug, shootCookieToken(shoot.password, slug), {
       signed: true,
       httpOnly: true,

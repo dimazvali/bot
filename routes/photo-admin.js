@@ -532,7 +532,9 @@ router.post('/shoots/:slug/photos/reorder', requireAuth, express.json(), async (
   var { order } = req.body;
   if (!Array.isArray(order)) return res.status(400).json({ ok: false });
   var validIds = shoot.photos.map(function(p) { return p.id; });
-  if (order.length !== validIds.length || !order.every(function(id) { return validIds.includes(id); })) {
+  if (order.length !== validIds.length ||
+    new Set(order).size !== order.length ||
+    !order.every(function(id) { return validIds.includes(id); })) {
     return res.status(400).json({ ok: false });
   }
   try {
