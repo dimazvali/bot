@@ -8,6 +8,13 @@ var { trackView } = require('../lib/photo-stats');
 var { COLOR_FAMILIES } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var { buildPageKeywords, BASE_KEYWORDS } = require('../lib/photo-seo');
+var crypto = require('crypto');
+var shoots = require('../lib/photo-shoots');
+
+function shootCookieToken(password, slug) {
+  var secret = process.env.papersToken || '';
+  return crypto.createHmac('sha256', secret).update(slug + ':' + password).digest('hex');
+}
 
 var DIMA_CHAT_ID = 144489840;
 
@@ -320,6 +327,130 @@ router.get('/unsubscribe', async (req, res) => {
     ok,
     data: getData(),
     ogImage: null, ogUrl: null, breadcrumbs: null,
+  });
+});
+
+// ── Shoots ──────────────────────────────────────────────────────────────────
+
+function requireShootAuth(shoot, slug, req, res, next) {
+  if (!shoot.password) return next();
+  var cookieKey = 'shoot_' + slug;
+  if (req.signedCookies && req.signedCookies[cookieKey] === shootCookieToken(shoot.password, slug)) return next();
+  res.render('photo/shoot-password', {
+    title: shoot.label + ' — photo.dimazvali.com',
+    slug,
+    label: shoot.label,
+    error: false,
+    data: getData(),
+    activeCountry: null,
+    activeSeries: null,
+    ogImage: null,
+    ogUrl: null,
+    breadcrumbs: null,
+    noindex: true,
+  });
+}
+
+// GET /shoot/:slug — галерея съёмки
+router.get('/shoot/:slug', (req, res) => {
+  var { slug } = req.params;
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
+
+  requireShootAuth(shoot, slug, req, res, function() {
+    res.render('photo/gallery', {
+      data: getData(),
+      activeCountry: null,
+      activeSeries: null,
+      isShoot: true,
+      shootSlug: slug,
+      shootLabel: shoot.label,
+      photos: shoot.photos,
+      activeTags: [],
+      title: shoot.label + ' — photo.dimazvali.com',
+      desc: shoot.desc || null,
+      keywords: null,
+      ogImage: shoot.photos[0] ? shoot.photos[0].urls.preview : null,
+      ogUrl: null,
+      noindex: true,
+      breadcrumbs: null,
+    });
+  });
+});
+
+// GET /shoot/:slug/:id — страница фото
+router.get('/shoot/:slug/:id', (req, res) => {
+  var { slug, id } = req.params;
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
+
+  requireShootAuth(shoot, slug, req, res, function() {
+    var photos = shoot.photos;
+    var idx = photos.findIndex(function(p) { return p.id === id; });
+    if (idx === -1) return res.status(404).render('error', { message: 'Not found', error: {} });
+
+    var photo = photos[idx];
+    var prev = idx > 0 ? photos[idx - 1] : null;
+    var next = idx < photos.length - 1 ? photos[idx + 1] : null;
+
+    res.render('photo/photo', {
+      data: getData(),
+      activeCountry: null,
+      activeSeries: null,
+      isShoot: true,
+      shootSlug: slug,
+      backLabel: shoot.label,
+      photo,
+      prev,
+      next,
+      countryKey: null,
+      seriesKey: null,
+      countryLabel: shoot.label,
+      seriesLabel: shoot.label,
+      allTags: getTags(),
+      related: [],
+      seriesUrl: '/shoot/' + slug,
+      inquiryStatus: null,
+      reviewStatus: null,
+      title: photo.title + ' — ' + shoot.label,
+      desc: photo.desc || null,
+      keywords: null,
+      ogImage: photo.urls ? photo.urls.full : null,
+      ogUrl: null,
+      noindex: true,
+      breadcrumbs: null,
+    });
+  });
+});
+
+// POST /shoot/:slug/auth — сабмит пароля
+router.post('/shoot/:slug/auth', express.urlencoded({ extended: false }), (req, res) => {
+  var { slug } = req.params;
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
+
+  var { password } = req.body;
+  if (password && password === shoot.password) {
+    res.cookie('shoot_' + slug, shootCookieToken(shoot.password, slug), {
+      signed: true,
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    return res.redirect('/shoot/' + slug);
+  }
+
+  res.render('photo/shoot-password', {
+    title: shoot.label + ' — photo.dimazvali.com',
+    slug,
+    label: shoot.label,
+    error: true,
+    data: getData(),
+    activeCountry: null,
+    activeSeries: null,
+    ogImage: null,
+    ogUrl: null,
+    breadcrumbs: null,
+    noindex: true,
   });
 });
 
