@@ -1,0 +1,34 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo СЪЁМКИ
+      if error
+        .admin-section
+          p.admin-hint= error
+      .admin-section
+        h2.admin-title СЪЁМКИ
+        if !Object.keys(shoots).length
+          p.admin-hint Нет съёмок.
+        each shoot, slug in shoots
+          .admin-country
+            .admin-country-name
+              span= `${shoot.label} (${slug}) — ${shoot.photos.length} фото`
+              if shoot.password
+                span.admin-archived  [🔒]
+            .admin-series-actions
+              a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') открыть
+              a.admin-link(href=`/admin/shoots/${slug}/edit`) редактировать
+      .admin-section
+        h2.admin-title СОЗДАТЬ СЪЁМКУ
+        form.admin-form(method='POST' action='/admin/shoots')
+          input.admin-input(type='text' name='slug' placeholder='ключ (eng, напр. wedding-anna-2026)' required)
+          input.admin-input(type='text' name='label' placeholder='название' required)
+          input.admin-input(type='text' name='password' placeholder='пароль (необязательно)')
+          button.admin-btn(type='submit') + СЪЁМКА

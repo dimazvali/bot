@@ -1,0 +1,81 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin/shoots') ← назад
+        span.admin-logo= shoot.label
+
+      .admin-section
+        h2.admin-title МЕТАДАННЫЕ
+        form.admin-form(method='POST' action=`/admin/shoots/${slug}/edit`)
+          input.admin-input(type='text' name='label' value=shoot.label placeholder='название' required)
+          input.admin-input(type='text' name='desc' value=shoot.desc placeholder='описание (необязательно)')
+          input.admin-input(type='text' name='password' value=shoot.password placeholder='пароль (оставьте пустым для открытого доступа)')
+          button.admin-btn(type='submit') СОХРАНИТЬ
+        p.admin-hint
+          | Прямая ссылка:&nbsp;
+          a(href=`/shoot/${slug}` target='_blank' rel='noopener') /shoot/#{slug}
+          if shoot.password
+            |  (защищена паролем)
+          else
+            |  (открытый доступ)
+
+      .admin-section
+        h2.admin-title ЗАГРУЗИТЬ ФОТО
+        form.admin-form(method='POST' action=`/admin/shoots/${slug}/upload` enctype='multipart/form-data')
+          input.admin-input(type='text' name='title' placeholder='название')
+          input.admin-input(type='text' name='date' placeholder='дата (напр. июнь 2026)')
+          input.admin-input(type='text' name='desc' placeholder='описание (необязательно)')
+          input.admin-input(type='file' name='photo' accept='image/*' required)
+          button.admin-btn(type='submit') ЗАГРУЗИТЬ
+
+      if shoot.photos.length
+        .admin-section
+          h2.admin-title ФОТО (#{shoot.photos.length})
+          p.admin-hint Перетащите для изменения порядка.
+          ul#photo-list.admin-sort-list(data-url=`/admin/shoots/${slug}/photos/reorder`)
+            each photo in shoot.photos
+              li.admin-sort-item(data-id=photo.id)
+                span.admin-sort-handle ⠿
+                if photo.urls
+                  img.admin-thumb(src=photo.urls.preview alt=photo.title)
+                .admin-photo-info
+                  span.admin-photo-title= photo.title
+                  span.admin-photo-id= photo.id
+                .admin-sort-actions
+                  form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete`)
+                    button.admin-btn.admin-btn--danger(type='submit') удалить
+
+      .admin-section
+        h2.admin-title УДАЛИТЬ СЪЁМКУ
+        p.admin-hint Все фотографии будут удалены из Firebase Storage без возможности восстановления.
+        form.admin-form(method='POST' action=`/admin/shoots/${slug}/delete`)
+          button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ СЪЁМКУ
+
+    script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
+    script.
+      var list = document.getElementById('photo-list');
+      if (list) {
+        var reorderUrl = list.getAttribute('data-url');
+        Sortable.create(list, {
+          handle: '.admin-sort-handle',
+          animation: 150,
+          onEnd: function() {
+            var order = Array.from(list.querySelectorAll('.admin-sort-item')).map(function(el) {
+              return el.getAttribute('data-id');
+            });
+            fetch(reorderUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ order: order }),
+            }).then(function(r) { return r.json(); }).then(function(data) {
+              if (!data.ok) alert('Ошибка сохранения порядка');
+            }).catch(function() { alert('Ошибка сохранения порядка'); });
+          },
+        });
+      }
