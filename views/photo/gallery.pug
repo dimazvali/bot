@@ -3,7 +3,11 @@ include mixins
 
 block content
   .gallery-header
-    if activeCountry && activeSeries
+    if isShoot
+      span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} фото
+      .gallery-header-right
+        button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
+    else if activeCountry && activeSeries
       - const country = data[activeCountry]
       - const series = country.series[activeSeries]
       span.gallery-label #{country.label.toUpperCase()} · #{series.label.toUpperCase()} · #{photos.length} фото
@@ -22,7 +26,7 @@ block content
   -
     var _types = photos.reduce(function(s,p){ s.add(p.type||'copter'); return s; }, new Set());
     var _showFilter = _types.size > 1;
-  if activeTags && activeTags.length
+  if !isShoot && activeTags && activeTags.length
     .gallery-tags
       each tag in activeTags
         a.gallery-tag(href=`/tag/${tag.key}`) #{tag.label.toUpperCase()}
@@ -34,7 +38,10 @@ block content
             +typeIcon(t)
   .masonry
     each photo in photos
-      a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}` data-type=photo.type||'copter')
+      a.photo-card(
+        href=isShoot ? `/shoot/${shootSlug}/${photo.id}` : `/${photo.countryKey}/${photo.seriesKey}/${photo.id}`
+        data-type=photo.type||'copter'
+      )
         img(
           src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
           srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined
