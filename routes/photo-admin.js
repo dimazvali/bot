@@ -12,6 +12,7 @@ var subscriptions = require('../lib/photo-subscriptions');
 var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
 var copyrightCheck = require('../lib/photo-copyright-check');
+var shoots = require('../lib/photo-shoots');
 
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
@@ -43,6 +44,7 @@ photoStats.init(fb);
 subscriptions.init(fb);
 mailer.init();
 copyright.init(fb);
+shoots.initFromFirestore(fb).catch(console.error);
 
 var upload = multer({
   storage: multer.memoryStorage(),
@@ -411,6 +413,173 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
   data[country].series[series].photos.splice(idx, 1);
   saveData(data);
   res.redirect(`/admin/${country}/${series}/edit`);
+});
+
+// ── Shoots ──────────────────────────────────────────────────────────────────
+
+router.get('/shoots', requireAuth, (req, res) => {
+  res.render('photo/admin/shoots', {
+    title: 'Съёмки — AERO Admin',
+    shoots: shoots.getData(),
+    error: req.query.error || null,
+  });
+});
+
+router.post('/shoots', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { slug, label, password } = req.body;
+  if (!slug || !label) return res.redirect('/admin/shoots');
+  var cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '');
+  if (!cleanSlug) return res.redirect('/admin/shoots');
+  if (shoots.getShoot(cleanSlug)) return res.redirect('/admin/shoots?error=' + encodeURIComponent('Съёмка с таким ключом уже существует'));
+  try {
+    await shoots.createShoot(cleanSlug, label.trim(), '', (password || '').trim());
+    res.redirect('/admin/shoots/' + cleanSlug + '/edit');
+  } catch (e) {
+    console.error('[shoots] create error:', e);
+    res.redirect('/admin/shoots?error=' + encodeURIComponent(e.message));
+  }
+});
+
+router.get('/shoots/:slug/edit', requireAuth, (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  res.render('photo/admin/shoot-edit', {
+    title: shoot.label + ' — AERO Admin',
+    slug,
+    shoot,
+  });
+});
+
+router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
+  if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
+  var { label, desc, password } = req.body;
+  if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
+  try {
+    await shoots.saveShoot(slug, {
+      label: label.trim(),
+      desc: (desc || '').trim(),
+      password: (password || '').trim(),
+    });
+    res.redirect('/admin/shoots/' + slug + '/edit');
+  } catch (e) {
+    console.error('[shoots] save error:', e);
+    res.redirect('/admin/shoots/' + slug + '/edit?error=' + encodeURIComponent(e.message));
+  }
+});
+
+router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  if (!req.file) return res.redirect('/admin/shoots/' + slug + '/edit');
+
+  var { title, date, desc } = req.body;
+  try {
+    var baseName = path.basename(req.file.originalname, path.extname(req.file.originalname));
+    var existingIds = shoot.photos.map(function(p) { return p.id; });
+    var id = uniqueId(slugify((title && title.trim()) || baseName), existingIds);
+
+    var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
+      sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+      extractColorFamily(req.file.buffer),
+    ]);
+
+    var p400  = 'shoots/' + slug + '/' + id + '-400.webp';
+    var p800  = 'shoots/' + slug + '/' + id + '-800.webp';
+    var p2400 = 'shoots/' + slug + '/' + id + '-2400.webp';
+
+    await Promise.all([
+      bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(function() { return bucket.file(p400).makePublic(); }),
+      bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(function() { return bucket.file(p800).makePublic(); }),
+      bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(function() { return bucket.file(p2400).makePublic(); }),
+    ]);
+
+    var base = 'https://storage.googleapis.com/' + process.env.PHOTO_BUCKET;
+    var photoEntry = {
+      id,
+      title: (title && title.trim()) || baseName,
+      date: date || '',
+      desc: desc || '',
+      createdAt: new Date().toISOString().slice(0, 10),
+      urls: {
+        thumb:   base + '/' + p400,
+        preview: base + '/' + p800,
+        full:    base + '/' + p2400,
+      },
+    };
+    if (colorFamily) photoEntry.colorFamily = colorFamily;
+
+    await shoots.addPhoto(slug, photoEntry);
+    res.redirect('/admin/shoots/' + slug + '/edit');
+  } catch (err) {
+    console.error('[shoots] upload error:', err);
+    res.status(500).send('Ошибка при загрузке: ' + err.message);
+  }
+});
+
+router.post('/shoots/:slug/photos/reorder', requireAuth, express.json(), async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ ok: false });
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ ok: false });
+  var { order } = req.body;
+  if (!Array.isArray(order)) return res.status(400).json({ ok: false });
+  var validIds = shoot.photos.map(function(p) { return p.id; });
+  if (order.length !== validIds.length || !order.every(function(id) { return validIds.includes(id); })) {
+    return res.status(400).json({ ok: false });
+  }
+  try {
+    await shoots.reorderPhotos(slug, order);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false });
+  }
+});
+
+router.post('/shoots/:slug/photos/:id/delete', requireAuth, async (req, res) => {
+  var { slug, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
+  if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
+  try {
+    await Promise.all([
+      bucket.file('shoots/' + slug + '/' + id + '-400.webp').delete().catch(function() {}),
+      bucket.file('shoots/' + slug + '/' + id + '-800.webp').delete().catch(function() {}),
+      bucket.file('shoots/' + slug + '/' + id + '-2400.webp').delete().catch(function() {}),
+    ]);
+    await shoots.removePhoto(slug, id);
+  } catch (e) {
+    console.error('[shoots] delete photo error:', e);
+  }
+  res.redirect('/admin/shoots/' + slug + '/edit');
+});
+
+router.post('/shoots/:slug/delete', requireAuth, async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  try {
+    await Promise.all(
+      shoot.photos.map(function(photo) {
+        return Promise.all([
+          bucket.file('shoots/' + slug + '/' + photo.id + '-400.webp').delete().catch(function() {}),
+          bucket.file('shoots/' + slug + '/' + photo.id + '-800.webp').delete().catch(function() {}),
+          bucket.file('shoots/' + slug + '/' + photo.id + '-2400.webp').delete().catch(function() {}),
+        ]);
+      })
+    );
+    await shoots.deleteShoot(slug);
+  } catch (e) {
+    console.error('[shoots] delete shoot error:', e);
+  }
+  res.redirect('/admin/shoots');
 });
 
 router.get('/tags', requireAuth, (req, res) => {
