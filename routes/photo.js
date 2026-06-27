@@ -358,6 +358,7 @@ router.get('/shoot/:slug', (req, res) => {
   if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
 
   requireShootAuth(shoot, slug, req, res, function() {
+    trackView('shoot', slug, req.path, req);
     res.render('photo/gallery', {
       data: getData(),
       activeCountry: null,
@@ -393,6 +394,7 @@ router.get('/shoot/:slug/:id', (req, res) => {
     var prev = idx > 0 ? photos[idx - 1] : null;
     var next = idx < photos.length - 1 ? photos[idx + 1] : null;
 
+    trackView('shoot-photo', slug + '/' + id, req.path, req);
     res.render('photo/photo', {
       data: getData(),
       activeCountry: null,
