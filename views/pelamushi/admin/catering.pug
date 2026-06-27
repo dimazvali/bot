@@ -1,0 +1,82 @@
+extends layout
+
+block content
+  if saved
+    .alert.alert-success Сохранено
+
+  .card
+    h2 Контент страницы Кейтеринг
+    form(action='/admin/catering/save' method='POST')
+      .form-row
+        label Заголовок EN
+        input(name='title_en' value=catering.title_en)
+      .form-row
+        label Заголовок KA
+        input(name='title_ka' value=catering.title_ka)
+      .form-row
+        label Заголовок RU
+        input(name='title_ru' value=catering.title_ru)
+      .form-row
+        label Описание EN
+        textarea(name='desc_en') #{catering.desc_en}
+      .form-row
+        label Описание KA
+        textarea(name='desc_ka') #{catering.desc_ka}
+      .form-row
+        label Описание RU
+        textarea(name='desc_ru') #{catering.desc_ru}
+      button.btn.btn-primary(type='submit') Сохранить
+
+  .card
+    h2 Фото героя
+    if catering.hero_url
+      img(src=catering.hero_url style='width:100%;max-height:220px;object-fit:cover;border-radius:6px;margin-bottom:1rem')
+    form(action='/admin/catering/hero/save' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Загрузить фото
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Иконка
+    p(style='font-size:.82rem;color:#666;margin-bottom:.75rem') Маленькое изображение над заголовком
+    if catering.icon_url
+      img(src=catering.icon_url style='max-height:80px;max-width:200px;border-radius:4px;margin-bottom:.75rem;background:#1C2E4A;padding:.5rem')
+    form(action='/admin/catering/icon/save' method='POST' enctype='multipart/form-data')
+      .form-row
+        label Загрузить иконку
+        input(type='file' name='photo' accept='image/*')
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card
+    h2 Галерея
+    if gallery.length
+      form(action='/admin/catering/gallery/update' method='POST')
+        .gallery-edit-list
+          each photo, i in gallery
+            .gallery-edit-row
+              img(src=photo.photo_url alt='')
+              .gallery-edit-fields
+                input(type='hidden' name=`photos[${i}][id]` value=photo.id)
+                .order-row
+                  span #
+                  input(type='number' name=`photos[${i}][order]` value=(photo.order !== undefined ? photo.order : i) min='0')
+                input(type='text' name=`photos[${i}][caption_en]` placeholder='Подпись EN' value=(photo.caption_en || ''))
+                input(type='text' name=`photos[${i}][caption_ka]` placeholder='Подпись KA' value=(photo.caption_ka || ''))
+                input(type='text' name=`photos[${i}][caption_ru]` placeholder='Подпись RU' value=(photo.caption_ru || ''))
+              button.btn.btn-danger.btn-sm(type='submit' formaction=`/admin/catering/gallery/${photo.id}/delete` onclick='return confirm("Удалить?")') ×
+        button.btn.btn-primary.btn-sm(type='submit') Сохранить порядок и подписи
+    form(action='/admin/catering/gallery/add' method='POST' enctype='multipart/form-data' style='margin-top:1rem')
+      .form-row
+        label Добавить фото
+        input(type='file' name='photo' accept='image/*' multiple)
+      button.btn.btn-secondary.btn-sm(type='submit') Загрузить
+
+  .card(style='border-left:3px solid var(--blue)')
+    h2 Меню кейтеринга
+    p(style='font-size:.88rem;color:#666;margin-top:.5rem')
+      | Меню управляются в разделе&nbsp;
+      a(href='/admin/menus') Меню
+      | . Установите тип меню&nbsp;
+      strong Кейтеринг
+      |  — и оно появится на странице кейтеринга.

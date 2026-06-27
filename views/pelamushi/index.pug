@@ -26,33 +26,45 @@ block content
       .card-body
         h3 #{t.home.about_link}
         p #{t.home.about_desc}
-    a.section-card(href=`/${lang}/menu`)
-      if sectionIcons.menu
-        img.section-card-icon(src=sectionIcons.menu alt='')
-      .card-body
-        h3 #{t.home.menu_link}
-        p #{t.home.menu_desc}
-    a.section-card(href=`/${lang}/bar`)
-      if sectionIcons.bar
-        img.section-card-icon(src=sectionIcons.bar alt='')
-      .card-body
-        h3 #{t.home.bar_link}
-        p #{t.home.bar_desc}
-    a.section-card(href=`/${lang}/shop`)
-      if sectionIcons.shop
-        img.section-card-icon(src=sectionIcons.shop alt='')
-      .card-body
-        h3 #{t.home.shop_link}
-        p #{t.home.shop_desc}
-    a.section-card(href=`/${lang}/rental`)
-      if sectionIcons.rental
-        img.section-card-icon(src=sectionIcons.rental alt='')
-      .card-body
-        h3 #{t.home.rental_link}
-        p #{t.home.rental_desc}
-    a.section-card(href=`/${lang}/news`)
-      if sectionIcons.news
-        img.section-card-icon(src=sectionIcons.news alt='')
-      .card-body
-        h3 #{t.home.news_link}
-        p #{t.home.news_desc}
+    if !site || site.menu_visible !== false
+      a.section-card(href=`/${lang}/menu`)
+        if sectionIcons.menu
+          img.section-card-icon(src=sectionIcons.menu alt='')
+        .card-body
+          h3 #{t.home.menu_link}
+          p #{t.home.menu_desc}
+    if !site || site.bar_visible !== false
+      a.section-card(href=`/${lang}/bar`)
+        if sectionIcons.bar
+          img.section-card-icon(src=sectionIcons.bar alt='')
+        .card-body
+          h3 #{t.home.bar_link}
+          p #{t.home.bar_desc}
+    if !site || site.catering_visible !== false
+      a.section-card(href=`/${lang}/catering`)
+        if sectionIcons.catering
+          img.section-card-icon(src=sectionIcons.catering alt='')
+        .card-body
+          h3 #{t.home.catering_link}
+          p #{t.home.catering_desc}
+    if !site || site.shop_visible !== false
+      a.section-card(href=`/${lang}/shop`)
+        if sectionIcons.shop
+          img.section-card-icon(src=sectionIcons.shop alt='')
+        .card-body
+          h3 #{t.home.shop_link}
+          p #{t.home.shop_desc}
+    if !site || site.rental_visible !== false
+      a.section-card(href=`/${lang}/rental`)
+        if sectionIcons.rental
+          img.section-card-icon(src=sectionIcons.rental alt='')
+        .card-body
+          h3 #{t.home.rental_link}
+          p #{t.home.rental_desc}
+    if !site || site.news_visible !== false
+      a.section-card(href=`/${lang}/news`)
+        if sectionIcons.news
+          img.section-card-icon(src=sectionIcons.news alt='')
+        .card-body
+          h3 #{t.home.news_link}
+          p #{t.home.news_desc}

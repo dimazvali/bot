@@ -3,6 +3,7 @@
     "about": "About Us",
     "menu": "Menu",
     "bar": "Bar",
+    "catering": "Catering",
     "shop": "Shop",
     "rental": "Rental",
     "news": "News"
@@ -19,6 +20,8 @@
     "menu_desc": "and seasonal specials",
     "bar_link": "Bar",
     "bar_desc": "from 20:00 till midnight",
+    "catering_link": "Catering",
+    "catering_desc": "",
     "shop_link": "Shop",
     "shop_desc": "and more",
     "rental_link": "Rental",
@@ -78,6 +81,12 @@
   "bar": {
     "title": "Bar",
     "bar_menu": "Bar menu",
+    "nav_desc": "About",
+    "nav_gallery": "Gallery",
+    "nav_menu": "Menu"
+  },
+  "catering": {
+    "title": "Catering",
     "nav_desc": "About",
     "nav_gallery": "Gallery",
     "nav_menu": "Menu"

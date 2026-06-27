@@ -120,6 +120,16 @@ router.post('/about/social', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/about/visibility', async (req, res, next) => {
+  try {
+    const sections = ['menu', 'bar', 'catering', 'shop', 'rental', 'news'];
+    const update = {};
+    for (const s of sections) update[s + '_visible'] = req.body[s] === '1';
+    if (col.about) await col.about.doc('main').set(update, { merge: true });
+    res.redirect('/admin/about?saved=1');
+  } catch (err) { next(err); }
+});
+
 router.post('/about/quote', async (req, res, next) => {
   try {
     const { quote_en, quote_ka, quote_ru } = req.body;
@@ -1049,6 +1059,101 @@ router.post('/bar/gallery/:id/delete', async (req, res, next) => {
   try {
     if (col.bar_gallery) await col.bar_gallery.doc(req.params.id).delete();
     res.redirect('/admin/bar');
+  } catch (err) { next(err); }
+});
+
+// ── Catering ──────────────────────────────────────────────────────────────────
+router.get('/catering', async (req, res, next) => {
+  try {
+    let catering = {}, gallery = [];
+    if (col.catering) {
+      const [cateringDoc, gallerySnap] = await Promise.all([
+        col.catering.doc('main').get(),
+        col.catering_gallery.orderBy('order').get(),
+      ]);
+      catering = cateringDoc.exists ? cateringDoc.data() : {};
+      gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+    res.render('pelamushi/admin/catering', { title: 'Catering', catering, gallery, saved: req.query.saved === '1' });
+  } catch (err) { next(err); }
+});
+
+router.post('/catering/save', async (req, res, next) => {
+  try {
+    const { title_en, title_ka, title_ru, desc_en, desc_ka, desc_ru } = req.body;
+    if (col.catering) {
+      await col.catering.doc('main').set(
+        { title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
+          desc_en: desc_en || '', desc_ka: desc_ka || '', desc_ru: desc_ru || '',
+          updated_at: new Date() },
+        { merge: true }
+      );
+    }
+    res.redirect('/admin/catering?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/catering/hero/save', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/catering');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadPhoto(file.data, file.name, 'catering-hero', 'catering');
+    if (col.catering) await col.catering.doc('main').set({ hero_url: url }, { merge: true });
+    res.redirect('/admin/catering?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/catering/icon/save', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/catering');
+    const { uploadIconPhoto } = require('../lib/pelamushi-upload');
+    const file = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+    const url = await uploadIconPhoto(file.data, 'catering');
+    if (col.catering) await col.catering.doc('main').set({ icon_url: url }, { merge: true });
+    res.redirect('/admin/catering?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/catering/gallery/update', async (req, res, next) => {
+  try {
+    const raw = req.body.photos || {};
+    const photos = Array.isArray(raw) ? raw : Object.values(raw);
+    if (col.catering_gallery) {
+      await Promise.all(photos.map(p =>
+        col.catering_gallery.doc(p.id).update({
+          order: parseInt(p.order) || 0,
+          caption_en: p.caption_en || '',
+          caption_ka: p.caption_ka || '',
+          caption_ru: p.caption_ru || '',
+        })
+      ));
+    }
+    res.redirect('/admin/catering?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/catering/gallery/add', async (req, res, next) => {
+  try {
+    if (!req.files || !req.files.photo) return res.redirect('/admin/catering');
+    const { uploadPhoto } = require('../lib/pelamushi-upload');
+    const files = Array.isArray(req.files.photo) ? req.files.photo : [req.files.photo];
+    if (col.catering_gallery) {
+      const snap = await col.catering_gallery.orderBy('order', 'desc').limit(1).get();
+      let nextOrder = snap.empty ? 0 : snap.docs[0].data().order + 1;
+      for (const file of files) {
+        const url = await uploadPhoto(file.data, file.name, 'catering-gallery', 'catering');
+        await col.catering_gallery.add({ photo_url: url, order: nextOrder++ });
+      }
+    }
+    res.redirect('/admin/catering');
+  } catch (err) { next(err); }
+});
+
+router.post('/catering/gallery/:id/delete', async (req, res, next) => {
+  try {
+    if (col.catering_gallery) await col.catering_gallery.doc(req.params.id).delete();
+    res.redirect('/admin/catering');
   } catch (err) { next(err); }
 });
 

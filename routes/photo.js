@@ -18,6 +18,7 @@ function shootCookieToken(password, slug) {
 
 var DIMA_CHAT_ID = 144489840;
 var shootNotifLastSent = {};
+var BOT_UA_RE = /bot|crawl|spider|slurp|preview|fetch|telegram|facebook|twitter|whatsapp|slack|discord|linkedin|vk|yandex|baidu|bytespider/i;
 
 function tgSend(text) {
   var token = process.env.dimazvaliToken;
@@ -383,7 +384,7 @@ router.get('/shoot/:slug', async (req, res) => {
 
   requireShootAuth(shoot, slug, req, res, adminUser, function() {
     trackView('shoot', slug, req.path, req);
-    if (!adminUser) {
+    if (!adminUser && !BOT_UA_RE.test(req.headers['user-agent'] || '')) {
       var now = Date.now();
       if (!shootNotifLastSent[slug] || now - shootNotifLastSent[slug] > 60 * 60 * 1000) {
         shootNotifLastSent[slug] = now;

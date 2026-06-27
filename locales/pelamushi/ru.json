@@ -3,6 +3,7 @@
     "about": "О нас",
     "menu": "Меню",
     "bar": "Бар",
+    "catering": "Кейтеринг",
     "shop": "Магазин",
     "rental": "Аренда",
     "news": "Новости"
@@ -20,6 +21,8 @@
     "menu_desc": "",
     "bar_link": "Бар",
     "bar_desc": "",
+    "catering_link": "Кейтеринг",
+    "catering_desc": "",
     "shop_link": "Магазин",
     "shop_desc": "",
     "rental_link": "Аренда",
@@ -79,6 +82,12 @@
   "bar": {
     "title": "Бар",
     "bar_menu": "Барное меню",
+    "nav_desc": "Описание",
+    "nav_gallery": "Галерея",
+    "nav_menu": "Меню"
+  },
+  "catering": {
+    "title": "Кейтеринг",
     "nav_desc": "Описание",
     "nav_gallery": "Галерея",
     "nav_menu": "Меню"

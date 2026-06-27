@@ -36,6 +36,16 @@ block content
       button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
+    h2 Видимость разделов
+    p(style='font-size:.82rem;color:#666;margin-bottom:1rem') Снятие галочки скрывает раздел из навигации и главной страницы
+    form(action='/admin/about/visibility' method='POST')
+      each section in [['menu','Меню'],['bar','Бар'],['catering','Кейтеринг'],['shop','Магазин'],['rental','Аренда'],['news','Новости']]
+        .form-row(style='flex-direction:row;align-items:center;gap:.5rem;margin-bottom:.5rem')
+          input(type='checkbox' name=section[0] value='1' id=`vis-${section[0]}` checked=(about[section[0] + '_visible'] !== false))
+          label(for=`vis-${section[0]}` style='margin:0;font-weight:normal') #{section[1]}
+      button.btn.btn-primary(type='submit' style='margin-top:.75rem') Сохранить
+
+  .card
     h2 Цитата
     form(action='/admin/about/quote' method='POST')
       .form-row

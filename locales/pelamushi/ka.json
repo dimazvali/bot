@@ -3,6 +3,7 @@
     "about": "ჩვენს შესახებ",
     "menu": "მენიუ",
     "bar": "ბარი",
+    "catering": "კეიტერინგი",
     "shop": "მაღაზია",
     "rental": "გაქირავება",
     "news": "სიახლეები"
@@ -19,6 +20,8 @@
     "menu_desc": "",
     "bar_link": "ბარი",
     "bar_desc": "",
+    "catering_link": "კეიტერინგი",
+    "catering_desc": "",
     "shop_link": "მაღაზია",
     "shop_desc": "",
     "rental_link": "გაქირავება",
@@ -78,6 +81,12 @@
   "bar": {
     "title": "ბარი",
     "bar_menu": "ბარის მენიუ",
+    "nav_desc": "აღწერა",
+    "nav_gallery": "გალერეა",
+    "nav_menu": "მენიუ"
+  },
+  "catering": {
+    "title": "კეიტერინგი",
     "nav_desc": "აღწერა",
     "nav_gallery": "გალერეა",
     "nav_menu": "მენიუ"

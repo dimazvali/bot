@@ -1,0 +1,62 @@
+extends layout
+include includes/page-nav
+include includes/hero
+
+block content
+  +hero(catering.hero_url, catering.icon_url)
+    h1 #{catering['title_' + lang] || t.catering.title}
+
+  -
+    var navItems = [];
+    if (catering['desc_' + lang]) navItems.push({ label: t.catering.nav_desc, href: '#catering-desc' });
+    if (gallery.length)           navItems.push({ label: t.catering.nav_gallery, href: '#catering-gallery' });
+    if (cateringMenus.length)     navItems.push({ label: t.catering.nav_menu, href: '#catering-menu' });
+  +pageNav(navItems, catering['title_' + lang] || t.catering.title)
+
+  if catering['desc_' + lang]
+    .container.section#catering-desc
+      .bar-text!= catering['desc_' + lang]
+
+  if gallery.length
+    .container.section#catering-gallery
+      .masonry-grid
+        each photo in gallery
+          .masonry-item
+            img.gallery-photo(src=photo.photo_url alt=(photo['caption_' + lang] || '') data-caption=(photo['caption_' + lang] || ''))
+
+  if cateringMenus.length
+    #catering-menu
+      each menu in cateringMenus
+        .container.section
+          if cateringMenus.length > 1
+            h2(style='margin-bottom:1.5rem') #{menu['name_' + lang]}
+
+          each cat in menu.grouped
+            if cat.items.length
+              .menu-category
+                h3 #{cat['name_' + lang]}
+                .menu-items-grid
+                  each item in cat.items
+                    .menu-item
+                      .item-photo
+                        img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
+                      .item-body
+                        .item-name #{item['name_' + lang]}
+                        if item['desc_' + lang]
+                          .item-desc #{item['desc_' + lang]}
+                        .item-price #{item.price} ₾
+
+          if menu.uncategorized.length
+            .menu-category
+              .menu-items-grid
+                each item in menu.uncategorized
+                  .menu-item
+                    .item-photo
+                      img(src=item.photo_url || '/images/pelamushi/item-placeholder.svg' alt=item['name_' + lang])
+                    .item-body
+                      .item-name #{item['name_' + lang]}
+                      if item['desc_' + lang]
+                        .item-desc #{item['desc_' + lang]}
+                      .item-price #{item.price} ₾
+
+  include includes/lightbox

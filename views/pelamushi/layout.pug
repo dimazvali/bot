@@ -69,11 +69,18 @@ html(lang=lang)
           img(src='/images/pelamushi/logo1.png' alt='Pelamushi')
         .links#nav-links
           a(href=`/${lang}/about`) #{t.nav.about}
-          a(href=`/${lang}/menu`) #{t.nav.menu}
-          a(href=`/${lang}/bar`) #{t.nav.bar}
-          a(href=`/${lang}/shop`) #{t.nav.shop}
-          a(href=`/${lang}/rental`) #{t.nav.rental}
-          a(href=`/${lang}/news`) #{t.nav.news}
+          if !site || site.menu_visible !== false
+            a(href=`/${lang}/menu`) #{t.nav.menu}
+          if !site || site.bar_visible !== false
+            a(href=`/${lang}/bar`) #{t.nav.bar}
+          if !site || site.catering_visible !== false
+            a(href=`/${lang}/catering`) #{t.nav.catering}
+          if !site || site.shop_visible !== false
+            a(href=`/${lang}/shop`) #{t.nav.shop}
+          if !site || site.rental_visible !== false
+            a(href=`/${lang}/rental`) #{t.nav.rental}
+          if !site || site.news_visible !== false
+            a(href=`/${lang}/news`) #{t.nav.news}
           .lang-switch
             each code in ['ka', 'en', 'ru']
               a(href=`/lang/${code}` class=lang === code ? 'active' : '') #{code.toUpperCase()}

@@ -67,7 +67,7 @@ router.get('/lang/:code', (req, res) => {
 
 // ── Sitemap & robots ─────────────────────────────────────────────────────────
 const BASE = 'https://pelamushi.ge';
-const STATIC_PATHS = ['', '/about', '/menu', '/bar', '/shop', '/rental', '/news'];
+const STATIC_PATHS = ['', '/about', '/menu', '/bar', '/catering', '/shop', '/rental', '/news'];
 
 router.get('/robots.txt', (req, res) => {
   res.type('text/plain').send(`User-agent: *\nAllow: /\nSitemap: ${BASE}/sitemap.xml\n`);
@@ -155,18 +155,20 @@ router.get('/:lang', async (req, res, next) => {
 
     let sectionIcons = cache.get('section_icons');
     if (sectionIcons === undefined) {
-      const [barDoc, shopDoc, rentalDoc] = await Promise.all([
-        col.bar    ? col.bar.doc('main').get()    : Promise.resolve({ exists: false }),
-        col.shop   ? col.shop.doc('main').get()   : Promise.resolve({ exists: false }),
-        col.rental ? col.rental.doc('main').get() : Promise.resolve({ exists: false }),
+      const [barDoc, cateringDoc, shopDoc, rentalDoc] = await Promise.all([
+        col.bar      ? col.bar.doc('main').get()      : Promise.resolve({ exists: false }),
+        col.catering ? col.catering.doc('main').get() : Promise.resolve({ exists: false }),
+        col.shop     ? col.shop.doc('main').get()     : Promise.resolve({ exists: false }),
+        col.rental   ? col.rental.doc('main').get()   : Promise.resolve({ exists: false }),
       ]);
       sectionIcons = {
-        about:  about.icon_url  || null,
-        menu:   about.menu_icon_url  || null,
-        bar:    barDoc.exists    ? (barDoc.data().icon_url    || null) : null,
-        shop:   shopDoc.exists   ? (shopDoc.data().icon_url   || null) : null,
-        rental: rentalDoc.exists ? (rentalDoc.data().icon_url || null) : null,
-        news:   about.news_icon_url  || null,
+        about:    about.icon_url       || null,
+        menu:     about.menu_icon_url  || null,
+        bar:      barDoc.exists      ? (barDoc.data().icon_url      || null) : null,
+        catering: cateringDoc.exists ? (cateringDoc.data().icon_url || null) : null,
+        shop:     shopDoc.exists     ? (shopDoc.data().icon_url     || null) : null,
+        rental:   rentalDoc.exists   ? (rentalDoc.data().icon_url   || null) : null,
+        news:     about.news_icon_url  || null,
       };
       cache.set('section_icons', sectionIcons);
     }
@@ -465,6 +467,45 @@ router.post('/:lang/rental/book', async (req, res, next) => {
     const { notify } = require('../lib/pelamushi-notify');
     notify('rental', `🏠 <b>Новая заявка на аренду</b>\nИмя: ${name.trim()}\nКонтакт: ${contact.trim()}\nДата: ${date}, ${time_slot}${message ? '\nСообщение: ' + message.trim() : ''}`);
     res.redirect(`/${lang}/rental?booked=1`);
+  } catch (err) { next(err); }
+});
+
+// ── Catering ──────────────────────────────────────────────────────────────────
+router.get('/:lang/catering', async (req, res, next) => {
+  try {
+    let data = cache.get('catering');
+    if (data === undefined) {
+      let catering = {}, gallery = [], cateringMenus = [];
+      if (col.catering) {
+        const [cateringDoc, gallerySnap] = await Promise.all([
+          col.catering.doc('main').get(),
+          col.catering_gallery.orderBy('order').get(),
+        ]);
+        catering = cateringDoc.exists ? cateringDoc.data() : {};
+        gallery = gallerySnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+      if (col.menus) {
+        const menusSnap = await col.menus.where('active', '==', true).orderBy('order').get();
+        cateringMenus = menusSnap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(m => m.type === 'catering');
+        if (col.items && col.categories && cateringMenus.length) {
+          await Promise.all(cateringMenus.map(async m => {
+            const [catsSnap, itemsSnap] = await Promise.all([
+              col.categories.where('menu_id', '==', m.id).orderBy('order').get(),
+              col.items.where('menu_id', '==', m.id).where('active', '==', true).orderBy('order').get(),
+            ]);
+            const cats  = catsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            const items = itemsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+            m.grouped       = cats.map(c => ({ ...c, items: items.filter(i => i.category_id === c.id) }));
+            m.uncategorized = items.filter(i => !i.category_id);
+          }));
+        }
+      }
+      data = { catering, gallery, cateringMenus };
+      cache.set('catering', data);
+    }
+    res.render('pelamushi/catering', { ...data, pageTitle: res.locals.t.catering.title, adminEditUrl: '/admin/catering' });
   } catch (err) { next(err); }
 });
 
