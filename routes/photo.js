@@ -33,6 +33,7 @@ router.use(express.static(path.join(__dirname, '../public')));
 // Admin router must be mounted BEFORE wildcard routes
 var photoAdmin = require('./photo-admin');
 router.use('/admin', photoAdmin);
+router.use('/og', require('./photo-og'));
 router.use('/photo-comments', require('./photo-comments'));
 
 router.use(function(req, res, next) {
@@ -384,7 +385,7 @@ router.get('/shoot/:slug', async (req, res) => {
       title: shoot.label + ' — photo.dimazvali.com',
       desc: shoot.desc || null,
       keywords: null,
-      ogImage: shoot.photos[0] ? shoot.photos[0].urls.preview : null,
+      ogImage: shoot.photos.length ? `${BASE}/og/shoot/${slug}.jpg` : null,
       ogUrl: null,
       noindex: true,
       breadcrumbs: null,
@@ -503,7 +504,7 @@ router.get('/:country', (req, res) => {
     title: `${country.label} — photo.dimazvali.com`,
     desc: `${country.label} — ${photos.length} аэрофотоснимков в ${seriesLabels.length} сери${seriesLabels.length === 1 ? 'и' : 'ях'}. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
     keywords: buildPageKeywords(photos, getTags(), [country.label, ...seriesLabels]),
-    ogImage: ogImg(photos[0]),
+    ogImage: photos.length ? `${BASE}/og/country/${countryKey}.jpg` : null,
     ogUrl: `${BASE}/${countryKey}`,
     breadcrumbs: [{ name: country.label, url: `${BASE}/${countryKey}` }],
   });
@@ -535,7 +536,7 @@ router.get('/:country/:series', (req, res) => {
     title: `${series.label} · ${country.label} — photo.dimazvali.com`,
     desc: `${series.label}, ${country.label} — ${photos.length} аэрофотоснимков. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
     keywords: buildPageKeywords(photos, getTags(), [country.label, series.label]),
-    ogImage: ogImg(photos[0]),
+    ogImage: photos.length ? `${BASE}/og/series/${countryKey}/${seriesKey}.jpg` : null,
     ogUrl: `${BASE}/${countryKey}/${seriesKey}`,
     breadcrumbs: [
       { name: country.label, url: `${BASE}/${countryKey}` },
