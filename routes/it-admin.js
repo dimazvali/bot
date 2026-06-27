@@ -63,16 +63,22 @@ router.get('/', requireAuth, async function(req, res, next) {
 });
 
 // ── NEW PROJECT ─────────────────────────────────────────
-router.get('/projects/new', requireAuth, function(req, res) {
-  res.render('it/admin/project-edit', { projectId: null, project: {} });
+router.get('/projects/new', requireAuth, async function(req, res, next) {
+  try {
+    var companies = await itData.getCompanies();
+    res.render('it/admin/project-edit', { projectId: null, project: {}, companies });
+  } catch (e) { next(e); }
 });
 
 // ── EDIT PROJECT ─────────────────────────────────────────
 router.get('/projects/:id/edit', requireAuth, async function(req, res, next) {
   try {
-    var project = await itData.getProject(req.params.id);
+    var [project, companies] = await Promise.all([
+      itData.getProject(req.params.id),
+      itData.getCompanies(),
+    ]);
     if (!project) return res.status(404).send('Not found');
-    res.render('it/admin/project-edit', { projectId: req.params.id, project });
+    res.render('it/admin/project-edit', { projectId: req.params.id, project, companies });
   } catch (e) { next(e); }
 });
 
@@ -83,22 +89,25 @@ router.post('/projects/:id/edit', requireAuth, upload.single('coverImage'), asyn
     var b = req.body;
 
     var data = {
-      name:      b.name      || '',
-      slug:      (b.slug     || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
-      short:     b.short     || '',
-      tags:      (b.tags     || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean),
-      order:     parseInt(b.order, 10) || 0,
-      published: b.published === 'on',
-      full:      b.full      === 'on',
-      role:      b.role      || '',
-      period:    b.period    || '',
-      stack:     b.stack     || '',
-      link:      b.link      || '',
-      context:   b.context   || '',
-      quote:     b.quote     || '',
-      actions:   b.actions   || '',
-      result:    b.result    || '',
-      metrics:   b.metrics   || '',
+      name:             b.name             || '',
+      slug:             (b.slug || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, ''),
+      short:            b.short            || '',
+      tags:             (b.tags || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+      order:            parseInt(b.order, 10) || 0,
+      published:        b.published        === 'on',
+      full:             b.full             === 'on',
+      role:             b.role             || '',
+      period:           b.period           || '',
+      stack:            b.stack            || '',
+      link:             b.link             || '',
+      context:          b.context          || '',
+      quote:            b.quote            || '',
+      actions:          b.actions          || '',
+      result:           b.result           || '',
+      metrics:          b.metrics          || '',
+      companyId:        b.companyId        || '',
+      metaTitle:        b.metaTitle        || '',
+      metaDescription:  b.metaDescription  || '',
     };
 
     var detailTitles = [].concat(b.detail_title || []);
@@ -142,6 +151,51 @@ router.post('/projects/:id/delete', requireAuth, async function(req, res, next) 
   try {
     await itData.deleteProject(req.params.id);
     res.redirect('/admin/');
+  } catch (e) { next(e); }
+});
+
+// ── COMPANIES LIST ───────────────────────────────────────
+router.get('/companies', requireAuth, async function(req, res, next) {
+  try {
+    var companies = await itData.getCompanies();
+    res.render('it/admin/companies', { companies });
+  } catch (e) { next(e); }
+});
+
+// ── NEW COMPANY ──────────────────────────────────────────
+router.get('/companies/new', requireAuth, function(req, res) {
+  res.render('it/admin/company-edit', { companyId: null, company: {} });
+});
+
+// ── EDIT COMPANY ─────────────────────────────────────────
+router.get('/companies/:id/edit', requireAuth, async function(req, res, next) {
+  try {
+    var company = await itData.getCompany(req.params.id);
+    if (!company) return res.status(404).send('Not found');
+    res.render('it/admin/company-edit', { companyId: req.params.id, company });
+  } catch (e) { next(e); }
+});
+
+// ── SAVE COMPANY ─────────────────────────────────────────
+router.post('/companies/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var id = req.params.id === 'new' ? null : req.params.id;
+    var b = req.body;
+    var data = {
+      name:        b.name        || '',
+      url:         b.url         || '',
+      description: b.description || '',
+    };
+    var savedId = await itData.saveCompany(id, data);
+    res.redirect('/admin/companies/' + savedId + '/edit');
+  } catch (e) { next(e); }
+});
+
+// ── DELETE COMPANY ───────────────────────────────────────
+router.post('/companies/:id/delete', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    await itData.deleteCompany(req.params.id);
+    res.redirect('/admin/companies');
   } catch (e) { next(e); }
 });
 

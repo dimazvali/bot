@@ -1,0 +1,61 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title= (companyId ? 'Редактировать' : 'Новый') + ' проект — IT Admin'
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap')
+    style.
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #f4f1ea; color: #15120f; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+      header { background: #15120f; color: #f4f1ea; padding: 0 32px; display: flex; align-items: center; gap: 24px; height: 52px; }
+      header h1 { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+      header nav { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+      header a { color: #c8c0b0; text-decoration: none; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+      header a:hover { color: #f4f1ea; }
+      main { padding: 32px; max-width: 600px; }
+      h2 { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 28px; }
+      .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 18px; }
+      label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6b6459; }
+      input[type=text], input[type=url], textarea {
+        background: #fff; border: 1px solid #d8d4cb; color: #15120f;
+        font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 8px 10px; width: 100%; outline: none;
+      }
+      input:focus, textarea:focus { border-color: #15120f; }
+      textarea { resize: vertical; line-height: 1.5; }
+      .hint { font-size: 11px; color: #6b6459; margin-top: 3px; }
+      .actions { display: flex; gap: 16px; align-items: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #d8d4cb; }
+      .btn-save { background: #15120f; color: #f4f1ea; border: none; font-family: 'Oswald', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 11px 28px; cursor: pointer; }
+      .btn-save:hover { background: #2a241c; }
+      .btn-cancel { color: #15120f; text-decoration: none; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid currentColor; }
+      .btn-delete { margin-left: auto; background: none; border: 1px solid #c0392b; color: #c0392b; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; }
+      .btn-delete:hover { background: #c0392b; color: #fff; }
+  body
+    header
+      h1 IT Admin
+      nav
+        a(href='/admin/companies') ← Справочник
+        a(href='/admin/logout') Выйти
+
+    main
+      h2= companyId ? 'Редактировать проект' : 'Новый проект'
+
+      form(method='POST' action='/admin/companies/' + (companyId || 'new') + '/edit')
+        .field
+          label(for='name') Название *
+          input#name(type='text' name='name' value=company.name || '' required placeholder='Tbiliseli')
+        .field
+          label(for='url') Сайт / ссылка
+          input#url(type='url' name='url' value=company.url || '' placeholder='https://tbiliseli.ge')
+        .field
+          label(for='description') Описание
+          span.hint Кратко — для ориентира в списке
+          textarea#description(name='description' rows='3')= company.description || ''
+
+        .actions
+          button.btn-save(type='submit') Сохранить
+          a.btn-cancel(href='/admin/companies') Отмена
+          if companyId
+            form(method='POST' action='/admin/companies/' + companyId + '/delete' style='margin-left:auto' onsubmit='return confirm("Удалить из справочника? Привязки в историях не удалятся.")')
+              button.btn-delete(type='submit') Удалить

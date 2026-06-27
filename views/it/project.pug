@@ -3,7 +3,9 @@ html(lang='ru')
   head
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width, initial-scale=1')
-    title #{project.name} — it.dimazvali.com
+    title #{project.metaTitle || project.name} — it.dimazvali.com
+    if project.metaDescription
+      meta(name='description' content=project.metaDescription)
     link(rel='icon' type='image/x-icon' href='/images/dimazvali/favicon.ico')
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
@@ -91,6 +93,22 @@ html(lang='ru')
         article.project-article
           h3.project-detail-title!= detail.title
           div.project-content!= detail.desc || ''
+
+    if related && related.length
+      section.related-section
+        div.related-label Другие истории этого проекта
+        div.related-grid
+          each r in related
+            a.related-card(href='/' + r.slug)
+              if r.cover
+                div.related-card-cover: img(src=r.cover alt=r.name)
+              div.related-card-body
+                div.related-card-name= r.name
+                if r.short
+                  div.related-card-short= r.short
+
+    div.wip-banner
+      div.wip-banner-inner в разработке
 
     footer
       a.project-footer-nav(href='/')

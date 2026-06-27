@@ -103,6 +103,24 @@ html(lang='ru')
             .field
               label(for='link') Ссылка
               input#link(type='url' name='link' value=project.link || '' placeholder='https://')
+          .row
+            .field
+              label(for='companyId') Проект (справочник)
+              select#companyId(name='companyId' style='background:#fff;border:1px solid #d8d4cb;color:#15120f;font-family:"JetBrains Mono",monospace;font-size:13px;padding:8px 10px;width:100%;outline:none;')
+                option(value='') — не выбрано —
+                each c in (companies || [])
+                  option(value=c.id selected=(project.companyId === c.id))= c.name
+
+        .section
+          .section-title SEO / метатеги
+          .row.single
+            .field
+              label(for='metaTitle') Title страницы
+              input#metaTitle(type='text' name='metaTitle' value=project.metaTitle || '' placeholder='Оставьте пустым — будет использоваться название')
+          .row.single
+            .field
+              label(for='metaDescription') Meta description
+              textarea#metaDescription(name='metaDescription' rows='3' placeholder='Краткое описание для поисковиков, 120–160 символов')= project.metaDescription || ''
 
         .section
           .section-title Обложка

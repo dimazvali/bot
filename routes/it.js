@@ -40,7 +40,11 @@ router.get('/:slug', async function(req, res, next) {
     var doc = await itData.getProjectBySlug(req.params.slug);
     if (!doc || !doc.full) return res.status(404).render('it/404');
     var project = itData.parseProject(doc);
-    res.render('it/project', { project });
+    var related = [];
+    if (doc.companyId) {
+      related = await itData.getStoriesByCompany(doc.companyId, doc.id);
+    }
+    res.render('it/project', { project, related });
   } catch (e) { next(e); }
 });
 

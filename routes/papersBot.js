@@ -1763,15 +1763,27 @@ router.post('/hook', async (req, res) => {
             }
     
             if (inc[0] == 'unclass') {
-    
+
                 m.sendMessage2({
                     chat_id:    user.id,
                     message_id: req.body.callback_query.message.message_id
                 }, 'unpinChatMessage', token)
-    
+
                 classMethods.unClassUser(inc[1], user, false, false, req.body.callback_query.id)
-    
-    
+
+
+            }
+
+            if (inc[0] == 'nft' && inc[1] == 'want') {
+                const appointmentId = inc[2];
+                pendingNftWallet.set(user.id, appointmentId);
+                m.sendMessage2({
+                    chat_id: user.id,
+                    text: `Отправь адрес своего TON-кошелька (начинается на UQ... или EQ...).\n\nЕсли кошелька нет — установи Tonkeeper: https://tonkeeper.com`
+                }, false, token, messages);
+                m.sendMessage2({
+                    callback_query_id: req.body.callback_query.id
+                }, 'answerCallbackQuery', token);
             }
     
             if (inc[0] == 'class') {
