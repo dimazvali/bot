@@ -483,7 +483,7 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
   if (!req.file) return res.redirect('/admin/shoots/' + slug + '/edit');
 
   var { title, date, desc } = req.body;
-  var shootType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'copter';
+  var shootType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'camera';
   var shootCoords = null;
   var shootShotAt = null;
   try {
