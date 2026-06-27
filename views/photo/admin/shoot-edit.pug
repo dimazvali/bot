@@ -34,6 +34,14 @@ html(data-theme='dark')
           input.admin-input(type='file' name='photo' accept='image/*' required)
           button.admin-btn(type='submit') ЗАГРУЗИТЬ
 
+      .admin-section
+        h2.admin-title МАССОВАЯ ЗАГРУЗКА
+        p.admin-hint Выберите несколько файлов — загрузятся последовательно. Название = имя файла.
+        input#bulk-files.admin-input(type='file' name='photos' accept='image/*' multiple)
+        input.admin-input(type='text' id='bulk-date' placeholder='дата для всех (необязательно)')
+        button#bulk-start.admin-btn(type='button' data-upload-url=`/admin/shoots/${slug}/upload` style='display:none') ЗАГРУЗИТЬ ВСЕ
+        p#bulk-status.admin-hint(style='display:none')
+
       if shoot.photos.length
         .admin-section
           h2.admin-title ФОТО (#{shoot.photos.length})
@@ -59,6 +67,66 @@ html(data-theme='dark')
 
     script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
     script.
+      // ── Bulk upload ──
+      var bulkInput     = document.getElementById('bulk-files');
+      var bulkStart     = document.getElementById('bulk-start');
+      var bulkStatus    = document.getElementById('bulk-status');
+      var bulkDate      = document.getElementById('bulk-date');
+      var bulkUploadUrl = bulkStart.getAttribute('data-upload-url');
+
+      bulkInput.addEventListener('change', function() {
+        if (bulkInput.files.length > 0) {
+          bulkStart.style.display = '';
+          bulkStatus.style.display = 'none';
+        } else {
+          bulkStart.style.display = 'none';
+        }
+      });
+
+      bulkStart.addEventListener('click', function() {
+        var files = Array.from(bulkInput.files);
+        if (!files.length) return;
+        bulkStart.disabled = true;
+        bulkInput.disabled = true;
+        bulkDate.disabled = true;
+        var date = bulkDate.value.trim();
+        var total = files.length;
+        var done = 0;
+        var errors = [];
+
+        function uploadNext() {
+          if (done >= total) {
+            if (errors.length) {
+              bulkStatus.style.display = '';
+              bulkStatus.textContent = 'Готово с ошибками: ' + errors.join(', ');
+            }
+            window.location.reload();
+            return;
+          }
+          var file = files[done];
+          bulkStatus.style.display = '';
+          bulkStatus.textContent = 'Загружается ' + (done + 1) + ' / ' + total + ': ' + file.name;
+          var fd = new FormData();
+          fd.append('photo', file);
+          fd.append('title', '');
+          fd.append('date', date);
+          fd.append('desc', '');
+          fetch(bulkUploadUrl, { method: 'POST', body: fd })
+            .then(function(r) {
+              if (!r.ok) errors.push(file.name + ' (' + r.status + ')');
+              done++;
+              uploadNext();
+            })
+            .catch(function() {
+              errors.push(file.name);
+              done++;
+              uploadNext();
+            });
+        }
+        uploadNext();
+      });
+
+      // ── Drag-to-reorder ──
       var list = document.getElementById('photo-list');
       if (list) {
         var reorderUrl = list.getAttribute('data-url');
