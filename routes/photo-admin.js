@@ -561,12 +561,14 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
   var { title, date, desc } = req.body;
+  var photoType = req.body.type;
   if (!title || !title.trim()) return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
   try {
     await shoots.updatePhoto(slug, id, {
       title: title.trim(),
       date: (date || '').trim(),
       desc: (desc || '').trim(),
+      type: photoType,
     });
   } catch (e) {
     console.error('[shoots] update photo error:', e);
