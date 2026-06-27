@@ -574,6 +574,48 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   res.redirect('/admin/shoots/' + slug + '/edit');
 });
 
+router.post('/shoots/:slug/photos/:id/annotation/add', requireAuth, express.json(), async (req, res) => {
+  var { slug, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.status(400).json({ ok: false });
+  var { x, y, text } = req.body;
+  if (typeof x !== 'number' || typeof y !== 'number' || !text || !text.trim()) return res.status(400).json({ ok: false, error: 'invalid params' });
+  if (x < 0 || x > 100 || y < 0 || y > 100) return res.status(400).json({ ok: false });
+  if (!shoots.getShoot(slug)) return res.status(404).json({ ok: false });
+  var annot = { id: Date.now().toString(), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, text: text.trim(), createdAt: new Date().toISOString().slice(0, 10) };
+  try {
+    await shoots.addAnnotation(slug, id, annot);
+    res.json({ ok: true, annotation: annot });
+  } catch (e) {
+    console.error('[shoots] addAnnotation error:', e);
+    res.status(500).json({ ok: false });
+  }
+});
+
+router.post('/shoots/:slug/photos/:id/annotation/:annotId/move', requireAuth, express.json(), async (req, res) => {
+  var { slug, id, annotId } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.status(400).json({ ok: false });
+  var { x, y } = req.body;
+  if (typeof x !== 'number' || typeof y !== 'number' || x < 0 || x > 100 || y < 0 || y > 100) return res.status(400).json({ ok: false });
+  try {
+    await shoots.moveAnnotation(slug, id, annotId, Math.round(x * 100) / 100, Math.round(y * 100) / 100);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[shoots] moveAnnotation error:', e);
+    res.status(500).json({ ok: false });
+  }
+});
+
+router.post('/shoots/:slug/photos/:id/annotation/:annotId/delete', requireAuth, async (req, res) => {
+  var { slug, id, annotId } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
+  try {
+    await shoots.removeAnnotation(slug, id, annotId);
+  } catch (e) {
+    console.error('[shoots] removeAnnotation error:', e);
+  }
+  res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
+});
+
 router.post('/shoots/:slug/photos/reorder', requireAuth, express.json(), async (req, res) => {
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ ok: false });

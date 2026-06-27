@@ -13,9 +13,142 @@ html(data-theme='dark')
       .admin-section
         h2.admin-title РЕДАКТИРОВАТЬ ФОТО
         if photo.urls
-          img(src=photo.urls.preview alt=photo.title style='max-width:100%;height:auto;margin-bottom:16px;display:block;')
+          .copyright-preview-row
+            .annot-canvas#annot-canvas
+              img#annot-img(src=photo.urls.preview alt=photo.title style='width:100%;height:auto;display:block;')
+              each a in (photo.annotations || [])
+                .annot-marker(style=`left:${a.x}%;top:${a.y}%;` data-id=a.id title=a.text) i
+          if photo.annotations && photo.annotations.length
+            .annot-list
+              p.admin-hint АННОТАЦИИ:
+              each a in (photo.annotations || [])
+                .annot-list-item
+                  .annot-list-badge i
+                  span.annot-list-text= a.text
+                  form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/annotation/${a.id}/delete` style='margin:0')
+                    button.admin-btn(type='submit' style='padding:1px 8px;font-size:.7rem;') ✕
+          .annot-pending-form#annot-pending-form
+            p.admin-hint ТЕКСТ АННОТАЦИИ:
+            textarea#annot-new-text.admin-input(rows='2' placeholder='Текст аннотации...' style='margin-bottom:6px;')
+            .annot-form-btns(style='display:flex;gap:8px;')
+              button#annot-save-btn.admin-btn(type='button') Сохранить
+              button#annot-cancel-btn.admin-btn(type='button') Отмена
         form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/edit`)
           input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
           input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. июнь 2026)')
           textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='4')= photo.desc || ''
           button.admin-btn(type='submit') СОХРАНИТЬ
+
+    script.
+      // ── Annotation canvas ──
+      (function() {
+        var canvas = document.getElementById('annot-canvas');
+        if (!canvas) return;
+        var pendingMarker = null;
+        var pendingX = 0, pendingY = 0;
+        var form = document.getElementById('annot-pending-form');
+        var textArea = document.getElementById('annot-new-text');
+        var saveBtn = document.getElementById('annot-save-btn');
+        var cancelBtn = document.getElementById('annot-cancel-btn');
+        var baseUrl = window.location.pathname.replace('/edit', '');
+
+        // ── Drag existing markers ──
+        var dragging = null;
+
+        canvas.addEventListener('mousedown', function(e) {
+          var marker = e.target.closest('.annot-marker:not(.annot-marker--pending)');
+          if (!marker) return;
+          e.preventDefault();
+          dragging = {
+            marker: marker,
+            annotId: marker.dataset.id,
+            startX: e.clientX,
+            startY: e.clientY,
+            startLeft: parseFloat(marker.style.left),
+            startTop: parseFloat(marker.style.top),
+            moved: false,
+          };
+          document.body.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', function(e) {
+          if (!dragging) return;
+          var rect = canvas.getBoundingClientRect();
+          var dx = e.clientX - dragging.startX;
+          var dy = e.clientY - dragging.startY;
+          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragging.moved = true;
+          dragging.marker.style.left = Math.max(0, Math.min(100, dragging.startLeft + dx / rect.width * 100)) + '%';
+          dragging.marker.style.top  = Math.max(0, Math.min(100, dragging.startTop  + dy / rect.height * 100)) + '%';
+        });
+
+        document.addEventListener('mouseup', async function() {
+          if (!dragging) return;
+          var d = dragging;
+          dragging = null;
+          document.body.style.cursor = '';
+          if (!d.moved) return;
+          var x = parseFloat(d.marker.style.left);
+          var y = parseFloat(d.marker.style.top);
+          try {
+            var resp = await fetch(baseUrl + '/annotation/' + d.annotId + '/move', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ x: x, y: y }),
+            });
+            var result = await resp.json();
+            if (!result.ok) throw new Error(result.error || 'Ошибка');
+          } catch (err) {
+            d.marker.style.left = d.startLeft + '%';
+            d.marker.style.top  = d.startTop  + '%';
+            alert('Ошибка: ' + err.message);
+          }
+        });
+
+        // ── Create new annotation on canvas click ──
+        canvas.addEventListener('click', function(e) {
+          if (e.target.closest('.annot-marker')) return;
+          var rect = canvas.getBoundingClientRect();
+          pendingX = ((e.clientX - rect.left) / rect.width) * 100;
+          pendingY = ((e.clientY - rect.top) / rect.height) * 100;
+
+          if (pendingMarker) pendingMarker.remove();
+          var m = document.createElement('div');
+          m.className = 'annot-marker annot-marker--pending';
+          m.style.left = pendingX + '%';
+          m.style.top = pendingY + '%';
+          m.textContent = 'i';
+          canvas.appendChild(m);
+          pendingMarker = m;
+
+          form.style.display = 'block';
+          textArea.value = '';
+          textArea.focus();
+        });
+
+        cancelBtn.addEventListener('click', function() {
+          if (pendingMarker) { pendingMarker.remove(); pendingMarker = null; }
+          form.style.display = 'none';
+          textArea.value = '';
+        });
+
+        saveBtn.addEventListener('click', async function() {
+          var text = textArea.value.trim();
+          if (!text) return;
+          saveBtn.disabled = true;
+          saveBtn.textContent = '…';
+          try {
+            var resp = await fetch(baseUrl + '/annotation/add', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ x: pendingX, y: pendingY, text: text }),
+            });
+            var data = await resp.json();
+            if (!data.ok) throw new Error(data.error || 'Ошибка');
+            window.location.reload();
+          } catch (e) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Сохранить';
+            alert('Ошибка: ' + e.message);
+          }
+        });
+      }());
