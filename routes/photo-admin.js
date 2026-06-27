@@ -1103,4 +1103,16 @@ router.post('/:country/:series/:id/generate-seo', requireAuth, express.json(), a
   }
 });
 
+async function checkAdminToken(req) {
+  var tokenId = req.signedCookies && req.signedCookies.photoAdminToken;
+  if (!tokenId) return false;
+  try {
+    var doc = await adminTokens.doc(tokenId).get();
+    return doc.exists;
+  } catch (e) {
+    return false;
+  }
+}
+
 module.exports = router;
+module.exports.checkAdminToken = checkAdminToken;

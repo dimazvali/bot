@@ -31,7 +31,8 @@ function tgSend(text) {
 router.use(express.static(path.join(__dirname, '../public')));
 
 // Admin router must be mounted BEFORE wildcard routes
-router.use('/admin', require('./photo-admin'));
+var photoAdmin = require('./photo-admin');
+router.use('/admin', photoAdmin);
 router.use('/photo-comments', require('./photo-comments'));
 
 router.use(function(req, res, next) {
@@ -338,12 +339,12 @@ router.get('/unsubscribe', async (req, res) => {
 
 // ── Shoots ──────────────────────────────────────────────────────────────────
 
-function isAdmin(req) {
-  return !!(req.signedCookies && req.signedCookies.photoAdminToken);
+async function isAdmin(req) {
+  return photoAdmin.checkAdminToken(req);
 }
 
-function requireShootAuth(shoot, slug, req, res, next) {
-  if (!shoot.password || isAdmin(req)) return next();
+function requireShootAuth(shoot, slug, req, res, adminUser, next) {
+  if (!shoot.password || adminUser) return next();
   var cookieKey = 'shoot_' + slug;
   if (req.signedCookies && req.signedCookies[cookieKey] === shootCookieToken(shoot.password, slug)) return next();
   return res.render('photo/shoot-password', {
@@ -362,14 +363,15 @@ function requireShootAuth(shoot, slug, req, res, next) {
 }
 
 // GET /shoot/:slug — галерея съёмки
-router.get('/shoot/:slug', (req, res) => {
+router.get('/shoot/:slug', async (req, res) => {
   var { slug } = req.params;
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
+  var adminUser = await isAdmin(req);
 
-  requireShootAuth(shoot, slug, req, res, function() {
+  requireShootAuth(shoot, slug, req, res, adminUser, function() {
     trackView('shoot', slug, req.path, req);
-    if (!isAdmin(req)) tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
+    if (!adminUser) tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
     res.render('photo/gallery', {
       data: getData(),
       activeCountry: null,
@@ -391,12 +393,13 @@ router.get('/shoot/:slug', (req, res) => {
 });
 
 // GET /shoot/:slug/:id — страница фото
-router.get('/shoot/:slug/:id', (req, res) => {
+router.get('/shoot/:slug/:id', async (req, res) => {
   var { slug, id } = req.params;
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
+  var adminUser = await isAdmin(req);
 
-  requireShootAuth(shoot, slug, req, res, function() {
+  requireShootAuth(shoot, slug, req, res, adminUser, function() {
     var photos = shoot.photos;
     var idx = photos.findIndex(function(p) { return p.id === id; });
     if (idx === -1) return res.status(404).render('error', { message: 'Not found', error: {} });
