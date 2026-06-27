@@ -1,0 +1,21 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href=`/admin/shoots/${slug}/edit`) ← назад
+        span.admin-logo= photo.title || photo.id
+
+      .admin-section
+        h2.admin-title РЕДАКТИРОВАТЬ ФОТО
+        if photo.urls
+          img(src=photo.urls.preview alt=photo.title style='max-width:100%;height:auto;margin-bottom:16px;display:block;')
+        form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/edit`)
+          input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
+          input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. июнь 2026)')
+          textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='4')= photo.desc || ''
+          button.admin-btn(type='submit') СОХРАНИТЬ

@@ -541,14 +541,30 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
   }
 });
 
+router.get('/shoots/:slug/photos/:id/edit', requireAuth, (req, res) => {
+  var { slug, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  var photo = shoot.photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.redirect('/admin/shoots/' + slug + '/edit');
+  res.render('photo/admin/shoot-photo-edit', {
+    title: photo.title + ' — AERO Admin',
+    slug,
+    shootLabel: shoot.label,
+    photo,
+  });
+});
+
 router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
   var { slug, id } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
   var { title, date, desc } = req.body;
+  if (!title || !title.trim()) return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
   try {
     await shoots.updatePhoto(slug, id, {
-      title: (title || '').trim(),
+      title: title.trim(),
       date: (date || '').trim(),
       desc: (desc || '').trim(),
     });

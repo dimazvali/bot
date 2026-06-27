@@ -52,12 +52,11 @@ html(data-theme='dark')
                 span.admin-sort-handle ⠿
                 if photo.urls
                   img.admin-thumb(src=photo.urls.preview alt=photo.title)
-                form.admin-photo-inline-edit(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/edit`)
-                  input.admin-input(type='text' name='title' value=photo.title placeholder='название')
-                  input.admin-input(type='text' name='date' value=photo.date placeholder='дата')
-                  input.admin-input(type='text' name='desc' value=photo.desc placeholder='описание')
-                  button.admin-btn.admin-btn--sm(type='submit') ок
+                .admin-photo-info
+                  span.admin-photo-title= photo.title
+                  span.admin-photo-id= photo.id
                 .admin-sort-actions
+                  a.admin-btn.admin-btn--sm(href=`/admin/shoots/${slug}/photos/${photo.id}/edit`) ✎
                   form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete`)
                     button.admin-btn.admin-btn--danger(type='submit') удалить
 
