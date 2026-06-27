@@ -39,6 +39,29 @@ html(data-theme='dark')
         p.admin-hint Выберите несколько файлов — загрузятся последовательно. Название = имя файла.
         input#bulk-files.admin-input(type='file' name='photos' accept='image/*' multiple)
         input.admin-input(type='text' id='bulk-date' placeholder='дата для всех (необязательно)')
+        .type-radio-group#bulk-type
+          each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
+            label.type-radio-label
+              input(type='radio' name='bulk-type' value=t[0] checked=t[0]==='copter')
+              span
+                svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
+                  if t[0]==='camera'
+                    path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
+                    circle(cx='12' cy='13' r='4')
+                  else if t[0]==='mobile'
+                    rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
+                    circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
+                  else
+                    rect(x='9' y='9' width='6' height='6' rx='1')
+                    line(x1='9' y1='9' x2='4' y2='4')
+                    line(x1='15' y1='9' x2='20' y2='4')
+                    line(x1='9' y1='15' x2='4' y2='20')
+                    line(x1='15' y1='15' x2='20' y2='20')
+                    circle(cx='3' cy='3' r='2')
+                    circle(cx='21' cy='3' r='2')
+                    circle(cx='3' cy='21' r='2')
+                    circle(cx='21' cy='21' r='2')
+                | #{t[1]}
         button#bulk-start.admin-btn(type='button' data-upload-url=`/admin/shoots/${slug}/upload` style='display:none') ЗАГРУЗИТЬ ВСЕ
         p#bulk-status.admin-hint(style='display:none')
 
@@ -73,6 +96,7 @@ html(data-theme='dark')
       var bulkStart     = document.getElementById('bulk-start');
       var bulkStatus    = document.getElementById('bulk-status');
       var bulkDate      = document.getElementById('bulk-date');
+      var bulkTypeGroup = document.getElementById('bulk-type');
       var bulkUploadUrl = bulkStart.getAttribute('data-upload-url');
 
       bulkInput.addEventListener('change', function() {
@@ -91,6 +115,8 @@ html(data-theme='dark')
         bulkInput.disabled = true;
         bulkDate.disabled = true;
         var date = bulkDate.value.trim();
+        var bulkTypeChecked = bulkTypeGroup.querySelector('input[name="bulk-type"]:checked');
+        var type = bulkTypeChecked ? bulkTypeChecked.value : 'copter';
         var total = files.length;
         var done = 0;
         var errors = [];
@@ -111,6 +137,7 @@ html(data-theme='dark')
           fd.append('photo', file);
           fd.append('title', '');
           fd.append('date', date);
+          fd.append('type', type);
           fd.append('desc', '');
           fetch(bulkUploadUrl, { method: 'POST', body: fd })
             .then(function(r) {
