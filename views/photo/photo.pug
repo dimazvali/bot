@@ -76,19 +76,22 @@ block content
         a.action-btn(href=photo.instagram target='_blank' rel='noopener') INSTAGRAM
     if !isShoot
       .photo-inquiry
-        - var activeTab = inquiryStatus ? 'inquiry' : 'review'
+        - var showInquiry = !!inquiryStatus
         .inquiry-tabs
-          button.inquiry-tab(type='button' data-tab='review' class=(activeTab==='review' ? 'is-active' : '')) ОТЗЫВ
-          button.inquiry-tab(type='button' data-tab='inquiry' class=(activeTab==='inquiry' ? 'is-active' : '')) ЗАЯВКА
-        .inquiry-tab-panel(data-panel='review' style=(activeTab==='review' ? '' : 'display:none'))
-          if reviewStatus === 'ok'
-            p.inquiry-success ✓ СПАСИБО ЗА ОТЗЫВ!
-          else
-            form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/review`)
-              input.inquiry-input(type='text' name='name' placeholder='ИМЯ (НЕОБЯЗАТЕЛЬНО)' autocomplete='name')
-              textarea.inquiry-input.inquiry-textarea(name='text' placeholder='ТЕКСТ ОТЗЫВА' required rows='4')
-              button.inquiry-submit(type='submit') ОТПРАВИТЬ →
-        .inquiry-tab-panel(data-panel='inquiry' style=(activeTab==='inquiry' ? '' : 'display:none'))
+          button.inquiry-tab(type='button' data-tab='comments' class=showInquiry ? '' : 'is-active') КОММЕНТАРИИ
+          button.inquiry-tab(type='button' data-tab='inquiry' class=showInquiry ? 'is-active' : '') ЗАЯВКА
+        .inquiry-tab-panel(data-panel='comments' style=showInquiry ? 'display:none' : '')
+          - var photoUserStr = photoUser ? JSON.stringify(photoUser) : ''
+          .photo-comments-section(
+            data-country=countryKey
+            data-series=seriesKey
+            data-photo-id=photo.id
+            data-is-admin=isAdmin ? '1' : '0'
+            data-google-client-id=googleClientId
+            data-user=photoUserStr
+          )
+            p.comments-loading ЗАГРУЗКА...
+        .inquiry-tab-panel(data-panel='inquiry' style=showInquiry ? '' : 'display:none')
           if inquiryStatus === 'ok'
             p.inquiry-success ✓ ОТПРАВЛЕНО — ОТВЕЧУ В ТЕЧЕНИЕ 24 ЧАСОВ
           else
@@ -187,3 +190,7 @@ block content
         });
       });
     });
+
+    if !isShoot
+      script(src='https://accounts.google.com/gsi/client' async defer)
+      script(src='/javascripts/photo/comments.js')
