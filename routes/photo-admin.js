@@ -263,7 +263,7 @@ router.post('/series/:country', requireAuth, (req, res) => {
   res.redirect('/admin');
 });
 
-router.get('/:country/:series/upload', requireAuth, (req, res) => {
+router.get('/:country/:series/upload', requireAuth, function(req, res, next) { if (req.params.country === 'shoots') return next('route'); next(); }, (req, res) => {
   var { country, series } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
   var data = getData();
@@ -280,7 +280,7 @@ router.get('/:country/:series/upload', requireAuth, (req, res) => {
   });
 });
 
-router.post('/:country/:series/upload', requireAuth, upload.single('photo'), async (req, res) => {
+router.post('/:country/:series/upload', requireAuth, function(req, res, next) { if (req.params.country === 'shoots') return next('route'); next(); }, upload.single('photo'), async (req, res) => {
   var { country, series } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
   var { title, date, desc } = req.body;
@@ -303,12 +303,15 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
   if (!isNaN(latRaw) && !isNaN(lngRaw) && Math.abs(latRaw) <= 90 && Math.abs(lngRaw) <= 180) {
     coords = { lat: latRaw, lng: lngRaw };
   }
+  var shotAt = null;
   if (!coords || altitude === null) {
     try {
-      var gps = await exifr.parse(req.file.buffer, { gps: true });
-      if (gps) {
-        if (!coords && gps.latitude != null) coords = { lat: gps.latitude, lng: gps.longitude };
-        if (altitude === null && gps.GPSAltitude != null) altitude = Math.round(gps.GPSAltitude);
+      var exifData = await exifr.parse(req.file.buffer, { gps: true, pick: ['DateTimeOriginal', 'CreateDate'] });
+      if (exifData) {
+        if (!coords && exifData.latitude != null) coords = { lat: exifData.latitude, lng: exifData.longitude };
+        if (altitude === null && exifData.GPSAltitude != null) altitude = Math.round(exifData.GPSAltitude);
+        var exifDate = exifData.DateTimeOriginal || exifData.CreateDate;
+        if (exifDate instanceof Date && !isNaN(exifDate)) shotAt = exifDate.toISOString();
       }
     } catch (e) {}
   }
@@ -352,6 +355,7 @@ router.post('/:country/:series/upload', requireAuth, upload.single('photo'), asy
     if (tags.length) photoEntry.tags = tags;
     if (coords) photoEntry.coords = coords;
     if (altitude !== null) photoEntry.altitude = altitude;
+    if (shotAt) photoEntry.shotAt = shotAt;
     if (instagramUrl) photoEntry.instagram = instagramUrl;
     if (colorFamily) photoEntry.colorFamily = colorFamily;
     data[country].series[series].photos.push(photoEntry);
@@ -479,6 +483,17 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
   if (!req.file) return res.redirect('/admin/shoots/' + slug + '/edit');
 
   var { title, date, desc } = req.body;
+  var shootCoords = null;
+  var shootShotAt = null;
+  try {
+    var shootExif = await exifr.parse(req.file.buffer, { gps: true, pick: ['DateTimeOriginal', 'CreateDate'] });
+    if (shootExif) {
+      if (shootExif.latitude != null) shootCoords = { lat: shootExif.latitude, lng: shootExif.longitude };
+      var shootExifDate = shootExif.DateTimeOriginal || shootExif.CreateDate;
+      if (shootExifDate instanceof Date && !isNaN(shootExifDate)) shootShotAt = shootExifDate.toISOString();
+    }
+  } catch (e) {}
+
   try {
     var baseName = path.basename(req.file.originalname, path.extname(req.file.originalname));
     var existingIds = shoot.photos.map(function(p) { return p.id; });
@@ -515,6 +530,8 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
       },
     };
     if (colorFamily) photoEntry.colorFamily = colorFamily;
+    if (shootCoords) photoEntry.coords = shootCoords;
+    if (shootShotAt) photoEntry.shotAt = shootShotAt;
 
     await shoots.addPhoto(slug, photoEntry);
     res.redirect('/admin/shoots/' + slug + '/edit');
