@@ -20,6 +20,7 @@ html(data-theme='dark')
           .admin-country
             .admin-country-name
               span= `${shoot.label} (${slug}) — ${shoot.photos.length} фото`
+              span.admin-archived= ` · 👁 ${stats[slug] || 0}`
               if shoot.password
                 span.admin-archived  [🔒]
             .admin-series-actions

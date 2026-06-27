@@ -359,6 +359,7 @@ router.get('/shoot/:slug', (req, res) => {
 
   requireShootAuth(shoot, slug, req, res, function() {
     trackView('shoot', slug, req.path, req);
+    tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
     res.render('photo/gallery', {
       data: getData(),
       activeCountry: null,
