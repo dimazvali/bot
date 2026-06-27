@@ -32,12 +32,18 @@ router.use(express.static(path.join(__dirname, '../public')));
 
 // Admin router must be mounted BEFORE wildcard routes
 router.use('/admin', require('./photo-admin'));
+router.use('/photo-comments', require('./photo-comments'));
 
 router.use(function(req, res, next) {
   res.locals.colorFamilies = COLOR_FAMILIES;
   res.locals.activeColorFamily = null;
   res.locals.isAdmin = !!(req.signedCookies && req.signedCookies.photoAdminToken);
   res.locals.subStatus = req.query.sub || null;
+  try {
+    var raw = req.signedCookies && req.signedCookies.photoUser;
+    res.locals.photoUser = raw ? JSON.parse(raw) : null;
+  } catch (e) { res.locals.photoUser = null; }
+  res.locals.googleClientId = process.env.GOOGLE_CLIENT_ID || '';
   next();
 });
 
