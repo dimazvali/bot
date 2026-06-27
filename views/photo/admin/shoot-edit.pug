@@ -120,6 +120,14 @@ html(data-theme='dark')
         var total = files.length;
         var done = 0;
         var errors = [];
+        var startTime = Date.now();
+        var fileStart = 0;
+
+        function fmtTime(ms) {
+          var s = Math.round(ms / 1000);
+          if (s < 60) return s + ' с';
+          return Math.floor(s / 60) + ' м ' + (s % 60) + ' с';
+        }
 
         function uploadNext() {
           if (done >= total) {
@@ -131,8 +139,12 @@ html(data-theme='dark')
             return;
           }
           var file = files[done];
+          fileStart = Date.now();
+          var eta = done > 0
+            ? ' · осталось ~' + fmtTime((Date.now() - startTime) / done * (total - done))
+            : '';
           bulkStatus.style.display = '';
-          bulkStatus.textContent = 'Загружается ' + (done + 1) + ' / ' + total + ': ' + file.name;
+          bulkStatus.textContent = 'Загружается ' + (done + 1) + ' / ' + total + ': ' + file.name + eta;
           var fd = new FormData();
           fd.append('photo', file);
           fd.append('title', '');
