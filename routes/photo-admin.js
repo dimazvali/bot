@@ -62,13 +62,8 @@ var SITEMAP_URL = 'https://photo.dimazvali.com/sitemap.xml';
 var INDEX_NOW_KEY = process.env.INDEX_NOW_KEY || '3d8e3d1e2ccb44dab475e7949fc9fcc8';
 
 function pingSitemaps() {
-  var targets = [
-    'https://www.google.com/ping?sitemap=' + encodeURIComponent(SITEMAP_URL),
-    'https://www.bing.com/ping?sitemap=' + encodeURIComponent(SITEMAP_URL),
-  ];
-  targets.forEach(function(url) {
-    axios.get(url, { timeout: 8000 }).catch(function(e) { console.error('[sitemap-ping]', e.message); });
-  });
+  axios.get('https://www.bing.com/ping?sitemap=' + encodeURIComponent(SITEMAP_URL), { timeout: 8000 })
+    .catch(function(e) { console.error('[sitemap-ping]', e.message); });
 }
 
 function indexNowSubmit(urls) {
