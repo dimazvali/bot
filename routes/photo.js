@@ -274,6 +274,20 @@ router.get('/sitemap.xml', (req, res) => {
     entries.push({ url: base + '/' + countryKey, lastmod: countryDates.length ? countryDates.sort().pop() : null });
   }
 
+  var allShoots = shoots.getData();
+  for (var shootSlug of Object.keys(allShoots)) {
+    var shoot = allShoots[shootSlug];
+    if (shoot.password) continue;
+    var shootDates = shoot.photos.map(function(p) { return p.createdAt || ''; }).filter(Boolean).sort();
+    var shootLastmod = shootDates.length ? shootDates[shootDates.length - 1] : null;
+    entries.push({ url: base + '/shoot/' + shootSlug, lastmod: shootLastmod });
+    for (var sp of shoot.photos) {
+      var spEntry = { url: base + '/shoot/' + shootSlug + '/' + sp.id, lastmod: sp.createdAt || null };
+      if (sp.urls && sp.urls.full) spEntry.image = { loc: sp.urls.full, title: sp.title };
+      entries.push(spEntry);
+    }
+  }
+
   var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
     + '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
@@ -389,8 +403,8 @@ router.get('/shoot/:slug', async (req, res) => {
       desc: shoot.desc || null,
       keywords: null,
       ogImage: shoot.photos.length ? `${BASE}/og/shoot/${slug}.jpg` : null,
-      ogUrl: null,
-      noindex: true,
+      ogUrl: shoot.password ? null : `${BASE}/shoot/${slug}`,
+      noindex: !!shoot.password,
       breadcrumbs: null,
     });
   });
@@ -436,8 +450,8 @@ router.get('/shoot/:slug/:id', async (req, res) => {
       desc: photo.desc || null,
       keywords: null,
       ogImage: photo.urls ? photo.urls.full : null,
-      ogUrl: null,
-      noindex: true,
+      ogUrl: shoot.password ? null : `${BASE}/shoot/${slug}/${id}`,
+      noindex: !!shoot.password,
       breadcrumbs: null,
     });
   });
