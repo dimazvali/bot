@@ -17,6 +17,7 @@ function shootCookieToken(password, slug) {
 }
 
 var DIMA_CHAT_ID = 144489840;
+var shootNotifLastSent = {};
 
 function tgSend(text) {
   var token = process.env.dimazvaliToken;
@@ -242,61 +243,50 @@ router.get('/sitemap.xml', (req, res) => {
   var base = 'https://photo.dimazvali.com';
   var data = getData();
   var tags = getTags();
-  var urls = [base + '/', base + '/about'];
 
-  for (var slug of Object.keys(tags)) {
-    urls.push(base + '/tag/' + slug);
-  }
+  // entries: { url, lastmod?, image? }
+  var entries = [
+    { url: base + '/' },
+    { url: base + '/about' },
+  ];
 
-  for (var family of Object.keys(COLOR_FAMILIES)) {
-    urls.push(base + '/color/' + family);
-  }
+  for (var slug of Object.keys(tags)) entries.push({ url: base + '/tag/' + slug });
+  for (var family of Object.keys(COLOR_FAMILIES)) entries.push({ url: base + '/color/' + family });
 
   for (var countryKey of Object.keys(data)) {
     var country = data[countryKey];
     if (country.archived) continue;
-    urls.push(base + '/' + countryKey);
+    var countryDates = [];
     for (var seriesKey of getActiveSeries(country)) {
       var series = country.series[seriesKey];
-      urls.push(base + '/' + countryKey + '/' + seriesKey);
+      var seriesDates = series.photos.map(function(p) { return p.createdAt || ''; }).filter(Boolean);
+      var seriesLastmod = seriesDates.length ? seriesDates.sort().pop() : null;
+      if (seriesLastmod) countryDates.push(seriesLastmod);
+      entries.push({ url: base + '/' + countryKey + '/' + seriesKey, lastmod: seriesLastmod });
       for (var photo of series.photos) {
-        urls.push(base + '/' + countryKey + '/' + seriesKey + '/' + photo.id);
-      }
-    }
-  }
-
-  // Build photo URL → image metadata map
-  var photoImageMap = {};
-  for (var ck of Object.keys(data)) {
-    var co = data[ck];
-    if (co.archived) continue;
-    for (var sk of getActiveSeries(co)) {
-      var se = co.series[sk];
-      for (var ph of se.photos) {
-        var pageUrl = base + '/' + ck + '/' + sk + '/' + ph.id;
-        if (ph.urls && (ph.urls.full || ph.urls.preview)) {
-          photoImageMap[pageUrl] = { loc: ph.urls.full || ph.urls.preview, title: ph.title };
+        var imgEntry = { url: base + '/' + countryKey + '/' + seriesKey + '/' + photo.id, lastmod: photo.createdAt || null };
+        if (photo.urls && (photo.urls.full || photo.urls.preview)) {
+          imgEntry.image = { loc: photo.urls.full || photo.urls.preview, title: photo.title };
         }
+        entries.push(imgEntry);
       }
     }
+    entries.push({ url: base + '/' + countryKey, lastmod: countryDates.length ? countryDates.sort().pop() : null });
   }
 
   var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
     + '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
-  for (var url of urls) {
-    var img = photoImageMap[url];
-    if (img) {
-      xml += '  <url>\n'
-        + '    <loc>' + url + '</loc>\n'
-        + '    <image:image>\n'
-        + '      <image:loc>' + img.loc + '</image:loc>\n'
-        + '      <image:title>' + img.title.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</image:title>\n'
-        + '    </image:image>\n'
-        + '  </url>\n';
-    } else {
-      xml += '  <url><loc>' + url + '</loc></url>\n';
+  for (var entry of entries) {
+    xml += '  <url>\n    <loc>' + entry.url + '</loc>\n';
+    if (entry.lastmod) xml += '    <lastmod>' + entry.lastmod + '</lastmod>\n';
+    if (entry.image) {
+      xml += '    <image:image>\n'
+        + '      <image:loc>' + entry.image.loc + '</image:loc>\n'
+        + '      <image:title>' + entry.image.title.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</image:title>\n'
+        + '    </image:image>\n';
     }
+    xml += '  </url>\n';
   }
   xml += '</urlset>';
 
@@ -308,6 +298,13 @@ router.get('/sitemap.xml', (req, res) => {
 router.get('/robots.txt', (req, res) => {
   res.set('Content-Type', 'text/plain');
   res.send('User-agent: *\nAllow: /\nSitemap: https://photo.dimazvali.com/sitemap.xml\n');
+});
+
+// GET /{indexnow-key}.txt — IndexNow key verification
+var INDEX_NOW_KEY = process.env.INDEX_NOW_KEY || '3d8e3d1e2ccb44dab475e7949fc9fcc8';
+router.get('/' + INDEX_NOW_KEY + '.txt', (req, res) => {
+  res.set('Content-Type', 'text/plain');
+  res.send(INDEX_NOW_KEY);
 });
 
 // POST /subscribe
@@ -372,7 +369,13 @@ router.get('/shoot/:slug', async (req, res) => {
 
   requireShootAuth(shoot, slug, req, res, adminUser, function() {
     trackView('shoot', slug, req.path, req);
-    if (!adminUser) tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
+    if (!adminUser) {
+      var now = Date.now();
+      if (!shootNotifLastSent[slug] || now - shootNotifLastSent[slug] > 60 * 60 * 1000) {
+        shootNotifLastSent[slug] = now;
+        tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
+      }
+    }
     res.render('photo/gallery', {
       data: getData(),
       activeCountry: null,

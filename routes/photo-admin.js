@@ -14,6 +14,8 @@ var copyright = require('../lib/photo-copyright');
 var copyrightCheck = require('../lib/photo-copyright-check');
 var shoots = require('../lib/photo-shoots');
 
+var axios = require('axios');
+
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { getStorage } = require('firebase-admin/storage');
@@ -55,6 +57,28 @@ var upload = multer({
     cb(null, true);
   },
 });
+
+var SITEMAP_URL = 'https://photo.dimazvali.com/sitemap.xml';
+var INDEX_NOW_KEY = process.env.INDEX_NOW_KEY || '3d8e3d1e2ccb44dab475e7949fc9fcc8';
+
+function pingSitemaps() {
+  var targets = [
+    'https://www.google.com/ping?sitemap=' + encodeURIComponent(SITEMAP_URL),
+    'https://www.bing.com/ping?sitemap=' + encodeURIComponent(SITEMAP_URL),
+  ];
+  targets.forEach(function(url) {
+    axios.get(url, { timeout: 8000 }).catch(function(e) { console.error('[sitemap-ping]', e.message); });
+  });
+}
+
+function indexNowSubmit(urls) {
+  axios.post('https://api.indexnow.org/indexnow', {
+    host: 'photo.dimazvali.com',
+    key: INDEX_NOW_KEY,
+    keyLocation: 'https://photo.dimazvali.com/' + INDEX_NOW_KEY + '.txt',
+    urlList: Array.isArray(urls) ? urls : [urls],
+  }, { timeout: 8000 }).catch(function(e) { console.error('[indexnow]', e.message); });
+}
 
 function slugify(str) {
   var map = {
@@ -360,6 +384,8 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     if (colorFamily) photoEntry.colorFamily = colorFamily;
     data[country].series[series].photos.push(photoEntry);
     saveData(data);
+    pingSitemaps();
+    indexNowSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + id);
 
     // Auto-generate SEO desc+keywords async (fire-and-forget)
     (function() {
@@ -538,6 +564,8 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     if (shootShotAt) photoEntry.shotAt = shootShotAt;
 
     await shoots.addPhoto(slug, photoEntry);
+    pingSitemaps();
+    indexNowSubmit('https://photo.dimazvali.com/shoot/' + slug);
     res.redirect('/admin/shoots/' + slug + '/edit');
   } catch (err) {
     console.error('[shoots] upload error:', err);
@@ -1116,3 +1144,4 @@ async function checkAdminToken(req) {
 
 module.exports = router;
 module.exports.checkAdminToken = checkAdminToken;
+module.exports.indexNowSubmit = indexNowSubmit;
