@@ -637,6 +637,9 @@ body,
 .admin-sort-handle { cursor: grab; color: var(--text-dim); font-size: 1rem; flex-shrink: 0; line-height: 1; }
 .admin-sort-handle:active { cursor: grabbing; }
 .admin-sort-actions { display: flex; gap: 6px; margin-left: auto; }
+.admin-photo-inline-edit { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.admin-photo-inline-edit .admin-input { padding: 4px 8px; font-size: 0.6875rem; }
+.admin-photo-inline-edit .admin-btn--sm { align-self: flex-start; }
 
 /* ─── MOBILE ─────────────────────────────────────────────────── */
 

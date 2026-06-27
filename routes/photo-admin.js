@@ -541,6 +541,23 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
   }
 });
 
+router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { slug, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
+  if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
+  var { title, date, desc } = req.body;
+  try {
+    await shoots.updatePhoto(slug, id, {
+      title: (title || '').trim(),
+      date: (date || '').trim(),
+      desc: (desc || '').trim(),
+    });
+  } catch (e) {
+    console.error('[shoots] update photo error:', e);
+  }
+  res.redirect('/admin/shoots/' + slug + '/edit');
+});
+
 router.post('/shoots/:slug/photos/reorder', requireAuth, express.json(), async (req, res) => {
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ ok: false });
