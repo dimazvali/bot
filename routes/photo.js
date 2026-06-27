@@ -338,8 +338,12 @@ router.get('/unsubscribe', async (req, res) => {
 
 // ── Shoots ──────────────────────────────────────────────────────────────────
 
+function isAdmin(req) {
+  return !!(req.signedCookies && req.signedCookies.photoAdminToken);
+}
+
 function requireShootAuth(shoot, slug, req, res, next) {
-  if (!shoot.password) return next();
+  if (!shoot.password || isAdmin(req)) return next();
   var cookieKey = 'shoot_' + slug;
   if (req.signedCookies && req.signedCookies[cookieKey] === shootCookieToken(shoot.password, slug)) return next();
   return res.render('photo/shoot-password', {
@@ -365,7 +369,7 @@ router.get('/shoot/:slug', (req, res) => {
 
   requireShootAuth(shoot, slug, req, res, function() {
     trackView('shoot', slug, req.path, req);
-    tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
+    if (!isAdmin(req)) tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
     res.render('photo/gallery', {
       data: getData(),
       activeCountry: null,
