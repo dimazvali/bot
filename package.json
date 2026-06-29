@@ -11,6 +11,7 @@
     "@google-cloud/storage": "^7.10.0",
     "@ton/crypto": "^3.3.0",
     "@ton/ton": "^16.3.0",
+    "archiver": "^7.0.1",
     "axios": "^0.26.1",
     "barcode": "^0.1.0",
     "body-parser": "^1.20.2",

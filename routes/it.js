@@ -35,6 +35,31 @@ router.get('/', async function(req, res, next) {
   } catch (e) { next(e); }
 });
 
+router.get('/sitemap.xml', async function(req, res) {
+  var base = 'https://it.dimazvali.com';
+  try {
+    var projects = await itData.getProjects({ publishedOnly: true });
+    var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+      + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+      + '  <url><loc>' + base + '/</loc></url>\n';
+    for (var p of projects) {
+      if (p.slug && p.full) {
+        xml += '  <url><loc>' + base + '/' + p.slug + '</loc></url>\n';
+      }
+    }
+    xml += '</urlset>';
+    res.set('Content-Type', 'application/xml');
+    res.send(xml);
+  } catch (e) {
+    res.status(500).send('Error generating sitemap');
+  }
+});
+
+router.get('/robots.txt', function(req, res) {
+  res.set('Content-Type', 'text/plain');
+  res.send('User-agent: *\nAllow: /\nSitemap: https://it.dimazvali.com/sitemap.xml\n');
+});
+
 router.get('/:slug', async function(req, res, next) {
   try {
     var doc = await itData.getProjectBySlug(req.params.slug);

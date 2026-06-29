@@ -22,6 +22,8 @@ html(data-theme='dark')
     if breadcrumbs && breadcrumbs.length
       - var _ldItems = [{"@type":"ListItem","position":1,"name":"Главная","item":"https://photo.dimazvali.com/"}].concat(breadcrumbs.map(function(b,i){return{"@type":"ListItem","position":i+2,"name":b.name,"item":b.url};}))
       script(type='application/ld+json')!= JSON.stringify({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":_ldItems})
+    if googleClientId
+      meta(name='google-client-id' content=googleClientId)
     block head
     link(rel='icon' href='/images/photo/ds_georgian.ico')
     link(rel='stylesheet' href='/stylesheets/photo/style.css')
@@ -81,14 +83,16 @@ html(data-theme='dark')
             a(href='mailto:dimazvali@gmail.com') dimazvali@gmail.com
             a(href='https://t.me/dimazvali' target='_blank' rel='noopener') @dimazvali
             a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') @dimazvali2
-          if subStatus === 'ok'
-            p.subscribe-msg ✓ вы подписаны
-          else if subStatus === 'err'
-            p.subscribe-msg ✗ попробуйте снова
+          if photoUser && photoUser.subscribed
+            p.subscribe-msg ✓ вы подписаны (почта)
+            button.subscribe-unsub#unsubscribe-google-btn(type='button') отписаться
           else
-            form.subscribe-form(method='POST' action='/subscribe')
-              input.subscribe-input(type='email' name='email' placeholder='подписка на новые фото' required)
-              button.subscribe-btn(type='submit') →
+            .subscribe-wrap
+              p.subscribe-msg#subscribe-msg(style='display:none')
+              button.subscribe-toggle#subscribe-toggle(type='button') подписаться →
+              .subscribe-popup#subscribe-popup(style='display:none')
+                button.subscribe-option#subscribe-email-btn(type='button') по почте
+                a.subscribe-option(href='https://t.me/dimazvalibot?start=photo_sub' target='_blank' rel='noopener') в телеграм
           .sidebar-footer-bottom
             //- a(href='/about') О СЕБЕ
             button.theme-toggle(onclick='toggleTheme()' title='Переключить тему') ◐
@@ -96,3 +100,6 @@ html(data-theme='dark')
       main.main
         block content
     script(src='/javascripts/photo/main.js')
+    if googleClientId
+      script(src='https://accounts.google.com/gsi/client' async defer)
+      script(src='/javascripts/photo/subscribe.js' defer)

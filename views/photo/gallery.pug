@@ -6,6 +6,7 @@ block content
     if isShoot
       span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} фото
       .gallery-header-right
+        a.gallery-download(href=`/shoot/${shootSlug}/download`) ↓ СКАЧАТЬ
         button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
     else if activeCountry && activeSeries
       - const country = data[activeCountry]

@@ -13,6 +13,8 @@ var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
 var copyrightCheck = require('../lib/photo-copyright-check');
 var shoots = require('../lib/photo-shoots');
+var photoUsers = require('../lib/photo-users');
+var tgNotifier = require('../lib/photo-tg-notifier');
 
 var axios = require('axios');
 
@@ -44,6 +46,7 @@ initFromFirestore(fb).catch(console.error);
 initTagsFromFirestore(fb).catch(console.error);
 photoStats.init(fb);
 subscriptions.init(fb);
+photoUsers.init(fb);
 mailer.init();
 copyright.init(fb);
 shoots.initFromFirestore(fb).catch(console.error);
@@ -406,6 +409,8 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
       countryKey: country,
       seriesKey: series,
     }).catch(err => console.error('[mailer] notification error:', err.message));
+
+    tgNotifier.queue(photoEntry, country, series);
 
     res.redirect(`/admin/${country}/${series}/upload`);
   } catch (err) {
@@ -1005,7 +1010,7 @@ router.get('/copyright', requireAuth, async (req, res) => {
 });
 
 router.post('/copyright/run', requireAuth, (req, res) => {
-  var started = copyrightCheck.run(fb, getData(), process.env.PHOTO_ENV || 'dev');
+  var started = copyrightCheck.run(fb, getData(), process.env.PHOTO_ENV || 'dev', shoots.getData());
   res.json({ ok: true, started });
 });
 
@@ -1140,3 +1145,4 @@ async function checkAdminToken(req) {
 module.exports = router;
 module.exports.checkAdminToken = checkAdminToken;
 module.exports.indexNowSubmit = indexNowSubmit;
+module.exports.bucket = bucket;

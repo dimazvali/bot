@@ -153,6 +153,16 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 }
 .gallery-shuffle:hover { color: var(--text); }
 
+.gallery-download {
+  font-size: 0.5625rem;
+  letter-spacing: 2px;
+  font-family: monospace;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.gallery-download:hover { color: var(--text); }
+
 .gallery-header-right { display: flex; align-items: center; gap: 12px; }
 
 .photo-page-back { display: flex; align-items: center; justify-content: space-between; }
@@ -388,6 +398,71 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 }
 .about-submit:hover { color: var(--text); border-color: var(--text-dim); }
 
+.subscribe-wrap { position: relative; }
+.subscribe-toggle {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.5625rem;
+  letter-spacing: 1px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.subscribe-toggle:hover { color: var(--text); border-color: var(--text-dim); }
+.subscribe-popup {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  background: var(--bg-card, #1a1a1a);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 120px;
+  z-index: 10;
+}
+.subscribe-option {
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.5625rem;
+  letter-spacing: 1px;
+  padding: 7px 12px;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: color 0.15s, background 0.15s;
+}
+.subscribe-option:last-child { border-bottom: none; }
+.subscribe-option:hover { color: var(--text); background: var(--border); }
+.subscribe-google-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: monospace;
+  font-size: 0.5625rem;
+  letter-spacing: 1px;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.subscribe-google-btn:hover { color: var(--text); border-color: var(--text-dim); }
+.subscribe-google-btn:disabled { opacity: 0.5; cursor: default; }
+.subscribe-unsub {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-dim);
+  font-family: monospace;
+  font-size: 0.5rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+.subscribe-unsub:hover { color: var(--text-muted); }
 .subscribe-form { display: flex; gap: 0; }
 .subscribe-input {
   flex: 1;

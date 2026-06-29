@@ -7,8 +7,11 @@ var { getTags } = require('../lib/photo-tags');
 var { trackView } = require('../lib/photo-stats');
 var { COLOR_FAMILIES } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
+var photoUsers = require('../lib/photo-users');
+var { OAuth2Client } = require('google-auth-library');
 var { buildPageKeywords, BASE_KEYWORDS } = require('../lib/photo-seo');
 var crypto = require('crypto');
+var archiver = require('archiver');
 var shoots = require('../lib/photo-shoots');
 
 function shootCookieToken(password, slug) {
@@ -322,26 +325,49 @@ router.get('/' + INDEX_NOW_KEY + '.txt', (req, res) => {
   res.send(INDEX_NOW_KEY);
 });
 
-// POST /subscribe
-router.post('/subscribe', express.urlencoded({ extended: false }), async (req, res) => {
-  var email = (req.body.email || '').trim().toLowerCase();
-  var back = req.headers.referer || '/';
-  var sep = back.includes('?') ? '&' : '?';
-  if (!email || !email.includes('@')) return res.redirect(back + sep + 'sub=err');
+// POST /subscribe/google
+var _googleClient = null;
+function getGoogleClient() {
+  if (!_googleClient) _googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  return _googleClient;
+}
+
+router.post('/subscribe/google', express.json(), async (req, res) => {
+  var credential = req.body && req.body.credential;
+  if (!credential) return res.status(400).json({ ok: false });
   try {
-    await subscriptions.subscribe(email);
-    res.redirect(back + sep + 'sub=ok');
+    var ticket = await getGoogleClient().verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
+    var payload = ticket.getPayload();
+    var user = { googleId: payload.sub, email: payload.email, name: payload.name, picture: payload.picture, subscribed: true };
+    await photoUsers.upsertSubscriber(user);
+    res.cookie('photoUser', JSON.stringify(user), { signed: true, httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
+    res.json({ ok: true });
   } catch (e) {
-    console.error('[subscribe]', e);
-    res.redirect(back + sep + 'sub=err');
+    console.error('[subscribe/google]', e.message);
+    res.status(401).json({ ok: false });
   }
+});
+
+// POST /unsubscribe/google
+router.post('/unsubscribe/google', async (req, res) => {
+  var user = res.locals.photoUser;
+  if (user && user.googleId) {
+    await photoUsers.unsubscribe(user.googleId).catch(() => {});
+    var updated = Object.assign({}, user, { subscribed: false });
+    res.cookie('photoUser', JSON.stringify(updated), { signed: true, httpOnly: true, maxAge: 30 * 24 * 60 * 60 * 1000 });
+  }
+  res.json({ ok: true });
 });
 
 // GET /unsubscribe
 router.get('/unsubscribe', async (req, res) => {
   var { token } = req.query;
   var ok = false;
-  if (token) ok = await subscriptions.unsubscribe(token).catch(() => false);
+  if (token) {
+    var r1 = await subscriptions.unsubscribe(token).catch(() => false);
+    var r2 = await photoUsers.unsubscribeByToken(token).catch(() => false);
+    ok = r1 || r2;
+  }
   res.render('photo/unsubscribe', {
     title: 'Отписка — photo.dimazvali.com',
     ok,
@@ -408,6 +434,40 @@ router.get('/shoot/:slug', async (req, res) => {
       noindex: !!shoot.password,
       breadcrumbs: null,
     });
+  });
+});
+
+// GET /shoot/:slug/download — скачать архив всех фото (до /:id чтобы не перехватило)
+router.get('/shoot/:slug/download', async (req, res) => {
+  var { slug } = req.params;
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).send('Not found');
+  var adminUser = await isAdmin(req);
+
+  requireShootAuth(shoot, slug, req, res, adminUser, function() {
+    var photos = shoot.photos.filter(function(p) { return p && p.id; });
+    if (!photos.length) return res.status(404).send('No photos');
+
+    var bucket = photoAdmin.bucket;
+    var filename = slug + '.zip';
+    res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
+    res.setHeader('Content-Type', 'application/zip');
+
+    var archive = archiver('zip', { store: true });
+    archive.on('error', function(err) {
+      console.error('[shoot/download] archiver error:', err);
+      if (!res.headersSent) res.status(500).send('Archive error');
+    });
+    archive.pipe(res);
+
+    photos.forEach(function(photo) {
+      var filePath = 'shoots/' + slug + '/' + photo.id + '-2400.webp';
+      var entryName = (photo.title ? photo.title.replace(/[/\\?%*:|"<>]/g, '_') : photo.id) + '.webp';
+      var stream = bucket.file(filePath).createReadStream();
+      archive.append(stream, { name: entryName });
+    });
+
+    archive.finalize();
   });
 });
 

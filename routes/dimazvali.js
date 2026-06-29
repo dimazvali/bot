@@ -67,6 +67,7 @@ const {
 const {
     ObjectStreamToJSON
 } = require('sitemap');
+
 const { texts } = require('./dimazvaliTexts.js');
 
 let gcp = initializeApp({
@@ -87,6 +88,9 @@ let gcp = initializeApp({
 
 let fb = getFirestore(gcp);
 let s = getStorage(gcp)
+
+var photoTgNotifier = require('../lib/photo-tg-notifier');
+photoTgNotifier.init(fb, token);
 
 function picUrl(pic) {
   if (!pic) return null;
@@ -503,7 +507,10 @@ router.post(`/hook`, (req, res) => {
 
         if (msg.text && uid) {
             let text = msg.text.trim();
-            if (text === `/start` || text === `/tours`) {
+            if (text === `/start photo_sub`) {
+                udb.doc(uid.toString()).set({ photoSubscribed: true }, { merge: true });
+                sendMessage2({ chat_id: uid, text: `✓ Вы подписаны на новые фото` }, false, token, messages);
+            } else if (text === `/start` || text === `/tours`) {
                 sendTours(uid);
             } else {
                 messages.add({
