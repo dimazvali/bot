@@ -343,11 +343,12 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     var existingIds = data[country].series[series].photos.map(p => p.id);
     var id = uniqueId(slugify((title && title.trim()) || baseName), existingIds);
 
-    var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
+    var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
       extractColorFamily(req.file.buffer),
+      sharp(req.file.buffer).metadata(),
     ]);
 
     var path400 = `${country}/${series}/${id}-400.webp`;
@@ -368,6 +369,8 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
       desc: desc || '',
       type: photoType,
       createdAt: new Date().toISOString().slice(0, 10),
+      width: imgMeta.width,
+      height: imgMeta.height,
       urls: {
         thumb: `${base}/${path400}`,
         preview: `${base}/${path800}`,
@@ -528,11 +531,12 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     var existingIds = shoot.photos.map(function(p) { return p.id; });
     var id = uniqueId(slugify((title && title.trim()) || baseName), existingIds);
 
-    var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
+    var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
       extractColorFamily(req.file.buffer),
+      sharp(req.file.buffer).metadata(),
     ]);
 
     var p400  = 'shoots/' + slug + '/' + id + '-400.webp';
@@ -553,6 +557,8 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
       desc: desc || '',
       type: shootType,
       createdAt: new Date().toISOString().slice(0, 10),
+      width: imgMeta.width,
+      height: imgMeta.height,
       urls: {
         thumb:   base + '/' + p400,
         preview: base + '/' + p800,
@@ -957,11 +963,12 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   photo.type = photoType;
   try {
     if (req.file) {
-      var [buf400, buf800, buf2400, colorFamily] = await Promise.all([
+      var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
         sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
         sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
         sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
         extractColorFamily(req.file.buffer),
+        sharp(req.file.buffer).metadata(),
       ]);
       var path400 = `${country}/${seriesKey}/${id}-400.webp`;
       var path800 = `${country}/${seriesKey}/${id}-800.webp`;
@@ -973,6 +980,8 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
       ]);
       var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
       photo.urls = { thumb: `${base}/${path400}`, preview: `${base}/${path800}`, full: `${base}/${path2400}` };
+      photo.width = imgMeta.width;
+      photo.height = imgMeta.height;
       if (colorFamily) photo.colorFamily = colorFamily;
     }
     saveData(data);

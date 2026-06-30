@@ -15,6 +15,9 @@ block head
         creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: 'https://photo.dimazvali.com/about' },
         copyrightHolder: { '@type': 'Person', name: 'Dmitry Shestakov' },
         copyrightYear: photo.date ? photo.date.match(/\d{4}/) && photo.date.match(/\d{4}/)[0] : null,
+        copyrightNotice: '© Dmitry Shestakov. All rights reserved.',
+        creditText: 'Dmitry Shestakov / photo.dimazvali.com',
+        license: 'https://photo.dimazvali.com/about',
         acquireLicensePage: 'https://photo.dimazvali.com/' + countryKey + '/' + seriesKey + '/' + photo.id + '?inquiry=license',
       }
       if (photo.desc) _ld.description = photo.desc

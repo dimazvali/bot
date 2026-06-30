@@ -49,6 +49,7 @@ block content
           sizes=photo.urls ? '(max-width: 640px) calc(50vw - 12px), 400px' : undefined
           alt=photo.title
           loading='lazy'
+          style=photo.width && photo.height ? `aspect-ratio:${photo.width}/${photo.height}` : undefined
           onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
         )
         .photo-overlay

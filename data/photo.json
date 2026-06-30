@@ -1,13 +1,4 @@
 {
-  "cyprus": {
-    "label": "Кипр",
-    "archived": true,
-    "series": {}
-  },
-  "food": {
-    "label": "food and drinks",
-    "series": {}
-  },
   "georgia": {
     "label": "Грузия",
     "seriesOrder": [
@@ -32,7 +23,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182322-174-1773325565022-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182322-174-1773325565022-photo-optimized-2400.webp"
             },
-            "colorFamily": "teal"
+            "colorFamily": "teal",
+            "width": 800,
+            "height": 450
           },
           {
             "id": "dji-fly-20260311-181456-64-1773238727064-photo-optimized",
@@ -43,7 +36,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181456-64-1773238727064-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181456-64-1773238727064-photo-optimized-2400.webp"
             },
-            "colorFamily": "teal"
+            "colorFamily": "teal",
+            "width": 800,
+            "height": 450
           },
           {
             "id": "dji-fly-20260312-174722-156-1773323498033-photo-optimized",
@@ -54,28 +49,85 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-174722-156-1773323498033-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-174722-156-1773323498033-photo-optimized-2400.webp"
             },
-            "colorFamily": "blue"
+            "colorFamily": "blue",
+            "width": 800,
+            "height": 450
+          },
+          {
+            "id": "dji-fly-20260311-181226-58-1773238684554-photo-optimized",
+            "title": "Межсезонье",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181226-58-1773238684554-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181226-58-1773238684554-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260311-181226-58-1773238684554-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "dji-fly-20260312-182116-170-1773325348393-photo-optimized",
+            "title": "Batumi Tower",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182116-170-1773325348393-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182116-170-1773325348393-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182116-170-1773325348393-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 533
+          },
+          {
+            "id": "dji-fly-20260312-182638-198-1773325718831-photo-optimized",
+            "title": "Медея 2",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182638-198-1773325718831-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182638-198-1773325718831-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-182638-198-1773325718831-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 534
+          },
+          {
+            "id": "dji-fly-20260312-165320-88-1773320298089-photo-optimized",
+            "title": "Колесо обзрения в Батуми",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-165320-88-1773320298089-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-165320-88-1773320298089-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-165320-88-1773320298089-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20260312-165900-120-1773320712131-photo-optimized",
+            "title": "Колесо обозрения",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-165900-120-1773320712131-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-165900-120-1773320712131-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/batumi/dji-fly-20260312-165900-120-1773320712131-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 225
           }
         ]
       },
       "hevsureti": {
         "label": "Хевсуретия",
         "photos": [
-          {
-            "id": "dji-fly-20250823-172348-552-1755955496471-photo-optimized",
-            "title": "Деревня кистани",
-            "date": "Август 2025",
-            "desc": "Дорога в Шатили",
-            "urls": {
-              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-172348-552-1755955496471-photo-optimized-800.webp",
-              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-172348-552-1755955496471-photo-optimized-2400.webp"
-            },
-            "coords": {
-              "lat": 42.549444,
-              "lng": 45.078992
-            },
-            "colorFamily": "mono"
-          },
           {
             "id": "dji-fly-20250823-173544-554-1755956274563-photo-optimized",
             "title": "Крепость Кистани",
@@ -89,14 +141,192 @@
               "lat": 42.561933,
               "lng": 45.083325
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 533
+          },
+          {
+            "id": "dji-fly-20250823-172348-552-1755955496471-photo-optimized",
+            "title": "Деревня кистани",
+            "date": "Август 2025",
+            "desc": "Дорога в Шатили",
+            "urls": {
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-172348-552-1755955496471-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-172348-552-1755955496471-photo-optimized-2400.webp"
+            },
+            "coords": {
+              "lat": 42.549444,
+              "lng": 45.078992
+            },
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 533
+          },
+          {
+            "id": "dji-fly-20250823-172204-549-1755955403803-photo-optimized",
+            "title": "Кистани",
+            "date": "Август 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-172204-549-1755955403803-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-172204-549-1755955403803-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250823-172204-549-1755955403803-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "mountains"
+            ],
+            "coords": {
+              "lat": 42.549561,
+              "lng": 45.079253
+            },
+            "altitude": 2270,
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 266
+          },
+          {
+            "id": "dji-fly-20250824-161102-610-1756038008807-photo-optimized",
+            "title": "Кистани",
+            "date": "Август 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250824-161102-610-1756038008807-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250824-161102-610-1756038008807-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/hevsureti/dji-fly-20250824-161102-610-1756038008807-photo-optimized-2400.webp"
+            },
+            "coords": {
+              "lat": 42.664197,
+              "lng": 45.185617
+            },
+            "altitude": 1450,
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 711
           }
         ]
       },
       "kutaisi": {
         "label": "Кутаиси",
-        "archived": true,
-        "photos": []
+        "photos": [
+          {
+            "id": "dji-fly-20260105-161616-573-1767615386037-photo-optimized",
+            "title": "Риони у белого моста",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-161616-573-1767615386037-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-161616-573-1767615386037-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-161616-573-1767615386037-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter"
+            ],
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20260105-165908-578-1767617958055-photo-optimized",
+            "title": "Вид на Риони за дамбой",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-165908-578-1767617958055-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-165908-578-1767617958055-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-165908-578-1767617958055-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter"
+            ],
+            "colorFamily": "blue",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20260105-173526-628-1767620140205-photo-optimized",
+            "title": "Церковь Мцванеквавила",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-173526-628-1767620140205-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-173526-628-1767620140205-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-173526-628-1767620140205-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter"
+            ],
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 266
+          },
+          {
+            "id": "dji-fly-20260105-172800-603-1767619762741-photo-optimized",
+            "title": "Кутаиси под снегом",
+            "date": "Январь 2026",
+            "desc": "Старый еврейский квартал.",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-172800-603-1767619762741-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-172800-603-1767619762741-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-172800-603-1767619762741-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter"
+            ],
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 500
+          },
+          {
+            "id": "dji-fly-20260105-172954-611-1767619870234-photo-optimized",
+            "title": "Мцванеквавила под снегом",
+            "date": "",
+            "desc": "Январь 2026",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-172954-611-1767619870234-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-172954-611-1767619870234-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260105-172954-611-1767619870234-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter"
+            ],
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 500
+          },
+          {
+            "id": "dji-fly-20250831-173848-758-1756676228397-photo-optimized",
+            "title": "Риони у белого моста",
+            "date": "Август 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20250831-173848-758-1756676228397-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20250831-173848-758-1756676228397-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20250831-173848-758-1756676228397-photo-optimized-2400.webp"
+            },
+            "coords": {
+              "lat": 42.269528,
+              "lng": 42.700472
+            },
+            "altitude": 200,
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20260106-123628-665-1767688941873-photo-optimized",
+            "title": "Кутаиси перед закатом",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260106-123628-665-1767688941873-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260106-123628-665-1767688941873-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/kutaisi/dji-fly-20260106-123628-665-1767688941873-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 225
+          }
+        ]
       },
       "mtsheta": {
         "label": "Мцхета",
@@ -113,7 +343,57 @@
             "tags": [
               "winter"
             ],
-            "colorFamily": "teal"
+            "colorFamily": "teal",
+            "width": 800,
+            "height": 500
+          },
+          {
+            "id": "dji-fly-20260124-152616-907-1769254150677-photo-optimized",
+            "title": "Арагви зимой",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-152616-907-1769254150677-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-152616-907-1769254150677-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-152616-907-1769254150677-photo-optimized-2400.webp"
+            },
+            "colorFamily": "yellow",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "dji-fly-20260124-154416-920-1769255141104-photo-optimized",
+            "title": "Джвари от Арагви",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-154416-920-1769255141104-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-154416-920-1769255141104-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-154416-920-1769255141104-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter"
+            ],
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "dji-fly-20260124-152416-901-1769254115803-photo-optimized",
+            "title": "Светицховели в рекурсии",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-152416-901-1769254115803-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-152416-901-1769254115803-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/mtsheta/dji-fly-20260124-152416-901-1769254115803-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter"
+            ],
+            "colorFamily": "orange",
+            "width": 400,
+            "height": 500
           }
         ]
       },
@@ -129,7 +409,28 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-fly-20260510-172130-503-1778419845999-photo-optimized-2400.webp"
             },
-            "colorFamily": "green"
+            "colorFamily": "green",
+            "width": 800,
+            "height": 600
+          },
+          {
+            "id": "dji-0473",
+            "title": "Панкисское ущелье",
+            "date": "Май 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-0473-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-0473-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/pankisi/dji-0473-2400.webp"
+            },
+            "coords": {
+              "lat": 42.133739,
+              "lng": 45.294039
+            },
+            "altitude": 709,
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 300
           }
         ]
       },
@@ -145,7 +446,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0610-2400.webp"
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 600
           },
           {
             "id": "dji-0573",
@@ -156,7 +459,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/samegrelo/dji-0573-2400.webp"
             },
-            "colorFamily": "teal"
+            "colorFamily": "teal",
+            "width": 800,
+            "height": 500
           },
           {
             "id": "dji-0624",
@@ -171,7 +476,9 @@
               "lat": 42.491987,
               "lng": 42.42731
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 600
           },
           {
             "id": "dji-0617",
@@ -186,7 +493,9 @@
               "lat": 42.49188,
               "lng": 42.42784
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 600
           },
           {
             "id": "dji-0616-2",
@@ -201,7 +510,9 @@
               "lat": 42.491919,
               "lng": 42.427769
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 600
           }
         ]
       },
@@ -224,12 +535,20 @@
             "colorFamily": "mono",
             "annotations": [
               {
-                "id": "1781264811479",
-                "x": 38.43,
-                "y": 44.44,
-                "text": "дядька нра коне"
+                "id": "1781271882994",
+                "x": 60.1,
+                "y": 69.17,
+                "text": "Опоры старого моста (исторически в этом месте их было аж два под небольшим углом друг к другу)"
+              },
+              {
+                "id": "1781271894702",
+                "x": 63.44,
+                "y": 85.28,
+                "text": "Фундамент караван-сарая."
               }
-            ]
+            ],
+            "width": 800,
+            "height": 600
           },
           {
             "id": "2",
@@ -241,7 +560,17 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/2-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/2-2400.webp"
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "annotations": [
+              {
+                "id": "1781272006160",
+                "x": 74.69,
+                "y": 52.22,
+                "text": "Здесь виден водсброс ручья, по которому ущелье в Абанотубани когда-то называли прачечным."
+              }
+            ],
+            "width": 800,
+            "height": 600
           },
           {
             "id": "3",
@@ -253,7 +582,12 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/3-2400.webp"
             },
-            "colorFamily": "blue"
+            "colorFamily": "blue",
+            "tags": [
+              "peacebridge"
+            ],
+            "width": 800,
+            "height": 1422
           },
           {
             "id": "4",
@@ -268,14 +602,16 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/4-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/4-2400.webp"
             },
-            "colorFamily": "blue"
+            "colorFamily": "blue",
+            "width": 800,
+            "height": 450
           },
           {
             "id": "5",
             "file": "5.jpg",
             "title": "Снежные Хроники Грузии",
             "date": "Март 2026",
-            "desc": "Вид с воздуха на заснеженный Тбилиси в марте. Зимняя архитектура грузинской столицы, контрастные крыши и горные пейзажи",
+            "desc": "Вид на монументальнейший монумент Зураба Церетели и Тбилисское море.",
             "tags": [
               "winter",
               "chronicles"
@@ -285,7 +621,8 @@
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/5-2400.webp"
             },
             "colorFamily": "teal",
-            "seo_keywords": "aerial photography Грузия, Тбилиси с воздуха, зимний Тбилиси, drone footage Georgia, снежные хроники, грузинская архитектура, winter landscape, aerial view города"
+            "width": 800,
+            "height": 450
           },
           {
             "id": "6",
@@ -300,7 +637,17 @@
             "tags": [
               "tbilisea"
             ],
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "annotations": [
+              {
+                "id": "1781272168524",
+                "x": 51.56,
+                "y": 61.48,
+                "text": "Где-то тут находится аэропорт Шота Руставели, так что заходящие на посадку летчики любуются видом в ущерб дроноводам."
+              }
+            ],
+            "width": 800,
+            "height": 450
           },
           {
             "id": "7",
@@ -315,7 +662,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/7-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/7-2400.webp"
             },
-            "colorFamily": "teal"
+            "colorFamily": "teal",
+            "width": 800,
+            "height": 600
           },
           {
             "id": "8",
@@ -330,7 +679,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/8-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/8-2400.webp"
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 600
           },
           {
             "id": "9",
@@ -345,7 +696,9 @@
             "tags": [
               "sameba"
             ],
-            "colorFamily": "orange"
+            "colorFamily": "orange",
+            "width": 800,
+            "height": 1067
           },
           {
             "id": "10",
@@ -361,7 +714,8 @@
               "cablecars"
             ],
             "colorFamily": "teal",
-            "type": "camera"
+            "width": 800,
+            "height": 450
           },
           {
             "id": "dji-fly-20251004-172428-35-1759584293867-photo-optimized",
@@ -372,7 +726,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20251004-172428-35-1759584293867-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20251004-172428-35-1759584293867-photo-optimized-2400.webp"
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 1422
           },
           {
             "id": "temp-image-for-default-share-png",
@@ -387,7 +743,9 @@
               "lat": 41.69049,
               "lng": 44.81127166666667
             },
-            "colorFamily": "yellow"
+            "colorFamily": "yellow",
+            "width": 800,
+            "height": 600
           },
           {
             "id": "dji-fly-20250803-191336-310-1754234028934-photo-optimized",
@@ -402,13 +760,15 @@
               "lat": 41.640878,
               "lng": 44.690844
             },
-            "colorFamily": "teal"
+            "colorFamily": "teal",
+            "width": 800,
+            "height": 450
           },
           {
             "id": "dji-fly-20260307-163208-945-1772886838874-photo-optimized",
             "title": "Яхта на Тбилисском море",
             "date": "Март 2026",
-            "desc": "Аэрофотография яхты на Тбилисском море. Вид сверху на водную гладь близ Тбилиси, Грузия. Март 2026.",
+            "desc": "",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-163208-945-1772886838874-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-163208-945-1772886838874-photo-optimized-2400.webp"
@@ -417,7 +777,8 @@
               "tbilisea"
             ],
             "colorFamily": "mono",
-            "seo_keywords": "яхта Тбилисское море, aerial photography Грузия, drone shot Tbilisi, Тбилиси с дрона, водная съемка, yacht photography, Грузия аэрофото"
+            "width": 800,
+            "height": 600
           },
           {
             "id": "dji-fly-20260307-162332-912-1772886365129-photo-optimized",
@@ -431,7 +792,9 @@
             "tags": [
               "tbilisea"
             ],
-            "colorFamily": "green"
+            "colorFamily": "green",
+            "width": 800,
+            "height": 800
           },
           {
             "id": "dji-fly-20260211-113620-286-1770795437065-photo-optimized",
@@ -446,13 +809,15 @@
               "winter",
               "sameba"
             ],
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 450
           },
           {
             "id": "dji-fly-20260213-034524-416-1770940053802-photo-optimized",
             "title": "Мать грузия и телебашня",
             "date": "Февраль 2026",
-            "desc": "Аэрофото памятника Мать Грузия и телебашни Тбилиси ночью. Февраль 2026",
+            "desc": "Мать Грузия хоть и с мечом, но всегда улыбается.",
             "urls": {
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260213-034524-416-1770940053802-photo-optimized-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260213-034524-416-1770940053802-photo-optimized-2400.webp"
@@ -461,11 +826,12 @@
               "night"
             ],
             "colorFamily": "teal",
-            "seo_keywords": "Тбилиси аэрофото, Мать Грузия, телебашня, aerial photography Tbilisi, ночной город Грузия, памятник с воздуха, Georgia drone"
+            "width": 800,
+            "height": 1000
           },
           {
             "id": "3c9f8124-60fd-4aac-8d20-5a23f5a0ff76",
-            "title": "Стадион имени Бориса Панчадзе",
+            "title": "Стадион имени Бориса Паичадзе",
             "date": "Сентябрь 2025",
             "desc": "Хороший был футбол.",
             "urls": {
@@ -475,7 +841,659 @@
             "tags": [
               "night"
             ],
-            "colorFamily": "teal"
+            "colorFamily": "teal",
+            "width": 800,
+            "height": 640
+          },
+          {
+            "id": "dji-fly-20250906-134542-935-1757152270258-photo-optimized",
+            "title": "Теннисные корты",
+            "date": "Сентябрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250906-134542-935-1757152270258-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250906-134542-935-1757152270258-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250906-134542-935-1757152270258-photo-optimized-2400.webp"
+            },
+            "coords": {
+              "lat": 41.718175,
+              "lng": 44.797314
+            },
+            "altitude": 451,
+            "colorFamily": "purple",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "dji-fly-20250906-185526-967-1757171925648-photo-optimized",
+            "title": "Хроники Грузии изнутри",
+            "date": "Сентябрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250906-185526-967-1757171925648-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250906-185526-967-1757171925648-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20250906-185526-967-1757171925648-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "chronicles"
+            ],
+            "coords": {
+              "lat": 41.770583,
+              "lng": 44.810419
+            },
+            "altitude": 664,
+            "colorFamily": "green",
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "dji-fly-20260130-011548-62-1769721379569-photo-optimized",
+            "title": "Марджанишвили",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260130-011548-62-1769721379569-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260130-011548-62-1769721379569-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260130-011548-62-1769721379569-photo-optimized-2400.webp"
+            },
+            "colorFamily": "green",
+            "width": 400,
+            "height": 500
+          },
+          {
+            "id": "dji-fly-20260127-204202-973-1769532223386-photo-optimized-2",
+            "title": "Radisson at night",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260127-204202-973-1769532223386-photo-optimized-2-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260127-204202-973-1769532223386-photo-optimized-2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260127-204202-973-1769532223386-photo-optimized-2-2400.webp"
+            },
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20260228-145344-665-1772276664019-photo-optimized",
+            "title": "Парк Ваке",
+            "date": "Февраль 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145344-665-1772276664019-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145344-665-1772276664019-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145344-665-1772276664019-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter",
+              "vake"
+            ],
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 500
+          },
+          {
+            "id": "dji-fly-20260228-145454-667-1772276677270-photo-optimized",
+            "title": "Парк Ваке 2",
+            "date": "Февраль 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145454-667-1772276677270-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145454-667-1772276677270-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145454-667-1772276677270-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter",
+              "vake"
+            ],
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 712
+          },
+          {
+            "id": "dji-fly-20260228-145612-671-1772276719537-photo-optimized",
+            "title": "Статуя победы",
+            "date": "Февраль 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145612-671-1772276719537-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145612-671-1772276719537-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145612-671-1772276719537-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter",
+              "vake"
+            ],
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "dji-fly-20260228-145714-674-1772276725437-photo-optimized",
+            "title": "Стадион Месхи",
+            "date": "Февраль 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145714-674-1772276725437-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145714-674-1772276725437-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260228-145714-674-1772276725437-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "winter",
+              "vake"
+            ],
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20260304-212114-824-1772645058372-photo-optimized",
+            "title": "Набережная ста тысяч мучеников",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260304-212114-824-1772645058372-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260304-212114-824-1772645058372-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260304-212114-824-1772645058372-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "night"
+            ],
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "dji-fly-20260307-162840-934-1772886727496-photo-optimized",
+            "title": "У зеленого моря",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-162840-934-1772886727496-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-162840-934-1772886727496-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260307-162840-934-1772886727496-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "tbilisea"
+            ],
+            "colorFamily": "yellow",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "dji-fly-20260130-194540-104-1769787994561-photo-optimized",
+            "title": "Площадь героев",
+            "date": "Январь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260130-194540-104-1769787994561-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260130-194540-104-1769787994561-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260130-194540-104-1769787994561-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "night"
+            ],
+            "colorFamily": "green",
+            "instagram": "https://www.instagram.com/p/DUJGt9BDHkn",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20260221-223356-612-1771699171280-photo-optimized",
+            "title": "Проспект Меликишвили",
+            "date": "Февраль 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260221-223356-612-1771699171280-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260221-223356-612-1771699171280-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/dji-fly-20260221-223356-612-1771699171280-photo-optimized-2400.webp"
+            },
+            "tags": [
+              "night"
+            ],
+            "colorFamily": "green",
+            "width": 400,
+            "height": 534
+          },
+          {
+            "id": "img-1549-3",
+            "title": "Вид на Бетлеми от парка Рике",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1549-3-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1549-3-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1549-3-2400.webp"
+            },
+            "tags": [
+              "night"
+            ],
+            "instagram": "https://www.instagram.com/p/DWPRJx7DjsD",
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "img-1556-hdr",
+            "title": "Бетлеми ночью",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1556-hdr-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1556-hdr-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1556-hdr-2400.webp"
+            },
+            "tags": [
+              "night"
+            ],
+            "instagram": "https://www.instagram.com/p/DWPRJx7DjsD",
+            "colorFamily": "red",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-3764-hdr",
+            "title": "Мост мира ночью",
+            "date": "Март 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-3764-hdr-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-3764-hdr-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-3764-hdr-2400.webp"
+            },
+            "colorFamily": "mono",
+            "tags": [
+              "peacebridge"
+            ],
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "img-1541",
+            "title": "Мост мира",
+            "date": "Июнь 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1541-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1541-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/georgia/tbilisi/img-1541-2400.webp"
+            },
+            "tags": [
+              "peacebridge"
+            ],
+            "colorFamily": "yellow",
+            "type": "camera",
+            "width": 400,
+            "height": 225
+          }
+        ]
+      }
+    }
+  },
+  "horeca": {
+    "label": "food and drinks",
+    "seriesOrder": [
+      "pelamushi",
+      "misc"
+    ],
+    "series": {
+      "misc": {
+        "label": "misc",
+        "photos": [
+          {
+            "id": "img-9648",
+            "title": "IMG_9648",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9648-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9648-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9648-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-9615",
+            "title": "IMG_9615",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9615-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9615-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9615-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-9687",
+            "title": "IMG_9687",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9687-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9687-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9687-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-9704",
+            "title": "IMG_9704",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9704-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9704-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-9704-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "mg-7940",
+            "title": "_MG_7940",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/mg-7940-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/mg-7940-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/mg-7940-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-3093",
+            "title": "IMG_3093",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-3093-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-3093-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-3093-2400.webp"
+            },
+            "colorFamily": "red",
+            "type": "camera",
+            "width": 400,
+            "height": 712
+          },
+          {
+            "id": "img-3113",
+            "title": "IMG_3113",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-3113-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-3113-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/misc/img-3113-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 711
+          }
+        ]
+      },
+      "pelamushi": {
+        "label": "pelamushi.ge",
+        "photos": [
+          {
+            "id": "img-0149",
+            "title": "IMG_0149",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-0149-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-0149-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-0149-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-3269",
+            "title": "IMG_3269",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3269-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3269-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3269-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "tags": [
+              "cocktails"
+            ],
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-3220",
+            "title": "IMG_3220",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3220-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3220-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3220-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "tags": [
+              "cocktails"
+            ],
+            "width": 400,
+            "height": 712
+          },
+          {
+            "id": "img-3353",
+            "title": "IMG_3353",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3353-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3353-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3353-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "tags": [
+              "cocktails"
+            ],
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-1038",
+            "title": "IMG_1038",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1038-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1038-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1038-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-1217",
+            "title": "IMG_1217",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1217-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1217-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1217-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "tags": [
+              "cocktails"
+            ],
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-1224",
+            "title": "IMG_1224",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1224-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1224-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-1224-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "tags": [
+              "cocktails"
+            ],
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-0251",
+            "title": "IMG_0251",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-0251-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-0251-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-0251-2400.webp"
+            },
+            "colorFamily": "red",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "234a7399",
+            "title": "234A7399",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a7399-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a7399-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a7399-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-3310",
+            "title": "IMG_3310",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3310-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3310-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3310-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "tags": [
+              "cocktails"
+            ],
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "234a6701",
+            "title": "Шакшука",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a6701-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a6701-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a6701-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "234a6896",
+            "title": "Крок",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a6896-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a6896-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/234a6896-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-3687-1",
+            "title": "IMG_3687 (1)",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3687-1-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3687-1-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/img-3687-1-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "mg-8091",
+            "title": "_MG_8091",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/mg-8091-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/mg-8091-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/mg-8091-2400.webp"
+            },
+            "colorFamily": "mono",
+            "type": "camera",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "mg-8179",
+            "title": "_MG_8179",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/mg-8179-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/mg-8179-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/horeca/pelamushi/mg-8179-2400.webp"
+            },
+            "colorFamily": "yellow",
+            "type": "camera",
+            "width": 400,
+            "height": 600
           }
         ]
       }
@@ -493,7 +1511,7 @@
         "photos": [
           {
             "id": "dji-fly-20251016-122444-196-1760599729359-photo-optimized",
-            "title": "Дорога к Медео",
+            "title": "Шымбулак",
             "date": "Октябрь 2025",
             "desc": "",
             "urls": {
@@ -503,7 +1521,9 @@
             "tags": [
               "mountains"
             ],
-            "colorFamily": "yellow"
+            "colorFamily": "yellow",
+            "width": 800,
+            "height": 533
           },
           {
             "id": "dji-fly-20260425-153212-419-1777113302139-photo-optimized",
@@ -518,7 +1538,121 @@
               "winter",
               "mountains"
             ],
-            "colorFamily": "teal"
+            "colorFamily": "teal",
+            "width": 800,
+            "height": 640
+          },
+          {
+            "id": "dji-fly-20251016-133556-214-1760603797046-photo-optimized",
+            "title": "Медео",
+            "date": "Октябрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251016-133556-214-1760603797046-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251016-133556-214-1760603797046-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251016-133556-214-1760603797046-photo-optimized-2400.webp"
+            },
+            "colorFamily": "blue",
+            "width": 400,
+            "height": 300
+          },
+          {
+            "id": "dji-fly-20251014-132952-122-1760430641193-photo-optimized",
+            "title": "Озеро Иссык",
+            "date": "Октябрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-132952-122-1760430641193-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-132952-122-1760430641193-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-132952-122-1760430641193-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "dji-fly-20251014-114842-82-1760424696110-photo-optimized",
+            "title": "Река Иссык",
+            "date": "Октябрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-114842-82-1760424696110-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-114842-82-1760424696110-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-114842-82-1760424696110-photo-optimized-2400.webp"
+            },
+            "colorFamily": "red",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20251014-120034-88-1760425253026-photo-optimized",
+            "title": "Дорога на Иссык",
+            "date": "Октябрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-120034-88-1760425253026-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-120034-88-1760425253026-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-120034-88-1760425253026-photo-optimized-2400.webp"
+            },
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 225
+          },
+          {
+            "id": "dji-fly-20251014-131430-103-1760429806421-photo-optimized",
+            "title": "Озеро Иссык",
+            "date": "",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-131430-103-1760429806421-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-131430-103-1760429806421-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-131430-103-1760429806421-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 266
+          },
+          {
+            "id": "dji-fly-20251014-145126-138-1760435606984-photo-optimized",
+            "title": "Озеро Иссык",
+            "date": "Октябрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-145126-138-1760435606984-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-145126-138-1760435606984-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20251014-145126-138-1760435606984-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "dji-fly-20260422-131254-359-1776845836542-photo-optimized",
+            "title": "Озеро Каинды",
+            "date": "Апрель 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20260422-131254-359-1776845836542-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20260422-131254-359-1776845836542-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20260422-131254-359-1776845836542-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 300
+          },
+          {
+            "id": "dji-fly-20260422-132120-388-1776846221720-photo-optimized",
+            "title": "Озеро Каинды",
+            "date": "Апрель 2026",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20260422-132120-388-1776846221720-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20260422-132120-388-1776846221720-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/almaty/dji-fly-20260422-132120-388-1776846221720-photo-optimized-2400.webp"
+            },
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 300
           }
         ]
       },
@@ -534,7 +1668,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
             },
-            "colorFamily": "orange"
+            "colorFamily": "orange",
+            "width": 800,
+            "height": 333
           },
           {
             "id": "3",
@@ -545,7 +1681,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/3-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/2-2400.webp"
             },
-            "colorFamily": "orange"
+            "colorFamily": "orange",
+            "width": 800,
+            "height": 1000
           },
           {
             "id": "1",
@@ -556,7 +1694,9 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/1-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/1-2400.webp"
             },
-            "colorFamily": "red"
+            "colorFamily": "red",
+            "width": 800,
+            "height": 1200
           },
           {
             "id": "4",
@@ -567,7 +1707,852 @@
               "preview": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/4-800.webp",
               "full": "https://storage.googleapis.com/photo-dimazvalimisc/kz/charyn/4-2400.webp"
             },
-            "colorFamily": "mono"
+            "colorFamily": "mono",
+            "width": 800,
+            "height": 819
+          }
+        ]
+      }
+    }
+  },
+  "montenegro": {
+    "label": "Черногория",
+    "seriesOrder": [
+      "kotor"
+    ],
+    "series": {
+      "kotor": {
+        "label": "Котор",
+        "photos": [
+          {
+            "id": "dji-fly-20251203-104858-437-1764965525663-photo-optimized",
+            "title": "Собор святого Трифона",
+            "date": "Декабрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-104858-437-1764965525663-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-104858-437-1764965525663-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-104858-437-1764965525663-photo-optimized-2400.webp"
+            },
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 500
+          },
+          {
+            "id": "dji-fly-20251203-111158-461-1764756730434-photo-optimized",
+            "title": "Яхты в Которском заливе",
+            "date": "Декабрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-111158-461-1764756730434-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-111158-461-1764756730434-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-111158-461-1764756730434-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "dji-fly-20251203-112032-484-1764965209370-photo-optimized",
+            "title": "Церковь Богоматери Здоровья",
+            "date": "Декабрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-112032-484-1764965209370-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-112032-484-1764965209370-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-112032-484-1764965209370-photo-optimized-2400.webp"
+            },
+            "colorFamily": "teal",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "dji-fly-20251203-111748-470-1764757144607-photo-optimized",
+            "title": "Котор. Марина",
+            "date": "Декабрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-111748-470-1764757144607-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-111748-470-1764757144607-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-111748-470-1764757144607-photo-optimized-2400.webp"
+            },
+            "colorFamily": "mono",
+            "width": 400,
+            "height": 266
+          },
+          {
+            "id": "dji-fly-20251203-112114-488-1764965194031-photo-optimized",
+            "title": "Которский залив",
+            "date": "Декабрь 2025",
+            "desc": "",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-112114-488-1764965194031-photo-optimized-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-112114-488-1764965194031-photo-optimized-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/montenegro/kotor/dji-fly-20251203-112114-488-1764965194031-photo-optimized-2400.webp"
+            },
+            "colorFamily": "green",
+            "width": 400,
+            "height": 500
+          }
+        ]
+      }
+    }
+  },
+  "portraits": {
+    "label": "Портреты",
+    "seriesOrder": [
+      "studio",
+      "outdoors"
+    ],
+    "series": {
+      "outdoors": {
+        "label": "Улица",
+        "photos": [
+          {
+            "id": "ee-zovut-masha",
+            "title": "Ее зовут Маша",
+            "date": "Март 2026",
+            "desc": "Съемка для Paper Karuli",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "aerial portrait, аэрофотография портрет, Маша, уличная фотография, drone photography, портреты с дрона, aerial people, фотография людей",
+            "tags": [
+              "mzm"
+            ],
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "ee-zovut-masha-2",
+            "title": "Ее зовут Маша",
+            "date": "Март 2026",
+            "desc": "Съемка для Paper Kartuli.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-2-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-2-2400.webp"
+            },
+            "colorFamily": "green",
+            "seo_keywords": "портрет с дрона, аэрофотография, уличная фотография, drone photography, Маша портрет, aerial portrait, фотография с воздуха, street photography",
+            "tags": [
+              "mzm"
+            ],
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "ee-zovut-masha-3",
+            "title": "Ее зовут Маша",
+            "date": "Март 2026",
+            "desc": "Съемка для Paper Kartuli.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-3-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-3-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-3-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "аэрофотография портреты, drone photography Russia, уличная фотография с дрона, портрет Маша, aerial portraits, фотография с воздуха, drone portraits",
+            "tags": [
+              "mzm"
+            ],
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "ee-zovut-masha-4",
+            "title": "Ее зовут Маша",
+            "date": "Март 2026",
+            "desc": "Съемка для Paper Kartuli.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-4-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-4-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/ee-zovut-masha-4-2400.webp"
+            },
+            "colorFamily": "teal",
+            "seo_keywords": "аэрофотография портреты, aerial portrait, уличная фотография, Маша портрет, drone photography, воздушные снимки, уличные портреты, городская аэрофотография",
+            "tags": [
+              "mzm"
+            ],
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "",
+            "title": "Ѣ",
+            "date": "Март 2026",
+            "desc": "Интеллигент в естественной среде обитания.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "aerial photography, аэрофотосъемка, уличная фотография, городские портреты, дроны,街頭фотография, urban landscape, городской пейзаж",
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "-2",
+            "title": "Ѣ",
+            "date": "Март 2026",
+            "desc": "Воздушный снимок улицы с высоты птичьего полёта. Городской пейзаж, архитектура и уличная жизнь в объективе дрона.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/-2-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/-2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/-2-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "aerial photography, аэрофотография, городской пейзаж, дрон съёмка, уличная фотография, архитектура с воздуха, drone photography, городские портреты",
+            "tags": [
+              "tim"
+            ],
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "megrelskie-duhi",
+            "title": "Мегрельские духи",
+            "date": "Май 2026",
+            "desc": "Уличные портреты из серии Мегрельские духи. Воздушная фотография, май 2026. Жизнь людей с высоты птичьего полета.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megrelskie-duhi-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megrelskie-duhi-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megrelskie-duhi-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "aerial photography портреты, street portraits с дрона, Megrelian spirits, уличная фотография, aerial portraits, документальная фотография, drone photography люди, urban aerial shots",
+            "tags": [
+              "lilia"
+            ],
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "danya-aleksandrov-otkryvaet-kafe-pelamushi",
+            "title": "Даня Александров Открывает кафе Пеламуши",
+            "date": "Март 2026",
+            "desc": "Портретная фотография Дани Александрова и его кафе Пеламуши. Уличная съёмка с воздуха, март 2026",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/danya-aleksandrov-otkryvaet-kafe-pelamushi-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/danya-aleksandrov-otkryvaet-kafe-pelamushi-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/danya-aleksandrov-otkryvaet-kafe-pelamushi-2400.webp"
+            },
+            "colorFamily": "red",
+            "seo_keywords": "aerial photography, Даня Александров, кафе Пеламуши, уличная фотография, портреты с дрона, food photography, кафе с воздуха, drone portraits",
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "stanislav-eliseev",
+            "title": "Станислав Елисеев",
+            "date": "Январь 2023",
+            "desc": "Портреты с высоты 513 метров. Аэрофотография Станислава Елисеева, январь 2023. Уличные сцены с дрона.",
+            "type": "mobile",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/stanislav-eliseev-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/stanislav-eliseev-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/stanislav-eliseev-2400.webp"
+            },
+            "coords": {
+              "lat": 41.694914,
+              "lng": 44.855967
+            },
+            "altitude": 513,
+            "colorFamily": "mono",
+            "seo_keywords": "aerial photography Russia, аэрофотография портреты, drone portraits, уличная фотография с дрона, Станислав Елисеев, фото с высоты, street photography aerial",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "filip-parker",
+            "title": "Филип Паркер",
+            "date": "Ноябрь 2025",
+            "desc": "Минздрав предупреждает на всех языках мира.",
+            "type": "mobile",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/filip-parker-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/filip-parker-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/filip-parker-2400.webp"
+            },
+            "coords": {
+              "lat": 41.695751,
+              "lng": 44.791279
+            },
+            "altitude": 0,
+            "colorFamily": "teal",
+            "seo_keywords": "aerial photography, уличная фотография, портреты с дрона, Филип Паркер, street photography, воздушные портреты, ноябрь 2025, drone portraits",
+            "tags": [
+              "phil"
+            ],
+            "width": 400,
+            "height": 500
+          },
+          {
+            "id": "svadba-v-signahi",
+            "title": "Свадьба в Сигнахи",
+            "date": "Январь 2023",
+            "desc": "Свадьба в Сигнахи: вид с воздуха на грузинский город с высоты 750 метров. Январь 2023.",
+            "type": "mobile",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/svadba-v-signahi-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/svadba-v-signahi-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/svadba-v-signahi-2400.webp"
+            },
+            "coords": {
+              "lat": 41.617592,
+              "lng": 45.922344
+            },
+            "altitude": 750,
+            "colorFamily": "mono",
+            "seo_keywords": "свадьба Сигнахи, aerial photography Грузия, wedding drone, Sighnaghi, уличная фотография, портреты с дрона, грузинская свадьба",
+            "width": 400,
+            "height": 500
+          },
+          {
+            "id": "timofej-hmelev-s-obratnoj-storony-stojki",
+            "title": "Тимофей Хмелев с обратной стороны стойки",
+            "date": "Декабрь 2023",
+            "desc": "Бар Гамоцема / გამოცემა",
+            "type": "mobile",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/timofej-hmelev-s-obratnoj-storony-stojki-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/timofej-hmelev-s-obratnoj-storony-stojki-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/timofej-hmelev-s-obratnoj-storony-stojki-2400.webp"
+            },
+            "tags": [
+              "tim"
+            ],
+            "coords": {
+              "lat": 41.710786,
+              "lng": 44.783247
+            },
+            "altitude": 439,
+            "colorFamily": "mono",
+            "seo_keywords": "Тимофей Хмелев, aerial portrait, уличная фотография, портреты с дрона, drone photography, декабрь 2023, высотная съемка",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "marusya",
+            "title": "Маруся",
+            "date": "Март 2026",
+            "desc": "По кличке \"дикий гусь\"",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/marusya-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/marusya-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/marusya-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "аэрофотография портреты, drone photography Russia, уличная аэрофотография, Маруся портрет, aerial portrait, март 2026, съемка с дрона",
+            "width": 400,
+            "height": 711
+          },
+          {
+            "id": "egor-antoschenko-na-privale",
+            "title": "Егор Антощенко на привале",
+            "date": "Май 2026",
+            "desc": "Портрет Егора Антощенко во время привала. Воздушная съёмка с дрона, май 2026. Серия уличных фотографий.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-na-privale-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-na-privale-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-na-privale-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "aerial portrait, портрет с дрона, уличная фотография, Егор Антощенко, drone photography Russia, портреты людей, aerial series, фотография с воздуха",
+            "tags": [
+              "antoschenko"
+            ],
+            "width": 400,
+            "height": 266
+          },
+          {
+            "id": "napolovinu-pust",
+            "title": "Наполовину пуст",
+            "date": "Май 2026",
+            "desc": "Аэрофотография улиц города. Вид сверху на пустые дороги и городскую застройку. Фотопроект Егора Антощенко.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/napolovinu-pust-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/napolovinu-pust-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/napolovinu-pust-2400.webp"
+            },
+            "tags": [
+              "antoschenko"
+            ],
+            "colorFamily": "mono",
+            "seo_keywords": "aerial photography, аэрофотография город, городские улицы с воздуха, drone photography улицы, портреты города, городской пейзаж вид сверху, фотография с дрона, Егор Антощенко",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "egor-antoschenko",
+            "title": "Егор Антощенко",
+            "date": "Май 2026",
+            "desc": "Портретная серия уличной фотографии Егора Антощенко. Май 2026. Аутентичные портреты людей в городской среде.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-2400.webp"
+            },
+            "tags": [
+              "antoschenko"
+            ],
+            "colorFamily": "mono",
+            "seo_keywords": "Егор Антощенко, уличная фотография, street photography, портреты, портретная серия, городская фотография, May 2026, люди в городе",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "egor-antoschenko-2",
+            "title": "Егор Антощенко",
+            "date": "Май 2026",
+            "desc": "Портретная серия Егора Антощенко на улицах города. Естественное освещение, живые эмоции и городской контекст в каждом кадре",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-2-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/egor-antoschenko-2-2400.webp"
+            },
+            "tags": [
+              "antoschenko"
+            ],
+            "colorFamily": "mono",
+            "seo_keywords": "Егор Антощенко, уличные портреты, street photography, портретная фотография, городские портреты, человек в городе, портреты людей, May 2026",
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "drum-machine",
+            "title": "Drum machine",
+            "date": "Май 2026",
+            "desc": "Уличная фотография барабанной машины с высоты птичьего полета. Снимок из серии портретов, май 2026",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/drum-machine-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/drum-machine-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/drum-machine-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "drum machine, барабанная машина, aerial photography, уличная фотография, портреты, музыкальный инструмент, фотография с дрона, street art",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "amanda",
+            "title": "Amanda",
+            "date": "Май 2026",
+            "desc": "Портрет Аманды с высоты птичьего полета. Воздушная фотография серии уличных портретов, май 2026",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/amanda-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/amanda-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/amanda-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "aerial portrait, воздушный портрет, уличная фотография, Amanda, drone photography, дроны портреты, фотография с воздуха, портреты 2026",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "bwl",
+            "title": "bwl",
+            "date": "Июнь 2026",
+            "desc": "",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/bwl-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/bwl-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/bwl-2400.webp"
+            },
+            "tags": [
+              "lilia"
+            ],
+            "colorFamily": "mono",
+            "seo_keywords": "aerial portrait, уличная фотография, портреты с дрона, Лилия Югова, drone photography, городские портреты, aerial art, фотография с воздуха",
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "megruli-ranger",
+            "title": "megruli ranger",
+            "date": "Май 2026",
+            "desc": "Портрет мегрельского рейнджера с высоты птичьего полёта. Аэрофотография серии уличных портретов из Грузии, май 2026",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megruli-ranger-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megruli-ranger-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megruli-ranger-2400.webp"
+            },
+            "colorFamily": "red",
+            "seo_keywords": "megruli ranger, портрет с дрона, Georgia aerial photography, уличные портреты, Грузия, drone portrait, аэрофотография",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "megruli-ranger-2",
+            "title": "megruli ranger",
+            "date": "",
+            "desc": "Портрет с высоты птичьего полета. Лилия Югова запечатлена в серии уличных снимков. Аэрофотография в жанре портретной съемки.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megruli-ranger-2-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megruli-ranger-2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/megruli-ranger-2-2400.webp"
+            },
+            "tags": [
+              "lilia"
+            ],
+            "colorFamily": "mono",
+            "seo_keywords": "aerial portrait, аэрофотография портрет, уличная фотография, Лилия Югова, drone photography, портреты с воздуха, megruli ranger, aerial street photography",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "duhi-megrelii",
+            "title": "Духи Мегрелии",
+            "date": "Май 2026",
+            "desc": "Аэрофотография Мегрелии с воздуха. Портреты улиц и людей региона, снятые в мае 2026 года.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/duhi-megrelii-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/duhi-megrelii-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/duhi-megrelii-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "aerial photography Megrelia, аэрофото Грузия, портреты улиц, уличная фотография с дрона, aerial portraits Georgia, фотография с воздуха, Мегрелия портреты",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "eka-eliseeva-v-tsvetah-pervoj-respubliki",
+            "title": "Эка Елисеева в цветах первой республики",
+            "date": "Май 2026",
+            "desc": "Вот, что значит хороший гид.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/eka-eliseeva-v-tsvetah-pervoj-respubliki-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/eka-eliseeva-v-tsvetah-pervoj-respubliki-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/eka-eliseeva-v-tsvetah-pervoj-respubliki-2400.webp"
+            },
+            "colorFamily": "mono",
+            "seo_keywords": "aerial photography портрет, street photography Эка Елисеева, цветы республики, drone portrait, уличные портреты, aerial view, фотография с дрона, май 2026",
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "duhi-megrelii-2",
+            "title": "Духи Мегрелии",
+            "date": "Май 2026",
+            "desc": "Портреты улиц Мегрелии. Фотография Лилии Югова. Атмосферные снимки грузинского региона, запечатлевшие дух и характер местности.",
+            "type": "camera",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/duhi-megrelii-2-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/duhi-megrelii-2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/duhi-megrelii-2-2400.webp"
+            },
+            "tags": [
+              "lilia"
+            ],
+            "colorFamily": "blue",
+            "seo_keywords": "Мегрелия портреты, street photography Georgia, уличная фотография, Грузия Лилия Югова, aerial portraits, грузинская культура, atmospheric photography",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "night-watch",
+            "title": "night watch",
+            "date": "Апрель 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/night-watch-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/night-watch-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/night-watch-2400.webp"
+            },
+            "tags": [
+              "phil"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Ночная съемка улиц с камеры на уровне земли. Филип Паркер запечатлел атмосферу ночного города в серии уличных портретов.",
+            "seo_keywords": "night watch, ночная фотография, уличная фотография, urban photography, Филип Паркер, ground-level, ночной город",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "look",
+            "title": "look",
+            "date": "Апрель 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/look-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/look-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/look-2400.webp"
+            },
+            "tags": [
+              "zarina"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портрет с земли. Зарина Хазрат на улице, апрель 2026. Камера на уровне земли запечатлела уникальный взгляд на человека и окружающее пространство.",
+            "seo_keywords": "портреты улица, ground-level photography, Зарина Хазрат, street portraits, низкий угол съёмки, портретная фотография, уличная съёмка",
+            "width": 400,
+            "height": 267
+          },
+          {
+            "id": "party-girl",
+            "title": "party girl",
+            "date": "Апрель 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/party-girl-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/party-girl-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/party-girl-2400.webp"
+            },
+            "tags": [
+              "rufin"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портрет девушки на улице. Апрель 2026. Фотография Айи Руфин из серии уличных портретов",
+            "seo_keywords": "portrait photography, уличный портрет, street portrait, Айя Руфин, портреты людей, girl photography, urban portrait, фотография на улице",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "smokey",
+            "title": "smokey",
+            "date": "Апрель 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/smokey-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/smokey-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/smokey-2400.webp"
+            },
+            "tags": [
+              "phil"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портрет Филипа Паркера в уличной фотографии. Снимок сделан с уровня земли в апреле 2026. Дымка и естественный свет создают атмосферную композицию.",
+            "seo_keywords": "уличная фотография, портрет, Филип Паркер, ground-level photography, atmospheric portraits, street photography, дымка, портретная съемка",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-2129",
+            "title": "IMG_2129",
+            "date": "Июнь 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-27",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/img-2129-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/img-2129-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/img-2129-2400.webp"
+            },
+            "shotAt": "2026-06-25T23:02:22.000Z",
+            "colorFamily": "mono",
+            "seo_desc": "Уличная фотография с земли, снятая в июне. Портретная серия, запечатлевшая моменты повседневной жизни в естественной среде.",
+            "seo_keywords": "уличная фотография, street photography, портреты, ground-level, Россия, городская жизнь, документальное фото, June 2026",
+            "tags": [
+              "simon"
+            ],
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "img-2007-2",
+            "title": "IMG_2007-2",
+            "date": "Июнь 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-29",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/img-2007-2-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/img-2007-2-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/outdoors/img-2007-2-2400.webp"
+            },
+            "tags": [
+              "simon"
+            ],
+            "shotAt": "2026-06-25T20:42:18.000Z",
+            "colorFamily": "mono",
+            "seo_desc": "Фотография улицы из серии \"Портреты\". Снимок сделан на уровне земли в июне 2026 года. Автор Иван Симон.",
+            "seo_keywords": "уличная фотография, street photography, портретная съемка, ground level, Иван Симон, urban photography, композиция улицы, документальная фотография",
+            "width": 400,
+            "height": 500
+          }
+        ]
+      },
+      "studio": {
+        "label": "Студия",
+        "photos": [
+          {
+            "id": "hard-day-s-night-i-believe",
+            "title": "hard day's night i believe",
+            "date": "Апрель 2026",
+            "desc": "@ triplex studio",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/hard-day-s-night-i-believe-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/hard-day-s-night-i-believe-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/hard-day-s-night-i-believe-2400.webp"
+            },
+            "tags": [
+              "phil"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портрет Филипа Паркера. Снимок с земли, апрель 2026. Из серии Студия. Естественный свет и выразительная композиция.",
+            "seo_keywords": "Филип Паркер, портретная фотография, studio portrait, ground-level photography, портрет 2026, черно-белый портрет, фотография низкого угла, contemporary portrait",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "blinder",
+            "title": "blinder",
+            "date": "Апрель 2026",
+            "desc": "@ triplex studio",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/blinder-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/blinder-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/blinder-2400.webp"
+            },
+            "tags": [
+              "phil"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портретная фотография Филипа Паркера из серии \"Студия\". Снимок с земли запечатлел естественную красоту и выразительность модели в апреле 2026 года.",
+            "seo_keywords": "портретная фотография, Филип Паркер, ground-level photography, студийные портреты, портреты людей, фотография 2026, портретная съемка, natural light portraits",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "tiny-beanie",
+            "title": "tiny beanie",
+            "date": "Апрель 2026",
+            "desc": "@ triplex studio",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/tiny-beanie-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/tiny-beanie-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/tiny-beanie-2400.webp"
+            },
+            "tags": [
+              "zarina"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портрет Зарины Хазрат снятый на уровне земли. Апрель 2026. Студия.",
+            "seo_keywords": "портретная фотография, ground level photography, студийная съёмка, Зарина Хазрат, портреты России, aerial portraits, низкий угол съёмки",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "almost-slavic-look",
+            "title": "almost slavic look",
+            "date": "Апрель 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/almost-slavic-look-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/almost-slavic-look-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/almost-slavic-look-2400.webp"
+            },
+            "tags": [
+              "zarina"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портрет Зарины Хазрат. Фотография с земли в студии, апрель 2026. Славянский стиль в композиции и свете.",
+            "seo_keywords": "портретная фотография, студийная съемка, Зарина Хазрат, славянский стиль, ground level photography, портреты 2026, студийный портрет, режиссерская фотография",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "smooth-operator",
+            "title": "smooth operator",
+            "date": "Апрель 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/smooth-operator-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/smooth-operator-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/smooth-operator-2400.webp"
+            },
+            "tags": [
+              "phil"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портретная съемка Филипа Паркера с земли. Гладкие линии композиции и естественное освещение в апреле 2026",
+            "seo_keywords": "портретная фотография, ground-level photography, Филип Паркер, студийные портреты, aerial portrait style, естественное освещение, композиция портрета",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "must-be-a-season-of-the-witch",
+            "title": "must be a season of the witch",
+            "date": "Апрель 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/must-be-a-season-of-the-witch-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/must-be-a-season-of-the-witch-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/must-be-a-season-of-the-witch-2400.webp"
+            },
+            "tags": [
+              "zarina"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портрет Зарины Хазрат в апреле 2026. Земельная съёмка из студии с атмосферным сезонным настроением и мистическими мотивами.",
+            "seo_keywords": "портретная фотография, Зарина Хазрат, студийная съёмка, ground level photography, апрель, мистический портрет, studio portraits, фотосессия",
+            "width": 400,
+            "height": 600
+          },
+          {
+            "id": "long-stare",
+            "title": "long stare",
+            "date": "Апрель 2026",
+            "desc": "",
+            "type": "camera",
+            "createdAt": "2026-06-12",
+            "urls": {
+              "thumb": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/long-stare-400.webp",
+              "preview": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/long-stare-800.webp",
+              "full": "https://storage.googleapis.com/photo-dimazvalimisc/portraits/studio/long-stare-2400.webp"
+            },
+            "tags": [
+              "phil",
+              "zarina"
+            ],
+            "colorFamily": "mono",
+            "seo_desc": "Портрет Филипа Паркера и Zarины Хазрат. Фотография из серии «Студия», апрель 2026. Черно-белая съемка на уровне земли с интенсивным взглядом.",
+            "seo_keywords": "портретная фотография, студийная съемка, Филип Паркер, Зарина Хазрат, black and white portrait, ground level photography, портретный жанр, contemporary portraiture",
+            "width": 400,
+            "height": 267
           }
         ]
       }
