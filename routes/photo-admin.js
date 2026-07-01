@@ -992,6 +992,24 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   }
 });
 
+// ── TG notifier test ─────────────────────────────────────────────────────────
+
+router.post('/test-tg', requireAuth, async (req, res) => {
+  var data = getData();
+  var countryKey = Object.keys(data)[0];
+  var country = data[countryKey];
+  var seriesKey = Object.keys(country.series)[0];
+  var photo = country.series[seriesKey].photos[0];
+  if (!photo) return res.json({ error: 'no photos found' });
+  tgNotifier.queue(photo, countryKey, seriesKey);
+  res.json({ queued: photo.title });
+});
+
+router.post('/test-tg-now', requireAuth, async (req, res) => {
+  await tgNotifier.flush();
+  res.json({ ok: true });
+});
+
 // ── Copyright hits ────────────────────────────────────────────────────────────
 
 router.get('/copyright', requireAuth, async (req, res) => {
