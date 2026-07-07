@@ -136,6 +136,64 @@ router.get('/', requireAuth, (req, res) => {
   res.render('photo/admin/index', { data: getData(), title: 'photo.dimazvali.com Admin' });
 });
 
+var ENTITY_TYPE_ORDER = ['country', 'series', 'photo', 'shoot', 'shoot-photo'];
+var ENTITY_TYPE_LABELS = { country: 'СТРАНЫ', series: 'СЕРИИ', photo: 'ФОТО', shoot: 'СЪЁМКИ', 'shoot-photo': 'КАДРЫ СЪЁМОК' };
+
+function resolveEntityInfo(typeStr, idStr, photoData, shootsData) {
+  var label = idStr;
+  var url = null;
+  if (typeStr === 'country') {
+    url = '/' + idStr;
+    label = (photoData[idStr] || {}).label || idStr;
+  } else if (typeStr === 'series') {
+    var p = idStr.split('/');
+    url = '/' + idStr;
+    var c = photoData[p[0]];
+    if (c && c.series && c.series[p[1]]) label = c.label + ' · ' + c.series[p[1]].label;
+  } else if (typeStr === 'photo') {
+    var p = idStr.split('/');
+    url = '/' + idStr;
+    var c = photoData[p[0]];
+    if (c && c.series && c.series[p[1]]) {
+      var ph = c.series[p[1]].photos.find(function(x) { return x.id === p[2]; });
+      if (ph) label = ph.title || idStr;
+    }
+  } else if (typeStr === 'shoot') {
+    url = '/shoot/' + idStr;
+    label = ((shootsData[idStr] || {}).label) || idStr;
+  } else if (typeStr === 'shoot-photo') {
+    var p = idStr.split('/');
+    url = '/shoot/' + idStr;
+    var sh = shootsData[p[0]];
+    if (sh) {
+      var ph = (sh.photos || []).find(function(x) { return x.id === p[1]; });
+      if (ph) label = ph.title || idStr;
+    }
+  }
+  return { type: typeStr, id: idStr, label: label, url: url };
+}
+
+function buildEntityGroups(byEntity, photoData, shootsData) {
+  var byType = {};
+  Object.entries(byEntity).forEach(function(entry) {
+    var colon = entry[0].indexOf(':');
+    var t = entry[0].slice(0, colon);
+    var id = entry[0].slice(colon + 1);
+    if (!byType[t]) byType[t] = {};
+    byType[t][id] = entry[1];
+  });
+  return ENTITY_TYPE_ORDER.filter(function(t) { return byType[t]; }).map(function(t) {
+    var items = Object.entries(byType[t])
+      .sort(function(a, b) { return b[1] - a[1]; })
+      .slice(0, 15)
+      .map(function(e) {
+        var info = resolveEntityInfo(t, e[0], photoData, shootsData);
+        return { type: t, id: e[0], count: e[1], label: info.label, url: info.url };
+      });
+    return { type: t, typeLabel: ENTITY_TYPE_LABELS[t] || t.toUpperCase(), items: items };
+  });
+}
+
 router.get('/stats', requireAuth, async (req, res) => {
   var days = Math.min(parseInt(req.query.days) || 30, 90);
   var env = process.env.PHOTO_ENV || 'dev';
@@ -166,10 +224,57 @@ router.get('/stats', requireAuth, async (req, res) => {
       allDays.push({ day: dayStr, count: byDay[dayStr] || 0 });
     }
     var maxCount = Math.max.apply(null, allDays.map(function(d) { return d.count; }).concat([1]));
-    var topEntities = Object.entries(byEntity).sort(function(a, b) { return b[1] - a[1]; }).slice(0, 20).map(function(e) { return { key: e[0], count: e[1] }; });
-    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: snap.size, allDays: allDays, maxCount: maxCount, topEntities: topEntities, byDevice: byDevice, error: null });
+    var entityGroups = buildEntityGroups(byEntity, getData(), shoots.getData());
+    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: snap.size, allDays: allDays, maxCount: maxCount, entityGroups: entityGroups, byDevice: byDevice, error: null });
   } catch (err) {
-    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: 0, allDays: [], maxCount: 1, topEntities: [], byDevice: {}, error: err.message });
+    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: 0, allDays: [], maxCount: 1, entityGroups: [], byDevice: {}, error: err.message });
+  }
+});
+
+router.get('/stats/entity', requireAuth, async (req, res) => {
+  var entityType = req.query.type || '';
+  var entityId = req.query.id || '';
+  var days = Math.min(parseInt(req.query.days) || 30, 90);
+  var env = process.env.PHOTO_ENV || 'dev';
+  var since = new Date();
+  since.setDate(since.getDate() - days);
+  try {
+    var snap = await fb.collection('photo_views')
+      .where('env', '==', env)
+      .where('entityType', '==', entityType)
+      .where('entityId', '==', entityId)
+      .where('timestamp', '>=', since)
+      .orderBy('timestamp', 'desc')
+      .limit(5000)
+      .get();
+    var byDay = {}, byDevice = { desktop: 0, mobile: 0, tablet: 0, unknown: 0 };
+    snap.docs.forEach(function(doc) {
+      var d = doc.data();
+      var ts = d.timestamp ? d.timestamp.toDate() : null;
+      if (!ts) return;
+      var day = ts.toISOString().slice(0, 10);
+      byDay[day] = (byDay[day] || 0) + 1;
+      if (d.deviceType && byDevice[d.deviceType] !== undefined) byDevice[d.deviceType]++;
+    });
+    var allDays = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var dt = new Date(); dt.setDate(dt.getDate() - i);
+      var dayStr = dt.toISOString().slice(0, 10);
+      allDays.push({ day: dayStr, count: byDay[dayStr] || 0 });
+    }
+    var maxCount = Math.max.apply(null, allDays.map(function(d) { return d.count; }).concat([1]));
+    var entityInfo = resolveEntityInfo(entityType, entityId, getData(), shoots.getData());
+    res.render('photo/admin/stats-entity', {
+      title: 'Статистика · ' + entityInfo.label,
+      entityType, entityId, entityInfo, days,
+      total: snap.size, allDays, maxCount, byDevice, error: null,
+    });
+  } catch (err) {
+    var entityInfo = { type: entityType, id: entityId, label: entityId, url: null };
+    res.render('photo/admin/stats-entity', {
+      title: 'Статистика', entityType, entityId, entityInfo, days,
+      total: 0, allDays: [], maxCount: 1, byDevice: {}, error: err.message,
+    });
   }
 });
 
@@ -285,18 +390,33 @@ router.post('/series/:country', requireAuth, (req, res) => {
   res.redirect('/admin');
 });
 
-router.get('/:country/:series/upload', requireAuth, function(req, res, next) { if (req.params.country === 'shoots') return next('route'); next(); }, (req, res) => {
+router.get('/:country/:series/upload', requireAuth, function(req, res, next) { if (req.params.country === 'shoots') return next('route'); next(); }, async (req, res) => {
   var { country, series } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
   var data = getData();
   if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
+  var sort = req.query.sort === 'views' ? 'views' : 'manual';
+  var stats = await photoStats.getStatsByType('photo').catch(function() { return {}; });
+  var photos = data[country].series[series].photos.map(function(photo, index) {
+    var entityId = country + '/' + series + '/' + photo.id;
+    return Object.assign({}, photo, {
+      views: stats[entityId] || 0,
+      _adminIndex: index,
+    });
+  });
+  if (sort === 'views') {
+    photos.sort(function(a, b) {
+      return (b.views || 0) - (a.views || 0) || a._adminIndex - b._adminIndex;
+    });
+  }
   res.render('photo/admin/upload', {
     title: 'Загрузка — photo.dimazvali.com Admin',
     country,
     series,
     seriesLabel: data[country].series[series].label,
     countryLabel: data[country].label,
-    photos: data[country].series[series].photos,
+    photos,
+    sort,
     tags: getTags(),
     defaultPhotoType: data[country].defaultPhotoType || 'copter',
   });

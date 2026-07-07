@@ -65,6 +65,17 @@ html(data-theme='dark')
       if photos && photos.length
         .admin-section
           h2.admin-title ФОТО В СЕРИИ (#{photos.length})
+          p.admin-hint
+            | СОРТИРОВКА:
+            | 
+            if sort === 'views'
+              a.admin-link(href=`/admin/${country}/${series}/upload`) по порядку
+              |  · 
+              span по просмотрам
+            else
+              span по порядку
+              |  · 
+              a.admin-link(href=`/admin/${country}/${series}/upload?sort=views`) по просмотрам
           .admin-photo-list
             each photo in photos
               .admin-photo-row
@@ -73,6 +84,7 @@ html(data-theme='dark')
                 .admin-photo-info
                   span.admin-photo-title= photo.title
                   span.admin-photo-id= photo.id
+                  span.admin-photo-id просмотров: #{photo.views || 0}
                   if photo.tags && photo.tags.length
                     span.admin-photo-tags= photo.tags.join(', ')
                 form.admin-delete-form(method='POST' action=`/admin/${country}/${series}/${photo.id}/delete`)

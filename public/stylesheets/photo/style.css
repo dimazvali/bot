@@ -528,7 +528,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .admin-hint { font-size: 0.6875rem; color: var(--text-dim); margin-bottom: 16px; line-height: 1.6; }
 
 .admin-country { margin-bottom: 24px; padding: 14px; border: 1px solid var(--border); }
-.admin-country-name { font-size: 0.6875rem; color: var(--accent); font-family: monospace; letter-spacing: 1px; margin-bottom: 10px; }
+.admin-country-name {font-size: 1.5rem;color: var(--accent);font-family: monospace;letter-spacing: 1px;margin-bottom: 10px;}
 .admin-series-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .admin-series-row { display: flex; justify-content: space-between; align-items: center; }
 .admin-series-name { font-size: 0.625rem; color: var(--text); }
