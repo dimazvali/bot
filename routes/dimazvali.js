@@ -252,7 +252,8 @@ function newEntity(req, res, admin, extra) {
 }
 
 function dist(lat, long, toLat, toLong) {
-    return +(Math.sqrt(Math.pow((lat - toLat) * 111.11, 2) + Math.pow((long - toLong) * 55.8, 2))).toFixed(3)
+    let lonKm = 111.32 * Math.cos((lat + toLat) / 2 * Math.PI / 180)
+    return +(Math.sqrt(Math.pow((lat - toLat) * 111.11, 2) + Math.pow((long - toLong) * lonKm, 2))).toFixed(3)
 }
 
 let alertedUsers = {
@@ -278,7 +279,9 @@ function handleLocation(userId, loc) {
 
         if (!alertedUsers[userId]) alertedUsers[userId] = {};
 
-        if (loc.horizontal_accuracy < 30) {
+        {
+
+            let accuracy = loc.horizontal_accuracy || 0;
 
             Object.keys(savedLandmarks).forEach(key => {
 
@@ -287,7 +290,7 @@ function handleLocation(userId, loc) {
                 let distance = dist(loc.latitude, loc.longitude, +place.lat, +place.lng) * 1000
 
                 try {
-                    if (distance - loc.horizontal_accuracy < (place.proximity || 50)) {
+                    if (distance - accuracy < (place.proximity || 50)) {
 
                         devlog(`пользователь прибыл в точку ${place.name}`)
 
@@ -336,7 +339,7 @@ function handleLocation(userId, loc) {
                                     devlog(curIndex)
 
                                     if (curIndex > -1) {
-                                        if ((curIndex + 1) <= index.length) {
+                                        if ((curIndex + 1) < index.length) {
 
                                             // sendStep(savedLandmarks[index[curIndex+1]],userId)
                                             sendStep(savedSteps[route[curIndex + 1]], userId)
@@ -1315,6 +1318,11 @@ router.post(`/tgStats`,(req,res)=>{
     
 })
 
+
+router.get(`/robots.txt`, (req, res) => {
+    res.set('Content-Type', 'text/plain');
+    res.send('User-agent: *\nAllow: /\n');
+})
 
 router.use(express.static(path.join(__dirname, '../public')))
 
