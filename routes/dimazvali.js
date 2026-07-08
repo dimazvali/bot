@@ -336,6 +336,26 @@ function handleLocation(userId, loc) {
                             var placePic = picUrl(place.pic);
                             if (placePic) { m.caption = m.text; m.photo = placePic; }
 
+                            var gallery = savedLandmarkImages[place.id] || [];
+                            var sendEp = placePic ? 'sendPhoto' : false;
+                            var sendBody = m;
+
+                            if (gallery.length) {
+                                var media = [];
+                                var rest = gallery;
+                                if (placePic) {
+                                    media.push({ type: 'photo', media: placePic, caption: m.text, parse_mode: 'Markdown' });
+                                } else {
+                                    media.push({ type: 'photo', media: picUrl(gallery[0]), caption: m.text, parse_mode: 'Markdown' });
+                                    rest = gallery.slice(1);
+                                }
+                                rest.slice(0, 10 - media.length).forEach(function(img) {
+                                    media.push({ type: 'photo', media: picUrl(img) });
+                                });
+                                sendEp = 'sendMediaGroup';
+                                sendBody = { chat_id: userId, media: media };
+                            }
+
 
                             usersLandmarks.add({
                                 createdAt: new Date(),
@@ -349,7 +369,7 @@ function handleLocation(userId, loc) {
 
                             alertedUsers[userId][place.id] = true;
 
-                            sendMessage2(m, placePic ? 'sendPhoto' : false, token, messages).then(() => {
+                            sendMessage2(sendBody, sendEp, token, messages, { text: m.text }).then(() => {
                                 if (place.voice) sendMessage2({
                                     chat_id: userId,
                                     voice: place.voice
@@ -878,6 +898,35 @@ router.delete('/admin/gallery-image/:imageId', function(req, res) {
       })
     })
   })
+})
+
+router.get(`/admin/botStatus`, (req, res) => {
+    if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
+    adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
+        if (!doc.exists) return res.sendStatus(403)
+        let adminTokenRecord = handleDoc(doc)
+        getUser(adminTokenRecord.user, udb).then(admin => {
+            if (!admin.admin) return res.sendStatus(403)
+            Promise.all([
+                axios.get(`https://api.telegram.org/bot${token}/getWebhookInfo`),
+                axios.get(`https://api.telegram.org/bot${token}/getMe`)
+            ]).then(results => {
+                let wh = results[0].data.result
+                let me = results[1].data.result
+                res.json({
+                    username: me.username,
+                    webhookUrl: wh.url,
+                    pendingUpdateCount: wh.pending_update_count,
+                    lastErrorMessage: wh.last_error_message || null,
+                    lastErrorDate: wh.last_error_date ? new Date(wh.last_error_date * 1000).toISOString() : null,
+                    environment: process.env.develop == `true` ? `TEST` : `PROD`
+                })
+            }).catch(err => {
+                console.error(`[botStatus]`, err.message)
+                res.status(502).json({ error: `unavailable` })
+            })
+        })
+    })
 })
 
 router.all(`/admin/:method/:id`, (req, res) => {
