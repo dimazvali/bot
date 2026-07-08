@@ -199,6 +199,7 @@ function showLandmarkPanel(id) {
       }));
     });
     panel.append(picWidget('landmarks', id, l.pic));
+    panel.append(galleryWidget('landmarks', id));
 
     // Google Map
     panel.append(ce('div', 'map'));
@@ -434,5 +435,103 @@ function picWidget(collection, id, currentPic) {
   wrap.append(btn);
   wrap.append(inp);
   wrap.append(status);
+  return wrap;
+}
+
+function galleryWidget(collection, id) {
+  var wrap = ce('div', false, 'gallery-widget');
+  wrap.style.cssText = 'margin-top:0.75rem';
+
+  var grid = ce('div', false, 'gallery-grid');
+  grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px';
+  wrap.append(grid);
+
+  function addThumb(item) {
+    var box = ce('div', false, 'gallery-thumb');
+    box.style.cssText = 'position:relative;width:100px;height:70px';
+
+    var img = ce('img');
+    img.src = item.w400 || item.w800 || item.w1400;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:6px;display:block';
+    box.append(img);
+
+    var del = ce('button', false, false, '✕', {
+      onclick: function() {
+        if (!confirm('Удалить фото?')) return;
+        del.setAttribute('disabled', true);
+        axios.delete('/dimazvali/admin/gallery-image/' + item.id).then(function() {
+          box.remove();
+        }).catch(function(err) {
+          handleError(err);
+          del.removeAttribute('disabled');
+        });
+      }
+    });
+    del.style.cssText = 'position:absolute;top:2px;right:2px;width:20px;height:20px;line-height:1;padding:0;border-radius:50%;border:none;background:rgba(0,0,0,0.6);color:#fff;cursor:pointer;font-size:12px';
+    box.append(del);
+
+    grid.append(box);
+  }
+
+  var zone = ce('div', false, 'gallery-dropzone', 'Перетащите фото или нажмите для выбора');
+  zone.style.cssText = 'border:2px dashed #ccc;border-radius:6px;padding:12px;text-align:center;font-size:12px;color:#999;cursor:pointer;width:220px;box-sizing:border-box';
+
+  var inp = ce('input', false, false, false, { type: 'file', accept: 'image/*', multiple: true });
+  inp.style.display = 'none';
+
+  var status = ce('span', false, 'info', '');
+  status.style.cssText = 'display:block;margin-top:4px';
+
+  function uploadFiles(files) {
+    status.textContent = 'Загружаем ' + files.length + '...';
+    var done = 0;
+    var failed = 0;
+    Array.prototype.forEach.call(files, function(file) {
+      var fd = new FormData();
+      fd.append('pic', file);
+      fd.append('collection', collection);
+      fd.append('id', id);
+      axios.post('/dimazvali/admin/upload-gallery-image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      }).then(function(r) {
+        addThumb(r.data);
+      }).catch(function(err) {
+        failed++;
+        handleError(err);
+      }).then(function() {
+        done++;
+        if (done === files.length) {
+          status.textContent = failed ? ('✓ Готово, ошибок: ' + failed) : '✓ Готово';
+        }
+      });
+    });
+  }
+
+  zone.addEventListener('click', function() { inp.click(); });
+  inp.addEventListener('change', function() {
+    if (inp.files && inp.files.length) uploadFiles(inp.files);
+    inp.value = '';
+  });
+  zone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    zone.style.background = '#f5f5f5';
+  });
+  zone.addEventListener('dragleave', function() {
+    zone.style.background = '';
+  });
+  zone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    zone.style.background = '';
+    if (e.dataTransfer.files && e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+  });
+
+  wrap.append(zone);
+  wrap.append(inp);
+  wrap.append(status);
+
+  axios.get('/dimazvali/admin/gallery-images/' + collection + '/' + id).then(function(r) {
+    r.data.forEach(addThumb);
+  }).catch(handleError);
+
   return wrap;
 }
