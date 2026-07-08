@@ -173,6 +173,16 @@ landMarks.get().then(col => {
     })
 })
 
+images.where('ownerType', '==', 'landmarks').get().then(col => {
+    handleQuery(col).forEach(img => {
+        if (!savedLandmarkImages[img.ownerId]) savedLandmarkImages[img.ownerId] = []
+        savedLandmarkImages[img.ownerId].push(img)
+    })
+    Object.keys(savedLandmarkImages).forEach(id => {
+        savedLandmarkImages[id].sort((a, b) => a.createdAt._seconds - b.createdAt._seconds)
+    })
+})
+
 toursSteps.get().then(col => {
     handleQuery(col).forEach(l => {
         savedSteps[l.id] = l
