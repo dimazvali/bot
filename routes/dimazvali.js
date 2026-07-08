@@ -967,10 +967,6 @@ router.all(`/admin/:method`, upload.any(), (req, res) => {
                     if (req.method == `POST`) return datatypes[req.params.method] ? datatypes[req.params.method].newDoc(req, res, admin) : res.sendStatus(404)
                     return res.sendStatus(404)
                 }
-                case `about`: {
-                    if (req.method == `GET`) return settings.doc(`about`).get().then(d => res.json(handleDoc(d, true)))
-                    if (req.method == `PUT`) return updateEntity(req, res, settings.doc(`about`), admin)
-                }
                 default: {
                     if (!datatypes[req.params.method]) return res.sendStatus(404)
                     if (req.method == `GET`) return datatypes[req.params.method].col.get().then(col => res.json(handleQuery(col, true)))
@@ -994,6 +990,11 @@ function updateEntity(req, res, ref, admin) {
         if (req.params.method.toLowerCase() == `landmarks`) {
             getDoc(landMarks, req.params.id).then(l => {
                 savedLandmarks[l.id] = l;
+            })
+        }
+        if (req.params.method.toLowerCase() == `settings`) {
+            getDoc(settings, req.params.id).then(s => {
+                savedSettings = s;
             })
         }
         log({
