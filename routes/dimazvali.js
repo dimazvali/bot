@@ -785,6 +785,46 @@ router.post('/admin/upload-image', upload.single('pic'), function(req, res) {
   })
 })
 
+router.post('/admin/upload-gallery-image', upload.single('pic'), function(req, res) {
+  if (!req.signedCookies.adminToken) return res.status(401).send('Вы кто вообще?')
+  if (!req.file) return res.status(400).send('no file')
+  var collection = req.body.collection
+  var id = req.body.id
+  if (!collection || !id) return res.status(400).send('collection and id required')
+
+  adminTokens.doc(req.signedCookies.adminToken).get().then(function(doc) {
+    if (!doc.exists) return res.sendStatus(403)
+    var token = handleDoc(doc)
+    getUser(token.user, udb).then(function(admin) {
+      if (!admin.admin) return res.sendStatus(403)
+      var docRef = images.doc()
+      var storagePath = 'media/' + collection + '/' + docRef.id + '_{w}.webp'
+      uploadImageSizes(req.file.buffer, storagePath).then(function(urls) {
+        var data = {
+          ownerType: collection,
+          ownerId: id,
+          w400: urls.w400,
+          w800: urls.w800,
+          w1400: urls.w1400,
+          createdAt: new Date(),
+          createdBy: +admin.id
+        }
+        return docRef.set(data).then(function() {
+          var item = { id: docRef.id, w400: data.w400, w800: data.w800, w1400: data.w1400 }
+          if (collection === 'landmarks') {
+            if (!savedLandmarkImages[id]) savedLandmarkImages[id] = []
+            savedLandmarkImages[id].push(item)
+          }
+          res.json(item)
+        })
+      }).catch(function(err) {
+        console.error('gallery upload error', err)
+        res.status(500).send(err.message)
+      })
+    })
+  })
+})
+
 router.all(`/admin/:method/:id`, (req, res) => {
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
