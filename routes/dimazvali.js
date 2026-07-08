@@ -852,6 +852,34 @@ router.get('/admin/gallery-images/:collection/:id', function(req, res) {
   })
 })
 
+router.delete('/admin/gallery-image/:imageId', function(req, res) {
+  if (!req.signedCookies.adminToken) return res.status(401).send('Вы кто вообще?')
+  adminTokens.doc(req.signedCookies.adminToken).get().then(function(doc) {
+    if (!doc.exists) return res.sendStatus(403)
+    var token = handleDoc(doc)
+    getUser(token.user, udb).then(function(admin) {
+      if (!admin.admin) return res.sendStatus(403)
+      var ref = images.doc(req.params.imageId)
+      ref.get().then(function(doc2) {
+        if (!doc2.exists) return res.sendStatus(404)
+        var data = handleDoc(doc2)
+        bucket.deleteFiles({ prefix: 'media/' + data.ownerType + '/' + data.id + '_' }).catch(function(err) {
+          console.error('gallery gcs cleanup error', err)
+        }).then(function() {
+          return ref.delete()
+        }).then(function() {
+          if (data.ownerType === 'landmarks' && savedLandmarkImages[data.ownerId]) {
+            savedLandmarkImages[data.ownerId] = savedLandmarkImages[data.ownerId].filter(function(i) {
+              return i.id !== data.id
+            })
+          }
+          res.json({ success: true })
+        })
+      })
+    })
+  })
+})
+
 router.all(`/admin/:method/:id`, (req, res) => {
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
