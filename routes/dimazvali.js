@@ -153,6 +153,7 @@ let messages = fb.collection(`DIMAZVALImessage`);
 let usersTours = fb.collection(`DIMAZVALIusersTours`);
 let usersLandmarks = fb.collection(`DIMAZVALIusersLandmarks`);
 let cities = fb.collection(`DIMAZVALIcities`);
+let images = fb.collection(`DIMAZVALIimages`);
 
 let authors = fb.collection(`NEVAauthors`);
 let programs = fb.collection(`NEVAprograms`);
@@ -163,6 +164,7 @@ let tgStat= fb.collection(`tgStats`);
 let savedLandmarks = {};
 let savedSteps = {};
 let savedUsers = {};
+let savedLandmarkImages = {};
 
 
 landMarks.get().then(col => {
@@ -176,6 +178,22 @@ toursSteps.get().then(col => {
         savedSteps[l.id] = l
     })
 })
+
+let savedSettings = {};
+
+settings.doc(`bot`).get().then(d => {
+    if (d.exists) {
+        savedSettings = d.data()
+    } else {
+        settings.doc(`bot`).set({ createdAt: new Date() })
+    }
+})
+
+function botText(field, fallback, vars) {
+    let t = savedSettings[field] || fallback
+    if (vars) Object.keys(vars).forEach(k => { t = t.replace(`{${k}}`, vars[k]) })
+    return t
+}
 
 const datatypes = {
     shows: {
@@ -214,6 +232,9 @@ const datatypes = {
     },
     users: {
         col: udb,
+    },
+    settings: {
+        col: settings,
     },
     pages: {
         col: pages,
