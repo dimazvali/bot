@@ -825,6 +825,33 @@ router.post('/admin/upload-gallery-image', upload.single('pic'), function(req, r
   })
 })
 
+router.get('/admin/gallery-images/:collection/:id', function(req, res) {
+  if (!req.signedCookies.adminToken) return res.status(401).send('Вы кто вообще?')
+  adminTokens.doc(req.signedCookies.adminToken).get().then(function(doc) {
+    if (!doc.exists) return res.sendStatus(403)
+    var token = handleDoc(doc)
+    getUser(token.user, udb).then(function(admin) {
+      if (!admin.admin) return res.sendStatus(403)
+      images
+        .where('ownerType', '==', req.params.collection)
+        .where('ownerId', '==', req.params.id)
+        .get()
+        .then(function(col) {
+          var list = handleQuery(col).sort(function(a, b) {
+            return a.createdAt._seconds - b.createdAt._seconds
+          })
+          res.json(list.map(function(l) {
+            return { id: l.id, w400: l.w400, w800: l.w800, w1400: l.w1400 }
+          }))
+        })
+        .catch(function(err) {
+          console.error('gallery list error', err)
+          res.status(500).send(err.message)
+        })
+    })
+  })
+})
+
 router.all(`/admin/:method/:id`, (req, res) => {
     if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
     adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
