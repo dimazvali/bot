@@ -352,8 +352,17 @@ function handleLocation(userId, loc) {
                                 rest.slice(0, 10 - media.length).forEach(function(img) {
                                     media.push({ type: 'photo', media: picUrl(img) });
                                 });
-                                sendEp = 'sendMediaGroup';
-                                sendBody = { chat_id: userId, media: media };
+                                if (media.length > 1) {
+                                    sendEp = 'sendMediaGroup';
+                                    sendBody = { chat_id: userId, media: media };
+                                } else if (!placePic) {
+                                    // Telegram's sendMediaGroup requires 2-10 items; a single
+                                    // gallery photo with no main photo falls back to sendPhoto.
+                                    m.caption = m.text;
+                                    m.photo = picUrl(gallery[0]);
+                                    sendEp = 'sendPhoto';
+                                    sendBody = m;
+                                }
                             }
 
 
