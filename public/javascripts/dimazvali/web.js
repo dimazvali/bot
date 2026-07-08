@@ -111,6 +111,47 @@ function messageLine(m) {
   return c;
 }
 
+// ── All users screen ─────────────────────────────────────────────────────────
+
+function userRow(u) {
+  var row = ce('div', false, 'sDivided');
+  row.append(ce('h3', false, false, uname(u, u.id), {
+    onclick: function() { showUser(u.id); }
+  }));
+  if (u.admin) row.append(ce('span', false, 'info', 'админ'));
+  if (u.blocked) row.append(ce('span', false, 'info', 'заблокирован'));
+  return row;
+}
+
+function showAllUsersPanel() {
+  var panel = renderPanel();
+  panel.append(ce('h2', false, false, 'Пользователи'));
+
+  var search = ce('input', false, false, false, { type: 'text', placeholder: 'Поиск по имени или юзернейму' });
+  panel.append(search);
+
+  var list = ce('div');
+  panel.append(list);
+
+  load('users').then(function(users) {
+    function render(filter) {
+      list.innerHTML = '';
+      var q = (filter || '').toLowerCase();
+      users
+        .filter(function(u) {
+          if (!q) return true;
+          return (u.first_name || '').toLowerCase().indexOf(q) > -1 ||
+                 (u.last_name || '').toLowerCase().indexOf(q) > -1 ||
+                 (u.username || '').toLowerCase().indexOf(q) > -1;
+        })
+        .forEach(function(u) { list.append(userRow(u)); });
+    }
+
+    render('');
+    search.addEventListener('input', function() { render(search.value); });
+  });
+}
+
 // ── Google Maps ───────────────────────────────────────────────────────────────
 
 var map;
