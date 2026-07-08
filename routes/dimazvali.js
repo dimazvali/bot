@@ -380,7 +380,7 @@ function handleLocation(userId, loc) {
                                         } else {
                                             sendMessage2({
                                                 chat_id: userId,
-                                                text: `Это последняя точка маршрута. Спасибо, что были с нами. Не прощаемся.`
+                                                text: botText(`tourFinishedText`, `Это последняя точка маршрута. Спасибо, что были с нами. Не прощаемся.`)
                                             }, false, token)
 
                                             usersTours.doc(sUser.currentAttempt).update({
@@ -648,7 +648,7 @@ function sendStep(step, userId) {
     getDoc(landMarks, step.landmark).then(l => {
         sendMessage2({
             chat_id: userId,
-            text: `Держим курс на ${l.name}. Сейчас я пришлю точку на карте.`
+            text: botText(`stepTransitionText`, `Держим курс на {name}. Сейчас я пришлю точку на карте.`, { name: l.name })
         }, false, token, messages).then(() => {
             sendMessage2({
                 chat_id: userId,
@@ -668,12 +668,12 @@ function sendTours(uid) {
         .then(col => {
             if (!col.docs.length) return sendMessage2({
                 chat_id: uid,
-                text: `Боюсь, нам сейчас нечего вам показать (но мы исправимся и напишем об этом).`
+                text: botText(`noToursText`, `Боюсь, нам сейчас нечего вам показать (но мы исправимся и напишем об этом).`)
             }, false, token, messages)
 
             sendMessage2({
                 chat_id: uid,
-                text: `${sudden.fine()}! Вот, куда мы можем вас отвести:`,
+                text: `${sudden.fine()}! ` + botText(`toursIntroText`, `Вот, куда мы можем вас отвести:`),
                 reply_markup: {
                     inline_keyboard: handleQuery(col).map(t => {
                         return [{
@@ -1207,7 +1207,7 @@ function registerUser(u) {
     udb.doc(u.id.toString()).set(u).then(rec => {
         sendMessage2({
             chat_id: u.id,
-            text: `Добро пожаловать. Напишите, пожалуйста, чем могу быть полезен?..`
+            text: botText(`welcomeText`, `Добро пожаловать. Напишите, пожалуйста, чем могу быть полезен?..`)
         }, false, token, messages)
         log({
             user: +u.id,
