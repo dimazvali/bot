@@ -377,16 +377,6 @@ function picWidget(collection, id, currentPic) {
   var wrap = ce('div', false, 'pic-widget');
 
   var thumb = ce('div', false, 'pic-thumb');
-  var url = picUrl(currentPic);
-  if (url) {
-    var img = ce('img');
-    img.src = url;
-    img.style.cssText = 'width:120px;height:80px;object-fit:cover;border-radius:6px;display:block';
-    thumb.append(img);
-  } else {
-    thumb.style.cssText = 'width:120px;height:80px;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999';
-    thumb.textContent = 'нет фото';
-  }
   wrap.append(thumb);
 
   var status = ce('span', false, 'info', '');
@@ -396,6 +386,41 @@ function picWidget(collection, id, currentPic) {
   var btn = ce('button', false, false, 'Загрузить фото', {
     onclick: function() { inp.click(); }
   });
+
+  var delBtn = ce('button', false, false, 'Удалить', {
+    onclick: function() {
+      if (!confirm('Удалить фото?')) return;
+      delBtn.setAttribute('disabled', true);
+      axios.delete('/dimazvali/admin/pic/' + collection + '/' + id).then(function() {
+        renderThumb(null);
+        status.textContent = '✓ Удалено';
+        delBtn.removeAttribute('disabled');
+        _geoLandmarks = null;
+        _geoTours = null;
+      }).catch(function(err) {
+        handleError(err);
+        delBtn.removeAttribute('disabled');
+      });
+    }
+  });
+  delBtn.style.cssText = 'margin-left:4px';
+
+  function renderThumb(url) {
+    thumb.innerHTML = '';
+    if (url) {
+      var img = ce('img');
+      img.src = url;
+      img.style.cssText = 'width:120px;height:80px;object-fit:cover;border-radius:6px;display:block';
+      thumb.append(img);
+      delBtn.style.display = '';
+    } else {
+      thumb.style.cssText = 'width:120px;height:80px;background:#eee;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999';
+      thumb.textContent = 'нет фото';
+      delBtn.style.display = 'none';
+    }
+  }
+
+  renderThumb(picUrl(currentPic));
 
   inp.addEventListener('change', function() {
     if (!inp.files || !inp.files[0]) return;
@@ -415,11 +440,7 @@ function picWidget(collection, id, currentPic) {
         attr: 'pic',
         value: urls
       }).then(function() {
-        thumb.innerHTML = '';
-        var img = ce('img');
-        img.src = urls.w800 || urls.w400;
-        img.style.cssText = 'width:120px;height:80px;object-fit:cover;border-radius:6px;display:block';
-        thumb.append(img);
+        renderThumb(urls.w800 || urls.w400);
         status.textContent = '✓ Сохранено';
         btn.removeAttribute('disabled');
         _geoLandmarks = null;
@@ -433,6 +454,7 @@ function picWidget(collection, id, currentPic) {
   });
 
   wrap.append(btn);
+  wrap.append(delBtn);
   wrap.append(inp);
   wrap.append(status);
   return wrap;
@@ -446,9 +468,18 @@ function galleryWidget(collection, id) {
   grid.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px';
   wrap.append(grid);
 
+  var dragged = null;
+  var dragOver = null;
+
+  function persistOrder() {
+    var order = Array.prototype.map.call(grid.children, function(box) { return box.dataset.imageId; });
+    axios.put('/dimazvali/admin/gallery-images/' + collection + '/' + id + '/order', { order: order }).catch(handleError);
+  }
+
   function addThumb(item) {
-    var box = ce('div', false, 'gallery-thumb');
-    box.style.cssText = 'position:relative;width:100px;height:70px';
+    var box = ce('div', false, 'gallery-thumb', false, { draggable: true });
+    box.style.cssText = 'position:relative;width:100px;height:70px;cursor:move';
+    box.dataset.imageId = item.id;
 
     var img = ce('img');
     img.src = item.w400 || item.w800 || item.w1400;
@@ -469,6 +500,44 @@ function galleryWidget(collection, id) {
     });
     del.style.cssText = 'position:absolute;top:2px;right:2px;width:20px;height:20px;line-height:1;padding:0;border-radius:50%;border:none;background:rgba(0,0,0,0.6);color:#fff;cursor:pointer;font-size:12px';
     box.append(del);
+
+    var captionLabel = ce('div', false, 'gallery-caption', item.caption || 'подпись…');
+    captionLabel.style.cssText = 'position:absolute;left:0;right:0;bottom:0;font-size:10px;line-height:1.3;padding:2px 4px;background:rgba(0,0,0,0.55);color:' + (item.caption ? '#fff' : '#ccc') + ';cursor:text;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:0 0 6px 6px';
+    captionLabel.addEventListener('click', function() {
+      var captionInp = ce('input', false, false, false, { type: 'text', value: item.caption || '' });
+      captionInp.style.cssText = 'position:absolute;left:0;right:0;bottom:0;width:100%;font-size:10px;padding:2px 4px;box-sizing:border-box;border:none';
+      box.replaceChild(captionInp, captionLabel);
+      captionInp.focus();
+
+      function save() {
+        var value = captionInp.value.trim() || null;
+        axios.put('/dimazvali/admin/gallery-image/' + item.id + '/caption', { caption: value }).then(function() {
+          item.caption = value;
+          captionLabel.textContent = value || 'подпись…';
+          captionLabel.style.color = value ? '#fff' : '#ccc';
+          box.replaceChild(captionLabel, captionInp);
+        }).catch(function(err) {
+          handleError(err);
+          box.replaceChild(captionLabel, captionInp);
+        });
+      }
+      captionInp.addEventListener('blur', save);
+      captionInp.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') captionInp.blur();
+      });
+    });
+    box.append(captionLabel);
+
+    box.addEventListener('dragstart', function() { dragged = box; });
+    box.addEventListener('dragenter', function() { dragOver = box; });
+    box.addEventListener('dragend', function() {
+      if (dragged && dragOver && dragged !== dragOver) {
+        grid.insertBefore(dragged, dragOver);
+        persistOrder();
+      }
+      dragged = null;
+      dragOver = null;
+    });
 
     grid.append(box);
   }
