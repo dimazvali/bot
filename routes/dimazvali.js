@@ -97,6 +97,10 @@ function picUrl(pic) {
   return typeof pic === 'string' ? pic : (pic.w800 || pic.w400 || pic.w1400);
 }
 
+function orderOf(img) {
+  return img.order != null ? img.order : img.createdAt._seconds * 1000;
+}
+
 // s.bucket(`dimazvalimisc`)
 //     .upload(__dirname + `/../public/sounds/123.mp3`)
 //     .then(s=>{
@@ -179,7 +183,7 @@ images.where('ownerType', '==', 'landmarks').get().then(col => {
         savedLandmarkImages[img.ownerId].push(img)
     })
     Object.keys(savedLandmarkImages).forEach(id => {
-        savedLandmarkImages[id].sort((a, b) => a.createdAt._seconds - b.createdAt._seconds)
+        savedLandmarkImages[id].sort((a, b) => orderOf(a) - orderOf(b))
     })
 })
 
@@ -814,6 +818,35 @@ router.post('/admin/upload-image', upload.single('pic'), function(req, res) {
   })
 })
 
+router.delete('/admin/pic/:collection/:id', function(req, res) {
+  if (!req.signedCookies.adminToken) return res.status(401).send('Вы кто вообще?')
+  var collection = req.params.collection
+  var id = req.params.id
+  if (!datatypes[collection]) return res.sendStatus(404)
+
+  adminTokens.doc(req.signedCookies.adminToken).get().then(function(doc) {
+    if (!doc.exists) return res.sendStatus(403)
+    var token = handleDoc(doc)
+    getUser(token.user, udb).then(function(admin) {
+      if (!admin.admin) return res.sendStatus(403)
+      bucket.deleteFiles({ prefix: 'media/' + collection + '/' + id + '_' }).catch(function(err) {
+        console.error('pic gcs cleanup error', err)
+      }).then(function() {
+        return datatypes[collection].col.doc(id).update({
+          pic: null,
+          updatedAt: new Date(),
+          updatedBy: +admin.id
+        })
+      }).then(function() {
+        if (collection === 'landmarks') {
+          getDoc(landMarks, id).then(function(l) { savedLandmarks[l.id] = l })
+        }
+        res.json({ success: true })
+      })
+    })
+  })
+})
+
 router.post('/admin/upload-gallery-image', upload.single('pic'), function(req, res) {
   if (!req.signedCookies.adminToken) return res.status(401).send('Вы кто вообще?')
   if (!req.file) return res.status(400).send('no file')
@@ -835,11 +868,13 @@ router.post('/admin/upload-gallery-image', upload.single('pic'), function(req, r
           w400: urls.w400,
           w800: urls.w800,
           w1400: urls.w1400,
+          caption: null,
+          order: Date.now(),
           createdAt: new Date(),
           createdBy: +admin.id
         }
         return docRef.set(data).then(function() {
-          var item = { id: docRef.id, w400: data.w400, w800: data.w800, w1400: data.w1400 }
+          var item = { id: docRef.id, w400: data.w400, w800: data.w800, w1400: data.w1400, caption: data.caption, order: data.order }
           if (collection === 'landmarks') {
             if (!savedLandmarkImages[id]) savedLandmarkImages[id] = []
             savedLandmarkImages[id].push(item)
@@ -867,10 +902,10 @@ router.get('/admin/gallery-images/:collection/:id', function(req, res) {
         .get()
         .then(function(col) {
           var list = handleQuery(col).sort(function(a, b) {
-            return a.createdAt._seconds - b.createdAt._seconds
+            return orderOf(a) - orderOf(b)
           })
           res.json(list.map(function(l) {
-            return { id: l.id, w400: l.w400, w800: l.w800, w1400: l.w1400 }
+            return { id: l.id, w400: l.w400, w800: l.w800, w1400: l.w1400, caption: l.caption || null, order: orderOf(l) }
           }))
         })
         .catch(function(err) {
@@ -900,6 +935,61 @@ router.delete('/admin/gallery-image/:imageId', function(req, res) {
           if (data.ownerType === 'landmarks' && savedLandmarkImages[data.ownerId]) {
             savedLandmarkImages[data.ownerId] = savedLandmarkImages[data.ownerId].filter(function(i) {
               return i.id !== data.id
+            })
+          }
+          res.json({ success: true })
+        })
+      })
+    })
+  })
+})
+
+router.put('/admin/gallery-images/:collection/:id/order', function(req, res) {
+  if (!req.signedCookies.adminToken) return res.status(401).send('Вы кто вообще?')
+  var order = req.body.order
+  if (!Array.isArray(order) || !order.length) return res.status(400).send('order array required')
+
+  adminTokens.doc(req.signedCookies.adminToken).get().then(function(doc) {
+    if (!doc.exists) return res.sendStatus(403)
+    var token = handleDoc(doc)
+    getUser(token.user, udb).then(function(admin) {
+      if (!admin.admin) return res.sendStatus(403)
+      Promise.all(order.map(function(imageId, index) {
+        return images.doc(imageId).update({ order: index })
+      })).then(function() {
+        if (req.params.collection === 'landmarks' && savedLandmarkImages[req.params.id]) {
+          var byId = {}
+          savedLandmarkImages[req.params.id].forEach(function(i) { byId[i.id] = i })
+          savedLandmarkImages[req.params.id] = order.filter(function(id) { return byId[id] }).map(function(id, index) {
+            byId[id].order = index
+            return byId[id]
+          })
+        }
+        res.json({ success: true })
+      }).catch(function(err) {
+        console.error('gallery reorder error', err)
+        res.status(500).send(err.message)
+      })
+    })
+  })
+})
+
+router.put('/admin/gallery-image/:imageId/caption', function(req, res) {
+  if (!req.signedCookies.adminToken) return res.status(401).send('Вы кто вообще?')
+  adminTokens.doc(req.signedCookies.adminToken).get().then(function(doc) {
+    if (!doc.exists) return res.sendStatus(403)
+    var token = handleDoc(doc)
+    getUser(token.user, udb).then(function(admin) {
+      if (!admin.admin) return res.sendStatus(403)
+      var caption = req.body.caption || null
+      var ref = images.doc(req.params.imageId)
+      ref.get().then(function(doc2) {
+        if (!doc2.exists) return res.sendStatus(404)
+        var data = handleDoc(doc2)
+        ref.update({ caption: caption }).then(function() {
+          if (data.ownerType === 'landmarks' && savedLandmarkImages[data.ownerId]) {
+            savedLandmarkImages[data.ownerId].forEach(function(i) {
+              if (i.id === data.id) i.caption = caption
             })
           }
           res.json({ success: true })
