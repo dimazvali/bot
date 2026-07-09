@@ -354,7 +354,9 @@ function handleLocation(userId, loc) {
                                     rest = gallery.slice(1);
                                 }
                                 rest.slice(0, 10 - media.length).forEach(function(img) {
-                                    media.push({ type: 'photo', media: picUrl(img) });
+                                    var entry = { type: 'photo', media: picUrl(img) };
+                                    if (img.caption) { entry.caption = img.caption; entry.parse_mode = 'Markdown'; }
+                                    media.push(entry);
                                 });
                                 if (media.length > 1) {
                                     sendEp = 'sendMediaGroup';
