@@ -129,6 +129,8 @@ a { color: var(--navy); text-decoration: none; }
 .status-working   { background: rgba(163,124,84,.15); color: var(--tan); }
 .status-cancelled { background: rgba(192,57,43,.1);   color: #c0392b; }
 .status-done      { background: rgba(39,174,96,.12);  color: #1e8449; }
+.status-confirmed { background: rgba(39,174,96,.12);  color: #1e8449; }
+.status-declined  { background: rgba(192,57,43,.1);   color: #c0392b; }
 
 .status-select { padding: .25rem .5rem; font-size: .8rem; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; }
 
@@ -145,6 +147,10 @@ a { color: var(--navy); text-decoration: none; }
 .status-pill.status-cancelled.active { background: #c0392b; color: #fff; border-color: #c0392b; }
 .status-pill.status-done       { color: #1e8449; background: rgba(39,174,96,.1); }
 .status-pill.status-done.active { background: #1e8449; color: #fff; border-color: #1e8449; }
+.status-pill.status-confirmed       { color: #1e8449; background: rgba(39,174,96,.1); }
+.status-pill.status-confirmed.active { background: #1e8449; color: #fff; border-color: #1e8449; }
+.status-pill.status-declined       { color: #c0392b; background: rgba(192,57,43,.08); }
+.status-pill.status-declined.active { background: #c0392b; color: #fff; border-color: #c0392b; }
 
 /* ── Translate widget ── */
 .translate-result .translate-lang { font-size: .72rem; font-weight: 700; letter-spacing: .08em; color: var(--navy); text-transform: uppercase; margin-bottom: .4rem; }

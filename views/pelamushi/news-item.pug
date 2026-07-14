@@ -21,7 +21,10 @@ block content
       if article.registration_enabled
         .registration-form
           if registered
-            .success-msg #{t.news.success}
+            if registrationFull
+              .success-msg.warning-msg #{article['autoresponder_full_' + lang] || t.news.full}
+            else
+              .success-msg #{article['autoresponder_success_' + lang] || t.news.success}
           else
             h3 #{t.news.registration_title}
             if article.event_date

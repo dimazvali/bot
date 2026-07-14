@@ -428,6 +428,11 @@ img.section-card-icon {
   border-radius: 4px;
   color: var(--navy);
 }
+.success-msg.warning-msg {
+  background: rgba(178,91,60,0.1);
+  border-left-color: var(--terra);
+  color: var(--terra);
+}
 
 /* ── Footer ────────────────────────────────────────────── */
 .site-footer {

@@ -52,5 +52,68 @@ block content
       .form-row
         label Дата события
         input(type='datetime-local' name='event_date' value=article.event_date ? article.event_date.toDate ? article.event_date.toDate().toISOString().slice(0,16) : new Date(article.event_date).toISOString().slice(0,16) : '')
+      .form-row
+        label Вместимость (0 или пусто — без ограничения)
+        input(type='number' name='capacity' min='0' value=article.capacity || '')
+        if article.capacity
+          - var activeRegCount = (registrations || []).filter(function(r){ return r.status !== 'declined'; }).length
+          p(style='color:#999;font-size:.85rem;margin-top:.4rem') Занято: #{activeRegCount} из #{article.capacity}
+
+    .card
+      h2 Автоответчик на регистрацию
+      p(style='color:#999;font-size:.85rem;margin-bottom:1rem') Показывается на сайте сразу после отправки формы регистрации. Если поле пустое — используется стандартный текст.
+      h3(style='font-size:.9rem;margin-bottom:.5rem') Есть места
+      .form-row
+        label Текст EN
+        textarea(name='autoresponder_success_en') #{article.autoresponder_success_en}
+      .form-row
+        label Текст KA
+        textarea(name='autoresponder_success_ka') #{article.autoresponder_success_ka}
+      .form-row
+        label Текст RU
+        textarea(name='autoresponder_success_ru') #{article.autoresponder_success_ru}
+      h3(style='font-size:.9rem;margin:1rem 0 .5rem') Мест нет / вместимость достигнута
+      .form-row
+        label Текст EN
+        textarea(name='autoresponder_full_en') #{article.autoresponder_full_en}
+      .form-row
+        label Текст KA
+        textarea(name='autoresponder_full_ka') #{article.autoresponder_full_ka}
+      .form-row
+        label Текст RU
+        textarea(name='autoresponder_full_ru') #{article.autoresponder_full_ru}
 
     button.btn.btn-primary(type='submit') Сохранить
+
+  .card
+    .requests-header
+      h2 Регистрации (#{registrations.length})
+      if registrations.length
+        a.btn.btn-secondary.btn-sm(href=`/admin/news/${article.id}/registrations/print` target='_blank') 🖨 Список для печати
+    if !registrations.length
+      p(style='color:#999;font-size:.88rem') Регистраций пока нет.
+    else
+      table.table.table-responsive
+        thead
+          tr
+            th Дата
+            th Имя
+            th Email
+            th Телефон
+            th Статус
+        tbody
+          each r in registrations
+            tr
+              td(data-label='Дата' style='white-space:nowrap;font-size:.82rem;color:#999')
+                = r.created_at ? new Date(r.created_at.toDate()).toLocaleDateString('ru-RU', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'
+              td(data-label='Имя') #{r.name}
+              td(data-label='Email')
+                a(href=`mailto:${r.email}`) #{r.email}
+              td(data-label='Телефон') #{r.phone || '—'}
+              td(data-label='Статус')
+                form(action=`/admin/registrations/${r.id}/status` method='POST')
+                  input(type='hidden' name='back' value=`/admin/news/${article.id}`)
+                  select.status-select(name='status' onchange='this.form.submit()')
+                    option(value='new'       selected=r.status==='new')       Новая
+                    option(value='confirmed' selected=r.status==='confirmed') Подтверждена
+                    option(value='declined'  selected=r.status==='declined')  Отклонена

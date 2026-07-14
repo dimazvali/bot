@@ -1,12 +1,31 @@
 extends layout
 
 block content
+  if saved
+    .alert.alert-success Статус обновлён
+
   .card
-    h2 Регистрации на события
+    .requests-header
+      h2 Регистрации на события (#{registrations.length})
+      .status-filter
+        - var qs = function(over) { var p = Object.assign({}, { status: statusFilter, news_id: newsFilter }, over); return Object.keys(p).filter(function(k){ return p[k]; }).map(function(k){ return k + '=' + encodeURIComponent(p[k]); }).join('&'); }
+        a.status-pill(href='/admin/news/registrations' + (newsFilter ? '?news_id=' + newsFilter : '') class=!statusFilter ? 'active' : '') Все
+        a.status-pill.status-new(href='/admin/news/registrations?' + qs({ status: 'new' }) class=statusFilter==='new' ? 'active' : '') Новые
+        a.status-pill.status-confirmed(href='/admin/news/registrations?' + qs({ status: 'confirmed' }) class=statusFilter==='confirmed' ? 'active' : '') Подтверждены
+        a.status-pill.status-declined(href='/admin/news/registrations?' + qs({ status: 'declined' }) class=statusFilter==='declined' ? 'active' : '') Отклонены
+
+    form(method='GET' action='/admin/news/registrations' style='margin-bottom:1rem')
+      if statusFilter
+        input(type='hidden' name='status' value=statusFilter)
+      select.status-select(name='news_id' onchange='this.form.submit()')
+        option(value='') Все события
+        each n in newsList
+          option(value=n.id selected=newsFilter===n.id)= n.title_ru || n.title_en || n.id
+
     if !registrations.length
       p(style='color:#999;font-size:.88rem') Регистраций пока нет.
     else
-      table.table
+      table.table.table-responsive
         thead
           tr
             th Дата
@@ -14,14 +33,25 @@ block content
             th Имя
             th Email
             th Телефон
+            th Статус
         tbody
           each r in registrations
             tr
-              td(style='white-space:nowrap;font-size:.82rem;color:#999')
+              td(data-label='Дата' style='white-space:nowrap;font-size:.82rem;color:#999')
                 = r.created_at ? new Date(r.created_at.toDate()).toLocaleDateString('ru-RU', {day:'2-digit',month:'2-digit',year:'numeric'}) : '—'
-              td(style='font-size:.85rem')
-                = r.event ? (r.event.title_ru || r.event.title_en || r.news_id) : r.news_id
-              td #{r.name}
-              td
+              td(data-label='Событие' style='font-size:.85rem')
+                if r.event
+                  a(href=`/admin/news/${r.news_id}`)= r.event.title_ru || r.event.title_en || r.news_id
+                else
+                  = r.news_id
+              td(data-label='Имя') #{r.name}
+              td(data-label='Email')
                 a(href=`mailto:${r.email}`) #{r.email}
-              td #{r.phone || '—'}
+              td(data-label='Телефон') #{r.phone || '—'}
+              td(data-label='Статус')
+                form(action=`/admin/registrations/${r.id}/status` method='POST')
+                  input(type='hidden' name='back' value='/admin/news/registrations')
+                  select.status-select(name='status' onchange='this.form.submit()')
+                    option(value='new'       selected=r.status==='new')       Новая
+                    option(value='confirmed' selected=r.status==='confirmed') Подтверждена
+                    option(value='declined'  selected=r.status==='declined')  Отклонена

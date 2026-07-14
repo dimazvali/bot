@@ -1,0 +1,72 @@
+doctype html
+html
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    title Список гостей — #{article.title_ru || article.title_en || 'Событие'}
+    style.
+      * { box-sizing: border-box; }
+      body { font-family: Georgia, 'Times New Roman', serif; color: #1C2E4A; margin: 0; padding: 2rem; }
+      .toolbar { margin-bottom: 1.5rem; }
+      .toolbar button {
+        font-family: system-ui, sans-serif; font-size: 0.85rem; padding: 0.6rem 1.25rem;
+        background: #1C2E4A; color: #fff; border: none; border-radius: 4px; cursor: pointer;
+      }
+      h1 { font-size: 1.4rem; margin: 0 0 0.25rem; }
+      .meta { font-size: 0.9rem; color: #555; margin-bottom: 1.5rem; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+      th, td { border: 1px solid #ccc; padding: 0.5rem 0.6rem; text-align: left; vertical-align: middle; }
+      th { background: #f3ece0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+      td.num { width: 2.5rem; color: #999; }
+      td.check { width: 2.5rem; text-align: center; }
+      .check-box { display: inline-block; width: 18px; height: 18px; border: 1.5px solid #1C2E4A; }
+      .status { font-size: 0.78rem; }
+      .status-declined { color: #B25B3C; text-decoration: line-through; }
+      .empty { color: #999; font-style: italic; }
+      @media print {
+        body { padding: 0.5cm; }
+        .toolbar { display: none; }
+        table { font-size: 0.9rem; }
+      }
+  body
+    .toolbar
+      button(type='button' onclick='window.print()') Печать
+    h1 #{article.title_ru || article.title_en || 'Событие'}
+    .meta
+      if article.event_date
+        | #{new Date(article.event_date.toDate ? article.event_date.toDate() : article.event_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} ·
+      |  Гостей: #{registrations.length}
+      if article.capacity
+        |  из #{article.capacity}
+
+    if !registrations.length
+      p.empty Регистраций пока нет.
+    else
+      table
+        thead
+          tr
+            th #
+            th Имя
+            th Контакт
+            th Статус
+            th Отметка
+        tbody
+          each r, i in registrations
+            tr
+              td.num #{i + 1}
+              td #{r.name}
+              td
+                div #{r.email}
+                if r.phone
+                  div #{r.phone}
+              td
+                span.status(class=r.status === 'declined' ? 'status-declined' : '')
+                  case r.status
+                    when 'confirmed'
+                      | Подтверждена
+                    when 'declined'
+                      | Отклонена
+                    default
+                      | Новая
+              td.check
+                span.check-box

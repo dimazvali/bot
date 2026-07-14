@@ -684,50 +684,118 @@ router.post('/news/icon', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+const REGISTRATION_STATUSES = ['new', 'confirmed', 'declined'];
+
 router.get('/news/registrations', async (req, res, next) => {
   try {
-    let registrations = [], newsMap = {};
+    const statusFilter = REGISTRATION_STATUSES.includes(req.query.status) ? req.query.status : '';
+    const newsFilter = req.query.news_id || '';
+    let registrations = [], newsMap = {}, newsList = [];
     if (col.registrations) {
       const [regSnap, newsSnap] = await Promise.all([
         col.registrations.orderBy('created_at', 'desc').get(),
         col.news ? col.news.get() : Promise.resolve({ docs: [] }),
       ]);
-      newsSnap.docs.forEach(d => { newsMap[d.id] = d.data(); });
-      registrations = regSnap.docs.map(d => {
-        const r = { id: d.id, ...d.data() };
-        r.event = newsMap[r.news_id] || null;
-        return r;
+      newsSnap.docs.forEach(d => { newsMap[d.id] = { id: d.id, ...d.data() }; });
+      newsList = Object.values(newsMap).sort((a, b) => {
+        const ta = a.published_at && a.published_at.toMillis ? a.published_at.toMillis() : 0;
+        const tb = b.published_at && b.published_at.toMillis ? b.published_at.toMillis() : 0;
+        return tb - ta;
       });
+      registrations = regSnap.docs
+        .map(d => {
+          const r = { id: d.id, status: 'new', ...d.data() };
+          r.event = newsMap[r.news_id] || null;
+          return r;
+        })
+        .filter(r => (!statusFilter || r.status === statusFilter) && (!newsFilter || r.news_id === newsFilter));
     }
-    res.render('pelamushi/admin/news-registrations', { title: 'Заявки', registrations });
+    res.render('pelamushi/admin/news-registrations', { title: 'Заявки', registrations, newsList, statusFilter, newsFilter });
+  } catch (err) { next(err); }
+});
+
+router.post('/registrations/:id/status', async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    if (!REGISTRATION_STATUSES.includes(status)) return res.redirect('/admin/news/registrations');
+    const STATUS_LABELS = { new: 'Новая', confirmed: 'Подтверждена', declined: 'Отклонена' };
+    let regName = '', eventTitle = '';
+    if (col.registrations) {
+      const doc = await col.registrations.doc(req.params.id).get();
+      if (doc.exists) {
+        regName = doc.data().name || '';
+        const newsId = doc.data().news_id;
+        if (newsId && col.news) {
+          const newsDoc = await col.news.doc(newsId).get();
+          if (newsDoc.exists) eventTitle = newsDoc.data().title_ru || newsDoc.data().title_en || '';
+        }
+      }
+      await col.registrations.doc(req.params.id).update({ status, updated_at: new Date() });
+    }
+    const { notify } = require('../lib/pelamushi-notify');
+    notify('registration', `🔄 <b>Статус регистрации изменён</b>: ${STATUS_LABELS[status]}\n${regName}${eventTitle ? ' — ' + eventTitle : ''}\nАдмин: ${res.locals.adminName}`);
+    const back = req.body.back || '/admin/news/registrations';
+    res.redirect(back + (back.includes('?') ? '&' : '?') + 'saved=1');
   } catch (err) { next(err); }
 });
 
 router.get('/news/:id', async (req, res, next) => {
   try {
-    let article = {};
+    let article = {}, registrations = [];
     if (col.news) {
       const doc = await col.news.doc(req.params.id).get();
       if (!doc.exists) return res.status(404).send('Not found');
       article = { id: doc.id, ...doc.data() };
     }
+    if (col.registrations) {
+      const regSnap = await col.registrations.where('news_id', '==', req.params.id).get();
+      registrations = regSnap.docs
+        .map(d => ({ id: d.id, status: 'new', ...d.data() }))
+        .sort((a, b) => (b.created_at && b.created_at.toMillis ? b.created_at.toMillis() : 0) - (a.created_at && a.created_at.toMillis ? a.created_at.toMillis() : 0));
+    }
     res.render('pelamushi/admin/news-edit', {
       title: 'Edit Article',
       article,
+      registrations,
       saved: req.query.saved === '1',
     });
   } catch (err) { next(err); }
 });
 
+router.get('/news/:id/registrations/print', async (req, res, next) => {
+  try {
+    let article = {}, registrations = [];
+    if (col.news) {
+      const doc = await col.news.doc(req.params.id).get();
+      if (!doc.exists) return res.status(404).send('Not found');
+      article = { id: doc.id, ...doc.data() };
+    }
+    if (col.registrations) {
+      const regSnap = await col.registrations.where('news_id', '==', req.params.id).get();
+      registrations = regSnap.docs
+        .map(d => ({ id: d.id, status: 'new', ...d.data() }))
+        .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
+    }
+    res.render('pelamushi/admin/news-registrations-print', { article, registrations });
+  } catch (err) { next(err); }
+});
+
 router.post('/news/:id/save', async (req, res, next) => {
   try {
-    const { title_en, title_ka, title_ru, body_en, body_ka, body_ru, slug, author, registration_enabled, event_date } = req.body;
+    const {
+      title_en, title_ka, title_ru, body_en, body_ka, body_ru, slug, author, registration_enabled, event_date, capacity,
+      autoresponder_success_en, autoresponder_success_ka, autoresponder_success_ru,
+      autoresponder_full_en, autoresponder_full_ka, autoresponder_full_ru,
+    } = req.body;
     const update = {
       title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
       body_en: body_en || '', body_ka: body_ka || '', body_ru: body_ru || '',
       slug: slug || '',
       author: author || '',
       registration_enabled: registration_enabled === 'on',
+      capacity: capacity ? Math.max(0, parseInt(capacity, 10) || 0) : 0,
+      autoresponder_success_en: autoresponder_success_en || '', autoresponder_success_ka: autoresponder_success_ka || '', autoresponder_success_ru: autoresponder_success_ru || '',
+      autoresponder_full_en: autoresponder_full_en || '', autoresponder_full_ka: autoresponder_full_ka || '', autoresponder_full_ru: autoresponder_full_ru || '',
       updated_at: new Date(),
     };
     if (event_date) {
@@ -739,7 +807,13 @@ router.post('/news/:id/save', async (req, res, next) => {
       const { uploadPhoto } = require('../lib/pelamushi-upload');
       update.photo_url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'news', 'cover');
     }
-    if (col.news) await col.news.doc(req.params.id).update(update);
+    let oldSlug = '';
+    if (col.news) {
+      const before = await col.news.doc(req.params.id).get();
+      if (before.exists) oldSlug = before.data().slug || '';
+      await col.news.doc(req.params.id).update(update);
+    }
+    cache.del('news-item:' + oldSlug, 'news-item:' + (update.slug || ''), 'news');
     const { notify } = require('../lib/pelamushi-notify');
     notify('news', `📰 <b>Обновлена новость</b>: ${title_ru || title_en || slug}\nАдмин: ${res.locals.adminName}`);
     res.redirect(`/admin/news/${req.params.id}?saved=1`);

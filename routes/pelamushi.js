@@ -326,10 +326,12 @@ router.get('/:lang/news/:slug', async (req, res, next) => {
     }
 
     const registered = req.query.registered === '1';
+    const registrationFull = req.query.full === '1';
     const pageDesc = (article['body_' + res.locals.lang] || '').replace(/<[^>]+>/g, '').substring(0, 160);
     res.render('pelamushi/news-item', {
       article,
       registered,
+      registrationFull,
       pageTitle: article['title_' + res.locals.lang],
       pageDesc,
       ogImage: article.photo_url || '',
@@ -359,17 +361,27 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
     if (!snap.docs[0].data().registration_enabled) return res.status(400).send('Registration not open');
 
     const article = snap.docs[0].data();
+    const newsId = snap.docs[0].id;
+
+    let full = false;
+    if (article.capacity) {
+      const regSnap = await col.registrations.where('news_id', '==', newsId).get();
+      const activeCount = regSnap.docs.filter(d => d.data().status !== 'declined').length;
+      full = activeCount >= article.capacity;
+    }
+
     await col.registrations.add({
-      news_id: snap.docs[0].id,
+      news_id: newsId,
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: (phone || '').trim(),
+      status: 'new',
       created_at: Timestamp.now(),
     });
 
     const { notify } = require('../lib/pelamushi-notify');
-    notify('registration', `📋 <b>Новая регистрация</b>\nСобытие: ${article.title_ru || article.title_en || req.params.slug}\nИмя: ${name.trim()}\nEmail: ${email.trim()}\nТелефон: ${(phone || '').trim() || '—'}`);
-    res.redirect(`/${lang}/news/${req.params.slug}?registered=1`);
+    notify('registration', `📋 <b>Новая регистрация</b>${full ? ' ⚠️ вместимость достигнута' : ''}\nСобытие: ${article.title_ru || article.title_en || req.params.slug}\nИмя: ${name.trim()}\nEmail: ${email.trim()}\nТелефон: ${(phone || '').trim() || '—'}`);
+    res.redirect(`/${lang}/news/${req.params.slug}?registered=1${full ? '&full=1' : ''}`);
   } catch (err) {
     next(err);
   }

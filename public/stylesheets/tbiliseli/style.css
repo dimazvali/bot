@@ -1,3 +1,51 @@
+/* ── CYRILLIC FALLBACK ─────────────────────────────────────
+   Barlow / Barlow Condensed have no Cyrillic glyphs, so Russian
+   text falls back to the browser default font. Fira Sans /
+   Fira Sans Condensed share Barlow's proportions and are used
+   here (same font-family name, unicode-range scoped to Cyrillic)
+   so Russian text picks them up automatically wherever Barlow
+   is referenced. ── */
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/firasans/v18/va9E4kDNxMZdWfMOD5Vvk4jLeTY.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/firasans/v18/va9B4kDNxMZdWfMOD5VnZKveQhf6TF0.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Barlow';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/firasans/v18/va9B4kDNxMZdWfMOD5VnSKzeQhf6TF0.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/firasanscondensed/v11/wEOsEADFm8hSaQTFG18FErVhsC9x-tarWU3IuMB0ciZb.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/firasanscondensed/v11/wEOsEADFm8hSaQTFG18FErVhsC9x-tarWXXKuMB0ciZb.woff2) format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+
 /* ── RESET & BASE ──────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -430,6 +478,8 @@ button { cursor: pointer; font-family: inherit; }
   bottom: 0;
   left: 0;
   right: 0;
+  max-width: 1100px;
+  margin: 0 auto;
   padding: 2.5rem 2rem;
 }
 
@@ -451,6 +501,9 @@ button { cursor: pointer; font-family: inherit; }
   text-transform: uppercase;
   line-height: 1;
 }
+
+/* ── ROUTE MAP ── */
+#route-map { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; display: block; }
 
 /* ── BREADCRUMB ─────────────────────────────────────────── */
 .breadcrumb {
