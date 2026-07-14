@@ -1,0 +1,118 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    link(rel='stylesheet' href='/stylesheets/eka/style.css')
+  body.admin-body
+    include _nav
+    .admin-content
+      .admin-title= galleryId ? (gallery.title || 'Редактировать') : 'Новая галерея'
+      - var formAction = galleryId ? '/admin/galleries/' + galleryId + '/edit' : '/admin/galleries/new/edit'
+      form.admin-form(method='POST' action=formAction enctype='multipart/form-data')
+        .admin-field
+          label Название (для себя, на сайте не показывается)
+          input(type='text' name='title' value=gallery && gallery.title || '' placeholder='Казбеги — виды с хребта' required)
+        .admin-field
+          label Добавить изображения
+          input(type='file' name='galleryImages' accept='image/*' multiple)
+        .admin-field(style='display:flex;gap:12px;align-items:center')
+          button.admin-btn(type='submit') Сохранить
+
+      if galleryId
+        p.admin-hint(style='margin:16px 0') Шорткод для вставки в описание тура (отдельной строкой):
+        p: code(style='font-size:12px;background:#f4f4f4;padding:4px 8px') [gallery:#{galleryId}]
+
+      if images && images.length
+        .admin-field(style='margin-top:16px')
+          h3(style='font-size:14px;font-weight:500;margin-bottom:12px;border-bottom:1px solid #e8e8e8;padding-bottom:8px') Фото
+          p.admin-hint(style='margin-bottom:8px') Перетащите фото для изменения порядка
+          .admin-img-grid#gallery-grid
+            each img in images
+              .admin-img-item(draggable='true' data-id=img.id)
+                img(src=img.w400 alt=img.caption || '')
+                form(method='POST' action='/admin/images/' + img.id + '/delete' style='display:inline')
+                  input(type='hidden' name='backUrl' value='/admin/galleries/' + galleryId + '/edit')
+                  button.admin-img-del(type='submit' title='Удалить') ✕
+                input.img-caption-input(type='text' placeholder='Подпись к фото' value=img.caption || '' data-id=img.id)
+        script.
+          (function () {
+            document.querySelectorAll('.img-caption-input').forEach(function(inp) {
+              var saved = inp.value;
+              function save() {
+                if (inp.value === saved) return;
+                saved = inp.value;
+                fetch('/admin/images/' + inp.dataset.id + '/caption', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ caption: inp.value })
+                });
+              }
+              inp.addEventListener('blur', save);
+              inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); save(); inp.blur(); } });
+            });
+
+            var grid = document.getElementById('gallery-grid');
+            var dragged = null;
+
+            grid.addEventListener('dragstart', function(e) {
+              dragged = e.target.closest('.admin-img-item');
+              if (!dragged) return;
+              dragged.classList.add('dragging');
+              e.dataTransfer.effectAllowed = 'move';
+            });
+
+            grid.addEventListener('dragend', function() {
+              if (dragged) dragged.classList.remove('dragging');
+              document.querySelectorAll('.admin-img-item.drag-over').forEach(function(el) {
+                el.classList.remove('drag-over');
+              });
+              dragged = null;
+            });
+
+            grid.addEventListener('dragover', function(e) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              var target = e.target.closest('.admin-img-item');
+              if (!target || target === dragged) return;
+              document.querySelectorAll('.admin-img-item.drag-over').forEach(function(el) {
+                el.classList.remove('drag-over');
+              });
+              target.classList.add('drag-over');
+            });
+
+            grid.addEventListener('dragleave', function(e) {
+              var target = e.target.closest('.admin-img-item');
+              if (target) target.classList.remove('drag-over');
+            });
+
+            grid.addEventListener('drop', function(e) {
+              e.preventDefault();
+              var target = e.target.closest('.admin-img-item');
+              if (!target || target === dragged || !dragged) return;
+              target.classList.remove('drag-over');
+
+              var items = Array.from(grid.querySelectorAll('.admin-img-item'));
+              var fromIdx = items.indexOf(dragged);
+              var toIdx   = items.indexOf(target);
+              if (fromIdx < toIdx) {
+                grid.insertBefore(dragged, target.nextSibling);
+              } else {
+                grid.insertBefore(dragged, target);
+              }
+
+              var newIds = Array.from(grid.querySelectorAll('.admin-img-item')).map(function(el) {
+                return el.dataset.id;
+              });
+              fetch('/admin/images/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: newIds })
+              });
+            });
+          })();
+
+      if galleryId
+        form(method='POST' action='/admin/galleries/' + galleryId + '/delete' style='margin-top:12px;display:inline' onsubmit='return confirm("Удалить галерею?")')
+          button.admin-btn.admin-btn-danger(type='submit') Удалить
+    script(src='/javascripts/eka/admin.js')

@@ -7,6 +7,7 @@ var crypto = require('crypto');
 var multer = require('multer');
 var sharp = require('sharp');
 var QRCode = require('qrcode');
+var sanitizeHtml = require('sanitize-html');
 var { getApps } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { getStorage } = require('firebase-admin/storage');
@@ -23,6 +24,16 @@ var ekaAdmins = fb.collection('ekaAdmins');
 ekaNotify.init(fb);
 function cookieToken(pass) {
   return crypto.createHash('sha256').update('eka:' + pass).digest('hex');
+}
+
+function sanitizeDesc(html) {
+  return sanitizeHtml(html || '', {
+    allowedTags: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h3', 'h4'],
+    allowedAttributes: { a: ['href'], p: ['class'], h3: ['class'], h4: ['class'], li: ['class'] },
+    allowedClasses: { p: ['tour-accent'], h3: ['tour-accent'], h4: ['tour-accent'], li: ['tour-accent'] },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    transformTags: { a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer', target: '_blank' }) },
+  }).trim();
 }
 
 var upload = multer({
@@ -277,7 +288,8 @@ router.get('/tours', requireAuth, async function(req, res, next) {
 router.get('/tours/new', requireAuth, async function(req, res, next) {
   try {
     var directions = await ekaData.getDirections();
-    res.render('eka/admin/tour-edit', { title: 'Новый тур', tour: null, tourId: null, directions: directions, clients: [], clientMap: {}, error: null });
+    var galleries = await ekaData.getGalleries();
+    res.render('eka/admin/tour-edit', { title: 'Новый тур', tour: null, tourId: null, directions: directions, galleries: galleries, clients: [], clientMap: {}, error: null });
   } catch (e) { next(e); }
 });
 
@@ -286,11 +298,12 @@ router.get('/tours/:id/edit', requireAuth, async function(req, res, next) {
     var tour = await ekaData.getTour(req.params.id);
     if (!tour) return res.redirect('/admin/tours');
     var directions = await ekaData.getDirections();
+    var galleries = await ekaData.getGalleries();
     var requests = await ekaData.getRequests({ tourId: req.params.id });
     var clients = await ekaData.getClients();
     var clientMap = {};
     clients.forEach(function(c) { clientMap[c.id] = c; });
-    res.render('eka/admin/tour-edit', { title: (tour.titleRu || '') + ' — Edit', tour: tour, tourId: req.params.id, directions: directions, requests: requests, clients: clients, clientMap: clientMap, error: null, guestsSent: req.query.guests_sent, guestsError: req.query.guests_error });
+    res.render('eka/admin/tour-edit', { title: (tour.titleRu || '') + ' — Edit', tour: tour, tourId: req.params.id, directions: directions, galleries: galleries, requests: requests, clients: clients, clientMap: clientMap, error: null, guestsSent: req.query.guests_sent, guestsError: req.query.guests_error });
   } catch (e) { next(e); }
 });
 
@@ -337,7 +350,7 @@ router.post('/tours/:id/edit', requireAuth, express.urlencoded({ extended: false
       directionId: b.directionId || null,
       directionSlug: direction ? direction.slug : null,
       titleRu: b.titleRu || '', titleEn: b.titleEn || '',
-      descRu: b.descRu || '', descEn: b.descEn || '',
+      descRu: sanitizeDesc(b.descRu), descEn: sanitizeDesc(b.descEn),
       date: (!isIndividual && b.date) ? new Date(b.date) : null,
       durationRu: b.durationRu || '', durationEn: b.durationEn || '',
       price: b.price ? (parseInt(b.price, 10) || 0) : 0,
@@ -404,15 +417,20 @@ router.post('/translate', requireAuth, express.json(), async function(req, res, 
     var apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set' });
     var client = new Anthropic({ apiKey });
-    var prompt = 'Translate the following Russian field values to English for a travel/tourism website about Georgia (the country in the Caucasus). Return ONLY a valid JSON object with the same keys but "Ru" replaced with "En" in each key name. Be concise and natural.\n\nInput: ' + JSON.stringify(texts);
+    var prompt = 'Translate the following Russian field values to English for a travel/tourism website about Georgia (the country in the Caucasus). Some values may contain simple HTML tags (e.g. <p>, <b>, <a href="">, <ul>, <li>) — preserve the tags and structure exactly, translate only the visible text. Return ONLY a valid JSON object with the same keys but "Ru" replaced with "En" in each key name. Be concise and natural.\n\nInput: ' + JSON.stringify(texts);
     var msg = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+      max_tokens: 4096,
       messages: [{ role: 'user', content: prompt }],
     });
     var raw = msg.content[0].text.trim();
     var jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-    var result = JSON.parse(jsonStr);
+    var result;
+    try {
+      result = JSON.parse(jsonStr);
+    } catch (parseErr) {
+      return res.status(502).json({ error: 'Модель вернула некорректный ответ, попробуйте ещё раз' });
+    }
     res.json(result);
   } catch (e) { next(e); }
 });
@@ -1100,6 +1118,57 @@ router.post('/attractions/:id/edit', requireAuth, upload.fields([{ name: 'heroIm
 
 router.post('/attractions/:id/delete', requireAuth, async function(req, res, next) {
   try { await ekaData.deleteAttraction(req.params.id); res.redirect('/admin/attractions'); } catch (e) { next(e); }
+});
+
+// ── GALLERIES (reusable, embeddable via [gallery:id] shortcode) ──
+router.get('/galleries', requireAuth, async function(req, res, next) {
+  try {
+    var galleries = await ekaData.getGalleries();
+    await Promise.all(galleries.map(async function(g) {
+      var imgs = await ekaData.getImages({ ownerId: g.id, role: 'gallery' });
+      g.count = imgs.length;
+      g.thumb = imgs[0] || null;
+    }));
+    res.render('eka/admin/galleries', { title: 'Галереи — Eka Admin', galleries: galleries });
+  } catch (e) { next(e); }
+});
+
+router.get('/galleries/new', requireAuth, async function(req, res, next) {
+  try {
+    res.render('eka/admin/gallery-edit', { title: 'Новая галерея', gallery: null, galleryId: null, images: [] });
+  } catch (e) { next(e); }
+});
+
+router.get('/galleries/:id/edit', requireAuth, async function(req, res, next) {
+  try {
+    var gallery = await ekaData.getGallery(req.params.id);
+    if (!gallery) return res.redirect('/admin/galleries');
+    var images = await ekaData.getImages({ ownerId: req.params.id, role: 'gallery' });
+    res.render('eka/admin/gallery-edit', { title: (gallery.title || 'Галерея') + ' — Edit', gallery: gallery, galleryId: req.params.id, images: images });
+  } catch (e) { next(e); }
+});
+
+router.post('/galleries/:id/edit', requireAuth, upload.fields([{ name: 'galleryImages', maxCount: 20 }]), async function(req, res, next) {
+  var id = req.params.id === 'new' ? null : req.params.id;
+  try {
+    var b = req.body;
+    var data = { title: (b.title || '').trim() };
+    var savedId = await ekaData.saveGallery(id, data);
+    if (req.files && req.files.galleryImages && req.files.galleryImages.length) {
+      var ts = Date.now();
+      var existingGallery = await ekaData.getImages({ ownerId: savedId, role: 'gallery' });
+      var maxOrder = existingGallery.reduce(function(m, img) { return Math.max(m, img.order || 0); }, -1);
+      await Promise.all(req.files.galleryImages.map(async function(f, i) {
+        var sizes = await uploadImageSizes(f.buffer, 'eka/galleries/' + savedId + '/gallery-' + ts + '-' + i + '-{w}.webp');
+        return ekaData.saveImage(null, { ownerId: savedId, ownerType: 'gallery', role: 'gallery', order: maxOrder + 1 + i, createdAt: new Date(), w400: sizes.w400, w800: sizes.w800, w1400: sizes.w1400, w2400: sizes.w2400 });
+      }));
+    }
+    res.redirect('/admin/galleries/' + savedId + '/edit');
+  } catch (e) { next(e); }
+});
+
+router.post('/galleries/:id/delete', requireAuth, async function(req, res, next) {
+  try { await ekaData.deleteGallery(req.params.id); res.redirect('/admin/galleries'); } catch (e) { next(e); }
 });
 
 router.use(function(err, req, res, next) {

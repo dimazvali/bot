@@ -1,6 +1,7 @@
 extends layout
 
 include _request-form
+include ../_lightbox
 
 block content
   - var dirTitle = direction ? (lang === 'ru' ? direction.titleRu : direction.titleEn) : ''
@@ -51,8 +52,9 @@ block content
           .tour-meta-label= lang === 'ru' ? 'Осталось мест' : 'Spots left'
           .tour-meta-value(class=remainingSpots === 0 ? 'spots-none' : remainingSpots <= 2 ? 'spots-low' : '')= remainingSpots === 0 ? (lang === 'ru' ? 'нет мест' : 'sold out') : remainingSpots
 
-    if tour.descRu || tour.descEn
-      .tour-page-desc= lang === 'ru' ? tour.descRu : tour.descEn
+    if descHtml
+      .tour-page-desc!= descHtml
+      +lightbox()
 
     +requestForm({
       formTitle: lang === 'ru' ? 'Записаться на тур' : 'Book this tour',

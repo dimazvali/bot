@@ -7,6 +7,7 @@ var { getFirestore } = require('firebase-admin/firestore');
 var ekaData = require('../lib/eka-data');
 var mailer = require('../lib/eka-mailer');
 var ekaNotify = require('../lib/eka-notify');
+var galleryEmbed = require('../lib/eka-gallery-embed');
 
 var ekaApp = getApps().find(function(a) { return a.name === 'eka'; }) || initializeApp({
   credential: cert({
@@ -108,7 +109,8 @@ router.get('/:lang(ru|en)/tours/:id', async function(req, res, next) {
     var bookedCount = tour.maxParticipants ? await ekaData.getBookedCount(id) : 0;
     var remainingSpots = tour.maxParticipants ? Math.max(0, tour.maxParticipants - bookedCount) : null;
     var title = (lang === 'ru' ? tour.titleRu : tour.titleEn) + ' — Эка Елисеева';
-    res.render('eka/tour', { lang, tour, direction, remainingSpots, title, currentPath: '/' + lang + '/tours/' + id });
+    var descHtml = await galleryEmbed.renderGalleryShortcodes(lang === 'ru' ? tour.descRu : tour.descEn, ekaData);
+    res.render('eka/tour', { lang, tour, direction, remainingSpots, descHtml, title, currentPath: '/' + lang + '/tours/' + id });
   } catch (e) { next(e); }
 });
 

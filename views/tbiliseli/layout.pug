@@ -4,7 +4,15 @@ html(lang=lang)
     title= title
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(property='og:title' content=title)
+    meta(property='og:type' content='website')
+    meta(property='og:site_name' content='TbiLiSELi')
+    if typeof ogImage !== 'undefined' && ogImage
+      meta(property='og:image' content=ogImage)
+    meta(name='twitter:card' content='summary_large_image')
     if typeof ogUrl !== 'undefined' && ogUrl
+      meta(property='og:url' content=ogUrl)
+      link(rel='canonical' href=ogUrl)
       link(rel='alternate' hreflang='ru' href=ogUrl.replace('/en/', '/ru/'))
       link(rel='alternate' hreflang='en' href=ogUrl.replace('/ru/', '/en/'))
     link(rel='preconnect' href='https://fonts.googleapis.com')

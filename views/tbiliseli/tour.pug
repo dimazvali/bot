@@ -1,9 +1,13 @@
 extends layout
 
 include _request-form
+include ../_lightbox
 
 block content
   - var dirTitle = direction ? (lang === 'ru' ? direction.titleRu : direction.titleEn) : ''
+  - var tourDate = tour.date ? (tour.date.toDate ? tour.date.toDate() : new Date(tour.date)) : null
+  - var isFutureTour = !!(tourDate && tourDate.getTime() > Date.now())
+  - var isBookable = isFutureTour && (remainingSpots === null || remainingSpots === undefined || remainingSpots > 0)
   .breadcrumb
     a(href=`/${lang}/`)= lang === 'ru' ? 'Главная' : 'Home'
     if direction
@@ -55,11 +59,16 @@ block content
               .tour-meta-label= lang === 'ru' ? 'Осталось мест' : 'Spots left'
               .tour-meta-value(class=remainingSpots === 0 ? 'spots-none' : remainingSpots <= 2 ? 'spots-low' : '')= remainingSpots === 0 ? (lang === 'ru' ? 'нет мест' : 'sold out') : remainingSpots
 
-        if tour.descRu || tour.descEn
-          .tour-page-desc= lang === 'ru' ? tour.descRu : tour.descEn
+          if isBookable
+            a.btn.btn-red.tour-meta-book-btn(href='#tour-book-form')= lang === 'ru' ? 'Забронировать' : 'Book now'
 
-        +requestForm({
-          formTitle: lang === 'ru' ? 'Записаться на тур' : 'Book this tour',
-          formSub: lang === 'ru' ? 'Оставьте заявку — Эка свяжется в течение дня' : 'Leave a request — Eka will get back to you within a day',
-          hiddenFields: { type: 'tour', tourId: tour.id, directionId: tour.directionId || '', directionSlug: tour.directionSlug || '', tourTitle: lang === 'ru' ? tour.titleRu : tour.titleEn }
-        })
+        if descHtml
+          .tour-page-desc!= descHtml
+          +lightbox()
+
+        #tour-book-form
+          +requestForm({
+            formTitle: lang === 'ru' ? 'Записаться на тур' : 'Book this tour',
+            formSub: lang === 'ru' ? 'Оставьте заявку — Эка свяжется в течение дня' : 'Leave a request — Eka will get back to you within a day',
+            hiddenFields: { type: 'tour', tourId: tour.id, directionId: tour.directionId || '', directionSlug: tour.directionSlug || '', tourTitle: lang === 'ru' ? tour.titleRu : tour.titleEn }
+          })

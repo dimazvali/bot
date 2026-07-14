@@ -4,8 +4,14 @@ html
     title= title
     meta(charset='utf-8')
     link(rel='stylesheet' href='/stylesheets/eka/style.css')
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css')
     script(src='https://maps.googleapis.com/maps/api/js?key=AIzaSyDtoqBwHVsUdk8OUwl-v82s2vsLEfuR5tM')
+    script(src='https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js')
     style.
+      .admin-quill { background: #fff; margin-top: 4px; }
+      .admin-quill .ql-editor { min-height: 140px; font-size: 13px; }
+      .admin-quill .ql-toolbar .ql-accent { font-weight: 700; color: #c00; font-size: 14px; width: auto; padding: 0 6px; }
+      .admin-quill .ql-toolbar .ql-accent.ql-active { background: #fde8e8; border-radius: 3px; }
       .tour-card { background: #fafafa; border: 1px solid #e8e8e8; border-radius: 6px; padding: 16px 20px; margin-bottom: 28px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
       .tour-card-main { flex: 1; min-width: 0; }
       .tour-card-title { font-size: 17px; font-weight: 600; margin: 0 0 10px; }
@@ -105,10 +111,22 @@ html
           .admin-2col
             .admin-field
               label Описание (RU)
-              textarea(name='descRu')= tour && tour.descRu || ''
+              #quill-descRu.admin-quill
+              textarea#descRu-input(name='descRu' style='display:none')= tour && tour.descRu || ''
+              select.gallery-insert-select(data-field='descRu' style='margin-top:8px;font-size:12px;padding:4px 6px')
+                option(value='') + Вставить галерею…
+                each g in (galleries || [])
+                  option(value=g.id)= g.title || 'Без названия'
             .admin-field
               label Description (EN)
-              textarea(name='descEn')= tour && tour.descEn || ''
+              #quill-descEn.admin-quill
+              textarea#descEn-input(name='descEn' style='display:none')= tour && tour.descEn || ''
+              select.gallery-insert-select(data-field='descEn' style='margin-top:8px;font-size:12px;padding:4px 6px')
+                option(value='') + Вставить галерею…
+                each g in (galleries || [])
+                  option(value=g.id)= g.title || 'Без названия'
+          if !(galleries && galleries.length)
+            p.admin-hint(style='margin-top:-12px;margin-bottom:16px') Галерей пока нет — создайте их в разделе #[a(href='/admin/galleries' target='_blank') «Галереи»], затем вставляйте в описание.
           .admin-field
             label Тип тура
             select#tourTypeSelect(name='tourType' onchange='onTourTypeChange()')
@@ -287,6 +305,38 @@ html
           p(style='color:#bbb;font-size:13px;margin:0') Никто из гостей ещё не подключился к боту
 
     script.
+      var Parchment = Quill.import('parchment');
+      Quill.register(new Parchment.Attributor.Class('accent', 'tour-accent', { scope: Parchment.Scope.BLOCK }), true);
+
+      var quillEditors = {};
+      (function() {
+        var toolbar = [['bold', 'italic'], ['link'], [{ list: 'ordered' }, { list: 'bullet' }], [{ header: [3, 4, false] }], ['accent']];
+        ['descRu', 'descEn'].forEach(function(field) {
+          var container = document.getElementById('quill-' + field);
+          var input = document.getElementById(field + '-input');
+          if (!container || !input) return;
+          var quill = new Quill(container, { theme: 'snow', modules: { toolbar: toolbar } });
+          var accentBtn = quill.getModule('toolbar').container.querySelector('.ql-accent');
+          if (accentBtn) { accentBtn.textContent = 'A'; accentBtn.title = 'Акцентный заголовок'; }
+          if (input.value) quill.clipboard.dangerouslyPasteHTML(input.value);
+          quill.on('text-change', function() {
+            input.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+          });
+          quillEditors[field] = quill;
+        });
+      })();
+
+      document.querySelectorAll('.gallery-insert-select').forEach(function(select) {
+        select.addEventListener('change', function() {
+          var galleryId = select.value;
+          var quill = quillEditors[select.dataset.field];
+          if (!galleryId || !quill) return;
+          var len = quill.getLength();
+          quill.insertText(len - 1, '\n[gallery:' + galleryId + ']\n', 'user');
+          select.value = '';
+        });
+      });
+
       (function() {
         var mapEl = document.getElementById('meeting-map');
         if (!mapEl || typeof google === 'undefined') return;
@@ -389,7 +439,9 @@ html
         }).then(function(data) {
           pairs.forEach(function(p) {
             var enEl = document.querySelector('[name="' + p[1] + '"]');
-            if (enEl && data[p[1]]) enEl.value = data[p[1]];
+            if (!enEl || !data[p[1]]) return;
+            if (quillEditors[p[1]]) quillEditors[p[1]].clipboard.dangerouslyPasteHTML(data[p[1]]);
+            else enEl.value = data[p[1]];
           });
         }).catch(function(e) {
           alert('Ошибка перевода: ' + e.message);

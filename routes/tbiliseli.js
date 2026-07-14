@@ -10,6 +10,7 @@ var mailer = require('../lib/eka-mailer');
 var ekaNotify = require('../lib/eka-notify');
 var ekaBot = require('../lib/eka-bot');
 var ekaReminders = require('../lib/eka-reminders');
+var galleryEmbed = require('../lib/eka-gallery-embed');
 
 var ekaApp = getApps().find(function(a) { return a.name === 'eka'; }) || initializeApp({
   credential: cert({
@@ -42,7 +43,7 @@ if (process.env.develop !== 'true' && process.env.EKA_BOT_TOKEN && process.env.E
 async function sendToursReply(msg) {
   var isRu = msg.from && (msg.from.language_code || '').startsWith('ru');
   var lang = isRu ? 'ru' : 'en';
-  var siteUrl = (process.env.EKA_SITE_URL || 'https://tbiliseli.dimazvali.com').replace(/\/$/, '');
+  var siteUrl = (process.env.EKA_SITE_URL || 'https://tbiliseli.com').replace(/\/$/, '');
   try {
     var tours = await ekaData.getTours({ publishedOnly: true, upcomingOnly: true });
     if (!tours.length) {
@@ -112,6 +113,7 @@ router.post('/bot', express.json(), function(req, res) {
 });
 
 router.use('/admin', require('./eka-admin'));
+router.use('/og', require('./tbiliseli-og'));
 router.use(express.static(path.join(__dirname, '../public')));
 
 router.get('/', function(req, res) {
@@ -162,8 +164,9 @@ router.get('/:lang(ru|en)/directions/:slug', async function(req, res, next) {
     var attrHeroes = await Promise.all(attractions.map(function(a) { return ekaData.getImages({ ownerId: a.id, role: 'hero' }); }));
     attractions.forEach(function(a, i) { a.heroImg = attrHeroes[i][0] || null; });
     var title = (lang === 'ru' ? direction.titleRu : direction.titleEn) + ' — TbiLiSELi';
-    var url = 'https://tbiliseli.dimazvali.com/' + lang + '/directions/' + slug;
-    res.render('tbiliseli/direction', { lang, direction, tours, individualTours, reviews, images, attractions, title, currentPath: '/' + lang + '/directions/' + slug, ogUrl: url });
+    var url = 'https://tbiliseli.com/' + lang + '/directions/' + slug;
+    var ogImage = 'https://tbiliseli.com/og/direction/' + lang + '/' + slug + '.jpg';
+    res.render('tbiliseli/direction', { lang, direction, tours, individualTours, reviews, images, attractions, title, currentPath: '/' + lang + '/directions/' + slug, ogUrl: url, ogImage });
   } catch (e) { next(e); }
 });
 
@@ -176,8 +179,9 @@ router.get('/:lang(ru|en)/attractions/:slug', async function(req, res, next) {
     var images = await ekaData.getImages({ ownerId: attraction.id });
     var direction = attraction.directionId ? await ekaData.getDirection(attraction.directionId) : null;
     var title = (lang === 'ru' ? attraction.titleRu : attraction.titleEn) + ' — TbiLiSELi';
-    var url = 'https://tbiliseli.dimazvali.com/' + lang + '/attractions/' + req.params.slug;
-    res.render('tbiliseli/attraction', { lang, attraction, images, direction, title, currentPath: req.path, ogUrl: url });
+    var url = 'https://tbiliseli.com/' + lang + '/attractions/' + req.params.slug;
+    var ogImage = 'https://tbiliseli.com/og/attraction/' + lang + '/' + req.params.slug + '.jpg';
+    res.render('tbiliseli/attraction', { lang, attraction, images, direction, title, currentPath: req.path, ogUrl: url, ogImage });
   } catch (e) { next(e); }
 });
 
@@ -192,7 +196,10 @@ router.get('/:lang(ru|en)/tours/:id', async function(req, res, next) {
     var bookedCount = tour.maxParticipants ? await ekaData.getBookedCount(id) : 0;
     var remainingSpots = tour.maxParticipants ? Math.max(0, tour.maxParticipants - bookedCount) : null;
     var title = (lang === 'ru' ? tour.titleRu : tour.titleEn) + ' — TbiLiSELi';
-    res.render('tbiliseli/tour', { lang, tour, direction, remainingSpots, title, currentPath: '/' + lang + '/tours/' + id });
+    var descHtml = await galleryEmbed.renderGalleryShortcodes(lang === 'ru' ? tour.descRu : tour.descEn, ekaData);
+    var url = 'https://tbiliseli.com/' + lang + '/tours/' + id;
+    var ogImage = 'https://tbiliseli.com/og/tour/' + lang + '/' + id + '.jpg';
+    res.render('tbiliseli/tour', { lang, tour, direction, remainingSpots, descHtml, title, currentPath: '/' + lang + '/tours/' + id, ogUrl: url, ogImage });
   } catch (e) { next(e); }
 });
 

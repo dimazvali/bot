@@ -535,6 +535,21 @@ button { cursor: pointer; font-family: inherit; }
 
 .gallery-item:hover img { transform: scale(1.04); }
 
+/* ── LIGHTBOX ───────────────────────────────────────────── */
+.lb-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.93); z-index: 1000; align-items: center; justify-content: center; }
+.lb-overlay.lb-open { display: flex; }
+.lb-overlay::before { content: ''; position: absolute; inset: 0; background-image: var(--lb-tile); background-size: 500px 500px; background-repeat: repeat; opacity: 1; pointer-events: none; z-index: 0; }
+.lb-img-wrap { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 60px 80px; position: relative; z-index: 1; }
+.lb-img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.lb-close { position: absolute; top: 20px; right: 28px; background: none; border: none; color: rgba(255,255,255,0.6); font-size: 36px; cursor: pointer; line-height: 1; padding: 4px; }
+.lb-close:hover { color: #fff; }
+.lb-prev, .lb-next { position: absolute; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.5); font-size: 56px; cursor: pointer; padding: 12px 20px; line-height: 1; user-select: none; }
+.lb-prev { left: 0; }
+.lb-next { right: 0; }
+.lb-prev:hover, .lb-next:hover { color: #fff; }
+.lb-caption { position: absolute; bottom: 44px; left: 50%; transform: translateX(-50%); max-width: 600px; width: calc(100% - 160px); text-align: center; font-size: 12px; line-height: 1.5; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; pointer-events: none; }
+.lb-counter { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4); }
+
 /* ── EXTRA TEXT ─────────────────────────────────────────── */
 .extra-text {
   background: var(--offwhite);
@@ -870,6 +885,8 @@ button { cursor: pointer; font-family: inherit; }
 }
 
 .tour-page-meta {
+  grid-column: 1;
+  grid-row: 1 / span 2;
   background: var(--offwhite);
   padding: 1.5rem;
   display: flex;
@@ -877,6 +894,10 @@ button { cursor: pointer; font-family: inherit; }
   gap: 1.25rem;
   position: sticky;
   top: 80px;
+}
+
+.tour-meta-book-btn {
+  text-align: center;
 }
 
 .tour-meta-item {}
@@ -901,10 +922,45 @@ button { cursor: pointer; font-family: inherit; }
 .spots-low { color: #c07000; }
 
 .tour-page-desc {
+  grid-column: 2;
   font-size: 1.05rem;
   line-height: 1.8;
   color: #333;
   margin-bottom: 2rem;
+  white-space: pre-line;
+}
+
+.tour-page-desc p { margin-bottom: 1.2rem; }
+.tour-page-desc p:last-child { margin-bottom: 0; }
+.tour-page-desc ul,
+.tour-page-desc ol { margin: 0 0 1.2rem 1.4rem; }
+.tour-page-desc h3,
+.tour-page-desc h4 { font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: 0.03em; margin: 1.5rem 0 0.75rem; }
+.tour-page-desc a { color: var(--red); text-decoration: underline; }
+.tour-page-desc .tour-accent {
+  display: block;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--red);
+  margin: 1.5rem 0 0.75rem;
+}
+
+.tour-embed-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin: 1.5rem 0;
+}
+.tour-embed-gallery-item { aspect-ratio: 1; overflow: hidden; cursor: zoom-in; }
+.tour-embed-gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+.tour-embed-gallery-item:hover img { transform: scale(1.04); }
+
+.tour-page #tour-book-form {
+  grid-column: 2;
+  scroll-margin-top: 80px;
 }
 
 /* ── TICKET ─────────────────────────────────────────────── */
@@ -1129,7 +1185,9 @@ button { cursor: pointer; font-family: inherit; }
   .about-photo { max-width: 320px; }
 
   .tour-page { grid-template-columns: 1fr; }
-  .tour-page-meta { position: static; }
+  .tour-page-meta { position: static; grid-column: auto; grid-row: auto; }
+  .tour-page-desc { grid-column: auto; }
+  .tour-page #tour-book-form { grid-column: auto; }
 
   .extra-text-inner { grid-template-columns: 1fr; gap: 1rem; }
 }
