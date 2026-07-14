@@ -179,7 +179,7 @@ function showQR(c){
             if(!tag.value) return tg.showAlert(`Вы не указали тег`)
 
             c.append(ce('input',false,false,`ссылка на бот`,{
-                value: `https://t.me/igrikyobot?start=campaign_${tag.value}`
+                value: `https://telegram.me/igrikyobot?start=campaign_${tag.value}`
             }))
             c.append(ce('a',false,false,`ссылка QR-код`,{
                 // href: `/igrik/qr?tag=${tag.value}`,

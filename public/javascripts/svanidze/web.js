@@ -1,7 +1,7 @@
 let host = `svanidze`
 let subHost = `admin`
 let downLoadedUsers = {};
-let botLink = `https://t.me/dimazvalibot`
+let botLink = `https://telegram.me/dimazvalibot`
 let buttonStyle = []
 
 

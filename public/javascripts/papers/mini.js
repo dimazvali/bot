@@ -1,4 +1,4 @@
-const appLink = `https://t.me/paperstuffbot/app`
+const appLink = `https://telegram.me/paperstuffbot/app`
 
 window.onload = () =>{
     console.log(`проверка тележки`)

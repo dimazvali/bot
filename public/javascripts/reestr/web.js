@@ -3,7 +3,7 @@
 // https://bazanpa.ru/rosreestr-prikaz-np389-ot12102011-h2078021/
 let host = `reestr`
 let downLoadedUsers = {};
-let botLink = `https://t.me/dimazvalibot`
+let botLink = `https://telegram.me/dimazvalibot`
 
 function closeLeft() {
     document.querySelector(`#left`).classList.remove('active')

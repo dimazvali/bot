@@ -8,7 +8,7 @@ block content
         p!=`${cities[offer.city].name}, ${offer.address}.`
         p!=offer.description || offer.bookDescription
         //- #catalogue
-        button.full(onclick!=`window.open('https://t.me/shelfCareBot?start=offer_${offer.id}_view')`)!=offer.price ? `Купить` : `Взять`
+        button.full(onclick!=`window.open('https://telegram.me/shelfCareBot?start=offer_${offer.id}_view')`)!=offer.price ? `Купить` : `Взять`
 
     #r 
         #opener(onclick=`this.parentNode.classList.toggle('opened')`) ≡

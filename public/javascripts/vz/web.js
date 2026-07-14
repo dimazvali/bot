@@ -707,7 +707,7 @@ function showPromo(id){
                 }
             }))
 
-            p.append(ce(`p`,false,false,`ссылка на скидку: https://t.me/vmestezdoroveeru_bot?start=promo_${promo.id}`))
+            p.append(ce(`p`,false,false,`ссылка на скидку: https://telegram.me/vmestezdoroveeru_bot?start=promo_${promo.id}`))
 
             p.append(deleteButton(`promos`,id,!promo.active))
 

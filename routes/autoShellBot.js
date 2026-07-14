@@ -37,7 +37,7 @@ router.use(fileUpload({
 const dummyBook = `${ngrok}/images/${host}/blank.png`
 
 
-const appLink = `https://t.me/paperstuffbot/app`
+const appLink = `https://telegram.me/paperstuffbot/app`
 
 const {
     objectify,

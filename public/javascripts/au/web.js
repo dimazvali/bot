@@ -1,6 +1,6 @@
 
 let host = `auditoria`
-const appLink = `https://t.me/AuditoraBot/app`
+const appLink = `https://telegram.me/AuditoraBot/app`
 const web = `https://dimazvali-a43369e5165f.herokuapp.com/auditoria/site/tbi`
 let mc = document.querySelector(`#main`)
 

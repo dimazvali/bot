@@ -27,17 +27,17 @@ const texts = {
 771301001`,
     pets: `Что у нас интересного?..
 
-[paperstuffbot](https://t.me/paperstuffbot/app) — Приложение для Papers Kartuli. Тут можно забронировать место в коворкинге или на лекции, пообщаться с редакцией, выпить random coffee и посмотреть меню бара.
+[paperstuffbot](https://telegram.me/paperstuffbot/app) — Приложение для Papers Kartuli. Тут можно забронировать место в коворкинге или на лекции, пообщаться с редакцией, выпить random coffee и посмотреть меню бара.
 
-[shelfCareBot](https://t.me/shelfCareBot/app) — Приложения для поиска и цивилизованного обмена книгами в экспатских столицах.
+[shelfCareBot](https://telegram.me/shelfCareBot/app) — Приложения для поиска и цивилизованного обмена книгами в экспатских столицах.
 
-[homeless](https://t.me/homeless_people_bot/app) — Приложение в помощь волонтерам петербургской «Ночлежки».
+[homeless](https://telegram.me/homeless_people_bot/app) — Приложение в помощь волонтерам петербургской «Ночлежки».
 
 А еще на подлете находится бот-экскурсовод, приложение для барных фестивалей (у вас есть бар? пишите!) и возрожденный сайт радио Neva FM.`,
 
     links: `Следы присутствия:
 
-[tg](https://t.me/dimazvali) — поговорить.
+[tg](https://telegram.me/dimazvali) — поговорить.
 
 [inst](https://instagram.com/dimazvali2) — посмотреть.
 

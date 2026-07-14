@@ -19,7 +19,7 @@ const m =       require('./methods.js');
 var QRCode =    require('qrcode')
 const qs =      require('qs');
 const { createHash,createHmac } = require('node:crypto');
-const appLink = `https://t.me/paperstuffbot/app`
+const appLink = `https://telegram.me/paperstuffbot/app`
 
 const {
     isoDate,
@@ -139,7 +139,7 @@ router.post(`/invite`,(req,res)=>{
         about:      req.body.about,
         plan:       req.body.plan || null
     }).then(rec=>{
-        res.send(`https://t.me/paperstuffbot/app?startapp=invite_${rec.id}`)
+        res.send(`https://telegram.me/paperstuffbot/app?startapp=invite_${rec.id}`)
     }).catch(err=>{
         res.status(500).send(err.message)
     })
@@ -336,7 +336,7 @@ router.post(`/sendMe/:type`, (req, res) => {
 router.get('/qr', async (req, res) => {
     if (req.query.class) {
         let n = +new Date()
-        QRCode.toFile(__dirname + `/../public/images/papers/qr/invite_${req.query.class}.png`, `https://t.me/paperstuffbot?start=class_${req.query.class}`, {
+        QRCode.toFile(__dirname + `/../public/images/papers/qr/invite_${req.query.class}.png`, `https://telegram.me/paperstuffbot?start=class_${req.query.class}`, {
             color: {
                 dark: req.query.dark || '#075B3F',
                 light: req.query.light || '#ffffff',
@@ -885,7 +885,7 @@ router.post('/hook', async (req, res) => {
                                 reply_markup:{
                                     inline_keyboard:[[{
                                         text: `Заполнить профиль`,
-                                        url: `https://t.me/paperstuffbot/app?startapp=profile`
+                                        url: `https://telegram.me/paperstuffbot/app?startapp=profile`
                                     }]]
                                 }
                             },false,token,messages)
@@ -908,7 +908,7 @@ router.post('/hook', async (req, res) => {
                                     reply_markup:{
                                         inline_keyboard:[[{
                                             text: `Заполнить профиль`,
-                                            url: `https://t.me/paperstuffbot/app?startapp=profile`
+                                            url: `https://telegram.me/paperstuffbot/app?startapp=profile`
                                         }]]
                                     }
                                 },false,token,messages)

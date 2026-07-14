@@ -359,7 +359,7 @@ function showAdminBusTrip(tripId){
                         let rc = ce(`div`,false,[`sDivided`,r.active?`reg`:`hidden`],false,{dataset:{active:r.active}})
                             rc.append(ce(`p`,false,`info`,`заявка от ${drawDate(r.createdAt._seconds*1000)}`))
                             rc.append(ce(`p`,false,false,uname(u,u.id),{
-                                onclick:()=>tg.openTelegramLink(`https://t.me/${u.username}`)
+                                onclick:()=>tg.openTelegramLink(`https://telegram.me/${u.username}`)
                             }))
                             if(r.active){
                                 let flex = ce(`div`,false,`flex`)
@@ -417,7 +417,7 @@ function showAdminBusTrip(tripId){
                         let rc = ce(`div`,false,[`sDivided`,r.active?`reg`:`hidden`],false,{dataset:{active:r.active}})
                             rc.append(ce(`p`,false,`info`,`заявка от ${drawDate(r.createdAt._seconds*1000)}`))
                             rc.append(ce(`p`,false,false,uname(u,u.id),{
-                                onclick:()=>tg.openTelegramLink(`https://t.me/${r.userName}`)
+                                onclick:()=>tg.openTelegramLink(`https://telegram.me/${r.userName}`)
                             }))
                             if(r.active){
                                 let flex = ce(`div`,false,`flex`)

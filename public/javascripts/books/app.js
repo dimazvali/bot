@@ -1054,7 +1054,7 @@ function dealBox(deal, userRole){
             },(e)=>{
                 if(e) {
                     if(!e.indexOf(`chat_`)){
-                        tg.openTelegramLink(`https://t.me/${e.split('_')[1]}`)
+                        tg.openTelegramLink(`https://telegram.me/${e.split('_')[1]}`)
                     } else {
                         axios.put(`/${host}/api/deals/${deal.id}`,{
                             intention: `${userRole}_${e}`
@@ -1279,7 +1279,7 @@ function showSettings(profile,button){
         ))
 
         p.append(ce(`p`,false,`info`,`Идея и разработка:<br>Дмитрий Шестаков, @dimazvali.`,{
-            onclick:()=>tg.openTelegramLink(`https://t.me/dimazvali`)
+            onclick:()=>tg.openTelegramLink(`https://telegram.me/dimazvali`)
         }))
     })
 }

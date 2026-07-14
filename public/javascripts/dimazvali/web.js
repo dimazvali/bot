@@ -1,7 +1,7 @@
 // web.js — entry point for dimazvali admin
 
 var host = 'dimazvali';
-var botLink = 'https://t.me/dimazvalibot';
+var botLink = 'https://telegram.me/dimazvalibot';
 var downLoadedUsers = {};
 
 // ── Utility panels ────────────────────────────────────────────────────────────

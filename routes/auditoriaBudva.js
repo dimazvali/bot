@@ -92,10 +92,10 @@ let gcp = initializeApp({
 }, 'auditoria');
 let fb = getFirestore(gcp);
 
-let channelLink = 'https://t.me/+yDUeXnlR2r4yMzUy'
+let channelLink = 'https://telegram.me/+yDUeXnlR2r4yMzUy'
 let channel_id = -1002067678991
 
-let appLink = `https://t.me/AuditoraBot/app`
+let appLink = `https://telegram.me/AuditoraBot/app`
 
 let token = process.env.auditoriaToken
 let paymentToken = process.env.auPaymentToken
@@ -2393,7 +2393,7 @@ function deleteEntity(req, res, ref, admin, attr, callback) {
 router.get('/qr', async (req, res) => {
     if (req.query.class) {
         let n = +new Date()
-        QRCode.toFile(__dirname + `/../public/images/auditoria/qr/invite_${req.query.class}.png`, `https://t.me/AuditoraBot?start=quick_class_${req.query.class}`, {
+        QRCode.toFile(__dirname + `/../public/images/auditoria/qr/invite_${req.query.class}.png`, `https://telegram.me/AuditoraBot?start=quick_class_${req.query.class}`, {
             color: {
                 dark: req.query.dark || '#000000',
                 light: req.query.light || '#ffffff',
@@ -3213,7 +3213,7 @@ function log(o) {
 function classDescription(h, lang) {
     return `${common.drawDate(h.date._seconds*1000,lang)} ${new Date(h.date._seconds*1000).toLocaleTimeString()}.\n
 <b>${h.name}</b>\n
-${h.author ? `<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n` : ''}${h.hallName ? `<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n` : ''}${h.descShort ? `${h.descShort}\n`:''}${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}\n<a href="https://t.me/AuditoraBot?start=quick_class_${h.id}">${translations.tellMeMore[lang] || translations.tellMeMore.en}</a>`
+${h.author ? `<b>${translations.author[lang] ||  translations.author.en}:</b> ${h.author}\n` : ''}${h.hallName ? `<b>${translations.hall[lang] ||  translations.hall.en}:</b> ${h.hallName}\n` : ''}${h.descShort ? `${h.descShort}\n`:''}${h.price? `${translations.fee[lang] ||  translations.fee.en} ${common.cur(h.price,'GEL')}` : `${translations.noFee[lang] ||  translations.noFee.en}`}\n<a href="https://telegram.me/AuditoraBot?start=quick_class_${h.id}">${translations.tellMeMore[lang] || translations.tellMeMore.en}</a>`
 }
 
 

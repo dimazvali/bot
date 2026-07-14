@@ -2502,14 +2502,14 @@ let modals = {
                     "type": "context",
                     "elements": [{
                         "type": "mrkdwn",
-                        "text": `Ссылка на событие в боте https://t.me/paperstuffbot?start=class_${lecture.id}.`,
+                        "text": `Ссылка на событие в боте https://telegram.me/paperstuffbot?start=class_${lecture.id}.`,
                     }]
                 },
                 {
                     "type": "context",
                     "elements": [{
                         "type": "mrkdwn",
-                        "text": `Ссылка на событие в приложении https://t.me/paperstuffbot/app?startapp=class_${lecture.id}.`,
+                        "text": `Ссылка на событие в приложении https://telegram.me/paperstuffbot/app?startapp=class_${lecture.id}.`,
                     }]
                 },
                 {

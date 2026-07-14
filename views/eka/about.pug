@@ -24,7 +24,7 @@ block content
         p.about-text(style='color:#bbb')= lang === 'ru' ? 'Биография не заполнена.' : 'Bio not filled in yet.'
       .about-contacts
         if profile && profile.telegram
-          a.about-contact-link(href=profile.telegram target='_blank')= 'Telegram: ' + profile.telegram.replace('https://t.me/', '@')
+          a.about-contact-link(href=profile.telegram target='_blank')= 'Telegram: ' + profile.telegram.replace('https://telegram.me/', '@')
         if profile && profile.contactEmail
           a.about-contact-link(href='mailto:' + profile.contactEmail)= 'Email: ' + profile.contactEmail
         if profile && profile.instagram

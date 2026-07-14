@@ -107,7 +107,7 @@ function regNewUser(user){
 
         sendMessage({
             chat_id: testChannel,
-            text: `#newcomer\nhttps://t.me/${user.username} ${user.name}`
+            text: `#newcomer\nhttps://telegram.me/${user.username} ${user.name}`
         })
     })
 }

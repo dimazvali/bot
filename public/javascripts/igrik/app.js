@@ -240,7 +240,7 @@ function drawAppointMent(a,user,already,noname){
 
                     c.append(ce(`p`,false,`navlink`,`скопировать ссылку`,{
                         onclick:function(){
-                            navigator.clipboard.writeText(`https://t.me/igrikyobot/app?startapp=service_${a.service.id}`).then(s=>{
+                            navigator.clipboard.writeText(`https://telegram.me/igrikyobot/app?startapp=service_${a.service.id}`).then(s=>{
                                 tg.showAlert(`Ссылка скопирована`)
                             }).catch(err=>{
                                 console.warn(err)

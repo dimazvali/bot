@@ -1,7 +1,7 @@
 
 let host =      `auction`
 let downLoadedUsers = {};
-let botLink =   `https://t.me/starsAuctionBot`
+let botLink =   `https://telegram.me/starsAuctionBot`
 let buttonStyle=false;
 
 function closeLeft() {

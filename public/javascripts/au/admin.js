@@ -555,7 +555,7 @@ function drawClass(l){
             this.remove()
             details.append(ce('p',false,false,`Ссылка на лекцию в боте:`))
             details.append(ce('a',false,false,`t.me/AuditoraBot?start=quick_class_${l.id}`,{
-                href: `https://t.me/AuditoraBot?start=quick_class_${l.id}`
+                href: `https://telegram.me/AuditoraBot?start=quick_class_${l.id}`
             }))
 
             details.append(ce('img',false,false,false,{
@@ -799,7 +799,7 @@ function showUsers(){
 
             c.append(ce('p',false,false,`${record.username ? `@${record.username}` : 'Без ника'} // ${record.first_name || 'Без имени'} ${record.last_name || 'Без фамилии'}`,{
                 onclick:()=>{
-                    tg.openTelegramLink(`https://t.me/${record.username}`)
+                    tg.openTelegramLink(`https://telegram.me/${record.username}`)
                 }
             }))
             

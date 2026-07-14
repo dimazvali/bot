@@ -29,7 +29,7 @@ block content
           .about-contacts
             if profile && profile.telegram
               a.about-contact-link(href=profile.telegram target='_blank' rel='noopener')
-                | Telegram: #{profile.telegram.replace('https://t.me/', '@')}
+                | Telegram: #{profile.telegram.replace('https://telegram.me/', '@')}
             if profile && profile.contactEmail
               a.about-contact-link(href='mailto:' + profile.contactEmail)
                 | Email: #{profile.contactEmail}

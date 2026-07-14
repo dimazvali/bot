@@ -8,7 +8,7 @@ html
 
   body.mobile
     div.mobile
-        img(src="/images/samologo.png" class="logo" onclick="window.open('https://t.me/"+process.env.samobot+"')")
+        img(src="/images/samologo.png" class="logo" onclick="window.open('https://telegram.me/"+process.env.samobot+"')")
         h1!=  title ? title : ''
         p!=   description
         form(action=`${regDom ? '/'+regDom : '' }/${noadmin?'':'admin'}` method="post")

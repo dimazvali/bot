@@ -366,7 +366,7 @@ router.post(`/hook`, (req, res) => {
                             reply_markup: {
                                 inline_keyboard:[[{
                                     text: 'Some app',
-                                    url: `https://t.me/dish_dash_bot/app?startapp=${data.data.room_id}`
+                                    url: `https://telegram.me/dish_dash_bot/app?startapp=${data.data.room_id}`
                                 }]]
                             }
                         }]

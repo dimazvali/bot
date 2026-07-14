@@ -20,7 +20,7 @@ function closeLeft() {
     document.querySelectorAll(`.popupWeb`).forEach(p => p.remove())
 }
 
-const appLink = `https://t.me/paperstuffbot/app`
+const appLink = `https://telegram.me/paperstuffbot/app`
 const web = `https://papers.dimazvali.com`
 
 

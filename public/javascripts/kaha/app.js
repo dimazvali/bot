@@ -299,7 +299,7 @@ axios.get(`/kaha/api/user?id=${userid}`).then(u => {
 
         m.insertBefore(ce('h2',false,false,'Открыть админку',{
             onclick:()=>{
-                // window.open(`http://t.me/alcoberbot/admin?admin=${}')
+                // window.open(`http://telegram.me/alcoberbot/admin?admin=${}')
                 m.innerHTML = '';
                 m.append(ce('h2',false,false,'Текущий заказ',{
                     onclick: () => showCurOrder()
@@ -508,10 +508,10 @@ function showContacts(el){
     }))
 
     content.append(ce('h3',false,'light','Разработка',{
-        onclick:()=>tg.openTelegramLink(`https://t.me/dimazvali`)
+        onclick:()=>tg.openTelegramLink(`https://telegram.me/dimazvali`)
     }))
     content.append(ce('p',false,'story','Dmitry Shestakov',{
-        onclick:()=>tg.openTelegramLink(`https://t.me/dimazvali`)
+        onclick:()=>tg.openTelegramLink(`https://telegram.me/dimazvali`)
     }))
     
 }

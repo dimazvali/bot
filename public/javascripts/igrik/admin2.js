@@ -1,7 +1,7 @@
 
 const host = `igrik`
-const app = `https://t.me/igrikyobot`
-const appLinkAdmin = 'https://t.me/igrikyobot/admin'
+const app = `https://telegram.me/igrikyobot`
+const appLinkAdmin = 'https://telegram.me/igrikyobot/admin'
 
 let tg =        window.Telegram.WebApp
 let userid =    tg.initDataUnsafe.user.id;

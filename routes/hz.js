@@ -12,7 +12,7 @@ const fileUpload = require('express-fileupload');
 var cors = require('cors')
 var fs = require('fs');
 
-let botLink = `https://t.me/ozonStatsBot`
+let botLink = `https://telegram.me/ozonStatsBot`
 
 // shop
 //     name

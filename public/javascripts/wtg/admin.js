@@ -451,7 +451,7 @@ function showUsers(){
 
             c.append(ce('p',false,false,`${record.username ? `@${record.username}` : 'Без ника'} // ${record.first_name || 'Без имени'} ${record.last_name || 'Без фамилии'}`,{
                 onclick:()=>{
-                    tg.openTelegramLink(`https://t.me/${record.username}`)
+                    tg.openTelegramLink(`https://telegram.me/${record.username}`)
                 }
             }))
             

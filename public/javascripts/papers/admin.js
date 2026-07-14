@@ -3,7 +3,7 @@ let tg =        window.Telegram.WebApp;
 let userid =    tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : userId
 let mbbc, mcb = null;
 let host =      `paper`
-let appLink =   `https://t.me/paperstuffbot/app`
+let appLink =   `https://telegram.me/paperstuffbot/app`
 
 axios.get(`/${host}/admin/check?id=${userid}`).then(s=>{
     loader.classList.remove('active')

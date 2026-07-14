@@ -42,7 +42,7 @@ let gcp = initializeApp({
     databaseURL: "https://rrspecialsapi.firebaseio.com"
 }, 'wtg');
 
-let botLink = `https://t.me/wineToGoBot`;
+let botLink = `https://telegram.me/wineToGoBot`;
 
 let fb = getFirestore(gcp);
 

@@ -69,8 +69,8 @@ let fb = getFirestore(gcp);
 
 let token = process.env.cyprusToken
 
-let botLink =           `https://t.me/cyprusjournal_bot`
-let testChannelLink =   `https://t.me/+uaMO0ee7u5hjYmQy`
+let botLink =           `https://telegram.me/cyprusjournal_bot`
+let testChannelLink =   `https://telegram.me/+uaMO0ee7u5hjYmQy`
 
 const ngrok = `https://cyprus.dimazvali.com`
 

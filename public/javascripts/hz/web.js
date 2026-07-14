@@ -1,7 +1,7 @@
 
 let host = `hz`
 let downLoadedUsers = {};
-let botLink = `https://t.me/ozonStatsBot`
+let botLink = `https://telegram.me/ozonStatsBot`
 let buttonStyle=false;
 
 function closeLeft() {

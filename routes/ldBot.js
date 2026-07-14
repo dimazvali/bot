@@ -12,7 +12,7 @@ const fileUpload = require('express-fileupload');
 var cors = require('cors')
 var fs = require('fs');
 
-let botLink = `https://t.me/ld_conference_bot`
+let botLink = `https://telegram.me/ld_conference_bot`
 
 
 const {

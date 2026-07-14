@@ -184,7 +184,7 @@ let kbd =(id)=> [
 
 router.get('/qr', async (req, res) => {
     if (req.query.tag) {
-        QRCode.toFile(__dirname + '/../public/images/igrik/' + req.query.tag + '.svg', `https://t.me/igrikyobot?start=campaign_${req.query.tag}`, {
+        QRCode.toFile(__dirname + '/../public/images/igrik/' + req.query.tag + '.svg', `https://telegram.me/igrikyobot?start=campaign_${req.query.tag}`, {
             color: {
                 dark: req.query.dark || '#FE93C7',
                 light: req.query.light || '#ffffff',
@@ -950,7 +950,7 @@ function initInvite(message) {
                                 photo: `https://firebasestorage.googleapis.com/v0/b/igrikbot-dcd61.appspot.com/o/IGRIK_Bar%26Yoga_logo_ALLLL-24.jpg?alt=media&token=acc1119e-9b15-4b01-89b9-6517bd737c0e`,
                                 reply_markup:{
                                     inline_keyboard:[[
-                                        {text: 'igrik',url:`https://t.me/igrikyobot?start=campaign_userInvitations`}
+                                        {text: 'igrik',url:`https://telegram.me/igrikyobot?start=campaign_userInvitations`}
                                     ]]
                                 }
                             },'sendPhoto',token)

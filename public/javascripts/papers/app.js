@@ -241,7 +241,7 @@ auth().then(()=>{
             m.insertBefore(ce('h2',false,false,'Открыть админку',{
                 onclick:()=>{
                     shimmer(true)
-                    window.open('http://t.me/paperstuffbot/admin')
+                    window.open('http://telegram.me/paperstuffbot/admin')
                 }
             }),m.querySelectorAll('div')[1]) 
             
@@ -352,10 +352,10 @@ function showContacts(el){
     }))
 
     content.append(ce('h3',false,'light','Разработка',{
-        onclick:()=>tg.openTelegramLink(`https://t.me/dimazvali`)
+        onclick:()=>tg.openTelegramLink(`https://telegram.me/dimazvali`)
     }))
     content.append(ce('p',false,'story','Dmitry Shestakov',{
-        onclick:()=>tg.openTelegramLink(`https://t.me/dimazvali`)
+        onclick:()=>tg.openTelegramLink(`https://telegram.me/dimazvali`)
     }))
     
 }
@@ -1290,7 +1290,7 @@ function drawUser(u){
         cl.append(ce('h4',false,'mtop20',uname(u,u.id),{
             onclick:()=>{
                 shimmer(true)
-                tg.openTelegramLink(`https://t.me/${u.username}`)
+                tg.openTelegramLink(`https://telegram.me/${u.username}`)
             }
         }))
     if(u.about) cl.append(ce('p',false,'story',u.about))
