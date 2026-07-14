@@ -24,21 +24,6 @@ const {
 } = require('firebase-admin/firestore');
 
 
-let db = initializeApp({
-    credential: cert({
-        "type": "service_account",
-        "project_id": "dimdimwine",
-        "private_key_id": "99e88c0a720a916679e5f89a20243e013bfa35ac",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDyFyziM2o4RZis\nBiWdczAFNFJ60O7I1/seClcvKZ3UXz0lTaUgC3CU93ES6mY8r8HWBkG4keaF9Kjo\n1RRFrz7cb7OH3zXtdOIfCK06yg2lNGTCiw49jyll+XIk92md8bdutE84PC55YM7J\nT8uCFWHO7J+LXJ/hKy7SG28qADwhdLpZEXKRXS4zWRnZFivD2cE7RUjoPnyxkyW8\nOJD5yZ3xQxTThlZJ25n96Lbou9QwTXJDjRLoMAQsCeflyQ4cAPI0vaPZUEIhYQu5\ns1vhJ0AtCyd1s8mpBYOQU6Prs27azpyYeAXV4sYgpVzWaeAT3qmZZ1OZypy2CUnk\neKC5CjWJAgMBAAECggEAAY+yCRNuepvC9vkN17dydoDL4gw5k1oGkz8F05a1HzWD\nXhuOFmgnJbl4JThrHbZpzZ46C51amz/ksaZjfGo7luMG3rggej49ZxiAkCyAF1yr\nJFtj5XRoPpwekavMJpSfK5DwzIVhggQ50S/j5Bw3MUUdZ6IFS0fNWYA2df2NEGTT\nyMas3f3nQdYyeHWCwagVEuaYKuvBNY9eGztk4Fdn9nyjViWmYORBnCeSrnF5vMRh\ngroDtWGrru348VGwJ7f15yMCYSBYuydYwlFPS+LAeHCJ2/0TwDb39tSe0edJjBcq\nt8w5thhdD+1/TtI4D7tRnodABRrY/Q9/NZ7KMIyK8QKBgQD6keTKaXAZw0G+PHSR\nb1TPO8sSJr0IRZ381n9+SSTTNfIxdaBS2w+tVtnKSGuo3oPT09nmzdY+n+Rmek9V\nqFsz3N0WUT6pkvqd31Gunw+xr66lHdbvXHzUgHciKnWawrJ5yi2DYmSRsle0TnMQ\ntEeFZEuTlnP6bajVQpNIAGYqiwKBgQD3Vj1tm1iJsW5jsaOxckuRtJMBWJGHAdEF\nZ6QCsuU2m3Tumd5tTOXd3hBv2L+BLcduhcq7aKhEx7YjXPYAR/fw9ZvMcJz8/2m2\nVX6UTpSDrGWdezt/EYydA2TLVI7rFUEyxtr1Vfioi3DYyuAROGUPtPxTlWMYPmRU\ndeI7PdmmuwKBgACsQ6EHh3WKQLLyFp4NXnzv/CugTwGmrjXvnYgJSkAG9Q+M8VFH\npVMh2JPifeeGMXRwLTWhd+HTLBnaWjwwp44MGcvli/WIn4OtBdsiMjiX8DAhVGJw\nLSWk8qz00DwKKdCJ6nVf3kVF5VZmn4h783U4P7u1u7oAcWOhOiQHXD7hAoGAGFmR\nKp1Elim1qHLwnqOV9P5GCrfhe90d6t5NM0bRchLT7DmRwEj1yGX4UEqSb/FF1Qeu\n8cxX5I2UzN52CYkMS9iiQfpEOlQa4CyCja8+x8fNKTfcn6Hmqf6PicUFXPd2t70E\nCWsxU8aGkZFHhep7aJR00vW+D8D0t6vzXcm1B8kCgYEAuwKo1s5HHlvvthElf5bt\nhrzbPSxXR0CAIxhOx2elIBcy5fMqViPzS361A65kf08ibR8fUt7KAndDDXzponYV\ngl/gPK5yhdzhINEhTjvpGpfH3UT0pUyRa8k0/e5FkR6OsgV/CLG+VTpoExmAu2MG\nffrKQo4nFL0UoKKrTTeWQ3Q=\n-----END PRIVATE KEY-----\n",
-        "client_email": "firebase-adminsdk-kii5h@dimdimwine.iam.gserviceaccount.com",
-        "client_id": "118321941073088796293",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-kii5h%40dimdimwine.iam.gserviceaccount.com"
-    }),
-    databaseURL: "https://dimdimwine.firebaseio.com"
-}, 'wineBot');
 
 let fb = getFirestore(db)
 
