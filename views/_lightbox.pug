@@ -5,6 +5,7 @@ mixin lightbox()
     button.lb-next(type='button' aria-label='Next') ›
     .lb-img-wrap
       img.lb-img(src='' alt='')
+      .lb-spinner
     .lb-caption
     .lb-counter
 
@@ -17,25 +18,69 @@ mixin lightbox()
       var img     = overlay.querySelector('.lb-img');
       var caption = overlay.querySelector('.lb-caption');
       var counter = overlay.querySelector('.lb-counter');
+      var LB_SIZES = 'calc(100vw - 160px)';
       var activeSrcs = [], activeSrcsets = [], activeCaptions = [], cur = 0;
+      var loadToken = 0;
+      var loadingTimer = null;
 
       var tiles = ['01_borjgali_rosette','02_vine_lattice','03_qvevri_stripes','04_khevsur_diamonds','05_mtskheta_cross_grid','06_mountain_meander','07_pomegranate_rosettes','08_script_echo','09_tamada_horn_waves','10_stone_interlace'];
       var currentTile = tiles[Math.floor(Math.random() * tiles.length)];
       overlay.style.setProperty('--lb-tile', 'url(/images/eka/tiles/' + currentTile + '.svg)');
 
+      function preload(i) {
+        if (!activeSrcs.length) return;
+        var idx = (i + activeSrcs.length) % activeSrcs.length;
+        if (!activeSrcs[idx]) return;
+        var pre = new Image();
+        pre.sizes = LB_SIZES;
+        if (activeSrcsets[idx]) pre.srcset = activeSrcsets[idx];
+        pre.src = activeSrcs[idx];
+      }
+
       function show(i) {
         if (!activeSrcs.length) return;
         cur = (i + activeSrcs.length) % activeSrcs.length;
-        img.src = activeSrcs[cur];
-        img.srcset = activeSrcsets[cur];
-        img.sizes = 'calc(100vw - 160px)';
-        img.alt = activeCaptions[cur];
+        var targetSrc = activeSrcs[cur];
+        var targetSrcset = activeSrcsets[cur];
+        var myToken = ++loadToken;
+
         caption.textContent = activeCaptions[cur];
         caption.style.display = activeCaptions[cur] ? '' : 'none';
         counter.textContent = (cur + 1) + ' / ' + activeSrcs.length;
         overlay.classList.add('lb-open');
+
+        /* only show the spinner if loading takes noticeably long (avoids flicker on cached/preloaded images) */
+        clearTimeout(loadingTimer);
+        overlay.classList.remove('lb-loading');
+        loadingTimer = setTimeout(function() {
+          if (myToken === loadToken) overlay.classList.add('lb-loading');
+        }, 120);
+
+        /* load off-screen first so the visible <img> only ever jumps between two fully-loaded states */
+        var probe = new Image();
+        probe.onload = probe.onerror = function() {
+          if (myToken !== loadToken) return;
+          clearTimeout(loadingTimer);
+          overlay.classList.remove('lb-loading');
+          img.sizes = LB_SIZES;
+          img.srcset = targetSrcset;
+          img.src = targetSrc;
+          img.alt = activeCaptions[cur];
+        };
+        probe.sizes = LB_SIZES;
+        probe.srcset = targetSrcset;
+        probe.src = targetSrc;
+
+        preload(cur + 1);
+        preload(cur - 1);
       }
-      function close() { overlay.classList.remove('lb-open'); img.src = ''; img.srcset = ''; }
+      function close() {
+        loadToken++;
+        clearTimeout(loadingTimer);
+        overlay.classList.remove('lb-open', 'lb-loading');
+        img.src = '';
+        img.srcset = '';
+      }
 
       containers.forEach(function(container) {
         var items = Array.from(container.querySelectorAll('[data-lb]'));
