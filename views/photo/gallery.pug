@@ -42,7 +42,11 @@ block content
       a.photo-card(
         href=isShoot ? `/shoot/${shootSlug}/${photo.id}` : `/${photo.countryKey}/${photo.seriesKey}/${photo.id}`
         data-type=photo.type||'copter'
+        data-photo-id=photo.id
       )
+        if isShoot
+          span.photo-select
+            span.photo-select-box
         img(
           src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
           srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined
@@ -56,6 +60,154 @@ block content
           span.photo-title= photo.title
           if photo.date
             span.photo-date= photo.date
+
+  if isShoot
+    .selection-bar#selection-bar
+      span#selection-count
+      .selection-bar-actions
+        button#selection-clear(type='button') ОЧИСТИТЬ
+        button#selection-save(type='button') СОХРАНИТЬ ПОДБОРКУ
+
+    .selection-popup#selection-popup
+      .selection-popup-inner
+        .selection-popup-form#selection-popup-form
+          span.selection-popup-title НАЗВАНИЕ ПОДБОРКИ
+          input#selection-name-input(type='text' placeholder='например: на ретушь' maxlength='200')
+          p#selection-popup-msg
+          .selection-popup-actions
+            button#selection-popup-cancel(type='button') ОТМЕНА
+            button#selection-popup-submit(type='button') СОХРАНИТЬ
+        .selection-popup-success#selection-popup-success(style='display:none')
+          p.selection-popup-success-text Спасибо! Подборка сохранена и отправлена автору.
+          .selection-popup-actions
+            button#selection-popup-close(type='button') ОК
+
+  if isShoot
+    script.
+      (function() {
+        var saveUrl = '/shoot/' + !{JSON.stringify(shootSlug)} + '/collections';
+        var storageKey = 'shootSelection:' + !{JSON.stringify(shootSlug)};
+        var selected = {};
+
+        function loadStored() {
+          try {
+            var raw = sessionStorage.getItem(storageKey);
+            return raw ? JSON.parse(raw) : {};
+          } catch (e) { return {}; }
+        }
+        function saveStored() {
+          try { sessionStorage.setItem(storageKey, JSON.stringify(selected)); } catch (e) {}
+        }
+
+        var bar      = document.getElementById('selection-bar');
+        var countEl  = document.getElementById('selection-count');
+        var popup    = document.getElementById('selection-popup');
+        var formView = document.getElementById('selection-popup-form');
+        var successView = document.getElementById('selection-popup-success');
+        var nameInput = document.getElementById('selection-name-input');
+        var msgEl    = document.getElementById('selection-popup-msg');
+        var saveBtn  = document.getElementById('selection-save');
+        var clearBtn = document.getElementById('selection-clear');
+        var cancelBtn = document.getElementById('selection-popup-cancel');
+        var submitBtn = document.getElementById('selection-popup-submit');
+        var closeBtn = document.getElementById('selection-popup-close');
+
+        function closePopup() {
+          popup.classList.remove('is-open');
+          formView.style.display = '';
+          successView.style.display = 'none';
+        }
+
+        function selectedIds() {
+          return Object.keys(selected).filter(function(id) { return selected[id]; });
+        }
+
+        function updateBar() {
+          var ids = selectedIds();
+          if (bar) bar.classList.toggle('is-open', ids.length > 0);
+          if (countEl) countEl.textContent = 'ВЫБРАНО: ' + ids.length;
+        }
+
+        function clearSelection() {
+          selected = {};
+          saveStored();
+          document.querySelectorAll('.photo-select.is-checked').forEach(function(el) { el.classList.remove('is-checked'); });
+          document.querySelectorAll('.photo-card.is-selected').forEach(function(el) { el.classList.remove('is-selected'); });
+          updateBar();
+        }
+
+        document.querySelectorAll('.photo-select').forEach(function(el) {
+          el.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var card = el.closest('.photo-card');
+            var id = card.dataset.photoId;
+            selected[id] = !selected[id];
+            el.classList.toggle('is-checked', !!selected[id]);
+            card.classList.toggle('is-selected', !!selected[id]);
+            saveStored();
+            updateBar();
+          });
+        });
+
+        // restore selection saved before navigating away (e.g. to a photo detail page)
+        (function restore() {
+          var stored = loadStored();
+          var restored = false;
+          document.querySelectorAll('.photo-card[data-photo-id]').forEach(function(card) {
+            var id = card.dataset.photoId;
+            if (!stored[id]) return;
+            selected[id] = true;
+            restored = true;
+            card.classList.add('is-selected');
+            var box = card.querySelector('.photo-select');
+            if (box) box.classList.add('is-checked');
+          });
+          if (restored) { saveStored(); updateBar(); }
+        }());
+
+        if (clearBtn) clearBtn.addEventListener('click', clearSelection);
+
+        if (saveBtn) saveBtn.addEventListener('click', function() {
+          nameInput.value = '';
+          msgEl.textContent = '';
+          formView.style.display = '';
+          successView.style.display = 'none';
+          popup.classList.add('is-open');
+          nameInput.focus();
+        });
+
+        if (cancelBtn) cancelBtn.addEventListener('click', closePopup);
+        if (closeBtn) closeBtn.addEventListener('click', closePopup);
+        if (popup) popup.addEventListener('click', function(e) { if (e.target === popup) closePopup(); });
+
+        if (submitBtn) submitBtn.addEventListener('click', function() {
+          var name = nameInput.value.trim();
+          if (!name) { msgEl.textContent = 'Введите название'; return; }
+          var ids = selectedIds();
+          if (!ids.length) { popup.classList.remove('is-open'); return; }
+
+          submitBtn.disabled = true;
+          msgEl.textContent = '';
+          fetch(saveUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, photoIds: ids }),
+          })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+              submitBtn.disabled = false;
+              if (!res.ok) { msgEl.textContent = (res.data && res.data.error) || 'Ошибка сохранения'; return; }
+              clearSelection();
+              formView.style.display = 'none';
+              successView.style.display = '';
+            })
+            .catch(function() {
+              submitBtn.disabled = false;
+              msgEl.textContent = 'Ошибка сети';
+            });
+        });
+      }());
 
   if _showFilter
     script.

@@ -83,6 +83,28 @@ html(data-theme='dark')
                   form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete`)
                     button.admin-btn.admin-btn--danger(type='submit') удалить
 
+      if shoot.collections && shoot.collections.length
+        .admin-section
+          h2.admin-title ПОДБОРКИ КЛИЕНТА (#{shoot.collections.length})
+          p.admin-hint Выборки фото, собранные клиентом на странице съёмки.
+          - var photosById = {}
+          - shoot.photos.forEach(function(p) { photosById[p.id] = p; })
+          each col in shoot.collections
+            .admin-collection
+              .admin-collection-head
+                span.admin-collection-name= col.name
+                span.admin-collection-meta
+                  = col.photoIds.length + ' фото'
+                  if col.createdAt
+                    - var d = col.createdAt.toDate ? col.createdAt.toDate() : new Date(col.createdAt)
+                    |  · #{d.toLocaleDateString('ru-RU')} #{d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
+              .admin-collection-thumbs
+                each pid in col.photoIds
+                  - var p = photosById[pid]
+                  if p && p.urls
+                    a(href=`/admin/shoots/${slug}/photos/${pid}/edit` target='_blank')
+                      img.admin-collection-thumb(src=p.urls.preview alt=p.title)
+
       .admin-section
         h2.admin-title УДАЛИТЬ СЪЁМКУ
         p.admin-hint Все фотографии будут удалены из Firebase Storage без возможности восстановления.

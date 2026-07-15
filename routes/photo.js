@@ -551,6 +551,35 @@ router.post('/shoot/:slug/auth', express.urlencoded({ extended: false }), (req, 
   });
 });
 
+// POST /shoot/:slug/collections — клиент сохраняет собственную подборку фото
+router.post('/shoot/:slug/collections', express.json(), async (req, res) => {
+  var { slug } = req.params;
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ error: 'Not found' });
+
+  var adminUser = await isAdmin(req);
+  var cookieKey = 'shoot_' + slug;
+  var authed = adminUser || !shoot.password ||
+    (req.signedCookies && req.signedCookies[cookieKey] === shootCookieToken(shoot.password, slug));
+  if (!authed) return res.status(401).json({ error: 'Unauthorized' });
+
+  var name = String((req.body && req.body.name) || '').trim().slice(0, 200);
+  if (!name) return res.status(400).json({ error: 'Name required' });
+
+  var validIds = {};
+  shoot.photoOrder.forEach(function(id) { validIds[id] = true; });
+  var seen = {};
+  var photoIds = (Array.isArray(req.body && req.body.photoIds) ? req.body.photoIds : [])
+    .filter(function(id) { return typeof id === 'string' && validIds[id] && !seen[id] && (seen[id] = true); });
+  if (!photoIds.length) return res.status(400).json({ error: 'No photos selected' });
+
+  var collection = await shoots.addCollection(slug, name, photoIds);
+
+  tgSend('<b>🗂 Новая подборка от клиента</b>\n' + shoot.label + ' — «' + name + '»\n' + photoIds.length + ' фото\n' + BASE + '/admin/shoots/' + slug + '/edit');
+
+  res.json({ ok: true, id: collection.id });
+});
+
 // GET /:country — all photos in a country
 router.get('/:country', (req, res) => {
   var data = getData();
