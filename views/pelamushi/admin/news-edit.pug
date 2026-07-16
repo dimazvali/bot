@@ -100,6 +100,7 @@ block content
             th Имя
             th Email
             th Телефон
+            th Бот
             th Статус
         tbody
           each r in registrations
@@ -110,6 +111,11 @@ block content
               td(data-label='Email')
                 a(href=`mailto:${r.email}`) #{r.email}
               td(data-label='Телефон') #{r.phone || '—'}
+              td(data-label='Бот')
+                if r.tg_user_id
+                  span(style='color:#1e8449') ✓ подключён
+                else
+                  span(style='color:#bbb') —
               td(data-label='Статус')
                 form(action=`/admin/registrations/${r.id}/status` method='POST')
                   input(type='hidden' name='back' value=`/admin/news/${article.id}`)

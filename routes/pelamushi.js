@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
-const { col, Timestamp } = require('../lib/pelamushi-firebase');
+const { col, db, storage, Timestamp } = require('../lib/pelamushi-firebase');
 const cache = require('../lib/pelamushi-cache');
+const pelamushiBot = require('../lib/pelamushi-bot');
+const { notify } = require('../lib/pelamushi-notify');
 
 const LANGS = ['en', 'ka', 'ru'];
 
@@ -12,6 +14,46 @@ const locales = {
   ru: require('../locales/pelamushi/ru.json'),
 };
 
+if (db) {
+  pelamushiBot.init(db, process.env.PELAMUSHI_TOKEN, storage ? storage.bucket('dimazvalimisc.appspot.com') : null);
+  if (process.env.develop !== 'true' && process.env.PELAMUSHI_TOKEN && process.env.PELAMUSHI_BOT_WEBHOOK_URL) {
+    pelamushiBot.setWebhook(process.env.PELAMUSHI_BOT_WEBHOOK_URL)
+      .then((r) => console.log('[pelamushi-bot] webhook set:', r.description))
+      .catch((e) => console.error('[pelamushi-bot] setWebhook failed:', e.message));
+  }
+}
+
+// Forward a message to admins, but only when it's NOT from an admin themselves
+// (e.g. an admin poking the bot to test it shouldn't ping everyone).
+async function forwardToAdmins(fromId, msg) {
+  if (!col.admins) return;
+  const snap = await col.admins.get();
+  const admins = snap.docs.map((d) => d.data());
+  const isAdmin = admins.some((a) => a.tg_id && String(a.tg_id) === String(fromId));
+  if (isAdmin) return;
+  const targets = admins.filter((a) => a.tg_id && a.notify_messages);
+  for (const a of targets) {
+    await pelamushiBot.forwardMessage(a.tg_id, msg.chat.id, msg.message_id).catch(() => {});
+  }
+}
+
+// Telegram webhook
+router.post('/bot', express.json(), (req, res) => {
+  res.sendStatus(200);
+  pelamushiBot.handleUpdate(
+    req.body,
+    (fromId, fromLabel, text, rawMsg) => {
+      forwardToAdmins(fromId, rawMsg).catch(() => {});
+    },
+    null,
+    (user) => {
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Без имени';
+      const tag = user.username ? ` @${user.username}` : ` id:${user.id}`;
+      notify('messages', `🆕 <b>Новый подписчик бота</b>\n${name}${tag}`).catch(() => {});
+    }
+  ).catch((e) => console.error('[pelamushi-bot webhook]', e.message));
+});
+
 // Mount admin router
 router.use('/admin', require('./pelamushi-admin'));
 
@@ -19,6 +61,7 @@ const ASSET_VER = process.env.APP_VER || Date.now().toString(36);
 router.use((req, res, next) => {
   res.locals.v = ASSET_VER;
   res.locals.isAdmin = !!(req.cookies && req.cookies.pelamushi_admin);
+  res.locals.botUsername = process.env.PELAMUSHI_BOT_NAME || '';
   next();
 });
 
@@ -327,11 +370,13 @@ router.get('/:lang/news/:slug', async (req, res, next) => {
 
     const registered = req.query.registered === '1';
     const registrationFull = req.query.full === '1';
+    const registrationId = /^[A-Za-z0-9_-]+$/.test(req.query.rid || '') ? req.query.rid : null;
     const pageDesc = (article['body_' + res.locals.lang] || '').replace(/<[^>]+>/g, '').substring(0, 160);
     res.render('pelamushi/news-item', {
       article,
       registered,
       registrationFull,
+      registrationId,
       pageTitle: article['title_' + res.locals.lang],
       pageDesc,
       ogImage: article.photo_url || '',
@@ -370,7 +415,7 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
       full = activeCount >= article.capacity;
     }
 
-    await col.registrations.add({
+    const regRef = await col.registrations.add({
       news_id: newsId,
       name: name.trim(),
       email: email.trim().toLowerCase(),
@@ -379,9 +424,8 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
       created_at: Timestamp.now(),
     });
 
-    const { notify } = require('../lib/pelamushi-notify');
     notify('registration', `📋 <b>Новая регистрация</b>${full ? ' ⚠️ вместимость достигнута' : ''}\nСобытие: ${article.title_ru || article.title_en || req.params.slug}\nИмя: ${name.trim()}\nEmail: ${email.trim()}\nТелефон: ${(phone || '').trim() || '—'}`);
-    res.redirect(`/${lang}/news/${req.params.slug}?registered=1${full ? '&full=1' : ''}`);
+    res.redirect(`/${lang}/news/${req.params.slug}?registered=1&rid=${regRef.id}${full ? '&full=1' : ''}`);
   } catch (err) {
     next(err);
   }

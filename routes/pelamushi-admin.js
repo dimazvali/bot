@@ -4,6 +4,7 @@ const router = express.Router();
 const { col } = require('../lib/pelamushi-firebase');
 const { requireAdmin, cookieToken } = require('../lib/pelamushi-auth');
 const cache = require('../lib/pelamushi-cache');
+const pelamushiBot = require('../lib/pelamushi-bot');
 
 router.use(fileUpload());
 
@@ -1402,7 +1403,7 @@ router.get('/admins', async (req, res, next) => {
 
 router.post('/admins/:id/settings', async (req, res, next) => {
   try {
-    const { tg_id, notify_rental, notify_registration, notify_menu, notify_news } = req.body;
+    const { tg_id, notify_rental, notify_registration, notify_menu, notify_news, notify_messages } = req.body;
     if (col.admins) {
       await col.admins.doc(req.params.id).update({
         tg_id: tg_id ? String(tg_id).trim() : '',
@@ -1410,7 +1411,9 @@ router.post('/admins/:id/settings', async (req, res, next) => {
         notify_registration: notify_registration === 'on',
         notify_menu:         notify_menu === 'on',
         notify_news:         notify_news === 'on',
+        notify_messages:     notify_messages === 'on',
       });
+      cache.del('admins_list');
     }
     res.redirect('/admin/admins?saved=1');
   } catch (err) { next(err); }
@@ -1420,7 +1423,10 @@ router.post('/admins/add', async (req, res, next) => {
   try {
     const { name, password } = req.body;
     if (!name || !password) return res.redirect('/admin/admins');
-    if (col.admins) await col.admins.add({ name: name.trim(), password_hash: cookieToken(password), created_at: new Date() });
+    if (col.admins) {
+      await col.admins.add({ name: name.trim(), password_hash: cookieToken(password), created_at: new Date() });
+      cache.del('admins_list');
+    }
     res.redirect('/admin/admins?saved=1');
   } catch (err) { next(err); }
 });
@@ -1429,7 +1435,10 @@ router.post('/admins/:id/password', async (req, res, next) => {
   try {
     const { password } = req.body;
     if (!password) return res.redirect('/admin/admins');
-    if (col.admins) await col.admins.doc(req.params.id).update({ password_hash: cookieToken(password) });
+    if (col.admins) {
+      await col.admins.doc(req.params.id).update({ password_hash: cookieToken(password) });
+      cache.del('admins_list');
+    }
     res.redirect('/admin/admins?saved=1');
   } catch (err) { next(err); }
 });
@@ -1442,8 +1451,34 @@ router.post('/admins/:id/delete', async (req, res, next) => {
         return res.redirect('/admin/admins?err=self');
       }
       await col.admins.doc(req.params.id).delete();
+      cache.del('admins_list');
     }
     res.redirect('/admin/admins');
+  } catch (err) { next(err); }
+});
+
+// ── BOT ──────────────────────────────────────────────────────────────────────
+router.get('/bot', async (req, res, next) => {
+  try {
+    const messages = await pelamushiBot.getBotMessages();
+    const users = await pelamushiBot.getUsers();
+    const activeUsers = users.filter((u) => u.active).length;
+    res.render('pelamushi/admin/bot', {
+      title: 'Бот', messages, totalUsers: users.length, activeUsers,
+      botUsername: process.env.PELAMUSHI_BOT_NAME || '',
+      saved: req.query.saved === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/bot', async (req, res, next) => {
+  try {
+    const { welcome_ru, welcome_en, return_ru, return_en } = req.body;
+    await pelamushiBot.saveBotMessages({
+      welcome_ru: welcome_ru || '', welcome_en: welcome_en || '',
+      return_ru: return_ru || '', return_en: return_en || '',
+    });
+    res.redirect('/admin/bot?saved=1');
   } catch (err) { next(err); }
 });
 
