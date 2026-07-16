@@ -1463,8 +1463,15 @@ router.get('/bot', async (req, res, next) => {
     const messages = await pelamushiBot.getBotMessages();
     const users = await pelamushiBot.getUsers();
     const activeUsers = users.filter((u) => u.active).length;
+    let profile = null;
+    let profileError = null;
+    try {
+      profile = await pelamushiBot.getBotProfile();
+    } catch (e) {
+      profileError = e.message;
+    }
     res.render('pelamushi/admin/bot', {
-      title: 'Бот', messages, totalUsers: users.length, activeUsers,
+      title: 'Бот', messages, profile, profileError, totalUsers: users.length, activeUsers,
       botUsername: process.env.PELAMUSHI_BOT_NAME || '',
       saved: req.query.saved === '1',
     });
@@ -1474,9 +1481,41 @@ router.get('/bot', async (req, res, next) => {
 router.post('/bot', async (req, res, next) => {
   try {
     const { welcome_ru, welcome_en, return_ru, return_en } = req.body;
-    await pelamushiBot.saveBotMessages({
+    const update = {
       welcome_ru: welcome_ru || '', welcome_en: welcome_en || '',
       return_ru: return_ru || '', return_en: return_en || '',
+    };
+    if (req.files) {
+      const { uploadPhoto } = require('../lib/pelamushi-upload');
+      for (const key of ['welcome_ru', 'welcome_en', 'return_ru', 'return_en']) {
+        const f = req.files[key + '_photo'];
+        if (f) update[key + '_photo'] = await uploadPhoto(f.data, f.name, 'bot', 'cover');
+      }
+    }
+    await pelamushiBot.saveBotMessages(update);
+    res.redirect('/admin/bot?saved=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/bot/profile', async (req, res, next) => {
+  try {
+    const b = req.body;
+    const parsedCommands = (b.commands || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        const idx = line.indexOf('-');
+        const command = (idx === -1 ? line : line.slice(0, idx)).trim().replace(/^\//, '');
+        const desc = idx === -1 ? '' : line.slice(idx + 1).trim();
+        return { command, description: desc };
+      })
+      .filter((c) => c.command);
+    await pelamushiBot.setBotProfile({
+      name: { ru: b.name_ru || '', ka: b.name_ka || '', en: b.name_en || '' },
+      description: { ru: b.description_ru || '', ka: b.description_ka || '', en: b.description_en || '' },
+      short_description: { ru: b.short_description_ru || '', ka: b.short_description_ka || '', en: b.short_description_en || '' },
+      commands: parsedCommands,
     });
     res.redirect('/admin/bot?saved=1');
   } catch (err) { next(err); }

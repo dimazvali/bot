@@ -635,7 +635,7 @@ router.get('/bot/profile', requireAuth, async function(req, res, next) {
   } catch(e) { next(e); }
 });
 
-router.post('/bot/profile', requireAuth, upload.single('photo'), async function(req, res, next) {
+router.post('/bot/profile', requireAuth, async function(req, res, next) {
   try {
     var data = {
       name: (req.body.name || '').trim(),
@@ -650,7 +650,6 @@ router.post('/bot/profile', requireAuth, upload.single('photo'), async function(
         }).filter(function(c) { return c.command && c.description; })
       : [];
     await ekaBot.setBotProfile(data);
-    if (req.file) await ekaBot.setBotPhoto(req.file.buffer, req.file.mimetype);
     res.redirect('/admin/bot/profile?saved=1');
   } catch(e) {
     var errMsg = (e.response && e.response.data && e.response.data.description) || e.message;

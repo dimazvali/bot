@@ -13,21 +13,76 @@ block content
         | Бот: #[a(href='https://t.me/' + botUsername target='_blank') @#{botUsername}]
 
   .card
+    h2 Профиль бота
+    p(style='color:#999;font-size:.85rem;margin-bottom:1rem') Имя, описания и команды — то, что видят пользователи в самом Telegram (пустой чат с ботом, поиск, меню команд). Telegram показывает пользователю вариант под язык его клиента — RU/KA/EN редактируются отдельно. Фото бота через API поменять нельзя — только вручную через @BotFather.
+    if profileError
+      p(style='color:#c0392b;font-size:.85rem') Не удалось получить профиль бота: #{profileError}
+    else
+      - var PLANGS = [['ru', 'RU'], ['ka', 'KA'], ['en', 'EN']]
+      form(action='/admin/bot/profile' method='POST')
+        h3(style='font-size:.9rem;margin-bottom:.5rem') Имя бота
+        each p in PLANGS
+          .form-row
+            label= p[1]
+            input(name='name_' + p[0] value=profile.name[p[0]] maxlength='64')
+
+        h3(style='font-size:.9rem;margin:1rem 0 .5rem') Описание (показывается в пустом чате до /start)
+        each p in PLANGS
+          .form-row
+            label= p[1]
+            textarea(name='description_' + p[0] maxlength='512')= profile.description[p[0]]
+
+        h3(style='font-size:.9rem;margin:1rem 0 .5rem') Короткое описание (в превью при пересылке ссылки на бота)
+        each p in PLANGS
+          .form-row
+            label= p[1]
+            textarea(name='short_description_' + p[0] maxlength='120')= profile.short_description[p[0]]
+
+        h3(style='font-size:.9rem;margin:1rem 0 .5rem') Команды меню
+        p(style='color:#999;font-size:.8rem;margin-bottom:.5rem') Общие для всех языков. По одной на строку, формат: команда - описание
+        .form-row
+          - var commandsText = (profile.commands || []).map(function(c) { return c.command + ' - ' + c.description; }).join('\n')
+          textarea(name='commands' rows='5' placeholder='start - Начать\nhelp - Помощь')= commandsText
+
+        button.btn.btn-primary(type='submit') Сохранить профиль
+
+  .card
     h2 Приветственные сообщения
-    p(style='color:#999;font-size:.85rem;margin-bottom:1rem') Отправляются автоматически при нажатии /start в боте (если это не переход по ссылке-регистрации).
-    form(action='/admin/bot' method='POST')
+    p(style='color:#999;font-size:.85rem;margin-bottom:1rem') Отправляются автоматически при нажатии /start в боте (если это не переход по ссылке-регистрации). Фото необязательно — если не задано, уходит только текст.
+    form(action='/admin/bot' method='POST' enctype='multipart/form-data')
       h3(style='font-size:.9rem;margin-bottom:.5rem') Первое обращение
       .form-row
         label Текст (RU)
         textarea(name='welcome_ru') #{messages.welcome_ru}
       .form-row
+        label Фото (RU)
+        if messages.welcome_ru_photo
+          img(src=messages.welcome_ru_photo style='max-height:100px;border-radius:4px;margin-bottom:.5rem;display:block')
+        input(type='file' name='welcome_ru_photo' accept='image/*')
+      .form-row
         label Text (EN)
         textarea(name='welcome_en') #{messages.welcome_en}
+      .form-row
+        label Photo (EN)
+        if messages.welcome_en_photo
+          img(src=messages.welcome_en_photo style='max-height:100px;border-radius:4px;margin-bottom:.5rem;display:block')
+        input(type='file' name='welcome_en_photo' accept='image/*')
+
       h3(style='font-size:.9rem;margin:1rem 0 .5rem') Повторное обращение
       .form-row
         label Текст (RU)
         textarea(name='return_ru') #{messages.return_ru}
       .form-row
+        label Фото (RU)
+        if messages.return_ru_photo
+          img(src=messages.return_ru_photo style='max-height:100px;border-radius:4px;margin-bottom:.5rem;display:block')
+        input(type='file' name='return_ru_photo' accept='image/*')
+      .form-row
         label Text (EN)
         textarea(name='return_en') #{messages.return_en}
-      button.btn.btn-primary(type='submit') Сохранить
+      .form-row
+        label Photo (EN)
+        if messages.return_en_photo
+          img(src=messages.return_en_photo style='max-height:100px;border-radius:4px;margin-bottom:.5rem;display:block')
+        input(type='file' name='return_en_photo' accept='image/*')
+      button.btn.btn-primary(type='submit') Сохранить сообщения

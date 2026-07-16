@@ -10,7 +10,6 @@ html
       textarea:focus { outline: none; border-color: #c00; }
       .field-hint { font-size: 11px; color: #aaa; margin-top: 4px; }
       .char-count { font-size: 11px; color: #aaa; text-align: right; margin-top: 2px; }
-      .photo-preview { display: none; width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 1px solid #eee; margin-top: 8px; }
   body.admin-body
     include _nav
     .admin-content
@@ -30,7 +29,7 @@ html
       p(style='font-size:12px;color:#aaa;margin-bottom:20px')
         | @#{profile.username}
 
-      form.admin-form(method='POST' action='/admin/bot/profile' enctype='multipart/form-data')
+      form.admin-form(method='POST' action='/admin/bot/profile')
         .admin-field
           label Имя бота
           input(type='text' name='name' value=profile.name maxlength='64' placeholder='Название бота' oninput='updateCount(this)')
@@ -54,11 +53,7 @@ html
           textarea(name='commands' rows='6' placeholder='start - Начать\nhelp - Помощь')= commandsText || ''
           p.field-hint Формат: <code>команда - Описание</code> (по одной на строку, без слэша)
 
-        .admin-field
-          label Фото профиля
-          input#photo-input(type='file' name='photo' accept='image/*')
-          img#photo-preview.photo-preview(src='' alt='')
-          p.field-hint Загрузите новое фото чтобы заменить текущее
+        p.field-hint(style='margin-bottom:16px') Фото профиля бота через API поменять нельзя — только вручную через @BotFather.
 
         button.admin-btn(type='submit') Сохранить
 
@@ -72,13 +67,3 @@ html
           counter.style.color = el.value.length > max * 0.9 ? '#c07000' : '#aaa';
         }
       }
-      var photoInput = document.getElementById('photo-input');
-      var photoPreview = document.getElementById('photo-preview');
-      photoInput.addEventListener('change', function() {
-        if (photoInput.files && photoInput.files[0]) {
-          photoPreview.src = URL.createObjectURL(photoInput.files[0]);
-          photoPreview.style.display = 'block';
-        } else {
-          photoPreview.style.display = 'none';
-        }
-      });

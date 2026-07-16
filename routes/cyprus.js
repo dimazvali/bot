@@ -547,7 +547,7 @@ router.post('/hook', (req, res) => {
 
             }
 
-            if (req.body.message.photo || req.body.message.video) {
+            if (req.body.message.photo || req.body.message.video || req.body.message.document || req.body.message.audio || req.body.message.voice || req.body.message.video_note || req.body.message.animation || req.body.message.sticker) {
                 udb.where('admin','==',true).get().then(col=>{
                     common.handleQuery(col).forEach(a=>{
                             // m.sendMessage2({
