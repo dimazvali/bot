@@ -775,6 +775,35 @@ button { cursor: pointer; font-family: inherit; }
   color: var(--white);
 }
 
+.request-tabs {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.request-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  padding: 0 0 0.75rem;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.request-tab:hover { color: rgba(255,255,255,0.75); }
+.request-tab.active { color: var(--white); border-color: var(--red); }
+
+.request-panel { display: none; }
+.request-panel.active { display: block; }
+
 .request-box-title {
   font-family: 'Barlow Condensed', sans-serif;
   font-weight: 900;

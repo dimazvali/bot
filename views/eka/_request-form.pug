@@ -23,11 +23,11 @@ mixin requestForm(opts)
             button.ct-option.active(type='button' data-ct='email') Email
             button.ct-option(type='button' data-ct='telegram') Telegram
             button.ct-option(type='button' data-ct='whatsapp') WhatsApp
-          input(type='hidden' name='contactType' value='email' id='contactTypeInput')
+          input.contact-type-value(type='hidden' name='contactType' value='email')
       .form-row
         .form-group
-          label.form-label(id='contactLabel')= lang === 'ru' ? 'Email *' : 'Email *'
-          input.form-input(type='text' name='contact' required placeholder='your@email.com' id='contactInput')
+          label.form-label.contact-label= lang === 'ru' ? 'Email *' : 'Email *'
+          input.form-input.contact-input(type='text' name='contact' required placeholder='your@email.com')
         .form-group
           if isTour
             label.form-label= lang === 'ru' ? 'Количество человек' : 'Number of people'

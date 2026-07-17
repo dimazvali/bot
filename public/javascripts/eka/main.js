@@ -1,15 +1,16 @@
-// Contact type toggle (request form)
+// Contact type toggle (request form) — scoped per <form> so a page can hold more than one
 document.addEventListener('DOMContentLoaded', function() {
-  var ctOptions = document.querySelectorAll('.ct-option');
-  var ctInput = document.getElementById('contactTypeInput');
-  var contactInput = document.getElementById('contactInput');
-  var contactLabel = document.getElementById('contactLabel');
+  var placeholders = { email: 'your@email.com', telegram: '@username', whatsapp: '+995 500 000 000' };
+  var labels_ru = { email: 'Email *', telegram: 'Telegram *', whatsapp: 'WhatsApp *' };
+  var labels_en = { email: 'Email *', telegram: 'Telegram *', whatsapp: 'WhatsApp *' };
+  var lang = document.documentElement.lang || 'ru';
 
-  if (ctOptions.length && ctInput) {
-    var placeholders = { email: 'your@email.com', telegram: '@username', whatsapp: '+995 500 000 000' };
-    var labels_ru = { email: 'Email *', telegram: 'Telegram *', whatsapp: 'WhatsApp *' };
-    var labels_en = { email: 'Email *', telegram: 'Telegram *', whatsapp: 'WhatsApp *' };
-    var lang = document.documentElement.lang || 'ru';
+  document.querySelectorAll('form').forEach(function(form) {
+    var ctOptions = form.querySelectorAll('.ct-option');
+    var ctInput = form.querySelector('.contact-type-value');
+    var contactInput = form.querySelector('.contact-input');
+    var contactLabel = form.querySelector('.contact-label');
+    if (!ctOptions.length || !ctInput) return;
 
     ctOptions.forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -21,7 +22,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (contactLabel) contactLabel.textContent = (lang === 'ru' ? labels_ru[ct] : labels_en[ct]) || ct;
       });
     });
-  }
+  });
+
+  // Request box tabs ("Book" / "Ask a question")
+  document.querySelectorAll('.request-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      var box = tab.closest('.request-box');
+      if (!box) return;
+      box.querySelectorAll('.request-tab').forEach(function(t) { t.classList.remove('active'); });
+      box.querySelectorAll('.request-panel').forEach(function(p) { p.classList.remove('active'); });
+      tab.classList.add('active');
+      var panel = box.querySelector('.request-panel[data-panel="' + tab.getAttribute('data-tab') + '"]');
+      if (panel) panel.classList.add('active');
+    });
+  });
 
   // Populate UTM hidden inputs from sessionStorage
   var utmRaw = sessionStorage.getItem('eka_utms');

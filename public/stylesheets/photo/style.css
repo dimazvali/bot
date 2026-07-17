@@ -236,6 +236,10 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 }
 .photo-card:hover .photo-select,
 .photo-select.is-checked { opacity: 1; }
+@media (hover: none), (pointer: coarse) {
+  /* no hover on touch devices — keep the selection checkbox visible by default */
+  .photo-select { opacity: 1; }
+}
 .photo-select-box {
   width: 18px;
   height: 18px;
@@ -338,6 +342,8 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 .selection-popup-actions button:hover { color: var(--text); border-color: var(--text-dim); }
 .selection-popup-success { display: flex; flex-direction: column; gap: 14px; }
 .selection-popup-success-text { font-size: 0.75rem; color: var(--text); line-height: 1.6; }
+
+.intro-popup-text { font-size: 0.75rem; color: var(--text); line-height: 1.6; }
 
 /* ─── PHOTO PAGE ─────────────────────────────────────────────── */
 .photo-page { display: flex; flex-direction: column; gap: 16px; }

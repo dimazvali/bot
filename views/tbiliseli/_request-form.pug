@@ -6,42 +6,78 @@ mixin requestForm(opts)
     var isTour = hiddenFields.type === 'tour'
     var err = typeof req !== 'undefined' && req && req.query && req.query.err
   .request-box
-    .request-box-title= formTitle
-    if formSub
-      .request-box-sub= formSub
-    if err
-      .form-error= lang === 'ru' ? '✗ Заполните имя и контакт' : '✗ Please fill in name and contact'
-    form(method='POST' action=`/${lang}/request`)
-      each val, key in hiddenFields
-        input(type='hidden' name=key value=val)
-      .form-row
+    .request-tabs
+      button.request-tab.active(type='button' data-tab='book')= lang === 'ru' ? 'Записаться' : 'Book'
+      button.request-tab(type='button' data-tab='question')= lang === 'ru' ? 'Задать вопрос' : 'Ask a question'
+
+    .request-panel.active(data-panel='book')
+      .request-box-title= formTitle
+      if formSub
+        .request-box-sub= formSub
+      if err
+        .form-error= lang === 'ru' ? '✗ Заполните имя и контакт' : '✗ Please fill in name and contact'
+      form(method='POST' action=`/${lang}/request`)
+        each val, key in hiddenFields
+          input(type='hidden' name=key value=val)
+        .form-row
+          .form-group
+            label.form-label= lang === 'ru' ? 'Ваше имя *' : 'Your name *'
+            input.form-input(type='text' name='name' required placeholder=lang === 'ru' ? 'Как вас зовут' : 'Your name')
+          .form-group
+            label.form-label= lang === 'ru' ? 'Способ связи *' : 'Contact method *'
+            .contact-type
+              button.ct-option.active(type='button' data-ct='email') Email
+              button.ct-option(type='button' data-ct='telegram') Telegram
+              button.ct-option(type='button' data-ct='whatsapp') WhatsApp
+            input.contact-type-value(type='hidden' name='contactType' value='email')
+        .form-row
+          .form-group
+            label.form-label.contact-label= lang === 'ru' ? 'Email *' : 'Email *'
+            input.form-input.contact-input(type='text' name='contact' required placeholder='your@email.com')
+          .form-group
+            if isTour
+              label.form-label= lang === 'ru' ? 'Количество человек' : 'Number of people'
+              input.form-input(type='number' name='participants' min='1' max='20' value='1')
+            else
+              label.form-label= lang === 'ru' ? 'Удобные даты' : 'Preferred dates'
+              input.form-input(type='text' name='preferredDates' placeholder=lang === 'ru' ? 'Например: июль, выходные' : 'E.g. July, any weekend')
+        .form-group(style='margin-bottom:20px')
+          label.form-label= lang === 'ru' ? 'Комментарий' : 'Message'
+          textarea.form-textarea(name='message' placeholder=lang === 'ru' ? 'Особые пожелания, количество человек...' : 'Special requests, number of people...')
+        input(type='hidden' name='utm_source')
+        input(type='hidden' name='utm_medium')
+        input(type='hidden' name='utm_campaign')
+        input(type='hidden' name='utm_content')
+        input(type='hidden' name='utm_term')
+        button.btn.btn-red(type='submit')= lang === 'ru' ? 'Отправить заявку' : 'Send request'
+
+    .request-panel(data-panel='question')
+      .request-box-title= lang === 'ru' ? 'Задать вопрос' : 'Ask a question'
+      .request-box-sub= lang === 'ru' ? 'Оставьте контакт — Эка ответит в течение дня' : "Leave your contact — Eka will reply within a day"
+      form(method='POST' action=`/${lang}/request`)
+        each val, key in hiddenFields
+          if key !== 'type'
+            input(type='hidden' name=key value=val)
+        input(type='hidden' name='type' value='question')
+        .form-row
+          .form-group
+            label.form-label= lang === 'ru' ? 'Ваше имя *' : 'Your name *'
+            input.form-input(type='text' name='name' required placeholder=lang === 'ru' ? 'Как вас зовут' : 'Your name')
+          .form-group
+            label.form-label= lang === 'ru' ? 'Способ связи *' : 'Contact method *'
+            .contact-type
+              button.ct-option.active(type='button' data-ct='email') Email
+              button.ct-option(type='button' data-ct='telegram') Telegram
+            input.contact-type-value(type='hidden' name='contactType' value='email')
         .form-group
-          label.form-label= lang === 'ru' ? 'Ваше имя *' : 'Your name *'
-          input.form-input(type='text' name='name' required placeholder=lang === 'ru' ? 'Как вас зовут' : 'Your name')
-        .form-group
-          label.form-label= lang === 'ru' ? 'Способ связи *' : 'Contact method *'
-          .contact-type
-            button.ct-option.active(type='button' data-ct='email') Email
-            button.ct-option(type='button' data-ct='telegram') Telegram
-            button.ct-option(type='button' data-ct='whatsapp') WhatsApp
-          input(type='hidden' name='contactType' value='email' id='contactTypeInput')
-      .form-row
-        .form-group
-          label.form-label(id='contactLabel')= lang === 'ru' ? 'Email *' : 'Email *'
-          input.form-input(type='text' name='contact' required placeholder='your@email.com' id='contactInput')
-        .form-group
-          if isTour
-            label.form-label= lang === 'ru' ? 'Количество человек' : 'Number of people'
-            input.form-input(type='number' name='participants' min='1' max='20' value='1')
-          else
-            label.form-label= lang === 'ru' ? 'Удобные даты' : 'Preferred dates'
-            input.form-input(type='text' name='preferredDates' placeholder=lang === 'ru' ? 'Например: июль, выходные' : 'E.g. July, any weekend')
-      .form-group(style='margin-bottom:20px')
-        label.form-label= lang === 'ru' ? 'Комментарий' : 'Message'
-        textarea.form-textarea(name='message' placeholder=lang === 'ru' ? 'Особые пожелания, количество человек...' : 'Special requests, number of people...')
-      input(type='hidden' name='utm_source')
-      input(type='hidden' name='utm_medium')
-      input(type='hidden' name='utm_campaign')
-      input(type='hidden' name='utm_content')
-      input(type='hidden' name='utm_term')
-      button.btn.btn-red(type='submit')= lang === 'ru' ? 'Отправить заявку' : 'Send request'
+          label.form-label.contact-label= lang === 'ru' ? 'Email *' : 'Email *'
+          input.form-input.contact-input(type='text' name='contact' required placeholder='your@email.com')
+        .form-group(style='margin-bottom:20px')
+          label.form-label= lang === 'ru' ? 'Ваш вопрос *' : 'Your question *'
+          textarea.form-textarea(name='message' required placeholder=lang === 'ru' ? 'О чём хотите спросить?' : 'What would you like to know?')
+        input(type='hidden' name='utm_source')
+        input(type='hidden' name='utm_medium')
+        input(type='hidden' name='utm_campaign')
+        input(type='hidden' name='utm_content')
+        input(type='hidden' name='utm_term')
+        button.btn.btn-red(type='submit')= lang === 'ru' ? 'Отправить вопрос' : 'Send question'

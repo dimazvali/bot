@@ -46,7 +46,7 @@ html
             - var cost = linkedTour && linkedTour.price && req.participants ? linkedTour.price * req.participants : null
             - var st = req.status || 'new'
             - var tourDate = linkedTour && linkedTour.date ? (linkedTour.date.toDate ? linkedTour.date.toDate() : new Date(linkedTour.date)) : null
-            tr.req-row
+            tr.req-row(id='req-' + req.id)
               td= d.toLocaleDateString('ru-RU')
               td= linkedTour ? (linkedTour.titleRu || linkedTour.titleEn) : (req.directionSlug || req.tourTitle || '—')
               td= tourDate ? tourDate.toLocaleDateString('ru-RU') : '—'
@@ -137,3 +137,10 @@ html
           this.classList.toggle('open');
         });
       });
+      if (location.hash) {
+        var target = document.querySelector(location.hash);
+        if (target && target.classList.contains('req-row')) {
+          target.classList.add('open');
+          target.scrollIntoView({ block: 'center' });
+        }
+      }

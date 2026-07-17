@@ -117,8 +117,8 @@ router.use('/og', require('./tbiliseli-og'));
 router.use(express.static(path.join(__dirname, '../public')));
 
 router.get('/', function(req, res) {
-  var accept = (req.headers['accept-language'] || '').split(',')[0].trim().toLowerCase();
-  var lang = accept.startsWith('ru') ? 'ru' : 'en';
+  var accept = (req.headers['accept-language'] || '').toLowerCase();
+  var lang = accept.includes('ru') ? 'ru' : 'en';
   res.redirect('/' + lang + '/');
 });
 
@@ -317,11 +317,13 @@ router.post('/:lang(ru|en)/request', express.urlencoded({ extended: false }), as
     var requestId = await ekaData.saveRequest(data);
     mailer.sendRequestNotification(data).catch(function(e) { console.error('[tbiliseli-mailer]', e.message); });
     (function() {
-      var lines = ['🔔 <b>Новая заявка — TbiLiSELi</b>', '<b>Имя:</b> ' + (data.name || '—'), '<b>Контакт:</b> ' + (data.contactType || '') + ': ' + (data.contact || '—')];
+      var header = data.type === 'question' ? '❓ <b>Вопрос — TbiLiSELi</b>' : '🔔 <b>Новая заявка — TbiLiSELi</b>';
+      var lines = [header, '<b>Имя:</b> ' + (data.name || '—'), '<b>Контакт:</b> ' + (data.contactType || '') + ': ' + (data.contact || '—')];
       if (data.tourTitle) lines.push('<b>Тур:</b> ' + data.tourTitle);
       if (data.directionSlug) lines.push('<b>Направление:</b> ' + data.directionSlug);
       if (data.preferredDates) lines.push('<b>Даты:</b> ' + data.preferredDates);
       if (data.message) lines.push('<b>Сообщение:</b> ' + data.message);
+      lines.push('<a href="https://tbiliseli.com/admin/requests#req-' + requestId + '">открыть в админке</a>');
       ekaNotify.notify('requests', lines.join('\n')).catch(function(){});
     })();
     var isTourBooking = data.type === 'tour' && data.tourId;

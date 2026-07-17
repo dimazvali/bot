@@ -62,6 +62,12 @@ block content
             span.photo-date= photo.date
 
   if isShoot
+    .selection-popup#intro-popup
+      .selection-popup-inner
+        p.intro-popup-text Привет! Кажется, мы еще не знакомы. Если вы здесь по делу, присмотритесь к картинкам: вы можете отметить нужные вам галочками — и сохранить созданную подборку. Я получу об этом уведомление.
+        .selection-popup-actions
+          button#intro-popup-close(type='button') ПОНЯТНО
+
     .selection-bar#selection-bar
       span#selection-count
       .selection-bar-actions
@@ -81,6 +87,25 @@ block content
           p.selection-popup-success-text Спасибо! Подборка сохранена и отправлена автору.
           .selection-popup-actions
             button#selection-popup-close(type='button') ОК
+
+  if isShoot
+    script.
+      (function() {
+        var introKey = 'photoShootIntroSeen';
+        var introPopup = document.getElementById('intro-popup');
+        var introClose = document.getElementById('intro-popup-close');
+        if (introPopup) {
+          var seen = true;
+          try { seen = !!localStorage.getItem(introKey); } catch (e) {}
+          if (!seen) introPopup.classList.add('is-open');
+          function dismissIntro() {
+            introPopup.classList.remove('is-open');
+            try { localStorage.setItem(introKey, '1'); } catch (e) {}
+          }
+          if (introClose) introClose.addEventListener('click', dismissIntro);
+          introPopup.addEventListener('click', function(e) { if (e.target === introPopup) dismissIntro(); });
+        }
+      }());
 
   if isShoot
     script.
