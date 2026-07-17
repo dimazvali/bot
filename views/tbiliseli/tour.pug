@@ -85,3 +85,30 @@ block content
             formSub: lang === 'ru' ? 'Оставьте заявку — Эка свяжется в течение дня' : 'Leave a request — Eka will get back to you within a day',
             hiddenFields: { type: 'tour', tourId: tour.id, directionId: tour.directionId || '', directionSlug: tour.directionSlug || '', tourTitle: lang === 'ru' ? tour.titleRu : tour.titleEn }
           })
+
+  if isBookable
+    .tour-sticky-cta#tour-sticky-cta
+      a.btn.btn-red(href='#tour-book-form')= lang === 'ru' ? 'Забронировать' : 'Book now'
+    script.
+      (function() {
+        var cta = document.getElementById('tour-sticky-cta');
+        var meta = document.querySelector('.tour-page-meta');
+        var form = document.getElementById('tour-book-form');
+        if (!cta || !meta) return;
+        var metaPassed = false;
+        var formVisible = false;
+        function update() {
+          cta.classList.toggle('is-visible', metaPassed && !formVisible);
+        }
+        new IntersectionObserver(function(entries) {
+          var e = entries[0];
+          metaPassed = !e.isIntersecting && e.boundingClientRect.top < 0;
+          update();
+        }, { threshold: 0 }).observe(meta);
+        if (form) {
+          new IntersectionObserver(function(entries) {
+            formVisible = entries[0].isIntersecting;
+            update();
+          }, { threshold: 0.1 }).observe(form);
+        }
+      })();
