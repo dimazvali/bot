@@ -21,9 +21,7 @@ block content
         .about-text-block
           - var bio = lang === 'ru' ? (profile && profile.bioRu) : (profile && profile.bioEn)
           if bio
-            - var paragraphs = bio.split(/\n\n+/)
-            each para in paragraphs
-              p= para
+            div!= bio
           else
             p(style='color:#888')= lang === 'ru' ? 'Биография не заполнена.' : 'Bio not filled in yet.'
           .about-contacts
