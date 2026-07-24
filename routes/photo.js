@@ -728,6 +728,17 @@ router.get('/:country/:series/:id', (req, res) => {
   var allTagsPhoto = getTags();
   var inquiryStatus = req.query.inquiry || null;
   var reviewStatus  = req.query.review  || null;
+
+  var sourceShootUrl = null;
+  var sourceShootLabel = null;
+  if (photo.sourceShoot) {
+    var sourceShoot = shoots.getShoot(photo.sourceShoot);
+    if (sourceShoot && sourceShoot.public) {
+      sourceShootUrl = `/shoot/${photo.sourceShoot}`;
+      sourceShootLabel = sourceShoot.label;
+    }
+  }
+
   res.render('photo/photo', {
     inquiryStatus,
     reviewStatus,
@@ -743,6 +754,8 @@ router.get('/:country/:series/:id', (req, res) => {
     seriesLabel: series.label,
     allTags: allTagsPhoto,
     related,
+    sourceShootUrl,
+    sourceShootLabel,
     seriesUrl: `/${countryKey}/${seriesKey}`,
     title: `${photo.title} — photo.dimazvali.com`,
     desc: photo.seo_desc || photo.desc || `${photo.title} · ${series.label} · ${country.label} — аэрофотоснимок Дмитрия Шестакова`,

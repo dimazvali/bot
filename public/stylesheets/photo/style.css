@@ -459,6 +459,16 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
 .photo-page-title { font-size: 1.125rem; color: var(--accent); letter-spacing: 1px; font-weight: 400; }
 .photo-page-loc   { font-size: 0.5625rem; letter-spacing: 2px; color: var(--text-dim); font-family: monospace; margin-top: 4px; }
+.photo-source-shoot {
+  display: inline-block;
+  font-size: 0.5625rem;
+  letter-spacing: 1px;
+  font-family: monospace;
+  color: var(--text-dim);
+  margin-top: 6px;
+  transition: color 0.15s;
+}
+.photo-source-shoot:hover { color: var(--accent); }
 
 .photo-page-nav { display: flex; gap: 8px; }
 .nav-btn {
@@ -886,6 +896,8 @@ body,
 .admin-sort-handle { cursor: grab; color: var(--text-dim); font-size: 1rem; flex-shrink: 0; line-height: 1; }
 .admin-sort-handle:active { cursor: grabbing; }
 .admin-sort-actions { display: flex; gap: 6px; margin-left: auto; }
+.admin-publish-form { display: flex; gap: 4px; align-items: center; }
+.admin-publish-form select.admin-input { width: auto; max-width: 160px; }
 .admin-photo-inline-edit { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 .admin-photo-inline-edit .admin-input { padding: 4px 8px; font-size: 0.6875rem; }
 .admin-photo-inline-edit .admin-btn--sm { align-self: flex-start; }

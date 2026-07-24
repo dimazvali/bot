@@ -10,6 +10,10 @@ html(data-theme='dark')
         a.admin-back(href='/admin/shoots') ← назад
         span.admin-logo= shoot.label
 
+      if error
+        .admin-section
+          p.admin-hint= error
+
       .admin-section
         h2.admin-title МЕТАДАННЫЕ
         form.admin-form(method='POST' action=`/admin/shoots/${slug}/edit`)
@@ -84,6 +88,15 @@ html(data-theme='dark')
                   span.admin-photo-id= photo.id
                 .admin-sort-actions
                   a.admin-btn.admin-btn--sm(href=`/admin/shoots/${slug}/photos/${photo.id}/edit`) ✎
+                  form.admin-publish-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/publish`)
+                    select.admin-input(name='target' required)
+                      option(value='' disabled selected) → в раздел…
+                      each country, countryKey in data
+                        if !country.archived
+                          each series, seriesKey in country.series
+                            if !series.archived
+                              option(value=`${countryKey}/${seriesKey}`)= `${country.label} / ${series.label}`
+                    button.admin-btn.admin-btn--sm(type='submit') →
                   form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete`)
                     button.admin-btn.admin-btn--danger(type='submit') удалить
 

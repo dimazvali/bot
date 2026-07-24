@@ -56,6 +56,8 @@ block content
             | #{(backLabel || '').toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
           else
             | #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
+        if !isShoot && sourceShootUrl
+          a.photo-source-shoot(href=sourceShootUrl) ИЗ СЪЁМКИ: #{sourceShootLabel.toUpperCase()} →
       .photo-page-nav
         if prev
           a.nav-btn(href=isShoot ? `/shoot/${shootSlug}/${prev.id}` : `/${countryKey}/${seriesKey}/${prev.id}` data-dir='prev') ← ПРЕД.

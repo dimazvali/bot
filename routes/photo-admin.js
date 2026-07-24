@@ -604,6 +604,8 @@ router.get('/shoots/:slug/edit', requireAuth, (req, res) => {
     title: shoot.label + ' — AERO Admin',
     slug,
     shoot,
+    data: getData(),
+    error: req.query.error || null,
   });
 });
 
@@ -732,6 +734,49 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   } catch (e) {
     console.error('[shoots] update photo error:', e);
   }
+  res.redirect('/admin/shoots/' + slug + '/edit');
+});
+
+router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { slug, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  var photo = shoot.photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.redirect('/admin/shoots/' + slug + '/edit');
+
+  var target = String(req.body.target || '').split('/');
+  var country = target[0], series = target[1];
+  var data = getData();
+  if (!country || !series || !data[country] || !data[country].series[series]) {
+    return res.redirect('/admin/shoots/' + slug + '/edit?error=' + encodeURIComponent('Выберите раздел для публикации'));
+  }
+
+  var existingIds = data[country].series[series].photos.map(function(p) { return p.id; });
+  var newId = uniqueId(slugify(photo.title || photo.id), existingIds);
+
+  var photoEntry = {
+    id: newId,
+    title: photo.title || '',
+    date: photo.date || '',
+    desc: photo.desc || '',
+    type: photo.type || 'camera',
+    createdAt: photo.createdAt || new Date().toISOString().slice(0, 10),
+    width: photo.width,
+    height: photo.height,
+    urls: photo.urls,
+    sourceShoot: slug,
+  };
+  if (photo.coords) photoEntry.coords = photo.coords;
+  if (photo.altitude != null) photoEntry.altitude = photo.altitude;
+  if (photo.shotAt) photoEntry.shotAt = photo.shotAt;
+  if (photo.colorFamily) photoEntry.colorFamily = photo.colorFamily;
+
+  data[country].series[series].photos.push(photoEntry);
+  saveData(data);
+  pingSitemaps();
+  indexNowSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + newId);
+
   res.redirect('/admin/shoots/' + slug + '/edit');
 });
 
