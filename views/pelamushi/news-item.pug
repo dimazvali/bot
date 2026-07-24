@@ -3,6 +3,7 @@ include includes/hero
 
 block content
   - const pubDate = article.published_at ? new Date(article.published_at.toDate()).toLocaleDateString(lang === 'ka' ? 'ka-GE' : lang === 'ru' ? 'ru-RU' : 'en-GB', {day:'numeric', month:'long', year:'numeric'}) : ''
+  - const isPastEvent = !!(article.event_date && new Date(article.event_date.toDate ? article.event_date.toDate() : article.event_date) < new Date())
 
   +hero(article.photo_url, null)
     if article.registration_enabled
@@ -18,7 +19,7 @@ block content
       .article-body
         != article['body_' + lang]
 
-      if article.registration_enabled
+      if article.registration_enabled && !isPastEvent
         .registration-form
           if registered
             if registrationFull
@@ -43,4 +44,7 @@ block content
               .form-group
                 label #{t.news.field_phone}
                 input(type='tel' name='phone')
+              .form-group
+                label #{t.news.field_guests}
+                input(type='number' name='guests' min='1' max='50' value='1')
               button.btn.btn-terra(type='submit') #{t.news.submit}

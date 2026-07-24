@@ -21,8 +21,9 @@ html(data-theme='dark')
             .admin-country-name
               span= `${shoot.label} (${slug}) — ${shoot.photos.length} фото`
               span.admin-archived= ` · 👁 ${stats[slug] || 0}`
+              span.admin-archived= shoot.public ? ' · 🌐 публично' : ' · 🚫 не публично'
               if shoot.password
-                span.admin-archived  [🔒]
+                span.admin-archived  [🔑 пароль]
             .admin-series-actions
               a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') открыть
               a.admin-link(href=`/admin/shoots/${slug}/edit`) редактировать
@@ -32,4 +33,7 @@ html(data-theme='dark')
           input.admin-input(type='text' name='slug' placeholder='ключ (eng, напр. wedding-anna-2026)' required)
           input.admin-input(type='text' name='label' placeholder='название' required)
           input.admin-input(type='text' name='password' placeholder='пароль (необязательно)')
+          label.admin-tag-check
+            input(type='checkbox' name='public')
+            span показывать в /shoot и в сайтмапе
           button.admin-btn(type='submit') + СЪЁМКА

@@ -281,7 +281,7 @@ router.get('/sitemap.xml', (req, res) => {
   var allShoots = shoots.getData();
   for (var shootSlug of Object.keys(allShoots)) {
     var shoot = allShoots[shootSlug];
-    if (shoot.password) continue;
+    if (!shoot.public) continue;
     var shootDates = shoot.photos.map(function(p) { return p.createdAt || ''; }).filter(Boolean).sort();
     var shootLastmod = shootDates.length ? shootDates[shootDates.length - 1] : null;
     entries.push({ url: base + '/shoot/' + shootSlug, lastmod: shootLastmod });
@@ -386,7 +386,7 @@ function getOtherOpenShoots(currentSlug, limit) {
   var allShoots = shoots.getData();
   return Object.keys(allShoots)
     .map(function(key) { return allShoots[key]; })
-    .filter(function(shoot) { return shoot.key !== currentSlug && !shoot.password && shoot.photos.length; })
+    .filter(function(shoot) { return shoot.key !== currentSlug && shoot.public && shoot.photos.length; })
     .sort(function(a, b) { return b.photos.length - a.photos.length; })
     .slice(0, limit || 3);
 }
@@ -415,7 +415,7 @@ router.get('/shoot', (req, res) => {
   var allShoots = shoots.getData();
   var openShoots = Object.keys(allShoots)
     .map(function(slug) { return allShoots[slug]; })
-    .filter(function(shoot) { return !shoot.password; });
+    .filter(function(shoot) { return shoot.public; });
 
   res.render('photo/shoots', {
     data: getData(),
@@ -461,8 +461,8 @@ router.get('/shoot/:slug', async (req, res) => {
       desc: shoot.desc || null,
       keywords: null,
       ogImage: shoot.photos.length ? `${BASE}/og/shoot/${slug}.jpg` : null,
-      ogUrl: shoot.password ? null : `${BASE}/shoot/${slug}`,
-      noindex: !!shoot.password,
+      ogUrl: shoot.public ? `${BASE}/shoot/${slug}` : null,
+      noindex: !shoot.public,
       breadcrumbs: [
         { name: 'Съёмки', url: BASE + '/shoot' },
         { name: shoot.label, url: `${BASE}/shoot/${slug}` },
@@ -546,8 +546,8 @@ router.get('/shoot/:slug/:id', async (req, res) => {
       desc: photo.desc || null,
       keywords: null,
       ogImage: photo.urls ? photo.urls.full : null,
-      ogUrl: shoot.password ? null : `${BASE}/shoot/${slug}/${id}`,
-      noindex: !!shoot.password,
+      ogUrl: shoot.public ? `${BASE}/shoot/${slug}/${id}` : null,
+      noindex: !shoot.public,
       breadcrumbs: [
         { name: 'Съёмки', url: BASE + '/shoot' },
         { name: shoot.label, url: `${BASE}/shoot/${slug}` },

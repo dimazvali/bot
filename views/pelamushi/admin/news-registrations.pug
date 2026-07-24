@@ -33,6 +33,7 @@ block content
             th Имя
             th Email
             th Телефон
+            th Гостей
             th Бот
             th Статус
         tbody
@@ -49,6 +50,10 @@ block content
               td(data-label='Email')
                 a(href=`mailto:${r.email}`) #{r.email}
               td(data-label='Телефон') #{r.phone || '—'}
+              td(data-label='Гостей')
+                form(action=`/admin/registrations/${r.id}/guests` method='POST' style='display:inline')
+                  input(type='hidden' name='back' value='/admin/news/registrations')
+                  input(type='number' name='guests' min='1' max='50' value=r.guests || 1 style='width:56px;font-size:12px;padding:4px 6px' onchange='this.form.submit()')
               td(data-label='Бот')
                 if r.tg_user_id
                   span(style='color:#1e8449') ✓ подключён

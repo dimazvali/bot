@@ -751,6 +751,15 @@ router.post('/registrations/:id/status', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/registrations/:id/guests', async (req, res, next) => {
+  try {
+    const guests = Math.max(1, Math.min(50, parseInt(req.body.guests, 10) || 1));
+    if (col.registrations) await col.registrations.doc(req.params.id).update({ guests, updated_at: new Date() });
+    const back = req.body.back || '/admin/news/registrations';
+    res.redirect(back + (back.includes('?') ? '&' : '?') + 'saved=1');
+  } catch (err) { next(err); }
+});
+
 router.get('/news/:id', async (req, res, next) => {
   try {
     let article = {}, registrations = [];

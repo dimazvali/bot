@@ -32,10 +32,11 @@ html
     .toolbar
       button(type='button' onclick='window.print()') Печать
     h1 #{article.title_ru || article.title_en || 'Событие'}
+    - var totalGuests = registrations.reduce(function(sum, r){ return r.status !== 'declined' ? sum + (r.guests || 1) : sum; }, 0)
     .meta
       if article.event_date
         | #{new Date(article.event_date.toDate ? article.event_date.toDate() : article.event_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })} ·
-      |  Гостей: #{registrations.length}
+      |  Записей: #{registrations.length} · Гостей: #{totalGuests}
       if article.capacity
         |  из #{article.capacity}
 
@@ -47,6 +48,7 @@ html
           tr
             th #
             th Имя
+            th Гостей
             th Контакт
             th Статус
             th Отметка
@@ -55,6 +57,7 @@ html
             tr
               td.num #{i + 1}
               td #{r.name}
+              td(style='text-align:center') #{r.guests || 1}
               td
                 div #{r.email}
                 if r.phone

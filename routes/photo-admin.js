@@ -581,13 +581,13 @@ router.get('/shoots', requireAuth, async (req, res) => {
 });
 
 router.post('/shoots', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
-  var { slug, label, password } = req.body;
+  var { slug, label, password, public: isPublic } = req.body;
   if (!slug || !label) return res.redirect('/admin/shoots');
   var cleanSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '');
   if (!cleanSlug) return res.redirect('/admin/shoots');
   if (shoots.getShoot(cleanSlug)) return res.redirect('/admin/shoots?error=' + encodeURIComponent('Съёмка с таким ключом уже существует'));
   try {
-    await shoots.createShoot(cleanSlug, label.trim(), '', (password || '').trim());
+    await shoots.createShoot(cleanSlug, label.trim(), '', (password || '').trim(), !!isPublic);
     res.redirect('/admin/shoots/' + cleanSlug + '/edit');
   } catch (e) {
     console.error('[shoots] create error:', e);
@@ -611,13 +611,14 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
-  var { label, desc, password } = req.body;
+  var { label, desc, password, public: isPublic } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
   try {
     await shoots.saveShoot(slug, {
       label: label.trim(),
       desc: (desc || '').trim(),
       password: (password || '').trim(),
+      public: !!isPublic,
     });
     res.redirect('/admin/shoots/' + slug + '/edit');
   } catch (e) {

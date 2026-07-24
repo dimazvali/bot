@@ -16,6 +16,9 @@ html(data-theme='dark')
           input.admin-input(type='text' name='label' value=shoot.label placeholder='название' required)
           input.admin-input(type='text' name='desc' value=shoot.desc placeholder='описание (необязательно)')
           input.admin-input(type='text' name='password' value=shoot.password placeholder='пароль (оставьте пустым для открытого доступа)')
+          label.admin-tag-check
+            input(type='checkbox' name='public' checked=shoot.public)
+            span показывать в /shoot и в сайтмапе
           button.admin-btn(type='submit') СОХРАНИТЬ
         p.admin-hint
           | Прямая ссылка:&nbsp;
@@ -24,6 +27,7 @@ html(data-theme='dark')
             |  (защищена паролем)
           else
             |  (открытый доступ)
+          |  · #{shoot.public ? 'публична' : 'не публична'}
 
       .admin-section
         h2.admin-title ЗАГРУЗИТЬ ФОТО

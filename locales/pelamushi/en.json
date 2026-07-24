@@ -53,6 +53,7 @@
     "field_name": "Your name",
     "field_email": "Email",
     "field_phone": "Phone (optional)",
+    "field_guests": "Number of guests",
     "submit": "Register",
     "success": "Thank you! We have received your registration.",
     "full": "Thank you for registering! This event may already be full — we'll contact you to confirm your spot."

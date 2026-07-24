@@ -392,6 +392,7 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
   try {
     const { lang } = res.locals;
     const { name, email, phone } = req.body;
+    const guests = Math.max(1, Math.min(50, parseInt(req.body.guests, 10) || 1));
 
     if (!name || !email) return res.status(400).send('Missing fields');
 
@@ -403,16 +404,23 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
     const snap = await col.news.where('slug', '==', req.params.slug).limit(1).get();
     if (snap.empty) return res.status(404).send('Not found');
 
-    if (!snap.docs[0].data().registration_enabled) return res.status(400).send('Registration not open');
-
     const article = snap.docs[0].data();
+    if (!article.registration_enabled) return res.status(400).send('Registration not open');
+    if (article.event_date) {
+      const eventDate = article.event_date.toDate ? article.event_date.toDate() : new Date(article.event_date);
+      if (eventDate < new Date()) return res.status(400).send('Event already took place');
+    }
+
     const newsId = snap.docs[0].id;
 
     let full = false;
     if (article.capacity) {
       const regSnap = await col.registrations.where('news_id', '==', newsId).get();
-      const activeCount = regSnap.docs.filter(d => d.data().status !== 'declined').length;
-      full = activeCount >= article.capacity;
+      const existingGuests = regSnap.docs.reduce((sum, d) => {
+        const data = d.data();
+        return data.status !== 'declined' ? sum + (data.guests || 1) : sum;
+      }, 0);
+      full = (existingGuests + guests) > article.capacity;
     }
 
     const regRef = await col.registrations.add({
@@ -420,11 +428,12 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       phone: (phone || '').trim(),
+      guests,
       status: 'new',
       created_at: Timestamp.now(),
     });
 
-    notify('registration', `📋 <b>Новая регистрация</b>${full ? ' ⚠️ вместимость достигнута' : ''}\nСобытие: ${article.title_ru || article.title_en || req.params.slug}\nИмя: ${name.trim()}\nEmail: ${email.trim()}\nТелефон: ${(phone || '').trim() || '—'}`);
+    notify('registration', `📋 <b>Новая регистрация</b>${full ? ' ⚠️ вместимость достигнута' : ''}\nСобытие: ${article.title_ru || article.title_en || req.params.slug}\nИмя: ${name.trim()}\nГостей: ${guests}\nEmail: ${email.trim()}\nТелефон: ${(phone || '').trim() || '—'}`);
     res.redirect(`/${lang}/news/${req.params.slug}?registered=1&rid=${regRef.id}${full ? '&full=1' : ''}`);
   } catch (err) {
     next(err);
