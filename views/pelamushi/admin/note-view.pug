@@ -1,0 +1,45 @@
+extends layout
+
+block head
+  style.
+    .note-body p { margin-bottom: 1rem; }
+    .note-body p:last-child { margin-bottom: 0; }
+    .note-body ul, .note-body ol { margin: 0 0 1rem 1.4rem; }
+    .note-body h3, .note-body h4 { margin: 1rem 0 .5rem; color: var(--navy); }
+    .note-body a { color: var(--blue); }
+
+block content
+  if saved
+    .alert.alert-success Сохранено
+
+  .card
+    h2= note.title || '(без названия)'
+    if note.archived
+      p(style='color:#c0392b;font-size:.85rem;margin-bottom:1rem') Эта заметка в архиве.
+    if note.body_html
+      .note-body!= note.body_html
+    else
+      p(style='color:#999;font-size:.88rem') Без описания.
+
+  .card
+    h2 Файлы (#{(note.files || []).length})
+    if note.files && note.files.length
+      .notes-files-list
+        each f in note.files
+          .notes-file-row(style='padding:.4rem 0;border-bottom:1px solid #f0f0f0')
+            a(href=f.url target='_blank' rel='noopener')
+              = f.name
+              if f.size
+                span(style='color:#999;font-size:.8rem;margin-left:8px') #{Math.round(f.size / 1024)} KB
+    else
+      p(style='color:#999;font-size:.88rem') Файлов пока нет.
+
+  .card
+    div(style='display:flex;gap:.6rem')
+      if note.archived
+        form(action=`/admin/notes/${noteId}/unarchive` method='POST')
+          button.btn.btn-secondary(type='submit') Восстановить из архива
+      else
+        form(action=`/admin/notes/${noteId}/archive` method='POST')
+          button.btn.btn-secondary(type='submit') В архив
+      a.btn.btn-primary(href=`/admin/notes/${noteId}/edit`) Редактировать

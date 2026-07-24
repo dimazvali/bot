@@ -382,6 +382,15 @@ async function isAdmin(req) {
   return photoAdmin.checkAdminToken(req);
 }
 
+function getOtherOpenShoots(currentSlug, limit) {
+  var allShoots = shoots.getData();
+  return Object.keys(allShoots)
+    .map(function(key) { return allShoots[key]; })
+    .filter(function(shoot) { return shoot.key !== currentSlug && !shoot.password && shoot.photos.length; })
+    .sort(function(a, b) { return b.photos.length - a.photos.length; })
+    .slice(0, limit || 3);
+}
+
 function requireShootAuth(shoot, slug, req, res, adminUser, next) {
   if (!shoot.password || adminUser) return next();
   var cookieKey = 'shoot_' + slug;
@@ -400,6 +409,28 @@ function requireShootAuth(shoot, slug, req, res, adminUser, next) {
     noindex: true,
   });
 }
+
+// GET /shoot — список открытых съёмок (без пароля)
+router.get('/shoot', (req, res) => {
+  var allShoots = shoots.getData();
+  var openShoots = Object.keys(allShoots)
+    .map(function(slug) { return allShoots[slug]; })
+    .filter(function(shoot) { return !shoot.password; });
+
+  res.render('photo/shoots', {
+    data: getData(),
+    activeCountry: null,
+    activeSeries: null,
+    isShoot: true,
+    shoots: openShoots,
+    title: 'Съёмки — photo.dimazvali.com',
+    desc: 'Открытые съёмки — Дмитрий Шестаков',
+    keywords: null,
+    ogImage: openShoots.length ? ogImg(openShoots[0].photos[0]) : null,
+    ogUrl: BASE + '/shoot',
+    breadcrumbs: [{ name: 'Съёмки', url: BASE + '/shoot' }],
+  });
+});
 
 // GET /shoot/:slug — галерея съёмки
 router.get('/shoot/:slug', async (req, res) => {
@@ -432,7 +463,11 @@ router.get('/shoot/:slug', async (req, res) => {
       ogImage: shoot.photos.length ? `${BASE}/og/shoot/${slug}.jpg` : null,
       ogUrl: shoot.password ? null : `${BASE}/shoot/${slug}`,
       noindex: !!shoot.password,
-      breadcrumbs: null,
+      breadcrumbs: [
+        { name: 'Съёмки', url: BASE + '/shoot' },
+        { name: shoot.label, url: `${BASE}/shoot/${slug}` },
+      ],
+      otherShoots: getOtherOpenShoots(slug),
     });
   });
 });
@@ -513,7 +548,11 @@ router.get('/shoot/:slug/:id', async (req, res) => {
       ogImage: photo.urls ? photo.urls.full : null,
       ogUrl: shoot.password ? null : `${BASE}/shoot/${slug}/${id}`,
       noindex: !!shoot.password,
-      breadcrumbs: null,
+      breadcrumbs: [
+        { name: 'Съёмки', url: BASE + '/shoot' },
+        { name: shoot.label, url: `${BASE}/shoot/${slug}` },
+        { name: photo.title, url: `${BASE}/shoot/${slug}/${id}` },
+      ],
     });
   });
 });

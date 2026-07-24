@@ -1,0 +1,39 @@
+extends layout
+
+block content
+  .card
+    .requests-header
+      h2 Заметки
+      a.btn.btn-primary(href='/admin/notes/new') + Добавить
+    .status-filter
+      a.status-pill(href='/admin/notes' class=!showArchived ? 'active' : '') Активные
+      a.status-pill(href='/admin/notes?archived=1' class=showArchived ? 'active' : '') Архив
+
+    if !notes.length
+      p(style='color:#999;font-size:.88rem;margin-top:1rem') #{showArchived ? 'В архиве пусто.' : 'Заметок пока нет.'}
+    else
+      table.table.table-responsive(style='margin-top:1rem')
+        thead
+          tr
+            th Название
+            th Файлов
+            th Обновлено
+            th
+        tbody
+          each n in notes
+            tr
+              td(data-label='Название')
+                a(href=`/admin/notes/${n.id}`)= n.title || '(без названия)'
+              td(data-label='Файлов') #{(n.files || []).length}
+              td(data-label='Обновлено' style='white-space:nowrap;font-size:.82rem;color:#999')
+                = n.updated_at ? new Date(n.updated_at.toDate ? n.updated_at.toDate() : n.updated_at).toLocaleDateString('ru-RU') : '—'
+              td(style='text-align:right;white-space:nowrap')
+                if showArchived
+                  form(action=`/admin/notes/${n.id}/unarchive` method='POST' style='display:inline')
+                    button.btn.btn-secondary.btn-sm(type='submit') Восстановить
+                  form(action=`/admin/notes/${n.id}/delete` method='POST' style='display:inline;margin-left:6px' onsubmit='return confirm("Удалить заметку насовсем?")')
+                    button.btn.btn-danger.btn-sm(type='submit') Удалить
+                else
+                  form(action=`/admin/notes/${n.id}/archive` method='POST' style='display:inline')
+                    button.btn.btn-secondary.btn-sm(type='submit') В архив
+                  a.btn.btn-primary.btn-sm(href=`/admin/notes/${n.id}/edit` style='margin-left:6px') Редактировать

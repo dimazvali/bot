@@ -2,8 +2,13 @@ extends layout
 include mixins
 
 block content
+  if isShoot
+    .shoot-crumb
+      
   .gallery-header
     if isShoot
+      span.gallery-label 
+        a(href='/shoot') все съемки
       span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} фото
       .gallery-header-right
         a.gallery-download(href=`/shoot/${shootSlug}/download`) ↓ СКАЧАТЬ
@@ -24,6 +29,10 @@ block content
         button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
     else
       span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
+  if isShoot
+    .shoot-collections#shoot-collections(style='display:none')
+      span.gallery-label ВАШИ ПОДБОРКИ
+      .shoot-collections-list#shoot-collections-list
   -
     var _types = photos.reduce(function(s,p){ s.add(p.type||'copter'); return s; }, new Set());
     var _showFilter = _types.size > 1;
@@ -60,6 +69,26 @@ block content
           span.photo-title= photo.title
           if photo.date
             span.photo-date= photo.date
+
+  if isShoot && otherShoots && otherShoots.length
+    .gallery-header
+      span.gallery-label ДРУГИЕ СЪЁМКИ
+    .shoot-related
+      each other in otherShoots
+        - var cover = other.photos[0]
+        a.shoot-related-card(href=`/shoot/${other.key}`)
+          if cover
+            img(
+              src=cover.urls ? cover.urls.preview : undefined
+              srcset=cover.urls ? `${cover.urls.thumb || cover.urls.preview} 400w, ${cover.urls.preview} 800w` : undefined
+              sizes='(max-width: 640px) calc(50vw - 12px), 240px'
+              alt=other.label
+              loading='lazy'
+              onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+            )
+          .photo-overlay
+            span.photo-title= other.label.toUpperCase()
+            span.photo-date= `${other.photos.length} фото`
 
   if isShoot
     .selection-popup#intro-popup
@@ -112,7 +141,18 @@ block content
       (function() {
         var saveUrl = '/shoot/' + !{JSON.stringify(shootSlug)} + '/collections';
         var storageKey = 'shootSelection:' + !{JSON.stringify(shootSlug)};
+        var savedKey = 'shootCollections:' + !{JSON.stringify(shootSlug)};
         var selected = {};
+
+        function loadSavedCollections() {
+          try {
+            var raw = localStorage.getItem(savedKey);
+            return raw ? JSON.parse(raw) : [];
+          } catch (e) { return []; }
+        }
+        function saveSavedCollections(list) {
+          try { localStorage.setItem(savedKey, JSON.stringify(list.slice(-20))); } catch (e) {}
+        }
 
         function loadStored() {
           try {
@@ -160,6 +200,40 @@ block content
           document.querySelectorAll('.photo-card.is-selected').forEach(function(el) { el.classList.remove('is-selected'); });
           updateBar();
         }
+
+        function applySelection(ids) {
+          clearSelection();
+          document.querySelectorAll('.photo-card[data-photo-id]').forEach(function(card) {
+            var id = card.dataset.photoId;
+            if (ids.indexOf(id) === -1) return;
+            selected[id] = true;
+            card.classList.add('is-selected');
+            var box = card.querySelector('.photo-select');
+            if (box) box.classList.add('is-checked');
+          });
+          saveStored();
+          updateBar();
+        }
+
+        var collectionsWrap = document.getElementById('shoot-collections');
+        var collectionsList = document.getElementById('shoot-collections-list');
+
+        function renderSavedCollections() {
+          if (!collectionsWrap || !collectionsList) return;
+          var list = loadSavedCollections();
+          if (!list.length) { collectionsWrap.style.display = 'none'; return; }
+          collectionsList.innerHTML = '';
+          list.forEach(function(c) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'shoot-collection-chip';
+            chip.textContent = c.name + ' · ' + c.count + ' фото';
+            chip.addEventListener('click', function() { applySelection(c.photoIds || []); });
+            collectionsList.appendChild(chip);
+          });
+          collectionsWrap.style.display = '';
+        }
+        renderSavedCollections();
 
         document.querySelectorAll('.photo-select').forEach(function(el) {
           el.addEventListener('click', function(e) {
@@ -223,6 +297,10 @@ block content
             .then(function(res) {
               submitBtn.disabled = false;
               if (!res.ok) { msgEl.textContent = (res.data && res.data.error) || 'Ошибка сохранения'; return; }
+              var savedList = loadSavedCollections();
+              savedList.push({ id: res.data.id, name: name, count: ids.length, photoIds: ids, createdAt: Date.now() });
+              saveSavedCollections(savedList);
+              renderSavedCollections();
               clearSelection();
               formView.style.display = 'none';
               successView.style.display = '';

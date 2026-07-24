@@ -1,0 +1,64 @@
+extends layout
+
+block head
+  link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css')
+  style.
+    .admin-quill { background: #fff; margin-top: 4px; border: 1px solid #ddd; border-radius: 4px; }
+    .admin-quill .ql-editor { min-height: 200px; font-size: 14px; }
+
+block content
+  if saved
+    .alert.alert-success Сохранено
+
+  .card
+    .requests-header
+      h2= noteId ? 'Редактировать заметку' : 'Новая заметка'
+      if noteId
+        a.btn.btn-secondary.btn-sm(href=`/admin/notes/${noteId}`) ← К заметке
+    if note && note.archived
+      p(style='color:#c0392b;font-size:.85rem;margin-bottom:1rem') Эта заметка в архиве.
+    form(action=`/admin/notes/${noteId || 'new'}/edit` method='POST' enctype='multipart/form-data')
+      .form-row
+        label Название
+        input(name='title' value=note && note.title || '' required)
+      .form-row
+        label Описание (HTML разрешён)
+        #quill-body.admin-quill
+        textarea#body-html-input(name='body_html' style='display:none')= note && note.body_html || ''
+      .form-row
+        label Добавить файлы
+        input(type='file' name='files' multiple)
+      button.btn.btn-primary(type='submit') Сохранить
+
+  if noteId
+    .card
+      h2 Файлы (#{(note.files || []).length})
+      if note.files && note.files.length
+        .notes-files-list
+          each f in note.files
+            .notes-file-row(style='display:flex;align-items:center;justify-content:space-between;padding:.5rem 0;border-bottom:1px solid #f0f0f0')
+              a(href=f.url target='_blank' rel='noopener')
+                = f.name
+                if f.size
+                  span(style='color:#999;font-size:.8rem;margin-left:8px') #{Math.round(f.size / 1024)} KB
+              form(action=`/admin/notes/${noteId}/files/${f.id}/delete` method='POST')
+                button.btn.btn-danger.btn-sm(type='submit' onclick='return confirm("Удалить файл?")') Удалить
+      else
+        p(style='color:#999;font-size:.88rem') Файлов пока нет.
+
+block scripts
+  script(src='https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js')
+  script.
+    (function() {
+      var container = document.getElementById('quill-body');
+      var input = document.getElementById('body-html-input');
+      if (!container || !input) return;
+      var quill = new Quill(container, {
+        theme: 'snow',
+        modules: { toolbar: [['bold', 'italic'], ['link'], [{ list: 'ordered' }, { list: 'bullet' }], [{ header: [3, 4, false] }]] },
+      });
+      if (input.value) quill.clipboard.dangerouslyPasteHTML(input.value);
+      quill.on('text-change', function() {
+        input.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+      });
+    })();

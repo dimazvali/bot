@@ -1,0 +1,25 @@
+extends layout
+
+block content
+  .gallery-header
+    span.gallery-label СЪЁМКИ · #{shoots.length}
+  if !shoots.length
+    p.admin-hint Пока нет открытых съёмок.
+  else
+    .masonry
+      each shoot in shoots
+        - var cover = shoot.photos[0]
+        a.photo-card(href=`/shoot/${shoot.key}`)
+          if cover
+            img(
+              src=cover.urls ? cover.urls.preview : undefined
+              srcset=cover.urls ? `${cover.urls.thumb || cover.urls.preview} 400w, ${cover.urls.preview} 800w` : undefined
+              sizes='(max-width: 640px) calc(50vw - 12px), 400px'
+              alt=shoot.label
+              loading='lazy'
+              style=cover.width && cover.height ? `aspect-ratio:${cover.width}/${cover.height}` : undefined
+              onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+            )
+          .photo-overlay
+            span.photo-title= shoot.label.toUpperCase()
+            span.photo-date= `${shoot.photos.length} фото`

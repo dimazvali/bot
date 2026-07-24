@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "Bash(node -c lib/pelamushi-upload.js)",
+      "Bash(node -c lib/pelamushi-firebase.js)",
+      "Bash(node -e \"require\\('sanitize-html'\\); console.log\\('sanitize-html resolves OK'\\)\")"
+    ]
+  }
+}

@@ -137,6 +137,33 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 /* ─── MAIN ───────────────────────────────────────────────────── */
 .main { flex: 1; padding: 24px; overflow: hidden; }
 
+/* ─── SHOOT CRUMB ────────────────────────────────────────────── */
+.shoot-crumb { text-align: center; margin-bottom: 8px; }
+.shoot-crumb a {
+  font-size: 0.625rem;
+  letter-spacing: 2px;
+  font-family: monospace;
+  color: var(--text-dim);
+  transition: color 0.15s;
+}
+.shoot-crumb a:hover { color: var(--accent); }
+
+/* ─── SHOOT SAVED COLLECTIONS ────────────────────────────────── */
+.shoot-collections { margin-bottom: 16px; }
+.shoot-collections-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.shoot-collection-chip {
+  font-size: 0.5625rem;
+  letter-spacing: 1px;
+  font-family: monospace;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.shoot-collection-chip:hover { color: var(--accent); border-color: var(--accent); }
+
 /* ─── GALLERY HEADER ─────────────────────────────────────────── */
 .gallery-header { margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
 .gallery-label { font-size: 0.8125rem; letter-spacing: 3px; color: var(--text-muted); font-family: monospace; }
@@ -203,6 +230,28 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
   min-height: 80px;
 }
 .photo-card:hover img { transform: scale(1.02); }
+
+/* ─── SHOOT RELATED (square previews) ───────────────────────── */
+.shoot-related {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+}
+.shoot-related-card {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.shoot-related-card img {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.3s ease;
+  background: var(--border);
+}
+.shoot-related-card:hover img { transform: scale(1.02); }
 
 .photo-overlay {
   position: absolute;

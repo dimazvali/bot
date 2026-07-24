@@ -5,8 +5,19 @@ const { col } = require('../lib/pelamushi-firebase');
 const { requireAdmin, cookieToken } = require('../lib/pelamushi-auth');
 const cache = require('../lib/pelamushi-cache');
 const pelamushiBot = require('../lib/pelamushi-bot');
+const { notify } = require('../lib/pelamushi-notify');
+const sanitizeHtml = require('sanitize-html');
 
-router.use(fileUpload());
+function sanitizeNoteBody(html) {
+  return sanitizeHtml(html || '', {
+    allowedTags: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h3', 'h4'],
+    allowedAttributes: { a: ['href'] },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    transformTags: { a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer', target: '_blank' }) },
+  }).trim();
+}
+
+router.use(fileUpload({ multiples: true }));
 
 // Login — no auth required
 router.get('/login', (req, res) => {
@@ -1403,7 +1414,7 @@ router.get('/admins', async (req, res, next) => {
 
 router.post('/admins/:id/settings', async (req, res, next) => {
   try {
-    const { tg_id, notify_rental, notify_registration, notify_menu, notify_news, notify_messages } = req.body;
+    const { tg_id, notify_rental, notify_registration, notify_menu, notify_news, notify_messages, notify_notes } = req.body;
     if (col.admins) {
       await col.admins.doc(req.params.id).update({
         tg_id: tg_id ? String(tg_id).trim() : '',
@@ -1412,6 +1423,7 @@ router.post('/admins/:id/settings', async (req, res, next) => {
         notify_menu:         notify_menu === 'on',
         notify_news:         notify_news === 'on',
         notify_messages:     notify_messages === 'on',
+        notify_notes:        notify_notes === 'on',
       });
       cache.del('admins_list');
     }
@@ -1518,6 +1530,134 @@ router.post('/bot/profile', async (req, res, next) => {
       commands: parsedCommands,
     });
     res.redirect('/admin/bot?saved=1');
+  } catch (err) { next(err); }
+});
+
+// ── NOTES ────────────────────────────────────────────────────────────────────
+router.get('/notes', async (req, res, next) => {
+  try {
+    const showArchived = req.query.archived === '1';
+    let notes = [];
+    if (col.notes) {
+      const snap = await col.notes.orderBy('created_at', 'desc').get();
+      notes = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((n) => !!n.archived === showArchived);
+    }
+    res.render('pelamushi/admin/notes', { title: 'Заметки', notes, showArchived });
+  } catch (err) { next(err); }
+});
+
+router.get('/notes/new', async (req, res, next) => {
+  try {
+    res.render('pelamushi/admin/note-edit', { title: 'Новая заметка', note: null, noteId: null, saved: false });
+  } catch (err) { next(err); }
+});
+
+router.get('/notes/:id', async (req, res, next) => {
+  try {
+    if (!col.notes) return res.redirect('/admin/notes');
+    const doc = await col.notes.doc(req.params.id).get();
+    if (!doc.exists) return res.redirect('/admin/notes');
+    const note = { id: doc.id, ...doc.data() };
+    res.render('pelamushi/admin/note-view', {
+      title: note.title || 'Заметка', note, noteId: note.id,
+      saved: req.query.saved === '1',
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/notes/:id/edit', async (req, res, next) => {
+  try {
+    if (!col.notes) return res.redirect('/admin/notes');
+    const doc = await col.notes.doc(req.params.id).get();
+    if (!doc.exists) return res.redirect('/admin/notes');
+    const note = { id: doc.id, ...doc.data() };
+    res.render('pelamushi/admin/note-edit', {
+      title: 'Редактировать: ' + (note.title || 'Заметка'), note, noteId: note.id,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/notes/:id/edit', async (req, res, next) => {
+  try {
+    if (!col.notes) return res.redirect('/admin/notes');
+    const id = req.params.id === 'new' ? null : req.params.id;
+    const update = {
+      title: (req.body.title || '').trim(),
+      body_html: sanitizeNoteBody(req.body.body_html),
+      updated_at: new Date(),
+    };
+
+    let noteId = id;
+    if (!noteId) {
+      update.archived = false;
+      update.files = [];
+      update.created_at = new Date();
+      const ref = await col.notes.add(update);
+      noteId = ref.id;
+    } else {
+      await col.notes.doc(noteId).update(update);
+    }
+
+    if (req.files && req.files.files) {
+      const uploaded = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
+      if (uploaded.length) {
+        const { uploadFile } = require('../lib/pelamushi-upload');
+        const doc = await col.notes.doc(noteId).get();
+        const existingFiles = (doc.exists && doc.data().files) || [];
+        const newFiles = [];
+        for (const f of uploaded) {
+          const url = await uploadFile(f.data, f.name, `notes/${noteId}`, f.mimetype);
+          newFiles.push({
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+            name: f.name,
+            url,
+            size: f.size,
+            mimetype: f.mimetype,
+            uploaded_at: new Date(),
+          });
+        }
+        await col.notes.doc(noteId).update({ files: existingFiles.concat(newFiles) });
+      }
+    }
+
+    notify('notes', `📝 <b>${id ? 'Обновлена' : 'Добавлена'} заметка</b>: ${update.title || '(без названия)'}\nАдмин: ${res.locals.adminName || '—'}`);
+    res.redirect(`/admin/notes/${noteId}?saved=1`);
+  } catch (err) { next(err); }
+});
+
+router.post('/notes/:id/archive', async (req, res, next) => {
+  try {
+    if (col.notes) await col.notes.doc(req.params.id).update({ archived: true });
+    res.redirect('/admin/notes');
+  } catch (err) { next(err); }
+});
+
+router.post('/notes/:id/unarchive', async (req, res, next) => {
+  try {
+    if (col.notes) await col.notes.doc(req.params.id).update({ archived: false });
+    res.redirect('/admin/notes?archived=1');
+  } catch (err) { next(err); }
+});
+
+router.post('/notes/:id/files/:fileId/delete', async (req, res, next) => {
+  try {
+    if (col.notes) {
+      const doc = await col.notes.doc(req.params.id).get();
+      if (doc.exists) {
+        const files = (doc.data().files || []).filter((f) => f.id !== req.params.fileId);
+        await col.notes.doc(req.params.id).update({ files });
+      }
+    }
+    res.redirect(`/admin/notes/${req.params.id}`);
+  } catch (err) { next(err); }
+});
+
+router.post('/notes/:id/delete', async (req, res, next) => {
+  try {
+    if (col.notes) await col.notes.doc(req.params.id).delete();
+    res.redirect('/admin/notes');
   } catch (err) { next(err); }
 });
 
