@@ -166,6 +166,14 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 
 /* ─── GALLERY HEADER ─────────────────────────────────────────── */
 .gallery-header { margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+.gallery-header--sticky {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg);
+  padding: 12px 0;
+  margin: -12px 0 4px;
+}
 .gallery-label { font-size: 0.8125rem; letter-spacing: 3px; color: var(--text-muted); font-family: monospace; }
 .gallery-shuffle {
   font-size: 0.5625rem;
@@ -971,6 +979,7 @@ body.sidebar-open { overflow: hidden; }
 @media (max-width: 768px) {
   html { font-size: 18px; }
   .mobile-header { display: flex; }
+  .gallery-header--sticky { top: 48px; }
 
   .sidebar {
     position: fixed;

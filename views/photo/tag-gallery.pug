@@ -1,7 +1,7 @@
 extends layout
 
 block content
-  .gallery-header
+  .gallery-header.gallery-header--sticky
     span.gallery-label ТЕГ: #{tagLabel.toUpperCase()} · #{photos.length} фото
   if tagDesc
     p.photo-page-desc= tagDesc

@@ -1,7 +1,7 @@
 extends layout
 
 block content
-  .gallery-header
+  .gallery-header.gallery-header--sticky
     span.gallery-label #{colorLabel} · #{photos.length} фото
   .masonry
     each photo in photos

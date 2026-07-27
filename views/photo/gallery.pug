@@ -5,9 +5,9 @@ block content
   if isShoot
     .shoot-crumb
       
-  .gallery-header
+  .gallery-header.gallery-header--sticky
     if isShoot
-      span.gallery-label 
+      span.gallery-label
         a(href='/shoot') все съемки
       span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} фото
       .gallery-header-right
