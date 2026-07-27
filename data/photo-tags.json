@@ -1,26 +1,42 @@
 {
-  "winter": {
-    "label": "Зима"
-  },
-  "night": {
-    "label": "Ночь"
-  },
-  "mountains": {
-    "label": "Горы"
-  },
-  "mtkvari": {
-    "label": "Мтквари"
+  "cablecars": {
+    "label": "Канатки",
+    "type": "misc",
+    "desc": "Канатки-манатки"
   },
   "chronicles": {
-    "label": "Хроники Грузии"
+    "label": "Хроники Грузии",
+    "type": "misc",
+    "desc": ""
   },
-  "tbilisea": {
-    "label": "Тбилисское море"
+  "mountains": {
+    "label": "Горы",
+    "type": "misc",
+    "desc": ""
+  },
+  "mtkvari": {
+    "label": "Мтквари",
+    "type": "misc",
+    "desc": ""
+  },
+  "night": {
+    "label": "Ночь",
+    "type": "misc",
+    "desc": ""
   },
   "sameba": {
-    "label": "Самеба"
+    "label": "Самеба",
+    "type": "misc",
+    "desc": ""
   },
-  "cablecars": {
-    "label": "Канатки"
+  "tbilisea": {
+    "label": "Тбилисское море",
+    "type": "misc",
+    "desc": ""
+  },
+  "winter": {
+    "label": "Зима",
+    "type": "misc",
+    "desc": ""
   }
 }

@@ -128,3 +128,31 @@ block content
                     option(value='new'       selected=r.status==='new')       Новая
                     option(value='confirmed' selected=r.status==='confirmed') Подтверждена
                     option(value='declined'  selected=r.status==='declined')  Отклонена
+
+  - var tgGuests = (registrations || []).filter(function(r){ return r.tg_user_id && r.status !== 'declined'; })
+  - var uniqueIds = {}
+  - tgGuests.forEach(function(r){ uniqueIds[r.tg_user_id] = 1; })
+  - var uniqueTgCount = Object.keys(uniqueIds).length
+  - var activeRegCount = (registrations || []).filter(function(r){ return r.status !== 'declined'; }).length
+
+  .card
+    h2
+      | Сообщение гостям в Telegram
+      span(style='font-weight:400;color:#999;margin-left:8px;font-size:.8rem') #{uniqueTgCount} из #{activeRegCount} подключились к боту
+
+    if guestsSent !== undefined
+      p(style='color:#1e8449;font-size:.85rem;margin-bottom:1rem') ✓ Отправлено #{guestsSent} гостям
+    if guestsError === 'empty'
+      p(style='color:#c0392b;font-size:.85rem;margin-bottom:1rem') Введите текст сообщения
+
+    if uniqueTgCount
+      form(action=`/admin/news/${article.id}/message-guests` method='POST' enctype='multipart/form-data')
+        .form-row
+          label Текст
+          textarea(name='text' rows='4' placeholder='Текст сообщения для гостей события...')
+        .form-row
+          label Фото (необязательно)
+          input(type='file' name='photo' accept='image/*')
+        button.btn.btn-primary(type='submit' onclick=`return confirm('Отправить сообщение ${uniqueTgCount} гостям?')`) Отправить гостям
+    else
+      p(style='color:#999;font-size:.88rem') Никто из гостей ещё не подключился к боту

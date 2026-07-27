@@ -786,6 +786,10 @@ textarea.admin-input { resize: vertical; width: 100%; box-sizing: border-box; }
 .admin-tag-label { font-size: 0.8125rem; color: var(--text); }
 .admin-tags-error { font-size: 0.75rem; color: #e55; margin-bottom: 12px; }
 .admin-delete-form { flex-shrink: 0; }
+.admin-tag-edit-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; flex: 1; }
+.admin-tag-edit-form select.admin-input { width: auto; }
+.admin-tag-edit-form input[name='label'] { width: 140px; }
+.admin-tag-edit-form input[name='desc'] { flex: 1; min-width: 160px; }
 
 /* upload form extras */
 .admin-coords { display: flex; gap: 8px; }

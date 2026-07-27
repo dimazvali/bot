@@ -887,16 +887,35 @@ router.get('/tags', requireAuth, (req, res) => {
   res.render('photo/admin/tags', { tags: getTags(), title: 'Теги — photo.dimazvali.com Admin', error });
 });
 
+var TAG_TYPES = ['person', 'location', 'misc'];
+
 router.post('/tags', requireAuth, (req, res) => {
-  var { slug, label } = req.body;
+  var { slug, label, desc } = req.body;
+  var type = TAG_TYPES.includes(req.body.type) ? req.body.type : 'misc';
   if (!slug || !label) return res.redirect('/admin/tags');
   var clean = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '');
   if (!clean) return res.redirect('/admin/tags');
   var tags = getTags();
   if (!tags[clean]) {
-    tags[clean] = { label, createdAt: new Date().toISOString().slice(0, 10) };
+    tags[clean] = { label, type, desc: (desc || '').trim(), createdAt: new Date().toISOString().slice(0, 10) };
     saveTags(tags);
   }
+  res.redirect('/admin/tags');
+});
+
+router.post('/tags/:slug/edit', requireAuth, (req, res) => {
+  var { slug } = req.params;
+  var tags = getTags();
+  if (!tags[slug]) return res.redirect('/admin/tags');
+  var { label, desc } = req.body;
+  var type = TAG_TYPES.includes(req.body.type) ? req.body.type : 'misc';
+  if (!label || !label.trim()) return res.redirect('/admin/tags');
+  tags[slug] = Object.assign({}, tags[slug], {
+    label: label.trim(),
+    type,
+    desc: (desc || '').trim(),
+  });
+  saveTags(tags);
   res.redirect('/admin/tags');
 });
 

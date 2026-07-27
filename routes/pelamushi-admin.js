@@ -779,7 +779,45 @@ router.get('/news/:id', async (req, res, next) => {
       article,
       registrations,
       saved: req.query.saved === '1',
+      guestsSent: req.query.guests_sent,
+      guestsError: req.query.guests_error,
     });
+  } catch (err) { next(err); }
+});
+
+router.post('/news/:id/message-guests', async (req, res, next) => {
+  try {
+    const text = (req.body.text || '').trim();
+    if (!text) return res.redirect(`/admin/news/${req.params.id}?guests_error=empty`);
+    if (!col.registrations) return res.redirect(`/admin/news/${req.params.id}`);
+
+    const regSnap = await col.registrations.where('news_id', '==', req.params.id).get();
+    const seen = {};
+    const targets = regSnap.docs
+      .map((d) => d.data())
+      .filter((r) => {
+        if (!r.tg_user_id || r.status === 'declined') return false;
+        if (seen[r.tg_user_id]) return false;
+        seen[r.tg_user_id] = true;
+        return true;
+      });
+
+    let photoUrl = null;
+    if (req.files && req.files.photo) {
+      const { uploadPhoto } = require('../lib/pelamushi-upload');
+      photoUrl = await uploadPhoto(req.files.photo.data, req.files.photo.name, `news/${req.params.id}/broadcast`, 'cover');
+    }
+
+    let count = 0;
+    for (const t of targets) {
+      try {
+        if (photoUrl) await pelamushiBot.sendMedia(t.tg_user_id, 'photo', photoUrl, text);
+        else await pelamushiBot.sendMessage(t.tg_user_id, text);
+        count++;
+      } catch (e) { /* skip failed sends, keep going */ }
+    }
+
+    res.redirect(`/admin/news/${req.params.id}?guests_sent=${count}`);
   } catch (err) { next(err); }
 });
 

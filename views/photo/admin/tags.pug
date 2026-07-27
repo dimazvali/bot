@@ -17,6 +17,11 @@ html(data-theme='dark')
         form.admin-form(method='POST' action='/admin/tags')
           input.admin-input(type='text' name='slug' placeholder='slug (eng, напр. sunrise)')
           input.admin-input(type='text' name='label' placeholder='метка (напр. Рассвет)')
+          select.admin-input(name='type')
+            option(value='person') человек
+            option(value='location') локация
+            option(value='misc' selected) разное
+          input.admin-input(type='text' name='desc' placeholder='описание (необязательно)')
           button.admin-btn(type='submit') + тег
 
       if Object.keys(tags).length
@@ -25,8 +30,14 @@ html(data-theme='dark')
           .admin-tag-list
             each tag, slug in tags
               .admin-tag-row
-                .admin-tag-info
+                form.admin-tag-edit-form(method='POST' action=`/admin/tags/${slug}/edit`)
                   span.admin-tag-slug= slug
-                  span.admin-tag-label= tag.label
+                  input.admin-input(type='text' name='label' value=tag.label required)
+                  select.admin-input(name='type')
+                    option(value='person' selected=tag.type==='person') человек
+                    option(value='location' selected=tag.type==='location') локация
+                    option(value='misc' selected=(tag.type||'misc')==='misc') разное
+                  input.admin-input(type='text' name='desc' value=tag.desc placeholder='описание (необязательно)')
+                  button.admin-btn.admin-btn--sm(type='submit') сохранить
                 form.admin-delete-form(method='POST' action=`/admin/tags/${slug}/delete`)
                   button.admin-btn.admin-btn--danger(type='submit') удалить

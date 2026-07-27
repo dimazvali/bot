@@ -3,6 +3,8 @@ extends layout
 block content
   .gallery-header
     span.gallery-label ТЕГ: #{tagLabel.toUpperCase()} · #{photos.length} фото
+  if tagDesc
+    p.photo-page-desc= tagDesc
   .masonry
     each photo in photos
       a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
