@@ -26,7 +26,9 @@ block content
       button.btn.btn-secondary.btn-sm(type='submit') Загрузить
 
   .card
-    h2 Статьи
+    .requests-header
+      h2 Статьи
+      a.btn.btn-primary(href='/admin/news/new') + Добавить
     table.table
       thead
         tr
@@ -44,20 +46,3 @@ block content
             td
               form(action=`/admin/news/${a.id}/delete` method='POST')
                 button.btn.btn-danger.btn-sm(type='submit') Удалить
-
-  .card
-    h2 Новая статья
-    form(action='/admin/news/new' method='POST')
-      .form-row
-        label Заголовок EN
-        input(name='title_en')
-      .form-row
-        label Заголовок KA
-        input(name='title_ka')
-      .form-row
-        label Заголовок RU
-        input(name='title_ru')
-      .form-row
-        label Slug (URL)
-        input(name='slug')
-      button.btn.btn-primary(type='submit') Создать черновик

@@ -1,10 +1,16 @@
 extends layout
 
+block head
+  link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css')
+  style.
+    .admin-quill { background: #fff; margin-top: 4px; border: 1px solid #ddd; border-radius: 4px; }
+    .admin-quill .ql-editor { min-height: 160px; font-size: 14px; }
+
 block content
   if saved
     .alert.alert-success Сохранено
 
-  form(action=`/admin/news/${article.id}/save` method='POST' enctype='multipart/form-data')
+  form(action=article.id ? `/admin/news/${article.id}/save` : '/admin/news/new/save' method='POST' enctype='multipart/form-data')
     .card
       h2 Заголовки и slug
       .form-row
@@ -24,16 +30,12 @@ block content
         input(name='author' value=article.author)
 
     .card
-      h2 Текст (HTML разрешён)
-      .form-row
-        label Текст EN
-        textarea(name='body_en') #{article.body_en}
-      .form-row
-        label Текст KA
-        textarea(name='body_ka') #{article.body_ka}
-      .form-row
-        label Текст RU
-        textarea(name='body_ru') #{article.body_ru}
+      h2 Текст
+      each L in [['en', 'EN'], ['ka', 'KA'], ['ru', 'RU']]
+        .form-row
+          label Текст #{L[1]}
+          div.admin-quill(id='quill-body-' + L[0])
+          textarea(id='body-' + L[0] + '-input' name='body_' + L[0] style='display:none')= article['body_' + L[0]]
 
     .card
       h2 Фото обложки
@@ -156,3 +158,20 @@ block content
         button.btn.btn-primary(type='submit' onclick=`return confirm('Отправить сообщение ${uniqueTgCount} гостям?')`) Отправить гостям
     else
       p(style='color:#999;font-size:.88rem') Никто из гостей ещё не подключился к боту
+
+block scripts
+  script(src='https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js')
+  script.
+    (function() {
+      var toolbar = [['bold', 'italic'], ['link'], [{ list: 'ordered' }, { list: 'bullet' }], [{ header: [3, 4, false] }]];
+      ['en', 'ka', 'ru'].forEach(function(lang) {
+        var container = document.getElementById('quill-body-' + lang);
+        var input = document.getElementById('body-' + lang + '-input');
+        if (!container || !input) return;
+        var quill = new Quill(container, { theme: 'snow', modules: { toolbar: toolbar } });
+        if (input.value) quill.clipboard.dangerouslyPasteHTML(input.value);
+        quill.on('text-change', function() {
+          input.value = quill.root.innerHTML === '<p><br></p>' ? '' : quill.root.innerHTML;
+        });
+      });
+    })();

@@ -17,6 +17,18 @@ function sanitizeNoteBody(html) {
   }).trim();
 }
 
+// News bodies additionally allow <img> — existing hand-authored articles may
+// have inline images, and the notes allowlist would silently strip them.
+function sanitizeNewsBody(html) {
+  return sanitizeHtml(html || '', {
+    allowedTags: ['p', 'br', 'b', 'strong', 'i', 'em', 'u', 'a', 'ul', 'ol', 'li', 'h3', 'h4', 'img'],
+    allowedAttributes: { a: ['href'], img: ['src', 'alt'] },
+    allowedSchemes: ['http', 'https', 'mailto'],
+    allowedSchemesByTag: { img: ['http', 'https'] },
+    transformTags: { a: sanitizeHtml.simpleTransform('a', { rel: 'noopener noreferrer', target: '_blank' }) },
+  }).trim();
+}
+
 router.use(fileUpload({ multiples: true }));
 
 // Login — no auth required
@@ -653,24 +665,13 @@ router.get('/news', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-router.post('/news/new', async (req, res, next) => {
+router.get('/news/new', async (req, res, next) => {
   try {
-    const { title_en, title_ka, title_ru, slug } = req.body;
-    if (col.news) {
-      const { Timestamp } = require('../lib/pelamushi-firebase');
-      const ref = await col.news.add({
-        title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
-        body_en: '', body_ka: '', body_ru: '',
-        slug: slug || '',
-        author: '',
-        photo_url: '',
-        registration_enabled: false,
-        event_date: null,
-        published_at: Timestamp.now(),
-      });
-      return res.redirect(`/admin/news/${ref.id}`);
-    }
-    res.redirect('/admin/news');
+    res.render('pelamushi/admin/news-edit', {
+      title: 'Новая новость',
+      article: {}, registrations: [],
+      saved: false, guestsSent: undefined, guestsError: undefined,
+    });
   } catch (err) { next(err); }
 });
 
@@ -775,7 +776,7 @@ router.get('/news/:id', async (req, res, next) => {
         .sort((a, b) => (b.created_at && b.created_at.toMillis ? b.created_at.toMillis() : 0) - (a.created_at && a.created_at.toMillis ? a.created_at.toMillis() : 0));
     }
     res.render('pelamushi/admin/news-edit', {
-      title: 'Edit Article',
+      title: 'Редактировать: ' + (article.title_ru || article.title_en || 'новость'),
       article,
       registrations,
       saved: req.query.saved === '1',
@@ -848,7 +849,7 @@ router.post('/news/:id/save', async (req, res, next) => {
     } = req.body;
     const update = {
       title_en: title_en || '', title_ka: title_ka || '', title_ru: title_ru || '',
-      body_en: body_en || '', body_ka: body_ka || '', body_ru: body_ru || '',
+      body_en: sanitizeNewsBody(body_en), body_ka: sanitizeNewsBody(body_ka), body_ru: sanitizeNewsBody(body_ru),
       slug: slug || '',
       author: author || '',
       registration_enabled: registration_enabled === 'on',
@@ -866,16 +867,26 @@ router.post('/news/:id/save', async (req, res, next) => {
       const { uploadPhoto } = require('../lib/pelamushi-upload');
       update.photo_url = await uploadPhoto(req.files.photo.data, req.files.photo.name, 'news', 'cover');
     }
+
+    const isNew = req.params.id === 'new';
+    let newsId = req.params.id;
     let oldSlug = '';
     if (col.news) {
-      const before = await col.news.doc(req.params.id).get();
-      if (before.exists) oldSlug = before.data().slug || '';
-      await col.news.doc(req.params.id).update(update);
+      if (isNew) {
+        const { Timestamp } = require('../lib/pelamushi-firebase');
+        update.published_at = Timestamp.now();
+        const ref = await col.news.add(update);
+        newsId = ref.id;
+      } else {
+        const before = await col.news.doc(newsId).get();
+        if (before.exists) oldSlug = before.data().slug || '';
+        await col.news.doc(newsId).update(update);
+      }
     }
     cache.del('news-item:' + oldSlug, 'news-item:' + (update.slug || ''), 'news');
     const { notify } = require('../lib/pelamushi-notify');
-    notify('news', `📰 <b>Обновлена новость</b>: ${title_ru || title_en || slug}\nАдмин: ${res.locals.adminName}`);
-    res.redirect(`/admin/news/${req.params.id}?saved=1`);
+    notify('news', `📰 <b>${isNew ? 'Добавлена' : 'Обновлена'} новость</b>: ${title_ru || title_en || slug}\nАдмин: ${res.locals.adminName}`);
+    res.redirect(`/admin/news/${newsId}?saved=1`);
   } catch (err) { next(err); }
 });
 
