@@ -413,15 +413,13 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
 
     const newsId = snap.docs[0].id;
 
-    let full = false;
-    if (article.capacity) {
-      const regSnap = await col.registrations.where('news_id', '==', newsId).get();
-      const existingGuests = regSnap.docs.reduce((sum, d) => {
-        const data = d.data();
-        return data.status !== 'declined' ? sum + (data.guests || 1) : sum;
-      }, 0);
-      full = (existingGuests + guests) > article.capacity;
-    }
+    const regSnap = await col.registrations.where('news_id', '==', newsId).get();
+    const existingGuests = regSnap.docs.reduce((sum, d) => {
+      const data = d.data();
+      return data.status !== 'declined' ? sum + (data.guests || 1) : sum;
+    }, 0);
+    const totalGuests = existingGuests + guests;
+    const full = article.capacity ? totalGuests > article.capacity : false;
 
     const regRef = await col.registrations.add({
       news_id: newsId,
@@ -433,7 +431,7 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
       created_at: Timestamp.now(),
     });
 
-    notify('registration', `📋 <b>Новая регистрация</b>${full ? ' ⚠️ вместимость достигнута' : ''}\nСобытие: ${article.title_ru || article.title_en || req.params.slug}\nИмя: ${name.trim()}\nГостей: ${guests}\nEmail: ${email.trim()}\nТелефон: ${(phone || '').trim() || '—'}`);
+    notify('registration', `📋 <b>Новая регистрация</b>${full ? ' ⚠️ вместимость достигнута' : ''}\nСобытие: ${article.title_ru || article.title_en || req.params.slug}\nИмя: ${name.trim()}\nГостей: ${guests}\nВсего гостей на событии: ${totalGuests}${article.capacity ? ' из ' + article.capacity : ''}\nEmail: ${email.trim()}\nТелефон: ${(phone || '').trim() || '—'}`);
     res.redirect(`/${lang}/news/${req.params.slug}?registered=1&rid=${regRef.id}${full ? '&full=1' : ''}`);
   } catch (err) {
     next(err);
