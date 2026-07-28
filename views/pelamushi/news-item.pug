@@ -20,7 +20,7 @@ block content
         != article['body_' + lang]
 
       if article.registration_enabled && !isPastEvent
-        .registration-form
+        .registration-form#registration-form
           if registered
             if registrationFull
               .success-msg.warning-msg #{article['autoresponder_full_' + lang] || t.news.full}
@@ -28,7 +28,7 @@ block content
               .success-msg #{article['autoresponder_success_' + lang] || t.news.success}
             if registrationId && botUsername
               a.btn.btn-terra(href=`https://t.me/${botUsername}?start=reg_${registrationId}` target='_blank' rel='noopener' style='margin-top:1rem;display:inline-block')
-                = lang === 'ru' ? '✈ Подключиться к боту' : lang === 'ka' ? '✈ დაუკავშირდით ბოტს' : '✈ Connect to the bot'
+                = lang === 'ru' ? '✈ Получать обновления в Telegram' : lang === 'ka' ? '✈ მიიღეთ განახლებები Telegram-ში' : '✈ Get updates in Telegram'
           else
             h3 #{t.news.registration_title}
             if article.event_date

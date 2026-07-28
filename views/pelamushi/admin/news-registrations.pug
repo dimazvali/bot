@@ -7,6 +7,7 @@ block content
   .card
     .requests-header
       h2 Регистрации на события (#{registrations.length})
+      p(style='color:#999;font-size:.85rem;margin:-.5rem 0 1rem') #{stats.total} (#{stats.active} активно), гостей: #{stats.guests}
       .status-filter
         - var qs = function(over) { var p = Object.assign({}, { status: statusFilter, news_id: newsFilter }, over); return Object.keys(p).filter(function(k){ return p[k]; }).map(function(k){ return k + '=' + encodeURIComponent(p[k]); }).join('&'); }
         a.status-pill(href='/admin/news/registrations' + (newsFilter ? '?news_id=' + newsFilter : '') class=!statusFilter ? 'active' : '') Все

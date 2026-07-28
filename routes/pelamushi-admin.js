@@ -704,6 +704,7 @@ router.get('/news/registrations', async (req, res, next) => {
     const statusFilter = REGISTRATION_STATUSES.includes(req.query.status) ? req.query.status : '';
     const newsFilter = req.query.news_id || '';
     let registrations = [], newsMap = {}, newsList = [];
+    let stats = { total: 0, active: 0, guests: 0 };
     if (col.registrations) {
       const [regSnap, newsSnap] = await Promise.all([
         col.registrations.orderBy('created_at', 'desc').get(),
@@ -715,15 +716,21 @@ router.get('/news/registrations', async (req, res, next) => {
         const tb = b.published_at && b.published_at.toMillis ? b.published_at.toMillis() : 0;
         return tb - ta;
       });
-      registrations = regSnap.docs
+      const allForNews = regSnap.docs
         .map(d => {
           const r = { id: d.id, status: 'new', ...d.data() };
           r.event = newsMap[r.news_id] || null;
           return r;
         })
-        .filter(r => (!statusFilter || r.status === statusFilter) && (!newsFilter || r.news_id === newsFilter));
+        .filter(r => !newsFilter || r.news_id === newsFilter);
+      registrations = allForNews.filter(r => !statusFilter || r.status === statusFilter);
+      stats = {
+        total: allForNews.length,
+        active: allForNews.filter(r => r.status !== 'declined').length,
+        guests: allForNews.reduce((sum, r) => sum + (r.status !== 'declined' ? (r.guests || 1) : 0), 0),
+      };
     }
-    res.render('pelamushi/admin/news-registrations', { title: 'Заявки', registrations, newsList, statusFilter, newsFilter });
+    res.render('pelamushi/admin/news-registrations', { title: 'Заявки', registrations, newsList, statusFilter, newsFilter, stats });
   } catch (err) { next(err); }
 });
 

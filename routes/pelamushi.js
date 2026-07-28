@@ -432,7 +432,7 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
     });
 
     notify('registration', `📋 <b>Новая регистрация</b>${full ? ' ⚠️ вместимость достигнута' : ''}\nСобытие: ${article.title_ru || article.title_en || req.params.slug}\nИмя: ${name.trim()}\nГостей: ${guests}\nВсего гостей на событии: ${totalGuests}${article.capacity ? ' из ' + article.capacity : ''}\nEmail: ${email.trim()}\nТелефон: ${(phone || '').trim() || '—'}`);
-    res.redirect(`/${lang}/news/${req.params.slug}?registered=1&rid=${regRef.id}${full ? '&full=1' : ''}`);
+    res.redirect(`/${lang}/news/${req.params.slug}?registered=1&rid=${regRef.id}${full ? '&full=1' : ''}#registration-form`);
   } catch (err) {
     next(err);
   }

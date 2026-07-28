@@ -7,7 +7,10 @@
       "Bash(node -e \"require\\('sanitize-html'\\); console.log\\('sanitize-html resolves OK'\\)\")",
       "Bash(node -e \"require\\('pug'\\).compileFile\\('views/pelamushi/news-item.pug'\\); console.log\\('template OK'\\)\")",
       "Bash(node --check lib/photo-shoots.js)",
-      "Bash(node --check lib/photo-tags.js)"
+      "Bash(node --check lib/photo-tags.js)",
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/pelamushi/news-item.pug'\\); console.log\\('OK'\\)\")",
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/pelamushi/news-item.pug'\\); console.log\\('pug OK'\\)\")",
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/pelamushi/admin/news-registrations.pug'\\); console.log\\('OK'\\)\")"
     ]
   }
 }
