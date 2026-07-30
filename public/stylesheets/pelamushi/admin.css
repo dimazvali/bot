@@ -259,3 +259,24 @@ a { color: var(--navy); text-decoration: none; }
 .admin-notif-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem .75rem; }
 .notif-label { display: flex; align-items: center; gap: .4rem; font-size: .82rem; cursor: pointer; }
 .notif-label input[type=checkbox] { width: auto; margin: 0; }
+
+/* ── Contact popup (message a registration via the bot) ── */
+.contact-btn { white-space: nowrap; }
+.contact-popup {
+  position: fixed; inset: 0; background: rgba(28,46,74,0.55);
+  display: none; align-items: center; justify-content: center; z-index: 200;
+}
+.contact-popup.is-open { display: flex; }
+.contact-popup-inner {
+  background: #fff; border-radius: 8px; padding: 1.5rem; width: 360px; max-width: 90vw;
+  box-shadow: 0 8px 30px rgba(0,0,0,.2);
+}
+.contact-popup-title { font-size: 1rem; font-weight: 600; color: var(--navy); margin-bottom: .25rem; }
+.contact-popup-name { font-size: .82rem; color: var(--tan); margin-bottom: .75rem; }
+.contact-popup-inner textarea {
+  width: 100%; box-sizing: border-box; padding: .6rem .7rem; border: 1px solid rgba(28,46,74,.2);
+  border-radius: 4px; font-family: inherit; font-size: .88rem; resize: vertical;
+}
+.contact-popup-inner textarea:focus { outline: none; border-color: var(--blue); }
+.contact-popup-msg { font-size: .78rem; color: #c0392b; min-height: 1.1em; margin: .4rem 0 0; }
+.contact-popup-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .75rem; }

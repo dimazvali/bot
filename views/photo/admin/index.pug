@@ -8,12 +8,13 @@ html(data-theme='dark')
     .admin-wrap
       .admin-header
         span.admin-logo AERO ADMIN
-        a.admin-link(href='/admin/tags') теги
-        a.admin-link(href='/admin/images') изображения
-        a.admin-link(href='/admin/stats') статистика
-        a.admin-link(href='/admin/copyright') использования
-        a.admin-link(href='/admin/shoots') съёмки
-        a.admin-logout(href='/admin/logout') выйти
+        .admin-nav
+          a.admin-nav-link(href='/admin/tags') теги
+          a.admin-nav-link(href='/admin/images') изображения
+          a.admin-nav-link(href='/admin/stats') статистика
+          a.admin-nav-link(href='/admin/copyright') использования
+          a.admin-nav-link(href='/admin/shoots') съёмки
+          a.admin-logout(href='/admin/logout') выйти
 
       .admin-section
         h2.admin-title СТРАНЫ

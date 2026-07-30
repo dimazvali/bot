@@ -572,9 +572,10 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
 
 router.get('/shoots', requireAuth, async (req, res) => {
   var stats = await photoStats.getStatsByType('shoot').catch(function() { return {}; });
+  var shootEntries = Object.entries(shoots.getData()).reverse();
   res.render('photo/admin/shoots', {
     title: 'Съёмки — AERO Admin',
-    shoots: shoots.getData(),
+    shootEntries,
     stats,
     error: req.query.error || null,
   });

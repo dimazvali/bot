@@ -1,8 +1,15 @@
 extends layout
+include _contact-popup
 
 block content
   if saved
     .alert.alert-success Статус обновлён
+  if messageSent
+    .alert.alert-success Сообщение отправлено
+  if messageError === 'empty'
+    .alert.alert-error Введите текст сообщения
+  if messageError === 'no_bot'
+    .alert.alert-error У этой регистрации нет связи с ботом
 
   .card
     .requests-header
@@ -57,7 +64,8 @@ block content
                   input(type='number' name='guests' min='1' max='50' value=r.guests || 1 style='width:56px;font-size:12px;padding:4px 6px' onchange='this.form.submit()')
               td(data-label='Бот')
                 if r.tg_user_id
-                  span(style='color:#1e8449') ✓ подключён
+                  span(style='color:#1e8449;display:block;margin-bottom:.3rem') ✓ подключён
+                  button.btn.btn-secondary.btn-sm.contact-btn(type='button' data-reg-id=r.id data-reg-name=r.name data-back='/admin/news/registrations') Связаться
                 else
                   span(style='color:#bbb') —
               td(data-label='Статус')
@@ -67,3 +75,5 @@ block content
                     option(value='new'       selected=r.status==='new')       Новая
                     option(value='confirmed' selected=r.status==='confirmed') Подтверждена
                     option(value='declined'  selected=r.status==='declined')  Отклонена
+
+  +contactPopup()

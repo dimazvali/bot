@@ -671,6 +671,7 @@ router.get('/news/new', async (req, res, next) => {
       title: 'Новая новость',
       article: {}, registrations: [],
       saved: false, guestsSent: undefined, guestsError: undefined,
+      messageSent: false, messageError: undefined,
     });
   } catch (err) { next(err); }
 });
@@ -730,7 +731,10 @@ router.get('/news/registrations', async (req, res, next) => {
         guests: allForNews.reduce((sum, r) => sum + (r.status !== 'declined' ? (r.guests || 1) : 0), 0),
       };
     }
-    res.render('pelamushi/admin/news-registrations', { title: 'Заявки', registrations, newsList, statusFilter, newsFilter, stats });
+    res.render('pelamushi/admin/news-registrations', {
+      title: 'Заявки', registrations, newsList, statusFilter, newsFilter, stats,
+      messageSent: req.query.message_sent === '1', messageError: req.query.message_error,
+    });
   } catch (err) { next(err); }
 });
 
@@ -768,6 +772,22 @@ router.post('/registrations/:id/guests', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+router.post('/registrations/:id/message', async (req, res, next) => {
+  try {
+    const text = (req.body.text || '').trim();
+    const back = req.body.back || '/admin/news/registrations';
+    const sep = back.includes('?') ? '&' : '?';
+    if (!col.registrations) return res.redirect(back);
+
+    const doc = await col.registrations.doc(req.params.id).get();
+    if (!doc.exists || !doc.data().tg_user_id) return res.redirect(back + sep + 'message_error=no_bot');
+    if (!text) return res.redirect(back + sep + 'message_error=empty');
+
+    await pelamushiBot.sendMessage(doc.data().tg_user_id, text);
+    res.redirect(back + sep + 'message_sent=1');
+  } catch (err) { next(err); }
+});
+
 router.get('/news/:id', async (req, res, next) => {
   try {
     let article = {}, registrations = [];
@@ -789,6 +809,8 @@ router.get('/news/:id', async (req, res, next) => {
       saved: req.query.saved === '1',
       guestsSent: req.query.guests_sent,
       guestsError: req.query.guests_error,
+      messageSent: req.query.message_sent === '1',
+      messageError: req.query.message_error,
     });
   } catch (err) { next(err); }
 });

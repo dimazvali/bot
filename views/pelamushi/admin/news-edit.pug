@@ -1,4 +1,5 @@
 extends layout
+include _contact-popup
 
 block head
   link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css')
@@ -9,6 +10,12 @@ block head
 block content
   if saved
     .alert.alert-success Сохранено
+  if messageSent
+    .alert.alert-success Сообщение отправлено
+  if messageError === 'empty'
+    .alert.alert-error Введите текст сообщения
+  if messageError === 'no_bot'
+    .alert.alert-error У этой регистрации нет связи с ботом
 
   form(action=article.id ? `/admin/news/${article.id}/save` : '/admin/news/new/save' method='POST' enctype='multipart/form-data')
     .card
@@ -120,7 +127,8 @@ block content
                   input(type='number' name='guests' min='1' max='50' value=r.guests || 1 style='width:56px;font-size:12px;padding:4px 6px' onchange='this.form.submit()')
               td(data-label='Бот')
                 if r.tg_user_id
-                  span(style='color:#1e8449') ✓ подключён
+                  span(style='color:#1e8449;display:block;margin-bottom:.3rem') ✓ подключён
+                  button.btn.btn-secondary.btn-sm.contact-btn(type='button' data-reg-id=r.id data-reg-name=r.name data-back=`/admin/news/${article.id}`) Связаться
                 else
                   span(style='color:#bbb') —
               td(data-label='Статус')
@@ -131,23 +139,25 @@ block content
                     option(value='confirmed' selected=r.status==='confirmed') Подтверждена
                     option(value='declined'  selected=r.status==='declined')  Отклонена
 
-  - var tgGuests = (registrations || []).filter(function(r){ return r.tg_user_id && r.status !== 'declined'; })
+  - var activeRegs = (registrations || []).filter(function(r){ return r.status !== 'declined'; })
+  - var activeRegCount = activeRegs.length
+  - var connectedRegs = activeRegs.filter(function(r){ return r.tg_user_id; })
+  - var connectedCount = connectedRegs.length
   - var uniqueIds = {}
-  - tgGuests.forEach(function(r){ uniqueIds[r.tg_user_id] = 1; })
-  - var uniqueTgCount = Object.keys(uniqueIds).length
-  - var activeRegCount = (registrations || []).filter(function(r){ return r.status !== 'declined'; }).length
+  - connectedRegs.forEach(function(r){ uniqueIds[r.tg_user_id] = 1; })
+  - var uniqueRecipientCount = Object.keys(uniqueIds).length
 
   .card
     h2
       | Сообщение гостям в Telegram
-      span(style='font-weight:400;color:#999;margin-left:8px;font-size:.8rem') #{uniqueTgCount} из #{activeRegCount} подключились к боту
+      span(style='font-weight:400;color:#999;margin-left:8px;font-size:.8rem') #{connectedCount} из #{activeRegCount} подключились к боту
 
     if guestsSent !== undefined
       p(style='color:#1e8449;font-size:.85rem;margin-bottom:1rem') ✓ Отправлено #{guestsSent} гостям
     if guestsError === 'empty'
       p(style='color:#c0392b;font-size:.85rem;margin-bottom:1rem') Введите текст сообщения
 
-    if uniqueTgCount
+    if connectedCount
       form(action=`/admin/news/${article.id}/message-guests` method='POST' enctype='multipart/form-data')
         .form-row
           label Текст
@@ -155,9 +165,11 @@ block content
         .form-row
           label Фото (необязательно)
           input(type='file' name='photo' accept='image/*')
-        button.btn.btn-primary(type='submit' onclick=`return confirm('Отправить сообщение ${uniqueTgCount} гостям?')`) Отправить гостям
+        button.btn.btn-primary(type='submit' onclick=`return confirm('Отправить сообщение ${uniqueRecipientCount} гостям?')`) Отправить гостям
     else
       p(style='color:#999;font-size:.88rem') Никто из гостей ещё не подключился к боту
+
+  +contactPopup()
 
 block scripts
   script(src='https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js')

@@ -1,0 +1,62 @@
+mixin contactPopup()
+  .contact-popup#contact-popup
+    .contact-popup-inner
+      .contact-popup-title Сообщение через бота
+      p.contact-popup-name#contact-popup-name
+      textarea#contact-popup-text(rows='5' placeholder='Текст сообщения...')
+      p.contact-popup-msg#contact-popup-msg
+      .contact-popup-actions
+        button#contact-popup-cancel(type='button') Отмена
+        button#contact-popup-send(type='button') Отправить
+
+  script.
+    (function() {
+      var popup = document.getElementById('contact-popup');
+      if (!popup) return;
+      var nameEl = document.getElementById('contact-popup-name');
+      var textEl = document.getElementById('contact-popup-text');
+      var msgEl = document.getElementById('contact-popup-msg');
+      var sendBtn = document.getElementById('contact-popup-send');
+      var cancelBtn = document.getElementById('contact-popup-cancel');
+      var currentId = null;
+      var currentBack = null;
+
+      document.querySelectorAll('.contact-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          currentId = btn.dataset.regId;
+          currentBack = btn.dataset.back;
+          nameEl.textContent = btn.dataset.regName || '';
+          textEl.value = '';
+          msgEl.textContent = '';
+          popup.classList.add('is-open');
+          textEl.focus();
+        });
+      });
+
+      function close() { popup.classList.remove('is-open'); }
+      if (cancelBtn) cancelBtn.addEventListener('click', close);
+      popup.addEventListener('click', function(e) { if (e.target === popup) close(); });
+
+      if (sendBtn) sendBtn.addEventListener('click', function() {
+        var text = textEl.value.trim();
+        if (!text) { msgEl.textContent = 'Введите текст сообщения'; return; }
+        if (!currentId) return;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/admin/registrations/' + currentId + '/message';
+        form.style.display = 'none';
+
+        var textInput = document.createElement('input');
+        textInput.name = 'text';
+        textInput.value = text;
+        form.appendChild(textInput);
+
+        var backInput = document.createElement('input');
+        backInput.name = 'back';
+        backInput.value = currentBack || (location.pathname + location.search);
+        form.appendChild(backInput);
+
+        document.body.appendChild(form);
+        form.submit();
+      });
+    })();
