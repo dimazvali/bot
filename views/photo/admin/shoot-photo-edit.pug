@@ -37,6 +37,11 @@ html(data-theme='dark')
           input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
           input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. июнь 2026)')
           textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='4')= photo.desc || ''
+          .admin-desc-row
+            input.admin-input#photo-seo-desc(type='text' name='seo_desc' value=photo.seo_desc || '' placeholder='meta-описание (только в метатегах, SEO)')
+            button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать meta-описание и ключевые слова через AI') 🤖
+          input.admin-input#photo-keywords(type='text' name='seo_keywords' value=photo.seo_keywords || '' placeholder='ключевые слова (SEO, необязательно)')
+          p.admin-hint#gen-seo-status(style='display:none')
           p.admin-hint ТИП СЪЁМКИ:
           .type-radio-group
             each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
@@ -176,3 +181,32 @@ html(data-theme='dark')
           }
         });
       }());
+
+      document.getElementById('gen-seo-btn').addEventListener('click', async function() {
+        var btn = this;
+        var status = document.getElementById('gen-seo-status');
+        btn.disabled = true;
+        btn.textContent = '⏳';
+        status.style.display = 'block';
+        status.style.color = '#aaa';
+        status.textContent = 'Генерирую…';
+        try {
+          var resp = await fetch(window.location.pathname.replace('/edit', '/generate-seo'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+          });
+          var data = await resp.json();
+          if (!resp.ok || !data.ok) throw new Error(data.error || 'Ошибка');
+          document.getElementById('photo-seo-desc').value = data.desc;
+          document.getElementById('photo-keywords').value = data.keywords;
+          status.style.color = '#4caf50';
+          status.textContent = '✓ Готово — не забудьте сохранить';
+        } catch (e) {
+          status.style.color = '#f44336';
+          status.textContent = '✗ ' + e.message;
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '🤖';
+        }
+      });

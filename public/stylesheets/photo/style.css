@@ -798,6 +798,7 @@ textarea.admin-input { resize: vertical; width: 100%; box-sizing: border-box; }
 .admin-photo-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .admin-photo-title { font-size: 0.6875rem; color: var(--text); }
 .admin-photo-id { font-size: 0.5625rem; color: var(--text-dim); font-family: monospace; }
+.admin-photo-caption { font-size: 0.625rem; color: var(--text-dim); font-style: italic; }
 
 /* admin tags */
 .admin-tag-list { display: flex; flex-direction: column; gap: 8px; }

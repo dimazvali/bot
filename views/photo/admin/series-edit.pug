@@ -36,6 +36,8 @@ html(data-theme='dark')
                 .admin-photo-info
                   span.admin-photo-title= photo.title
                   span.admin-photo-id= photo.id
+                  if photo.seo_desc
+                    span.admin-photo-caption= photo.seo_desc
                 .admin-sort-actions
                   a.admin-link(href=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`) ред.
                   form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/delete`)

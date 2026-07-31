@@ -696,6 +696,25 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     await shoots.addPhoto(slug, photoEntry);
     pingSitemaps();
     indexNowSubmit('https://photo.dimazvali.com/shoot/' + slug);
+
+    // Auto-generate SEO desc+keywords async (fire-and-forget)
+    (function() {
+      var { generatePhotoSeo } = require('../lib/photo-seo');
+      var previousCaptions = shoot.photos
+        .filter(function(p) { return p.seo_desc; })
+        .slice(-6)
+        .map(function(p) { return p.seo_desc; });
+      generatePhotoSeo(photoEntry, {
+        countryLabel: shoot.label,
+        seriesLabel: shoot.label,
+        allTags: {},
+        shootDesc: shoot.desc,
+        previousCaptions: previousCaptions,
+      }).then(function(result) {
+        return shoots.updatePhotoSeo(slug, photoEntry.id, result.desc, result.keywords);
+      }).catch(function(e) { console.error('[auto-seo]', e.message); });
+    }());
+
     res.redirect('/admin/shoots/' + slug + '/edit');
   } catch (err) {
     console.error('[shoots] upload error:', err);
@@ -724,6 +743,8 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
   var { title, date, desc } = req.body;
   var photoType = req.body.type;
+  var seoDesc = (req.body.seo_desc || '').trim();
+  var seoKeywords = (req.body.seo_keywords || '').trim();
   if (!title || !title.trim()) return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
   try {
     await shoots.updatePhoto(slug, id, {
@@ -732,10 +753,43 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
       desc: (desc || '').trim(),
       type: photoType,
     });
+    await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords);
   } catch (e) {
     console.error('[shoots] update photo error:', e);
   }
   res.redirect('/admin/shoots/' + slug + '/edit');
+});
+
+// POST /admin/shoots/:slug/photos/:id/generate-seo — AI SEO generation for a shoot photo
+router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json(), async (req, res) => {
+  var { slug, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.status(400).json({ error: 'Invalid params' });
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ error: 'Not found' });
+  var photo = shoot.photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.status(404).json({ error: 'Not found' });
+
+  try {
+    var { generatePhotoSeo } = require('../lib/photo-seo');
+    var idx = shoot.photos.findIndex(function(p) { return p.id === id; });
+    var previousCaptions = shoot.photos
+      .slice(0, idx)
+      .filter(function(p) { return p.seo_desc; })
+      .slice(-6)
+      .map(function(p) { return p.seo_desc; });
+    var result = await generatePhotoSeo(photo, {
+      countryLabel: shoot.label,
+      seriesLabel: shoot.label,
+      allTags: {},
+      shootDesc: shoot.desc,
+      previousCaptions: previousCaptions,
+    });
+    await shoots.updatePhotoSeo(slug, id, result.desc, result.keywords);
+    res.json({ ok: true, desc: result.desc, keywords: result.keywords });
+  } catch (err) {
+    console.error('[shoots generate-seo]', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
