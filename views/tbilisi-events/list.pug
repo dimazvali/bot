@@ -28,7 +28,10 @@ html
               td= event.date + (event.time ? ' ' + event.time : '')
               td= event.place || ''
               td
-                each source, i in event.sources
+                each source, i in event.sources || []
                   if i > 0
                     | #{' '}
-                  a(href=source.url target='_blank' rel='noopener noreferrer')= source.label
+                  if source.safe
+                    a(href=source.url target='_blank' rel='noopener noreferrer')= source.label
+                  else
+                    span= source.label

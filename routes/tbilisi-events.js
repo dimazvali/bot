@@ -23,10 +23,23 @@ var tbilisiEventsApp = getApps().find(function(a) { return a.name === 'tbilisiEv
 var fb = getFirestore(tbilisiEventsApp);
 eventsData.init(fb);
 
+function isSafeUrl(url) {
+  return typeof url === 'string' && /^https?:\/\//i.test(url);
+}
+
+function sanitizeEvents(events) {
+  return (events || []).map(function(event) {
+    var sources = (event.sources || []).map(function(source) {
+      return { label: source.label, url: source.url, safe: isSafeUrl(source.url) };
+    });
+    return Object.assign({}, event, { sources: sources });
+  });
+}
+
 router.get('/', async function(req, res, next) {
   try {
     var events = await eventsData.getAllEvents();
-    res.render('tbilisi-events/list', { title: 'Афиша Тбилиси', events: events });
+    res.render('tbilisi-events/list', { title: 'Афиша Тбилиси', events: sanitizeEvents(events) });
   } catch (e) {
     next(e);
   }
