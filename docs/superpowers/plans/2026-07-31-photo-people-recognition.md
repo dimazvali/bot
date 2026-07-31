@@ -505,12 +505,12 @@ require('dotenv').config();
 var { generatePhotoSeo } = require('./lib/photo-seo');
 generatePhotoSeo(
   { title: 'test', urls: { preview: 'https://storage.googleapis.com/photo-dimazvalimisc/shoots/9line/img-3818-800.webp' }, type: 'camera' },
-  { countryLabel: '9line', seriesLabel: '9line', allTags: {}, knownPeople: ['Тест Тестов'] }
+  { countryLabel: '9line', seriesLabel: '9line', allTags: {}, knownPeople: ['Гиви Церетели'] }
 ).then(function(r) { console.log(r); }).catch(function(e) { console.error(e); process.exit(1); });
 "
 ```
 (Substitute a real `preview` URL from this session's logs if that exact one 404s.)
-Expected: `desc` field contains the literal string `Тест Тестов`.
+Expected: `desc` field contains the literal string `Гиви Церетели`.
 
 - [ ] **Step 4: Commit**
 
