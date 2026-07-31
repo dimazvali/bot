@@ -1,0 +1,73 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo ЛЮДИ
+
+      .admin-section
+        h2.admin-title НЕРАЗМЕЧЕННЫЕ ЛИЦА (#{pending.length})
+        if !pending.length
+          p.admin-hint Нет неразмеченных лиц.
+        else
+          .people-grid
+            each face in pending
+              - var dispW = 100 / face.boundingBox.Width
+              - var dispH = 100 / face.boundingBox.Height
+              - var leftPct = -(face.boundingBox.Left / face.boundingBox.Width) * 100
+              - var topPct = -(face.boundingBox.Top / face.boundingBox.Height) * 100
+              .person-pending
+                .face-crop
+                  img(src=face.thumb style=`width:${dispW}%;height:${dispH}%;left:${leftPct}%;top:${topPct}%;`)
+                form.admin-form(method='POST' action='/admin/people/new' style='width:100%;gap:4px;')
+                  input(type='hidden' name='slug' value=face.slug)
+                  input(type='hidden' name='photoId' value=face.photoId)
+                  input(type='hidden' name='faceId' value=face.faceId)
+                  input.admin-input(type='text' name='name' placeholder='имя' style='font-size:0.625rem;padding:4px;')
+                  button.admin-btn.admin-btn--sm(type='submit') создать
+                if people.length
+                  form.admin-form(method='POST' action='/admin/people/link' style='width:100%;gap:4px;')
+                    input(type='hidden' name='slug' value=face.slug)
+                    input(type='hidden' name='photoId' value=face.photoId)
+                    input(type='hidden' name='faceId' value=face.faceId)
+                    select.admin-input(name='personId' style='font-size:0.625rem;padding:4px;')
+                      option(value='' disabled selected) это уже...
+                      each person in people
+                        option(value=person.id)= person.name
+                    button.admin-btn.admin-btn--sm(type='submit') привязать
+
+      .admin-section
+        h2.admin-title ЛЮДИ (#{people.length})
+        if !people.length
+          p.admin-hint Пока никто не назван.
+        else
+          each person in people
+            .person-named
+              .face-crop(style='width:56px;height:56px;')
+                if person.faces.length
+                  - var pf = person.faces[0]
+                  - var dispW = 100 / pf.boundingBox.Width
+                  - var dispH = 100 / pf.boundingBox.Height
+                  - var leftPct = -(pf.boundingBox.Left / pf.boundingBox.Width) * 100
+                  - var topPct = -(pf.boundingBox.Top / pf.boundingBox.Height) * 100
+                  img(src=pf.thumb style=`width:${dispW}%;height:${dispH}%;left:${leftPct}%;top:${topPct}%;`)
+              .person-named-info
+                form(method='POST' action=`/admin/people/${person.id}/rename` style='display:flex;gap:6px;')
+                  input.admin-input(type='text' name='name' value=person.name style='font-size:0.75rem;padding:4px;width:160px;')
+                  button.admin-btn.admin-btn--sm(type='submit') переименовать
+                span.admin-photo-id= person.faces.length + ' фото'
+                .people-grid
+                  each f in person.faces
+                    .face-crop(style='width:48px;height:48px;')
+                      - var dw = 100 / f.boundingBox.Width
+                      - var dh = 100 / f.boundingBox.Height
+                      - var lp = -(f.boundingBox.Left / f.boundingBox.Width) * 100
+                      - var tp = -(f.boundingBox.Top / f.boundingBox.Height) * 100
+                      img(src=f.thumb style=`width:${dw}%;height:${dh}%;left:${lp}%;top:${tp}%;`)
+                      form(method='POST' action=`/admin/shoots/${f.slug}/photos/${f.photoId}/faces/${f.faceId}/unlink` style='position:absolute;top:0;right:0;margin:0;')
+                        button.admin-btn.admin-btn--danger(type='submit' style='padding:0 4px;font-size:0.5625rem;' title='это не он') ✕
