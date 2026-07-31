@@ -65,6 +65,7 @@ git commit -m "chore: add @aws-sdk/client-rekognition dependency"
 
 ```js
 var { RekognitionClient, CreateCollectionCommand, IndexFacesCommand, SearchFacesCommand } = require('@aws-sdk/client-rekognition');
+var sharp = require('sharp');
 
 var COLLECTION_ID = 'photo-people-' + (process.env.PHOTO_ENV || 'prod');
 var MATCH_THRESHOLD = 99;
@@ -92,10 +93,13 @@ async function ensureCollection() {
 
 async function indexFacesForPhoto(imageBuffer) {
   await ensureCollection();
+  // Rekognition only accepts JPEG/PNG; shoot photos are stored as WebP, so
+  // convert here rather than pushing this constraint onto every caller.
+  var jpegBuffer = await sharp(imageBuffer).jpeg().toBuffer();
   var client = getClient();
   var result = await client.send(new IndexFacesCommand({
     CollectionId: COLLECTION_ID,
-    Image: { Bytes: imageBuffer },
+    Image: { Bytes: jpegBuffer },
     DetectionAttributes: [],
   }));
   return (result.FaceRecords || []).map(function(r) {
@@ -132,7 +136,7 @@ cd "c:\Users\dshestakov\node\bot" && PHOTO_ENV=prod node -e "
 require('dotenv').config();
 var axios = require('axios');
 var pp = require('./lib/photo-people');
-axios.get('https://storage.googleapis.com/dimazvalimisc.appspot.com/shoots/9line/img-3818-800.webp', { responseType: 'arraybuffer' })
+axios.get('https://storage.googleapis.com/photo-dimazvalimisc/shoots/9line/img-3818-800.webp', { responseType: 'arraybuffer' })
   .then(function(r) { return pp.indexFacesForPhoto(Buffer.from(r.data)); })
   .then(function(faces) { console.log(JSON.stringify(faces, null, 2)); })
   .catch(function(e) { console.error(e); process.exit(1); });
@@ -500,7 +504,7 @@ cd "c:\Users\dshestakov\node\bot" && PHOTO_ENV=prod node -e "
 require('dotenv').config();
 var { generatePhotoSeo } = require('./lib/photo-seo');
 generatePhotoSeo(
-  { title: 'test', urls: { preview: 'https://storage.googleapis.com/dimazvalimisc.appspot.com/shoots/9line/img-3818-800.webp' }, type: 'camera' },
+  { title: 'test', urls: { preview: 'https://storage.googleapis.com/photo-dimazvalimisc/shoots/9line/img-3818-800.webp' }, type: 'camera' },
   { countryLabel: '9line', seriesLabel: '9line', allTags: {}, knownPeople: ['Тест Тестов'] }
 ).then(function(r) { console.log(r); }).catch(function(e) { console.error(e); process.exit(1); });
 "
