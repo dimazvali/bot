@@ -793,6 +793,7 @@ router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json()
       allTags: {},
       shootDesc: shoot.desc,
       previousCaptions: previousCaptions,
+      knownPeople: photoPeople.resolvePhotoPeopleNames(photo),
     });
     await shoots.updatePhotoSeo(slug, id, result.desc, result.keywords);
     res.json({ ok: true, desc: result.desc, keywords: result.keywords });
