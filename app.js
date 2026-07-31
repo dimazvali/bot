@@ -86,6 +86,7 @@ app.use('/proxy',        require('./routes/proxy'));
 app.use('/test',        require('./routes/test'));
 app.use('/homeless',        require('./routes/homelessBot'));
 app.use('/tbilisi-events', require('./routes/tbilisi-events'));
+app.use('/tbilisi-events/admin', require('./routes/tbilisi-events-admin'));
 
 
 
