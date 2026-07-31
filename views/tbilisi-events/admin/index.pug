@@ -1,0 +1,32 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    style.
+      body { font-family: sans-serif; margin: 2rem; max-width: 700px; }
+      button { padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; }
+      .error { color: #c00; }
+      .summary { margin-top: 1.5rem; border: 1px solid #ddd; padding: 1rem; border-radius: 6px; }
+      .error-item { color: #c00; }
+  body
+    h1= title
+    p Источников настроено: #{sourceCount}
+    form(method='POST' action='/tbilisi-events/admin/collect')
+      button(type='submit') Собрать события
+    if error
+      p.error= error
+    if summary
+      .summary
+        p Источников обработано: #{summary.sourcesProcessed}
+        p Событий найдено: #{summary.eventsFound}
+        p Новых: #{summary.eventsNew}
+        p Объединено с существующими: #{summary.eventsMerged}
+        if summary.sourceErrors.length
+          h3 Ошибки
+          ul
+            each err in summary.sourceErrors
+              li.error-item #{err.source}: #{err.error}
+    p
+      a(href='/tbilisi-events' target='_blank') Открыть таблицу событий
