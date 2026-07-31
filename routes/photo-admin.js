@@ -830,9 +830,13 @@ router.post('/people/new', requireAuth, express.urlencoded({ extended: false }),
   var shoot = shoots.getShoot(slug);
   var photo = shoot && shoot.photos.find(function(p) { return p.id === photoId; });
   if (!photo) return res.redirect('/admin/people');
-  var person = await photoPeople.createPerson(name.trim(), faceId);
-  var faces = photo.faces.map(function(f) { return f.faceId === faceId ? Object.assign({}, f, { personId: person.id }) : f; });
-  await shoots.updatePhotoFaces(slug, photoId, faces);
+  try {
+    var person = await photoPeople.createPerson(name.trim(), faceId);
+    var faces = (photo.faces || []).map(function(f) { return f.faceId === faceId ? Object.assign({}, f, { personId: person.id }) : f; });
+    await shoots.updatePhotoFaces(slug, photoId, faces);
+  } catch (e) {
+    console.error('[people/new]', e);
+  }
   res.redirect('/admin/people');
 });
 
@@ -842,9 +846,13 @@ router.post('/people/link', requireAuth, express.urlencoded({ extended: false })
   var shoot = shoots.getShoot(slug);
   var photo = shoot && shoot.photos.find(function(p) { return p.id === photoId; });
   if (!photo) return res.redirect('/admin/people');
-  await photoPeople.linkFaceToPerson(personId, faceId);
-  var faces = photo.faces.map(function(f) { return f.faceId === faceId ? Object.assign({}, f, { personId: personId }) : f; });
-  await shoots.updatePhotoFaces(slug, photoId, faces);
+  try {
+    await photoPeople.linkFaceToPerson(personId, faceId);
+    var faces = (photo.faces || []).map(function(f) { return f.faceId === faceId ? Object.assign({}, f, { personId: personId }) : f; });
+    await shoots.updatePhotoFaces(slug, photoId, faces);
+  } catch (e) {
+    console.error('[people/link]', e);
+  }
   res.redirect('/admin/people');
 });
 
@@ -852,7 +860,11 @@ router.post('/people/:personId/rename', requireAuth, express.urlencoded({ extend
   var { personId } = req.params;
   var name = (req.body.name || '').trim();
   if (!name) return res.redirect('/admin/people');
-  await photoPeople.renamePerson(personId, name);
+  try {
+    await photoPeople.renamePerson(personId, name);
+  } catch (e) {
+    console.error('[people/rename]', e);
+  }
   res.redirect('/admin/people');
 });
 
@@ -861,8 +873,12 @@ router.post('/shoots/:slug/photos/:id/faces/:faceId/unlink', requireAuth, async 
   var shoot = shoots.getShoot(slug);
   var photo = shoot && shoot.photos.find(function(p) { return p.id === id; });
   if (!photo) return res.redirect('/admin/people');
-  var faces = (photo.faces || []).map(function(f) { return f.faceId === faceId ? Object.assign({}, f, { personId: null }) : f; });
-  await shoots.updatePhotoFaces(slug, id, faces);
+  try {
+    var faces = (photo.faces || []).map(function(f) { return f.faceId === faceId ? Object.assign({}, f, { personId: null }) : f; });
+    await shoots.updatePhotoFaces(slug, id, faces);
+  } catch (e) {
+    console.error('[shoots faces unlink]', e);
+  }
   res.redirect('/admin/people');
 });
 
