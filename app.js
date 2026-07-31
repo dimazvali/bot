@@ -85,6 +85,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/proxy',        require('./routes/proxy'));
 app.use('/test',        require('./routes/test'));
 app.use('/homeless',        require('./routes/homelessBot'));
+app.use('/tbilisi-events', require('./routes/tbilisi-events'));
 
 
 
