@@ -13,6 +13,7 @@ var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
 var copyrightCheck = require('../lib/photo-copyright-check');
 var shoots = require('../lib/photo-shoots');
+var photoPeople = require('../lib/photo-people');
 var photoUsers = require('../lib/photo-users');
 var tgNotifier = require('../lib/photo-tg-notifier');
 
@@ -50,6 +51,7 @@ photoUsers.init(fb);
 mailer.init();
 copyright.init(fb);
 shoots.initFromFirestore(fb).catch(console.error);
+photoPeople.initFromFirestore(fb).catch(console.error);
 
 var upload = multer({
   storage: multer.memoryStorage(),
@@ -697,22 +699,30 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     pingSitemaps();
     indexNowSubmit('https://photo.dimazvali.com/shoot/' + slug);
 
-    // Auto-generate SEO desc+keywords async (fire-and-forget)
-    (function() {
-      var { generatePhotoSeo } = require('../lib/photo-seo');
-      var previousCaptions = shoot.photos
-        .filter(function(p) { return p.seo_desc; })
-        .slice(-6)
-        .map(function(p) { return p.seo_desc; });
-      generatePhotoSeo(photoEntry, {
-        countryLabel: shoot.label,
-        seriesLabel: shoot.label,
-        allTags: {},
-        shootDesc: shoot.desc,
-        previousCaptions: previousCaptions,
-      }).then(function(result) {
-        return shoots.updatePhotoSeo(slug, photoEntry.id, result.desc, result.keywords);
-      }).catch(function(e) { console.error('[auto-seo]', e.message); });
+    // Index faces, then auto-generate SEO desc+keywords (fire-and-forget, faces first so names are known)
+    (async function() {
+      try {
+        var faces = await photoPeople.indexAndMatchFaces(buf800);
+        await shoots.updatePhotoFaces(slug, photoEntry.id, faces);
+        var knownPeople = photoPeople.resolvePhotoPeopleNames({ faces: faces });
+
+        var { generatePhotoSeo } = require('../lib/photo-seo');
+        var previousCaptions = shoot.photos
+          .filter(function(p) { return p.seo_desc; })
+          .slice(-6)
+          .map(function(p) { return p.seo_desc; });
+        var result = await generatePhotoSeo(photoEntry, {
+          countryLabel: shoot.label,
+          seriesLabel: shoot.label,
+          allTags: {},
+          shootDesc: shoot.desc,
+          previousCaptions: previousCaptions,
+          knownPeople: knownPeople,
+        });
+        await shoots.updatePhotoSeo(slug, photoEntry.id, result.desc, result.keywords);
+      } catch (e) {
+        console.error('[auto-faces+seo]', e.message);
+      }
     }());
 
     res.redirect('/admin/shoots/' + slug + '/edit');
