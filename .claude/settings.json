@@ -37,7 +37,9 @@
       "Bash(PHOTO_ENV=prod LIMIT=3 node scripts/index-shoot-faces.js)",
       "Bash(git show *)",
       "Read(//tmp/**)",
-      "Bash(PHOTO_ENV=prod node scripts/index-shoot-faces.js)"
+      "Bash(PHOTO_ENV=prod node scripts/index-shoot-faces.js)",
+      "Bash(powershell -Command \"\\(Get-Content -Path 'C:\\\\Users\\\\DSHEST~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-dshestakov-node-bot\\\\5a2ad2c3-5371-4f62-81fa-8fb3c14d7a8e\\\\tasks\\\\bqxnaj467.output' -Encoding UTF8 | Select-Object -Last 5\\)\")",
+      "Bash(node -e \"console.log\\(require.resolve\\('@smithy/node-http-handler'\\)\\)\")"
     ]
   }
 }

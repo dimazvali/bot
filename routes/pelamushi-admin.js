@@ -862,10 +862,18 @@ router.get('/news/:id/registrations/print', async (req, res, next) => {
     if (col.registrations) {
       const regSnap = await col.registrations.where('news_id', '==', req.params.id).get();
       registrations = regSnap.docs
-        .map(d => ({ id: d.id, status: 'new', ...d.data() }))
+        .map(d => ({ id: d.id, status: 'new', checked_in: false, ...d.data() }))
         .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
     }
     res.render('pelamushi/admin/news-registrations-print', { article, registrations });
+  } catch (err) { next(err); }
+});
+
+router.post('/registrations/:id/checkin', async (req, res, next) => {
+  try {
+    const checked_in = req.body.checked_in === true || req.body.checked_in === 'true';
+    if (col.registrations) await col.registrations.doc(req.params.id).update({ checked_in, updated_at: new Date() });
+    res.json({ ok: true, checked_in });
   } catch (err) { next(err); }
 });
 
