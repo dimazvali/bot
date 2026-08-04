@@ -29,6 +29,20 @@ block content
         button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
     else
       span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
+  if isShoot && peopleGroups && peopleGroups.length
+    .faces-widget#faces-widget
+      each g in peopleGroups
+        - var rf = g.faces[0]
+        - var dw = 100 / rf.boundingBox.Width
+        - var dh = 100 / rf.boundingBox.Height
+        - var lp = -(rf.boundingBox.Left / rf.boundingBox.Width) * 100
+        - var tp = -(rf.boundingBox.Top / rf.boundingBox.Height) * 100
+        button.faces-widget-item(type='button' data-person-key=g.key)
+          .faces-widget-avatar
+            img(src=rf.thumb style=`width:${dw}%;height:${dh}%;left:${lp}%;top:${tp}%;`)
+          if g.name
+            span.faces-widget-name= g.name
+      button.faces-widget-reset(type='button') ✕ ВСЕ ЛИЦА
   if isShoot
     .shoot-collections#shoot-collections(style='display:none')
       span.gallery-label ВАШИ ПОДБОРКИ
@@ -36,6 +50,12 @@ block content
   -
     var _types = photos.reduce(function(s,p){ s.add(p.type||'copter'); return s; }, new Set());
     var _showFilter = _types.size > 1;
+    var _faceKeyByFaceId = {};
+    if (isShoot && peopleGroups) {
+      peopleGroups.forEach(function(g) {
+        g.faces.forEach(function(f) { _faceKeyByFaceId[f.faceId] = g.key; });
+      });
+    }
   if !isShoot && activeTags && activeTags.length
     .gallery-tags
       each tag in activeTags
@@ -52,6 +72,7 @@ block content
         href=isShoot ? `/shoot/${shootSlug}/${photo.id}` : `/${photo.countryKey}/${photo.seriesKey}/${photo.id}`
         data-type=photo.type||'copter'
         data-photo-id=photo.id
+        data-person-keys=(isShoot && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined
       )
         if isShoot
           span.photo-select
@@ -332,4 +353,53 @@ block content
             }
           });
         });
+      }());
+
+  if isShoot && peopleGroups && peopleGroups.length
+    script.
+      (function() {
+        var widget = document.getElementById('faces-widget');
+        if (!widget) return;
+        var items = widget.querySelectorAll('.faces-widget-item');
+        var resetBtn = widget.querySelector('.faces-widget-reset');
+        var cards = document.querySelectorAll('.photo-card[data-person-keys]');
+        var active = null;
+
+        function applyFilter(key) {
+          active = key;
+          if (key) {
+            widget.setAttribute('data-active', '');
+            items.forEach(function(el) { el.classList.toggle('is-active', el.dataset.personKey === key); });
+          } else {
+            widget.removeAttribute('data-active');
+            items.forEach(function(el) { el.classList.remove('is-active'); });
+          }
+          cards.forEach(function(c) {
+            var keys = (c.dataset.personKeys || '').split(',');
+            c.toggleAttribute('data-hidden', !!key && keys.indexOf(key) === -1);
+          });
+        }
+
+        items.forEach(function(el) {
+          el.addEventListener('click', function() {
+            var key = el.dataset.personKey;
+            var next = active === key ? null : key;
+            applyFilter(next);
+            var url = new URL(window.location.href);
+            if (next) { url.searchParams.set('person', next); } else { url.searchParams.delete('person'); }
+            history.pushState({}, '', url);
+          });
+        });
+
+        if (resetBtn) {
+          resetBtn.addEventListener('click', function() {
+            applyFilter(null);
+            var url = new URL(window.location.href);
+            url.searchParams.delete('person');
+            history.pushState({}, '', url);
+          });
+        }
+
+        var initial = new URLSearchParams(window.location.search).get('person');
+        if (initial) applyFilter(initial);
       }());

@@ -1644,3 +1644,14 @@ body.sidebar-open { overflow: hidden; }
 .person-pending { display: flex; flex-direction: column; gap: 6px; align-items: center; width: 100px; }
 .person-named { display: flex; align-items: flex-start; gap: 12px; padding: 10px; border: 1px solid var(--border); margin-bottom: 8px; }
 .person-named-info { display: flex; flex-direction: column; gap: 6px; }
+
+/* ─── FACES WIDGET ("find yourself") ────────────────────────── */
+.faces-widget { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; align-items: flex-start; }
+.faces-widget-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; cursor: pointer; width: 52px; background: none; border: none; padding: 0; }
+.faces-widget-avatar { position: relative; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--border); border: 1.5px solid var(--border); }
+.faces-widget-avatar img { position: absolute; max-width: none; }
+.faces-widget-name { font-size: 0.5625rem; font-family: monospace; color: var(--text-muted); letter-spacing: .5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; }
+.faces-widget[data-active] .faces-widget-item { display: none; }
+.faces-widget[data-active] .faces-widget-item.is-active { display: flex; }
+.faces-widget-reset { display: none; font-size: 0.5625rem; font-family: monospace; color: var(--text-dim); border: none; background: none; border-left: 1px solid var(--border); padding-left: 10px; margin-left: 2px; cursor: pointer; align-self: center; white-space: nowrap; }
+.faces-widget[data-active] .faces-widget-reset { display: inline; }
