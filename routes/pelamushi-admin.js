@@ -862,7 +862,7 @@ router.get('/news/:id/registrations/print', async (req, res, next) => {
     if (col.registrations) {
       const regSnap = await col.registrations.where('news_id', '==', req.params.id).get();
       registrations = regSnap.docs
-        .map(d => ({ id: d.id, status: 'new', checked_in: false, ...d.data() }))
+        .map(d => ({ id: d.id, status: 'new', checked_in: false, within_capacity: true, ...d.data() }))
         .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ru'));
     }
     res.render('pelamushi/admin/news-registrations-print', { article, registrations });

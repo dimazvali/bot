@@ -39,6 +39,8 @@ html
         content: '✓'; color: #fff; background: #4a8a4a; border-color: #4a8a4a;
         display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 1;
       }
+      .section-title { font-size: 1rem; margin: 1.5rem 0 0.75rem; color: #1C2E4A; }
+      .section-title:first-of-type { margin-top: 0; }
       .status { font-size: 0.78rem; }
       .status-declined { color: #B25B3C; text-decoration: line-through; }
       .empty { color: #999; font-style: italic; }
@@ -73,9 +75,7 @@ html
       if article.capacity
         |  из #{article.capacity}
 
-    if !registrations.length
-      p.empty Регистраций пока нет.
-    else
+    mixin regTable(list)
       table
         thead
           tr
@@ -86,7 +86,7 @@ html
             th Статус
             th Пришли
         tbody
-          each r, i in registrations
+          each r, i in list
             tr.reg-row(class=r.checked_in ? 'checked-in' : '' data-id=r.id)
               td.num #{i + 1}
               td #{r.name}
@@ -107,6 +107,19 @@ html
               td.check
                 span.check-box
 
+    if !registrations.length
+      p.empty Регистраций пока нет.
+    else
+      - var withinList = registrations.filter(function(r){ return r.within_capacity; })
+      - var overList = registrations.filter(function(r){ return !r.within_capacity; })
+      if overList.length
+        h2.section-title Успели зарегистрироваться (#{withinList.length})
+        +regTable(withinList)
+        h2.section-title Сверх вместимости (#{overList.length})
+        +regTable(overList)
+      else
+        +regTable(registrations)
+
     script.
       (function () {
         var rows = document.querySelectorAll('tr.reg-row');
@@ -122,6 +135,7 @@ html
           row.addEventListener('click', function () {
             var id = row.getAttribute('data-id');
             var next = !row.classList.contains('checked-in');
+            if (!next && !confirm('Снять отметку о приходе?')) return;
             row.classList.toggle('checked-in', next);
             updateCount();
             fetch('/admin/registrations/' + id + '/checkin', {

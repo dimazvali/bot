@@ -428,6 +428,7 @@ router.post('/:lang/news/:slug/register', async (req, res, next) => {
       phone: (phone || '').trim(),
       guests,
       status: 'new',
+      within_capacity: !full,
       created_at: Timestamp.now(),
     });
 

@@ -11,10 +11,12 @@ html(data-theme='dark')
         span.admin-logo ЛЮДИ
 
       .admin-section
-        h2.admin-title НЕРАЗМЕЧЕННЫЕ ЛИЦА (#{pending.length})
-        if !pending.length
+        h2.admin-title НЕРАЗМЕЧЕННЫЕ ЛИЦА (#{pendingTotal})
+        if !pendingTotal
           p.admin-hint Нет неразмеченных лиц.
         else
+          if pageCount > 1
+            p.admin-hint Страница #{page} из #{pageCount}
           .people-grid
             each face in pending
               - var dispW = 100 / face.boundingBox.Width
@@ -23,7 +25,7 @@ html(data-theme='dark')
               - var topPct = -(face.boundingBox.Top / face.boundingBox.Height) * 100
               .person-pending
                 .face-crop
-                  img(src=face.thumb style=`width:${dispW}%;height:${dispH}%;left:${leftPct}%;top:${topPct}%;`)
+                  img(src=face.thumb loading='lazy' style=`width:${dispW}%;height:${dispH}%;left:${leftPct}%;top:${topPct}%;`)
                 form.admin-form(method='POST' action='/admin/people/new' style='width:100%;gap:4px;')
                   input(type='hidden' name='slug' value=face.slug)
                   input(type='hidden' name='photoId' value=face.photoId)
@@ -40,6 +42,17 @@ html(data-theme='dark')
                       each person in people
                         option(value=person.id)= person.name
                     button.admin-btn.admin-btn--sm(type='submit') привязать
+          if pageCount > 1
+            .admin-pagination(style='display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;')
+              if page > 1
+                a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page - 1}`) ← назад
+              each n in Array.from({ length: pageCount }, (_, idx) => idx + 1)
+                if n === page
+                  span.admin-btn.admin-btn--sm(style='opacity:0.6;pointer-events:none;')= n
+                else
+                  a.admin-btn.admin-btn--sm(href=`/admin/people?page=${n}`)= n
+              if page < pageCount
+                a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page + 1}`) вперёд →
 
       .admin-section
         h2.admin-title ЛЮДИ (#{people.length})
