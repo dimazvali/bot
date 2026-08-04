@@ -803,6 +803,8 @@ router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json()
   }
 });
 
+var PENDING_PAGE_SIZE = 300;
+
 router.get('/people', requireAuth, function(req, res) {
   var shootsData = shoots.getData();
   var pending = [];
@@ -810,7 +812,7 @@ router.get('/people', requireAuth, function(req, res) {
   Object.keys(shootsData).forEach(function(slug) {
     shootsData[slug].photos.forEach(function(photo) {
       (photo.faces || []).forEach(function(face) {
-        var entry = { slug: slug, photoId: photo.id, thumb: photo.urls && photo.urls.thumb, boundingBox: face.boundingBox, faceId: face.faceId };
+        var entry = { slug: slug, photoId: photo.id, thumb: photo.urls && photo.urls.preview, boundingBox: face.boundingBox, faceId: face.faceId };
         facesByFaceId[face.faceId] = entry;
         if (!face.personId) pending.push(entry);
       });
@@ -821,7 +823,17 @@ router.get('/people', requireAuth, function(req, res) {
       faces: p.faceIds.map(function(fid) { return facesByFaceId[fid]; }).filter(Boolean),
     });
   });
-  res.render('photo/admin/people', { title: 'Люди — AERO Admin', pending: pending, people: people });
+  var pageCount = Math.max(1, Math.ceil(pending.length / PENDING_PAGE_SIZE));
+  var page = Math.min(pageCount, Math.max(1, parseInt(req.query.page, 10) || 1));
+  var pendingPage = pending.slice((page - 1) * PENDING_PAGE_SIZE, page * PENDING_PAGE_SIZE);
+  res.render('photo/admin/people', {
+    title: 'Люди — AERO Admin',
+    pending: pendingPage,
+    pendingTotal: pending.length,
+    page: page,
+    pageCount: pageCount,
+    people: people,
+  });
 });
 
 router.post('/people/new', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
