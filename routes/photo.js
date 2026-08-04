@@ -13,6 +13,7 @@ var { buildPageKeywords, BASE_KEYWORDS } = require('../lib/photo-seo');
 var crypto = require('crypto');
 var archiver = require('archiver');
 var shoots = require('../lib/photo-shoots');
+var photoPeople = require('../lib/photo-people');
 
 function shootCookieToken(password, slug) {
   var secret = process.env.papersToken;
@@ -469,6 +470,7 @@ router.get('/shoot/:slug', async (req, res) => {
         { name: shoot.label, url: `${BASE}/shoot/${slug}` },
       ],
       otherShoots: getOtherOpenShoots(slug),
+      peopleGroups: shoot.showFaces ? photoPeople.groupShootFaces(slug, shoot) : [],
     });
   });
 });
