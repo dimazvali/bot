@@ -616,7 +616,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
-  var { label, desc, password, public: isPublic } = req.body;
+  var { label, desc, password, public: isPublic, showFaces } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
   try {
     await shoots.saveShoot(slug, {
@@ -624,6 +624,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
       desc: (desc || '').trim(),
       password: (password || '').trim(),
       public: !!isPublic,
+      showFaces: !!showFaces,
     });
     res.redirect('/admin/shoots/' + slug + '/edit');
   } catch (e) {
