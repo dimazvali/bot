@@ -54,13 +54,18 @@ async function run() {
     try {
       var match = await photoPeople.findMatch(item.faceId);
       var person = match ? photoPeople.getPersonByFaceId(match.faceId) : null;
-      if (person) {
-        await photoPeople.linkFaceToPerson(person.id, item.faceId);
+      if (person) await photoPeople.linkFaceToPerson(person.id, item.faceId);
+      if (match) {
         var faces = item.photo.faces.map(function(f) {
-          return f.faceId === item.faceId ? Object.assign({}, f, { personId: person.id }) : f;
+          if (f.faceId !== item.faceId) return f;
+          var updated = Object.assign({}, f, { matchedFaceId: match.faceId });
+          if (person) updated.personId = person.id;
+          return updated;
         });
         await shoots.updatePhotoFaces(item.slug, item.photo.id, faces);
         item.photo.faces = faces; // keep in-memory copy consistent for any later iterations on the same photo
+      }
+      if (person) {
         linked++;
         console.log('[' + (linked + unchanged + errors) + '/' + todos.length + '] ' + item.slug + '/' + item.photo.id + '/' + item.faceId + ' -> ' + person.name);
       } else {
