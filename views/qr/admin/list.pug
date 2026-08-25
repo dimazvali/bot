@@ -1,0 +1,30 @@
+extends layout
+
+block content
+  .admin-list
+    h2 Фотографии
+    a.admin-btn(href='/admin/new') + Новая запись
+    table.admin-table
+      thead
+        tr
+          th Фото
+          th Название
+          th Год
+          th Slug / URL
+          th
+      tbody
+        each entry in entries
+          tr
+            td
+              img.admin-thumb(src=entry.photo)
+            td= entry.title
+            td= entry.year
+            td
+              a(href=`https://qr.dimazvali.com/${entry.slug}` target='_blank')= entry.slug
+            td
+              a(href=`/admin/${entry.slug}/edit`) Изменить
+              |  |
+              a(href=`/admin/${entry.slug}/qr.png` target='_blank') QR PNG
+              |  |
+              form(method='POST' action=`/admin/${entry.slug}/delete` style='display:inline' onsubmit='return confirm("Удалить запись?")')
+                button.admin-btn-danger(type='submit') Удалить

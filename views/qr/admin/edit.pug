@@ -1,0 +1,30 @@
+extends layout
+
+block content
+  .admin-edit
+    h2= entry ? 'Редактировать: ' + entry.title : 'Новая запись'
+    if error
+      .admin-error= error
+    form(method='POST' enctype='multipart/form-data')
+      .admin-field
+        label Slug (латиница, цифры, дефисы — часть URL, после печати QR не меняется)
+        if entry
+          input(type='text' value=entry.slug disabled)
+        else
+          input(type='text' name='slug' required pattern='[a-z0-9]+(-[a-z0-9]+)*' value=(entry && entry.slug) || '')
+      .admin-field
+        label Название
+        input(type='text' name='title' required value=(entry && entry.title) || '')
+      .admin-field
+        label Год / период
+        input(type='text' name='year' value=(entry && entry.year) || '')
+      .admin-field
+        label Адрес / место
+        input(type='text' name='address' value=(entry && entry.address) || '')
+      .admin-field
+        label Описание
+        textarea(name='description')= (entry && entry.description) || ''
+      .admin-field
+        label Фотография (крупнее, чем нужно показать — по краям есть запас для параллакса)
+        input(type='file' name='photo' accept='image/*' required=!entry)
+      button.admin-btn(type='submit') Сохранить
