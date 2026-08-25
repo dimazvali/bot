@@ -72,6 +72,10 @@ app.use(vhost('pelamushi.localhost', require('./routes/pelamushi')))
 app.use(vhost('pelamushi.ge', require('./routes/pelamushi')))
 app.use(vhost('www.pelamushi.ge', require('./routes/pelamushi')))
 
+app.use(vhost('qr.dimazvali.com', require('./routes/qr')))
+app.use(vhost('qr.*.*', require('./routes/qr')))
+app.use(vhost('qr.localhost', require('./routes/qr')))
+
 
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1y',
