@@ -1,0 +1,12 @@
+extends layout
+
+block content
+  .admin-login
+    h2 qr.dimazvali.com Admin
+    if error
+      .admin-error= error
+    form(method='POST' action='/admin/login')
+      .admin-field
+        label Пароль
+        input(type='password' name='pass' autofocus required)
+      button.admin-btn(type='submit') Войти
