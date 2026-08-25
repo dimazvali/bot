@@ -9,6 +9,7 @@
   var hint = document.getElementById('qrHint');
   var portal = document.getElementById('qrPortal');
   var rescanBtn = document.getElementById('qrRescanBtn');
+  var portalPhoto = document.getElementById('qrPortalPhoto');
   var T = window.QRPortalTransform;
 
   var SCAN_INTERVAL_MS = 100;
@@ -16,12 +17,17 @@
   var PORTAL_W = 260;
   var PORTAL_H = 200;
   var PORTAL_SCALE = 2.6;
+  var PORTAL_SENS = -5;    // px per degree — keeps the frame world-anchored
+  var PHOTO_SENS = -22;    // px per degree — bigger magnitude fakes extra depth behind the frame
 
   var ctx = canvas.getContext('2d', { willReadFrequently: true });
   var scanning = false;
   var lastScanAt = 0;
   var scanStartAt = 0;
   var anchorQuad = null;
+  var anchorOrientation = null;
+  var pendingOrientation = null;
+  var rafScheduled = false;
 
   function supportsAR() {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && typeof window.jsQR === 'function');
@@ -31,8 +37,21 @@
     return typeof text === 'string' && text.indexOf(ENTRY.slug) !== -1;
   }
 
+  async function requestOrientationPermission() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        var state = await DeviceOrientationEvent.requestPermission();
+        return state === 'granted';
+      } catch (e) {
+        return false;
+      }
+    }
+    return typeof DeviceOrientationEvent !== 'undefined';
+  }
+
   async function startAR() {
     arBtn.disabled = true;
+    await requestOrientationPermission();
     var stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -87,6 +106,8 @@
       return T.mapCoverPoint(pt, frameW, frameH, video.clientWidth, video.clientHeight);
     });
     anchorQuad = T.scaleQuadAroundCenter(displayCorners, PORTAL_SCALE);
+    anchorOrientation = pendingOrientation || { alpha: 0, beta: 0, gamma: 0 };
+    window.addEventListener('deviceorientation', onOrientation);
 
     var nativeRect = [
       { x: 0, y: 0 },
@@ -101,8 +122,37 @@
     rescanBtn.style.display = 'block';
   }
 
+  function onOrientation(e) {
+    if (e.alpha === null) return;
+    pendingOrientation = { alpha: e.alpha, beta: e.beta, gamma: e.gamma };
+    if (!anchorQuad || rafScheduled) return;
+    rafScheduled = true;
+    requestAnimationFrame(applyOrientation);
+  }
+
+  function applyOrientation() {
+    rafScheduled = false;
+    if (!anchorQuad || !anchorOrientation || !pendingOrientation) return;
+    var dGamma = T.normalizeAngleDelta(pendingOrientation.gamma - anchorOrientation.gamma);
+    var dBeta = T.normalizeAngleDelta(pendingOrientation.beta - anchorOrientation.beta);
+
+    var nativeRect = [
+      { x: 0, y: 0 },
+      { x: PORTAL_W, y: 0 },
+      { x: PORTAL_W, y: PORTAL_H },
+      { x: 0, y: PORTAL_H },
+    ];
+    var portalDst = anchorQuad.map(function(p) {
+      return { x: p.x + dGamma * PORTAL_SENS, y: p.y + dBeta * PORTAL_SENS };
+    });
+    portal.style.transform = T.computePortalTransform(nativeRect, portalDst);
+    portalPhoto.style.transform = 'translate(' + (dGamma * PHOTO_SENS) + 'px,' + (dBeta * PHOTO_SENS) + 'px)';
+  }
+
   function rescan() {
     anchorQuad = null;
+    anchorOrientation = null;
+    window.removeEventListener('deviceorientation', onOrientation);
     portal.style.display = 'none';
     rescanBtn.style.display = 'none';
     hint.style.display = 'block';
