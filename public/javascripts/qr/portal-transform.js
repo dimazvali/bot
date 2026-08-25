@@ -74,17 +74,25 @@ function scaleQuadAroundCenter(points, scale) {
   });
 }
 
-function normalizeAngleDelta(delta) {
-  var d = delta % 360;
-  if (d > 180) d -= 360;
-  if (d < -180) d += 360;
-  return d;
+function lerp(a, b, t) {
+  return a + t * (b - a);
 }
 
-function smoothAngle(smoothed, raw, factor) {
-  if (smoothed === null) return raw;
-  var delta = normalizeAngleDelta(raw - smoothed);
-  return smoothed + factor * delta;
+function lerpPoint(a, b, t) {
+  return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) };
+}
+
+// Measures how far a tracked quad deviates from a perfect axis-aligned
+// rectangle — i.e. how much perspective skew the camera currently sees.
+// Zero for a fronto-parallel view; grows as the viewing angle increases.
+// Computed directly from the live-tracked marker, so it needs no separate
+// sensor (no gyroscope) and is inherently in sync with what's on screen.
+function computeQuadSkew(quad) {
+  var tl = quad[0], tr = quad[1], br = quad[2], bl = quad[3];
+  return {
+    horiz: (tr.y - tl.y) - (br.y - bl.y),
+    vert: (bl.x - tl.x) - (br.x - tr.x),
+  };
 }
 
 var api = {
@@ -93,8 +101,9 @@ var api = {
   computePortalTransform: computePortalTransform,
   mapCoverPoint: mapCoverPoint,
   scaleQuadAroundCenter: scaleQuadAroundCenter,
-  smoothAngle: smoothAngle,
-  normalizeAngleDelta: normalizeAngleDelta,
+  lerp: lerp,
+  lerpPoint: lerpPoint,
+  computeQuadSkew: computeQuadSkew,
 };
 
 if (typeof module !== 'undefined' && module.exports) {

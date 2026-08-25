@@ -67,30 +67,34 @@ test('scaleQuadAroundCenter enlarges a quad around its centroid', function() {
   assert.deepEqual(scaled, [{ x: -5, y: -5 }, { x: 15, y: -5 }, { x: 15, y: 15 }, { x: -5, y: 15 }]);
 });
 
-test('normalizeAngleDelta wraps deltas into [-180, 180]', function() {
-  assert.equal(T.normalizeAngleDelta(350), -10);
-  assert.equal(T.normalizeAngleDelta(-350), 10);
-  assert.equal(T.normalizeAngleDelta(10), 10);
-  assert.equal(T.normalizeAngleDelta(-10), -10);
+test('lerp interpolates linearly between two values', function() {
+  assert.ok(Math.abs(T.lerp(0, 10, 0.25) - 2.5) < 1e-9);
+  assert.ok(Math.abs(T.lerp(10, 0, 0.5) - 5) < 1e-9);
+  assert.equal(T.lerp(5, 5, 0.7), 5);
 });
 
-test('smoothAngle bootstraps to the raw value on the first sample (null smoothed state)', function() {
-  assert.equal(T.smoothAngle(null, 42, 0.2), 42);
+test('lerpPoint interpolates x and y independently', function() {
+  var p = T.lerpPoint({ x: 0, y: 0 }, { x: 10, y: 20 }, 0.5);
+  assert.deepEqual(p, { x: 5, y: 10 });
 });
 
-test('smoothAngle nudges toward raw by the given factor', function() {
-  assert.ok(Math.abs(T.smoothAngle(0, 100, 0.25) - 25) < 1e-9);
-  assert.ok(Math.abs(T.smoothAngle(100, 0, 0.25) - 75) < 1e-9);
+test('computeQuadSkew is zero for a perfect axis-aligned rectangle', function() {
+  var quad = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+  assert.deepEqual(T.computeQuadSkew(quad), { horiz: 0, vert: 0 });
 });
 
-test('smoothAngle converges to a constant raw value over repeated samples', function() {
-  var smoothed = 0;
-  for (var i = 0; i < 50; i++) smoothed = T.smoothAngle(smoothed, 90, 0.2);
-  assert.ok(Math.abs(smoothed - 90) < 0.01);
+test('computeQuadSkew detects horizontal (left-right viewing angle) skew', function() {
+  // top-right corner pulled down, as if the marker is foreshortened on the right
+  var quad = [{ x: 0, y: 0 }, { x: 10, y: 3 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+  var skew = T.computeQuadSkew(quad);
+  assert.equal(skew.horiz, 3);
+  assert.equal(skew.vert, 0);
 });
 
-test('smoothAngle takes the short way across the 0/360 wrap boundary', function() {
-  // raw jumps from 350 to 10 (a 20-degree turn through the wrap), not a 340-degree turn
-  var smoothed = T.smoothAngle(350, 10, 0.5);
-  assert.ok(Math.abs(smoothed - 360) < 1e-9 || Math.abs(smoothed - 0) < 1e-9, 'expected ~360 (i.e. ~0), got ' + smoothed);
+test('computeQuadSkew detects vertical (up-down viewing angle) skew', function() {
+  // bottom-left corner pulled right, as if the marker is foreshortened at the bottom
+  var quad = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 4, y: 10 }];
+  var skew = T.computeQuadSkew(quad);
+  assert.equal(skew.horiz, 0);
+  assert.equal(skew.vert, 4);
 });
