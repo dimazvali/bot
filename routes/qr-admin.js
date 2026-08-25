@@ -48,8 +48,12 @@ router.post('/logout', function(req, res) {
   res.redirect('/admin/login');
 });
 
-router.get('/', requireAuth, function(req, res) {
-  res.render('qr/admin/list', { title: 'qr.dimazvali.com Admin', entries: qrData.getAll() });
+router.get('/', requireAuth, async function(req, res, next) {
+  try {
+    res.render('qr/admin/list', { title: 'qr.dimazvali.com Admin', entries: await qrData.getAll() });
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.get('/new', requireAuth, function(req, res) {
@@ -61,7 +65,7 @@ router.post('/new', requireAuth, upload.single('photo'), async function(req, res
     if (!req.file) throw new Error('Загрузите фотографию');
     var slug = (req.body.slug || '').trim();
     var photoPath = await qrImages.savePhoto(slug, req.file.buffer);
-    qrData.create({
+    await qrData.create({
       slug: slug,
       title: (req.body.title || '').trim(),
       year: (req.body.year || '').trim(),
@@ -75,10 +79,14 @@ router.post('/new', requireAuth, upload.single('photo'), async function(req, res
   }
 });
 
-router.get('/:slug/edit', requireAuth, function(req, res) {
-  var entry = qrData.getBySlug(req.params.slug);
-  if (!entry) return res.status(404).send('Не найдено');
-  res.render('qr/admin/edit', { title: 'Редактировать: ' + entry.title, entry: entry, error: null });
+router.get('/:slug/edit', requireAuth, async function(req, res, next) {
+  try {
+    var entry = await qrData.getBySlug(req.params.slug);
+    if (!entry) return res.status(404).send('Не найдено');
+    res.render('qr/admin/edit', { title: 'Редактировать: ' + entry.title, entry: entry, error: null });
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.post('/:slug/edit', requireAuth, upload.single('photo'), async function(req, res) {
@@ -92,26 +100,35 @@ router.post('/:slug/edit', requireAuth, upload.single('photo'), async function(r
     if (req.file) {
       patch.photo = await qrImages.savePhoto(req.params.slug, req.file.buffer);
     }
-    qrData.update(req.params.slug, patch);
+    await qrData.update(req.params.slug, patch);
     res.redirect('/admin');
   } catch (e) {
-    var entry = qrData.getBySlug(req.params.slug);
+    var entry = await qrData.getBySlug(req.params.slug).catch(function() { return null; });
     res.render('qr/admin/edit', { title: 'Редактировать', entry: entry, error: e.message });
   }
 });
 
-router.post('/:slug/delete', requireAuth, function(req, res) {
-  qrData.remove(req.params.slug);
-  qrImages.deletePhoto(req.params.slug);
-  res.redirect('/admin');
+router.post('/:slug/delete', requireAuth, async function(req, res, next) {
+  try {
+    await qrData.remove(req.params.slug);
+    await qrImages.deletePhoto(req.params.slug);
+    res.redirect('/admin');
+  } catch (e) {
+    next(e);
+  }
 });
 
-router.get('/:slug/qr.png', requireAuth, function(req, res) {
-  var entry = qrData.getBySlug(req.params.slug);
-  if (!entry) return res.status(404).send('Не найдено');
-  var url = 'https://qr.dimazvali.com/' + entry.slug;
-  res.type('png');
-  QRCode.toFileStream(res, url, { width: 800, margin: 2 });
+router.get('/:slug/qr.png', requireAuth, async function(req, res, next) {
+  try {
+    var entry = await qrData.getBySlug(req.params.slug);
+    if (!entry) return res.status(404).send('Не найдено');
+    var base = process.env.QR_BASE_URL || 'https://qr.dimazvali.com';
+    var url = base + '/' + entry.slug;
+    res.type('png');
+    QRCode.toFileStream(res, url, { width: 800, margin: 2 });
+  } catch (e) {
+    next(e);
+  }
 });
 
 module.exports = router;

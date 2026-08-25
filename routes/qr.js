@@ -9,10 +9,14 @@ router.use(express.static(path.join(__dirname, '../public')));
 // Admin router must be mounted BEFORE the wildcard :slug route
 router.use('/admin', require('./qr-admin'));
 
-router.get('/:slug', function(req, res) {
-  var entry = qrData.getBySlug(req.params.slug);
-  if (!entry) return res.status(404).render('qr/not-found', { title: 'Не найдено' });
-  res.render('qr/photo', { title: entry.title + ' — окно в прошлое', entry: entry });
+router.get('/:slug', async function(req, res, next) {
+  try {
+    var entry = await qrData.getBySlug(req.params.slug);
+    if (!entry) return res.status(404).render('qr/not-found', { title: 'Не найдено' });
+    res.render('qr/photo', { title: entry.title + ' — окно в прошлое', entry: entry });
+  } catch (e) {
+    next(e);
+  }
 });
 
 module.exports = router;
