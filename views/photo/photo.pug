@@ -25,7 +25,7 @@ block head
       if (photo.altitude) _ld.altitude = photo.altitude
       if (photo.tags && photo.tags.length) _ld.keywords = photo.tags.map(function(t){ return allTags[t] ? allTags[t].label : t }).join(', ')
       Object.keys(_ld).forEach(function(k){ if (_ld[k] == null) delete _ld[k] })
-    script(type='application/ld+json')!= JSON.stringify(_ld)
+    script#ld-photo(type='application/ld+json')!= JSON.stringify(_ld)
 
 block content
   .photo-page
@@ -46,6 +46,9 @@ block content
         img(
           src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
           alt=photo.title
+          title=photo.desc||photo.title
+          width=photo.width||undefined
+          height=photo.height||undefined
           onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
         )
     .photo-page-info
@@ -60,9 +63,17 @@ block content
           a.photo-source-shoot(href=sourceShootUrl) ИЗ СЪЁМКИ: #{sourceShootLabel.toUpperCase()} →
       .photo-page-nav
         if prev
-          a.nav-btn(href=isShoot ? `/shoot/${shootSlug}/${prev.id}` : `/${countryKey}/${seriesKey}/${prev.id}` data-dir='prev') ← ПРЕД.
+          a.nav-btn(
+            href=isShoot ? `/shoot/${shootSlug}/${prev.id}` : `/${countryKey}/${seriesKey}/${prev.id}`
+            data-dir='prev'
+            data-preload-src=prev.urls ? prev.urls.full : `/images/photo/${countryKey}/${seriesKey}/${prev.file}`
+          ) ← ПРЕД.
         if next
-          a.nav-btn(href=isShoot ? `/shoot/${shootSlug}/${next.id}` : `/${countryKey}/${seriesKey}/${next.id}` data-dir='next') СЛЕД. →
+          a.nav-btn(
+            href=isShoot ? `/shoot/${shootSlug}/${next.id}` : `/${countryKey}/${seriesKey}/${next.id}`
+            data-dir='next'
+            data-preload-src=next.urls ? next.urls.full : `/images/photo/${countryKey}/${seriesKey}/${next.file}`
+          ) СЛЕД. →
     if photo.desc
       p.photo-page-desc= photo.desc
     if photo.annotations && photo.annotations.length
@@ -123,45 +134,237 @@ block content
         .related-strip
           each r in related
             a.related-thumb(href=`/${r.countryKey}/${r.seriesKey}/${r.id}` title=r.title)
-              img(src=r.urls.preview alt=r.title loading='lazy' onerror="this.closest('.related-thumb').style.display='none'")
+              img(src=r.urls.preview alt=r.title title=r.title loading='lazy' onerror="this.closest('.related-thumb').style.display='none'")
 
   script.
     (function() {
-      var popup = document.getElementById('annot-popup');
-      if (!popup) return;
-      var popupText = document.getElementById('annot-popup-text');
-      var closeBtn = document.getElementById('annot-popup-close');
-      var annots = document.querySelectorAll('.photo-image-wrap .photo-annot');
-      if (!annots.length) return;
+      // ── soft (SPA-like) navigation between photos: swaps <main> + <head> via fetch
+      // instead of a full page reload; falls back to a real navigation on any failure ──
+      var main = document.querySelector('main.main');
 
-      // object-fit:contain letterboxing compensation:
-      // actual rendered image area inside the element may have empty margins
-      var pageImg = document.querySelector('.photo-image-wrap img');
       function repositionAnnots() {
-        if (!pageImg || !pageImg.naturalWidth) return;
-        var W = pageImg.clientWidth;
-        var H = pageImg.clientHeight;
+        var pageImg = document.querySelector('.photo-image-wrap img');
+        var annots = document.querySelectorAll('.photo-image-wrap .photo-annot');
+        if (!pageImg || !pageImg.naturalWidth || !annots.length) return;
+        var W = pageImg.clientWidth, H = pageImg.clientHeight;
         var scale = Math.min(W / pageImg.naturalWidth, H / pageImg.naturalHeight);
-        var rW = pageImg.naturalWidth * scale;
-        var rH = pageImg.naturalHeight * scale;
-        var rL = (W - rW) / 2;
-        var rT = (H - rH) / 2;
+        var rW = pageImg.naturalWidth * scale, rH = pageImg.naturalHeight * scale;
+        var rL = (W - rW) / 2, rT = (H - rH) / 2;
         annots.forEach(function(btn) {
           btn.style.left = (rL + rW * parseFloat(btn.dataset.x) / 100) + 'px';
           btn.style.top  = (rT + rH * parseFloat(btn.dataset.y) / 100) + 'px';
         });
       }
-      if (pageImg) {
-        if (pageImg.complete && pageImg.naturalWidth) repositionAnnots();
-        else pageImg.addEventListener('load', repositionAnnots);
-        window.addEventListener('resize', repositionAnnots);
+
+      // turns off the shimmer skeleton on .photo-page-image once the current image is ready
+      function markPageImageLoaded() {
+        var pageImg = document.querySelector('.photo-page-image img');
+        var container = pageImg && pageImg.closest('.photo-page-image');
+        if (container) container.classList.add('loaded');
       }
 
-      annots.forEach(function(btn) {
-        btn.addEventListener('click', function(e) {
+      // warms the browser cache for the neighboring photos so ПРЕД./СЛЕД. feel instant
+      var preloadedSrcs = {};
+      function preloadNeighbors() {
+        ['prev', 'next'].forEach(function(dir) {
+          var link = document.querySelector('.nav-btn[data-dir="' + dir + '"]');
+          var src = link && link.getAttribute('data-preload-src');
+          if (!src || preloadedSrcs[src]) return;
+          preloadedSrcs[src] = true;
+          var img = new Image();
+          img.src = src;
+        });
+      }
+
+      function onPageImageReady() {
+        repositionAnnots();
+        markPageImageLoaded();
+        preloadNeighbors();
+      }
+
+      // load/error don't bubble, so catch them in the capture phase to survive DOM swaps
+      document.addEventListener('load', function(e) {
+        if (e.target.matches && e.target.matches('.photo-page-image img')) onPageImageReady();
+      }, true);
+      document.addEventListener('error', function(e) {
+        if (e.target.matches && e.target.matches('.photo-page-image img')) markPageImageLoaded();
+      }, true);
+      window.addEventListener('resize', repositionAnnots);
+
+      function checkPageImageAlreadyLoaded() {
+        var pageImg = document.querySelector('.photo-page-image img');
+        if (pageImg && pageImg.complete && pageImg.naturalWidth) onPageImageReady();
+      }
+      checkPageImageAlreadyLoaded();
+
+      function loadComments() {
+        var old = document.getElementById('comments-script');
+        if (old) old.remove();
+        if (!document.querySelector('.photo-comments-section')) return;
+        var s = document.createElement('script');
+        s.id = 'comments-script';
+        s.src = '/javascripts/photo/comments.js';
+        document.body.appendChild(s);
+      }
+
+      function updateHead(doc) {
+        document.title = doc.title;
+        var newDesc = doc.querySelector('meta[name="description"]');
+        var curDesc = document.querySelector('meta[name="description"]');
+        if (newDesc && curDesc) curDesc.setAttribute('content', newDesc.getAttribute('content') || '');
+
+        ['og:title', 'og:description', 'og:image', 'og:url'].forEach(function(prop) {
+          var n = doc.querySelector('meta[property="' + prop + '"]');
+          var cur = document.querySelector('meta[property="' + prop + '"]');
+          if (n) {
+            if (!cur) { cur = document.createElement('meta'); cur.setAttribute('property', prop); document.head.appendChild(cur); }
+            cur.setAttribute('content', n.getAttribute('content') || '');
+          } else if (cur) {
+            cur.remove();
+          }
+        });
+
+        var newCanon = doc.querySelector('link[rel="canonical"]');
+        var curCanon = document.querySelector('link[rel="canonical"]');
+        if (newCanon && curCanon) curCanon.setAttribute('href', newCanon.getAttribute('href'));
+
+        var oldLd = document.getElementById('ld-photo');
+        if (oldLd) oldLd.remove();
+        var newLd = doc.getElementById('ld-photo');
+        if (newLd) document.head.appendChild(newLd.cloneNode(true));
+      }
+
+      function swap(html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var newMain = doc.querySelector('main.main');
+        if (!newMain) return false;
+        updateHead(doc);
+        main.innerHTML = newMain.innerHTML;
+        window.scrollTo(0, 0);
+        checkPageImageAlreadyLoaded();
+        loadComments();
+        return true;
+      }
+
+      // GA doesn't see soft-nav'd URL changes on its own — gtag('config',...) in <head>
+      // only auto-fires a page_view for the real (first) page load, so send one by hand
+      // per swap. The internal Firestore view counter (trackView, routes/photo.js) needs
+      // no such fix — it runs server-side on every fetch(), same as a normal navigation.
+      function trackPageView() {
+        if (typeof gtag === 'function') {
+          gtag('event', 'page_view', {
+            page_title: document.title,
+            page_location: location.href,
+            page_path: location.pathname + location.search,
+          });
+        }
+      }
+
+      var navigating = false;
+      function navigate(url, isPop) {
+        if (navigating) return;
+        navigating = true;
+        fetch(url)
+          .then(function(r) { if (!r.ok) throw new Error('nav failed'); return r.text(); })
+          .then(function(html) {
+            navigating = false;
+            if (!swap(html)) { location.href = url; return; }
+            if (!isPop) history.pushState({ photoNav: true }, '', url);
+            trackPageView();
+          })
+          .catch(function() {
+            navigating = false;
+            location.href = url;
+          });
+      }
+
+      // ── zoom lightbox: single #lb element created once, reused across soft-nav swaps ──
+      var lb = document.createElement('div');
+      lb.id = 'lb';
+      lb.className = 'lb';
+      var lbClose = document.createElement('button');
+      lbClose.className = 'lb-close';
+      lbClose.textContent = '✕';
+      var lbWrap = document.createElement('div');
+      lbWrap.className = 'lb-wrap';
+      var lbImg = document.createElement('img');
+      lbImg.className = 'lb-img';
+      lbWrap.appendChild(lbImg);
+      lb.appendChild(lbClose);
+      lb.appendChild(lbWrap);
+      document.body.appendChild(lb);
+
+      function addLbAnnots() {
+        lbWrap.querySelectorAll('.lb-annot').forEach(function(el) { el.remove(); });
+        document.querySelectorAll('.photo-image-wrap .photo-annot').forEach(function(btn) {
+          var marker = document.createElement('button');
+          marker.type = 'button';
+          marker.className = 'photo-annot lb-annot';
+          marker.textContent = btn.textContent;
+          marker.style.left = btn.dataset.x + '%';
+          marker.style.top  = btn.dataset.y + '%';
+          marker.dataset.text = btn.dataset.text;
+          lbWrap.appendChild(marker);
+        });
+      }
+      function openLb() {
+        var pageImg = document.querySelector('.photo-page-image img');
+        if (!pageImg) return;
+        var popup = document.getElementById('annot-popup');
+        if (popup) popup.style.display = 'none';
+        lbImg.src = pageImg.src;
+        lb.classList.add('lb-open');
+        document.body.style.overflow = 'hidden';
+        if (lbImg.complete && lbImg.naturalWidth) addLbAnnots();
+        else lbImg.addEventListener('load', addLbAnnots, { once: true });
+      }
+      function closeLb() {
+        lb.classList.remove('lb-open');
+        document.body.style.overflow = '';
+        var popup = document.getElementById('annot-popup');
+        if (popup) popup.style.display = 'none';
+      }
+      lb.addEventListener('click', function(e) {
+        var annotBtn = e.target.closest && e.target.closest('.lb-annot');
+        if (annotBtn) {
           e.stopPropagation();
-          popupText.textContent = btn.dataset.text;
-          var rect = btn.getBoundingClientRect();
+          var popup = document.getElementById('annot-popup');
+          var popupText = document.getElementById('annot-popup-text');
+          if (popup && popupText) {
+            popupText.textContent = annotBtn.dataset.text;
+            var rect = annotBtn.getBoundingClientRect();
+            var popW = 240;
+            var top = rect.bottom + 10;
+            var left = rect.left + rect.width / 2 - popW / 2;
+            left = Math.max(10, Math.min(window.innerWidth - popW - 10, left));
+            if (top + 120 > window.innerHeight) top = rect.top - 130;
+            if (top < 10) top = 10;
+            popup.style.top = top + 'px';
+            popup.style.left = left + 'px';
+            popup.style.display = 'block';
+          }
+          return;
+        }
+        closeLb();
+      });
+      lbClose.addEventListener('click', function(e) { e.stopPropagation(); closeLb(); });
+
+      document.addEventListener('click', function(e) {
+        var link = e.target.closest && e.target.closest('.nav-btn[href]');
+        if (link && main.contains(link)) {
+          e.preventDefault();
+          navigate(link.getAttribute('href'));
+          return;
+        }
+
+        var pageImgEl = e.target.closest && e.target.closest('.photo-page-image img');
+        if (pageImgEl) { openLb(); return; }
+
+        var annotBtn = e.target.closest && e.target.closest('.photo-annot');
+        var popup = document.getElementById('annot-popup');
+        if (annotBtn && popup) {
+          document.getElementById('annot-popup-text').textContent = annotBtn.dataset.text;
+          var rect = annotBtn.getBoundingClientRect();
           var popW = 240;
           var top = rect.bottom + 10;
           var left = rect.left + rect.width / 2 - popW / 2;
@@ -171,31 +374,28 @@ block content
           popup.style.top = top + 'px';
           popup.style.left = left + 'px';
           popup.style.display = 'block';
-        });
+          return;
+        }
+        if (popup && popup.style.display === 'block' && !popup.contains(e.target)) {
+          popup.style.display = 'none';
+        }
+
+        var tabBtn = e.target.closest && e.target.closest('.inquiry-tab');
+        if (tabBtn) {
+          var tab = tabBtn.dataset.tab;
+          document.querySelectorAll('.inquiry-tab').forEach(function(b) {
+            b.classList.toggle('is-active', b.dataset.tab === tab);
+          });
+          document.querySelectorAll('.inquiry-tab-panel').forEach(function(p) {
+            p.style.display = p.dataset.panel === tab ? '' : 'none';
+          });
+        }
       });
 
-      closeBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        popup.style.display = 'none';
-      });
+      window.addEventListener('popstate', function() { navigate(location.href, true); });
 
-      document.addEventListener('click', function() { popup.style.display = 'none'; });
-      popup.addEventListener('click', function(e) { e.stopPropagation(); });
+      loadComments();
     }());
-
-    // ── Inquiry/review tabs ──
-    document.querySelectorAll('.inquiry-tab').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var tab = btn.dataset.tab;
-        document.querySelectorAll('.inquiry-tab').forEach(function(b) {
-          b.classList.toggle('is-active', b.dataset.tab === tab);
-        });
-        document.querySelectorAll('.inquiry-tab-panel').forEach(function(p) {
-          p.style.display = p.dataset.panel === tab ? '' : 'none';
-        });
-      });
-    });
 
   if !isShoot
     script(src='https://accounts.google.com/gsi/client' async defer)
-    script(src='/javascripts/photo/comments.js')

@@ -16,6 +16,9 @@ block content
               srcset=cover.urls ? `${cover.urls.thumb || cover.urls.preview} 400w, ${cover.urls.preview} 800w` : undefined
               sizes='(max-width: 640px) calc(50vw - 12px), 400px'
               alt=shoot.label
+              title=shoot.label
+              width=cover.width||undefined
+              height=cover.height||undefined
               loading='lazy'
               style=cover.width && cover.height ? `aspect-ratio:${cover.width}/${cover.height}` : undefined
               onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"

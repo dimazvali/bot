@@ -9,10 +9,81 @@ html
       table { border-collapse: collapse; width: 100%; }
       th, td { border: 1px solid #ddd; padding: 0.5rem 0.75rem; text-align: left; vertical-align: top; }
       th { background: #f5f5f5; }
+      .toolbar { margin: 1rem 0 1.5rem; }
+      .btn { display: inline-block; padding: 0.5rem 1rem; background: #1C2E4A; color: #fff; border-radius: 4px; text-decoration: none; font-size: 0.9rem; }
+      .cal-wrap { max-width: 420px; margin-bottom: 2rem; }
+      .cal-nav { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+      .cal-nav a { color: #1C2E4A; text-decoration: none; font-size: 1.1rem; padding: 0 0.4rem; }
+      .cal-nav form { display: flex; gap: 0.4rem; margin-left: auto; }
+      .cal-nav select { font-size: 0.85rem; padding: 0.2rem; }
+      table.calendar { width: 100%; }
+      table.calendar th { text-align: center; font-size: 0.8rem; background: none; border: none; padding: 0.25rem; }
+      table.calendar td { text-align: center; vertical-align: middle; padding: 0; height: 44px; width: 44px; border: 1px solid #eee; }
+      table.calendar td.empty { border: none; }
+      table.calendar td.today { background: #f5f5f5; font-weight: bold; }
+      table.calendar td.selected { outline: 2px solid #1C2E4A; outline-offset: -2px; }
+      table.calendar td.has-events a { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #1C2E4A; text-decoration: none; }
+      table.calendar td.has-events { background: #eaf1fb; }
+      table.calendar .day-num { font-size: 0.9rem; }
+      table.calendar .day-count { font-size: 0.65rem; color: #557; }
+      table.calendar td.past.has-events { background: #f0f0f0; }
+      table.calendar td.past .day-count { color: #888; }
   body
     h1= title
+
+    .cal-wrap
+      .cal-nav
+        a(href=`/tbilisi-events?year=${calendar.prevYear}&month=${calendar.prevMonth}`) ‹
+        strong= calendar.monthLabel
+        a(href=`/tbilisi-events?year=${calendar.nextYear}&month=${calendar.nextMonth}`) ›
+        form(method='GET' action='/tbilisi-events')
+          if showAll
+            input(type='hidden' name='all' value='1')
+          select(name='month' onchange='this.form.submit()')
+            each name, idx in monthNames
+              option(value=idx + 1 selected=idx + 1 === calendar.month)= name
+          select(name='year' onchange='this.form.submit()')
+            - var y = calendar.year - 1
+            while y <= calendar.year + 2
+              option(value=y selected=y === calendar.year)= y
+              - y++
+          noscript
+            button(type='submit') Перейти
+      table.calendar
+        thead
+          tr
+            th Пн
+            th Вт
+            th Ср
+            th Чт
+            th Пт
+            th Сб
+            th Вс
+        tbody
+          each week in calendar.weeks
+            tr
+              each cell in week
+                if !cell
+                  td.empty
+                else if cell.count
+                  td(class=[cell.isToday && 'today', 'has-events', cell.isPast && 'past', cell.isSelected && 'selected'].filter(Boolean).join(' '))
+                    a(href=`/tbilisi-events?date=${cell.date}`)
+                      span.day-num= cell.day
+                      span.day-count= cell.count
+                else
+                  td(class=[cell.isToday && 'today', cell.isSelected && 'selected'].filter(Boolean).join(' '))
+                    span.day-num= cell.day
+
+    .toolbar
+      if dateParam
+        a.btn(href='/tbilisi-events') ← Все события
+      else if showAll
+        a.btn(href='/tbilisi-events') Только предстоящие
+      else
+        a.btn(href='/tbilisi-events?all=1') Показать все
+
     if events.length === 0
-      p Пока нет собранных событий.
+      p= dateParam ? 'На эту дату событий не найдено.' : (showAll ? 'Пока нет собранных событий.' : 'Нет предстоящих событий.')
     else
       table
         thead

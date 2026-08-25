@@ -36,10 +36,84 @@ function sanitizeEvents(events) {
   });
 }
 
+var MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+
+function buildCalendar(events, todayStr, monthStr, selectedDate) {
+  var monthPrefix = monthStr;
+  var year = parseInt(monthStr.slice(0, 4), 10);
+  var month = parseInt(monthStr.slice(5, 7), 10) - 1; // 0-indexed
+
+  var counts = {};
+  events.forEach(function(e) {
+    if (e.date && e.date.slice(0, 7) === monthPrefix) counts[e.date] = (counts[e.date] || 0) + 1;
+  });
+
+  var firstOfMonth = new Date(Date.UTC(year, month, 1));
+  var daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  var startWeekday = (firstOfMonth.getUTCDay() + 6) % 7; // 0 = Monday
+
+  var cells = [];
+  for (var i = 0; i < startWeekday; i++) cells.push(null);
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateStr = monthPrefix + '-' + (d < 10 ? '0' + d : d);
+    cells.push({
+      date: dateStr, day: d, count: counts[dateStr] || 0,
+      isToday: dateStr === todayStr, isPast: dateStr < todayStr, isSelected: dateStr === selectedDate,
+    });
+  }
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  var weeks = [];
+  for (var w = 0; w < cells.length; w += 7) weeks.push(cells.slice(w, w + 7));
+
+  var prevDate = new Date(Date.UTC(year, month - 1, 1));
+  var nextDate = new Date(Date.UTC(year, month + 1, 1));
+
+  return {
+    monthLabel: MONTH_NAMES[month] + ' ' + year,
+    weeks: weeks,
+    year: year,
+    month: month + 1,
+    prevYear: prevDate.getUTCFullYear(),
+    prevMonth: prevDate.getUTCMonth() + 1,
+    nextYear: nextDate.getUTCFullYear(),
+    nextMonth: nextDate.getUTCMonth() + 1,
+  };
+}
+
 router.get('/', async function(req, res, next) {
   try {
-    var events = await eventsData.getAllEvents();
-    res.render('tbilisi-events/list', { title: 'Афиша Тбилиси', events: sanitizeEvents(events) });
+    var events = sanitizeEvents(await eventsData.getAllEvents());
+    var today = new Date().toISOString().slice(0, 10);
+    var showAll = req.query.all === '1';
+    var dateParam = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : null;
+
+    var yearParam = parseInt(req.query.year, 10);
+    var monthParam = parseInt(req.query.month, 10);
+    var monthStr;
+    if (yearParam && monthParam >= 1 && monthParam <= 12) {
+      monthStr = yearParam + '-' + (monthParam < 10 ? '0' + monthParam : monthParam);
+    } else if (dateParam) {
+      monthStr = dateParam.slice(0, 7);
+    } else {
+      monthStr = today.slice(0, 7);
+    }
+
+    var visibleEvents;
+    if (dateParam) {
+      visibleEvents = events.filter(function(e) { return e.date === dateParam; });
+    } else {
+      visibleEvents = showAll ? events : events.filter(function(e) { return e.date >= today; });
+    }
+
+    res.render('tbilisi-events/list', {
+      title: dateParam ? 'Афиша Тбилиси — ' + dateParam : 'Афиша Тбилиси',
+      events: visibleEvents,
+      showAll: showAll,
+      dateParam: dateParam,
+      monthNames: MONTH_NAMES,
+      calendar: buildCalendar(events, today, monthStr, dateParam),
+    });
   } catch (e) {
     next(e);
   }

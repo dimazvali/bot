@@ -19,6 +19,15 @@ const host = `cyprus`
 const channellId = -1002139324312;
 const prodChannelId =  -1001763708294;
 
+// защита канала от накрутки ботами: банит не по количеству подписок в час,
+// а только явные "волны" из свежих однотипных аккаунтов (близкие id + бедный профиль),
+// чтобы не задевать живых людей при органических всплесках подписок
+const guardedChannelId =    channellId;
+const clusterWindowMs =     15 * 60 * 1000;
+const clusterMinSize =      5;
+const clusterMaxIdSpread =  300000;
+const clusterMinAvgScore =  2;
+
 const {
     initializeApp,
     applicationDefault,
@@ -121,6 +130,7 @@ let messages =          fb.collection('usersMessages');
 let logs =              fb.collection('logs');
 let news =              fb.collection('news');
 let adminTokens =       fb.collection(`adminTokens`)
+let subscriberEvents =  fb.collection('subscriberEvents')
 
 
 router.all(`/api/:data/:id`,(req,res)=>{
@@ -591,8 +601,98 @@ router.post('/hook', (req, res) => {
             })
         }
     }
+
+    if (req.body.chat_member) {
+        handleChatMember(req.body.chat_member)
+    }
 })
 
+
+function scoreSubscriber(user) {
+    let score = 0
+    if (!user.username) score += 1
+    if (!user.last_name) score += 1
+    if (user.is_premium) score -= 2
+    return score
+}
+
+function handleChatMember(cm) {
+    if (cm.chat.id !== guardedChannelId) return
+
+    let oldStatus = cm.old_chat_member.status
+    let newStatus = cm.new_chat_member.status
+    let joined = ['left', 'kicked'].includes(oldStatus) && ['member', 'restricted'].includes(newStatus)
+    if (!joined) return
+
+    let user = cm.new_chat_member.user
+    if (user.is_bot) return
+
+    let score = scoreSubscriber(user)
+    let joinedAt = new Date((cm.date || Math.floor(Date.now() / 1000)) * 1000)
+
+    subscriberEvents.add({
+        userId:         user.id,
+        username:       user.username || null,
+        firstName:      user.first_name || null,
+        lastName:       user.last_name || null,
+        isPremium:      !!user.is_premium,
+        languageCode:   user.language_code || null,
+        score,
+        joinedAt,
+        action:         'pending'
+    }).then(ref => {
+        evaluateJoinCluster(joinedAt)
+    }).catch(err => {
+        console.log(err)
+    })
+}
+
+function evaluateJoinCluster(joinedAt) {
+    let since = new Date(joinedAt.getTime() - clusterWindowMs)
+
+    subscriberEvents
+        .where('joinedAt', '>=', since)
+        .where('action', '==', 'pending')
+        .get()
+        .then(col => {
+            let recent = common.handleQuery(col)
+            if (recent.length < clusterMinSize) return
+
+            let ids =       recent.map(r => r.userId)
+            let idSpread =  Math.max(...ids) - Math.min(...ids)
+            let avgScore =  recent.reduce((s, r) => s + r.score, 0) / recent.length
+
+            let isCluster = idSpread <= clusterMaxIdSpread && avgScore >= clusterMinAvgScore
+
+            if (isCluster) {
+                recent.forEach(kickSubscriber)
+            }
+        }).catch(err => {
+            console.log(err)
+        })
+}
+
+function kickSubscriber(record) {
+    subscriberEvents.doc(record.id).update({
+        action:     'kicked',
+        kickedAt:   new Date()
+    })
+
+    m.sendMessage2({
+        chat_id:    guardedChannelId,
+        user_id:    record.userId
+    }, 'banChatMember', token).then(() => {
+        m.sendMessage2({
+            chat_id:    guardedChannelId,
+            user_id:    record.userId
+        }, 'unbanChatMember', token)
+    })
+
+    log({
+        text: `Заблокирован подписчик из волны накрутки: id ${record.userId}${record.username ? ' @' + record.username : ''} (скор ${record.score})`,
+        user: +record.userId
+    })
+}
 
 function log(o) {
     o.createdAt = new Date()

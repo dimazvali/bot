@@ -39,7 +39,7 @@ block content
         - var tp = -(rf.boundingBox.Top / rf.boundingBox.Height) * 100
         button.faces-widget-item(type='button' data-person-key=g.key)
           .faces-widget-avatar
-            img(src=rf.thumb style=`width:${dw}%;height:${dh}%;left:${lp}%;top:${tp}%;`)
+            img(src=rf.thumb alt=g.name||'' title=g.name||undefined style=`width:${dw}%;height:${dh}%;left:${lp}%;top:${tp}%;`)
           if g.name
             span.faces-widget-name= g.name
       button.faces-widget-reset(type='button') ✕ ВСЕ ЛИЦА
@@ -82,6 +82,9 @@ block content
           srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined
           sizes=photo.urls ? '(max-width: 640px) calc(50vw - 12px), 400px' : undefined
           alt=photo.title
+          title=photo.desc||photo.title
+          width=photo.width||undefined
+          height=photo.height||undefined
           loading='lazy'
           style=photo.width && photo.height ? `aspect-ratio:${photo.width}/${photo.height}` : undefined
           onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
@@ -104,6 +107,7 @@ block content
               srcset=cover.urls ? `${cover.urls.thumb || cover.urls.preview} 400w, ${cover.urls.preview} 800w` : undefined
               sizes='(max-width: 640px) calc(50vw - 12px), 240px'
               alt=other.label
+              title=other.label
               loading='lazy'
               onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
             )

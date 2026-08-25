@@ -13,6 +13,9 @@ block content
           srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined
           sizes=photo.urls ? '(max-width: 640px) calc(50vw - 12px), 400px' : undefined
           alt=photo.title
+          title=photo.desc||photo.title
+          width=photo.width||undefined
+          height=photo.height||undefined
           loading='lazy'
           onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
         )

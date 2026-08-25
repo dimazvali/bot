@@ -5,28 +5,88 @@ html
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width,initial-scale=1')
     style.
-      body { font-family: sans-serif; margin: 2rem; max-width: 700px; }
+      body { font-family: sans-serif; margin: 2rem; max-width: 800px; }
       button { padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; }
       .error { color: #c00; }
-      .summary { margin-top: 1.5rem; border: 1px solid #ddd; padding: 1rem; border-radius: 6px; }
-      .error-item { color: #c00; }
+      .notice { margin-top: 1rem; border: 1px solid #9c9; background: #efe; padding: 0.75rem 1rem; border-radius: 6px; color: #262; }
+      table.sources { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem; }
+      table.sources th, table.sources td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.9rem; }
+      table.sources th { background: #f5f5f5; }
+      table.log { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem; }
+      table.log th, table.log td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.85rem; }
+      table.log th { background: #f5f5f5; }
+      table.log td.errors { color: #c00; }
+      .badge { display: inline-block; font-size: 0.7rem; color: #666; border: 1px solid #ccc; border-radius: 3px; padding: 0 0.35rem; margin-left: 0.4rem; }
+      form.add-source { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; }
+      form.add-source select, form.add-source input { padding: 0.5rem; font-size: 0.9rem; }
+      form.add-source input[type=text] { flex: 1; min-width: 160px; }
   body
     h1= title
-    p Источников настроено: #{sourceCount}
+    h2 Источники (#{sources.length})
+    table.sources
+      thead
+        tr
+          th Тип
+          th Название
+          th Значение
+      tbody
+        each src in sources
+          tr
+            td= src.type
+            td
+              = src.label
+              if src.custom
+                span.badge добавлен вручную
+            td
+              - var link = src.type === 'telegram' ? 'https://t.me/' + src.value : src.value
+              a(href=link target='_blank' rel='noopener')= src.value
+
+    h2 Добавить источник
+    if sourceError
+      p.error= sourceError
+    form.add-source(method='POST' action='/tbilisi-events/admin/sources')
+      select(name='type' required)
+        option(value='telegram') telegram
+        option(value='website') website
+        option(value='facebook') facebook
+        option(value='facebook_group') facebook_group
+        option(value='instagram') instagram
+      input(type='text' name='value' placeholder='значение (юзернейм для telegram, URL для остальных)' required)
+      input(type='text' name='label' placeholder='название (необязательно)')
+      button(type='submit') Добавить
+
     form(method='POST' action='/tbilisi-events/admin/collect')
       button(type='submit') Собрать события
     if error
       p.error= error
-    if summary
-      .summary
-        p Источников обработано: #{summary.sourcesProcessed}
-        p Событий найдено: #{summary.eventsFound}
-        p Новых: #{summary.eventsNew}
-        p Объединено с существующими: #{summary.eventsMerged}
-        if summary.sourceErrors.length
-          h3 Ошибки
-          ul
-            each err in summary.sourceErrors
-              li.error-item #{err.source}: #{err.error}
+    if started
+      p.notice Сбор запущен. Результат придёт в Telegram и появится в логе ниже.
+
+    h2 Лог парсинга
+    if !logs.length
+      p Пока нет записей.
+    else
+      table.log
+        thead
+          tr
+            th Дата
+            th Источников
+            th Найдено
+            th Новых
+            th Объединено
+            th Ошибок
+        tbody
+          each log in logs
+            - var logDate = log.createdAt && log.createdAt.toDate ? log.createdAt.toDate() : new Date(log.createdAt)
+            tr
+              td= logDate.toLocaleString('ru-RU')
+              td= log.sourcesProcessed
+              td= log.eventsFound
+              td= log.eventsNew
+              td= log.eventsMerged
+              - var errCount = (log.sourceErrors || []).length
+              td(class=errCount ? 'errors' : '' title=(log.sourceErrors || []).map(function(e){ return e.source + ': ' + e.error; }).join('\n'))
+                = errCount
+
     p
       a(href='/tbilisi-events' target='_blank') Открыть таблицу событий
