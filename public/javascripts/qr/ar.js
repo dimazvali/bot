@@ -10,7 +10,11 @@
   var portal = document.getElementById('qrPortal');
   var rescanBtn = document.getElementById('qrRescanBtn');
   var portalPhoto = document.getElementById('qrPortalPhoto');
+  var debugEl = document.getElementById('qrDebug');
   var T = window.QRPortalTransform;
+
+  var DEBUG = location.search.indexOf('debug') !== -1;
+  if (DEBUG && debugEl) debugEl.style.display = 'block';
 
   var SCAN_INTERVAL_MS = 100;
   var SEARCH_HINT_TIMEOUT_MS = 15000;
@@ -19,7 +23,9 @@
   var PORTAL_W = 260;
   var PORTAL_H = 200;
   var PORTAL_SCALE = 2.6;
-  var PHOTO_SKEW_SENS = 3; // unitless multiplier on quad-skew pixels — bigger fakes more depth
+  // skew is a normalized ratio (roughly -1..1 for extreme angles), so this
+  // is "px of photo shift per unit of skew ratio" — bigger fakes more depth
+  var PHOTO_SKEW_SENS = 220;
 
   var ctx = canvas.getContext('2d', { willReadFrequently: true });
   var scanning = false;
@@ -126,7 +132,17 @@
 
     var dHoriz = skew.horiz - anchorSkew.horiz;
     var dVert = skew.vert - anchorSkew.vert;
-    portalPhoto.style.transform = 'translate(' + (dHoriz * PHOTO_SKEW_SENS) + 'px,' + (dVert * PHOTO_SKEW_SENS) + 'px)';
+    var photoOffsetX = dHoriz * PHOTO_SKEW_SENS;
+    var photoOffsetY = dVert * PHOTO_SKEW_SENS;
+    portalPhoto.style.transform = 'translate(' + photoOffsetX + 'px,' + photoOffsetY + 'px)';
+
+    if (DEBUG && debugEl) {
+      debugEl.textContent =
+        'skew: ' + skew.horiz.toFixed(3) + ', ' + skew.vert.toFixed(3) + '\n' +
+        'anchor: ' + anchorSkew.horiz.toFixed(3) + ', ' + anchorSkew.vert.toFixed(3) + '\n' +
+        'delta: ' + dHoriz.toFixed(3) + ', ' + dVert.toFixed(3) + '\n' +
+        'photo offset px: ' + photoOffsetX.toFixed(1) + ', ' + photoOffsetY.toFixed(1);
+    }
   }
 
   function resetTracking() {

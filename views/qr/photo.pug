@@ -17,6 +17,7 @@ block content
       .qr-portal#qrPortal(style='display:none')
         img.qr-portal-photo#qrPortalPhoto(src=entry.photo alt=entry.title)
       button.qr-rescan-btn#qrRescanBtn(type='button' style='display:none') Навести заново
+      pre.qr-debug#qrDebug(style='display:none')
     if entry.description
       p.qr-desc= entry.description
 

@@ -87,11 +87,19 @@ function lerpPoint(a, b, t) {
 // Zero for a fronto-parallel view; grows as the viewing angle increases.
 // Computed directly from the live-tracked marker, so it needs no separate
 // sensor (no gyroscope) and is inherently in sync with what's on screen.
+// Normalized by the quad's own size so the result stays meaningful
+// regardless of how close/far (i.e. how large on screen) the marker is —
+// a raw pixel skew would be tiny for a small/distant marker even at a
+// sharp viewing angle.
 function computeQuadSkew(quad) {
   var tl = quad[0], tr = quad[1], br = quad[2], bl = quad[3];
+  var width = ((tr.x - tl.x) + (br.x - bl.x)) / 2;
+  var height = ((bl.y - tl.y) + (br.y - tr.y)) / 2;
+  var horiz = (tr.y - tl.y) - (br.y - bl.y);
+  var vert = (bl.x - tl.x) - (br.x - tr.x);
   return {
-    horiz: (tr.y - tl.y) - (br.y - bl.y),
-    vert: (bl.x - tl.x) - (br.x - tr.x),
+    horiz: height ? horiz / height : 0,
+    vert: width ? vert / width : 0,
   };
 }
 

@@ -38,6 +38,12 @@ body {
   position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
   background: rgba(0,0,0,0.55); color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 13px;
 }
+.qr-debug {
+  position: absolute; right: 8px; bottom: 8px;
+  background: rgba(0,0,0,0.7); color: #7cff7c;
+  padding: 6px 8px; border-radius: 6px; font-size: 11px; line-height: 1.4;
+  margin: 0; white-space: pre; z-index: 10;
+}
 .qr-portal {
   position: absolute; top: 0; left: 0;
   width: 260px; height: 200px;

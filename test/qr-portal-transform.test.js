@@ -83,18 +83,26 @@ test('computeQuadSkew is zero for a perfect axis-aligned rectangle', function() 
   assert.deepEqual(T.computeQuadSkew(quad), { horiz: 0, vert: 0 });
 });
 
-test('computeQuadSkew detects horizontal (left-right viewing angle) skew', function() {
+test('computeQuadSkew detects horizontal (left-right viewing angle) skew, normalized by quad size', function() {
   // top-right corner pulled down, as if the marker is foreshortened on the right
   var quad = [{ x: 0, y: 0 }, { x: 10, y: 3 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
   var skew = T.computeQuadSkew(quad);
-  assert.equal(skew.horiz, 3);
+  assert.ok(Math.abs(skew.horiz - 3 / 8.5) < 1e-9);
   assert.equal(skew.vert, 0);
 });
 
-test('computeQuadSkew detects vertical (up-down viewing angle) skew', function() {
+test('computeQuadSkew is scale-invariant (same shape, bigger marker, same ratio)', function() {
+  var small = [{ x: 0, y: 0 }, { x: 10, y: 3 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+  var big = [{ x: 0, y: 0 }, { x: 100, y: 30 }, { x: 100, y: 100 }, { x: 0, y: 100 }];
+  var skewSmall = T.computeQuadSkew(small);
+  var skewBig = T.computeQuadSkew(big);
+  assert.ok(Math.abs(skewSmall.horiz - skewBig.horiz) < 1e-9);
+});
+
+test('computeQuadSkew detects vertical (up-down viewing angle) skew, normalized by quad size', function() {
   // bottom-left corner pulled right, as if the marker is foreshortened at the bottom
   var quad = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 4, y: 10 }];
   var skew = T.computeQuadSkew(quad);
   assert.equal(skew.horiz, 0);
-  assert.equal(skew.vert, 4);
+  assert.ok(Math.abs(skew.vert - 4 / 8) < 1e-9);
 });
