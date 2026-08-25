@@ -1,0 +1,26 @@
+extends layout
+
+block content
+  .qr-page
+    header.qr-header
+      h1= entry.title
+      if entry.year
+        p.qr-year= entry.year
+      if entry.address
+        p.qr-address= entry.address
+    .qr-stage#qrStage
+      img.qr-fallback-photo#qrFallbackPhoto(src=entry.photo alt=entry.title)
+      button.qr-ar-btn#qrArBtn(type='button') Смотреть в AR
+      video.qr-video#qrVideo(playsinline muted autoplay style='display:none')
+      canvas#qrScanCanvas(style='display:none')
+      .qr-hint#qrHint(style='display:none') Наведите камеру на QR-код на табличке
+      .qr-portal#qrPortal(style='display:none')
+        img.qr-portal-photo#qrPortalPhoto(src=entry.photo alt=entry.title)
+      button.qr-rescan-btn#qrRescanBtn(type='button' style='display:none') Навести заново
+    if entry.description
+      p.qr-desc= entry.description
+
+  script(src='/javascripts/qr/jsQR.js')
+  script(src='/javascripts/qr/portal-transform.js')
+  script.
+    window.QR_ENTRY = !{JSON.stringify({ slug: entry.slug, photo: entry.photo })};
