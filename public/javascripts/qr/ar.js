@@ -7,13 +7,21 @@
   var video = document.getElementById('qrVideo');
   var canvas = document.getElementById('qrScanCanvas');
   var hint = document.getElementById('qrHint');
+  var portal = document.getElementById('qrPortal');
+  var rescanBtn = document.getElementById('qrRescanBtn');
+  var T = window.QRPortalTransform;
 
   var SCAN_INTERVAL_MS = 100;
   var SCAN_HINT_TIMEOUT_MS = 15000;
+  var PORTAL_W = 260;
+  var PORTAL_H = 200;
+  var PORTAL_SCALE = 2.6;
+
   var ctx = canvas.getContext('2d', { willReadFrequently: true });
   var scanning = false;
   var lastScanAt = 0;
   var scanStartAt = 0;
+  var anchorQuad = null;
 
   function supportsAR() {
     return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && typeof window.jsQR === 'function');
@@ -58,17 +66,55 @@
       var frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
       var result = window.jsQR(frame.data, frame.width, frame.height);
       if (result && isExpectedQr(result.data)) {
-        console.log('[qr-ar] anchor QR found', result.location);
-        scanning = false;
-        hint.style.display = 'none';
+        onAnchor(result.location, canvas.width, canvas.height);
         return;
       }
     }
     requestAnimationFrame(scanTick);
   }
 
+  function onAnchor(location, frameW, frameH) {
+    scanning = false;
+    hint.style.display = 'none';
+
+    var rawCorners = [
+      location.topLeftCorner,
+      location.topRightCorner,
+      location.bottomRightCorner,
+      location.bottomLeftCorner,
+    ];
+    var displayCorners = rawCorners.map(function(pt) {
+      return T.mapCoverPoint(pt, frameW, frameH, video.clientWidth, video.clientHeight);
+    });
+    anchorQuad = T.scaleQuadAroundCenter(displayCorners, PORTAL_SCALE);
+
+    var nativeRect = [
+      { x: 0, y: 0 },
+      { x: PORTAL_W, y: 0 },
+      { x: PORTAL_W, y: PORTAL_H },
+      { x: 0, y: PORTAL_H },
+    ];
+    portal.style.width = PORTAL_W + 'px';
+    portal.style.height = PORTAL_H + 'px';
+    portal.style.transform = T.computePortalTransform(nativeRect, anchorQuad);
+    portal.style.display = 'block';
+    rescanBtn.style.display = 'block';
+  }
+
+  function rescan() {
+    anchorQuad = null;
+    portal.style.display = 'none';
+    rescanBtn.style.display = 'none';
+    hint.style.display = 'block';
+    hint.textContent = 'Наведите камеру на QR-код на табличке';
+    scanning = true;
+    scanStartAt = performance.now();
+    requestAnimationFrame(scanTick);
+  }
+
   if (supportsAR()) {
     arBtn.addEventListener('click', startAR);
+    rescanBtn.addEventListener('click', rescan);
   } else {
     arBtn.style.display = 'none';
   }
