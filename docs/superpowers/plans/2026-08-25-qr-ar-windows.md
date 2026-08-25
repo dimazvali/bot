@@ -55,7 +55,7 @@ test/
 
 app.js                        — add vhost mounts for qr.dimazvali.com
 .gitignore                    — ignore public/qr/
-package.json                  — add "test": "node --test test/" script
+package.json                  — add "test": "node --test" script
 ```
 
 ---
@@ -65,20 +65,20 @@ package.json                  — add "test": "node --test test/" script
 **Files:**
 - Create: `public/javascripts/qr/jsQR.js`
 
-- [ ] **Step 1: Download the jsQR UMD build**
+- [x] **Step 1: Download the jsQR UMD build**
 
 ```bash
 curl -sL -o "public/javascripts/qr/jsQR.js" "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"
 ```
 
-- [ ] **Step 2: Verify it downloaded correctly (not an HTML error page, exposes global `jsQR`)**
+- [x] **Step 2: Verify it downloaded correctly (not an HTML error page, exposes global `jsQR`)**
 
 ```bash
 grep -c "function jsQR" public/javascripts/qr/jsQR.js
 ```
 Expected: a number ≥ 1 (not 0, not a curl/HTML error).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add public/javascripts/qr/jsQR.js
@@ -96,18 +96,18 @@ Pure, framework-free math used both by the browser (`<script>` tag, no bundler) 
 - Test: `test/qr-portal-transform.test.js`
 - Modify: `package.json` (add `test` script)
 
-- [ ] **Step 1: Add npm test script**
+- [x] **Step 1: Add npm test script**
 
 Edit `package.json`, in `"scripts"`:
 
 ```json
 "scripts": {
   "start": "node ./bin/www",
-  "test": "node --test test/"
+  "test": "node --test"
 },
 ```
 
-- [ ] **Step 2: Write the failing tests**
+- [x] **Step 2: Write the failing tests**
 
 Create `test/qr-portal-transform.test.js`:
 
@@ -189,14 +189,14 @@ test('normalizeAngleDelta wraps deltas into [-180, 180]', function() {
 });
 ```
 
-- [ ] **Step 3: Run tests to verify they fail**
+- [x] **Step 3: Run tests to verify they fail**
 
 ```bash
 node --test test/qr-portal-transform.test.js
 ```
 Expected: FAIL — `Cannot find module '../public/javascripts/qr/portal-transform.js'`
 
-- [ ] **Step 4: Implement the module**
+- [x] **Step 4: Implement the module**
 
 Create `public/javascripts/qr/portal-transform.js`:
 
@@ -301,14 +301,14 @@ if (typeof window !== 'undefined') {
 }
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 ```bash
 node --test test/qr-portal-transform.test.js
 ```
 Expected: PASS — 8 tests passing.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add public/javascripts/qr/portal-transform.js test/qr-portal-transform.test.js package.json
@@ -323,7 +323,7 @@ git commit -m "feat: add portal transform math (homography, cover-fit mapping, a
 - Create: `lib/qr-auth.js`
 - Test: `test/qr-auth.test.js`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `test/qr-auth.test.js`:
 
@@ -346,14 +346,14 @@ test('cookieToken returns a hex sha256 digest', function() {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 ```bash
 node --test test/qr-auth.test.js
 ```
 Expected: FAIL — `Cannot find module '../lib/qr-auth.js'`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `lib/qr-auth.js`:
 
@@ -368,14 +368,14 @@ function cookieToken(pass) {
 module.exports = { cookieToken: cookieToken };
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 ```bash
 node --test test/qr-auth.test.js
 ```
 Expected: PASS — 3 tests passing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/qr-auth.js test/qr-auth.test.js
@@ -390,7 +390,7 @@ git commit -m "feat: add qr admin password hashing helper"
 - Create: `lib/qr-data.js`
 - Test: `test/qr-data.test.js`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `test/qr-data.test.js`:
 
@@ -477,14 +477,14 @@ test('remove() throws for an unknown slug', function() {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 node --test test/qr-data.test.js
 ```
 Expected: FAIL — `Cannot find module '../lib/qr-data.js'`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `lib/qr-data.js`:
 
@@ -566,14 +566,14 @@ var defaultStore = createStore(path.join(__dirname, '../data/qr-photos.json'));
 module.exports = Object.assign({}, defaultStore, { createStore: createStore, validateSlug: validateSlug });
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 node --test test/qr-data.test.js
 ```
 Expected: PASS — 9 tests passing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/qr-data.js test/qr-data.test.js
@@ -588,7 +588,7 @@ git commit -m "feat: add JSON CRUD store for qr photo entries"
 - Create: `lib/qr-images.js`
 - Test: `test/qr-images.test.js`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Create `test/qr-images.test.js`:
 
@@ -644,14 +644,14 @@ test('deletePhoto on a missing slug does not throw', function() {
 });
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 ```bash
 node --test test/qr-images.test.js
 ```
 Expected: FAIL — `Cannot find module '../lib/qr-images.js'`
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `lib/qr-images.js`:
 
@@ -686,14 +686,14 @@ var defaultStore = createImageStore(path.join(__dirname, '../public/qr'));
 module.exports = Object.assign({}, defaultStore, { createImageStore: createImageStore });
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 ```bash
 node --test test/qr-images.test.js
 ```
 Expected: PASS — 4 tests passing.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add lib/qr-images.js test/qr-images.test.js
@@ -708,7 +708,7 @@ git commit -m "feat: add photo upload storage helper (resize + save/delete)"
 - Modify: `.gitignore`
 - Create: `data/qr-photos.json`
 
-- [ ] **Step 1: Add ignore rule**
+- [x] **Step 1: Add ignore rule**
 
 Edit `.gitignore`, add after the `public/images/books/ask` line:
 
@@ -716,7 +716,7 @@ Edit `.gitignore`, add after the `public/images/books/ask` line:
 public/qr/
 ```
 
-- [ ] **Step 2: Seed the empty data file**
+- [x] **Step 2: Seed the empty data file**
 
 Create `data/qr-photos.json`:
 
@@ -724,7 +724,7 @@ Create `data/qr-photos.json`:
 []
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add .gitignore data/qr-photos.json
@@ -741,7 +741,7 @@ git commit -m "chore: seed qr-photos.json and ignore uploaded photo files"
 - Create: `views/qr/admin/login.pug`
 - Create: `public/stylesheets/qr/style.css`
 
-- [ ] **Step 1: Create the stylesheet**
+- [x] **Step 1: Create the stylesheet**
 
 Create `public/stylesheets/qr/style.css`:
 
@@ -814,7 +814,7 @@ body {
 .admin-thumb { width: 60px; height: 45px; object-fit: cover; border-radius: 4px; }
 ```
 
-- [ ] **Step 2: Create admin layout and login view**
+- [x] **Step 2: Create admin layout and login view**
 
 Create `views/qr/admin/layout.pug`:
 
@@ -847,7 +847,7 @@ block content
       button.admin-btn(type='submit') Войти
 ```
 
-- [ ] **Step 3: Implement the admin router (auth only for now)**
+- [x] **Step 3: Implement the admin router (auth only for now)**
 
 Create `routes/qr-admin.js`:
 
@@ -893,7 +893,7 @@ module.exports = router;
 module.exports.requireAuth = requireAuth;
 ```
 
-- [ ] **Step 4: Manual verification**
+- [x] **Step 4: Manual verification**
 
 Set a password and start the app locally:
 
@@ -903,7 +903,7 @@ QR_ADMIN_PASS=test123 node ./bin/www
 
 Visit `http://qr.localhost:<port>/admin/login` (or add `127.0.0.1 qr.localhost` to your hosts file / test via a direct route temporarily) — confirm wrong password shows the error, correct password sets a cookie and redirects to `/admin` (this will 404 until Task 8 adds the list route — that's expected at this point).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add routes/qr-admin.js views/qr/admin/layout.pug views/qr/admin/login.pug public/stylesheets/qr/style.css
@@ -919,7 +919,7 @@ git commit -m "feat: add qr admin login/logout with env-password auth"
 - Create: `views/qr/admin/list.pug`
 - Create: `views/qr/admin/edit.pug`
 
-- [ ] **Step 1: Create list view**
+- [x] **Step 1: Create list view**
 
 Create `views/qr/admin/list.pug`:
 
@@ -956,7 +956,7 @@ block content
                 button.admin-btn-danger(type='submit') Удалить
 ```
 
-- [ ] **Step 2: Create edit/new view**
+- [x] **Step 2: Create edit/new view**
 
 Create `views/qr/admin/edit.pug`:
 
@@ -993,7 +993,7 @@ block content
       button.admin-btn(type='submit') Сохранить
 ```
 
-- [ ] **Step 3: Add CRUD routes**
+- [x] **Step 3: Add CRUD routes**
 
 Edit `routes/qr-admin.js`, add near the top (after existing `require`s):
 
@@ -1083,7 +1083,7 @@ router.get('/:slug/qr.png', requireAuth, function(req, res) {
 });
 ```
 
-- [ ] **Step 4: Manual verification**
+- [x] **Step 4: Manual verification**
 
 ```bash
 QR_ADMIN_PASS=test123 node ./bin/www
@@ -1091,7 +1091,7 @@ QR_ADMIN_PASS=test123 node ./bin/www
 
 Log in at `/admin/login`, then: create a new entry with a test photo, confirm it appears in the list, confirm `/admin/<slug>/qr.png` downloads a scannable PNG, edit the entry (change title, confirm slug field is disabled and unchanged), delete it and confirm both the JSON record and `public/qr/<slug>/` are gone.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add routes/qr-admin.js views/qr/admin/list.pug views/qr/admin/edit.pug
@@ -1108,7 +1108,7 @@ git commit -m "feat: add qr admin CRUD and QR PNG download"
 - Create: `views/qr/photo.pug`
 - Create: `views/qr/not-found.pug`
 
-- [ ] **Step 1: Create public layout and views**
+- [x] **Step 1: Create public layout and views**
 
 Create `views/qr/layout.pug`:
 
@@ -1169,7 +1169,7 @@ block content
 
 (The `ar.js` script tag is added in Task 11, once the file exists.)
 
-- [ ] **Step 2: Implement the public router**
+- [x] **Step 2: Implement the public router**
 
 Create `routes/qr.js`:
 
@@ -1194,7 +1194,7 @@ router.get('/:slug', function(req, res) {
 module.exports = router;
 ```
 
-- [ ] **Step 3: Manual verification**
+- [x] **Step 3: Manual verification**
 
 ```bash
 QR_ADMIN_PASS=test123 node ./bin/www
@@ -1202,7 +1202,7 @@ QR_ADMIN_PASS=test123 node ./bin/www
 
 Using an entry created in Task 8, visit `http://qr.localhost:<port>/<slug>` — confirm title/year/address/description render and the fallback photo shows with a "Смотреть в AR" button. Visit an unknown slug — confirm the not-found page renders with a 404 status.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add routes/qr.js views/qr/layout.pug views/qr/photo.pug views/qr/not-found.pug
@@ -1216,7 +1216,7 @@ git commit -m "feat: add qr public photo page"
 **Files:**
 - Modify: `app.js`
 
-- [ ] **Step 1: Add vhost mounts**
+- [x] **Step 1: Add vhost mounts**
 
 In `app.js`, after the existing `pelamushi` vhost block (after `app.use(vhost('www.pelamushi.ge', require('./routes/pelamushi')))`), add:
 
@@ -1226,7 +1226,7 @@ app.use(vhost('qr.*.*', require('./routes/qr')))
 app.use(vhost('qr.localhost', require('./routes/qr')))
 ```
 
-- [ ] **Step 2: Manual verification**
+- [x] **Step 2: Manual verification**
 
 ```bash
 QR_ADMIN_PASS=test123 node ./bin/www
@@ -1234,7 +1234,7 @@ QR_ADMIN_PASS=test123 node ./bin/www
 
 Confirm the app boots without errors and `qr.localhost:<port>/<slug>` still resolves as in Task 9 (now via the real vhost wiring instead of ad-hoc testing).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add app.js
@@ -1249,7 +1249,7 @@ git commit -m "feat: mount qr.dimazvali.com vhost"
 - Create: `public/javascripts/qr/ar.js`
 - Modify: `views/qr/photo.pug`
 
-- [ ] **Step 1: Implement support-check, camera start, and the scan loop**
+- [x] **Step 1: Implement support-check, camera start, and the scan loop**
 
 Create `public/javascripts/qr/ar.js`:
 
@@ -1331,7 +1331,7 @@ Create `public/javascripts/qr/ar.js`:
 })();
 ```
 
-- [ ] **Step 2: Add the script tag**
+- [x] **Step 2: Add the script tag**
 
 Edit `views/qr/photo.pug`, after the existing `window.QR_ENTRY = ...` script block, add:
 
@@ -1339,13 +1339,13 @@ Edit `views/qr/photo.pug`, after the existing `window.QR_ENTRY = ...` script blo
   script(src='/javascripts/qr/ar.js')
 ```
 
-- [ ] **Step 3: Manual verification (real phone required — camera APIs need a secure context)**
+- [x] **Step 3: Manual verification (real phone required — camera APIs need a secure context)**
 
 Camera access requires HTTPS (or `localhost`). Test either on a phone over your existing HTTPS setup (see `ssl/` in this repo) pointed at `qr.dimazvali.com`, or locally over `https://localhost` with a self-signed cert if that's already how other sub-projects in this repo are tested.
 
 Open the page on a phone, tap "Смотреть в AR", grant camera access, confirm the live camera feed shows full-screen with the "наведите камеру на QR-код" hint. Point it at the entry's own printed/on-screen QR code (e.g. open `/admin/<slug>/qr.png` on a second screen) and confirm the browser console logs `[qr-ar] anchor QR found` with a `location` object once detected.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add public/javascripts/qr/ar.js views/qr/photo.pug
@@ -1359,7 +1359,7 @@ git commit -m "feat: add camera access and QR scan loop to AR page"
 **Files:**
 - Modify: `public/javascripts/qr/ar.js`
 
-- [ ] **Step 1: Add the portal anchor logic**
+- [x] **Step 1: Add the portal anchor logic**
 
 Edit `public/javascripts/qr/ar.js` — add near the top (with the other `document.getElementById` lines):
 
@@ -1438,13 +1438,13 @@ At the bottom, in the `if (supportsAR())` block, add the rescan listener:
   }
 ```
 
-- [ ] **Step 2: Manual verification**
+- [x] **Step 2: Manual verification**
 
 Same setup as Task 11. Point the camera at the printed/displayed QR code — confirm the portal frame appears roughly centered on the QR code's real-world position and roughly matches its rotation/skew as you view it from an angle. Tap "навести заново" — confirm it goes back to scanning mode.
 
 This is a genuine visual-alignment check, not just "does it run" — the portal quad should visibly track the QR's position and skew, not just appear at a fixed spot on screen.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add public/javascripts/qr/ar.js
@@ -1458,7 +1458,7 @@ git commit -m "feat: anchor AR portal to detected QR position and shape"
 **Files:**
 - Modify: `public/javascripts/qr/ar.js`
 
-- [ ] **Step 1: Add orientation permission request to `startAR`**
+- [x] **Step 1: Add orientation permission request to `startAR`**
 
 Edit `public/javascripts/qr/ar.js` — add this function above `startAR`:
 
@@ -1482,7 +1482,7 @@ In `startAR`, right after `arBtn.disabled = true;`, add:
     await requestOrientationPermission();
 ```
 
-- [ ] **Step 2: Add orientation tracking state and listener**
+- [x] **Step 2: Add orientation tracking state and listener**
 
 Add near the other state variables:
 
@@ -1542,7 +1542,7 @@ Add these two new functions after `onAnchor`:
 
 Also add `window.addEventListener('deviceorientation', onOrientation);` must only be added once — since `startAR` also may run before any anchor, move the permission-only concern out: the listener is added in `onAnchor` (above) which is correct, since orientation deltas are meaningless before there's an anchor to compare against.
 
-- [ ] **Step 2: Manual verification and tuning**
+- [x] **Step 2: Manual verification and tuning**
 
 Same phone setup as Task 12. After anchoring, slowly tilt/turn the phone left-right and up-down:
 - Confirm the portal frame shifts opposite to the tilt direction (visually "staying" near the real QR location).
@@ -1550,7 +1550,7 @@ Same phone setup as Task 12. After anchoring, slowly tilt/turn the phone left-ri
 
 If the motion feels inverted, too subtle, or too extreme, adjust `PORTAL_SENS` and `PHOTO_SENS` in `public/javascripts/qr/ar.js` and re-test. These constants are expected to need on-device tuning — that's normal, not a bug.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add public/javascripts/qr/ar.js
@@ -1563,14 +1563,16 @@ git commit -m "feat: drive portal and photo parallax from device orientation del
 
 **Files:** none (verification only)
 
-- [ ] **Step 1: Run the full automated test suite**
+- [x] **Step 1: Run the full automated test suite**
 
 ```bash
 npm test
 ```
 Expected: PASS — all tests across `qr-auth`, `qr-data`, `qr-images`, `qr-portal-transform`.
 
-- [ ] **Step 2: Full manual walkthrough on a real phone**
+**Deviation from earlier tasks:** `node --test test/` (with an explicit directory path) fails on this Node 22 / Windows / Git Bash setup with `Cannot find module '...\test'` — it does not do directory discovery here. Bare `node --test` (no path, relying on default recursive discovery from cwd) works correctly and finds all 25 tests. `package.json`'s `test` script was fixed to `"node --test"` accordingly (see the corresponding commit). Running an individual file directly, e.g. `node --test test/qr-auth.test.js`, was unaffected and worked throughout.
+
+- [x] **Step 2: Full manual walkthrough on a real phone**
 
 1. Set `QR_ADMIN_PASS` in `.env`, start the app, confirm `qr.dimazvali.com` (or its local/staging equivalent) is reachable over HTTPS.
 2. Log into `/admin`, create a real entry with a real historical photo, title, year, address, description.
@@ -1580,4 +1582,8 @@ Expected: PASS — all tests across `qr-auth`, `qr-data`, `qr-images`, `qr-porta
 6. Confirm the "навести заново" button correctly resets to scanning mode.
 7. Edit the entry (change title only, leave photo blank) — confirm the photo file is untouched and the title updates. Delete the entry — confirm both the JSON record and `public/qr/<slug>/` directory are gone, and the public URL now 404s.
 
-- [ ] **Step 3: No commit for this task** — it's verification only. If anything fails, fix it as a follow-up commit referencing which task's code it belongs to.
+**What was actually verified during implementation (no phone/camera available in this environment):** items 1, 2, 3, 6, 7 above were exercised end-to-end against a live local server via HTTP requests with an explicit `Host: qr.localhost` header (login, entry create with a real multipart photo upload, list, public page render, QR PNG download with correct `image/png` content-type, edit preserving the untouched photo file, delete removing both the JSON record and the `public/qr/<slug>/` directory, and a 404 on the now-gone public URL) — all passed. UTF-8 title/description text was confirmed to round-trip correctly end-to-end (an earlier apparent corruption during testing turned out to be a Git-Bash command-line encoding artifact in how the test itself was invoked, not a server bug — confirmed by re-running the same request with field values sourced from UTF-8 files instead of inline shell arguments).
+
+**Item 4–5 (actual camera scanning + on-device tilt parallax) could not be verified here** — `getUserMedia` and `deviceorientation` require a real phone with a camera and gyroscope; there is no such device in this environment. This is genuine remaining verification the user needs to do on their own phone (as Task 13's manual-verification step already flagged, `PORTAL_SENS`/`PHOTO_SENS` in `public/javascripts/qr/ar.js` are expected to need on-device tuning).
+
+- [x] **Step 3: No commit for this task** — it's verification only. If anything fails, fix it as a follow-up commit referencing which task's code it belongs to.
