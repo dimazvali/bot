@@ -73,3 +73,24 @@ test('normalizeAngleDelta wraps deltas into [-180, 180]', function() {
   assert.equal(T.normalizeAngleDelta(10), 10);
   assert.equal(T.normalizeAngleDelta(-10), -10);
 });
+
+test('smoothAngle bootstraps to the raw value on the first sample (null smoothed state)', function() {
+  assert.equal(T.smoothAngle(null, 42, 0.2), 42);
+});
+
+test('smoothAngle nudges toward raw by the given factor', function() {
+  assert.ok(Math.abs(T.smoothAngle(0, 100, 0.25) - 25) < 1e-9);
+  assert.ok(Math.abs(T.smoothAngle(100, 0, 0.25) - 75) < 1e-9);
+});
+
+test('smoothAngle converges to a constant raw value over repeated samples', function() {
+  var smoothed = 0;
+  for (var i = 0; i < 50; i++) smoothed = T.smoothAngle(smoothed, 90, 0.2);
+  assert.ok(Math.abs(smoothed - 90) < 0.01);
+});
+
+test('smoothAngle takes the short way across the 0/360 wrap boundary', function() {
+  // raw jumps from 350 to 10 (a 20-degree turn through the wrap), not a 340-degree turn
+  var smoothed = T.smoothAngle(350, 10, 0.5);
+  assert.ok(Math.abs(smoothed - 360) < 1e-9 || Math.abs(smoothed - 0) < 1e-9, 'expected ~360 (i.e. ~0), got ' + smoothed);
+});

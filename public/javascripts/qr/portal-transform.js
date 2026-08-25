@@ -81,12 +81,19 @@ function normalizeAngleDelta(delta) {
   return d;
 }
 
+function smoothAngle(smoothed, raw, factor) {
+  if (smoothed === null) return raw;
+  var delta = normalizeAngleDelta(raw - smoothed);
+  return smoothed + factor * delta;
+}
+
 var api = {
   computeHomographyCoeffs: computeHomographyCoeffs,
   matrix3dFromCoeffs: matrix3dFromCoeffs,
   computePortalTransform: computePortalTransform,
   mapCoverPoint: mapCoverPoint,
   scaleQuadAroundCenter: scaleQuadAroundCenter,
+  smoothAngle: smoothAngle,
   normalizeAngleDelta: normalizeAngleDelta,
 };
 
