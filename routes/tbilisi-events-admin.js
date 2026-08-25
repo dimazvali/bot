@@ -19,8 +19,8 @@ function formatSummary(summary) {
   return text;
 }
 
-function runCollectInBackground() {
-  pipeline.run().then(function(summary) {
+function runCollectInBackground(sourcesOverride) {
+  pipeline.run(sourcesOverride).then(function(summary) {
     return data.addLog(summary).then(function() { return alertMe({ text: formatSummary(summary), parse_mode: 'HTML' }); });
   }).catch(function(e) {
     var failedSummary = { sourcesProcessed: 0, eventsFound: 0, eventsNew: 0, eventsMerged: 0, sourceErrors: [{ source: 'pipeline', error: e.message }] };
@@ -73,6 +73,13 @@ router.get('/', requireAuth, async function(req, res) {
 
 router.post('/collect', requireAuth, function(req, res) {
   runCollectInBackground();
+  res.redirect('/tbilisi-events/admin/?started=1');
+});
+
+router.post('/sources/collect', requireAuth, express.urlencoded({ extended: false }), async function(req, res) {
+  var sources = await data.getAllSources().catch(function() { return []; });
+  var source = sources.find(function(s) { return s.type === req.body.type && s.value === req.body.value; });
+  if (source) runCollectInBackground([source]);
   res.redirect('/tbilisi-events/admin/?started=1');
 });
 

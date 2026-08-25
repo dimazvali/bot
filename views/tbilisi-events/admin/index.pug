@@ -20,6 +20,8 @@ html
       form.add-source { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; }
       form.add-source select, form.add-source input { padding: 0.5rem; font-size: 0.9rem; }
       form.add-source input[type=text] { flex: 1; min-width: 160px; }
+      form.refresh-source { display: inline; margin: 0; }
+      form.refresh-source button { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
   body
     h1= title
     h2 Источники (#{sources.length})
@@ -29,6 +31,7 @@ html
           th Тип
           th Название
           th Значение
+          th
       tbody
         each src in sources
           tr
@@ -40,6 +43,11 @@ html
             td
               - var link = src.type === 'telegram' ? 'https://t.me/' + src.value : src.value
               a(href=link target='_blank' rel='noopener')= src.value
+            td
+              form.refresh-source(method='POST' action='/tbilisi-events/admin/sources/collect')
+                input(type='hidden' name='type' value=src.type)
+                input(type='hidden' name='value' value=src.value)
+                button(type='submit') Обновить
 
     h2 Добавить источник
     if sourceError
