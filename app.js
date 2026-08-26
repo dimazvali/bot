@@ -39,6 +39,7 @@ bodyParser.json({limit: '50mb'})
 process.on('warning', e => console.warn(e.stack));
 
 app.use(vhost(`cyprus.*.*`, require('./routes/cyprus')))
+app.use(vhost(`cyprus.localhost`, require('./routes/cyprus')))
 app.use(vhost('dimazvali.com',     require('./routes/dimazvali')))
 app.use(vhost('www.dimazvali.com', require('./routes/dimazvali')))
 app.use(vhost(`dimazvali.*.*`,     require('./routes/dimazvali')))

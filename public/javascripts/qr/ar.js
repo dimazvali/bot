@@ -33,8 +33,11 @@
   var PORTAL_H = shape.h;
   var PORTAL_SCALE = 2.6;
   // skew is a normalized ratio (roughly -1..1 for extreme angles), so this
-  // is "px of photo shift per unit of skew ratio" — bigger fakes more depth
-  var PHOTO_SKEW_SENS = 220;
+  // is "px of photo shift per unit of skew ratio" — bigger fakes more depth.
+  // Horizontal is negative: viewing the marker from the right should reveal
+  // what's on the photo's left (the image shifts opposite to where you moved).
+  var PHOTO_SKEW_SENS_X = -220;
+  var PHOTO_SKEW_SENS_Y = 220;
 
   var ctx = canvas.getContext('2d', { willReadFrequently: true });
   var scanning = false;
@@ -156,8 +159,8 @@
 
     var dHoriz = skew.horiz - anchorSkew.horiz;
     var dVert = skew.vert - anchorSkew.vert;
-    var photoOffsetX = dHoriz * PHOTO_SKEW_SENS;
-    var photoOffsetY = dVert * PHOTO_SKEW_SENS;
+    var photoOffsetX = dHoriz * PHOTO_SKEW_SENS_X;
+    var photoOffsetY = dVert * PHOTO_SKEW_SENS_Y;
     portalPhoto.style.transform = 'translate(' + photoOffsetX + 'px,' + photoOffsetY + 'px)';
 
     if (DEBUG && liveEl) {

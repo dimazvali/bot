@@ -1,9 +1,8 @@
 let mc = document.querySelector(`#main`)
-
-const host = `cyprus`
+let host = ``
 
 function load(collection, id) {
-    return axios.get(`/${host}/admin/${collection}${id?`/${id}`:''}`).then(data => {
+    return axios.get(`/admin/${collection}${id?`/${id}`:''}`).then(data => {
         return data.data
     })
 }
@@ -56,7 +55,7 @@ function showUser(u, id) {
         adminLinks.forEach(type=>{
             ac.append(ce('button',false,false, u[type.attr] ? type.disname : type.name,{
                 onclick:()=>{
-                    axios.put(`/${host}/admin/users/${u.id}`, {
+                    axios.put(`/admin/users/${u.id}`, {
                         attr: type.attr,
                         value: !u[type.attr]
                     }).then(handleSave)
@@ -86,7 +85,7 @@ function showUser(u, id) {
                     messenger.append(ce(`button`,false,false,`Отправить`,{
                         onclick:()=>{
                             if(txt.value){
-                                axios.post(`/${host}/admin/message`,{
+                                axios.post(`/admin/message`,{
                                     text: txt.value,
                                     user: u.id
                                 }).then(s=>{
@@ -132,13 +131,13 @@ switch(start[0]){
 }
 
 
-function filterUsers(role,container,button){
+function filterUsers(role,container,button,selector){
     let c = button.parentNode;
     c.querySelectorAll('button').forEach(b=>b.classList.remove('active'))
     c.querySelectorAll('button').forEach(b=>b.classList.add('passive'))
     button.classList.add('active')
     button.classList.remove('passive')
-    container.querySelectorAll('.userLine').forEach(user=>{
+    container.querySelectorAll(selector || '.sDivided').forEach(user=>{
         if(!role) return user.classList.remove('hidden')
         
         if(user.dataset[role] == 'true') {
@@ -271,7 +270,7 @@ function edit(entity, id, attr, type, value) {
     edit.append(ce('button', false, false, `Сохранить`, {
         onclick: function () {
             if (f.value) {
-                axios.put(`/${host}/admin/${entity}/${id}`, {
+                axios.put(`/admin/${entity}/${id}`, {
                         attr: attr,
                         value: type == `date` ? new Date(f.value) : f.value
                     }).then(handleSave)
@@ -333,7 +332,7 @@ function publishButton(collection,id){
     return ce('button',false,false,`Опубликовать`,{
         onclick:()=>{
             let proof = confirm(`Вы уверены?`)
-            if(proof) axios.post(`/${host}/admin/${collection}/${id}`)
+            if(proof) axios.post(`/admin/${collection}/${id}`)
                 .then(handleSave)
                 .catch(handleError)
         }
@@ -357,6 +356,34 @@ function preparePopupWeb(name){
     return content;
 }
 
+function showSubscribers(){
+    showScreen(`Защита от накрутки`, `subscribers`, drawSubscriberLine, false, false, false, false, {
+        kicked:     `Забаненные`,
+        pending:    `Пропущенные`,
+    }, `.sDivided`)
+}
+
+function drawSubscriberLine(s){
+    let c = listContainer(s, true, {score: `скор`}, {
+        kicked:     s.action === `kicked`,
+        pending:    s.action === `pending`
+    })
+
+    let label = s.username ? `@${s.username}` : `${s.firstName||''} ${s.lastName||''}`.trim() || `без имени`
+
+    c.append(ce('h3', false, false, `${label} (id ${s.userId})`))
+
+    let flags = []
+    if (s.action === `kicked`) flags.push(`забанен`)
+    if (s.isPremium) flags.push(`premium`)
+    if (!s.hasPhoto) flags.push(`без фото`)
+    if (!s.username) flags.push(`без username`)
+
+    c.append(ce('p', false, `info`, flags.join(' · ') || `без явных признаков бота`))
+
+    return c;
+}
+
 function showUsers(){
     showScreen(`Писатели`,`users`,showUserLine,false,[{
         attr: `publications`,
@@ -364,7 +391,7 @@ function showUsers(){
     }],false,false,{
         blocked:    `Вышли из чата`,
         admin:      `Админы`,
-    })
+    },`.sDivided`)
 }
 
 

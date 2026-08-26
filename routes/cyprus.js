@@ -188,13 +188,21 @@ router.get(`/admin`,(req,res)=>{
     res.render(`cyprus/admin`)
 })
 
-router.all(`/admin/:data/`,(req,res)=>{
-    if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
-    
-    adminTokens.doc(req.signedCookies.adminToken).get().then(doc=>{
-        if(!doc.exists) return res.sendStatus(403)
+function resolveAdmin(req) {
+    if (process.env.develop == 'true') return Promise.resolve({ user: common.dimazvali, active: true })
+    if (!req.signedCookies.adminToken) return Promise.resolve(false)
+
+    return adminTokens.doc(req.signedCookies.adminToken).get().then(doc => {
+        if (!doc.exists) return false
         doc = common.handleDoc(doc)
-        if(!doc.active) return res.sendStatus(403)
+        if (!doc.active) return false
+        return doc
+    })
+}
+
+router.all(`/admin/:data/`,(req,res)=>{
+    resolveAdmin(req).then(doc=>{
+        if(!doc) return res.status(401).send(`Вы кто вообще?`)
 
         switch(req.params.data){
 
@@ -203,6 +211,9 @@ router.all(`/admin/:data/`,(req,res)=>{
             }
             case `users`:{
                 return udb.get().then(col => res.json(common.handleQuery(col,true)))
+            }
+            case `subscribers`:{
+                return subscriberEvents.orderBy(`createdAt`,`desc`).limit(200).get().then(col => res.json(common.handleQuery(col)))
             }
             case 'message': {
                 if (req.body.text && req.body.user) {
@@ -241,12 +252,8 @@ router.all(`/admin/:data/`,(req,res)=>{
 })
 
 router.all(`/admin/:data/:id`,(req,res)=>{
-    if (!req.signedCookies.adminToken) return res.status(401).send(`Вы кто вообще?`)
-    
-    adminTokens.doc(req.signedCookies.adminToken).get().then(doc=>{
-        if(!doc.exists) return res.sendStatus(403)
-        doc = common.handleDoc(doc)
-        if(!doc.active) return res.sendStatus(403)
+    resolveAdmin(req).then(doc=>{
+        if(!doc) return res.status(401).send(`Вы кто вообще?`)
 
         switch(req.params.data){
             case `messages`:{
@@ -608,6 +615,10 @@ router.post('/hook', (req, res) => {
 })
 
 
+// кэш последних вступлений в оперативке — чтобы не дёргать Firestore на каждое
+// событие подписки, коллекция subscriberEvents используется только как журнал
+let recentJoins = []
+
 function scoreSubscriber(user) {
     let score = 0
     if (!user.username) score += 1
@@ -628,51 +639,60 @@ function handleChatMember(cm) {
     if (user.is_bot) return
 
     let score = scoreSubscriber(user)
-    let joinedAt = new Date((cm.date || Math.floor(Date.now() / 1000)) * 1000)
+    let createdAt = new Date((cm.date || Math.floor(Date.now() / 1000)) * 1000)
 
-    subscriberEvents.add({
-        userId:         user.id,
-        username:       user.username || null,
-        firstName:      user.first_name || null,
-        lastName:       user.last_name || null,
-        isPremium:      !!user.is_premium,
-        languageCode:   user.language_code || null,
-        score,
-        joinedAt,
-        action:         'pending'
-    }).then(ref => {
-        evaluateJoinCluster(joinedAt)
+    m.sendMessage2({
+        user_id:    user.id,
+        limit:      1
+    }, 'getUserProfilePhotos', token).then(res => {
+        let hasPhoto = !!(res && res.ok && res.result && res.result.total_count > 0)
+        if (!hasPhoto) score += 1
+
+        let record = {
+            userId:         user.id,
+            username:       user.username || null,
+            firstName:      user.first_name || null,
+            lastName:       user.last_name || null,
+            isPremium:      !!user.is_premium,
+            languageCode:   user.language_code || null,
+            hasPhoto,
+            score,
+            createdAt,
+            active:         true,
+            action:         'pending'
+        }
+
+        subscriberEvents.add(record).then(ref => {
+            record.id = ref.id
+            recentJoins.push(record)
+            evaluateJoinCluster()
+        })
     }).catch(err => {
         console.log(err)
     })
 }
 
-function evaluateJoinCluster(joinedAt) {
-    let since = new Date(joinedAt.getTime() - clusterWindowMs)
+function evaluateJoinCluster() {
+    let cutoff = Date.now() - clusterWindowMs
+    recentJoins = recentJoins.filter(r => r.createdAt.getTime() >= cutoff && r.action === 'pending')
 
-    subscriberEvents
-        .where('joinedAt', '>=', since)
-        .where('action', '==', 'pending')
-        .get()
-        .then(col => {
-            let recent = common.handleQuery(col)
-            if (recent.length < clusterMinSize) return
+    if (recentJoins.length < clusterMinSize) return
 
-            let ids =       recent.map(r => r.userId)
-            let idSpread =  Math.max(...ids) - Math.min(...ids)
-            let avgScore =  recent.reduce((s, r) => s + r.score, 0) / recent.length
+    let ids =       recentJoins.map(r => r.userId)
+    let idSpread =  Math.max(...ids) - Math.min(...ids)
+    let avgScore =  recentJoins.reduce((s, r) => s + r.score, 0) / recentJoins.length
 
-            let isCluster = idSpread <= clusterMaxIdSpread && avgScore >= clusterMinAvgScore
+    let isCluster = idSpread <= clusterMaxIdSpread && avgScore >= clusterMinAvgScore
 
-            if (isCluster) {
-                recent.forEach(kickSubscriber)
-            }
-        }).catch(err => {
-            console.log(err)
-        })
+    if (isCluster) {
+        recentJoins.forEach(kickSubscriber)
+        recentJoins = []
+    }
 }
 
 function kickSubscriber(record) {
+    record.action = 'kicked'
+
     subscriberEvents.doc(record.id).update({
         action:     'kicked',
         kickedAt:   new Date()
