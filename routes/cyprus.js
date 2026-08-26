@@ -20,13 +20,14 @@ const channellId = -1002139324312;
 const prodChannelId =  -1001763708294;
 
 // защита канала от накрутки ботами: банит не по количеству подписок в час,
-// а только явные "волны" из свежих однотипных аккаунтов (близкие id + бедный профиль),
-// чтобы не задевать живых людей при органических всплесках подписок
+// а по двум правилам — максимально голый профиль банится сразу сам по себе,
+// остальные только при явной волне однотипных подозрительных аккаунтов за
+// короткое окно, чтобы не задевать живых людей при органических всплесках
 const guardedChannelId =    prodChannelId;
-const clusterWindowMs =     15 * 60 * 1000;
+const clusterWindowMs =     1 * 60 * 1000;
 const clusterMinSize =      5;
-const clusterMaxIdSpread =  300000;
 const clusterMinAvgScore =  2;
+const individualBanScore =  3;
 
 const {
     initializeApp,
@@ -664,6 +665,9 @@ function handleChatMember(cm) {
 
         subscriberEvents.add(record).then(ref => {
             record.id = ref.id
+
+            if (record.score >= individualBanScore) return kickSubscriber(record)
+
             recentJoins.push(record)
             evaluateJoinCluster()
         })
@@ -678,11 +682,12 @@ function evaluateJoinCluster() {
 
     if (recentJoins.length < clusterMinSize) return
 
-    let ids =       recentJoins.map(r => r.userId)
-    let idSpread =  Math.max(...ids) - Math.min(...ids)
     let avgScore =  recentJoins.reduce((s, r) => s + r.score, 0) / recentJoins.length
 
-    let isCluster = idSpread <= clusterMaxIdSpread && avgScore >= clusterMinAvgScore
+    // разброс id больше не участвует в решении: реальные волны накрутки идут
+    // из заранее состаренных, разновозрастных аккаунтов, а не свежесозданной
+    // пачки — по факту id разбросаны на миллиарды, проверка была бесполезна
+    let isCluster = avgScore >= clusterMinAvgScore
 
     if (isCluster) {
         recentJoins.forEach(kickSubscriber)
@@ -708,8 +713,10 @@ function kickSubscriber(record) {
         }, 'unbanChatMember', token)
     })
 
+    let reason = record.score >= individualBanScore ? `максимальный скор подозрительности` : `волна накрутки`
+
     log({
-        text: `Заблокирован подписчик из волны накрутки: id ${record.userId}${record.username ? ' @' + record.username : ''} (скор ${record.score})`,
+        text: `Заблокирован подписчик (${reason}): id ${record.userId}${record.username ? ' @' + record.username : ''} (скор ${record.score})`,
         user: +record.userId
     })
 }
