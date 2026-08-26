@@ -22,7 +22,7 @@ const prodChannelId =  -1001763708294;
 // защита канала от накрутки ботами: банит не по количеству подписок в час,
 // а только явные "волны" из свежих однотипных аккаунтов (близкие id + бедный профиль),
 // чтобы не задевать живых людей при органических всплесках подписок
-const guardedChannelId =    channellId;
+const guardedChannelId =    prodChannelId;
 const clusterWindowMs =     15 * 60 * 1000;
 const clusterMinSize =      5;
 const clusterMaxIdSpread =  300000;
