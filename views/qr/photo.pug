@@ -17,12 +17,37 @@ block content
       .qr-portal#qrPortal(style='display:none')
         img.qr-portal-photo#qrPortalPhoto(src=entry.photo alt=entry.title)
       button.qr-rescan-btn#qrRescanBtn(type='button' style='display:none') Навести заново
+      pre.qr-debug-live#qrDebugLive(style='display:none')
       pre.qr-debug#qrDebug(style='display:none')
     if entry.description
       p.qr-desc= entry.description
 
+  script.
+    (function() {
+      var isDebug = location.search.indexOf('debug') !== -1;
+      window.QR_DEBUG = isDebug;
+      var el = document.getElementById('qrDebug');
+      var lines = [];
+      window.qrDebugLog = function(msg) {
+        if (!isDebug || !el) return;
+        lines.push(new Date().toISOString().slice(11, 19) + ' ' + msg);
+        if (lines.length > 20) lines.shift();
+        el.style.display = 'block';
+        el.textContent = lines.join('\n');
+      };
+      if (isDebug) {
+        window.addEventListener('error', function(e) {
+          window.qrDebugLog('JS ERROR: ' + e.message + ' (' + e.filename + ':' + e.lineno + ')');
+        });
+        window.addEventListener('unhandledrejection', function(e) {
+          window.qrDebugLog('PROMISE REJECTED: ' + (e.reason && (e.reason.message || e.reason)));
+        });
+        window.qrDebugLog('page loaded, debug on');
+      }
+    })();
   script(src='/javascripts/qr/jsQR.js')
   script(src='/javascripts/qr/portal-transform.js')
   script.
     window.QR_ENTRY = !{JSON.stringify({ slug: entry.slug, photo: entry.photo })};
+    if (window.qrDebugLog) window.qrDebugLog('jsQR: ' + typeof window.jsQR + ', portal-transform: ' + typeof window.QRPortalTransform);
   script(src='/javascripts/qr/ar.js')

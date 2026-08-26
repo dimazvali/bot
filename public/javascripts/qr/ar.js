@@ -10,11 +10,11 @@
   var portal = document.getElementById('qrPortal');
   var rescanBtn = document.getElementById('qrRescanBtn');
   var portalPhoto = document.getElementById('qrPortalPhoto');
-  var debugEl = document.getElementById('qrDebug');
+  var liveEl = document.getElementById('qrDebugLive');
   var T = window.QRPortalTransform;
 
-  var DEBUG = location.search.indexOf('debug') !== -1;
-  if (DEBUG && debugEl) debugEl.style.display = 'block';
+  var DEBUG = !!window.QR_DEBUG;
+  function log(msg) { if (window.qrDebugLog) window.qrDebugLog(msg); }
 
   var SCAN_INTERVAL_MS = 100;
   var SEARCH_HINT_TIMEOUT_MS = 15000;
@@ -34,6 +34,7 @@
   var lastSeenAt = 0;
   var smoothedQuad = null;
   var anchorSkew = null;
+  var hasLoggedFirstTrack = false;
 
   var NATIVE_RECT = [
     { x: 0, y: 0 },
@@ -51,17 +52,26 @@
   }
 
   async function startAR() {
+    log('AR button clicked');
     arBtn.disabled = true;
     var stream;
     try {
+      log('requesting camera...');
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      log('camera granted, tracks=' + stream.getTracks().length);
     } catch (e) {
+      log('camera FAILED: ' + e.name + ' ' + e.message);
       arBtn.disabled = false;
       arBtn.textContent = 'Нет доступа к камере — повторить';
       return;
     }
     video.srcObject = stream;
-    await video.play();
+    try {
+      await video.play();
+      log('video playing, ' + video.videoWidth + 'x' + video.videoHeight);
+    } catch (e) {
+      log('video.play() FAILED: ' + e.name + ' ' + e.message);
+    }
     arBtn.style.display = 'none';
     fallbackPhoto.style.display = 'none';
     video.style.display = 'block';
@@ -79,6 +89,7 @@
       hint.textContent = 'Не получается найти QR — поднесите телефон ближе или добавьте света';
     }
     if (smoothedQuad && ts - lastSeenAt > LOST_TIMEOUT_MS) {
+      log('QR lost');
       resetTracking();
       hint.style.display = 'block';
       hint.textContent = 'QR потерян — наведите камеру снова';
@@ -99,6 +110,10 @@
   }
 
   function onTracked(location, frameW, frameH, ts) {
+    if (!hasLoggedFirstTrack) {
+      hasLoggedFirstTrack = true;
+      log('QR first tracked');
+    }
     lastSeenAt = ts;
     hint.style.display = 'none';
 
@@ -136,8 +151,9 @@
     var photoOffsetY = dVert * PHOTO_SKEW_SENS;
     portalPhoto.style.transform = 'translate(' + photoOffsetX + 'px,' + photoOffsetY + 'px)';
 
-    if (DEBUG && debugEl) {
-      debugEl.textContent =
+    if (DEBUG && liveEl) {
+      liveEl.style.display = 'block';
+      liveEl.textContent =
         'skew: ' + skew.horiz.toFixed(3) + ', ' + skew.vert.toFixed(3) + '\n' +
         'anchor: ' + anchorSkew.horiz.toFixed(3) + ', ' + anchorSkew.vert.toFixed(3) + '\n' +
         'delta: ' + dHoriz.toFixed(3) + ', ' + dVert.toFixed(3) + '\n' +
@@ -148,17 +164,20 @@
   function resetTracking() {
     smoothedQuad = null;
     anchorSkew = null;
+    hasLoggedFirstTrack = false;
     portal.style.display = 'none';
     rescanBtn.style.display = 'none';
   }
 
   function rescan() {
+    log('rescan clicked');
     resetTracking();
     hint.style.display = 'block';
     hint.textContent = 'Наведите камеру на QR-код на табличке';
     searchStartAt = performance.now();
   }
 
+  log('ar.js loaded, supportsAR=' + supportsAR());
   if (supportsAR()) {
     arBtn.addEventListener('click', startAR);
     rescanBtn.addEventListener('click', rescan);
