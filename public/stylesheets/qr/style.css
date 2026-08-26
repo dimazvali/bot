@@ -54,6 +54,7 @@ body {
   transform-origin: 0 0;
   will-change: transform;
 }
+.qr-portal--circle { border-radius: 50%; }
 .qr-portal-photo {
   position: absolute;
   left: -20%; top: -20%;

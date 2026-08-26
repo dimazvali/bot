@@ -25,6 +25,13 @@ block content
         label Описание
         textarea(name='description')= (entry && entry.description) || ''
       .admin-field
+        label Форма портала
+        - var shapeLabels = { '3:2': 'Прямоугольник 3:2 (горизонтальный)', '2:3': 'Прямоугольник 2:3 (вертикальный)', square: 'Квадрат', circle: 'Круг' }
+        - var currentShape = (entry && entry.portalShape) || 'square'
+        select(name='portalShape')
+          each shape in portalShapes
+            option(value=shape selected=(shape === currentShape))= shapeLabels[shape]
+      .admin-field
         label Фотография (крупнее, чем нужно показать — по краям есть запас для параллакса)
         input(type='file' name='photo' accept='image/*' required=!entry)
       button.admin-btn(type='submit') Сохранить

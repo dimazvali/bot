@@ -1,7 +1,7 @@
 'use strict';
 var test = require('node:test');
 var assert = require('node:assert/strict');
-var { createStore, validateSlug } = require('../lib/qr-data.js');
+var { createStore, validateSlug, validatePortalShape } = require('../lib/qr-data.js');
 
 function createFakeCollection() {
   var docs = {};
@@ -52,6 +52,38 @@ test('create() writes a new record and getBySlug() finds it', async function() {
   assert.ok(record.updatedAt);
   var found = await store.getBySlug('test-place');
   assert.equal(found.title, 'Test Place');
+});
+
+test('validatePortalShape accepts only the known shapes', function() {
+  assert.equal(validatePortalShape('3:2'), true);
+  assert.equal(validatePortalShape('2:3'), true);
+  assert.equal(validatePortalShape('square'), true);
+  assert.equal(validatePortalShape('circle'), true);
+  assert.equal(validatePortalShape('triangle'), false);
+  assert.equal(validatePortalShape(undefined), false);
+});
+
+test('create() defaults portalShape to "square" when omitted or invalid', async function() {
+  var store = createStore(createFakeCollection());
+  var record = await store.create({ slug: 'no-shape', title: 'X' });
+  assert.equal(record.portalShape, 'square');
+  var record2 = await store.create({ slug: 'bad-shape', title: 'Y', portalShape: 'hexagon' });
+  assert.equal(record2.portalShape, 'square');
+});
+
+test('create() keeps a valid portalShape', async function() {
+  var store = createStore(createFakeCollection());
+  var record = await store.create({ slug: 'circle-place', title: 'Z', portalShape: 'circle' });
+  assert.equal(record.portalShape, 'circle');
+});
+
+test('update() normalizes portalShape when patched, leaves it alone otherwise', async function() {
+  var store = createStore(createFakeCollection());
+  await store.create({ slug: 'shape-up', title: 'A', portalShape: '3:2' });
+  var updated = await store.update('shape-up', { title: 'B' });
+  assert.equal(updated.portalShape, '3:2');
+  var updated2 = await store.update('shape-up', { portalShape: 'not-a-shape' });
+  assert.equal(updated2.portalShape, 'square');
 });
 
 test('create() rejects an invalid slug', async function() {

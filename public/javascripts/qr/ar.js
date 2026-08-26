@@ -16,12 +16,21 @@
   var DEBUG = !!window.QR_DEBUG;
   function log(msg) { if (window.qrDebugLog) window.qrDebugLog(msg); }
 
+  var PORTAL_SHAPES = {
+    '3:2': { w: 270, h: 180, circle: false },
+    '2:3': { w: 180, h: 270, circle: false },
+    square: { w: 220, h: 220, circle: false },
+    circle: { w: 220, h: 220, circle: true },
+  };
+  var shape = PORTAL_SHAPES[ENTRY.portalShape] || PORTAL_SHAPES.square;
+  if (shape.circle) portal.classList.add('qr-portal--circle');
+
   var SCAN_INTERVAL_MS = 100;
   var SEARCH_HINT_TIMEOUT_MS = 15000;
   var LOST_TIMEOUT_MS = 1200; // how long to hold the portal in place after losing the QR
   var QUAD_SMOOTHING = 0.35;  // per-point EMA factor for the tracked QR corners
-  var PORTAL_W = 260;
-  var PORTAL_H = 200;
+  var PORTAL_W = shape.w;
+  var PORTAL_H = shape.h;
   var PORTAL_SCALE = 2.6;
   // skew is a normalized ratio (roughly -1..1 for extreme angles), so this
   // is "px of photo shift per unit of skew ratio" — bigger fakes more depth

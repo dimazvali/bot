@@ -48,6 +48,6 @@ block content
   script(src='/javascripts/qr/jsQR.js')
   script(src='/javascripts/qr/portal-transform.js')
   script.
-    window.QR_ENTRY = !{JSON.stringify({ slug: entry.slug, photo: entry.photo })};
+    window.QR_ENTRY = !{JSON.stringify({ slug: entry.slug, photo: entry.photo, portalShape: entry.portalShape || 'square' })};
     if (window.qrDebugLog) window.qrDebugLog('jsQR: ' + typeof window.jsQR + ', portal-transform: ' + typeof window.QRPortalTransform);
   script(src='/javascripts/qr/ar.js')

@@ -57,7 +57,7 @@ router.get('/', requireAuth, async function(req, res, next) {
 });
 
 router.get('/new', requireAuth, function(req, res) {
-  res.render('qr/admin/edit', { title: 'Новая запись', entry: null, error: null });
+  res.render('qr/admin/edit', { title: 'Новая запись', entry: null, error: null, portalShapes: qrData.PORTAL_SHAPES });
 });
 
 router.post('/new', requireAuth, upload.single('photo'), async function(req, res) {
@@ -72,10 +72,11 @@ router.post('/new', requireAuth, upload.single('photo'), async function(req, res
       description: (req.body.description || '').trim(),
       address: (req.body.address || '').trim(),
       photo: photoPath,
+      portalShape: req.body.portalShape,
     });
     res.redirect('/admin');
   } catch (e) {
-    res.render('qr/admin/edit', { title: 'Новая запись', entry: req.body, error: e.message });
+    res.render('qr/admin/edit', { title: 'Новая запись', entry: req.body, error: e.message, portalShapes: qrData.PORTAL_SHAPES });
   }
 });
 
@@ -83,7 +84,7 @@ router.get('/:slug/edit', requireAuth, async function(req, res, next) {
   try {
     var entry = await qrData.getBySlug(req.params.slug);
     if (!entry) return res.status(404).send('Не найдено');
-    res.render('qr/admin/edit', { title: 'Редактировать: ' + entry.title, entry: entry, error: null });
+    res.render('qr/admin/edit', { title: 'Редактировать: ' + entry.title, entry: entry, error: null, portalShapes: qrData.PORTAL_SHAPES });
   } catch (e) {
     next(e);
   }
@@ -96,6 +97,7 @@ router.post('/:slug/edit', requireAuth, upload.single('photo'), async function(r
       year: (req.body.year || '').trim(),
       description: (req.body.description || '').trim(),
       address: (req.body.address || '').trim(),
+      portalShape: req.body.portalShape,
     };
     if (req.file) {
       patch.photo = await qrImages.savePhoto(req.params.slug, req.file.buffer);
@@ -104,7 +106,7 @@ router.post('/:slug/edit', requireAuth, upload.single('photo'), async function(r
     res.redirect('/admin');
   } catch (e) {
     var entry = await qrData.getBySlug(req.params.slug).catch(function() { return null; });
-    res.render('qr/admin/edit', { title: 'Редактировать', entry: entry, error: e.message });
+    res.render('qr/admin/edit', { title: 'Редактировать', entry: entry, error: e.message, portalShapes: qrData.PORTAL_SHAPES });
   }
 });
 

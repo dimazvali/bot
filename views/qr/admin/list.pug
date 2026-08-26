@@ -10,6 +10,7 @@ block content
           th Фото
           th Название
           th Год
+          th Портал
           th Slug / URL
           th
       tbody
@@ -19,6 +20,7 @@ block content
               img.admin-thumb(src=entry.photo)
             td= entry.title
             td= entry.year
+            td= entry.portalShape || 'square'
             td
               a(href=`https://qr.dimazvali.com/${entry.slug}` target='_blank')= entry.slug
             td
