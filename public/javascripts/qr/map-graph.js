@@ -19,8 +19,10 @@ function createRng(seed) {
 // aligned, but every street is still parallel or perpendicular to every
 // other one). Main avenues run long and mostly uninterrupted; shorter,
 // narrower side streets peel off perpendicular to them at intervals,
-// forming blocks. Bounded by maxRadius/maxSegments so it always
-// terminates.
+// forming blocks — but only once a street has covered at least
+// minBlockLen since its last turn/fork, so intersections read as blocks
+// of a consistent minimum size rather than clustering right on top of
+// each other. Bounded by maxRadius/maxSegments so it always terminates.
 function generateStreetGraph(x0, y0, opts) {
   opts = opts || {};
   var rng = opts.rng || createRng(opts.seed || 1);
@@ -28,6 +30,7 @@ function generateStreetGraph(x0, y0, opts) {
   var maxRadius = opts.maxRadius != null ? opts.maxRadius : 900;
   var minRunLen = opts.minRunLen != null ? opts.minRunLen : 50;
   var maxRunLen = opts.maxRunLen != null ? opts.maxRunLen : 85;
+  var minBlockLen = opts.minBlockLen != null ? opts.minBlockLen : 140;
   var sideStreetDepth = opts.sideStreetDepth != null ? opts.sideStreetDepth : 6;
 
   var baseRotation = rng() * (Math.PI / 2); // whole grid's orientation — still deterministic per seed
@@ -39,7 +42,7 @@ function generateStreetGraph(x0, y0, opts) {
     return { dx: Math.cos(angle), dy: Math.sin(angle) };
   }
 
-  function grow(x, y, dirIdx, depthBudget, width, continueChance, crossChance) {
+  function grow(x, y, dirIdx, depthBudget, width, continueChance, crossChance, distSinceTurn) {
     if (segments.length >= maxSegments || depthBudget <= 0) return;
 
     var runLen = minRunLen + rng() * (maxRunLen - minRunLen);
@@ -50,20 +53,25 @@ function generateStreetGraph(x0, y0, opts) {
 
     segments.push({ x1: x, y1: y, x2: nx, y2: ny, width: width });
 
-    if (rng() < continueChance) {
-      grow(nx, ny, dirIdx, depthBudget - 1, width * 0.99, continueChance, crossChance);
+    var travelled = distSinceTurn + runLen;
+    var atBlockEnd = travelled >= minBlockLen;
+
+    if (atBlockEnd) {
+      [1, -1].forEach(function(turn) {
+        if (rng() < crossChance) {
+          var newDirIdx = ((dirIdx + turn) % 4 + 4) % 4; // 90-degree turn, either side
+          grow(nx, ny, newDirIdx, sideStreetDepth, width * 0.62, continueChance * 0.82, crossChance * 0.6, 0);
+        }
+      });
     }
 
-    [1, -1].forEach(function(turn) {
-      if (rng() < crossChance) {
-        var newDirIdx = ((dirIdx + turn) % 4 + 4) % 4; // 90-degree turn, either side
-        grow(nx, ny, newDirIdx, sideStreetDepth, width * 0.62, continueChance * 0.82, crossChance * 0.6);
-      }
-    });
+    if (rng() < continueChance) {
+      grow(nx, ny, dirIdx, depthBudget - 1, width * 0.99, continueChance, crossChance, atBlockEnd ? 0 : travelled);
+    }
   }
 
   for (var i = 0; i < 4; i++) {
-    grow(x0, y0, i, 9999, 5, 0.93, 0.4);
+    grow(x0, y0, i, 9999, 5, 0.93, 0.4, 0);
   }
 
   return segments;
