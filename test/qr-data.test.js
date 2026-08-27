@@ -3,6 +3,12 @@ var test = require('node:test');
 var assert = require('node:assert/strict');
 var { createStore, validateSlug, validatePortalShape } = require('../lib/qr-data.js');
 
+// Marker only this fake understands — mirrors how the real store is given
+// FieldValue.increment, without depending on the real SDK's internals.
+function fakeIncrementBy(n) {
+  return { __fakeIncrement: n };
+}
+
 function createFakeCollection() {
   var docs = {};
   return {
@@ -14,6 +20,18 @@ function createFakeCollection() {
         },
         set: async function(data) {
           docs[id] = data;
+        },
+        update: async function(patch) {
+          if (!docs[id]) throw new Error('No document to update: ' + id);
+          var current = docs[id];
+          var updated = Object.assign({}, current);
+          Object.keys(patch).forEach(function(key) {
+            var value = patch[key];
+            updated[key] = (value && typeof value === 'object' && '__fakeIncrement' in value)
+              ? (current[key] || 0) + value.__fakeIncrement
+              : value;
+          });
+          docs[id] = updated;
         },
         delete: async function() {
           delete docs[id];
@@ -28,6 +46,10 @@ function createFakeCollection() {
       };
     },
   };
+}
+
+function createStoreForTest(collection) {
+  return createStore(collection, { incrementBy: fakeIncrementBy });
 }
 
 test('validateSlug accepts lowercase-latin-hyphen slugs only', function() {
@@ -48,10 +70,39 @@ test('create() writes a new record and getBySlug() finds it', async function() {
   var store = createStore(createFakeCollection());
   var record = await store.create({ slug: 'test-place', title: 'Test Place', photo: 'https://example.com/test-place/photo.jpg' });
   assert.equal(record.slug, 'test-place');
+  assert.equal(record.views, 0);
   assert.ok(record.createdAt);
   assert.ok(record.updatedAt);
   var found = await store.getBySlug('test-place');
   assert.equal(found.title, 'Test Place');
+});
+
+test('incrementViews() bumps the view count by 1 each call', async function() {
+  var store = createStoreForTest(createFakeCollection());
+  await store.create({ slug: 'counted', title: 'X' });
+  await store.incrementViews('counted');
+  assert.equal((await store.getBySlug('counted')).views, 1);
+  await store.incrementViews('counted');
+  await store.incrementViews('counted');
+  assert.equal((await store.getBySlug('counted')).views, 3);
+});
+
+test('incrementViews() does not lose updates when called concurrently', async function() {
+  var store = createStoreForTest(createFakeCollection());
+  await store.create({ slug: 'concurrent', title: 'X' });
+  await Promise.all([
+    store.incrementViews('concurrent'),
+    store.incrementViews('concurrent'),
+    store.incrementViews('concurrent'),
+    store.incrementViews('concurrent'),
+    store.incrementViews('concurrent'),
+  ]);
+  assert.equal((await store.getBySlug('concurrent')).views, 5);
+});
+
+test('incrementViews() on an unknown slug is a silent no-op', async function() {
+  var store = createStoreForTest(createFakeCollection());
+  await assert.doesNotReject(function() { return store.incrementViews('nope'); });
 });
 
 test('validatePortalShape accepts only the known shapes', function() {

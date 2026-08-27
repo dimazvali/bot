@@ -11,6 +11,7 @@ block content
           th Название
           th Год
           th Портал
+          th Просмотры
           th Slug / URL
           th
       tbody
@@ -21,6 +22,7 @@ block content
             td= entry.title
             td= entry.year
             td= entry.portalShape || 'square'
+            td= entry.views || 0
             td
               a(href=`https://qr.dimazvali.com/${entry.slug}` target='_blank')= entry.slug
             td
