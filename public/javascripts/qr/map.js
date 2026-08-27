@@ -5,10 +5,23 @@
   var ctx = canvas.getContext('2d');
 
   var INK = '#4a3520';
-  var DRAW_BATCH = 6;       // segments revealed per animation frame
   var FRAME_DELAY_MS = 16;
+  var TARGET_DRAW_FRAMES = 90; // ~1.5s regardless of how many segments there are
 
   var drawTimer = null;
+
+  // Distance from (x, y) to the farthest viewport corner — the map needs
+  // to reach every corner of the screen, not just a fixed-size patch
+  // around wherever was clicked.
+  function farthestCornerDistance(x, y) {
+    var corners = [
+      { x: 0, y: 0 }, { x: canvas.width, y: 0 },
+      { x: 0, y: canvas.height }, { x: canvas.width, y: canvas.height },
+    ];
+    return corners.reduce(function(max, c) {
+      return Math.max(max, Math.sqrt((c.x - x) * (c.x - x) + (c.y - y) * (c.y - y)));
+    }, 0);
+  }
 
   function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -35,9 +48,10 @@
       clearTimeout(drawTimer);
       drawTimer = null;
     }
+    var batchSize = Math.max(6, Math.ceil(segments.length / TARGET_DRAW_FRAMES));
     var i = 0;
     function step() {
-      var end = Math.min(i + DRAW_BATCH, segments.length);
+      var end = Math.min(i + batchSize, segments.length);
       for (; i < end; i++) drawSegment(segments[i]);
       if (i < segments.length) {
         drawTimer = setTimeout(step, FRAME_DELAY_MS);
@@ -48,9 +62,12 @@
 
   function generateAt(x, y) {
     clear();
+    var maxRadius = farthestCornerDistance(x, y);
     var segments = G.generateStreetGraph(x, y, {
       seed: Math.floor(Math.random() * 2147483647),
-      maxRadius: Math.min(canvas.width, canvas.height) * 0.6,
+      maxRadius: maxRadius,
+      branchCount: Math.max(14, Math.round(maxRadius / 55)),
+      maxSegments: 2600,
     });
     animateSegments(segments);
   }

@@ -36,9 +36,9 @@ test('generateStreetGraph is deterministic for the same seed', function() {
 });
 
 test('generateStreetGraph produces a non-trivial, bounded number of segments', function() {
-  var segments = generateStreetGraph(0, 0, { seed: 1, maxSegments: 400 });
-  assert.ok(segments.length > 10, 'expected a non-trivial map, got ' + segments.length + ' segments');
-  assert.ok(segments.length <= 400);
+  var segments = generateStreetGraph(0, 0, { seed: 1, maxSegments: 1400 });
+  assert.ok(segments.length > 20, 'expected a non-trivial map, got ' + segments.length + ' segments');
+  assert.ok(segments.length <= 1400);
 });
 
 test('generateStreetGraph respects maxSegments across several seeds', function() {
@@ -59,15 +59,33 @@ test('generateStreetGraph keeps every segment endpoint within maxRadius of the o
   });
 });
 
-test('generateStreetGraph tapers width with depth (roads narrow as they branch further)', function() {
-  var segments = generateStreetGraph(0, 0, { seed: 1, maxSegments: 200 });
-  var rootDepth = segments.filter(function(s) { return s.depth === 0; });
-  var deepest = segments.reduce(function(max, s) { return s.depth > max.depth ? s : max; }, segments[0]);
-  var avgRootWidth = rootDepth.reduce(function(sum, s) { return sum + s.width; }, 0) / rootDepth.length;
-  assert.ok(deepest.width < avgRootWidth, 'expected deeper segments to be narrower than root segments');
+test('generateStreetGraph main avenues reach out close to maxRadius (fill the area, not just a small patch)', function() {
+  var x0 = 0, y0 = 0, maxRadius = 500;
+  var segments = generateStreetGraph(x0, y0, { seed: 2, maxRadius: maxRadius, maxSegments: 1400 });
+  var farthest = segments.reduce(function(max, s) {
+    var d = Math.sqrt((s.x2 - x0) * (s.x2 - x0) + (s.y2 - y0) * (s.y2 - y0));
+    return Math.max(max, d);
+  }, 0);
+  assert.ok(farthest > maxRadius * 0.85, 'expected at least one avenue to reach near maxRadius, farthest was ' + farthest);
 });
 
-test('generateStreetGraph with maxDepth 0 and no branches produces an empty map', function() {
+test('generateStreetGraph runs are long and only lightly curved (streets, not a jittery random walk)', function() {
+  var segments = generateStreetGraph(0, 0, { seed: 1, maxSegments: 200 });
+  segments.forEach(function(s) {
+    var len = Math.sqrt((s.x2 - s.x1) * (s.x2 - s.x1) + (s.y2 - s.y1) * (s.y2 - s.y1));
+    assert.ok(len >= 45 - 1e-6 && len <= 100 + 1e-6, 'segment length out of expected street-run range: ' + len);
+  });
+});
+
+test('generateStreetGraph tapers width (side streets narrower than the avenues they branch from)', function() {
+  var segments = generateStreetGraph(0, 0, { seed: 1, maxSegments: 300 });
+  var widths = segments.map(function(s) { return s.width; });
+  var maxWidth = Math.max.apply(null, widths);
+  var minWidth = Math.min.apply(null, widths);
+  assert.ok(maxWidth > minWidth * 1.5, 'expected a visible width range between avenues and side streets');
+});
+
+test('generateStreetGraph with branchCount 0 produces an empty map', function() {
   var segments = generateStreetGraph(0, 0, { seed: 1, branchCount: 0 });
   assert.deepEqual(segments, []);
 });

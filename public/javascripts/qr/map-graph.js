@@ -12,44 +12,49 @@ function createRng(seed) {
   };
 }
 
-// Grows a branching, tapering street network outward from (x0, y0) — like
-// an old city map's roads radiating from a square. Bounded by maxDepth,
-// maxSegments and maxRadius so it always terminates.
+// Grows a two-tier street network outward from (x0, y0): long, mostly
+// straight "avenues" radiating from the origin (barely curving — like
+// surveyed roads, not a random walk), each occasionally branching into
+// shorter, narrower "side streets" at a deliberate crossroads-like angle.
+// That two-tier split (plus long straight runs instead of per-step
+// jitter) is what reads as a planned street network rather than organic
+// cracks/roots. Bounded by maxRadius/maxSegments so it always terminates.
 function generateStreetGraph(x0, y0, opts) {
   opts = opts || {};
   var rng = opts.rng || createRng(opts.seed || 1);
-  var maxDepth = opts.maxDepth != null ? opts.maxDepth : 7;
-  var maxSegments = opts.maxSegments != null ? opts.maxSegments : 400;
+  var maxSegments = opts.maxSegments != null ? opts.maxSegments : 1400;
   var maxRadius = opts.maxRadius != null ? opts.maxRadius : 900;
-  var branchCount = opts.branchCount != null ? opts.branchCount : 7;
-  var minStep = opts.minStep != null ? opts.minStep : 16;
-  var maxStep = opts.maxStep != null ? opts.maxStep : 34;
+  var branchCount = opts.branchCount != null ? opts.branchCount : 14;
+  var minRunLen = opts.minRunLen != null ? opts.minRunLen : 45;
+  var maxRunLen = opts.maxRunLen != null ? opts.maxRunLen : 100;
+  var jitter = opts.jitter != null ? opts.jitter : 0.14; // small per-run curve, not per-pixel
+  var sideStreetDepth = opts.sideStreetDepth != null ? opts.sideStreetDepth : 4;
 
   var segments = [];
 
-  function grow(x, y, angle, depth, width) {
-    if (segments.length >= maxSegments || depth > maxDepth) return;
+  function grow(x, y, angle, depthBudget, width, forkChance, widthDecay) {
+    if (segments.length >= maxSegments || depthBudget <= 0) return;
 
-    var stepLen = minStep + rng() * (maxStep - minStep);
-    var newAngle = angle + (rng() - 0.5) * 0.55;
-    var nx = x + Math.cos(newAngle) * stepLen;
-    var ny = y + Math.sin(newAngle) * stepLen;
+    var runLen = minRunLen + rng() * (maxRunLen - minRunLen);
+    var newAngle = angle + (rng() - 0.5) * jitter;
+    var nx = x + Math.cos(newAngle) * runLen;
+    var ny = y + Math.sin(newAngle) * runLen;
     if (Math.sqrt((nx - x0) * (nx - x0) + (ny - y0) * (ny - y0)) > maxRadius) return;
 
-    segments.push({ x1: x, y1: y, x2: nx, y2: ny, width: width, depth: depth });
+    segments.push({ x1: x, y1: y, x2: nx, y2: ny, width: width });
 
-    if (rng() < 0.9 - depth * 0.03) {
-      grow(nx, ny, newAngle, depth + 1, width * 0.94);
+    if (rng() < 0.85) {
+      grow(nx, ny, newAngle, depthBudget - 1, width * widthDecay, forkChance, widthDecay);
     }
-    if (depth < maxDepth - 1 && rng() < 0.2 - depth * 0.015) {
-      var forkAngle = newAngle + (rng() < 0.5 ? 1 : -1) * (0.7 + rng() * 0.6);
-      grow(nx, ny, forkAngle, depth + 1, width * 0.75);
+    if (rng() < forkChance) {
+      var turn = (0.85 + rng() * 1.0) * (rng() < 0.5 ? 1 : -1); // roughly 49-106 degrees, either side
+      grow(nx, ny, newAngle + turn, sideStreetDepth, width * 0.6, forkChance * 0.55, 0.9);
     }
   }
 
   for (var i = 0; i < branchCount; i++) {
-    var angle = (i / branchCount) * Math.PI * 2 + (rng() - 0.5) * 0.35;
-    grow(x0, y0, angle, 0, 4.2);
+    var angle = (i / branchCount) * Math.PI * 2 + (rng() - 0.5) * 0.2;
+    grow(x0, y0, angle, 9999, 5, 0.5, 0.985);
   }
 
   return segments;
