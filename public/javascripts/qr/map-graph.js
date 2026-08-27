@@ -60,6 +60,14 @@ function generateStreetGraph(x0, y0, opts) {
   var stepLen = opts.stepLen != null ? opts.stepLen : 62;
   var minBlockSteps = opts.minBlockSteps != null ? opts.minBlockSteps : 2;
   var forkChance = opts.forkChance != null ? opts.forkChance : 0.16;
+  // How far (px) a segment's rendered path is allowed to bow away from the
+  // straight line between its two grid nodes. The nodes themselves (and
+  // the collision/branching logic, which is entirely grid-based) never
+  // move — only the drawn curve wanders, which is what turns a rigid grid
+  // into something that reads as an old town's winding streets rather
+  // than a survey plan, without touching how any of the rest of this
+  // works.
+  var windingAmount = opts.windingAmount != null ? opts.windingAmount : stepLen * 0.3;
 
   var baseRotation = rng() * (Math.PI / 2); // whole grid's orientation — still deterministic per seed
   var eu = { dx: Math.cos(baseRotation), dy: Math.sin(baseRotation) };
@@ -156,7 +164,10 @@ function generateStreetGraph(x0, y0, opts) {
 
       var from = gridToWorld(cu, cv);
       var to = gridToWorld(node.u, node.v);
-      segments.push({ x1: from.x, y1: from.y, x2: to.x, y2: to.y, width: street.width });
+      segments.push({
+        x1: from.x, y1: from.y, x2: to.x, y2: to.y, width: street.width,
+        bulge: (rng() - 0.5) * 2 * windingAmount,
+      });
       entries.push({ axis: axis, width: street.width });
       cu = node.u; cv = node.v;
     }
@@ -197,6 +208,37 @@ function generateRiverPath(x0, y0, canvasW, canvasH, opts) {
   return points;
 }
 
+// The 3 points that actually characterize a segment's rendered (winding)
+// path — start, the bow-shaped midpoint, and end — used for any check that
+// needs to know where the curve really goes, not just its two grid-node
+// endpoints.
+function segmentSamplePoints(segment) {
+  var mx = (segment.x1 + segment.x2) / 2;
+  var my = (segment.y1 + segment.y2) / 2;
+  var dx = segment.x2 - segment.x1, dy = segment.y2 - segment.y1;
+  var len = Math.sqrt(dx * dx + dy * dy) || 1;
+  var nx = -dy / len, ny = dx / len;
+  var bulge = segment.bulge || 0;
+  return [
+    { x: segment.x1, y: segment.y1 },
+    { x: mx + nx * bulge, y: my + ny * bulge },
+    { x: segment.x2, y: segment.y2 },
+  ];
+}
+
+// Standard ray-casting point-in-polygon test.
+function isPointInPolygon(point, polygonPoints) {
+  var inside = false;
+  for (var i = 0, j = polygonPoints.length - 1; i < polygonPoints.length; j = i++) {
+    var xi = polygonPoints[i].x, yi = polygonPoints[i].y;
+    var xj = polygonPoints[j].x, yj = polygonPoints[j].y;
+    var intersects = (yi > point.y) !== (yj > point.y) &&
+      point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
 // Distance from a point to the nearest point on a line segment.
 function distanceToSegment(px, py, ax, ay, bx, by) {
   var dx = bx - ax, dy = by - ay;
@@ -218,16 +260,30 @@ function isPointInRiver(point, riverPath) {
   return false;
 }
 
-// Drops any street segment that's entirely submerged in the river (both
-// endpoints in the water) — streets should stop at the bank, not float on
-// the water. A segment with only one endpoint in the water is kept as-is
-// (it reads as running up to the bank, close enough for a stylized map).
+// Drops any street segment that's entirely submerged in the river (all of
+// its start/bulge-midpoint/end sample points in the water) — streets
+// should stop at the bank, not float on the water. A segment that only
+// dips a toe in (e.g. just the winding midpoint) is kept as-is; it reads
+// as running along the bank, close enough for a stylized map.
 function clipStreetsToRiver(segments, riverPath) {
   if (!riverPath || riverPath.length < 2) return segments;
   return segments.filter(function(s) {
-    var inAtStart = isPointInRiver({ x: s.x1, y: s.y1 }, riverPath);
-    var inAtEnd = isPointInRiver({ x: s.x2, y: s.y2 }, riverPath);
-    return !(inAtStart && inAtEnd);
+    var allInRiver = segmentSamplePoints(s).every(function(p) { return isPointInRiver(p, riverPath); });
+    return !allInRiver;
+  });
+}
+
+// Drops any street segment that dips into a district/forest at all (any of
+// its start/bulge-midpoint/end sample points) — unlike the river, streets
+// shouldn't enter these at all, not even partially.
+function clipStreetsFromDistricts(segments, districts) {
+  if (!districts || districts.length === 0) return segments;
+  return segments.filter(function(s) {
+    var samples = segmentSamplePoints(s);
+    var touchesForest = districts.some(function(d) {
+      return samples.some(function(p) { return isPointInPolygon(p, d.points); });
+    });
+    return !touchesForest;
   });
 }
 
@@ -266,6 +322,9 @@ var api = {
   isPointInRiver: isPointInRiver,
   clipStreetsToRiver: clipStreetsToRiver,
   generateDistricts: generateDistricts,
+  segmentSamplePoints: segmentSamplePoints,
+  isPointInPolygon: isPointInPolygon,
+  clipStreetsFromDistricts: clipStreetsFromDistricts,
 };
 
 if (typeof module !== 'undefined' && module.exports) {

@@ -4,6 +4,7 @@ var assert = require('node:assert/strict');
 var {
   createRng, generateStreetGraph, isBlockedByPerpendicular,
   generateRiverPath, isPointInRiver, clipStreetsToRiver, generateDistricts,
+  segmentSamplePoints, isPointInPolygon, clipStreetsFromDistricts,
 } = require('../public/javascripts/qr/map-graph.js');
 
 test('createRng produces numbers in [0, 1)', function() {
@@ -220,4 +221,73 @@ test('generateDistricts is deterministic and produces the requested count', func
     assert.ok(d.points.length > 0);
     assert.ok(Number.isFinite(d.cx) && Number.isFinite(d.cy));
   });
+});
+
+test('generateStreetGraph gives every segment a bulge within the configured windingAmount', function() {
+  var windingAmount = 15;
+  var segments = generateStreetGraph(0, 0, { seed: 1, maxSegments: 300, windingAmount: windingAmount });
+  assert.ok(segments.length > 10);
+  segments.forEach(function(s) {
+    assert.ok(typeof s.bulge === 'number');
+    assert.ok(Math.abs(s.bulge) <= windingAmount, 'bulge ' + s.bulge + ' exceeds windingAmount ' + windingAmount);
+  });
+});
+
+test('generateStreetGraph: winding only bows the rendered curve, the underlying grid stays orthogonal', function() {
+  // Same assertion as the orthogonality test above, but with winding
+  // cranked up — bulge must never leak into x1/y1/x2/y2 themselves.
+  var segments = generateStreetGraph(0, 0, { seed: 4, maxSegments: 300, windingAmount: 40 });
+  var refAngle = Math.atan2(segments[0].y2 - segments[0].y1, segments[0].x2 - segments[0].x1);
+  segments.forEach(function(s) {
+    var angle = Math.atan2(s.y2 - s.y1, s.x2 - s.x1);
+    var diff = ((angle - refAngle) % (Math.PI / 2) + Math.PI / 2) % (Math.PI / 2);
+    var offFromGrid = Math.min(diff, Math.PI / 2 - diff);
+    assert.ok(offFromGrid < 1e-6);
+  });
+});
+
+test('segmentSamplePoints returns start, bulged midpoint, and end', function() {
+  var samples = segmentSamplePoints({ x1: 0, y1: 0, x2: 100, y2: 0, bulge: 10 });
+  assert.equal(samples.length, 3);
+  assert.deepEqual(samples[0], { x: 0, y: 0 });
+  assert.deepEqual(samples[2], { x: 100, y: 0 });
+  // horizontal segment -> perpendicular is vertical -> bulge moves the midpoint in y
+  assert.ok(Math.abs(samples[1].x - 50) < 1e-9);
+  assert.ok(Math.abs(Math.abs(samples[1].y) - 10) < 1e-9);
+});
+
+test('segmentSamplePoints treats a missing bulge as zero (straight midpoint)', function() {
+  var samples = segmentSamplePoints({ x1: 0, y1: 0, x2: 100, y2: 0 });
+  assert.deepEqual(samples[1], { x: 50, y: 0 });
+});
+
+test('isPointInPolygon is true inside a square and false outside it', function() {
+  var square = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
+  assert.equal(isPointInPolygon({ x: 5, y: 5 }, square), true);
+  assert.equal(isPointInPolygon({ x: 50, y: 50 }, square), false);
+  assert.equal(isPointInPolygon({ x: -5, y: 5 }, square), false);
+});
+
+test('clipStreetsFromDistricts keeps segments that stay clear of the forest, drops ones fully inside it', function() {
+  var forest = [{ points: [{ x: 40, y: -10 }, { x: 60, y: -10 }, { x: 60, y: 10 }, { x: 40, y: 10 }] }];
+  var clearlyOutside = [{ x1: 200, y1: 200, x2: 260, y2: 200, width: 2, bulge: 0 }];
+  var clearlyInside = [{ x1: 45, y1: 0, x2: 55, y2: 0, width: 2, bulge: 0 }];
+  assert.equal(clipStreetsFromDistricts(clearlyOutside, forest).length, 1);
+  assert.equal(clipStreetsFromDistricts(clearlyInside, forest).length, 0);
+});
+
+test('clipStreetsFromDistricts drops a segment whose straight endpoints miss the forest but whose winding bulge dips into it', function() {
+  var forest = [{ points: [{ x: 40, y: -10 }, { x: 60, y: -10 }, { x: 60, y: 10 }, { x: 40, y: 10 }] }];
+  // vertical segment at x=0 (well clear of the forest's x range 40-60); a
+  // large enough bulge pushes just its midpoint sample into the forest
+  var segments = [{ x1: 0, y1: -20, x2: 0, y2: 20, width: 2, bulge: -50 }];
+  var samples = segmentSamplePoints(segments[0]);
+  assert.ok(isPointInPolygon(samples[1], forest[0].points), 'test setup: bulged midpoint should land inside the forest');
+  assert.equal(clipStreetsFromDistricts(segments, forest).length, 0);
+});
+
+test('clipStreetsFromDistricts is a no-op without any districts', function() {
+  var segments = [{ x1: 0, y1: 0, x2: 10, y2: 10, width: 2 }];
+  assert.deepEqual(clipStreetsFromDistricts(segments, []), segments);
+  assert.deepEqual(clipStreetsFromDistricts(segments, null), segments);
 });

@@ -34,9 +34,22 @@
   }
 
   function drawSegment(s) {
+    var mx = (s.x1 + s.x2) / 2;
+    var my = (s.y1 + s.y2) / 2;
+    var dx = s.x2 - s.x1, dy = s.y2 - s.y1;
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var nx = -dy / len, ny = dx / len;
+    var bulge = s.bulge || 0;
+    // A quadratic curve's actual midpoint is only halfway to its control
+    // point (B(0.5) = 0.25*P0 + 0.5*Pc + 0.25*P1), so the control point has
+    // to overshoot by 2x the desired bulge for the visible curve to bow out
+    // by exactly `bulge` — matches the same bulge value segmentSamplePoints
+    // (in map-graph.js) uses for collision/river/forest checks.
+    var controlX = mx + nx * bulge * 2;
+    var controlY = my + ny * bulge * 2;
     ctx.beginPath();
     ctx.moveTo(s.x1, s.y1);
-    ctx.lineTo(s.x2, s.y2);
+    ctx.quadraticCurveTo(controlX, controlY, s.x2, s.y2);
     ctx.strokeStyle = INK;
     ctx.globalAlpha = 0.75;
     ctx.lineWidth = s.width * WIDTH_SCALE;
@@ -122,10 +135,20 @@
 
   var STEP_LEN = 62; // must match map-graph.js's own default
 
+  var MIN_COVERAGE_FRACTION = 0.3;
+
   function generateAt(x, y) {
     clear();
     var seed = Math.floor(Math.random() * 2147483647);
-    var maxRadius = farthestCornerDistance(x, y);
+
+    // The town doesn't have to reach every corner — just cover a
+    // reasonable-sized area. Pick a radius somewhere between "covers 30%
+    // of the screen" and "reaches the farthest corner", so it varies from
+    // click to click instead of always maximizing out.
+    var screenArea = canvas.width * canvas.height;
+    var minRadius = Math.sqrt((MIN_COVERAGE_FRACTION * screenArea) / Math.PI);
+    var maxPossibleRadius = farthestCornerDistance(x, y);
+    var maxRadius = Math.min(maxPossibleRadius, minRadius + Math.random() * Math.max(0, maxPossibleRadius - minRadius));
 
     // Terrain first (bottom layer): soft district blobs, then the river on
     // top of them, both drawn immediately — only the street reveal animates.
@@ -148,6 +171,7 @@
       maxSegments: maxSegments,
     });
     segments = G.clipStreetsToRiver(segments, river);
+    segments = G.clipStreetsFromDistricts(segments, districts);
     animateSegments(segments);
   }
 
