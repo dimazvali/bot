@@ -64,6 +64,13 @@ body {
 }
 .qr-desc { line-height: 1.5; color: var(--qr-fg); }
 
+.qr-map-page {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center, #efe3c8 0%, #e3d3ac 100%);
+  overflow: hidden;
+}
+#qrMapCanvas { position: absolute; inset: 0; cursor: crosshair; }
+
 .admin-body { background: #14151a; color: #eee; font-family: sans-serif; padding: 24px; }
 .admin-login, .admin-edit { max-width: 420px; margin: 40px auto; }
 .admin-field { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }

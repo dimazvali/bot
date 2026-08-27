@@ -6,8 +6,12 @@ var qrData = require('../lib/qr-data');
 
 router.use(express.static(path.join(__dirname, '../public')));
 
-// Admin router must be mounted BEFORE the wildcard :slug route
+// Admin router and /map must be mounted BEFORE the wildcard :slug route
 router.use('/admin', require('./qr-admin'));
+
+router.get('/map', function(req, res) {
+  res.render('qr/map', { title: 'Карта — qr.dimazvali.com' });
+});
 
 router.get('/:slug', async function(req, res, next) {
   try {
