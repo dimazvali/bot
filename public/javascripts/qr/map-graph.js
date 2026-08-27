@@ -165,10 +165,107 @@ function generateStreetGraph(x0, y0, opts) {
   return segments;
 }
 
+// A river's centerline: a handful of points wandering across the canvas
+// at a random angle through roughly (x0, y0), each with its own width —
+// deliberately NOT grid-locked (unlike streets) so it reads as natural
+// terrain rather than another planned road. Rendered as a smooth ribbon
+// by the caller (canvas-side), not here.
+function generateRiverPath(x0, y0, canvasW, canvasH, opts) {
+  opts = opts || {};
+  var rng = opts.rng || createRng(opts.seed || 1);
+  var segments = opts.segments != null ? opts.segments : 7;
+  var baseWidth = opts.baseWidth != null ? opts.baseWidth : 26;
+  var widthVariance = opts.widthVariance != null ? opts.widthVariance : 14;
+  var wanderFrac = opts.wanderFrac != null ? opts.wanderFrac : 0.18;
+
+  var angle = rng() * Math.PI * 2;
+  var dirX = Math.cos(angle), dirY = Math.sin(angle);
+  var perpX = -dirY, perpY = dirX;
+  var canvasDiag = Math.sqrt(canvasW * canvasW + canvasH * canvasH);
+  var halfLen = canvasDiag * 0.75;
+
+  var points = [];
+  for (var i = 0; i <= segments; i++) {
+    var t = (i / segments) * 2 - 1; // -1..1, so the path straddles (x0, y0)
+    var wander = (rng() - 0.5) * canvasDiag * wanderFrac;
+    points.push({
+      x: x0 + dirX * t * halfLen + perpX * wander,
+      y: y0 + dirY * t * halfLen + perpY * wander,
+      width: Math.max(8, baseWidth + (rng() - 0.5) * widthVariance * 2),
+    });
+  }
+  return points;
+}
+
+// Distance from a point to the nearest point on a line segment.
+function distanceToSegment(px, py, ax, ay, bx, by) {
+  var dx = bx - ax, dy = by - ay;
+  var lengthSq = dx * dx + dy * dy;
+  var t = lengthSq > 0 ? ((px - ax) * dx + (py - ay) * dy) / lengthSq : 0;
+  t = Math.max(0, Math.min(1, t));
+  var cx = ax + dx * t, cy = ay + dy * t;
+  return Math.sqrt((px - cx) * (px - cx) + (py - cy) * (py - cy));
+}
+
+// Whether a point falls within the river's water — i.e. within half the
+// (locally-interpolated) width of the nearest point on its centerline.
+function isPointInRiver(point, riverPath) {
+  for (var i = 0; i < riverPath.length - 1; i++) {
+    var a = riverPath[i], b = riverPath[i + 1];
+    var d = distanceToSegment(point.x, point.y, a.x, a.y, b.x, b.y);
+    if (d <= Math.max(a.width, b.width) / 2) return true;
+  }
+  return false;
+}
+
+// Drops any street segment that's entirely submerged in the river (both
+// endpoints in the water) — streets should stop at the bank, not float on
+// the water. A segment with only one endpoint in the water is kept as-is
+// (it reads as running up to the bank, close enough for a stylized map).
+function clipStreetsToRiver(segments, riverPath) {
+  if (!riverPath || riverPath.length < 2) return segments;
+  return segments.filter(function(s) {
+    var inAtStart = isPointInRiver({ x: s.x1, y: s.y1 }, riverPath);
+    var inAtEnd = isPointInRiver({ x: s.x2, y: s.y2 }, riverPath);
+    return !(inAtStart && inAtEnd);
+  });
+}
+
+// A handful of soft, irregular blobs (rounded, not grid-aligned) scattered
+// across the canvas — "surrounding districts"/terrain, meant to sit behind
+// the street grid and break up an otherwise flat background.
+function generateDistricts(canvasW, canvasH, opts) {
+  opts = opts || {};
+  var rng = opts.rng || createRng(opts.seed || 1);
+  var count = opts.count != null ? opts.count : 5;
+  var minRadius = opts.minRadius != null ? opts.minRadius : 70;
+  var maxRadius = opts.maxRadius != null ? opts.maxRadius : 190;
+  var pointsPerBlob = opts.pointsPerBlob != null ? opts.pointsPerBlob : 10;
+
+  var districts = [];
+  for (var i = 0; i < count; i++) {
+    var cx = rng() * canvasW;
+    var cy = rng() * canvasH;
+    var baseR = minRadius + rng() * (maxRadius - minRadius);
+    var points = [];
+    for (var j = 0; j < pointsPerBlob; j++) {
+      var angle = (j / pointsPerBlob) * Math.PI * 2;
+      var r = baseR * (0.7 + rng() * 0.6);
+      points.push({ x: cx + Math.cos(angle) * r, y: cy + Math.sin(angle) * r });
+    }
+    districts.push({ cx: cx, cy: cy, points: points });
+  }
+  return districts;
+}
+
 var api = {
   createRng: createRng,
   generateStreetGraph: generateStreetGraph,
   isBlockedByPerpendicular: isBlockedByPerpendicular,
+  generateRiverPath: generateRiverPath,
+  isPointInRiver: isPointInRiver,
+  clipStreetsToRiver: clipStreetsToRiver,
+  generateDistricts: generateDistricts,
 };
 
 if (typeof module !== 'undefined' && module.exports) {

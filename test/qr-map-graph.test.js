@@ -1,7 +1,10 @@
 'use strict';
 var test = require('node:test');
 var assert = require('node:assert/strict');
-var { createRng, generateStreetGraph, isBlockedByPerpendicular } = require('../public/javascripts/qr/map-graph.js');
+var {
+  createRng, generateStreetGraph, isBlockedByPerpendicular,
+  generateRiverPath, isPointInRiver, clipStreetsToRiver, generateDistricts,
+} = require('../public/javascripts/qr/map-graph.js');
 
 test('createRng produces numbers in [0, 1)', function() {
   var rng = createRng(42);
@@ -153,4 +156,68 @@ test('isBlockedByPerpendicular blocks only on a perpendicular entry that is >=2 
 test('generateStreetGraph: a dense grid ends up with streets of noticeably different lengths (some got cut short)', function() {
   var segments = generateStreetGraph(0, 0, { seed: 9, maxRadius: 400, stepLen: 40, forkChance: 0.5, maxSegments: 900 });
   assert.ok(segments.length > 30, 'expected a dense-enough map to observe truncation, got ' + segments.length);
+});
+
+test('generateRiverPath is deterministic for the same seed', function() {
+  var a = generateRiverPath(400, 300, 1200, 800, { seed: 3 });
+  var b = generateRiverPath(400, 300, 1200, 800, { seed: 3 });
+  assert.deepEqual(a, b);
+});
+
+test('generateRiverPath produces the requested number of points, each with a positive width', function() {
+  var river = generateRiverPath(400, 300, 1200, 800, { seed: 1, segments: 6 });
+  assert.equal(river.length, 7); // segments + 1 points
+  river.forEach(function(p) {
+    assert.ok(p.width > 0, 'width should be positive, got ' + p.width);
+    assert.ok(Number.isFinite(p.x) && Number.isFinite(p.y));
+  });
+});
+
+test('generateRiverPath straddles (x0, y0) rather than starting there', function() {
+  // t ranges -1..1 around the origin, so with no wander the middle point
+  // should land close to (x0, y0), not at an end of the path.
+  var river = generateRiverPath(400, 300, 1200, 800, { seed: 5, segments: 8, wanderFrac: 0 });
+  var mid = river[4]; // index (segments/2)
+  assert.ok(Math.abs(mid.x - 400) < 1e-6 && Math.abs(mid.y - 300) < 1e-6);
+});
+
+test('isPointInRiver is true on the centerline and false far away', function() {
+  var river = [{ x: 0, y: 0, width: 20 }, { x: 100, y: 0, width: 20 }];
+  assert.equal(isPointInRiver({ x: 50, y: 0 }, river), true);
+  assert.equal(isPointInRiver({ x: 50, y: 500 }, river), false);
+});
+
+test('isPointInRiver respects the local width (edge of the water vs just past it)', function() {
+  var river = [{ x: 0, y: 0, width: 20 }, { x: 100, y: 0, width: 20 }];
+  assert.equal(isPointInRiver({ x: 50, y: 9 }, river), true); // within half-width (10)
+  assert.equal(isPointInRiver({ x: 50, y: 11 }, river), false); // just outside it
+});
+
+test('clipStreetsToRiver drops only segments fully submerged, keeps bank-crossing ones', function() {
+  var river = [{ x: 0, y: 0, width: 20 }, { x: 100, y: 0, width: 20 }];
+  var segments = [
+    { x1: 40, y1: 0, x2: 60, y2: 0, width: 2 },   // both ends in the water -> dropped
+    { x1: 40, y1: 0, x2: 40, y2: 100, width: 2 }, // starts in the water, ends far away -> kept
+    { x1: 40, y1: 200, x2: 60, y2: 200, width: 2 }, // nowhere near the water -> kept
+  ];
+  var clipped = clipStreetsToRiver(segments, river);
+  assert.equal(clipped.length, 2);
+  assert.ok(clipped.every(function(s) { return s.y1 !== 0 || s.x1 !== 40 || s.y2 !== 0; }));
+});
+
+test('clipStreetsToRiver is a no-op without a river', function() {
+  var segments = [{ x1: 0, y1: 0, x2: 10, y2: 10, width: 2 }];
+  assert.deepEqual(clipStreetsToRiver(segments, null), segments);
+  assert.deepEqual(clipStreetsToRiver(segments, []), segments);
+});
+
+test('generateDistricts is deterministic and produces the requested count', function() {
+  var a = generateDistricts(1200, 800, { seed: 2, count: 4 });
+  var b = generateDistricts(1200, 800, { seed: 2, count: 4 });
+  assert.deepEqual(a, b);
+  assert.equal(a.length, 4);
+  a.forEach(function(d) {
+    assert.ok(d.points.length > 0);
+    assert.ok(Number.isFinite(d.cx) && Number.isFinite(d.cy));
+  });
 });
