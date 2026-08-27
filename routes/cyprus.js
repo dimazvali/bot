@@ -19,15 +19,11 @@ const host = `cyprus`
 const channellId = -1002139324312;
 const prodChannelId =  -1001763708294;
 
-// защита канала от накрутки ботами: банит не по количеству подписок в час,
-// а по двум правилам — максимально голый профиль банится сразу сам по себе,
-// остальные только при явной волне однотипных подозрительных аккаунтов за
-// короткое окно, чтобы не задевать живых людей при органических всплесках
+// защита канала от накрутки ботами: банит не по количеству подписок в час
+// и не по эвристике профиля, а по факту — новый подписчик обязан запустить
+// бота в течение confirmWindowMs, иначе считается накруткой и банится
 const guardedChannelId =    prodChannelId;
-const clusterWindowMs =     1 * 60 * 1000;
-const clusterMinSize =      5;
-const clusterMinAvgScore =  2;
-const individualBanScore =  3;
+const confirmWindowMs =     3 * 60 * 1000;
 
 const {
     initializeApp,
@@ -488,6 +484,8 @@ router.post('/hook', (req, res) => {
     if (req.body.message) {
         user = req.body.message.from
 
+        if (pendingConfirmations.has(user.id)) confirmSubscriber(pendingConfirmations.get(user.id))
+
         udb.doc(user.id.toString()).get().then(u => {
             
             if (!u.exists) return registerUser(user)
@@ -616,17 +614,9 @@ router.post('/hook', (req, res) => {
 })
 
 
-// кэш последних вступлений в оперативке — чтобы не дёргать Firestore на каждое
-// событие подписки, коллекция subscriberEvents используется только как журнал
-let recentJoins = []
-
-function scoreSubscriber(user) {
-    let score = 0
-    if (!user.username) score += 1
-    if (!user.last_name) score += 1
-    if (user.is_premium) score -= 2
-    return score
-}
+// подписчики, ожидающие подтверждения (не Firestore — держим в памяти, чтобы
+// на каждое сообщение в бота не дёргать базу); ключ — userId
+let pendingConfirmations = new Map()
 
 function handleChatMember(cm) {
     if (cm.chat.id !== guardedChannelId) return
@@ -639,15 +629,15 @@ function handleChatMember(cm) {
     let user = cm.new_chat_member.user
     if (user.is_bot) return
 
-    let score = scoreSubscriber(user)
     let createdAt = new Date((cm.date || Math.floor(Date.now() / 1000)) * 1000)
 
+    // hasPhoto больше не влияет на решение о бане — считаем только для
+    // корректного отображения в существующей админке (там есть флаг "без фото")
     m.sendMessage2({
         user_id:    user.id,
         limit:      1
     }, 'getUserProfilePhotos', token).then(res => {
         let hasPhoto = !!(res && res.ok && res.result && res.result.total_count > 0)
-        if (!hasPhoto) score += 1
 
         let record = {
             userId:         user.id,
@@ -655,9 +645,7 @@ function handleChatMember(cm) {
             firstName:      user.first_name || null,
             lastName:       user.last_name || null,
             isPremium:      !!user.is_premium,
-            languageCode:   user.language_code || null,
             hasPhoto,
-            score,
             createdAt,
             active:         true,
             action:         'pending'
@@ -666,33 +654,33 @@ function handleChatMember(cm) {
         subscriberEvents.add(record).then(ref => {
             record.id = ref.id
 
-            if (record.score >= individualBanScore) return kickSubscriber(record)
+            // уже писал боту раньше (например, публиковал новости) — считаем
+            // живым человеком без ожидания, не заставляем жать /start заново
+            udb.doc(user.id.toString()).get().then(existing => {
+                if (existing.exists) return confirmSubscriber(record)
 
-            recentJoins.push(record)
-            evaluateJoinCluster()
+                pendingConfirmations.set(user.id, record)
+
+                setTimeout(() => {
+                    if (!pendingConfirmations.has(user.id)) return
+                    pendingConfirmations.delete(user.id)
+                    kickSubscriber(record)
+                }, confirmWindowMs)
+            })
         })
     }).catch(err => {
         console.log(err)
     })
 }
 
-function evaluateJoinCluster() {
-    let cutoff = Date.now() - clusterWindowMs
-    recentJoins = recentJoins.filter(r => r.createdAt.getTime() >= cutoff && r.action === 'pending')
+function confirmSubscriber(record) {
+    pendingConfirmations.delete(record.userId)
+    record.action = 'confirmed'
 
-    if (recentJoins.length < clusterMinSize) return
-
-    let avgScore =  recentJoins.reduce((s, r) => s + r.score, 0) / recentJoins.length
-
-    // разброс id больше не участвует в решении: реальные волны накрутки идут
-    // из заранее состаренных, разновозрастных аккаунтов, а не свежесозданной
-    // пачки — по факту id разбросаны на миллиарды, проверка была бесполезна
-    let isCluster = avgScore >= clusterMinAvgScore
-
-    if (isCluster) {
-        recentJoins.forEach(kickSubscriber)
-        recentJoins = []
-    }
+    subscriberEvents.doc(record.id).update({
+        action:      'confirmed',
+        confirmedAt: new Date()
+    })
 }
 
 function kickSubscriber(record) {
@@ -713,10 +701,8 @@ function kickSubscriber(record) {
         }, 'unbanChatMember', token)
     })
 
-    let reason = record.score >= individualBanScore ? `максимальный скор подозрительности` : `волна накрутки`
-
     log({
-        text: `Заблокирован подписчик (${reason}): id ${record.userId}${record.username ? ' @' + record.username : ''} (скор ${record.score})`,
+        text: `Заблокирован подписчик (не запустил бота за ${confirmWindowMs / 60000} мин): id ${record.userId}${record.username ? ' @' + record.username : ''}`,
         user: +record.userId
     })
 }
