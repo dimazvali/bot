@@ -12,49 +12,58 @@ function createRng(seed) {
   };
 }
 
-// Grows a two-tier street network outward from (x0, y0): long, mostly
-// straight "avenues" radiating from the origin (barely curving — like
-// surveyed roads, not a random walk), each occasionally branching into
-// shorter, narrower "side streets" at a deliberate crossroads-like angle.
-// That two-tier split (plus long straight runs instead of per-step
-// jitter) is what reads as a planned street network rather than organic
-// cracks/roots. Bounded by maxRadius/maxSegments so it always terminates.
+// Grows an orthogonal street grid outward from (x0, y0). The click point
+// is an ordinary 4-way crossroads — not a hub many streets radiate from —
+// and every street runs in one of exactly 4 directions, 90 degrees apart
+// (a random whole-grid rotation per call, so it isn't always screen-
+// aligned, but every street is still parallel or perpendicular to every
+// other one). Main avenues run long and mostly uninterrupted; shorter,
+// narrower side streets peel off perpendicular to them at intervals,
+// forming blocks. Bounded by maxRadius/maxSegments so it always
+// terminates.
 function generateStreetGraph(x0, y0, opts) {
   opts = opts || {};
   var rng = opts.rng || createRng(opts.seed || 1);
   var maxSegments = opts.maxSegments != null ? opts.maxSegments : 1400;
   var maxRadius = opts.maxRadius != null ? opts.maxRadius : 900;
-  var branchCount = opts.branchCount != null ? opts.branchCount : 14;
-  var minRunLen = opts.minRunLen != null ? opts.minRunLen : 45;
-  var maxRunLen = opts.maxRunLen != null ? opts.maxRunLen : 100;
-  var jitter = opts.jitter != null ? opts.jitter : 0.14; // small per-run curve, not per-pixel
-  var sideStreetDepth = opts.sideStreetDepth != null ? opts.sideStreetDepth : 4;
+  var minRunLen = opts.minRunLen != null ? opts.minRunLen : 50;
+  var maxRunLen = opts.maxRunLen != null ? opts.maxRunLen : 85;
+  var sideStreetDepth = opts.sideStreetDepth != null ? opts.sideStreetDepth : 6;
+
+  var baseRotation = rng() * (Math.PI / 2); // whole grid's orientation — still deterministic per seed
 
   var segments = [];
 
-  function grow(x, y, angle, depthBudget, width, forkChance, widthDecay) {
+  function dirVector(dirIdx) {
+    var angle = baseRotation + dirIdx * (Math.PI / 2);
+    return { dx: Math.cos(angle), dy: Math.sin(angle) };
+  }
+
+  function grow(x, y, dirIdx, depthBudget, width, continueChance, crossChance) {
     if (segments.length >= maxSegments || depthBudget <= 0) return;
 
     var runLen = minRunLen + rng() * (maxRunLen - minRunLen);
-    var newAngle = angle + (rng() - 0.5) * jitter;
-    var nx = x + Math.cos(newAngle) * runLen;
-    var ny = y + Math.sin(newAngle) * runLen;
+    var dir = dirVector(dirIdx);
+    var nx = x + dir.dx * runLen;
+    var ny = y + dir.dy * runLen;
     if (Math.sqrt((nx - x0) * (nx - x0) + (ny - y0) * (ny - y0)) > maxRadius) return;
 
     segments.push({ x1: x, y1: y, x2: nx, y2: ny, width: width });
 
-    if (rng() < 0.85) {
-      grow(nx, ny, newAngle, depthBudget - 1, width * widthDecay, forkChance, widthDecay);
+    if (rng() < continueChance) {
+      grow(nx, ny, dirIdx, depthBudget - 1, width * 0.99, continueChance, crossChance);
     }
-    if (rng() < forkChance) {
-      var turn = (0.85 + rng() * 1.0) * (rng() < 0.5 ? 1 : -1); // roughly 49-106 degrees, either side
-      grow(nx, ny, newAngle + turn, sideStreetDepth, width * 0.6, forkChance * 0.55, 0.9);
-    }
+
+    [1, -1].forEach(function(turn) {
+      if (rng() < crossChance) {
+        var newDirIdx = ((dirIdx + turn) % 4 + 4) % 4; // 90-degree turn, either side
+        grow(nx, ny, newDirIdx, sideStreetDepth, width * 0.62, continueChance * 0.82, crossChance * 0.6);
+      }
+    });
   }
 
-  for (var i = 0; i < branchCount; i++) {
-    var angle = (i / branchCount) * Math.PI * 2 + (rng() - 0.5) * 0.2;
-    grow(x0, y0, angle, 9999, 5, 0.5, 0.985);
+  for (var i = 0; i < 4; i++) {
+    grow(x0, y0, i, 9999, 5, 0.93, 0.4);
   }
 
   return segments;
