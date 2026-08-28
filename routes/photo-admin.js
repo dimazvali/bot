@@ -619,8 +619,9 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
   var { label, desc, password, public: isPublic, showFaces, relatedShoots } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
+  var knownSlugs = Object.keys(shoots.getData());
   var relatedList = Array.isArray(relatedShoots) ? relatedShoots : (relatedShoots ? [relatedShoots] : []);
-  relatedList = relatedList.filter(function(s) { return s && s !== slug; });
+  relatedList = relatedList.filter(function(s) { return s && s !== slug && knownSlugs.indexOf(s) !== -1; });
   try {
     await shoots.saveShoot(slug, {
       label: label.trim(),
@@ -628,8 +629,8 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
       password: (password || '').trim(),
       public: !!isPublic,
       showFaces: !!showFaces,
-      relatedShoots: relatedList,
     });
+    await shoots.setRelatedShoots(slug, relatedList);
     res.redirect('/admin/shoots/' + slug + '/edit');
   } catch (e) {
     console.error('[shoots] save error:', e);

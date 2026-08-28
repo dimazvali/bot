@@ -24,12 +24,14 @@ html(data-theme='dark')
                 th.admin-table-sortable(data-type='number') Фото
                 th.admin-table-sortable(data-type='number') Просмотры
                 th.admin-table-sortable(data-type='text') Доступ
+                th.admin-table-sortable(data-type='number') Дата публикации
                 th
             tbody
               each entry in shootEntries
                 - var slug = entry[0]
                 - var shoot = entry[1]
                 - var viewsCount = stats[slug] || 0
+                - var createdAt = shoot.createdAt ? new Date(shoot.createdAt) : null
                 tr
                   td(data-value=shoot.label)= `${shoot.label} (${slug})`
                   td(data-value=shoot.photos.length)= shoot.photos.length
@@ -38,6 +40,7 @@ html(data-theme='dark')
                     = shoot.public ? '🌐 публично' : '🚫 не публично'
                     if shoot.password
                       |  🔑
+                  td(data-value=createdAt ? createdAt.getTime() : 0)= createdAt ? createdAt.toLocaleDateString('ru-RU') : '—'
                   td.admin-table-actions
                     a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') открыть
                     a.admin-link(href=`/admin/shoots/${slug}/edit`) редактировать
