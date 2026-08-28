@@ -26,6 +26,11 @@ html(data-theme='dark')
           label.admin-tag-check
             input(type='checkbox' name='showFaces' checked=shoot.showFaces)
             span показывать лица (виджет «найти себя»)
+          label(style='font-size:0.625rem;color:var(--text-dim);letter-spacing:1px;width:100%;') СВЯЗАННЫЕ СЪЁМКИ (напр. другие сессии этого же героя)
+          select.admin-input(name='relatedShoots' multiple size='6')
+            each other, otherSlug in allShoots
+              if otherSlug !== slug
+                option(value=otherSlug selected=(shoot.relatedShoots||[]).includes(otherSlug))= other.label
           button.admin-btn(type='submit') СОХРАНИТЬ
         p.admin-hint
           | Прямая ссылка:&nbsp;

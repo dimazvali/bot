@@ -67,7 +67,10 @@ block content
           button.type-filter-btn(data-type=t title=t)
             +typeIcon(t)
   .masonry
-    each photo in photos
+    - var _igCardAt = !isShoot ? Math.floor(Math.random() * (photos.length + 1)) : -1
+    each photo, _pi in photos
+      if _pi === _igCardAt
+        +instagramCard()
       a.photo-card(
         href=isShoot ? `/shoot/${shootSlug}/${photo.id}` : `/${photo.countryKey}/${photo.seriesKey}/${photo.id}`
         data-type=photo.type||'copter'
@@ -93,10 +96,12 @@ block content
           span.photo-title= photo.title
           if photo.date
             span.photo-date= photo.date
+    if _igCardAt === photos.length
+      +instagramCard()
 
   if isShoot && otherShoots && otherShoots.length
     .gallery-header
-      span.gallery-label ДРУГИЕ СЪЁМКИ
+      span.gallery-label= otherShootsAreRelated ? 'СВЯЗАННЫЕ СЪЁМКИ' : 'ДРУГИЕ СЪЁМКИ'
     .shoot-related
       each other in otherShoots
         - var cover = other.photos[0]

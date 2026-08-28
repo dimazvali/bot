@@ -1,4 +1,5 @@
 extends layout
+include mixins
 
 block content
   .gallery-header.gallery-header--sticky
@@ -6,7 +7,10 @@ block content
   if tagDesc
     p.photo-page-desc= tagDesc
   .masonry
-    each photo in photos
+    - var _igCardAt = Math.floor(Math.random() * (photos.length + 1))
+    each photo, _pi in photos
+      if _pi === _igCardAt
+        +instagramCard()
       a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
         img(
           src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
@@ -23,3 +27,5 @@ block content
           span.photo-title= photo.title
           if photo.date
             span.photo-date= photo.date
+    if _igCardAt === photos.length
+      +instagramCard()

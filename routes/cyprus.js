@@ -23,7 +23,7 @@ const prodChannelId =  -1001763708294;
 // и не по эвристике профиля, а по факту — новый подписчик обязан запустить
 // бота в течение confirmWindowMs, иначе считается накруткой и банится
 const guardedChannelId =    prodChannelId;
-const confirmWindowMs =     3 * 60 * 1000;
+const confirmWindowMs =     2 * 60 * 1000;
 
 const {
     initializeApp,

@@ -393,6 +393,17 @@ function getOtherOpenShoots(currentSlug, limit) {
     .slice(0, limit || 3);
 }
 
+// Curated "related shoots" (e.g. other sessions with the same model) win over the
+// generic "other open shoots" fallback, once filtered down to what's actually public.
+function getRelatedShoots(shoot, currentSlug) {
+  var allShoots = shoots.getData();
+  var related = (shoot.relatedShoots || [])
+    .map(function(slug) { return allShoots[slug]; })
+    .filter(function(s) { return s && s.key !== currentSlug && s.public && s.photos.length; });
+  if (related.length) return { shoots: related.slice(0, 6), related: true };
+  return { shoots: getOtherOpenShoots(currentSlug), related: false };
+}
+
 function requireShootAuth(shoot, slug, req, res, adminUser, next) {
   if (!shoot.password || adminUser) return next();
   var cookieKey = 'shoot_' + slug;
@@ -450,6 +461,7 @@ router.get('/shoot/:slug', async (req, res) => {
         tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
       }
     }
+    var relatedInfo = getRelatedShoots(shoot, slug);
     res.render('photo/gallery', {
       data: getData(),
       activeCountry: null,
@@ -469,7 +481,8 @@ router.get('/shoot/:slug', async (req, res) => {
         { name: 'Съёмки', url: BASE + '/shoot' },
         { name: shoot.label, url: `${BASE}/shoot/${slug}` },
       ],
-      otherShoots: getOtherOpenShoots(slug),
+      otherShoots: relatedInfo.shoots,
+      otherShootsAreRelated: relatedInfo.related,
       peopleGroups: shoot.showFaces ? photoPeople.groupShootFaces(slug, shoot) : [],
     });
   });
