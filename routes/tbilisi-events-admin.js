@@ -9,6 +9,8 @@ var taxonomy = require('../lib/tbilisi-events-taxonomy');
 var enricher = require('../lib/tbilisi-events-enricher');
 var images = require('../lib/tbilisi-events-images');
 var venuesLib = require('../lib/tbilisi-events-venues');
+var multer = require('multer');
+var venueUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
 
 function backTo(req, res, fallback) {
   res.redirect(req.get('referer') || fallback);
@@ -219,6 +221,95 @@ router.post('/events/:id/fetch-image', requireAuth, express.urlencoded({ extende
     }
     backTo(req, res, '/tbilisi-events/admin/events');
   } catch (e) { next(e); }
+});
+
+router.get('/venues', requireAuth, async function(req, res, next) {
+  try {
+    var venues = await data.getVenues();
+    venues.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+    res.render('tbilisi-events/admin/venues', {
+      title: 'Площадки — Tbilisi Events Admin',
+      venues: venues,
+      venueTypeSlugs: taxonomy.VENUE_TYPE_SLUGS,
+      venueTypeLabels: taxonomy.VENUE_TYPE_LABELS,
+      error: null,
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/venues', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var name = (req.body.name || '').trim();
+    if (name) {
+      await data.insertVenue({
+        name: name,
+        nameKey: venuesLib.normalizeVenueName(name),
+        origin: 'manual',
+      });
+    }
+    res.redirect('/tbilisi-events/admin/venues');
+  } catch (e) { next(e); }
+});
+
+router.post('/venues/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var b = req.body;
+    var latNum = parseFloat(b.lat);
+    var lngNum = parseFloat(b.lng);
+    var patch = {
+      name: (b.name || '').trim(),
+      nameKey: venuesLib.normalizeVenueName((b.name || '').trim()),
+      area: (b.area || '').trim() || null,
+      address: (b.address || '').trim() || null,
+      website: (b.website || '').trim() || null,
+      type: taxonomy.isValidVenueType(b.type) ? b.type : null,
+      lat: isNaN(latNum) ? null : latNum,
+      lng: isNaN(lngNum) ? null : lngNum,
+      description: (b.desc_ru || b.desc_en || b.desc_ka)
+        ? { ru: (b.desc_ru || '').trim(), en: (b.desc_en || '').trim(), ka: (b.desc_ka || '').trim() }
+        : null,
+    };
+    await data.updateVenue(req.params.id, patch);
+    res.redirect('/tbilisi-events/admin/venues');
+  } catch (e) { next(e); }
+});
+
+router.post('/venues/:id/delete', requireAuth, async function(req, res, next) {
+  try {
+    await data.deleteVenue(req.params.id);
+    res.redirect('/tbilisi-events/admin/venues');
+  } catch (e) { next(e); }
+});
+
+router.post('/venues/:id/image', requireAuth, venueUpload.single('image'), async function(req, res, next) {
+  try {
+    if (req.file && req.file.buffer) {
+      var url = await images.storeVenueImage(req.file.buffer, req.params.id);
+      await data.updateVenue(req.params.id, { imageUrl: url });
+    }
+    res.redirect('/tbilisi-events/admin/venues');
+  } catch (e) { next(e); }
+});
+
+router.post('/venues/:id/draft-description', requireAuth, async function(req, res, next) {
+  try {
+    var venue = await data.getVenueById(req.params.id);
+    if (!venue) return next();
+    var draft = await venuesLib.draftVenueDescription(venue.name);
+    var patch = {};
+    if (draft.description) patch.description = draft.description;
+    if (draft.type && !venue.type) patch.type = draft.type;
+    if (draft.area && !venue.area) patch.area = draft.area;
+    if (Object.keys(patch).length) await data.updateVenue(venue.id, patch);
+    res.redirect('/tbilisi-events/admin/venues');
+  } catch (e) { next(e); }
+});
+
+router.post('/venues/merge', requireAuth, express.urlencoded({ extended: false }), async function(req, res) {
+  try {
+    await data.mergeVenues((req.body.fromId || '').trim(), (req.body.toId || '').trim());
+  } catch (e) { /* fall through to redirect; error is transient/operator-visible next load */ }
+  res.redirect('/tbilisi-events/admin/venues');
 });
 
 module.exports = router;
