@@ -147,4 +147,37 @@ router.get('/', async function(req, res, next) {
   }
 });
 
+router.get('/venues', async function(req, res, next) {
+  try {
+    var venues = await eventsData.getVenues();
+    venues.sort(function(a, b) { return (b.eventCount || 0) - (a.eventCount || 0); });
+    res.render('tbilisi-events/venues/list', {
+      title: 'Интересные места Тбилиси',
+      venues: venues,
+      venueTypeLabels: taxonomy.VENUE_TYPE_LABELS,
+    });
+  } catch (e) { next(e); }
+});
+
+router.get('/venues/:id', async function(req, res, next) {
+  try {
+    var venue = await eventsData.getVenueById(req.params.id);
+    if (!venue) return next();
+    var today = new Date().toISOString().slice(0, 10);
+    var events = sanitizeEvents(await eventsData.getPublicEvents())
+      .filter(function(e) { return e.venueId === venue.id && e.date >= today; });
+    var mapQuery = (venue.lat != null && venue.lng != null)
+      ? venue.lat + ',' + venue.lng
+      : (venue.address || venue.name);
+    res.render('tbilisi-events/venues/detail', {
+      title: venue.name,
+      venue: venue,
+      events: events,
+      mapHref: 'https://maps.google.com/?q=' + encodeURIComponent(mapQuery),
+      venueTypeLabels: taxonomy.VENUE_TYPE_LABELS,
+      eventTypeLabels: taxonomy.EVENT_TYPE_LABELS,
+    });
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

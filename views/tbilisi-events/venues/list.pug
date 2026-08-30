@@ -1,0 +1,39 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    style.
+      body { font-family: sans-serif; margin: 2rem; }
+      a.back { color: #1C2E4A; text-decoration: none; font-size: 0.9rem; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-top: 1rem; }
+      .v { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; }
+      .v img { width: 100%; height: 140px; object-fit: cover; display: block; }
+      .v .b { padding: 0.7rem; }
+      .v h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+      .v h3 a { color: #1C2E4A; text-decoration: none; }
+      .v .meta { font-size: 0.8rem; color: #557; }
+  body
+    p
+      a.back(href='/tbilisi-events') ← Афиша
+    h1= title
+    if venues.length === 0
+      p Пока нет площадок.
+    else
+      .grid
+        each v in venues
+          .v
+            if v.imageUrl
+              img(src=v.imageUrl alt=v.name loading='lazy')
+            .b
+              h3
+                a(href=`/tbilisi-events/venues/${v.id}`)= v.name
+              .meta
+                if v.area
+                  span= v.area
+                  | #{' '}·#{' '}
+                if v.type
+                  span= venueTypeLabels[v.type] || v.type
+                  | #{' '}·#{' '}
+                span #{v.eventCount || 0} соб.

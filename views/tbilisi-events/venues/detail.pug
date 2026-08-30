@@ -1,0 +1,58 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    style.
+      body { font-family: sans-serif; margin: 2rem; max-width: 760px; }
+      a.back { color: #1C2E4A; text-decoration: none; font-size: 0.9rem; }
+      img.hero { width: 100%; max-height: 320px; object-fit: cover; border-radius: 8px; margin: 1rem 0; }
+      .desc-text { display: block; margin: 0.5rem 0; }
+      .desc-toggle button { font-size: 0.72rem; padding: 0 0.3rem; cursor: pointer; margin-right: 0.25rem; }
+      .ev { border-top: 1px solid #eee; padding: 0.6rem 0; }
+      .ev .d { font-size: 0.82rem; color: #557; }
+  body
+    p
+      a.back(href='/tbilisi-events/venues') ← Все площадки
+    h1= title
+    p
+      if venue.type
+        span= venueTypeLabels[venue.type] || venue.type
+      if venue.area
+        | #{' '}·#{' '}
+        span= venue.area
+    if venue.imageUrl
+      img.hero(src=venue.imageUrl alt=venue.name)
+    if venue.address
+      p= venue.address
+    p
+      a(href=mapHref target='_blank' rel='noopener noreferrer') Открыть на карте
+    if venue.website
+      p
+        a(href=venue.website target='_blank' rel='noopener noreferrer')= venue.website
+    if venue.description && (venue.description.ru || venue.description.en || venue.description.ka)
+      .desc(data-ru=venue.description.ru data-en=venue.description.en data-ka=venue.description.ka)
+        span.desc-text= venue.description.ru || venue.description.en || venue.description.ka
+        - var langs = ['ru','en','ka'].filter(function(l){ return venue.description[l]; })
+        if langs.length > 1
+          span.desc-toggle
+            each l in langs
+              button(type='button' data-lang=l)= l
+
+    h2 Ближайшие события
+    if events.length === 0
+      p Нет предстоящих событий.
+    else
+      each e in events
+        .ev
+          .d= e.date + (e.time ? ' ' + e.time : '') + (e.type ? ' · ' + (eventTypeLabels[e.type] || e.type) : '')
+          div= e.title
+
+    script.
+      var box = document.querySelector('.desc');
+      if (box) box.querySelectorAll('.desc-toggle button').forEach(function(b){
+        b.addEventListener('click', function(){
+          box.querySelector('.desc-text').textContent = box.getAttribute('data-' + b.getAttribute('data-lang')) || '';
+        });
+      });
