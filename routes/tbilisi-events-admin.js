@@ -5,6 +5,14 @@ var crypto = require('crypto');
 var pipeline = require('../lib/tbilisi-events-pipeline');
 var data = require('../lib/tbilisi-events-data');
 var alertMe = require('./common').alertMe;
+var taxonomy = require('../lib/tbilisi-events-taxonomy');
+var enricher = require('../lib/tbilisi-events-enricher');
+var images = require('../lib/tbilisi-events-images');
+var venuesLib = require('../lib/tbilisi-events-venues');
+
+function backTo(req, res, fallback) {
+  res.redirect(req.get('referer') || fallback);
+}
 
 function formatSummary(summary) {
   var text = '📋 <b>Tbilisi Events — сбор завершён</b>\n'
@@ -91,6 +99,126 @@ router.post('/sources', requireAuth, express.urlencoded({ extended: false }), as
     sourceError = e.message;
   }
   await renderIndex(res, { sourceError: sourceError });
+});
+
+router.get('/events', requireAuth, async function(req, res, next) {
+  try {
+    var filters = {
+      source: req.query.source || '',
+      type: req.query.type || '',
+      status: req.query.status || 'all',
+      dateFrom: req.query.dateFrom || '',
+      dateTo: req.query.dateTo || '',
+      q: req.query.q || '',
+    };
+    var events = await data.getEvents(filters);
+    events.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+    var venues = await data.getVenues();
+    var venueById = {};
+    venues.forEach(function(v) { venueById[v.id] = v; });
+    var sources = await data.getAllSources().catch(function() { return []; });
+    res.render('tbilisi-events/admin/events', {
+      title: 'События — Tbilisi Events Admin',
+      events: events,
+      venueById: venueById,
+      sources: sources,
+      filters: filters,
+      eventTypeSlugs: taxonomy.EVENT_TYPE_SLUGS,
+      eventTypeLabels: taxonomy.EVENT_TYPE_LABELS,
+      languageLabels: taxonomy.LANGUAGE_LABELS,
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/events/:id/hide', requireAuth, async function(req, res) {
+  await data.setEventHidden(req.params.id, true);
+  backTo(req, res, '/tbilisi-events/admin/events');
+});
+
+router.post('/events/:id/show', requireAuth, async function(req, res) {
+  await data.setEventHidden(req.params.id, false);
+  backTo(req, res, '/tbilisi-events/admin/events');
+});
+
+router.post('/events/:id/delete', requireAuth, async function(req, res) {
+  await data.deleteEvent(req.params.id);
+  backTo(req, res, '/tbilisi-events/admin/events');
+});
+
+router.get('/events/:id/edit', requireAuth, async function(req, res, next) {
+  try {
+    var event = await data.getEventById(req.params.id);
+    if (!event) return next();
+    var venues = await data.getVenues();
+    venues.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+    res.render('tbilisi-events/admin/event-edit', {
+      title: 'Правка события',
+      event: event,
+      venues: venues,
+      eventTypeSlugs: taxonomy.EVENT_TYPE_SLUGS,
+      eventTypeLabels: taxonomy.EVENT_TYPE_LABELS,
+      languageSlugs: taxonomy.LANGUAGE_SLUGS,
+      languageLabels: taxonomy.LANGUAGE_LABELS,
+      error: null,
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/events/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var b = req.body;
+    var langs = [].concat(b.language || []);
+    var patch = {
+      title: (b.title || '').trim(),
+      date: (b.date || '').trim(),
+      time: (b.time || '').trim() || null,
+      place: (b.place || '').trim() || null,
+      type: taxonomy.isValidEventType(b.type) ? b.type : null,
+      language: taxonomy.sanitizeLanguages(langs),
+      venueId: (b.venueId || '').trim() || null,
+      description: (b.desc_ru || b.desc_en || b.desc_ka)
+        ? { ru: (b.desc_ru || '').trim(), en: (b.desc_en || '').trim(), ka: (b.desc_ka || '').trim() }
+        : null,
+    };
+    await data.updateEvent(req.params.id, patch);
+    res.redirect('/tbilisi-events/admin/events');
+  } catch (e) { next(e); }
+});
+
+router.post('/events/:id/reenrich', requireAuth, async function(req, res, next) {
+  try {
+    var event = await data.getEventById(req.params.id);
+    if (!event) return next();
+    try {
+      var enr = await enricher.enrichEvent({
+        title: event.title, place: event.place, rawExcerpt: event.rawExcerpt || '',
+        type: event.type, language: event.language,
+      });
+      await data.updateEvent(event.id, {
+        description: enr.description, type: enr.type, language: enr.language, enrichedAt: new Date(),
+      });
+    } catch (e) { /* leave a note via flash-less redirect; admin can retry */ }
+    if (event.imageSourceUrl && !event.imageUrl) {
+      try {
+        var img = await images.fetchAndStore(event.imageSourceUrl, event.id);
+        await data.updateEvent(event.id, img);
+      } catch (e) { /* ignore */ }
+    }
+    backTo(req, res, '/tbilisi-events/admin/events');
+  } catch (e) { next(e); }
+});
+
+router.post('/events/:id/fetch-image', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var event = await data.getEventById(req.params.id);
+    if (!event) return next();
+    var url = (req.body.url || '').trim() || event.imageSourceUrl;
+    if (url) {
+      var img = await images.fetchAndStore(url, event.id);
+      await data.updateEvent(event.id, img);
+    }
+    backTo(req, res, '/tbilisi-events/admin/events');
+  } catch (e) { next(e); }
 });
 
 module.exports = router;

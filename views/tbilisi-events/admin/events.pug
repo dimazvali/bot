@@ -1,0 +1,82 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    style.
+      body { font-family: sans-serif; margin: 2rem; }
+      a.back { color: #1C2E4A; text-decoration: none; font-size: 0.9rem; }
+      form.filters { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: end; margin: 1rem 0; }
+      form.filters label { font-size: 0.75rem; display: flex; flex-direction: column; }
+      form.filters input, form.filters select { padding: 0.35rem; font-size: 0.85rem; }
+      table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+      th, td { border: 1px solid #ddd; padding: 0.4rem 0.5rem; text-align: left; vertical-align: top; }
+      th { background: #f5f5f5; }
+      td img { width: 60px; height: 40px; object-fit: cover; display: block; }
+      tr.hidden td { opacity: 0.5; }
+      .acts form { display: inline; }
+      .acts button, .acts a { font-size: 0.75rem; padding: 0.15rem 0.4rem; margin: 0 0.1rem; }
+  body
+    p
+      a.back(href='/tbilisi-events/admin/') ← Дашборд
+    h1= title
+    form.filters(method='GET' action='/tbilisi-events/admin/events')
+      label источник
+        select(name='source')
+          option(value='') —
+          each s in sources
+            option(value=s.label selected=(filters.source === s.label))= s.label
+      label тип
+        select(name='type')
+          option(value='') —
+          each slug in eventTypeSlugs
+            option(value=slug selected=(filters.type === slug))= eventTypeLabels[slug]
+      label статус
+        select(name='status')
+          option(value='all' selected=(filters.status === 'all')) все
+          option(value='visible' selected=(filters.status === 'visible')) видимые
+          option(value='hidden' selected=(filters.status === 'hidden')) скрытые
+      label с даты
+        input(type='date' name='dateFrom' value=filters.dateFrom)
+      label по дату
+        input(type='date' name='dateTo' value=filters.dateTo)
+      label поиск
+        input(type='text' name='q' value=filters.q placeholder='название / место')
+      button(type='submit') Фильтровать
+    p Найдено: #{events.length}
+    table
+      thead
+        tr
+          th
+          th Дата
+          th Название
+          th Тип
+          th Язык
+          th Площадка
+          th Источники
+          th Действия
+      tbody
+        each e in events
+          tr(class=e.hidden ? 'hidden' : '')
+            td
+              if e.imageUrl
+                img(src=e.imageUrl alt='')
+            td= e.date + (e.time ? ' ' + e.time : '')
+            td= e.title
+            td= e.type ? (eventTypeLabels[e.type] || e.type) : ''
+            td= (e.language || []).map(function(l){ return languageLabels[l] || l; }).join(', ')
+            td= e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : (e.place || '')
+            td= (e.sources || []).map(function(s){ return s.label; }).join(', ')
+            td.acts
+              a(href=`/tbilisi-events/admin/events/${e.id}/edit`) править
+              form(method='POST' action=`/tbilisi-events/admin/events/${e.id}/reenrich`)
+                button(type='submit') обогатить
+              if e.hidden
+                form(method='POST' action=`/tbilisi-events/admin/events/${e.id}/show`)
+                  button(type='submit') показать
+              else
+                form(method='POST' action=`/tbilisi-events/admin/events/${e.id}/hide`)
+                  button(type='submit') скрыть
+              form(method='POST' action=`/tbilisi-events/admin/events/${e.id}/delete` onsubmit='return confirm("Удалить событие?")')
+                button(type='submit') удалить

@@ -1,0 +1,64 @@
+doctype html
+html
+  head
+    title= title
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    style.
+      body { font-family: sans-serif; margin: 2rem; max-width: 640px; }
+      a.back { color: #1C2E4A; text-decoration: none; font-size: 0.9rem; }
+      label { display: block; margin: 0.7rem 0 0.2rem; font-size: 0.85rem; font-weight: bold; }
+      input[type=text], input[type=date], input[type=time], select, textarea { width: 100%; padding: 0.45rem; box-sizing: border-box; font-size: 0.9rem; }
+      textarea { min-height: 4rem; }
+      .langs { display: flex; gap: 1rem; font-weight: normal; }
+      .langs label { display: inline-flex; gap: 0.3rem; align-items: center; font-weight: normal; margin: 0; }
+      .row { display: flex; gap: 1rem; }
+      .row > div { flex: 1; }
+      button.save { margin-top: 1.2rem; padding: 0.6rem 1.4rem; font-size: 1rem; }
+      .fetch-img { margin-top: 1rem; display: flex; gap: 0.5rem; }
+  body
+    p
+      a.back(href='/tbilisi-events/admin/events') ← К списку
+    h1= title
+    form(method='POST' action=`/tbilisi-events/admin/events/${event.id}/edit`)
+      label Название
+      input(type='text' name='title' value=event.title)
+      .row
+        div
+          label Дата
+          input(type='date' name='date' value=event.date)
+        div
+          label Время
+          input(type='time' name='time' value=event.time || '')
+      label Место (текст)
+      input(type='text' name='place' value=event.place || '')
+      label Площадка (справочник)
+      select(name='venueId')
+        option(value='') — не привязана —
+        each v in venues
+          option(value=v.id selected=(event.venueId === v.id))= v.name
+      label Тип
+      select(name='type')
+        option(value='') —
+        each slug in eventTypeSlugs
+          option(value=slug selected=(event.type === slug))= eventTypeLabels[slug]
+      label Язык мероприятия
+      .langs
+        each slug in languageSlugs
+          label
+            input(type='checkbox' name='language' value=slug checked=((event.language || []).indexOf(slug) !== -1))
+            = languageLabels[slug]
+      label Описание (RU)
+      textarea(name='desc_ru')= event.description ? event.description.ru : ''
+      label Описание (EN)
+      textarea(name='desc_en')= event.description ? event.description.en : ''
+      label Описание (KA)
+      textarea(name='desc_ka')= event.description ? event.description.ka : ''
+      button.save(type='submit') Сохранить
+
+    form.fetch-img(method='POST' action=`/tbilisi-events/admin/events/${event.id}/fetch-image`)
+      input(type='text' name='url' placeholder='URL картинки (пусто = повторить из imageSourceUrl)')
+      button(type='submit') Подтянуть картинку
+    if event.imageUrl
+      p
+        img(src=event.imageUrl style='max-width:240px')
