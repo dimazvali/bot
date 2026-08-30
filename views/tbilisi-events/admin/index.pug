@@ -24,6 +24,12 @@ html
       form.refresh-source button { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
   body
     h1= title
+    p
+      a(href='/tbilisi-events/admin/events') Управление событиями
+      =' · '
+      a(href='/tbilisi-events/admin/venues') Справочник площадок
+      =' · '
+      a(href='/tbilisi-events' target='_blank') Публичная афиша
     h2 Источники (#{sources.length})
     table.sources
       thead
