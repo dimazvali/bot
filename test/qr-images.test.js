@@ -73,3 +73,15 @@ test('deletePhoto on a missing slug does not throw', async function() {
   var store = createImageStore(bucket);
   await assert.doesNotReject(function() { return store.deletePhoto('never-existed'); });
 });
+
+test('an explicit storagePrefix (e.g. dev) is used instead of the default "qr"', async function() {
+  var bucket = createFakeBucket();
+  var store = createImageStore(bucket, 'qr-dev');
+  var input = await sharp({ create: { width: 100, height: 100, channels: 3, background: { r: 1, g: 2, b: 3 } } }).png().toBuffer();
+  var url = await store.savePhoto('demo-slug', input);
+  assert.equal(url, 'https://storage.googleapis.com/fake-bucket/qr-dev/demo-slug/photo.jpg');
+  assert.ok(bucket._files['qr-dev/demo-slug/photo.jpg']);
+  assert.equal(bucket._files['qr/demo-slug/photo.jpg'], undefined);
+  await store.deletePhoto('demo-slug');
+  assert.equal(bucket._files['qr-dev/demo-slug/photo.jpg'], undefined);
+});
