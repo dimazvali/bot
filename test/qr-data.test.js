@@ -137,6 +137,30 @@ test('update() normalizes portalShape when patched, leaves it alone otherwise', 
   assert.equal(updated2.portalShape, 'square');
 });
 
+test('create() defaults lat/lng to null when omitted, keeps valid numbers, rejects garbage', async function() {
+  var store = createStore(createFakeCollection());
+  var noCoords = await store.create({ slug: 'no-coords', title: 'X' });
+  assert.equal(noCoords.lat, null);
+  assert.equal(noCoords.lng, null);
+  var withCoords = await store.create({ slug: 'with-coords', title: 'Y', lat: '41.71028', lng: 44.78175 });
+  assert.equal(withCoords.lat, 41.71028);
+  assert.equal(withCoords.lng, 44.78175);
+  var badCoords = await store.create({ slug: 'bad-coords', title: 'Z', lat: 'not-a-number', lng: '' });
+  assert.equal(badCoords.lat, null);
+  assert.equal(badCoords.lng, null);
+});
+
+test('update() normalizes lat/lng when patched, leaves them alone otherwise', async function() {
+  var store = createStore(createFakeCollection());
+  await store.create({ slug: 'coord-up', title: 'A', lat: 41.7, lng: 44.8 });
+  var untouched = await store.update('coord-up', { title: 'B' });
+  assert.equal(untouched.lat, 41.7);
+  assert.equal(untouched.lng, 44.8);
+  var cleared = await store.update('coord-up', { lat: '', lng: 'garbage' });
+  assert.equal(cleared.lat, null);
+  assert.equal(cleared.lng, null);
+});
+
 test('create() rejects an invalid slug', async function() {
   var store = createStore(createFakeCollection());
   await assert.rejects(function() { return store.create({ slug: 'Bad Slug', title: 'x' }); });

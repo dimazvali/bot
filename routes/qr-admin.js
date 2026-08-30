@@ -73,6 +73,8 @@ router.post('/new', requireAuth, upload.single('photo'), async function(req, res
       address: (req.body.address || '').trim(),
       photo: photoPath,
       portalShape: req.body.portalShape,
+      lat: req.body.lat,
+      lng: req.body.lng,
     });
     res.redirect('/admin');
   } catch (e) {
@@ -98,6 +100,8 @@ router.post('/:slug/edit', requireAuth, upload.single('photo'), async function(r
       description: (req.body.description || '').trim(),
       address: (req.body.address || '').trim(),
       portalShape: req.body.portalShape,
+      lat: req.body.lat,
+      lng: req.body.lng,
     };
     if (req.file) {
       patch.photo = await qrImages.savePhoto(req.params.slug, req.file.buffer);

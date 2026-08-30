@@ -32,6 +32,11 @@ block content
           each shape in portalShapes
             option(value=shape selected=(shape === currentShape))= shapeLabels[shape]
       .admin-field
+        label Координаты (необязательно — для точки на карте на главной)
+        div(style='display:flex;gap:10px')
+          input(type='text' name='lat' placeholder='широта, напр. 41.71028' value=(entry && entry.lat != null ? entry.lat : '') style='flex:1')
+          input(type='text' name='lng' placeholder='долгота, напр. 44.78175' value=(entry && entry.lng != null ? entry.lng : '') style='flex:1')
+      .admin-field
         label Фотография (крупнее, чем нужно показать — по краям есть запас для параллакса)
         input(type='file' name='photo' accept='image/*' required=!entry)
       button.admin-btn(type='submit') Сохранить

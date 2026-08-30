@@ -3,6 +3,7 @@ var express = require('express');
 var router = express.Router();
 var path = require('path');
 var qrData = require('../lib/qr-data');
+var qrIndexDict = require('../lib/qr-index-dict');
 
 router.use(express.static(path.join(__dirname, '../public')));
 
@@ -11,6 +12,23 @@ router.use('/admin', require('./qr-admin'));
 
 router.get('/map', function(req, res) {
   res.render('qr/map', { title: 'Карта — qr.dimazvali.com' });
+});
+
+router.get('/', async function(req, res, next) {
+  try {
+    var entries = await qrData.getAll();
+    entries.sort(function(a, b) { return (b.createdAt || 0) - (a.createdAt || 0); });
+    var mapEntries = entries.filter(function(e) { return e.lat != null && e.lng != null; });
+    res.render('qr/index', {
+      title: 'ARchive — окна в прошлое',
+      entries: entries,
+      mapEntries: mapEntries,
+      dict: qrIndexDict,
+      countText: qrIndexDict.countText('ru', entries.length),
+    });
+  } catch (e) {
+    next(e);
+  }
 });
 
 router.get('/:slug', async function(req, res, next) {

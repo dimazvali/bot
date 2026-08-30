@@ -1,0 +1,96 @@
+extends layout
+
+block head
+  link(rel='preconnect' href='https://fonts.googleapis.com')
+  link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+  link(href='https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+Georgian:wght@400;600&family=Noto+Serif+Georgian:wght@400;700&display=swap' rel='stylesheet')
+  style.
+    body { margin: 0; background: #ece2cc; }
+    a { color: #b03e18; text-decoration: none; }
+    a:hover { color: #17140f; }
+    ::selection { background: #d9b45c; color: #17140f; }
+    #arMap .leaflet-tile-pane { filter: grayscale(1) contrast(.82) brightness(1.06) sepia(.28); }
+    .ar-pin { width: 16px; height: 16px; border-radius: 50%; background: #b03e18; box-shadow: 0 0 0 4px rgba(176,62,24,.22), 0 0 0 1px rgba(23,20,15,.35) inset; }
+
+block content
+  .qr-page-root(style='position:relative;min-height:100vh;background:#ece2cc;color:#17140f;font-family:\'IBM Plex Sans\',\'Noto Sans Georgian\',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden')
+    div(style='position:relative;z-index:2;max-width:560px;margin:0 auto;padding:0 22px')
+
+      header(style='display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0 0')
+        div(style='display:flex;flex-direction:column;gap:3px')
+          div(style='font-family:\'PT Serif\',Georgia,serif;font-size:19px;line-height:1;letter-spacing:-.01em')
+            span(style='color:#b03e18') AR
+            | chive
+          a(href='https://dimazvali.com' style='font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a7c62') qr.dimazvali.com
+        div(style='display:flex;gap:2px;align-items:center')
+          button#langRu(data-lang-tab='ru' type='button' style='appearance:none;border:0;cursor:pointer;padding:6px 9px;border-radius:2px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.08em;background:#17140f;color:#f6f0e2') RU
+          button#langEn(data-lang-tab='en' type='button' style='appearance:none;border:0;cursor:pointer;padding:6px 9px;border-radius:2px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.08em;background:transparent;color:#8a7c62') EN
+          button#langKa(data-lang-tab='ka' type='button' style='appearance:none;border:0;cursor:pointer;padding:6px 9px;border-radius:2px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.08em;background:transparent;color:#8a7c62') ქა
+
+      section(style='padding:76px 0 0')
+        div(data-i18n='kicker' style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#b03e18') окно в прошлое
+        h1(data-i18n='title' style='font-family:\'PT Serif\',\'Noto Serif Georgian\',Georgia,serif;font-weight:400;font-size:clamp(38px,11vw,54px);line-height:1.02;letter-spacing:-.02em;margin:18px 0 0;text-wrap:balance') Старые фотографии на своих местах
+        p(data-i18n='lead' style='font-size:17px;line-height:1.55;color:#3d3427;margin:22px 0 0;text-wrap:pretty') ARchive — наводите камеру телефона на QR-код на табличке, и архивный снимок встаёт ровно туда, где он был сделан. Тот же угол, та же улица, только столетием раньше.
+        p(data-i18n='lead2' style='font-size:15px;line-height:1.6;color:#6f6350;margin:16px 0 0;text-wrap:pretty') Каждая точка — отдельная страница: фотография, год, адрес и короткая история места. Ничего не нужно устанавливать, всё работает в браузере.
+
+      section(style='padding:76px 0 0')
+        h2(data-i18n='howTitle' style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#8a7c62;margin:0 0 26px') Как это работает
+        ol(style='list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:0')
+          li(style='display:grid;grid-template-columns:34px 1fr;gap:14px;padding:20px 0;border-top:1px solid rgba(23,20,15,.15)')
+            div(style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.06em;color:#b03e18;padding-top:3px') 01
+            div
+              div(data-i18n='steps.0.h' style='font-family:\'PT Serif\',\'Noto Serif Georgian\',Georgia,serif;font-size:19px;line-height:1.25') Находите табличку
+              div(data-i18n='steps.0.p' style='font-size:14px;line-height:1.55;color:#6f6350;margin-top:6px;text-wrap:pretty') Небольшой QR-код на стене или ограде рядом со зданием.
+          li(style='display:grid;grid-template-columns:34px 1fr;gap:14px;padding:20px 0;border-top:1px solid rgba(23,20,15,.15)')
+            div(style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.06em;color:#b03e18;padding-top:3px') 02
+            div
+              div(data-i18n='steps.1.h' style='font-family:\'PT Serif\',\'Noto Serif Georgian\',Georgia,serif;font-size:19px;line-height:1.25') Сканируете код
+              div(data-i18n='steps.1.p' style='font-size:14px;line-height:1.55;color:#6f6350;margin-top:6px;text-wrap:pretty') Камерой телефона, без приложений. Открывается страница места.
+          li(style='display:grid;grid-template-columns:34px 1fr;gap:14px;padding:20px 0;border-top:1px solid rgba(23,20,15,.15)')
+            div(style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.06em;color:#b03e18;padding-top:3px') 03
+            div
+              div(data-i18n='steps.2.h' style='font-family:\'PT Serif\',\'Noto Serif Georgian\',Georgia,serif;font-size:19px;line-height:1.25') Наводите на здание
+              div(data-i18n='steps.2.p' style='font-size:14px;line-height:1.55;color:#6f6350;margin-top:6px;text-wrap:pretty') Архивный кадр ложится поверх современного вида — совмещайте по контуру.
+
+      section(style='padding:68px 0 0')
+        div(style='display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 18px')
+          h2(data-i18n='mapTitle' style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:#8a7c62;margin:0') Точки на карте
+          span#placesCount(data-i18n='__count' style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;color:#a3937a')= countText
+
+        if mapEntries.length
+          div(style='border:1px solid rgba(23,20,15,.15);border-radius:3px;overflow:hidden;background:#e5dac2')
+            #arMap(style='width:100%;height:300px')
+
+        div(style='display:flex;flex-direction:column;gap:0;margin-top:6px')
+          each entry in entries
+            a(href=`/${entry.slug}` style='display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:14px;padding:18px 0;border-bottom:1px solid rgba(23,20,15,.15);color:#17140f')
+              span
+                span(style='font-family:\'PT Serif\',\'Noto Serif Georgian\',Georgia,serif;font-size:20px')= entry.title
+                span(style='display:block;font-size:13px;color:#6f6350;margin-top:4px')= entry.address
+              span(style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.06em;color:#b03e18')= (entry.year || '') + ' →'
+          div(style='display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid rgba(23,20,15,.15)')
+            span(style='width:7px;height:7px;border-radius:50%;border:1px solid #b3a184;flex:none')
+            span(data-i18n='soon' style='font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8a7c62') новые точки — скоро
+
+      section(style='padding:68px 0 0')
+        div(style='border:1px solid rgba(23,20,15,.15);border-radius:3px;padding:28px 24px;background:rgba(250,245,233,.78)')
+          h2(data-i18n='ctaTitle' style='font-family:\'PT Serif\',\'Noto Serif Georgian\',Georgia,serif;font-weight:400;font-size:26px;line-height:1.15;margin:0;text-wrap:balance') Знаете место с историей?
+          p(data-i18n='ctaText' style='font-size:15px;line-height:1.55;color:#6f6350;margin:12px 0 22px;text-wrap:pretty') Пришлите адрес и архивный снимок — если получится совместить, точка появится на карте. Также можно предложить сотрудничество музеям, изданиям или городу.
+          div(style='display:flex;flex-wrap:wrap;gap:10px')
+            a(href='mailto:dimazvali@gmail.com?subject=ARchive' data-i18n='ctaMail' style='display:inline-block;padding:12px 18px;border-radius:2px;background:#17140f;color:#f6f0e2;font-size:14px;font-weight:600') Написать на почту
+            a(href='https://telegram.me/dimazvali' data-i18n='ctaTg' style='display:inline-block;padding:12px 18px;border-radius:2px;border:1px solid rgba(23,20,15,.24);color:#3d3427;font-size:14px;font-weight:500') Телеграм
+
+      footer(style='margin-top:68px;padding:26px 0 44px;border-top:1px solid rgba(23,20,15,.15);display:flex;flex-wrap:wrap;gap:10px 18px;align-items:baseline;justify-content:space-between;font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.06em;color:#8a7c62')
+        span ARchive · © dimazvali.com
+        a(href='https://photo.dimazvali.com' style='color:#8a7c62') photo.dimazvali.com
+
+  if mapEntries.length
+    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+    script.
+      window.QR_MAP_POINTS = !{JSON.stringify(mapEntries.map(function(e) { return { slug: e.slug, title: e.title, year: e.year, lat: e.lat, lng: e.lng }; }))};
+
+  script.
+    window.QR_INDEX_ENTRY_COUNT = !{entries.length};
+    window.QR_INDEX_DICT = !{JSON.stringify(dict)};
+  script(src='/javascripts/qr/index.js')
