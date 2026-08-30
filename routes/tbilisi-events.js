@@ -3,7 +3,10 @@ var express = require('express');
 var router = express.Router();
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
+var { getStorage } = require('firebase-admin/storage');
 var eventsData = require('../lib/tbilisi-events-data');
+var images = require('../lib/tbilisi-events-images');
+var taxonomy = require('../lib/tbilisi-events-taxonomy');
 
 var tbilisiEventsApp = getApps().find(function(a) { return a.name === 'tbilisiEvents'; }) || initializeApp({
   credential: cert({
@@ -22,6 +25,7 @@ var tbilisiEventsApp = getApps().find(function(a) { return a.name === 'tbilisiEv
 
 var fb = getFirestore(tbilisiEventsApp);
 eventsData.init(fb);
+images.init(getStorage(tbilisiEventsApp));
 
 function isSafeUrl(url) {
   return typeof url === 'string' && /^https?:\/\//i.test(url);
@@ -83,7 +87,12 @@ function buildCalendar(events, todayStr, monthStr, selectedDate) {
 
 router.get('/', async function(req, res, next) {
   try {
-    var events = sanitizeEvents(await eventsData.getAllEvents());
+    var events = sanitizeEvents(await eventsData.getPublicEvents());
+    var venues = await eventsData.getVenues();
+    var venueById = {};
+    venues.forEach(function(v) { venueById[v.id] = v; });
+    events.forEach(function(e) { e.venueName = e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : null; });
+    var typeParam = taxonomy.EVENT_TYPE_SLUGS.indexOf(req.query.type) !== -1 ? req.query.type : null;
     var today = new Date().toISOString().slice(0, 10);
     var showAll = req.query.all === '1';
     var dateParam = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : null;
@@ -105,6 +114,21 @@ router.get('/', async function(req, res, next) {
     } else {
       visibleEvents = showAll ? events : events.filter(function(e) { return e.date >= today; });
     }
+    if (typeParam) visibleEvents = visibleEvents.filter(function(e) { return e.type === typeParam; });
+
+    var keep = [];
+    if (showAll) keep.push('all=1');
+    if (dateParam) keep.push('date=' + dateParam);
+    function typeHref(slug) {
+      var parts = keep.slice();
+      if (slug) parts.push('type=' + slug);
+      return '/tbilisi-events' + (parts.length ? '?' + parts.join('&') : '');
+    }
+    var typeLinks = [{ label: 'все', href: typeHref(null), active: !typeParam }].concat(
+      taxonomy.EVENT_TYPE_SLUGS.map(function(slug) {
+        return { label: taxonomy.EVENT_TYPE_LABELS[slug], href: typeHref(slug), active: typeParam === slug };
+      })
+    );
 
     res.render('tbilisi-events/list', {
       title: dateParam ? 'Афиша Тбилиси — ' + dateParam : 'Афиша Тбилиси',
@@ -113,6 +137,10 @@ router.get('/', async function(req, res, next) {
       dateParam: dateParam,
       monthNames: MONTH_NAMES,
       calendar: buildCalendar(events, today, monthStr, dateParam),
+      typeLinks: typeLinks,
+      typeParam: typeParam,
+      eventTypeLabels: taxonomy.EVENT_TYPE_LABELS,
+      languageLabels: taxonomy.LANGUAGE_LABELS,
     });
   } catch (e) {
     next(e);

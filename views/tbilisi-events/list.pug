@@ -28,6 +28,21 @@ html
       table.calendar .day-count { font-size: 0.65rem; color: #557; }
       table.calendar td.past.has-events { background: #f0f0f0; }
       table.calendar td.past .day-count { color: #888; }
+      .filters { margin: 1rem 0; display: flex; flex-wrap: wrap; gap: 0.4rem; }
+      .chip { display: inline-block; padding: 0.25rem 0.7rem; border: 1px solid #ccc; border-radius: 999px; font-size: 0.82rem; color: #1C2E4A; text-decoration: none; }
+      .chip.active { background: #1C2E4A; color: #fff; border-color: #1C2E4A; }
+      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem; }
+      .card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+      .card-img { width: 100%; height: 160px; object-fit: cover; display: block; }
+      .card-body { padding: 0.75rem; }
+      .card-title { margin: 0 0 0.35rem; font-size: 1rem; }
+      .card-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; font-size: 0.8rem; color: #557; margin-bottom: 0.35rem; }
+      .card-meta .badge { border: 1px solid #cbd6e6; border-radius: 4px; padding: 0 0.35rem; }
+      .card .venue { margin: 0.25rem 0; font-size: 0.85rem; }
+      .card .desc-text { font-size: 0.85rem; color: #333; display: block; margin-top: 0.35rem; }
+      .card .desc-toggle { margin-top: 0.3rem; display: flex; gap: 0.25rem; }
+      .card .desc-toggle button { font-size: 0.72rem; padding: 0 0.3rem; cursor: pointer; }
+      .card-sources { margin-top: 0.5rem; font-size: 0.8rem; }
   body
     h1= title
 
@@ -81,24 +96,43 @@ html
         a.btn(href='/tbilisi-events') Только предстоящие
       else
         a.btn(href='/tbilisi-events?all=1') Показать все
+      | #{' '}
+      a.btn(href='/tbilisi-events/venues') Площадки
+
+    .filters
+      each link in typeLinks
+        a(href=link.href class=link.active ? 'chip active' : 'chip')= link.label
 
     if events.length === 0
       p= dateParam ? 'На эту дату событий не найдено.' : (showAll ? 'Пока нет собранных событий.' : 'Нет предстоящих событий.')
     else
-      table
-        thead
-          tr
-            th Название
-            th Дата/время
-            th Место
-            th Источник(и)
-        tbody
-          each event in events
-            tr
-              td= event.title
-              td= event.date + (event.time ? ' ' + event.time : '')
-              td= event.place || ''
-              td
+      .cards
+        each event in events
+          .card
+            if event.imageUrl
+              img.card-img(src=event.imageUrl alt=event.title loading='lazy')
+            .card-body
+              h3.card-title= event.title
+              .card-meta
+                span= event.date + (event.time ? ' ' + event.time : '')
+                if event.type
+                  span.badge= eventTypeLabels[event.type] || event.type
+                each lng in (event.language || [])
+                  span.badge= languageLabels[lng] || lng
+              if event.venueName
+                p.venue
+                  a(href=`/tbilisi-events/venues/${event.venueId}`)= event.venueName
+              else if event.place
+                p.venue= event.place
+              if event.description && (event.description.ru || event.description.en || event.description.ka)
+                .desc(data-ru=event.description.ru data-en=event.description.en data-ka=event.description.ka)
+                  span.desc-text= event.description.ru || event.description.en || event.description.ka
+                  - var langs = ['ru','en','ka'].filter(function(l){ return event.description[l]; })
+                  if langs.length > 1
+                    span.desc-toggle
+                      each l in langs
+                        button(type='button' data-lang=l)= l
+              .card-sources
                 each source, i in event.sources || []
                   if i > 0
                     | #{' '}
@@ -106,3 +140,11 @@ html
                     a(href=source.url target='_blank' rel='noopener noreferrer')= source.label
                   else
                     span= source.label
+
+    script.
+      document.querySelectorAll('.desc-toggle button').forEach(function(b){
+        b.addEventListener('click', function(){
+          var box = b.closest('.desc');
+          box.querySelector('.desc-text').textContent = box.getAttribute('data-' + b.getAttribute('data-lang')) || '';
+        });
+      });
