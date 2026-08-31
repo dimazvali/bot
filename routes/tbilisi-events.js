@@ -7,6 +7,7 @@ var { getStorage } = require('firebase-admin/storage');
 var eventsData = require('../lib/tbilisi-events-data');
 var images = require('../lib/tbilisi-events-images');
 var taxonomy = require('../lib/tbilisi-events-taxonomy');
+var i18n = require('../lib/tbilisi-events-i18n');
 
 var tbilisiEventsApp = getApps().find(function(a) { return a.name === 'tbilisiEvents'; }) || initializeApp({
   credential: cert({
@@ -85,16 +86,37 @@ function buildCalendar(events, todayStr, monthStr, selectedDate) {
   };
 }
 
+function isoDay(d) {
+  return d.getUTCFullYear() + '-'
+    + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-'
+    + ('0' + d.getUTCDate()).slice(-2);
+}
+
 router.get('/', async function(req, res, next) {
   try {
+    var lang = i18n.normalizeLang(req.query.lang);
+    var t = i18n.UI[lang];
+    var typeLabelsL = i18n.EVENT_TYPE_LABELS[lang];
+    var langLabelsL = i18n.LANGUAGE_LABELS[lang];
+
     var events = sanitizeEvents(await eventsData.getPublicEvents());
     var venues = await eventsData.getVenues();
     var venueById = {};
     venues.forEach(function(v) { venueById[v.id] = v; });
-    events.forEach(function(e) { e.venueName = e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : null; });
+    events.forEach(function(e) {
+      e.venueName = e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : null;
+      e.desc = i18n.pickDescription(e.description, lang);
+      e.typeLabel = e.type ? (typeLabelsL[e.type] || e.type) : '';
+      e.langBadge = (e.language || []).map(function(c) { return String(c).toUpperCase(); }).join(' / ');
+      e.langLabel = (e.language || []).map(function(c) { return langLabelsL[c] || c; }).join(', ');
+      e.primaryUrl = (e.sources.find(function(s) { return s.safe; }) || {}).url || null;
+    });
+
+    var LIST_CAP = 40;
     var typeParam = taxonomy.EVENT_TYPE_SLUGS.indexOf(req.query.type) !== -1 ? req.query.type : null;
     var today = new Date().toISOString().slice(0, 10);
     var showAll = req.query.all === '1';
+    var fullList = req.query.full === '1';
     var dateParam = /^\d{4}-\d{2}-\d{2}$/.test(req.query.date || '') ? req.query.date : null;
 
     var yearParam = parseInt(req.query.year, 10);
@@ -108,39 +130,153 @@ router.get('/', async function(req, res, next) {
       monthStr = today.slice(0, 7);
     }
 
+    // href builder — every internal link carries the current lang; other params
+    // are inherited unless explicitly overridden (pass null to drop one).
+    function href(o) {
+      o = o || {};
+      var p = {};
+      p.lang = o.lang !== undefined ? o.lang : lang;
+      var all = o.all !== undefined ? o.all : showAll;
+      var date = o.date !== undefined ? o.date : dateParam;
+      var type = o.type !== undefined ? o.type : typeParam;
+      var full = o.full !== undefined ? o.full : fullList;
+      var q = [];
+      if (p.lang && p.lang !== 'ru') q.push('lang=' + p.lang);
+      if (all) q.push('all=1');
+      if (full) q.push('full=1');
+      if (date) q.push('date=' + date);
+      if (type) q.push('type=' + type);
+      return '/tbilisi-events' + (q.length ? '?' + q.join('&') : '');
+    }
+
+    var upcomingAll = events.filter(function(e) { return e.date >= today; });
+    var typeUpcoming = typeParam ? upcomingAll.filter(function(e) { return e.type === typeParam; }) : upcomingAll;
+
     var visibleEvents;
     if (dateParam) {
       visibleEvents = events.filter(function(e) { return e.date === dateParam; });
+      if (typeParam) visibleEvents = visibleEvents.filter(function(e) { return e.type === typeParam; });
+    } else if (showAll) {
+      visibleEvents = typeParam ? events.filter(function(e) { return e.type === typeParam; }) : events.slice();
     } else {
-      visibleEvents = showAll ? events : events.filter(function(e) { return e.date >= today; });
+      visibleEvents = typeUpcoming.slice();
     }
-    if (typeParam) visibleEvents = visibleEvents.filter(function(e) { return e.type === typeParam; });
 
-    var keep = [];
-    if (showAll) keep.push('all=1');
-    if (dateParam) keep.push('date=' + dateParam);
-    function typeHref(slug) {
-      var parts = keep.slice();
-      if (slug) parts.push('type=' + slug);
-      return '/tbilisi-events' + (parts.length ? '?' + parts.join('&') : '');
+    // Hero = first upcoming visible event (prefer one with an image), only on
+    // the default / type-filtered view (not a single-date view).
+    var hero = null;
+    if (!dateParam && visibleEvents.length) {
+      hero = visibleEvents.filter(function(e) { return e.imageUrl; })[0]
+        || visibleEvents.filter(function(e) { return e.desc; })[0]
+        || visibleEvents[0];
     }
-    var typeLinks = [{ label: 'все', href: typeHref(null), active: !typeParam }].concat(
-      taxonomy.EVENT_TYPE_SLUGS.map(function(slug) {
-        return { label: taxonomy.EVENT_TYPE_LABELS[slug], href: typeHref(slug), active: typeParam === slug };
-      })
-    );
+    var listEvents = hero
+      ? visibleEvents.filter(function(e) { return e.id !== hero.id; })
+      : visibleEvents;
+    var totalVisible = visibleEvents.length;
+
+    // Cap the default upcoming list; a single-date view, ?all=1 and ?full=1 are uncapped.
+    var listTruncated = false;
+    if (!dateParam && !showAll && !fullList && listEvents.length > LIST_CAP) {
+      listTruncated = true;
+      listEvents = listEvents.slice(0, LIST_CAP);
+    }
+
+    // Horizontal date strip: next 14 days, counts from the current type filter.
+    var stripCounts = {};
+    typeUpcoming.forEach(function(e) { stripCounts[e.date] = (stripCounts[e.date] || 0) + 1; });
+    var base = new Date(today + 'T00:00:00Z');
+    var dayStrip = [];
+    for (var i = 0; i < 14; i++) {
+      var dd = new Date(base.getTime() + i * 86400000);
+      var ds = isoDay(dd);
+      dayStrip.push({
+        date: ds,
+        wd: i18n.weekdayShort(ds, lang),
+        dm: i18n.formatShortDay(ds, lang),
+        count: stripCounts[ds] || 0,
+        active: ds === dateParam,
+        href: href({ date: ds }),
+      });
+    }
+
+    // Weekend block: the upcoming Saturday + Sunday.
+    var weekend = [];
+    if (!dateParam) {
+      var wkDates = [];
+      for (var w = 0; w < 14; w++) {
+        var wdt = new Date(base.getTime() + w * 86400000);
+        var dow = wdt.getUTCDay();
+        if (dow === 6 || dow === 0) {
+          wkDates.push(isoDay(wdt));
+          if (wkDates.length === 2) break;
+        }
+      }
+      weekend = typeUpcoming
+        .filter(function(e) { return wkDates.indexOf(e.date) !== -1; })
+        .filter(function(e) { return !hero || e.id !== hero.id; })
+        .slice(0, 6)
+        .map(function(e) {
+          return {
+            wd: i18n.formatLongDate(e.date, lang),
+            title: e.title,
+            meta: [e.time, e.venueName || e.place, e.typeLabel].filter(Boolean).join(' · '),
+            href: e.primaryUrl,
+          };
+        });
+    }
+
+    // Rubrics grid: event types present in the upcoming set, with counts.
+    var rubrics = taxonomy.EVENT_TYPE_SLUGS.map(function(slug) {
+      return {
+        slug: slug,
+        label: typeLabelsL[slug] || slug,
+        count: upcomingAll.filter(function(e) { return e.type === slug; }).length,
+        href: href({ type: slug, date: null, all: false }),
+      };
+    }).filter(function(r) { return r.count > 0; });
+
+    var navLinks = [{
+      label: t.today, href: href({ type: null, date: null, all: false }), active: !typeParam && !dateParam && !showAll,
+    }].concat(taxonomy.EVENT_TYPE_SLUGS.map(function(slug) {
+      return { label: typeLabelsL[slug] || slug, href: href({ type: slug, date: null, all: false }), active: typeParam === slug };
+    }));
+
+    var langLinks = i18n.LANGS.map(function(c) {
+      return { code: c.toUpperCase(), href: href({ lang: c }), active: c === lang };
+    });
+
+    var calendar = buildCalendar(events, today, monthStr, dateParam);
+    var lq = lang !== 'ru' ? '&lang=' + lang : '';
+    calendar.prevHref = '/tbilisi-events?year=' + calendar.prevYear + '&month=' + calendar.prevMonth + lq;
+    calendar.nextHref = '/tbilisi-events?year=' + calendar.nextYear + '&month=' + calendar.nextMonth + lq;
+    var calWeekdays = [1, 2, 3, 4, 5, 6, 0].map(function(d) { return i18n.WD_SHORT[lang][d]; });
 
     res.render('tbilisi-events/list', {
-      title: dateParam ? 'Афиша Тбилиси — ' + dateParam : 'Афиша Тбилиси',
-      events: visibleEvents,
-      showAll: showAll,
+      title: dateParam ? 'events.tbiliseli.com — ' + dateParam : 'events.tbiliseli.com',
+      lang: lang,
+      t: t,
+      langLinks: langLinks,
+      navLinks: navLinks,
+      hero: hero,
+      listEvents: listEvents,
       dateParam: dateParam,
-      monthNames: MONTH_NAMES,
-      calendar: buildCalendar(events, today, monthStr, dateParam),
-      typeLinks: typeLinks,
-      typeParam: typeParam,
-      eventTypeLabels: taxonomy.EVENT_TYPE_LABELS,
-      languageLabels: taxonomy.LANGUAGE_LABELS,
+      dateHeading: dateParam ? i18n.formatLongDate(dateParam, lang) : null,
+      heroDate: hero ? i18n.formatLongDate(hero.date, lang) : null,
+      showAll: showAll,
+      fullList: fullList,
+      listTruncated: listTruncated,
+      dayStrip: dayStrip,
+      weekend: weekend,
+      rubrics: rubrics,
+      calendar: calendar,
+      calWeekdays: calWeekdays,
+      countLabel: i18n.countLabel(totalVisible + (hero ? 1 : 0), lang),
+      allUpcomingHref: href({ date: null, all: false, full: false }),
+      showAllHref: href({ full: true, date: null }),
+      showPastHref: href({ all: true, date: null, full: false }),
+      venuesHref: '/tbilisi-events/venues' + (lang !== 'ru' ? '?lang=' + lang : ''),
+      dateLinkFor: function(d) { return href({ date: d }); },
     });
   } catch (e) {
     next(e);
