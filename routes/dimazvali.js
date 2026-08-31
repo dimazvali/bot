@@ -1601,6 +1601,12 @@ router.get(`/robots.txt`, (req, res) => {
     res.send('User-agent: *\nAllow: /\n');
 })
 
+// Tbilisi events afisha — mounted here (before the /:page catch-all below) so it
+// is reachable at dimazvali.com/tbilisi-events; the dimazvali vhost otherwise
+// swallows every unknown path as a 404.
+router.use('/tbilisi-events', require('./tbilisi-events'));
+router.use('/tbilisi-events/admin', require('./tbilisi-events-admin'));
+
 router.use(express.static(path.join(__dirname, '../public')))
 
 router.get(`/:page`, (req, res) => {
