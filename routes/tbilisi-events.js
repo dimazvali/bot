@@ -42,9 +42,7 @@ function sanitizeEvents(events) {
   });
 }
 
-var MONTH_NAMES = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-
-function buildCalendar(events, todayStr, monthStr, selectedDate) {
+function buildCalendar(events, todayStr, monthStr, selectedDate, monthNames) {
   var monthPrefix = monthStr;
   var year = parseInt(monthStr.slice(0, 4), 10);
   var month = parseInt(monthStr.slice(5, 7), 10) - 1; // 0-indexed
@@ -76,7 +74,7 @@ function buildCalendar(events, todayStr, monthStr, selectedDate) {
   var nextDate = new Date(Date.UTC(year, month + 1, 1));
 
   return {
-    monthLabel: MONTH_NAMES[month] + ' ' + year,
+    monthLabel: monthNames[month] + ' ' + year,
     weeks: weeks,
     year: year,
     month: month + 1,
@@ -273,7 +271,7 @@ router.get('/', async function(req, res, next) {
       return { code: c.toUpperCase(), href: href({ lang: c }), active: c === lang };
     });
 
-    var calendar = buildCalendar(events, today, monthStr, dateParam);
+    var calendar = buildCalendar(events, today, monthStr, dateParam, i18n.MONTH_NOM[lang]);
     var lq = lang !== 'ru' ? '&lang=' + lang : '';
     calendar.prevHref = '/tbilisi-events?year=' + calendar.prevYear + '&month=' + calendar.prevMonth + lq;
     calendar.nextHref = '/tbilisi-events?year=' + calendar.nextYear + '&month=' + calendar.nextMonth + lq;
