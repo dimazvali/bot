@@ -101,8 +101,9 @@ html(lang=lang)
       .list-head .cnt{font-size:13px;color:var(--muted)}
       .empty{color:var(--muted);font-size:14px}
       .cards{display:flex;flex-direction:column;gap:26px}
-      .card{display:block;color:var(--ink)}
-      .card-media{display:block;aspect-ratio:3/2;margin-bottom:11px}
+      .card{display:block;color:var(--ink);min-width:0;overflow:hidden}
+      .card-media{display:block;aspect-ratio:3/2;margin-bottom:11px;width:100%}
+      .card-media img,.card-media .ph{width:100%;height:100%;object-fit:cover}
       .card-media .cat{padding:4px 8px}
       .card-media .lng{position:absolute;top:0;right:0;background:var(--acc);color:#fffdf9;font-size:11px;font-weight:800;letter-spacing:.06em;padding:4px 7px}
       .card-row{display:flex;gap:8px;align-items:baseline;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;color:var(--ink);white-space:nowrap;overflow:hidden}
@@ -173,10 +174,10 @@ html(lang=lang)
         .hero-lead{font-size:17px}
         .hero-actions{margin-top:auto;padding-top:18px}
 
-        .dash{order:4;display:grid;grid-template-columns:1fr 380px}
-        .dash > .list{padding:32px 32px 40px 40px;border-right:1px solid var(--line)}
+        .dash{order:4;display:grid;grid-template-columns:minmax(0,1fr) 380px}
+        .dash > .list{padding:32px 32px 40px 40px;border-right:1px solid var(--line);min-width:0}
         .list-head h2{font-size:34px}
-        .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px 24px}
+        .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 24px}
         .card-title{font-size:22px}
         .card-lead{font-size:13px}
         .dash-side{display:flex;flex-direction:column}
