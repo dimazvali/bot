@@ -30,8 +30,7 @@ html(lang=lang)
       .hdr{background:var(--dark);color:var(--dark-fg);display:flex;align-items:center;gap:12px;padding:12px 16px}
       .brand{font-family:var(--disp);font-size:19px;font-weight:600;text-transform:uppercase;letter-spacing:.01em}
       .brand .acc{color:var(--acc)}
-      .hdr-nav{display:none}
-      .search{display:none}
+      .menu{display:none}
       .langs{margin-left:auto;display:flex;gap:3px}
       .lang{font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 7px;border-radius:2px;color:var(--dark-muted)}
       .lang.on{background:var(--acc);color:#fffdf9}
@@ -145,15 +144,20 @@ html(lang=lang)
 
       @media(min-width:1000px){
         .wrap{max-width:1200px}
-        .hdr{gap:26px;padding:16px 40px;order:1}
+        .hdr{gap:26px;padding:16px 40px;order:1;position:relative;z-index:20}
         .brand{font-size:26px}
-        .hdr-nav{display:flex;gap:20px;font-size:14px;font-weight:700;margin-left:4px}
-        .hdr-nav a{color:var(--dark-fg);border-bottom:2px solid transparent;padding-bottom:2px}
-        .hdr-nav a.on,.hdr-nav a:hover{color:var(--acc);border-color:var(--acc)}
-        .search{display:flex;align-items:center;padding:9px 12px;border:1px solid #3a332b;color:#7d7468;font-size:13px;min-width:190px;margin-left:auto}
-        .langs{margin-left:0}
-        .lang{font-size:12px;padding:6px 9px}
         .nav{display:none}
+        .menu{display:block;position:relative;margin-left:auto}
+        .menu summary{list-style:none;cursor:pointer;width:36px;height:36px;border:1px solid #3a332b;display:flex;align-items:center;justify-content:center;color:var(--dark-fg)}
+        .menu summary::-webkit-details-marker{display:none}
+        .menu summary::before{content:"\2630";font-size:18px}
+        .menu[open] summary::before{content:"\00d7";font-size:22px}
+        .menu-panel{position:absolute;right:0;top:calc(100% + 8px);background:var(--dark);border:1px solid #3a332b;min-width:230px;display:flex;flex-direction:column}
+        .menu-panel a{padding:12px 16px;font-size:14px;font-weight:700;color:var(--dark-fg);border-bottom:1px solid #241f1a}
+        .menu-panel a:last-child{border-bottom:none}
+        .menu-panel a.on,.menu-panel a:hover{color:var(--acc)}
+        .langs{margin-left:14px}
+        .lang{font-size:12px;padding:6px 9px}
 
         .dates{order:2;padding:14px 0;background:var(--panel);border-bottom:1px solid var(--ink)}
         .dates-head{padding:0 40px 10px}
@@ -190,10 +194,11 @@ html(lang=lang)
       header.hdr
         .brand
           | Tbiliseli #[span.acc= t.brandTail]
-        nav.hdr-nav
-          each n in navLinks
-            a(href=n.href class=n.active ? 'on' : '')= n.label
-        span.search= t.search
+        details.menu
+          summary
+          .menu-panel
+            each n in navLinks
+              a(href=n.href class=n.active ? 'on' : '')= n.label
         .langs
           each l in langLinks
             a(href=l.href class=l.active ? 'lang on' : 'lang')= l.code
