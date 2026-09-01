@@ -87,6 +87,8 @@ html(lang=lang)
       .mini .mt{font-family:var(--disp);font-size:17px;font-weight:500;line-height:1.15}
       .mini .mv{font-size:12px;color:var(--muted);margin-top:3px}
 
+      .admin-edit{position:fixed;right:16px;bottom:16px;z-index:60;background:var(--ink);color:#fffdf9;font-family:var(--disp);text-transform:uppercase;font-size:12px;letter-spacing:.1em;font-weight:600;padding:11px 16px;border:1px solid var(--ink);box-shadow:4px 4px 0 var(--shadow)}
+      .admin-edit:hover{background:var(--acc);border-color:var(--acc)}
       .related{border-top:1px solid var(--ink);padding:24px 16px 30px}
       .related .rh{display:flex;align-items:baseline;gap:12px;margin-bottom:18px}
       .related h2{font-family:var(--disp);font-size:24px;font-weight:600;text-transform:uppercase}
@@ -223,3 +225,6 @@ html(lang=lang)
           .cards.grid3
             each r in related
               +eventCard(r)
+
+    if isAdmin
+      a.admin-edit(href=editHref) ✎ Редактировать

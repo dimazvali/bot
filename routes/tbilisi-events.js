@@ -1,6 +1,7 @@
 'use strict';
 var express = require('express');
 var router = express.Router();
+var crypto = require('crypto');
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { getStorage } = require('firebase-admin/storage');
@@ -94,6 +95,15 @@ function isoDay(d) {
 
 function langQuery(lang) {
   return lang && lang !== 'ru' ? '?lang=' + lang : '';
+}
+
+// Mirrors requireAuth in routes/tbilisi-events-admin.js — used only to decide
+// whether to show the inline "edit" shortcut on public pages.
+function isAdmin(req) {
+  var val = req.cookies && req.cookies.tbilisiEventsAdminToken;
+  var envPass = process.env.TBILISI_EVENTS_ADMIN_PASS;
+  if (!val || !envPass) return false;
+  return val === crypto.createHash('sha256').update('tbilisiEvents:' + envPass).digest('hex');
 }
 
 // Attach the display fields the views expect onto a sanitized event.
@@ -332,6 +342,8 @@ router.get('/e/:id', async function(req, res, next) {
       }),
       backHref: '/tbilisi-events' + langQuery(lang),
       ev: event,
+      isAdmin: isAdmin(req),
+      editHref: '/tbilisi-events/admin/events/' + event.id + '/edit',
       dateLong: i18n.formatLongDate(event.date, lang),
       venue: venue,
       venueHref: venue ? '/tbilisi-events/venues/' + venue.id + langQuery(lang) : null,
