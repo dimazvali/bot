@@ -63,7 +63,14 @@ html
               if e.imageUrl
                 img(src=e.imageUrl alt='')
             td= e.date + (e.time ? ' ' + e.time : '')
-            td= e.title
+            td
+              = e.title
+              if e.editorsPick
+                |  ★
+              if e.cancelled
+                |  ⛔
+              if e.active === false
+                |  (неактивно)
             td= e.type ? (eventTypeLabels[e.type] || e.type) : ''
             td= (e.language || []).map(function(l){ return languageLabels[l] || l; }).join(', ')
             td= e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : (e.place || '')

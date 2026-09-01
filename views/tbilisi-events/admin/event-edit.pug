@@ -14,6 +14,8 @@ html
       .langs label { display: inline-flex; gap: 0.3rem; align-items: center; font-weight: normal; margin: 0; }
       .row { display: flex; gap: 1rem; }
       .row > div { flex: 1; }
+      .flags { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: 0.9rem 0 0.2rem; }
+      .flags label { display: inline-flex; gap: 0.35rem; align-items: center; font-weight: bold; margin: 0; }
       button.save { margin-top: 1.2rem; padding: 0.6rem 1.4rem; font-size: 1rem; }
       .fetch-img { margin-top: 1rem; display: flex; gap: 0.5rem; }
   body
@@ -21,6 +23,16 @@ html
       a.back(href='/tbilisi-events/admin/events') ← К списку
     h1= title
     form(method='POST' action=`/tbilisi-events/admin/events/${event.id}/edit`)
+      .flags
+        label
+          input(type='checkbox' name='active' checked=(event.active !== false))
+          | Активно (показывать)
+        label
+          input(type='checkbox' name='editorsPick' checked=(event.editorsPick === true))
+          | Выбор редакции
+        label
+          input(type='checkbox' name='cancelled' checked=(event.cancelled === true))
+          | Отменено
       label Название
       input(type='text' name='title' value=event.title)
       .row
@@ -48,12 +60,20 @@ html
           label
             input(type='checkbox' name='language' value=slug checked=((event.language || []).indexOf(slug) !== -1))
             = languageLabels[slug]
+      label Стоимость (текст, напр. «от 45 ₾» или «бесплатно»)
+      input(type='text' name='price' value=event.price || '')
       label Описание (RU)
       textarea(name='desc_ru')= event.description ? event.description.ru : ''
       label Описание (EN)
       textarea(name='desc_en')= event.description ? event.description.en : ''
       label Описание (KA)
       textarea(name='desc_ka')= event.description ? event.description.ka : ''
+      label От редакции (RU)
+      textarea(name='note_ru')= event.editorNote ? event.editorNote.ru : ''
+      label От редакции (EN)
+      textarea(name='note_en')= event.editorNote ? event.editorNote.en : ''
+      label От редакции (KA)
+      textarea(name='note_ka')= event.editorNote ? event.editorNote.ka : ''
       button.save(type='submit') Сохранить
 
     form.fetch-img(method='POST' action=`/tbilisi-events/admin/events/${event.id}/fetch-image`)

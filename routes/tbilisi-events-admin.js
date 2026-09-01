@@ -181,6 +181,13 @@ router.post('/events/:id/edit', requireAuth, express.urlencoded({ extended: fals
       description: (b.desc_ru || b.desc_en || b.desc_ka)
         ? { ru: (b.desc_ru || '').trim(), en: (b.desc_en || '').trim(), ka: (b.desc_ka || '').trim() }
         : null,
+      editorsPick: b.editorsPick === 'on',
+      active: b.active === 'on',
+      cancelled: b.cancelled === 'on',
+      price: (b.price || '').trim() || null,
+      editorNote: (b.note_ru || b.note_en || b.note_ka)
+        ? { ru: (b.note_ru || '').trim(), en: (b.note_en || '').trim(), ka: (b.note_ka || '').trim() }
+        : null,
     };
     await data.updateEvent(req.params.id, patch);
     res.redirect('/tbilisi-events/admin/events');

@@ -118,6 +118,8 @@ function decorateEvent(e, lang, venueById) {
   e.primaryUrl = (e.sources.find(function(s) { return s.safe; }) || {}).url || null;
   e.href = '/tbilisi-events/e/' + e.id + langQuery(lang);
   e.venueHref = e.venueId ? '/tbilisi-events/venues/' + e.venueId + langQuery(lang) : null;
+  e.editorNoteText = i18n.pickDescription(e.editorNote, lang);
+  e.cancelledLabel = e.cancelled ? i18n.UI[lang].cancelled : '';
   return e;
 }
 
@@ -183,11 +185,14 @@ router.get('/', async function(req, res, next) {
       visibleEvents = typeUpcoming.slice();
     }
 
-    // Hero = first upcoming visible event (prefer one with an image), only on
-    // the default / type-filtered view (not a single-date view).
+    // Hero, on the default / type-filtered view only: an editor's pick first,
+    // otherwise the first upcoming event with an image / a description.
     var hero = null;
     if (!dateParam && visibleEvents.length) {
-      hero = visibleEvents.filter(function(e) { return e.imageUrl; })[0]
+      var picks = visibleEvents.filter(function(e) { return e.editorsPick && !e.cancelled; });
+      hero = picks.filter(function(e) { return e.imageUrl; })[0]
+        || picks[0]
+        || visibleEvents.filter(function(e) { return e.imageUrl; })[0]
         || visibleEvents.filter(function(e) { return e.desc; })[0]
         || visibleEvents[0];
     }

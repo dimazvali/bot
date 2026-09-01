@@ -44,6 +44,9 @@ html(lang=lang)
       .hero img{width:100%;height:100%;object-fit:cover}
       .ph{width:100%;height:100%;background-image:repeating-linear-gradient(135deg,#e5ddce 0 8px,#efe8dc 8px 16px)}
       .hero .cat{position:absolute;top:0;left:0;background:var(--acc);color:#fffdf9;font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.14em;padding:6px 11px}
+      .hero .pick{position:absolute;top:0;right:0;background:var(--ink);color:#fffdf9;font-family:var(--disp);text-transform:uppercase;font-size:10px;letter-spacing:.12em;padding:6px 10px}
+      .cancel-bar{background:var(--acc);color:#fffdf9;font-family:var(--disp);text-transform:uppercase;letter-spacing:.16em;font-weight:600;font-size:13px;text-align:center;padding:10px 12px}
+      h1.t.struck{text-decoration:line-through;text-decoration-thickness:3px;opacity:.7}
 
       .body{padding:20px 16px 24px;border-bottom:8px solid var(--ink)}
       .kicker{font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:9px}
@@ -132,6 +135,9 @@ html(lang=lang)
           span.sl /
         span= ev.title
 
+      if ev.cancelled
+        .cancel-bar= t.cancelled
+
       .hero
         if ev.imageUrl
           img(src=ev.imageUrl alt=ev.title)
@@ -139,12 +145,14 @@ html(lang=lang)
           .ph
         if ev.typeLabel
           span.cat= ev.typeLabel
+        if ev.editorsPick
+          span.pick= t.heroKicker + ' · ' + t.heroSub
 
       .split
         .main
           .body
             .kicker= dateLong + (ev.time ? ' · ' + ev.time : '')
-            h1.t= ev.title
+            h1.t(class=ev.cancelled ? 'struck' : '')= ev.title
             if ev.desc
               p.lead= ev.desc
             dl.facts
@@ -163,6 +171,9 @@ html(lang=lang)
               if ev.typeLabel
                 dt= t.category
                 dd= ev.typeLabel
+              if ev.price
+                dt= t.price
+                dd= ev.price
             .actions
               if ev.primaryUrl
                 a.btn.solid(href=ev.primaryUrl target='_blank' rel='noopener noreferrer')= t.onSite
@@ -175,9 +186,14 @@ html(lang=lang)
                     else
                       span= s.label
 
-          if ev.rawExcerpt
+          if ev.editorNoteText
             .sec.editor
-              .sec-lbl= t.heroKicker
+              .sec-lbl= t.fromEditor
+              each para in ev.editorNoteText.split(/\n\n+/)
+                p= para
+          else if ev.rawExcerpt
+            .sec.editor
+              .sec-lbl= t.fromEditor
               p= ev.rawExcerpt
               .from-src= t.sourcesLabel + ': ' + (ev.sources && ev.sources[0] ? ev.sources[0].label : '')
 

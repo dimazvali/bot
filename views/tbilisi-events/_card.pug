@@ -1,5 +1,5 @@
 mixin eventCard(e)
-  article.card
+  article.card(class=e.cancelled ? 'is-cancelled' : '')
     a.card-media(href=e.href)
       if e.imageUrl
         img(src=e.imageUrl alt=e.title loading='lazy')
@@ -9,6 +9,8 @@ mixin eventCard(e)
         span.cat= e.typeLabel
       if e.langBadge
         span.lng= e.langBadge
+      if e.cancelledLabel
+        span.card-cancel= e.cancelledLabel
     a.card-row(href=e.href)
       if e.time
         span.time= e.time
