@@ -107,6 +107,7 @@ function decorateEvent(e, lang, venueById) {
   e.langLabel = (e.language || []).map(function(c) { return langLabelsL[c] || c; }).join(', ');
   e.primaryUrl = (e.sources.find(function(s) { return s.safe; }) || {}).url || null;
   e.href = '/tbilisi-events/e/' + e.id + langQuery(lang);
+  e.venueHref = e.venueId ? '/tbilisi-events/venues/' + e.venueId + langQuery(lang) : null;
   return e;
 }
 

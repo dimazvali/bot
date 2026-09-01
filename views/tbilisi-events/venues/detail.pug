@@ -1,4 +1,5 @@
 doctype html
+include ../_card.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -63,17 +64,6 @@ html(lang=lang)
       .sec-head .c{font-size:13px;color:var(--muted)}
       .sec-lbl{font-family:var(--disp);text-transform:uppercase;font-size:12px;letter-spacing:.14em;font-weight:600;margin-bottom:12px}
 
-      .poster{display:flex;flex-direction:column;gap:1px;background:var(--ink);border:1px solid var(--ink)}
-      .prow{display:grid;grid-template-columns:66px 1fr;gap:14px;background:var(--paper2);padding:14px 12px;color:var(--ink)}
-      .prow:hover{background:var(--panel)}
-      .prow .d{border-right:1px solid var(--line);padding-right:10px}
-      .prow .d .db{font-family:var(--disp);font-size:17px;font-weight:600;line-height:1.05}
-      .prow .d .dw{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted2);margin-top:2px}
-      .prow .badges{display:flex;gap:7px;align-items:center;margin-bottom:5px}
-      .prow .cat{background:var(--ink);color:#fffdf9;font-family:var(--disp);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 6px}
-      .prow .lng{font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--acc)}
-      .prow .pt{font-family:var(--disp);font-size:19px;font-weight:500;line-height:1.15;margin-bottom:4px;text-wrap:pretty}
-      .prow .pl{font-size:13px;color:#4a423a;line-height:1.45;text-wrap:pretty}
       .more{display:block;text-align:center;margin-top:16px;border:1px solid var(--ink);font-weight:700;font-size:14px;padding:13px}
 
       .map{border:1px solid var(--ink);aspect-ratio:3/2;background-image:repeating-linear-gradient(45deg,#e8e0d2 0 10px,#f0e9de 10px 20px);display:flex;align-items:flex-end;padding:9px}
@@ -108,9 +98,10 @@ html(lang=lang)
         .split > .aside{padding:36px 32px 44px;display:flex;flex-direction:column;gap:30px}
         .split > .aside .sec{padding:0}
         .sec-head h2{font-size:30px}
-        .prow{grid-template-columns:110px 1fr;padding:18px 16px}
         .ftr{padding:24px 36px 28px}
       }
+    style
+      include ../_card.css
   body
     .wrap
       header.hdr
@@ -162,21 +153,9 @@ html(lang=lang)
             if upcomingShown.length === 0
               p(style='color:var(--muted);font-size:14px')= t.nothingHere
             else
-              .poster
+              .cards.grid2
                 each e in upcomingShown
-                  a.prow(href=e.href)
-                    .d
-                      .db= e.dBig
-                      .dw= e.dWd + (e.time ? ' · ' + e.time : '')
-                    div
-                      .badges
-                        if e.typeLabel
-                          span.cat= e.typeLabel
-                        if e.langBadge
-                          span.lng= e.langBadge
-                      .pt= e.title
-                      if e.desc
-                        .pl= e.desc
+                  +eventCard(e)
               if upcoming.length > upcomingShown.length
                 a.more(href=backHref)= t.showAllUpcoming
 

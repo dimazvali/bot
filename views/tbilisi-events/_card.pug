@@ -1,0 +1,27 @@
+mixin eventCard(e)
+  article.card
+    a.card-media(href=e.href)
+      if e.imageUrl
+        img(src=e.imageUrl alt=e.title loading='lazy')
+      else
+        .ph
+      if e.typeLabel
+        span.cat= e.typeLabel
+      if e.langBadge
+        span.lng= e.langBadge
+    a.card-row(href=e.href)
+      if e.time
+        span.time= e.time
+        span.sep /
+      span.ven= e.venueName || e.place || ''
+    a.card-title(href=e.href)= e.title
+    if e.desc
+      p.card-lead= e.desc
+    .card-foot
+      if e.venueId && e.venueName
+        a.vlink(href=e.venueHref)= e.venueName
+      each s in (e.sources || [])
+        if s.safe
+          a.src(href=s.url target='_blank' rel='noopener noreferrer')= s.label
+        else
+          span.src= s.label
