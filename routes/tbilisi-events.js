@@ -92,25 +92,35 @@ function isoDay(d) {
     + ('0' + d.getUTCDate()).slice(-2);
 }
 
+function langQuery(lang) {
+  return lang && lang !== 'ru' ? '?lang=' + lang : '';
+}
+
+// Attach the display fields the views expect onto a sanitized event.
+function decorateEvent(e, lang, venueById) {
+  var typeLabelsL = i18n.EVENT_TYPE_LABELS[lang];
+  var langLabelsL = i18n.LANGUAGE_LABELS[lang];
+  e.venueName = e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : null;
+  e.desc = i18n.pickDescription(e.description, lang);
+  e.typeLabel = e.type ? (typeLabelsL[e.type] || e.type) : '';
+  e.langBadge = (e.language || []).map(function(c) { return String(c).toUpperCase(); }).join(' / ');
+  e.langLabel = (e.language || []).map(function(c) { return langLabelsL[c] || c; }).join(', ');
+  e.primaryUrl = (e.sources.find(function(s) { return s.safe; }) || {}).url || null;
+  e.href = '/tbilisi-events/e/' + e.id + langQuery(lang);
+  return e;
+}
+
 router.get('/', async function(req, res, next) {
   try {
     var lang = i18n.normalizeLang(req.query.lang);
     var t = i18n.UI[lang];
     var typeLabelsL = i18n.EVENT_TYPE_LABELS[lang];
-    var langLabelsL = i18n.LANGUAGE_LABELS[lang];
 
     var events = sanitizeEvents(await eventsData.getPublicEvents());
     var venues = await eventsData.getVenues();
     var venueById = {};
     venues.forEach(function(v) { venueById[v.id] = v; });
-    events.forEach(function(e) {
-      e.venueName = e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : null;
-      e.desc = i18n.pickDescription(e.description, lang);
-      e.typeLabel = e.type ? (typeLabelsL[e.type] || e.type) : '';
-      e.langBadge = (e.language || []).map(function(c) { return String(c).toUpperCase(); }).join(' / ');
-      e.langLabel = (e.language || []).map(function(c) { return langLabelsL[c] || c; }).join(', ');
-      e.primaryUrl = (e.sources.find(function(s) { return s.safe; }) || {}).url || null;
-    });
+    events.forEach(function(e) { decorateEvent(e, lang, venueById); });
 
     var LIST_CAP = 40;
     var typeParam = taxonomy.EVENT_TYPE_SLUGS.indexOf(req.query.type) !== -1 ? req.query.type : null;
@@ -281,6 +291,57 @@ router.get('/', async function(req, res, next) {
   } catch (e) {
     next(e);
   }
+});
+
+router.get('/e/:id', async function(req, res, next) {
+  try {
+    var lang = i18n.normalizeLang(req.query.lang);
+    var t = i18n.UI[lang];
+    var all = sanitizeEvents(await eventsData.getPublicEvents());
+    var event = all.find(function(x) { return x.id === req.params.id; });
+    if (!event) return next();
+
+    var venues = await eventsData.getVenues();
+    var venueById = {};
+    venues.forEach(function(v) { venueById[v.id] = v; });
+    all.forEach(function(e) { decorateEvent(e, lang, venueById); });
+
+    var today = new Date().toISOString().slice(0, 10);
+    var venue = event.venueId ? (venueById[event.venueId] || null) : null;
+
+    var sameDay = all.filter(function(e) {
+      return e.id !== event.id && e.date === event.date;
+    }).slice(0, 6);
+    var related = all.filter(function(e) {
+      return e.id !== event.id && e.type && e.type === event.type && e.date >= today;
+    }).slice(0, 6);
+    var venueEventsCount = venue
+      ? all.filter(function(e) { return e.venueId === venue.id && e.date >= today; }).length
+      : 0;
+    var mapQuery = venue
+      ? ((venue.lat != null && venue.lng != null) ? venue.lat + ',' + venue.lng : (venue.address || venue.name))
+      : null;
+
+    res.render('tbilisi-events/event', {
+      title: event.title + ' — events.tbiliseli.com',
+      lang: lang,
+      t: t,
+      langLinks: i18n.LANGS.map(function(c) {
+        return { code: c.toUpperCase(), href: '/tbilisi-events/e/' + event.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang };
+      }),
+      backHref: '/tbilisi-events' + langQuery(lang),
+      ev: event,
+      dateLong: i18n.formatLongDate(event.date, lang),
+      venue: venue,
+      venueHref: venue ? '/tbilisi-events/venues/' + venue.id + langQuery(lang) : null,
+      venueEventsCount: venueEventsCount,
+      mapHref: mapQuery ? 'https://maps.google.com/?q=' + encodeURIComponent(mapQuery) : null,
+      sameDay: sameDay,
+      related: related,
+      relatedHref: event.type ? '/tbilisi-events?type=' + event.type + (lang !== 'ru' ? '&lang=' + lang : '') : null,
+      venuesHref: '/tbilisi-events/venues' + langQuery(lang),
+    });
+  } catch (e) { next(e); }
 });
 
 router.get('/venues', async function(req, res, next) {
