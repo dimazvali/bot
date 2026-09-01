@@ -33,8 +33,18 @@ html
         label
           input(type='checkbox' name='cancelled' checked=(event.cancelled === true))
           | Отменено
-      label Название
+      label Название (каноническое, для дедупа/поиска)
       input(type='text' name='title' value=event.title)
+      .row
+        div
+          label Название RU
+          input(type='text' name='title_ru' value=(event.titleI18n ? event.titleI18n.ru : ''))
+        div
+          label Название EN
+          input(type='text' name='title_en' value=(event.titleI18n ? event.titleI18n.en : ''))
+        div
+          label Название KA
+          input(type='text' name='title_ka' value=(event.titleI18n ? event.titleI18n.ka : ''))
       .row
         div
           label Дата

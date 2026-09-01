@@ -199,7 +199,7 @@ html(lang=lang)
         section.hero
           a.hero-media(href=hero.href)
             if hero.imageUrl
-              img(src=hero.imageUrl alt=hero.title loading='lazy')
+              img(src=hero.imageUrl alt=hero.displayTitle loading='lazy')
             else
               .ph
             span.hero-flag= t.heroKicker + ' · ' + t.heroSub
@@ -207,7 +207,7 @@ html(lang=lang)
               span.cat= hero.typeLabel
           .hero-body
             .hero-cat= heroDate + (hero.time ? ' · ' + hero.time : '')
-            a.hero-title(href=hero.href)= hero.title
+            a.hero-title(href=hero.href)= hero.displayTitle
             if hero.desc
               p.hero-lead= hero.desc
             dl.meta

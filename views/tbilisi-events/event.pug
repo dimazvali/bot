@@ -133,14 +133,14 @@ html(lang=lang)
         if ev.typeLabel && relatedHref
           a(href=relatedHref)= ev.typeLabel
           span.sl /
-        span= ev.title
+        span= ev.displayTitle
 
       if ev.cancelled
         .cancel-bar= t.cancelled
 
       .hero
         if ev.imageUrl
-          img(src=ev.imageUrl alt=ev.title)
+          img(src=ev.imageUrl alt=ev.displayTitle)
         else
           .ph
         if ev.typeLabel
@@ -152,7 +152,7 @@ html(lang=lang)
         .main
           .body
             .kicker= dateLong + (ev.time ? ' · ' + ev.time : '')
-            h1.t(class=ev.cancelled ? 'struck' : '')= ev.title
+            h1.t(class=ev.cancelled ? 'struck' : '')= ev.displayTitle
             if ev.desc
               p.lead= ev.desc
             dl.facts
@@ -227,7 +227,7 @@ html(lang=lang)
                     div
                       if s.time
                         .tm= s.time
-                      .mt= s.title
+                      .mt= s.displayTitle
                       if s.venueName || s.place
                         .mv= s.venueName || s.place
 

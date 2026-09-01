@@ -120,6 +120,7 @@ function decorateEvent(e, lang, venueById) {
   e.venueHref = e.venueId ? '/tbilisi-events/venues/' + e.venueId + langQuery(lang) : null;
   e.editorNoteText = i18n.pickDescription(e.editorNote, lang);
   e.cancelledLabel = e.cancelled ? i18n.UI[lang].cancelled : '';
+  e.displayTitle = i18n.pickDescription(e.titleI18n, lang) || e.title;
   return e;
 }
 
@@ -245,9 +246,9 @@ router.get('/', async function(req, res, next) {
         .map(function(e) {
           return {
             wd: i18n.formatLongDate(e.date, lang),
-            title: e.title,
+            title: e.displayTitle,
             meta: [e.time, e.venueName || e.place, e.typeLabel].filter(Boolean).join(' · '),
-            href: e.primaryUrl,
+            href: e.href,
           };
         });
     }
@@ -339,7 +340,7 @@ router.get('/e/:id', async function(req, res, next) {
       : null;
 
     res.render('tbilisi-events/event', {
-      title: event.title + ' — events.tbiliseli.com',
+      title: event.displayTitle + ' — events.tbiliseli.com',
       lang: lang,
       t: t,
       langLinks: i18n.LANGS.map(function(c) {

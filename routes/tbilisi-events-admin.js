@@ -185,6 +185,9 @@ router.post('/events/:id/edit', requireAuth, express.urlencoded({ extended: fals
       active: b.active === 'on',
       cancelled: b.cancelled === 'on',
       price: (b.price || '').trim() || null,
+      titleI18n: (b.title_ru || b.title_en || b.title_ka)
+        ? { ru: (b.title_ru || '').trim(), en: (b.title_en || '').trim(), ka: (b.title_ka || '').trim() }
+        : null,
       editorNote: (b.note_ru || b.note_en || b.note_ka)
         ? { ru: (b.note_ru || '').trim(), en: (b.note_en || '').trim(), ka: (b.note_ka || '').trim() }
         : null,

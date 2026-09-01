@@ -2,7 +2,7 @@ mixin eventCard(e)
   article.card(class=e.cancelled ? 'is-cancelled' : '')
     a.card-media(href=e.href)
       if e.imageUrl
-        img(src=e.imageUrl alt=e.title loading='lazy')
+        img(src=e.imageUrl alt=e.displayTitle loading='lazy')
       else
         .ph
       if e.typeLabel
@@ -16,7 +16,7 @@ mixin eventCard(e)
         span.time= e.time
         span.sep /
       span.ven= e.venueName || e.place || ''
-    a.card-title(href=e.href)= e.title
+    a.card-title(href=e.href)= e.displayTitle
     if e.desc
       p.card-lead= e.desc
     .card-foot
