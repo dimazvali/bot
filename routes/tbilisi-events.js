@@ -346,33 +346,94 @@ router.get('/e/:id', async function(req, res, next) {
 
 router.get('/venues', async function(req, res, next) {
   try {
-    var venues = await eventsData.getVenues();
-    venues.sort(function(a, b) { return (b.eventCount || 0) - (a.eventCount || 0); });
+    var lang = i18n.normalizeLang(req.query.lang);
+    var t = i18n.UI[lang];
+    var vtl = i18n.VENUE_TYPE_LABELS[lang];
+    var today = new Date().toISOString().slice(0, 10);
+    var upcoming = (await eventsData.getPublicEvents()).filter(function(e) { return e.date >= today; });
+    var upcomingByVenue = {};
+    upcoming.forEach(function(e) { if (e.venueId) upcomingByVenue[e.venueId] = (upcomingByVenue[e.venueId] || 0) + 1; });
+
+    var venues = (await eventsData.getVenues()).map(function(v) {
+      return Object.assign({}, v, {
+        typeLabel: v.type ? (vtl[v.type] || v.type) : '',
+        upcomingCount: upcomingByVenue[v.id] || 0,
+        href: '/tbilisi-events/venues/' + v.id + langQuery(lang),
+      });
+    });
+    venues.sort(function(a, b) { return (b.upcomingCount - a.upcomingCount) || (b.eventCount || 0) - (a.eventCount || 0); });
+
     res.render('tbilisi-events/venues/list', {
-      title: 'Интересные места Тбилиси',
+      title: t.venuesTitle + ' — events.tbiliseli.com',
+      lang: lang, t: t,
+      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: '/tbilisi-events/venues' + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
+      backHref: '/tbilisi-events' + langQuery(lang),
       venues: venues,
-      venueTypeLabels: taxonomy.VENUE_TYPE_LABELS,
     });
   } catch (e) { next(e); }
 });
 
 router.get('/venues/:id', async function(req, res, next) {
   try {
+    var lang = i18n.normalizeLang(req.query.lang);
+    var t = i18n.UI[lang];
+    var vtl = i18n.VENUE_TYPE_LABELS[lang];
+
     var venue = await eventsData.getVenueById(req.params.id);
     if (!venue) return next();
+
+    var allVenues = await eventsData.getVenues();
+    var venueById = {};
+    allVenues.forEach(function(v) { venueById[v.id] = v; });
+
     var today = new Date().toISOString().slice(0, 10);
-    var events = sanitizeEvents(await eventsData.getPublicEvents())
-      .filter(function(e) { return e.venueId === venue.id && e.date >= today; });
+    var all = sanitizeEvents(await eventsData.getPublicEvents());
+    all.forEach(function(e) { decorateEvent(e, lang, venueById); });
+
+    var upcoming = all.filter(function(e) { return e.venueId === venue.id && e.date >= today; });
+    upcoming.forEach(function(e) {
+      e.dBig = i18n.formatShortDay(e.date, lang);
+      e.dWd = i18n.weekdayShort(e.date, lang);
+    });
+    var totalHere = all.filter(function(e) { return e.venueId === venue.id; }).length;
+
     var mapQuery = (venue.lat != null && venue.lng != null)
       ? venue.lat + ',' + venue.lng
       : (venue.address || venue.name);
+
+    var other = allVenues
+      .filter(function(v) { return v.id !== venue.id; })
+      .sort(function(a, b) { return (b.eventCount || 0) - (a.eventCount || 0); })
+      .slice(0, 4)
+      .map(function(v) {
+        return {
+          name: v.name,
+          meta: [v.area, v.type ? (vtl[v.type] || v.type) : null].filter(Boolean).join(' · '),
+          imageUrl: v.imageUrl || null,
+          href: '/tbilisi-events/venues/' + v.id + langQuery(lang),
+        };
+      });
+
+    var facts = [];
+    if (venue.address) facts.push({ k: t.address, v: venue.address });
+    if (venue.area) facts.push({ k: t.district, v: venue.area });
+    if (venue.type) facts.push({ k: t.venueType, v: vtl[venue.type] || venue.type });
+
     res.render('tbilisi-events/venues/detail', {
-      title: venue.name,
+      title: venue.name + ' — events.tbiliseli.com',
+      lang: lang, t: t,
+      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: '/tbilisi-events/venues/' + venue.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
+      backHref: '/tbilisi-events/venues' + langQuery(lang),
       venue: venue,
-      events: events,
+      venueTypeLabel: venue.type ? (vtl[venue.type] || venue.type) : '',
+      venueDesc: i18n.pickDescription(venue.description, lang),
+      facts: facts,
+      upcoming: upcoming,
+      upcomingShown: upcoming.slice(0, 8),
+      totalHere: totalHere,
+      website: venue.website || null,
       mapHref: 'https://maps.google.com/?q=' + encodeURIComponent(mapQuery),
-      venueTypeLabels: taxonomy.VENUE_TYPE_LABELS,
-      eventTypeLabels: taxonomy.EVENT_TYPE_LABELS,
+      other: other,
     });
   } catch (e) { next(e); }
 });

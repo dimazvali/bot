@@ -24,12 +24,14 @@ html(lang=lang)
       .scr::-webkit-scrollbar{display:none}
       .scr{scrollbar-width:none}
 
-      .wrap{max-width:480px;margin:0 auto;background:var(--paper);min-height:100vh}
+      .wrap{max-width:480px;margin:0 auto;background:var(--paper);min-height:100vh;display:flex;flex-direction:column}
       @media(min-width:520px){.wrap{border-left:1px solid var(--ink);border-right:1px solid var(--ink);margin-top:28px;margin-bottom:60px;min-height:0;box-shadow:12px 12px 0 var(--shadow)}}
 
       .hdr{background:var(--dark);color:var(--dark-fg);display:flex;align-items:center;gap:12px;padding:12px 16px}
       .brand{font-family:var(--disp);font-size:19px;font-weight:600;text-transform:uppercase;letter-spacing:.01em}
       .brand .acc{color:var(--acc)}
+      .hdr-nav{display:none}
+      .search{display:none}
       .langs{margin-left:auto;display:flex;gap:3px}
       .lang{font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 7px;border-radius:2px;color:var(--dark-muted)}
       .lang.on{background:var(--acc);color:#fffdf9}
@@ -142,29 +144,45 @@ html(lang=lang)
       .ftr .flinks a:hover{color:var(--acc)}
 
       @media(min-width:1000px){
-        .wrap{max-width:1120px}
-        .hdr{gap:22px;padding:16px 36px}
-        .brand{font-size:24px}
-        .nav{gap:22px;padding:14px 36px;font-size:14px}
-        .datehead{padding:22px 36px 6px}
-        .hero{display:grid;grid-template-columns:1.15fr .85fr}
-        .hero-media{aspect-ratio:auto;min-height:340px;border-bottom:none;border-right:1px solid var(--ink)}
-        .hero-body{padding:34px 34px 32px;display:flex;flex-direction:column}
-        .hero-title{font-size:42px}
+        .wrap{max-width:1200px}
+        .hdr{gap:26px;padding:16px 40px;order:1}
+        .brand{font-size:26px}
+        .hdr-nav{display:flex;gap:20px;font-size:14px;font-weight:700;margin-left:4px}
+        .hdr-nav a{color:var(--dark-fg);border-bottom:2px solid transparent;padding-bottom:2px}
+        .hdr-nav a.on,.hdr-nav a:hover{color:var(--acc);border-color:var(--acc)}
+        .search{display:flex;align-items:center;padding:9px 12px;border:1px solid #3a332b;color:#7d7468;font-size:13px;min-width:190px;margin-left:auto}
+        .langs{margin-left:0}
+        .lang{font-size:12px;padding:6px 9px}
+        .nav{display:none}
+
+        .dates{order:2;padding:14px 0;background:var(--panel);border-bottom:1px solid var(--ink)}
+        .dates-head{padding:0 40px 10px}
+        .strip{padding:0 40px 2px}
+        .strip .day{flex:1;min-width:78px}
+        details.cal{margin:8px 40px 0}
+
+        .datehead{order:3;padding:24px 40px 6px}
+        .hero{order:3;display:grid;grid-template-columns:1fr 380px;border-bottom:8px solid var(--ink)}
+        .hero-media{aspect-ratio:auto;min-height:360px;border-bottom:none;border-right:1px solid var(--ink)}
+        .hero-body{padding:34px 32px 32px;display:flex;flex-direction:column}
+        .hero-title{font-size:44px}
         .hero-lead{font-size:17px}
         .hero-actions{margin-top:auto;padding-top:18px}
-        .dates{padding:18px 0 10px}
-        .dates-head,.strip{padding-left:36px;padding-right:36px}
-        details.cal{margin-left:36px;margin-right:36px}
-        .list{padding:32px 36px 40px}
-        .list-head h2{font-size:32px}
-        .cards{display:grid;grid-template-columns:1fr 1fr;gap:34px 28px}
+
+        .dash{order:4;display:grid;grid-template-columns:1fr 380px}
+        .dash > .list{padding:32px 32px 40px 40px;border-right:1px solid var(--line)}
+        .list-head h2{font-size:34px}
+        .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px 24px}
         .card-title{font-size:22px}
-        .weekend,.rubrics{padding:30px 36px 34px}
-        .weekend h2,.rubrics .rub-name{}
-        .rub-grid{grid-template-columns:1fr 1fr 1fr}
-        .ftr{padding:26px 36px 30px;display:flex;gap:40px;align-items:baseline}
-        .ftr .note{margin-bottom:0;max-width:560px}
+        .card-lead{font-size:13px}
+        .dash-side{display:flex;flex-direction:column}
+        .dash-side .weekend{padding:30px 28px 32px}
+        .dash-side .rubrics{padding:28px 28px 34px}
+        .rub-grid{display:flex;flex-direction:column;gap:1px;background:var(--ink);border:1px solid var(--ink)}
+        .rub{flex-direction:row;align-items:baseline;justify-content:space-between;border:none;padding:14px 14px}
+
+        .ftr{order:5;padding:26px 40px 30px;display:flex;gap:40px;align-items:baseline}
+        .ftr .note{margin-bottom:0;max-width:520px}
         .ftr .flinks{margin-left:auto}
       }
   body
@@ -172,6 +190,10 @@ html(lang=lang)
       header.hdr
         .brand
           | Tbiliseli #[span.acc= t.brandTail]
+        nav.hdr-nav
+          each n in navLinks
+            a(href=n.href class=n.active ? 'on' : '')= n.label
+        span.search= t.search
         .langs
           each l in langLinks
             a(href=l.href class=l.active ? 'lang on' : 'lang')= l.code
@@ -257,73 +279,75 @@ html(lang=lang)
                         else
                           span.n= cell.day
 
-      section.list
-        .list-head
-          h2= dateParam ? t.onDate : (showAll ? t.upcoming : t.today)
-          span.cnt= countLabel
-        if !hero && !listEvents.length
-          p.empty= dateParam ? t.nothing : t.nothingUpcoming
-        .cards
-          each e in listEvents
-            article.card
-              a.card-media(href=e.href)
-                if e.imageUrl
-                  img(src=e.imageUrl alt=e.title loading='lazy')
-                else
-                  .ph
-                if e.typeLabel
-                  span.cat= e.typeLabel
-                if e.langBadge
-                  span.lng= e.langBadge
-              a.card-row(href=e.href)
-                if e.time
-                  span.time= e.time
-                  span.sep /
-                span.ven= e.venueName || e.place || ''
-              a.card-title(href=e.href)= e.title
-              if e.desc
-                p.card-lead= e.desc
-              .card-foot
-                if e.venueId && e.venueName
-                  a.vlink(href='/tbilisi-events/venues/' + e.venueId + (lang !== 'ru' ? '?lang=' + lang : ''))= e.venueName
-                each s in e.sources
-                  if s.safe
-                    a.src(href=s.url target='_blank' rel='noopener noreferrer')= s.label
+      .dash
+        section.list
+          .list-head
+            h2= dateParam ? t.onDate : (showAll ? t.upcoming : t.today)
+            span.cnt= countLabel
+          if !hero && !listEvents.length
+            p.empty= dateParam ? t.nothing : t.nothingUpcoming
+          .cards
+            each e in listEvents
+              article.card
+                a.card-media(href=e.href)
+                  if e.imageUrl
+                    img(src=e.imageUrl alt=e.title loading='lazy')
                   else
-                    span.src= s.label
-        if listTruncated
-          a.more(href=showAllHref)= t.showAllUpcoming
-        else if showAll
-          a.more(href=allUpcomingHref)= t.allUpcoming
-        else if !dateParam
-          a.more(href=showPastHref)= t.showPast
+                    .ph
+                  if e.typeLabel
+                    span.cat= e.typeLabel
+                  if e.langBadge
+                    span.lng= e.langBadge
+                a.card-row(href=e.href)
+                  if e.time
+                    span.time= e.time
+                    span.sep /
+                  span.ven= e.venueName || e.place || ''
+                a.card-title(href=e.href)= e.title
+                if e.desc
+                  p.card-lead= e.desc
+                .card-foot
+                  if e.venueId && e.venueName
+                    a.vlink(href='/tbilisi-events/venues/' + e.venueId + (lang !== 'ru' ? '?lang=' + lang : ''))= e.venueName
+                  each s in e.sources
+                    if s.safe
+                      a.src(href=s.url target='_blank' rel='noopener noreferrer')= s.label
+                    else
+                      span.src= s.label
+          if listTruncated
+            a.more(href=showAllHref)= t.showAllUpcoming
+          else if showAll
+            a.more(href=allUpcomingHref)= t.allUpcoming
+          else if !dateParam
+            a.more(href=showPastHref)= t.showPast
 
-      if weekend.length
-        section.weekend
-          h2= t.weekendHeading
-          .wk-list
-            each w in weekend
-              if w.href
-                a.wk(href=w.href target='_blank' rel='noopener noreferrer')
-                  .wk-wd= w.wd
-                  .wk-t= w.title
-                  .wk-meta= w.meta
-              else
-                .wk
-                  .wk-wd= w.wd
-                  .wk-t= w.title
-                  .wk-meta= w.meta
+        .dash-side
+          if weekend.length
+            section.weekend
+              h2= t.weekendHeading
+              .wk-list
+                each w in weekend
+                  if w.href
+                    a.wk(href=w.href target='_blank' rel='noopener noreferrer')
+                      .wk-wd= w.wd
+                      .wk-t= w.title
+                      .wk-meta= w.meta
+                  else
+                    .wk
+                      .wk-wd= w.wd
+                      .wk-t= w.title
+                      .wk-meta= w.meta
 
-      if rubrics.length
-        section.rubrics
-          .rub-head
-            span.lbl= t.rubrics
-            span.rule
-          .rub-grid
-            each r in rubrics
-              a.rub(href=r.href)
-                span.rub-name= r.label
-                span.rub-cnt= r.count
+          if rubrics.length
+            section.rubrics
+              .rub-head
+                span.lbl= t.rubrics
+                span.rule
+              .rub-grid
+                each r in rubrics
+                  a.rub(href=r.href)
+                    span.rub-name= r.label
+                    span.rub-cnt= r.count
 
       footer.ftr
         p.note= t.footer
