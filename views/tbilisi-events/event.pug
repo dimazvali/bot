@@ -1,5 +1,6 @@
 doctype html
 include ./_card.pug
+include ./_map.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -8,6 +9,8 @@ html(lang=lang)
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
     link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&family=Noto+Sans+Georgian:wght@400;500;600&display=swap')
+    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
     style.
       :root{
         --bg:#e6ded1; --paper:#faf6f0; --paper2:#fffdf9; --ink:#14110e; --acc:#e2402a;
@@ -72,6 +75,10 @@ html(lang=lang)
 
       .map{border:1px solid var(--ink);aspect-ratio:3/2;background-image:repeating-linear-gradient(45deg,#e8e0d2 0 10px,#f0e9de 10px 20px);display:flex;align-items:flex-end;padding:9px}
       .map span{font-family:var(--mono);font-size:11px;color:#857b6f;background:var(--paper);padding:3px 7px}
+      .te-map{width:100%;aspect-ratio:3/2;border:1px solid var(--ink);background:#efe8dc}
+      .te-map .leaflet-tile-pane{filter:grayscale(1) contrast(.82) brightness(1.06) sepia(.28)}
+      .te-map .leaflet-container{font-family:var(--sans)}
+      .te-pin{width:12px;height:12px;background:var(--acc);border:2px solid var(--ink)}
       .vcard{display:flex;gap:12px;align-items:center;border:1px solid var(--ink);border-top:none;padding:13px 12px;background:var(--paper2)}
       .vcard:hover{background:var(--panel)}
       .vcard .th{flex:0 0 48px;aspect-ratio:1/1;border:1px solid var(--line);position:relative;overflow:hidden}
@@ -201,8 +208,11 @@ html(lang=lang)
           if venue
             .sec
               .sec-lbl Как добраться
-              a.map(href=mapHref target='_blank' rel='noopener noreferrer')
-                span= venue.name
+              if venue.lat != null && venue.lng != null
+                +cityMap(venue.lat, venue.lng, venue.name)
+              else
+                a.map(href=mapHref target='_blank' rel='noopener noreferrer')
+                  span= venue.name
               a.vcard(href=venueHref)
                 .th
                   if venue.imageUrl

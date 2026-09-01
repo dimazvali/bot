@@ -1,0 +1,19 @@
+mixin cityMap(lat, lng, label)
+  #te-map.te-map(data-lat=lat data-lng=lng data-label=(label || ''))
+  script.
+    (function(){
+      var el = document.getElementById('te-map');
+      if (!el || !window.L) return;
+      var lat = parseFloat(el.getAttribute('data-lat'));
+      var lng = parseFloat(el.getAttribute('data-lng'));
+      if (isNaN(lat) || isNaN(lng)) return;
+      var map = L.map(el, { scrollWheelZoom: false, zoomControl: true, attributionControl: false }).setView([lat, lng], 15);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      var m = L.marker([lat, lng], {
+        icon: L.divIcon({ className: '', html: '<div class="te-pin"></div>', iconSize: [14, 14], iconAnchor: [7, 7] })
+      }).addTo(map);
+      var label = el.getAttribute('data-label');
+      if (label) m.bindPopup('<div style="font-family:Oswald,sans-serif;font-size:15px;text-transform:uppercase">' + label + '</div>');
+      setTimeout(function(){ map.invalidateSize(); }, 0);
+      window.addEventListener('load', function(){ map.invalidateSize(); });
+    })();
