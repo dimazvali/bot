@@ -2,6 +2,7 @@
 var test = require('node:test');
 var assert = require('node:assert/strict');
 var users = require('../lib/tbilisi-events-users.js');
+var makeFakeDb = require('./helpers/fake-firestore.js');
 
 test('normalizeEmail lowercases and trims', function() {
   assert.equal(users.normalizeEmail('  Foo.Bar@Example.COM '), 'foo.bar@example.com');
@@ -47,4 +48,31 @@ test('deepLink builds a t.me start link', function() {
   process.env.EKA_BOT_NAME = 'tbiliseli_bot';
   assert.equal(users.deepLink('abc123'), 'https://t.me/tbiliseli_bot?start=te_abc123');
   if (prev === undefined) delete process.env.EKA_BOT_NAME; else process.env.EKA_BOT_NAME = prev;
+});
+
+test('fake firestore: add, get, query, update, delete', async function() {
+  var db = makeFakeDb();
+  var ref = await db.collection('c').add({ email: 'x@y.com', n: 1 });
+  assert.ok(ref.id);
+  var snap = await db.collection('c').doc(ref.id).get();
+  assert.equal(snap.exists, true);
+  assert.equal(snap.data().email, 'x@y.com');
+
+  var q = await db.collection('c').where('email', '==', 'x@y.com').limit(1).get();
+  assert.equal(q.empty, false);
+  assert.equal(q.docs[0].id, ref.id);
+  assert.equal(q.docs.length, 1);
+
+  await db.collection('c').doc(ref.id).update({ n: 2, name: 'X' });
+  var snap2 = await db.collection('c').doc(ref.id).get();
+  assert.equal(snap2.data().n, 2);
+  assert.equal(snap2.data().name, 'X');
+
+  await db.collection('c').doc(ref.id).delete();
+  var snap3 = await db.collection('c').doc(ref.id).get();
+  assert.equal(snap3.exists, false);
+
+  var empty = await db.collection('c').where('email', '==', 'nope').limit(1).get();
+  assert.equal(empty.empty, true);
+  assert.equal(empty.docs.length, 0);
 });
