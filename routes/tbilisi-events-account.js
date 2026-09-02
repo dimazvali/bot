@@ -16,9 +16,12 @@ function googleClient() {
 }
 
 // req.teBase / res.locals.base / attachUser are already applied by the parent
-// router in routes/tbilisi-events.js. These pages are per-user — never shared-cache.
+// router in routes/tbilisi-events.js.
+// These account pages are per-user — never shared-cache. Scope this to the
+// router's own paths: the router is mounted path-less, so this middleware also
+// sees pass-through public requests, whose Cache-Control the parent set.
 router.use(function(req, res, next) {
-  res.set('Cache-Control', 'private, no-cache');
+  if (/^\/(login|auth|me)(\/|$)/.test(req.path)) res.set('Cache-Control', 'private, no-cache');
   next();
 });
 
@@ -60,7 +63,9 @@ router.post('/auth/google', express.json(), guardCsrf, async function(req, res) 
 router.post('/auth/email', guardCsrf, async function(req, res) {
   var lang = i18n.normalizeLang(req.body.lang);
   var email = users.normalizeEmail(req.body.email);
-  var nextPath = users.safeNext(req.body.next, req.teBase + '/');
+  // The magic link always lands on the subdomain; drop a legacy path-mount prefix
+  // so `next` resolves there after redeem.
+  var nextPath = users.safeNext(req.body.next, req.teBase + '/').replace(/^\/tbilisi-events(?=\/|$)/, '') || '/';
   var okView = function() {
     res.render('tbilisi-events/check-email', { title: 'Check your email', lang: lang, t: i18n.UI[lang], base: req.teBase, email: email });
   };
