@@ -30,3 +30,15 @@ test('buildMagicLinkEmail escapes the url in html but not in text', function() {
 test('buildMagicLinkEmail ka has a subject', function() {
   assert.match(mailer.buildMagicLinkEmail('https://x/y', 'ka').subject, /შესვლა/);
 });
+
+test('buildNotificationEmail wraps body + subject, escapes nothing in the caller-supplied html', function() {
+  var m = mailer.buildNotificationEmail('Your event is live', '<p>Hi &amp; welcome</p>', 'en');
+  assert.equal(m.subject, 'Your event is live');
+  assert.ok(m.html.indexOf('<p>Hi &amp; welcome</p>') !== -1);
+  assert.ok(m.html.indexOf('events.tbiliseli.com') !== -1);
+  assert.ok(m.text.length > 0);
+});
+
+test('sendUserNotification is a no-op without init()', async function() {
+  await mailer.sendUserNotification('x@y.com', { subject: 's', html: '<p>h</p>', text: 't' });
+});
