@@ -9,6 +9,7 @@ var ekaData = require('../lib/eka-data');
 var mailer = require('../lib/eka-mailer');
 var ekaNotify = require('../lib/eka-notify');
 var ekaBot = require('../lib/eka-bot');
+var teUsers = require('../lib/tbilisi-events-users');
 var ekaReminders = require('../lib/eka-reminders');
 var galleryEmbed = require('../lib/eka-gallery-embed');
 
@@ -108,6 +109,24 @@ router.post('/bot', express.json(), function(req, res) {
       var tag = user.username ? ' @' + user.username : ' id:' + user.id;
       var newUserAdminUrl = (process.env.EKA_BOT_WEBHOOK_URL || '').replace(/\/bot$/, '') + '/admin/bot/users/' + user.id;
       ekaNotify.notify('messages', '🆕 <b>Новый подписчик бота</b>\n' + name + tag + '\n#user_' + user.id + '\n<a href="' + newUserAdminUrl + '">открыть переписку</a>').catch(function(){});
+    },
+    async function onStartPayload(payload, msg) {
+      if (!payload || payload.indexOf('te_') !== 0) return false;
+      try {
+        var r = await teUsers.linkTelegram(payload, msg.from);
+        var text = r.ok
+          ? "Готово! Здесь будут приходить уведомления о ваших событиях на events.tbiliseli.com."
+          : r.reason === 'tg_taken'
+          ? "Этот Telegram уже привязан к другому аккаунту на events.tbiliseli.com."
+          : r.reason === 'already_linked'
+          ? "Этот аккаунт уже привязан к Telegram."
+          : "Ссылка не найдена или устарела. Откройте профиль на events.tbiliseli.com и получите новую.";
+        await ekaBot.sendMessage(msg.chat.id, text).catch(function() {});
+      } catch (e) {
+        console.error('[tbiliseli bot] te_ link', e.message);
+        await ekaBot.sendMessage(msg.chat.id, "Не получилось привязать аккаунт, попробуйте ещё раз позже.").catch(function() {});
+      }
+      return true;
     }
   ).catch(function(e) { console.error('[eka-bot webhook]', e.message); });
 });
