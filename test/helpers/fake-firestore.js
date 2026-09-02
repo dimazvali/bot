@@ -5,7 +5,7 @@ var crypto = require('crypto');
 // uses. Data is per-collection plain objects. Supports one where('field','==',value)
 // followed by an optional limit(n). Also supports a bare collection .get() (all docs)
 // and .orderBy(field[,dir]).get() / .orderBy(field[,dir]).limit(n).get() (dir 'asc'
-// default, or 'desc').
+// default, or 'desc'); like firebase-admin, orderBy omits docs missing the field.
 // data() returns a SHALLOW copy of the stored doc (nested objects are shared) —
 // fine for current use; do not rely on it for deep mutation.
 module.exports = function makeFakeDb() {
@@ -68,23 +68,23 @@ module.exports = function makeFakeDb() {
           return { empty: docs.length === 0, docs: docs, size: docs.length };
         },
         orderBy: function(field, dir) {
-          var name_ = name;
           return {
             limit: function(n) { return { get: doGet.bind(null, n) }; },
             get: doGet.bind(null, null),
           };
-          function doGet(lim) {
-            var c = coll(name_);
-            var keys = Object.keys(c).sort(function(a, b) {
+          async function doGet(lim) {
+            var c = coll(name);
+            var keys = Object.keys(c).filter(function(k) { return c[k][field] !== undefined && c[k][field] !== null; });
+            keys.sort(function(a, b) {
               var av = c[a][field], bv = c[b][field];
-              if (av === bv) return 0;
-              return ((av > bv) ? 1 : -1) * (dir === 'desc' ? -1 : 1);
+              var cmp = av < bv ? -1 : (av > bv ? 1 : 0);
+              return dir === 'desc' ? -cmp : cmp;
             });
             if (typeof lim === 'number') keys = keys.slice(0, lim);
             var docs = keys.map(function(k) {
-              return { id: k, exists: true, data: function() { return Object.assign({}, c[k]); }, ref: docApi(name_, k) };
+              return { id: k, exists: true, data: function() { return Object.assign({}, c[k]); }, ref: docApi(name, k) };
             });
-            return Promise.resolve({ empty: docs.length === 0, docs: docs, size: docs.length });
+            return { empty: docs.length === 0, docs: docs, size: docs.length };
           }
         },
       };
