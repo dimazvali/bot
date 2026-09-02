@@ -115,6 +115,10 @@ app.use('/tbilisi-events/admin', tbilisiEventsBase('/tbilisi-events'), tbilisiEv
 app.use('/tbilisi-events', tbilisiEventsBase('/tbilisi-events'), tbilisiEventsRouter);
 
 var eventsHost = express();
+// Sub-apps do not inherit view settings from the parent — set them so res.render
+// (including the shared error page) resolves the same pug views.
+eventsHost.set('views', app.get('views'));
+eventsHost.set('view engine', app.get('view engine'));
 eventsHost.use(tbilisiEventsBase(''));
 eventsHost.use('/admin', tbilisiEventsAdminRouter);
 eventsHost.use('/', tbilisiEventsRouter);
