@@ -26,7 +26,7 @@ function googleClient() {
 // router's own paths: the router is mounted path-less, so this middleware also
 // sees pass-through public requests, whose Cache-Control the parent set.
 router.use(function(req, res, next) {
-  if (/^\/(login|auth|me)(\/|$)/.test(req.path)) res.set('Cache-Control', 'private, no-cache');
+  if (/^\/(login|auth|me|suggest)(\/|$)/.test(req.path)) res.set('Cache-Control', 'private, no-cache');
   next();
 });
 
