@@ -122,3 +122,64 @@ test('getUserById / getUserByEmail', async function() {
   assert.equal(await users.getUserById('missing'), null);
   assert.equal(await users.getUserByEmail('missing@x.com'), null);
 });
+
+test('issueLoginToken stores a hex token with email + next', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var tok = await users.issueLoginToken('Me@Here.com', '/tbilisi-events/suggest');
+  assert.match(tok, /^[0-9a-f]{64}$/);
+  var stored = db._store.tbilisiEventsLoginTokens[tok];
+  assert.equal(stored.email, 'me@here.com');
+  assert.equal(stored.next, '/tbilisi-events/suggest');
+  assert.ok(stored.createdAt instanceof Date);
+  assert.equal(stored.usedAt, undefined);
+});
+
+test('recentLoginTokenFor finds an unexpired unused token within 60s', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  await users.issueLoginToken('a@b.com', '/tbilisi-events');
+  var now = Date.now();
+  assert.equal(await users.recentLoginTokenFor('a@b.com', now + 30 * 1000), true);
+  assert.equal(await users.recentLoginTokenFor('a@b.com', now + 120 * 1000), false);
+  assert.equal(await users.recentLoginTokenFor('other@b.com', now), false);
+});
+
+test('redeemLoginToken: happy path returns email + next and marks used', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var tok = await users.issueLoginToken('c@d.com', '/tbilisi-events/me');
+  var res = await users.redeemLoginToken(tok, Date.now());
+  assert.equal(res.ok, true);
+  assert.equal(res.email, 'c@d.com');
+  assert.equal(res.next, '/tbilisi-events/me');
+  assert.ok(db._store.tbilisiEventsLoginTokens[tok].usedAt instanceof Date);
+});
+
+test('redeemLoginToken: rejects unknown, used, and expired tokens', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  assert.deepEqual(await users.redeemLoginToken('nope', Date.now()), { ok: false, reason: 'not_found' });
+
+  var t1 = await users.issueLoginToken('e@f.com', '/tbilisi-events');
+  await users.redeemLoginToken(t1, Date.now());
+  assert.deepEqual(await users.redeemLoginToken(t1, Date.now()), { ok: false, reason: 'used' });
+
+  var t2 = await users.issueLoginToken('g@h.com', '/tbilisi-events');
+  var late = Date.now() + users.LOGIN_TOKEN_TTL_MS + 1;
+  assert.deepEqual(await users.redeemLoginToken(t2, late), { ok: false, reason: 'expired' });
+});
+
+test('redeemLoginToken handles a Firestore Timestamp (not a Date) createdAt', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var tok = await users.issueLoginToken('ts@x.com', '/tbilisi-events');
+  var old = new Date(Date.now() - users.LOGIN_TOKEN_TTL_MS - 60000);
+  db._store.tbilisiEventsLoginTokens[tok].createdAt = { toDate: function() { return old; } };
+  assert.deepEqual(await users.redeemLoginToken(tok, Date.now()), { ok: false, reason: 'expired' });
+
+  var tok2 = await users.issueLoginToken('ts2@x.com', '/tbilisi-events');
+  db._store.tbilisiEventsLoginTokens[tok2].createdAt = { toDate: function() { return new Date(Date.now() - 60000); } };
+  var res = await users.redeemLoginToken(tok2, Date.now());
+  assert.equal(res.ok, true);
+});
