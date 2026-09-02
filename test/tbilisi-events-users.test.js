@@ -183,3 +183,75 @@ test('redeemLoginToken handles a Firestore Timestamp (not a Date) createdAt', as
   var res = await users.redeemLoginToken(tok2, Date.now());
   assert.equal(res.ok, true);
 });
+
+test('ensureTgLinkToken: generates once, reuses, reports linked', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var u = await users.upsertEmailUser('t@t.com', 'en');
+
+  var r1 = await users.ensureTgLinkToken(u.id);
+  assert.match(r1.token, /^[0-9a-f]{18}$/);
+  assert.equal(r1.linked, false);
+
+  var r2 = await users.ensureTgLinkToken(u.id);
+  assert.equal(r2.token, r1.token);
+
+  await users.linkTelegram('te_' + r1.token, { id: 555, first_name: 'T' });
+  var r3 = await users.ensureTgLinkToken(u.id);
+  assert.equal(r3.linked, true);
+  assert.equal(r3.token, undefined);
+});
+
+test('linkTelegram: happy path sets tgUserId and clears token', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var u = await users.upsertEmailUser('link@me.com', 'en');
+  var { token } = await users.ensureTgLinkToken(u.id);
+
+  var res = await users.linkTelegram('te_' + token, { id: 999, first_name: 'Z' });
+  assert.equal(res.ok, true);
+  assert.equal(res.user.id, u.id);
+
+  var fresh = await users.getUserById(u.id);
+  assert.equal(fresh.tgUserId, '999');
+  assert.equal(fresh.tgLinkToken, null);
+  assert.ok(fresh.tgLinkedAt instanceof Date);
+});
+
+test('linkTelegram: unknown token and bad prefix', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  assert.deepEqual(await users.linkTelegram('te_deadbeef', { id: 1 }), { ok: false, reason: 'not_found' });
+  assert.deepEqual(await users.linkTelegram('xx_whatever', { id: 1 }), { ok: false, reason: 'bad_payload' });
+});
+
+test('linkTelegram: telegram id already linked to another account', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var a = await users.upsertEmailUser('a@one.com', 'en');
+  var b = await users.upsertEmailUser('b@two.com', 'en');
+  var ta = (await users.ensureTgLinkToken(a.id)).token;
+  var tb = (await users.ensureTgLinkToken(b.id)).token;
+  await users.linkTelegram('te_' + ta, { id: 7, first_name: 'A' });
+  assert.deepEqual(await users.linkTelegram('te_' + tb, { id: 7, first_name: 'B' }), { ok: false, reason: 'tg_taken' });
+});
+
+test('unlinkTelegram clears the fields', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var u = await users.upsertEmailUser('u@u.com', 'en');
+  var { token } = await users.ensureTgLinkToken(u.id);
+  await users.linkTelegram('te_' + token, { id: 3, first_name: 'U' });
+  await users.unlinkTelegram(u.id);
+  var fresh = await users.getUserById(u.id);
+  assert.equal(fresh.tgUserId, null);
+  assert.equal(fresh.tgBlocked, null);
+  assert.equal(fresh.tgLinkToken, null);
+  assert.equal(fresh.tgLinkedAt, null);
+});
+
+test('ensureTgLinkToken returns error for a missing user', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  assert.deepEqual(await users.ensureTgLinkToken('nope'), { error: 'no_user' });
+});
