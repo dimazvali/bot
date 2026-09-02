@@ -1,0 +1,43 @@
+//- Shared page shell for every Tbilisi Events admin screen.
+//- Usage:
+//-   include _admin.pug
+//-   +adminPage({ title: title, nav: 'events' })
+//-     .pagehead ...
+//- opts.nav: 'dashboard' | 'events' | 'venues' — highlights the bar link
+//- opts.bare: true — no header bar, centred content (login)
+
+mixin adminPage(opts)
+  - opts = opts || {}
+  doctype html
+  html(lang='ru')
+    head
+      meta(charset='utf-8')
+      meta(name='viewport' content='width=device-width,initial-scale=1')
+      title= opts.title
+      link(rel='preconnect' href='https://fonts.googleapis.com')
+      link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+      link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&family=Noto+Sans+Georgian:wght@400;500;600&display=swap')
+      style
+        include _admin.css
+    body
+      if !opts.bare
+        header.abar
+          a.abrand(href='/tbilisi-events/admin/')
+            | Tbiliseli #[span.acc Events]
+          span.atag= (typeof adminName !== 'undefined' && adminName) ? adminName : 'Admin'
+          nav.anav
+            a(href='/tbilisi-events/admin/' class=(opts.nav === 'dashboard' ? 'on' : '')) Дашборд
+            a(href='/tbilisi-events/admin/sources' class=(opts.nav === 'sources' ? 'on' : '')) Источники
+            a(href='/tbilisi-events/admin/events' class=(opts.nav === 'events' ? 'on' : '')) События
+            a(href='/tbilisi-events/admin/venues' class=(opts.nav === 'venues' ? 'on' : '')) Площадки
+            a(href='/tbilisi-events/admin/collections' class=(opts.nav === 'collections' ? 'on' : '')) Подборки
+            a(href='/tbilisi-events/admin/heroes' class=(opts.nav === 'heroes' ? 'on' : '')) Герои
+            if typeof isSuperadmin !== 'undefined' && isSuperadmin
+              a(href='/tbilisi-events/admin/admins' class=(opts.nav === 'admins' ? 'on' : '')) Админы
+            a(href='/tbilisi-events' target='_blank' rel='noopener') Афиша ↗
+          a.aout(href='/tbilisi-events/admin/logout') Выйти
+        main.awrap
+          block
+      else
+        main.awrap.bare
+          block

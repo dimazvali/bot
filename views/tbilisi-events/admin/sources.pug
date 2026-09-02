@@ -1,0 +1,54 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'sources' })
+  .pagehead
+    h1 Источники
+    span.count всего #[b= sources.length]
+
+  h2.sec-lbl Все источники
+  .tbl-scroll
+    table.tbl
+      thead
+        tr
+          th Тип
+          th Название
+          th Значение
+          th
+      tbody
+        each src in sources
+          tr
+            td= src.type
+            td
+              = src.label
+              if src.custom
+                span.badge вручную
+            td.mono
+              - var link = src.type === 'telegram' ? 'https://t.me/' + src.value : src.value
+              a.link(href=link target='_blank' rel='noopener')= src.value
+            td
+              form(method='POST' action='/tbilisi-events/admin/sources/collect')
+                input(type='hidden' name='type' value=src.type)
+                input(type='hidden' name='value' value=src.value)
+                button.btn.sm(type='submit') Обновить
+
+  h2.sec-lbl Добавить источник
+  if sourceError
+    p.error= sourceError
+  form.block(method='POST' action='/tbilisi-events/admin/sources')
+    .row
+      div
+        label(for='src-type') Тип
+        select#src-type(name='type' required)
+          option(value='telegram') telegram
+          option(value='website') website
+          option(value='facebook') facebook
+          option(value='facebook_group') facebook_group
+          option(value='instagram') instagram
+      div
+        label(for='src-value') Значение
+        input#src-value(type='text' name='value' placeholder='юзернейм для telegram, URL для остальных' required)
+      div
+        label(for='src-label') Название
+        input#src-label(type='text' name='label' placeholder='необязательно')
+    .toolbar
+      button.btn(type='submit') Добавить источник

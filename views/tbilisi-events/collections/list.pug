@@ -1,0 +1,95 @@
+doctype html
+html(lang=lang)
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    title= title
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&family=Noto+Sans+Georgian:wght@400;500;600&display=swap')
+    style.
+      :root{
+        --bg:#e6ded1; --paper:#faf6f0; --paper2:#fffdf9; --ink:#14110e; --acc:#e2402a;
+        --muted:#6f665c; --muted2:#8b8175; --line:#ded4c4; --shadow:#cfc4b3;
+        --dark:#14110e; --dark-fg:#f4eee4; --dark-muted:#a49a8d; --panel:#f2ebe0;
+        --sans:'Manrope','Noto Sans Georgian',system-ui,sans-serif;
+        --disp:'Oswald','Noto Sans Georgian',sans-serif;
+        --mono:'Courier New',ui-monospace,monospace;
+      }
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5}
+      a{color:inherit;text-decoration:none}
+      img{max-width:100%;display:block}
+      ::selection{background:var(--acc);color:var(--paper)}
+
+      .wrap{max-width:480px;margin:0 auto;background:var(--paper);min-height:100vh}
+      @media(min-width:520px){.wrap{border-left:1px solid var(--ink);border-right:1px solid var(--ink);margin:28px auto 60px;min-height:0;box-shadow:12px 12px 0 var(--shadow)}}
+
+      .hdr{background:var(--dark);color:var(--dark-fg);display:flex;align-items:center;gap:12px;padding:12px 16px}
+      .hdr .back{color:var(--dark-fg);font-weight:700;font-size:14px}
+      .brand{font-family:var(--disp);font-size:18px;font-weight:600;text-transform:uppercase}
+      .brand .acc{color:var(--acc)}
+      .langs{margin-left:auto;display:flex;gap:3px}
+      .lang{font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 7px;border-radius:2px;color:var(--dark-muted)}
+      .lang.on{background:var(--acc);color:#fffdf9}
+
+      .head{padding:22px 16px 6px;border-bottom:8px solid var(--ink)}
+      .head h1{font-family:var(--disp);font-size:32px;font-weight:600;text-transform:uppercase;line-height:1.03;margin-bottom:8px;text-wrap:pretty}
+      .head .sub{font-size:13px;color:var(--muted)}
+
+      .grid{padding:20px 16px 30px;display:grid;grid-template-columns:1fr;gap:18px}
+      .c{border:1px solid var(--ink);background:var(--paper2);display:flex;gap:14px;align-items:center;padding:14px}
+      .c .ava{width:64px;height:64px;flex:none;border:1px solid var(--ink);border-radius:50%;overflow:hidden;background-image:repeating-linear-gradient(135deg,#e5ddce 0 7px,#efe8dc 7px 14px)}
+      .c .ava img{width:100%;height:100%;object-fit:cover}
+      .c h3{font-family:var(--disp);font-size:20px;font-weight:500;text-transform:uppercase;line-height:1.1;margin-bottom:4px}
+      .c .meta{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+      .c .meta .acc{color:var(--acc);font-weight:700}
+      .c:hover h3{color:var(--acc)}
+
+      .ftr{border-top:1px solid var(--ink);background:var(--panel);padding:20px 16px 24px;font-family:var(--mono);font-size:12px}
+      .ftr a{color:#4a423a}
+      .ftr a:hover{color:var(--acc)}
+
+      @media(min-width:1000px){
+        .wrap{max-width:1200px}
+        .hdr{gap:22px;padding:16px 40px}
+        .brand{font-size:24px}
+        .head{padding:30px 36px 8px}
+        .head h1{font-size:44px}
+        .grid{padding:30px 36px 44px;grid-template-columns:repeat(2,1fr);gap:26px}
+        .ftr{padding:24px 36px 28px}
+      }
+  body
+    .wrap
+      header.hdr
+        a.back(href=backHref) ←
+        .brand
+          | Tbiliseli #[span.acc Events]
+        .langs
+          each l in langLinks
+            a(href=l.href class=l.active ? 'lang on' : 'lang')= l.code
+
+      .head
+        h1= t.collectionsTitle
+        .sub #{collections.length}
+
+      if collections.length === 0
+        .grid
+          p= t.collectionsEmpty
+      else
+        .grid
+          each c in collections
+            a.c(href=c.href)
+              .ava
+                if c.heroImage
+                  img(src=c.heroImage alt=c.heroName loading='lazy')
+              div
+                h3= c.title
+                .meta
+                  if c.heroName
+                    span #{t.curatedBy} #{c.heroName}
+                    |  ·
+                  span.acc #{c.count}
+
+      footer.ftr
+        a(href=backHref)= t.backToAfisha

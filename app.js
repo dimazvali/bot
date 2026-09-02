@@ -2,6 +2,7 @@ var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
+var compression = require('compression');
 var logger =      require('morgan');
 var bodyParser =  require('body-parser');
 var requestLanguage = require('express-request-language');
@@ -15,6 +16,16 @@ require('dotenv').config()
 
 var app = express();
 
+
+// gzip for text responses (HTML with inlined CSS, JSON, SVG…). Explicitly skip
+// text/event-stream: compression buffers writes until flush/threshold, which
+// would stall the tbilisi-events collect progress stream (SSE).
+app.use(compression({
+  filter: function(req, res) {
+    if (res.getHeader('Content-Type') === 'text/event-stream') return false;
+    return compression.filter(req, res);
+  },
+}));
 
 app.use(cookieParser(process.env.papersToken));
 

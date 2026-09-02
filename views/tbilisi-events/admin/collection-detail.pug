@@ -1,0 +1,85 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'collections' })
+  .pagehead
+    h1= (collection.title && collection.title.ru) || (collection.title && collection.title.en) || 'Подборка'
+    a.link(href='/tbilisi-events/admin/collections') ← Все подборки
+
+  .toolbar
+    if collection.published
+      span.badge опубликована
+    else
+      span.dim черновик
+    a.btn.sm(href=`/tbilisi-events/collections/${collection.id}` target='_blank' rel='noopener') Открыть на сайте ↗
+
+  h2.sec-lbl Данные подборки
+  form.block(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/edit`)
+    .row
+      div
+        label(for='c-title-ru') Название RU
+        input#c-title-ru(type='text' name='title_ru' value=(collection.title && collection.title.ru) || '')
+      div
+        label(for='c-title-en') Название EN
+        input#c-title-en(type='text' name='title_en' value=(collection.title && collection.title.en) || '')
+      div
+        label(for='c-title-ka') Название KA
+        input#c-title-ka(type='text' name='title_ka' value=(collection.title && collection.title.ka) || '')
+    label(for='c-hero') Герой
+    select#c-hero(name='heroId')
+      option(value='') —
+      each h in heroes
+        option(value=h.id selected=(collection.heroId === h.id))= (h.name && h.name.ru) || (h.name && h.name.en) || h.id
+    label
+      input(type='checkbox' name='published' checked=!!collection.published)
+      |  Опубликована (видна на сайте)
+    .toolbar
+      button.btn.solid(type='submit') Сохранить
+
+  h2.sec-lbl События в подборке (#{attached.length})
+  if !attached.length
+    p.hint Пусто. Добавьте события ниже.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th №
+            th Дата
+            th Название
+            th
+        tbody
+          each row, idx in attached
+            tr
+              td= idx + 1
+              td.mono= row.event ? (row.event.date || '—') : '—'
+              td
+                if row.event
+                  a.link(href=`/tbilisi-events/admin/events/${row.id}/edit`)= row.event.title || row.id
+                else
+                  span.dim= row.id + ' (событие не найдено)'
+              td
+                .toolbar
+                  form(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/events/move`)
+                    input(type='hidden' name='eventId' value=row.id)
+                    input(type='hidden' name='dir' value='up')
+                    button.btn.sm(type='submit' disabled=(idx === 0)) ↑
+                  form(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/events/move`)
+                    input(type='hidden' name='eventId' value=row.id)
+                    input(type='hidden' name='dir' value='down')
+                    button.btn.sm(type='submit' disabled=(idx === attached.length - 1)) ↓
+                  form(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/events/remove`)
+                    input(type='hidden' name='eventId' value=row.id)
+                    button.btn.sm.danger(type='submit') ✕
+
+  h2.sec-lbl Добавить событие
+  form.block(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/events/add`)
+    select(name='eventId' required)
+      option(value='') — выберите —
+      each e in available
+        option(value=e.id)= (e.date || '????-??-??') + ' — ' + (e.title || e.id).slice(0, 90)
+    .toolbar
+      button.btn(type='submit') Добавить в подборку
+
+  h2.sec-lbl Опасная зона
+  form(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/delete` onsubmit='return confirm("Удалить подборку?")')
+    button.btn.sm.danger(type='submit') Удалить подборку

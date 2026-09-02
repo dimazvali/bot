@@ -1,90 +1,34 @@
-doctype html
-html
-  head
-    title= title
-    meta(charset='utf-8')
-    meta(name='viewport' content='width=device-width,initial-scale=1')
-    style.
-      body { font-family: sans-serif; margin: 2rem; max-width: 800px; }
-      button { padding: 0.75rem 1.5rem; font-size: 1rem; cursor: pointer; }
-      .error { color: #c00; }
-      .notice { margin-top: 1rem; border: 1px solid #9c9; background: #efe; padding: 0.75rem 1rem; border-radius: 6px; color: #262; }
-      table.sources { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem; }
-      table.sources th, table.sources td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.9rem; }
-      table.sources th { background: #f5f5f5; }
-      table.log { border-collapse: collapse; width: 100%; margin: 1rem 0 1.5rem; }
-      table.log th, table.log td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; font-size: 0.85rem; }
-      table.log th { background: #f5f5f5; }
-      table.log td.errors { color: #c00; }
-      .badge { display: inline-block; font-size: 0.7rem; color: #666; border: 1px solid #ccc; border-radius: 3px; padding: 0 0.35rem; margin-left: 0.4rem; }
-      form.add-source { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 1.5rem; }
-      form.add-source select, form.add-source input { padding: 0.5rem; font-size: 0.9rem; }
-      form.add-source input[type=text] { flex: 1; min-width: 160px; }
-      form.refresh-source { display: inline; margin: 0; }
-      form.refresh-source button { padding: 0.25rem 0.6rem; font-size: 0.8rem; }
-  body
-    h1= title
-    p
-      a(href='/tbilisi-events/admin/events') Управление событиями
-      =' · '
-      a(href='/tbilisi-events/admin/venues') Справочник площадок
-      =' · '
-      a(href='/tbilisi-events' target='_blank') Публичная афиша
-    h2 Источники (#{sources.length})
-    table.sources
-      thead
-        tr
-          th Тип
-          th Название
-          th Значение
-          th
-      tbody
-        each src in sources
-          tr
-            td= src.type
-            td
-              = src.label
-              if src.custom
-                span.badge добавлен вручную
-            td
-              - var link = src.type === 'telegram' ? 'https://t.me/' + src.value : src.value
-              a(href=link target='_blank' rel='noopener')= src.value
-            td
-              form.refresh-source(method='POST' action='/tbilisi-events/admin/sources/collect')
-                input(type='hidden' name='type' value=src.type)
-                input(type='hidden' name='value' value=src.value)
-                button(type='submit') Обновить
+include _admin.pug
 
-    h2 Добавить источник
-    if sourceError
-      p.error= sourceError
-    form.add-source(method='POST' action='/tbilisi-events/admin/sources')
-      select(name='type' required)
-        option(value='telegram') telegram
-        option(value='website') website
-        option(value='facebook') facebook
-        option(value='facebook_group') facebook_group
-        option(value='instagram') instagram
-      input(type='text' name='value' placeholder='значение (юзернейм для telegram, URL для остальных)' required)
-      input(type='text' name='label' placeholder='название (необязательно)')
-      button(type='submit') Добавить
++adminPage({ title: title, nav: 'dashboard' })
+  .pagehead
+    h1 Дашборд
 
+  h2.sec-lbl Сбор событий
+  .toolbar
     form(method='POST' action='/tbilisi-events/admin/collect')
-      button(type='submit') Собрать события
-    if error
-      p.error= error
-    if started
-      p.notice Сбор запущен. Результат придёт в Telegram и появится в логе ниже.
+      button.btn.solid(type='submit') Собрать события
+  if error
+    p.error= error
+  if started
+    .notice Сбор запущен. Результат придёт в Telegram и появится в логе ниже.
 
-    h2 Лог парсинга
-    if !logs.length
-      p Пока нет записей.
-    else
-      table.log
+  #collect-progress.progress(style='display:none')
+    .p-t Прогресс сбора
+    #collect-status.p-status
+    ul#collect-log
+
+  h2.sec-lbl Лог парсинга
+  if !logs.length
+    p.hint Пока нет записей.
+  else
+    .tbl-scroll
+      table.tbl
         thead
           tr
             th Дата
             th Источников
+            th Пропущено
             th Найдено
             th Новых
             th Объединено
@@ -93,14 +37,73 @@ html
           each log in logs
             - var logDate = log.createdAt && log.createdAt.toDate ? log.createdAt.toDate() : new Date(log.createdAt)
             tr
-              td= logDate.toLocaleString('ru-RU')
+              td.mono= logDate.toLocaleString('ru-RU')
               td= log.sourcesProcessed
+              td.dim= log.itemsSkipped || 0
               td= log.eventsFound
               td= log.eventsNew
               td= log.eventsMerged
               - var errCount = (log.sourceErrors || []).length
-              td(class=errCount ? 'errors' : '' title=(log.sourceErrors || []).map(function(e){ return e.source + ': ' + e.error; }).join('\n'))
+              td(class=errCount ? 'mk' : 'dim' title=(log.sourceErrors || []).map(function(e){ return e.source + ': ' + e.error; }).join('\n'))
                 = errCount
 
-    p
-      a(href='/tbilisi-events' target='_blank') Открыть таблицу событий
+  script.
+    (function () {
+      var box = document.getElementById('collect-progress');
+      var statusEl = document.getElementById('collect-status');
+      var logEl = document.getElementById('collect-log');
+      var itemLi = null;
+
+      function show() { box.style.display = 'block'; }
+      function add(text) {
+        var li = document.createElement('li');
+        li.textContent = text;
+        logEl.appendChild(li);
+        logEl.scrollTop = logEl.scrollHeight;
+        return li;
+      }
+      function reset(msg) { logEl.innerHTML = ''; itemLi = null; statusEl.textContent = msg; }
+
+      function handle(ev) {
+        if (ev.phase === 'idle') return;
+        show();
+        if (ev.phase === 'accepted') {
+          reset('Запущено' + (ev.scope === 'single' ? ' (один источник)' : '') + '…');
+        } else if (ev.phase === 'snapshot') {
+          reset(ev.done ? 'Последний сбор завершён' : 'Идёт сбор…');
+        } else if (ev.phase === 'start') {
+          add('Источников: ' + ev.totalSources);
+        } else if (ev.phase === 'source') {
+          itemLi = null;
+          if (ev.status === 'start') add('▶ ' + ev.index + '/' + ev.total + ' ' + ev.label + ' (' + ev.type + ')');
+          else if (ev.status === 'collected') add('   постов собрано: ' + ev.items);
+          else if (ev.status === 'error') add('   ✖ ' + ev.error);
+          else if (ev.status === 'done') add('   ✓ найдено ' + ev.eventsFound + ', новых ' + ev.eventsNew + ', объединено ' + ev.eventsMerged + ', пропущено ' + (ev.itemsSkipped || 0));
+        } else if (ev.phase === 'item') {
+          var t = '   пост ' + ev.index + '/' + ev.total + (ev.skipped ? ' — без изменений, пропущен' : '');
+          if (itemLi) itemLi.textContent = t;
+          else itemLi = add(t);
+        } else if (ev.phase === 'error') {
+          add('✖ ' + ev.error);
+        } else if (ev.phase === 'finished') {
+          var s = ev.summary || {};
+          statusEl.textContent = ev.error ? ('Завершено с ошибкой: ' + ev.error) : 'Готово';
+          add('— итог: источников ' + (s.sourcesProcessed || 0) + ', пропущено ' + (s.itemsSkipped || 0) + ', найдено ' + (s.eventsFound || 0) + ', новых ' + (s.eventsNew || 0) + ', объединено ' + (s.eventsMerged || 0) + ((s.sourceErrors && s.sourceErrors.length) ? (', ошибок ' + s.sourceErrors.length) : ''));
+        }
+      }
+
+      try {
+        var es = new EventSource('/tbilisi-events/admin/collect/stream');
+        es.onmessage = function (e) { try { handle(JSON.parse(e.data)); } catch (err) {} };
+      } catch (err) {}
+
+      document.querySelectorAll('form[action$="/collect"]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          show();
+          statusEl.textContent = 'Отправка запроса…';
+          fetch(form.action, { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'fetch' } })
+            .catch(function () { statusEl.textContent = 'Не удалось запустить сбор'; });
+        });
+      });
+    })();

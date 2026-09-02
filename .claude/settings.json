@@ -69,7 +69,20 @@
       "Bash(curl -s -o /dev/null -w \"check2: %{http_code}\\\\n\" -H \"Host: photo.localhost\" http://127.0.0.1:3500/shoot/9line --max-time 8)",
       "Bash(curl -s -H \"Host: photo.localhost\" http://127.0.0.1:3500/shoot/9line --max-time 10 -o /tmp/9line.html)",
       "Bash(curl -s -H \"Host: photo.localhost\" http://127.0.0.1:3500/shoot/9line --max-time 10 -o \"C:\\\\Users\\\\dshestakov\\\\node\\\\bot\\\\.tmp9line.html\")",
-      "Bash(cp \"/c/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/13556ea9-5118-4a2e-b5ef-af603157f322/scratchpad/photo-dimazvali-export.json\" \"/c/tmp/photo-dimazvali-export.json\" && ls -la \"/c/tmp/photo-dimazvali-export.json\")"
+      "Bash(cp \"/c/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/13556ea9-5118-4a2e-b5ef-af603157f322/scratchpad/photo-dimazvali-export.json\" \"/c/tmp/photo-dimazvali-export.json\" && ls -la \"/c/tmp/photo-dimazvali-export.json\")",
+      "Bash(node -e \"console.log\\(require\\('pug/package.json'\\).version\\)\")",
+      "Bash(node -c routes/tbilisi-events-admin.js)",
+      "Bash(node -c routes/tbilisi-events.js)",
+      "Bash(node -c lib/tbilisi-events-data.js)",
+      "Bash(node -e \"require\\('pug'\\).renderFile\\('views/tbilisi-events/admin/login.pug',{cache:false,title:'x',error:null}\\); require\\('pug'\\).renderFile\\('views/tbilisi-events/admin/venues.pug',{cache:false,title:'x',venues:[],venueTypeSlugs:[],venueTypeLabels:{},error:null}\\); console.log\\('pug ok'\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\(Object.keys\\(p.dependencies\\).filter\\(d=>/compress|helmet|cache|redis|lru|etag|morgan/.test\\(d\\)\\)\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\('compression in deps:', !!p.dependencies.compression\\); console.log\\('deps sample:', Object.keys\\(p.dependencies\\).slice\\(0,40\\).join\\(', '\\)\\)\")",
+      "Bash(node -e \"console.log\\('installed:', require\\('compression/package.json'\\).version\\)\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\('compression:',p.dependencies.compression\\)\")",
+      "Bash(node -c app.js)",
+      "Bash(node -c lib/tbilisi-events-images.js)",
+      "Bash(node -e \"const c=require\\('compression'\\); const comp=require\\('compressible'\\); console.log\\('compression loads ok; event-stream compressible?', comp\\('text/event-stream'\\), '| text/html?', comp\\('text/html'\\)\\)\")",
+      "Bash(grep -iv \"//\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad"

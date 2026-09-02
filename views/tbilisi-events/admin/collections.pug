@@ -1,0 +1,52 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'collections' })
+  .pagehead
+    h1 Кураторские подборки
+    span.count всего #[b= collections.length]
+
+  if !heroes.length
+    .notice Сначала заведите хотя бы одного героя во вкладке «Герои» — подборку нужно привязать к герою.
+
+  h2.sec-lbl Новая подборка
+  form.block(method='POST' action='/tbilisi-events/admin/collections')
+    .row
+      div
+        label(for='c-title-ru') Название RU
+        input#c-title-ru(type='text' name='title_ru' required)
+      div
+        label(for='c-title-en') Название EN
+        input#c-title-en(type='text' name='title_en')
+      div
+        label(for='c-title-ka') Название KA
+        input#c-title-ka(type='text' name='title_ka')
+    label(for='c-hero') Герой
+    select#c-hero(name='heroId')
+      option(value='') —
+      each h in heroes
+        option(value=h.id)= (h.name && h.name.ru) || (h.name && h.name.en) || h.id
+    .toolbar
+      button.btn(type='submit') Создать
+
+  h2.sec-lbl Все подборки
+  .tbl-scroll
+    table.tbl
+      thead
+        tr
+          th Название
+          th Герой
+          th Событий
+          th Статус
+      tbody
+        each c in collections
+          - var hero = c.heroId ? heroById[c.heroId] : null
+          tr
+            td
+              a.link(href=`/tbilisi-events/admin/collections/${c.id}`)= (c.title && c.title.ru) || (c.title && c.title.en) || 'без названия'
+            td= hero ? ((hero.name && hero.name.ru) || (hero.name && hero.name.en) || 'герой') : '—'
+            td= (c.eventIds || []).length
+            td
+              if c.published
+                span.badge опубликована
+              else
+                span.dim черновик

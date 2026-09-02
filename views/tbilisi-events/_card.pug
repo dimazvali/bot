@@ -12,6 +12,11 @@ mixin eventCard(e)
       if e.cancelledLabel
         span.card-cancel= e.cancelledLabel
     a.card-row(href=e.href)
+      if e.dateShort
+        span.date= e.dateShort
+        if e.weekdayShort
+          span.wd= e.weekdayShort
+        span.sep /
       if e.time
         span.time= e.time
         span.sep /

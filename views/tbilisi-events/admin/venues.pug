@@ -1,93 +1,66 @@
-doctype html
-html
-  head
-    title= title
-    meta(charset='utf-8')
-    meta(name='viewport' content='width=device-width,initial-scale=1')
-    style.
-      body { font-family: sans-serif; margin: 2rem; max-width: 900px; }
-      a.back { color: #1C2E4A; text-decoration: none; font-size: 0.9rem; }
-      details.v { border: 1px solid #ddd; border-radius: 6px; margin: 0.5rem 0; padding: 0.5rem 0.8rem; }
-      details.v summary { cursor: pointer; font-weight: bold; }
-      details.v .meta { font-weight: normal; color: #557; font-size: 0.8rem; }
-      label { display: block; margin: 0.6rem 0 0.15rem; font-size: 0.8rem; font-weight: bold; }
-      input[type=text], select, textarea { width: 100%; padding: 0.4rem; box-sizing: border-box; font-size: 0.88rem; }
-      textarea { min-height: 3.5rem; }
-      .row { display: flex; gap: 1rem; }
-      .row > div { flex: 1; }
-      .inline { display: inline; }
-      .bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
-      .bar button { font-size: 0.8rem; padding: 0.3rem 0.6rem; }
-      form.add, form.merge { border: 1px solid #ccc; border-radius: 6px; padding: 0.8rem; margin: 1rem 0; }
-      form.add input, form.merge select { margin-right: 0.5rem; }
-  body
-    p
-      a.back(href='/tbilisi-events/admin/') ← Дашборд
-    h1= title
+include _admin.pug
 
-    form.add(method='POST' action='/tbilisi-events/admin/venues')
-      strong Добавить площадку вручную:
-      input(type='text' name='name' placeholder='Название' required)
-      button(type='submit') Добавить
++adminPage({ title: title, nav: 'venues' })
+  .pagehead
+    h1 Площадки
+    span.count всего #[b= venues.length]
 
-    form.merge(method='POST' action='/tbilisi-events/admin/venues/merge')
-      strong Слить площадки:
-      select(name='fromId' required)
-        option(value='') — из —
+  if error
+    .error-bar= error
+  if researchStarted
+    .notice Авто-заполнение запущено в фоне. Результат придёт в Telegram, поля обновятся по мере готовности — обновите страницу через пару минут.
+
+  h2.sec-lbl Авто-заполнение
+  p.hint Веб-поиск через Claude + геокодирование адреса. Заполняет только пустые поля, ручные правки не трогает.
+  .toolbar
+    form(method='POST' action='/tbilisi-events/admin/venues/research-missing')
+      button.btn(type='submit') Заполнить недостающие данные
+
+  h2.sec-lbl Добавить площадку
+  form.block(method='POST' action='/tbilisi-events/admin/venues')
+    label(for='v-name') Название
+    input#v-name(type='text' name='name' placeholder='Название площадки' required)
+    .toolbar
+      button.btn(type='submit') Добавить
+
+  h2.sec-lbl Слить площадки
+  form.block(method='POST' action='/tbilisi-events/admin/venues/merge')
+    .row
+      div
+        label(for='v-from') Из (будет удалена)
+        select#v-from(name='fromId' required)
+          option(value='') —
+          each v in venues
+            option(value=v.id)= v.name + ' (' + (v.eventCount || 0) + ')'
+      div
+        label(for='v-to') В (события перепривяжутся сюда)
+        select#v-to(name='toId' required)
+          option(value='') —
+          each v in venues
+            option(value=v.id)= v.name + ' (' + (v.eventCount || 0) + ')'
+    .toolbar
+      button.btn.danger(type='submit' onclick='return confirm("Слить? Первую удалит, события перепривяжет ко второй.")') Слить
+
+  h2.sec-lbl Все площадки
+  .tbl-scroll
+    table.tbl
+      thead
+        tr
+          th Название
+          th Район
+          th Тип
+          th Событий
+          th Проверено
+      tbody
         each v in venues
-          option(value=v.id)= v.name + ' (' + (v.eventCount || 0) + ')'
-      select(name='toId' required)
-        option(value='') — в —
-        each v in venues
-          option(value=v.id)= v.name + ' (' + (v.eventCount || 0) + ')'
-      button(type='submit' onclick='return confirm("Слить? Первую удалит, события перепривяжет ко второй.")') Слить
-
-    p Всего: #{venues.length}
-    each v in venues
-      details.v
-        summary
-          = v.name
-          span.meta  — #{v.eventCount || 0} соб. · #{v.origin}
-        form(method='POST' action=`/tbilisi-events/admin/venues/${v.id}/edit`)
-          label Название
-          input(type='text' name='name' value=v.name)
-          .row
-            div
-              label Район
-              input(type='text' name='area' value=v.area || '')
-            div
-              label Тип
-              select(name='type')
-                option(value='') —
-                each slug in venueTypeSlugs
-                  option(value=slug selected=(v.type === slug))= venueTypeLabels[slug]
-          label Адрес
-          input(type='text' name='address' value=v.address || '')
-          .row
-            div
-              label Широта (lat)
-              input(type='text' name='lat' value=(v.lat != null ? v.lat : ''))
-            div
-              label Долгота (lng)
-              input(type='text' name='lng' value=(v.lng != null ? v.lng : ''))
-          label Сайт
-          input(type='text' name='website' value=v.website || '')
-          label Описание (RU)
-          textarea(name='desc_ru')= v.description ? v.description.ru : ''
-          label Описание (EN)
-          textarea(name='desc_en')= v.description ? v.description.en : ''
-          label Описание (KA)
-          textarea(name='desc_ka')= v.description ? v.description.ka : ''
-          .bar
-            button(type='submit') Сохранить
-        .bar
-          form.inline(method='POST' action=`/tbilisi-events/admin/venues/${v.id}/draft-description`)
-            button(type='submit') Черновик описания (LLM)
-          form.inline(method='POST' action=`/tbilisi-events/admin/venues/${v.id}/image` enctype='multipart/form-data')
-            input(type='file' name='image' accept='image/*')
-            button(type='submit') Загрузить фото
-          form.inline(method='POST' action=`/tbilisi-events/admin/venues/${v.id}/delete` onsubmit='return confirm("Удалить площадку?")')
-            button(type='submit') Удалить
-        if v.imageUrl
-          p
-            img(src=v.imageUrl style='max-width:220px')
+          tr
+            td
+              a.link(href=`/tbilisi-events/admin/venues/${v.id}`)= v.name
+            td= v.area || '—'
+            td= v.type ? venueTypeLabels[v.type] : '—'
+            td= v.eventCount || 0
+            td
+              if v.editorVerified
+                span.badge ✓
+              else
+                span.dim —

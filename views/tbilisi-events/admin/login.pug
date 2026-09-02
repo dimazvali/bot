@@ -1,19 +1,12 @@
-doctype html
-html
-  head
-    title= title
-    meta(charset='utf-8')
-    meta(name='viewport' content='width=device-width,initial-scale=1')
-    style.
-      body { font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-      form { border: 1px solid #ddd; padding: 2rem; border-radius: 8px; min-width: 280px; }
-      .error { color: #c00; margin-bottom: 1rem; }
-      input { display: block; width: 100%; padding: 0.5rem; margin-bottom: 1rem; box-sizing: border-box; }
-      button { padding: 0.5rem 1rem; }
-  body
-    form(method='POST' action='/tbilisi-events/admin/login')
-      h2 Tbilisi Events Admin
-      if error
-        .error= error
-      input(type='password' name='pass' placeholder='Пароль' autofocus required)
-      button(type='submit') Войти
+include _admin.pug
+
++adminPage({ title: title, bare: true })
+  form.login-card(method='POST' action='/tbilisi-events/admin/login')
+    h1
+      | Tbiliseli #[span.acc Events]
+    p.sub admin
+    if error
+      .error-bar= error
+    label(for='pass') Пароль
+    input#pass(type='password' name='pass' autofocus required)
+    button.btn.solid(type='submit') Войти

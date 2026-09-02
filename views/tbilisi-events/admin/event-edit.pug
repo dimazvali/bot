@@ -1,94 +1,94 @@
-doctype html
-html
-  head
-    title= title
-    meta(charset='utf-8')
-    meta(name='viewport' content='width=device-width,initial-scale=1')
-    style.
-      body { font-family: sans-serif; margin: 2rem; max-width: 640px; }
-      a.back { color: #1C2E4A; text-decoration: none; font-size: 0.9rem; }
-      label { display: block; margin: 0.7rem 0 0.2rem; font-size: 0.85rem; font-weight: bold; }
-      input[type=text], input[type=date], input[type=time], select, textarea { width: 100%; padding: 0.45rem; box-sizing: border-box; font-size: 0.9rem; }
-      textarea { min-height: 4rem; }
-      .langs { display: flex; gap: 1rem; font-weight: normal; }
-      .langs label { display: inline-flex; gap: 0.3rem; align-items: center; font-weight: normal; margin: 0; }
-      .row { display: flex; gap: 1rem; }
-      .row > div { flex: 1; }
-      .flags { display: flex; gap: 1.4rem; flex-wrap: wrap; margin: 0.9rem 0 0.2rem; }
-      .flags label { display: inline-flex; gap: 0.35rem; align-items: center; font-weight: bold; margin: 0; }
-      button.save { margin-top: 1.2rem; padding: 0.6rem 1.4rem; font-size: 1rem; }
-      .fetch-img { margin-top: 1rem; display: flex; gap: 0.5rem; }
-  body
-    p
-      a.back(href='/tbilisi-events/admin/events') ← К списку
-    h1= title
-    form(method='POST' action=`/tbilisi-events/admin/events/${event.id}/edit`)
-      .flags
-        label
-          input(type='checkbox' name='active' checked=(event.active !== false))
-          | Активно (показывать)
-        label
-          input(type='checkbox' name='editorsPick' checked=(event.editorsPick === true))
-          | Выбор редакции
-        label
-          input(type='checkbox' name='cancelled' checked=(event.cancelled === true))
-          | Отменено
-      label Название (каноническое, для дедупа/поиска)
-      input(type='text' name='title' value=event.title)
-      .row
-        div
-          label Название RU
-          input(type='text' name='title_ru' value=(event.titleI18n ? event.titleI18n.ru : ''))
-        div
-          label Название EN
-          input(type='text' name='title_en' value=(event.titleI18n ? event.titleI18n.en : ''))
-        div
-          label Название KA
-          input(type='text' name='title_ka' value=(event.titleI18n ? event.titleI18n.ka : ''))
-      .row
-        div
-          label Дата
-          input(type='date' name='date' value=event.date)
-        div
-          label Время
-          input(type='time' name='time' value=event.time || '')
-      label Место (текст)
-      input(type='text' name='place' value=event.place || '')
-      label Площадка (справочник)
-      select(name='venueId')
-        option(value='') — не привязана —
-        each v in venues
-          option(value=v.id selected=(event.venueId === v.id))= v.name
-      label Тип
-      select(name='type')
-        option(value='') —
-        each slug in eventTypeSlugs
-          option(value=slug selected=(event.type === slug))= eventTypeLabels[slug]
-      label Язык мероприятия
-      .langs
-        each slug in languageSlugs
-          label
-            input(type='checkbox' name='language' value=slug checked=((event.language || []).indexOf(slug) !== -1))
-            = languageLabels[slug]
-      label Стоимость (текст, напр. «от 45 ₾» или «бесплатно»)
-      input(type='text' name='price' value=event.price || '')
-      label Описание (RU)
-      textarea(name='desc_ru')= event.description ? event.description.ru : ''
-      label Описание (EN)
-      textarea(name='desc_en')= event.description ? event.description.en : ''
-      label Описание (KA)
-      textarea(name='desc_ka')= event.description ? event.description.ka : ''
-      label От редакции (RU)
-      textarea(name='note_ru')= event.editorNote ? event.editorNote.ru : ''
-      label От редакции (EN)
-      textarea(name='note_en')= event.editorNote ? event.editorNote.en : ''
-      label От редакции (KA)
-      textarea(name='note_ka')= event.editorNote ? event.editorNote.ka : ''
-      button.save(type='submit') Сохранить
+include _admin.pug
 
-    form.fetch-img(method='POST' action=`/tbilisi-events/admin/events/${event.id}/fetch-image`)
-      input(type='text' name='url' placeholder='URL картинки (пусто = повторить из imageSourceUrl)')
-      button(type='submit') Подтянуть картинку
++adminPage({ title: title, nav: 'events' })
+  a.crumb(href='/tbilisi-events/admin/events') ← К списку
+  .pagehead
+    h1= title
+
+  if error
+    .error-bar= error
+
+  form(method='POST' action=`/tbilisi-events/admin/events/${event.id}/edit`)
+    .checks
+      label
+        input(type='checkbox' name='active' checked=(event.active !== false))
+        | Активно (показывать)
+      label
+        input(type='checkbox' name='editorsPick' checked=(event.editorsPick === true))
+        | Выбор редакции
+      label
+        input(type='checkbox' name='cancelled' checked=(event.cancelled === true))
+        | Отменено
+
+    label(for='f-title') Название (каноническое — для дедупа и поиска)
+    input#f-title(type='text' name='title' value=event.title)
+
+    .row
+      div
+        label(for='f-title-ru') Название RU
+        input#f-title-ru(type='text' name='title_ru' value=(event.titleI18n ? event.titleI18n.ru : ''))
+      div
+        label(for='f-title-en') Название EN
+        input#f-title-en(type='text' name='title_en' value=(event.titleI18n ? event.titleI18n.en : ''))
+      div
+        label(for='f-title-ka') Название KA
+        input#f-title-ka(type='text' name='title_ka' value=(event.titleI18n ? event.titleI18n.ka : ''))
+
+    .row
+      div
+        label(for='f-date') Дата
+        input#f-date(type='date' name='date' value=event.date)
+      div
+        label(for='f-time') Время
+        input#f-time(type='time' name='time' value=event.time || '')
+
+    label(for='f-place') Место (текст)
+    input#f-place(type='text' name='place' value=event.place || '')
+
+    label(for='f-venue') Площадка (справочник)
+    select#f-venue(name='venueId')
+      option(value='') — не привязана —
+      each v in venues
+        option(value=v.id selected=(event.venueId === v.id))= v.name
+
+    label(for='f-type') Тип
+    select#f-type(name='type')
+      option(value='') —
+      each slug in eventTypeSlugs
+        option(value=slug selected=(event.type === slug))= eventTypeLabels[slug]
+
+    label Язык мероприятия
+    .checks
+      each slug in languageSlugs
+        label
+          input(type='checkbox' name='language' value=slug checked=((event.language || []).indexOf(slug) !== -1))
+          = languageLabels[slug]
+
+    label(for='f-price') Стоимость (текст, напр. «от 45 ₾» или «бесплатно»)
+    input#f-price(type='text' name='price' value=event.price || '')
+
+    label(for='f-desc-ru') Описание RU
+    textarea#f-desc-ru(name='desc_ru')= event.description ? event.description.ru : ''
+    label(for='f-desc-en') Описание EN
+    textarea#f-desc-en(name='desc_en')= event.description ? event.description.en : ''
+    label(for='f-desc-ka') Описание KA
+    textarea#f-desc-ka(name='desc_ka')= event.description ? event.description.ka : ''
+
+    label(for='f-note-ru') От редакции RU
+    textarea#f-note-ru(name='note_ru')= event.editorNote ? event.editorNote.ru : ''
+    label(for='f-note-en') От редакции EN
+    textarea#f-note-en(name='note_en')= event.editorNote ? event.editorNote.en : ''
+    label(for='f-note-ka') От редакции KA
+    textarea#f-note-ka(name='note_ka')= event.editorNote ? event.editorNote.ka : ''
+
+    .toolbar
+      button.btn.solid(type='submit') Сохранить
+
+  h2.sec-lbl Картинка
+  form.block(method='POST' action=`/tbilisi-events/admin/events/${event.id}/fetch-image`)
+    label(for='f-img-url') URL картинки
+    input#f-img-url(type='text' name='url' placeholder='пусто = повторить из imageSourceUrl')
+    .toolbar
+      button.btn(type='submit') Подтянуть картинку
     if event.imageUrl
-      p
-        img(src=event.imageUrl style='max-width:240px')
+      img.thumb(src=event.imageUrl alt='')

@@ -1,0 +1,116 @@
+include _admin.pug
+
+mixin eventRows(list)
+  each e in list
+    tr
+      td.mono= e.date || '—'
+      td.mono= e.time || ''
+      td
+        a.link(href=`/tbilisi-events/admin/events/${e.id}/edit`)= e.title || e.id
+      td.dim
+        if e.hidden
+          | скрыто
+        if e.cancelled
+          |  отменено
+
++adminPage({ title: title, nav: 'venues' })
+  .pagehead
+    h1= venue.name
+    a.link(href='/tbilisi-events/admin/venues') ← Все площадки
+
+  .toolbar
+    if venue.editorVerified
+      span.badge ✓ проверено редактором
+    else
+      span.badge не проверено
+    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/verify`)
+      button.btn.sm(type='submit')= venue.editorVerified ? 'Снять отметку' : 'Отметить проверенной'
+    if venue.researchNote
+      span.v-meta веб: #{venue.researchNote}
+
+  h2.sec-lbl Данные площадки
+  form.block(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/edit`)
+    label(for='v-name') Название
+    input#v-name(type='text' name='name' value=venue.name)
+    .row
+      div
+        label(for='v-area') Район
+        input#v-area(type='text' name='area' value=venue.area || '')
+      div
+        label(for='v-type') Тип
+        select#v-type(name='type')
+          option(value='') —
+          each slug in venueTypeSlugs
+            option(value=slug selected=(venue.type === slug))= venueTypeLabels[slug]
+    label(for='v-addr') Адрес
+    input#v-addr(type='text' name='address' value=venue.address || '')
+    .row
+      div
+        label(for='v-lat') Широта (lat)
+        input#v-lat(type='text' name='lat' value=(venue.lat != null ? venue.lat : ''))
+      div
+        label(for='v-lng') Долгота (lng)
+        input#v-lng(type='text' name='lng' value=(venue.lng != null ? venue.lng : ''))
+    label(for='v-site') Сайт
+    input#v-site(type='text' name='website' value=venue.website || '')
+    label(for='v-d-ru') Описание RU
+    textarea#v-d-ru(name='desc_ru')= venue.description ? venue.description.ru : ''
+    label(for='v-d-en') Описание EN
+    textarea#v-d-en(name='desc_en')= venue.description ? venue.description.en : ''
+    label(for='v-d-ka') Описание KA
+    textarea#v-d-ka(name='desc_ka')= venue.description ? venue.description.ka : ''
+    label
+      input(type='checkbox' name='editorVerified' checked=!!venue.editorVerified)
+      |  Проверено редактором
+    .toolbar
+      button.btn.solid(type='submit') Сохранить
+
+  .toolbar
+    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/research`)
+      button.btn.sm(type='submit') Найти данные (веб-поиск)
+    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/draft-description`)
+      button.btn.sm(type='submit') Черновик описания (LLM)
+    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/image` enctype='multipart/form-data')
+      input(type='file' name='image' accept='image/*')
+      button.btn.sm(type='submit') Загрузить фото
+    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/delete` onsubmit='return confirm("Удалить площадку?")')
+      button.btn.sm.danger(type='submit') Удалить
+
+  if venue.imageUrl
+    img.thumb(src=venue.imageUrl alt='')
+
+  h2.sec-lbl События площадки (#{totalCount})
+  if !upcoming.length && !(showPast && past.length)
+    p.hint #{totalCount ? 'Все события этой площадки — в прошлом.' : 'К этой площадке пока не привязано ни одного события.'}
+
+  if upcoming.length
+    h3.sub Предстоящие (#{upcoming.length})
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Дата
+            th Время
+            th Название
+            th
+        tbody
+          +eventRows(upcoming)
+
+  if showPast
+    if past.length
+      h3.sub Прошедшие (#{past.length})
+      .tbl-scroll
+        table.tbl
+          thead
+            tr
+              th Дата
+              th Время
+              th Название
+              th
+          tbody
+            +eventRows(past)
+    p.hint
+      a.link(href=`/tbilisi-events/admin/venues/${venue.id}`) Скрыть прошедшие
+  else if past.length
+    p.hint
+      a.link(href=`/tbilisi-events/admin/venues/${venue.id}?past=1`) Показать прошедшие (#{past.length})

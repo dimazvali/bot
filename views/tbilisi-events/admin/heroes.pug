@@ -1,0 +1,60 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'heroes' })
+  .pagehead
+    h1 Герои
+    span.count всего #[b= heroes.length]
+
+  p.hint Известные люди, от чьего имени собираются кураторские подборки. Фото, имя и описание — на трёх языках.
+
+  h2.sec-lbl Добавить героя
+  form.block(method='POST' action='/tbilisi-events/admin/heroes')
+    .row
+      div
+        label(for='h-name-ru') Имя RU
+        input#h-name-ru(type='text' name='name_ru' required)
+      div
+        label(for='h-name-en') Имя EN
+        input#h-name-en(type='text' name='name_en')
+      div
+        label(for='h-name-ka') Имя KA
+        input#h-name-ka(type='text' name='name_ka')
+    .toolbar
+      button.btn(type='submit') Добавить
+
+  h2.sec-lbl Все герои
+  each h in heroes
+    details.vrow
+      summary
+        = (h.name && h.name.ru) || (h.name && h.name.en) || 'без имени'
+        |  #[span.v-meta &mdash; #{h.imageUrl ? 'фото есть' : 'без фото'}]
+      .v-body
+        form(method='POST' action=`/tbilisi-events/admin/heroes/${h.id}/edit`)
+          .row
+            div
+              label Имя RU
+              input(type='text' name='name_ru' value=(h.name && h.name.ru) || '')
+            div
+              label Имя EN
+              input(type='text' name='name_en' value=(h.name && h.name.en) || '')
+            div
+              label Имя KA
+              input(type='text' name='name_ka' value=(h.name && h.name.ka) || '')
+          label Описание RU
+          textarea(name='desc_ru')= (h.description && h.description.ru) || ''
+          label Описание EN
+          textarea(name='desc_en')= (h.description && h.description.en) || ''
+          label Описание KA
+          textarea(name='desc_ka')= (h.description && h.description.ka) || ''
+          .toolbar
+            button.btn.solid(type='submit') Сохранить
+
+        .toolbar
+          form(method='POST' action=`/tbilisi-events/admin/heroes/${h.id}/image` enctype='multipart/form-data')
+            input(type='file' name='image' accept='image/*')
+            button.btn.sm(type='submit') Загрузить фото
+          form(method='POST' action=`/tbilisi-events/admin/heroes/${h.id}/delete` onsubmit='return confirm("Удалить героя? Он отвяжется от всех подборок.")')
+            button.btn.sm.danger(type='submit') Удалить
+
+        if h.imageUrl
+          img.thumb(src=h.imageUrl alt='')
