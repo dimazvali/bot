@@ -36,10 +36,13 @@ html(lang=lang)
             button.link(type='submit') Unlink
         else
           .v Link Telegram to get updates about your events here.
-          p(style='margin-top:10px')
-            a.btn(href=tgDeepLink target='_blank' rel='noopener') Link Telegram
+          if tgDeepLink
+            p(style='margin-top:10px')
+              a.btn(href=tgDeepLink target='_blank' rel='noopener') Link Telegram
+          else
+            p(style='margin-top:10px;color:var(--muted);font-size:13px') Reload to get a link.
       p(style='margin-top:20px')
         a(href=base + '/' style='color:var(--muted);font-size:13px') ← Back to the listing
-        |  ·
+        span(style='color:var(--muted)')  ·
         form(method='POST' action=base + '/auth/logout')
           button.link(type='submit') Sign out
