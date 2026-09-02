@@ -544,6 +544,52 @@ router.get('/collections/:id', async function(req, res, next) {
     all.forEach(function(e) { byId[e.id] = e; });
 
     var events = (col.eventIds || []).map(function(id) { return byId[id]; }).filter(Boolean);
+    events.forEach(function(e, i) {
+      e.pos = (i + 1 < 10 ? '0' : '') + (i + 1);
+      e.whenLabel = [
+        e.dateShort + (e.weekdayShort ? ', ' + e.weekdayShort : ''),
+        e.time,
+      ].filter(Boolean).join(' · ');
+    });
+
+    // Route map: one numbered pin per distinct venue with coordinates, in
+    // collection order. Skipped for events with no located venue.
+    var seenVenue = {};
+    var mapPins = [];
+    events.forEach(function(e) {
+      var v = e.venueId ? venueById[e.venueId] : null;
+      if (!v || v.lat == null || v.lng == null || seenVenue[v.id]) return;
+      seenVenue[v.id] = true;
+      mapPins.push({ n: mapPins.length + 1, lat: v.lat, lng: v.lng, label: v.name || '' });
+    });
+
+    // Date span of the selection, e.g. "1 сен – 7 сен" (or a single day).
+    var dates = events.map(function(e) { return e.date; }).filter(Boolean).sort();
+    var range = '';
+    if (dates.length) {
+      var first = i18n.formatShortDay(dates[0], lang);
+      var last = i18n.formatShortDay(dates[dates.length - 1], lang);
+      range = first === last ? first : first + ' – ' + last;
+    }
+
+    var updatedAt = col.updatedAt && col.updatedAt.toDate ? col.updatedAt.toDate() : (col.updatedAt ? new Date(col.updatedAt) : null);
+    var updatedLabel = updatedAt ? i18n.formatShortDay(updatedAt.toISOString().slice(0, 10), lang) : '';
+
+    var heroById = {};
+    (await eventsData.getHeroes()).forEach(function(h) { heroById[h.id] = h; });
+    var others = (await eventsData.getPublishedCollections())
+      .filter(function(c) { return c.id !== col.id; })
+      .map(function(c) {
+        var h = c.heroId ? heroById[c.heroId] : null;
+        return {
+          title: i18n.pickDescription(c.title, lang),
+          heroName: h ? i18n.pickDescription(h.name, lang) : '',
+          count: (c.eventIds || []).length,
+          href: '/tbilisi-events/collections/' + c.id + langQuery(lang),
+        };
+      })
+      .filter(function(c) { return c.title; })
+      .slice(0, 4);
 
     res.render('tbilisi-events/collections/detail', {
       title: i18n.pickDescription(col.title, lang) + ' — events.tbiliseli.com',
@@ -551,13 +597,19 @@ router.get('/collections/:id', async function(req, res, next) {
       langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: '/tbilisi-events/collections/' + col.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: '/tbilisi-events/collections' + langQuery(lang),
       collectionTitle: i18n.pickDescription(col.title, lang),
+      curatorNote: i18n.pickDescription(col.curatorNote, lang),
       hero: hero ? {
         name: i18n.pickDescription(hero.name, lang),
         description: i18n.pickDescription(hero.description, lang),
         imageUrl: hero.imageUrl || null,
       } : null,
       events: events,
+      count: events.length,
       countLabel: i18n.countLabel(events.length, lang),
+      range: range,
+      updatedLabel: updatedLabel,
+      others: others,
+      mapPins: mapPins,
     });
   } catch (e) { next(e); }
 });

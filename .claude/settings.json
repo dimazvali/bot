@@ -82,7 +82,13 @@
       "Bash(node -c app.js)",
       "Bash(node -c lib/tbilisi-events-images.js)",
       "Bash(node -e \"const c=require\\('compression'\\); const comp=require\\('compressible'\\); console.log\\('compression loads ok; event-stream compressible?', comp\\('text/event-stream'\\), '| text/html?', comp\\('text/html'\\)\\)\")",
-      "Bash(grep -iv \"//\")"
+      "Bash(grep -iv \"//\")",
+      "Bash(node --test test/tbilisi-events-users.test.js)",
+      "Bash(node -e \"var u=require\\('./lib/tbilisi-events-users.js'\\); console.log\\(JSON.stringify\\(u.safeNext\\('/tbilisi-events/%2F%2Fevil.com'\\)\\)\\); console.log\\(JSON.stringify\\(u.safeNext\\('/tbilisi-events-admin/x'\\)\\)\\); console.log\\(JSON.stringify\\(u.safeNext\\('/tbilisi-events/x?u=http://a//b'\\)\\)\\); try{console.log\\(u.sessionPayload\\(undefined\\)\\)}catch\\(e\\){console.log\\('throws:',e.message\\)}\")",
+      "Bash(node \"C:\\\\Users\\\\DSHEST~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-dshestakov-node-bot\\\\d8451058-4ab3-4d86-8e2a-f04b8daf66bd\\\\scratchpad\\\\probe.js\")",
+      "Bash(grep -rn \",\\\\s*$\" lib/tbilisi-events-data.js)",
+      "Bash(node --check public/javascripts/cyprus/web.js)",
+      "Bash(node --check public/javascripts/common.js)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad"

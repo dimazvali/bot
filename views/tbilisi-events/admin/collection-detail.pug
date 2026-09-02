@@ -29,6 +29,12 @@ include _admin.pug
       option(value='') —
       each h in heroes
         option(value=h.id selected=(collection.heroId === h.id))= (h.name && h.name.ru) || (h.name && h.name.en) || h.id
+    label(for='c-note-ru') Заметка куратора RU
+    textarea#c-note-ru(name='note_ru' rows='2')= collection.curatorNote ? collection.curatorNote.ru : ''
+    label(for='c-note-en') Заметка куратора EN
+    textarea#c-note-en(name='note_en' rows='2')= collection.curatorNote ? collection.curatorNote.en : ''
+    label(for='c-note-ka') Заметка куратора KA
+    textarea#c-note-ka(name='note_ka' rows='2')= collection.curatorNote ? collection.curatorNote.ka : ''
     label
       input(type='checkbox' name='published' checked=!!collection.published)
       |  Опубликована (видна на сайте)

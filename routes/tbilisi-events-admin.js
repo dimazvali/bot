@@ -697,6 +697,7 @@ router.post('/collections/:id/edit', requireAuth, express.urlencoded({ extended:
   try {
     await data.updateCollection(req.params.id, {
       title: i18nBody(req.body, 'title'),
+      curatorNote: i18nBody(req.body, 'note'),
       heroId: (req.body.heroId || '').trim() || null,
       published: req.body.published === 'on',
     });

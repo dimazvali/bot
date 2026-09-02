@@ -360,7 +360,17 @@ function showSubscribers(){
     showScreen(`Защита от накрутки`, `subscribers`, drawSubscriberLine, false, false, false, false, {
         kicked:     `Забаненные`,
         pending:    `Пропущенные`,
-    }, `.sDivided`)
+    }, `.sDivided`, (container) => {
+        load(`settings`,`antibot`).then(s => {
+            let enabled = !s || s.enabled !== false
+
+            let toggle = toggleButton(`settings`, `antibot`, `enabled`, enabled,
+                `Проверка вступающих: включена`, `Проверка вступающих: выключена`, `thin`)
+
+            let title = container.querySelector(`h1`)
+            title ? title.insertAdjacentElement(`afterend`, toggle) : container.prepend(toggle)
+        })
+    })
 }
 
 function drawSubscriberLine(s){

@@ -1,5 +1,4 @@
 doctype html
-include ../_card.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -8,6 +7,9 @@ html(lang=lang)
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
     link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&family=Noto+Sans+Georgian:wght@400;500;600&display=swap')
+    if mapPins && mapPins.length
+      link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+      script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
     style.
       :root{
         --bg:#e6ded1; --paper:#faf6f0; --paper2:#fffdf9; --ink:#14110e; --acc:#e2402a;
@@ -34,34 +36,85 @@ html(lang=lang)
       .lang{font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 7px;border-radius:2px;color:var(--dark-muted)}
       .lang.on{background:var(--acc);color:#fffdf9}
 
-      .body{padding:22px 16px 24px;border-bottom:8px solid var(--ink)}
-      .kicker{font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:9px}
-      h1.t{font-family:var(--disp);font-size:34px;font-weight:600;line-height:1.03;margin-bottom:14px;text-wrap:pretty}
-      .hero-card{display:flex;gap:14px;align-items:center;border:1px solid var(--ink);background:var(--paper2);padding:14px}
-      .hero-card .ava{width:72px;height:72px;flex:none;border:1px solid var(--ink);border-radius:50%;overflow:hidden;background-image:repeating-linear-gradient(135deg,#e5ddce 0 7px,#efe8dc 7px 14px)}
-      .hero-card .ava img{width:100%;height:100%;object-fit:cover}
-      .hero-card .hn{font-family:var(--disp);font-size:20px;font-weight:500;text-transform:uppercase;line-height:1.1}
-      .hero-card .hd{font-size:13px;color:#4a423a;margin-top:4px;text-wrap:pretty}
+      .chero-wrap{border-bottom:8px solid var(--ink)}
+      .chero{padding:26px 16px 22px}
+      .kicker{font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:10px}
+      h1.ctitle{font-family:var(--disp);font-size:40px;font-weight:600;line-height:.98;letter-spacing:-.01em;margin-bottom:16px;text-wrap:pretty}
+      .cby{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+      .cby .ava{width:64px;height:64px;flex:none;border-radius:50%;border:1px solid var(--ink);overflow:hidden;background-image:repeating-linear-gradient(135deg,#e5ddce 0 6px,#efe8dc 6px 12px)}
+      .cby .ava img{width:100%;height:100%;object-fit:cover}
+      .cby .nm{font-family:var(--disp);font-size:20px;font-weight:600;text-transform:uppercase;line-height:1.1}
+      .cbio{font-size:15px;line-height:1.6;color:#4a423a;margin-bottom:16px;text-wrap:pretty}
+      .cnote{margin:0 0 18px;padding:16px 18px;border-left:3px solid var(--acc);background:var(--panel);font-family:var(--disp);font-size:19px;font-weight:400;line-height:1.35;color:#2b2521;text-wrap:pretty}
+      .cnote .by{display:block;margin-top:8px;font-family:var(--sans);font-size:12px;font-weight:600;color:var(--muted2);letter-spacing:.03em}
+      .cmeta{display:flex;gap:22px;border-top:1px solid var(--line);padding-top:14px}
+      .cmeta .v{font-family:var(--disp);font-size:20px;font-weight:600;line-height:1.1}
+      .cmeta .k{font-size:10px;text-transform:uppercase;letter-spacing:.09em;color:var(--muted2);margin-top:3px}
 
-      .list{padding:20px 16px 30px}
-      .list .lh{font-family:var(--disp);font-size:24px;font-weight:600;text-transform:uppercase;margin-bottom:14px}
-      .empty{color:var(--muted)}
+      .cmap-col{position:relative;border-top:1px solid var(--ink)}
+      .cmap{height:280px;background-image:repeating-linear-gradient(45deg,#e8e0d2 0 10px,#f0e9de 10px 20px)}
+      .cmap-tag{position:absolute;top:0;right:0;z-index:1000;pointer-events:none;background:var(--acc);color:#fffdf9;font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.14em;padding:6px 11px}
+      .cmap-cap{position:absolute;bottom:12px;left:12px;z-index:1000;pointer-events:none;font-family:var(--mono);font-size:11px;color:#857b6f;background:var(--paper);padding:3px 8px}
+      .cmap-pin{width:28px;height:28px;border-radius:50%;background:var(--acc);color:#fffdf9;font-family:var(--disp);font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid var(--paper);box-shadow:0 2px 0 var(--ink)}
+
+      .cbody{padding:22px 16px 8px}
+      .cev-head{display:flex;align-items:baseline;gap:10px;margin-bottom:4px}
+      .cev-head h2{font-family:var(--disp);font-size:26px;font-weight:600;text-transform:uppercase;margin:0}
+      .cev-head .rule{height:1px;background:var(--line);flex:1}
+      .cev-head .rng{font-size:13px;color:var(--muted)}
+      .cev-order{font-size:12px;color:var(--muted2);margin-bottom:20px}
+
+      .cev{border-top:1px solid var(--ink);padding-top:16px;margin-bottom:26px}
+      .cev-n{font-family:var(--disp);font-size:28px;font-weight:600;color:var(--acc);line-height:.9;margin-bottom:10px}
+      .cev-media{display:block;position:relative;aspect-ratio:3/2;border:1px solid var(--line);margin-bottom:12px;background-image:repeating-linear-gradient(135deg,#e5ddce 0 7px,#efe8dc 7px 14px);overflow:hidden}
+      .cev-media img{width:100%;height:100%;object-fit:cover}
+      .cev-media .cat{position:absolute;top:0;left:0;background:var(--ink);color:#fffdf9;font-family:var(--disp);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px}
+      .cev-media .lng{position:absolute;top:0;right:0;background:var(--acc);color:#fffdf9;font-size:10px;font-weight:800;letter-spacing:.06em;padding:4px 7px}
+      .cev-when{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--acc);margin-bottom:6px}
+      .cev-t{display:block;font-family:var(--disp);font-size:23px;font-weight:500;line-height:1.12;margin-bottom:5px;text-wrap:pretty}
+      .cev-t:hover{color:var(--acc)}
+      .cev-v{font-size:13px;color:var(--muted);margin-bottom:12px}
+      .cev-why{border-left:3px solid var(--acc);padding:2px 0 2px 12px;margin-bottom:12px}
+      .cev-why-l{font-family:var(--disp);text-transform:uppercase;font-size:10px;letter-spacing:.14em;color:var(--muted2);margin-bottom:5px}
+      .cev-why-b{font-size:14px;line-height:1.55;color:#2b2521;text-wrap:pretty}
+      .cev-more{display:inline-block;border:1px solid var(--ink);font-weight:700;font-size:13px;padding:11px 15px}
+      .cev-more:hover{background:var(--ink);color:var(--paper)}
+
+      .cside{padding:6px 16px 26px}
+      .cside-h{font-family:var(--disp);text-transform:uppercase;font-size:12px;letter-spacing:.14em;font-weight:600;margin-bottom:12px}
+      .cside-list{display:flex;flex-direction:column;gap:1px;background:var(--ink);border:1px solid var(--ink)}
+      .cside-item{display:block;background:var(--paper2);padding:14px 12px}
+      .cside-item:hover{background:var(--panel)}
+      .cside-item .t{font-family:var(--disp);font-size:17px;font-weight:500;line-height:1.15}
+      .cside-item .m{font-size:12px;color:var(--muted);margin-top:3px}
 
       .ftr{border-top:1px solid var(--ink);background:var(--panel);padding:20px 16px 24px;font-family:var(--mono);font-size:12px}
-      .ftr a{color:#4a423a}
       .ftr a:hover{color:var(--acc)}
+
+      .empty{color:var(--muted);padding:0 16px 24px}
 
       @media(min-width:1000px){
         .wrap{max-width:1200px}
         .hdr{gap:22px;padding:16px 40px}
         .brand{font-size:24px}
-        .body{padding:30px 40px 26px}
-        h1.t{font-size:46px}
-        .list{padding:28px 40px 44px}
-        .cards.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+        .chero-wrap.has-map{display:grid;grid-template-columns:1fr 460px}
+        .chero{padding:44px 40px 34px}
+        h1.ctitle{font-size:72px}
+        .cby .ava{width:88px;height:88px}
+        .cby .nm{font-size:26px}
+        .cbio{font-size:16px;max-width:640px}
+        .cnote{font-size:26px;line-height:1.3;max-width:900px}
+        .chero-wrap.has-map .cmap-col{border-top:0;border-left:1px solid var(--ink);display:flex}
+        .chero-wrap.has-map .cmap{height:100%;min-height:440px;width:100%}
+        .cbody{display:grid;grid-template-columns:1fr 340px;gap:0;padding:0}
+        .cev-body-wrap{padding:34px 36px 44px 40px;border-right:1px solid var(--line)}
+        .cside{padding:34px 32px 40px}
+        .cev{display:grid;grid-template-columns:56px 300px 1fr;gap:24px;align-items:start;padding-top:20px}
+        .cev-n{font-size:34px;margin:0}
+        .cev-media{aspect-ratio:4/3;margin:0}
+        .cev-t{font-size:28px}
+        .cev-head h2{font-size:32px}
       }
-    style
-      include ../_card.css
   body
     .wrap
       header.hdr
@@ -72,27 +125,112 @@ html(lang=lang)
           each l in langLinks
             a(href=l.href class=l.active ? 'lang on' : 'lang')= l.code
 
-      .body
-        .kicker= t.collectionsTitle
-        h1.t= collectionTitle
-        if hero
-          .hero-card
-            .ava
-              if hero.imageUrl
-                img(src=hero.imageUrl alt=hero.name loading='lazy')
-            div
-              .hn= hero.name
-              if hero.description
-                .hd= hero.description
+      .chero-wrap(class=(mapPins && mapPins.length ? 'has-map' : ''))
+        .chero
+          .kicker= t.collectionsTitle
+          h1.ctitle= collectionTitle
+          if hero
+            .cby
+              .ava
+                if hero.imageUrl
+                  img(src=hero.imageUrl alt=hero.name loading='lazy')
+              .nm= hero.name
+          if hero && hero.description
+            p.cbio= hero.description
+          if curatorNote
+            blockquote.cnote
+              = curatorNote
+              if hero
+                span.by= hero.name
+          .cmeta
+            .col
+              .v= count
+              .k= t.collectionsTitle
+            if range
+              .col
+                .v= range
+                .k= t.period
+            if updatedLabel
+              .col
+                .v= updatedLabel
+                .k= t.updatedLabel
 
-      section.list
-        .lh #{countLabel}
-        if !events.length
-          p.empty= t.collectionEmpty
-        else
-          .cards.grid3
+        if mapPins && mapPins.length
+          .cmap-col
+            span.cmap-tag= t.routeLabel
+            #cmap.cmap(data-pins=JSON.stringify(mapPins))
+            span.cmap-cap #{mapPins.length} #{t.mapPoints}
+
+      if !events.length
+        .empty= t.collectionEmpty
+      else
+        .cbody
+          .cev-body-wrap
+            .cev-head
+              h2= countLabel
+              .rule
+              if range
+                span.rng= range
+            .cev-order= t.authorOrder
             each e in events
-              +eventCard(e)
+              article.cev
+                .cev-n= e.pos
+                a.cev-media(href=e.href)
+                  if e.imageUrl
+                    img(src=e.imageUrl alt=e.displayTitle loading='lazy')
+                  if e.typeLabel
+                    span.cat= e.typeLabel
+                  if e.langBadge
+                    span.lng= e.langBadge
+                .cev-txt
+                  if e.whenLabel
+                    .cev-when= e.whenLabel
+                  a.cev-t(href=e.href)= e.displayTitle
+                  if e.venueName || e.place
+                    .cev-v= e.venueName || e.place
+                  if e.editorNoteText
+                    .cev-why
+                      .cev-why-l= t.whyGo
+                      .cev-why-b= e.editorNoteText
+                  a.cev-more(href=e.href)= t.readMore
+
+          if others.length
+            aside.cside
+              .cside-h= t.otherCollections
+              .cside-list
+                each o in others
+                  a.cside-item(href=o.href)
+                    .t= o.title
+                    .m
+                      if o.heroName
+                        = o.heroName + ' · '
+                      = o.count
 
       footer.ftr
         a(href=backHref)= t.backToCollections
+
+    if mapPins && mapPins.length
+      script.
+        (function () {
+          var el = document.getElementById('cmap');
+          if (!el || !window.L) return;
+          var pins;
+          try { pins = JSON.parse(el.getAttribute('data-pins') || '[]'); } catch (e) { return; }
+          if (!pins.length) return;
+          var map = L.map(el, { scrollWheelZoom: false, zoomControl: true, attributionControl: false });
+          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+          var latlngs = [];
+          pins.forEach(function (p) {
+            var ll = [p.lat, p.lng];
+            latlngs.push(ll);
+            L.marker(ll, {
+              icon: L.divIcon({ className: '', html: '<div class="cmap-pin">' + p.n + '</div>', iconSize: [30, 30], iconAnchor: [15, 15] })
+            }).addTo(map).bindPopup('<div style="font-family:Oswald,sans-serif;font-size:14px;text-transform:uppercase">' + (p.label || '') + '</div>');
+          });
+          if (latlngs.length > 1) {
+            L.polyline(latlngs, { color: '#14110e', weight: 2, dashArray: '2 6', opacity: 0.9 }).addTo(map);
+          }
+          map.fitBounds(L.latLngBounds(latlngs).pad(0.25), { maxZoom: 16 });
+          setTimeout(function () { map.invalidateSize(); }, 0);
+          window.addEventListener('load', function () { map.invalidateSize(); });
+        })();

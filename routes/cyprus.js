@@ -128,6 +128,32 @@ let logs =              fb.collection('logs');
 let news =              fb.collection('news');
 let adminTokens =       fb.collection(`adminTokens`)
 let subscriberEvents =  fb.collection('subscriberEvents')
+let settings =          fb.collection('settings')
+
+// живой переключатель проверки вступающих — держим в памяти и следим за
+// документом через onSnapshot, чтобы тумблер из админки срабатывал мгновенно,
+// без рестарта процесса
+let antibotEnabled = true
+let antibotEnabledKnown = false // false = ещё не было ни одного снапшота (старт процесса, не смена настройки)
+
+settings.doc('antibot').onSnapshot(doc => {
+    let next = !doc.exists || doc.data().enabled !== false
+    let changed = antibotEnabledKnown && next !== antibotEnabled
+
+    antibotEnabled = next
+    antibotEnabledKnown = true
+
+    if (!changed) return
+
+    let updatedBy = doc.exists ? doc.data().updatedBy : null
+
+    Promise.resolve(updatedBy ? udb.doc(updatedBy.toString()).get().then(u => u.exists ? uname(u.data(), u.id) : `id ${updatedBy}`) : `неизвестно кем`)
+        .then(who => {
+            log({
+                text: `Проверка вступающих в канал ${next ? 'включена ✅' : 'выключена ⚠️'} (${who})`
+            })
+        })
+}, err => console.log(err))
 
 
 router.all(`/api/:data/:id`,(req,res)=>{
@@ -392,13 +418,32 @@ router.all(`/admin/:data/:id`,(req,res)=>{
                         })
                     }
                 }
-                
+
+            }
+            case `settings`:{
+                let ref = settings.doc(req.params.id)
+                switch(req.method){
+                    case `GET`:{
+                        return ref.get().then(d=>res.json(common.handleDoc(d)))
+                    }
+                    case `PUT`:{
+                        return ref.set({
+                            updatedAt:  new Date(),
+                            updatedBy:  doc.user,
+                            [req.body.attr]: req.body.value
+                        }, {merge:true}).then(s=>{
+                            res.json({success:true})
+                        }).catch(err=>{
+                            res.status(500).send(err.message)
+                        })
+                    }
+                }
             }
             default:{
                 return res.sendStatus(404)
             }
         }
-    
+
     })
 })
 
@@ -619,6 +664,7 @@ router.post('/hook', (req, res) => {
 let pendingConfirmations = new Map()
 
 function handleChatMember(cm) {
+    if (!antibotEnabled) return
     if (cm.chat.id !== guardedChannelId) return
 
     let oldStatus = cm.old_chat_member.status

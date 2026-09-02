@@ -708,7 +708,7 @@ function editable(e){
     })
 }
 
-function showScreen(name, collection, line, addButton, sort, help, cl, filterTypes, filterSelector){
+function showScreen(name, collection, line, addButton, sort, help, cl, filterTypes, filterSelector, onLoaded){
     closeLeft()
     let p = preparePopupWeb(collection,false,false,true)
     p.append(ce('h2',false,false,`Загружаем...`))
@@ -779,6 +779,8 @@ function showScreen(name, collection, line, addButton, sort, help, cl, filterTyp
         p.append(c)
 
         p.append(archiveButton(c,cl))
+
+        if(onLoaded) onLoaded(p, docs)
     })
     return {
         container:  p,
