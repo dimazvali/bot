@@ -20,3 +20,13 @@ test('sendMagicLink is a no-op when transporter is not initialised', async funct
   // init() not called → no throw, returns undefined
   await mailer.sendMagicLink('a@b.com', 'https://x/y', 'en');
 });
+
+test('buildMagicLinkEmail escapes the url in html but not in text', function() {
+  var m = mailer.buildMagicLinkEmail('https://x/y?a=1&b=<2>', 'en');
+  assert.ok(m.html.indexOf('a=1&amp;b=&lt;2&gt;') !== -1, 'html should be escaped');
+  assert.ok(m.html.indexOf('a=1&b=<2>') === -1, 'html should not contain the raw url');
+  assert.ok(m.text.indexOf('https://x/y?a=1&b=<2>') !== -1, 'text should contain the raw url');
+});
+test('buildMagicLinkEmail ka has a subject', function() {
+  assert.match(mailer.buildMagicLinkEmail('https://x/y', 'ka').subject, /შესვლა/);
+});
