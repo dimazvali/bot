@@ -16,6 +16,14 @@ function backTo(req, res, fallback) {
   res.redirect(req.get('referer') || fallback);
 }
 
+// req.teBase is '' when mounted on events.tbiliseli.com, '/tbilisi-events' on the
+// path mount (set by app.js). Every generated link/redirect is built from it.
+router.use(function(req, res, next) {
+  req.teBase = req.teBase || '';
+  res.locals.base = req.teBase;
+  next();
+});
+
 function formatSummary(summary) {
   var text = '📋 <b>Tbilisi Events — сбор завершён</b>\n'
     + 'Источников обработано: ' + summary.sourcesProcessed + '\n'
@@ -87,7 +95,7 @@ function cookieToken(pass) {
 // password_hash === cookieToken(theirPassword). Mirrors routes/eka-admin.js.
 async function requireAuth(req, res, next) {
   var val = req.cookies && req.cookies.tbilisiEventsAdminToken;
-  if (!val) return res.redirect('/tbilisi-events/admin/login');
+  if (!val) return res.redirect(req.teBase + '/admin/login');
   var envPass = process.env.TBILISI_EVENTS_ADMIN_PASS;
   if (envPass && val === cookieToken(envPass)) {
     res.locals.adminName = 'admin';
@@ -104,7 +112,7 @@ async function requireAuth(req, res, next) {
       return next();
     }
   } catch (e) { /* fall through to redirect */ }
-  res.redirect('/tbilisi-events/admin/login');
+  res.redirect(req.teBase + '/admin/login');
 }
 
 function requireSuperAdmin(req, res, next) {
@@ -133,12 +141,12 @@ router.post('/login', express.urlencoded({ extended: false }), async function(re
     return res.render('tbilisi-events/admin/login', { title: 'Вход — Tbilisi Events Admin', error: 'Неверный пароль' });
   }
   res.cookie('tbilisiEventsAdminToken', hash, { httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
-  res.redirect('/tbilisi-events/admin/');
+  res.redirect(req.teBase + '/admin/');
 });
 
 router.get('/logout', function(req, res) {
   res.clearCookie('tbilisiEventsAdminToken');
-  res.redirect('/tbilisi-events/admin/login');
+  res.redirect(req.teBase + '/admin/login');
 });
 
 async function renderIndex(res, extra) {
@@ -190,7 +198,7 @@ router.get('/collect/stream', requireAuth, function(req, res) {
 router.post('/collect', requireAuth, function(req, res) {
   runCollectInBackground();
   if (req.get('X-Requested-With')) return res.status(204).end();
-  res.redirect('/tbilisi-events/admin/?started=1');
+  res.redirect(req.teBase + '/admin/?started=1');
 });
 
 router.post('/sources/collect', requireAuth, express.urlencoded({ extended: false }), async function(req, res) {
@@ -198,7 +206,7 @@ router.post('/sources/collect', requireAuth, express.urlencoded({ extended: fals
   var source = sources.find(function(s) { return s.type === req.body.type && s.value === req.body.value; });
   if (source) runCollectInBackground([source]);
   if (req.get('X-Requested-With')) return res.status(204).end();
-  res.redirect('/tbilisi-events/admin/?started=1');
+  res.redirect(req.teBase + '/admin/?started=1');
 });
 
 router.post('/sources', requireAuth, express.urlencoded({ extended: false }), async function(req, res) {
@@ -209,7 +217,7 @@ router.post('/sources', requireAuth, express.urlencoded({ extended: false }), as
     sourceError = e.message;
   }
   if (sourceError) return renderSources(res, { sourceError: sourceError });
-  res.redirect('/tbilisi-events/admin/sources');
+  res.redirect(req.teBase + '/admin/sources');
 });
 
 router.get('/events', requireAuth, async function(req, res, next) {
@@ -243,17 +251,17 @@ router.get('/events', requireAuth, async function(req, res, next) {
 
 router.post('/events/:id/hide', requireAuth, async function(req, res) {
   await data.setEventHidden(req.params.id, true);
-  backTo(req, res, '/tbilisi-events/admin/events');
+  backTo(req, res, req.teBase + '/admin/events');
 });
 
 router.post('/events/:id/show', requireAuth, async function(req, res) {
   await data.setEventHidden(req.params.id, false);
-  backTo(req, res, '/tbilisi-events/admin/events');
+  backTo(req, res, req.teBase + '/admin/events');
 });
 
 router.post('/events/:id/delete', requireAuth, async function(req, res) {
   await data.deleteEvent(req.params.id);
-  backTo(req, res, '/tbilisi-events/admin/events');
+  backTo(req, res, req.teBase + '/admin/events');
 });
 
 router.get('/events/:id/edit', requireAuth, async function(req, res, next) {
@@ -302,7 +310,7 @@ router.post('/events/:id/edit', requireAuth, express.urlencoded({ extended: fals
         : null,
     };
     await data.updateEvent(req.params.id, patch);
-    res.redirect('/tbilisi-events/admin/events');
+    res.redirect(req.teBase + '/admin/events');
   } catch (e) { next(e); }
 });
 
@@ -325,7 +333,7 @@ router.post('/events/:id/reenrich', requireAuth, async function(req, res, next) 
         await data.updateEvent(event.id, img);
       } catch (e) { /* ignore */ }
     }
-    backTo(req, res, '/tbilisi-events/admin/events');
+    backTo(req, res, req.teBase + '/admin/events');
   } catch (e) { next(e); }
 });
 
@@ -338,7 +346,7 @@ router.post('/events/:id/fetch-image', requireAuth, express.urlencoded({ extende
       var img = await images.fetchAndStore(url, event.id);
       await data.updateEvent(event.id, img);
     }
-    backTo(req, res, '/tbilisi-events/admin/events');
+    backTo(req, res, req.teBase + '/admin/events');
   } catch (e) { next(e); }
 });
 
@@ -360,13 +368,13 @@ router.get('/venues', requireAuth, async function(req, res, next) {
 router.post('/venues', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
     var name = (req.body.name || '').trim();
-    if (!name) return res.redirect('/tbilisi-events/admin/venues');
+    if (!name) return res.redirect(req.teBase + '/admin/venues');
     var id = await data.insertVenue({
       name: name,
       nameKey: venuesLib.normalizeVenueName(name),
       origin: 'manual',
     });
-    res.redirect('/tbilisi-events/admin/venues/' + id);
+    res.redirect(req.teBase + '/admin/venues/' + id);
   } catch (e) { next(e); }
 });
 
@@ -402,7 +410,7 @@ router.post('/venues/:id/verify', requireAuth, async function(req, res, next) {
     var venue = await data.getVenueById(req.params.id);
     if (!venue) return next();
     await data.updateVenue(venue.id, { editorVerified: !venue.editorVerified });
-    backTo(req, res, '/tbilisi-events/admin/venues/' + venue.id);
+    backTo(req, res, req.teBase + '/admin/venues/' + venue.id);
   } catch (e) { next(e); }
 });
 
@@ -426,14 +434,14 @@ router.post('/venues/:id/edit', requireAuth, express.urlencoded({ extended: fals
       editorVerified: b.editorVerified === 'on',
     };
     await data.updateVenue(req.params.id, patch);
-    backTo(req, res, '/tbilisi-events/admin/venues/' + req.params.id);
+    backTo(req, res, req.teBase + '/admin/venues/' + req.params.id);
   } catch (e) { next(e); }
 });
 
 router.post('/venues/:id/delete', requireAuth, async function(req, res, next) {
   try {
     await data.deleteVenue(req.params.id);
-    res.redirect('/tbilisi-events/admin/venues');
+    res.redirect(req.teBase + '/admin/venues');
   } catch (e) { next(e); }
 });
 
@@ -443,7 +451,7 @@ router.post('/venues/:id/image', requireAuth, venueUpload.single('image'), async
       var url = await images.storeVenueImage(req.file.buffer, req.params.id);
       await data.updateVenue(req.params.id, { imageUrl: url });
     }
-    backTo(req, res, '/tbilisi-events/admin/venues/' + req.params.id);
+    backTo(req, res, req.teBase + '/admin/venues/' + req.params.id);
   } catch (e) { next(e); }
 });
 
@@ -457,7 +465,7 @@ router.post('/venues/:id/draft-description', requireAuth, async function(req, re
     if (draft.type && !venue.type) patch.type = draft.type;
     if (draft.area && !venue.area) patch.area = draft.area;
     if (Object.keys(patch).length) await data.updateVenue(venue.id, patch);
-    backTo(req, res, '/tbilisi-events/admin/venues/' + venue.id);
+    backTo(req, res, req.teBase + '/admin/venues/' + venue.id);
   } catch (e) { next(e); }
 });
 
@@ -518,20 +526,20 @@ router.post('/venues/:id/research', requireAuth, async function(req, res, next) 
     if (!venue) return next();
     var patch = researchPatch(venue, await venuesLib.researchVenue(venue.name));
     await data.updateVenue(venue.id, patch);
-    backTo(req, res, '/tbilisi-events/admin/venues/' + venue.id);
+    backTo(req, res, req.teBase + '/admin/venues/' + venue.id);
   } catch (e) { next(e); }
 });
 
 router.post('/venues/research-missing', requireAuth, function(req, res) {
   researchVenuesInBackground();
-  res.redirect('/tbilisi-events/admin/venues?research=1');
+  res.redirect(req.teBase + '/admin/venues?research=1');
 });
 
 router.post('/venues/merge', requireAuth, express.urlencoded({ extended: false }), async function(req, res) {
   try {
     await data.mergeVenues((req.body.fromId || '').trim(), (req.body.toId || '').trim());
   } catch (e) { /* fall through to redirect; error is transient/operator-visible next load */ }
-  res.redirect('/tbilisi-events/admin/venues');
+  res.redirect(req.teBase + '/admin/venues');
 });
 
 // --- admins (superadmin only) --------------------------------------------
@@ -564,7 +572,7 @@ router.post('/admins', requireAuth, requireSuperAdmin, express.urlencoded({ exte
     adminError = e.message;
   }
   if (adminError) return renderAdmins(res, { adminError: adminError });
-  res.redirect('/tbilisi-events/admin/admins?saved=1');
+  res.redirect(req.teBase + '/admin/admins?saved=1');
 });
 
 router.post('/admins/:id', requireAuth, requireSuperAdmin, express.urlencoded({ extended: false }), async function(req, res) {
@@ -574,7 +582,7 @@ router.post('/admins/:id', requireAuth, requireSuperAdmin, express.urlencoded({ 
   try {
     await data.updateAdmin(req.params.id, patch);
   } catch (e) { /* fall through to redirect */ }
-  res.redirect('/tbilisi-events/admin/admins?saved=1');
+  res.redirect(req.teBase + '/admin/admins?saved=1');
 });
 
 router.post('/admins/:id/delete', requireAuth, requireSuperAdmin, async function(req, res) {
@@ -583,7 +591,7 @@ router.post('/admins/:id/delete', requireAuth, requireSuperAdmin, async function
       await data.deleteAdmin(req.params.id);
     } catch (e) { /* fall through to redirect */ }
   }
-  res.redirect('/tbilisi-events/admin/admins');
+  res.redirect(req.teBase + '/admin/admins');
 });
 
 // --- heroes & curated collections --------------------------------------------
@@ -607,14 +615,14 @@ router.post('/heroes', requireAuth, express.urlencoded({ extended: false }), asy
     if (name.ru || name.en || name.ka) {
       await data.insertHero({ name: name, description: i18nBody(req.body, 'desc') });
     }
-    res.redirect('/tbilisi-events/admin/heroes');
+    res.redirect(req.teBase + '/admin/heroes');
   } catch (e) { next(e); }
 });
 
 router.post('/heroes/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
     await data.updateHero(req.params.id, { name: i18nBody(req.body, 'name'), description: i18nBody(req.body, 'desc') });
-    res.redirect('/tbilisi-events/admin/heroes');
+    res.redirect(req.teBase + '/admin/heroes');
   } catch (e) { next(e); }
 });
 
@@ -624,14 +632,14 @@ router.post('/heroes/:id/image', requireAuth, venueUpload.single('image'), async
       var url = await images.storeHeroImage(req.file.buffer, req.params.id);
       await data.updateHero(req.params.id, { imageUrl: url });
     }
-    res.redirect('/tbilisi-events/admin/heroes');
+    res.redirect(req.teBase + '/admin/heroes');
   } catch (e) { next(e); }
 });
 
 router.post('/heroes/:id/delete', requireAuth, async function(req, res, next) {
   try {
     await data.deleteHero(req.params.id);
-    res.redirect('/tbilisi-events/admin/heroes');
+    res.redirect(req.teBase + '/admin/heroes');
   } catch (e) { next(e); }
 });
 
@@ -687,9 +695,9 @@ router.get('/collections/:id', requireAuth, async function(req, res, next) {
 router.post('/collections', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
     var title = i18nBody(req.body, 'title');
-    if (!(title.ru || title.en || title.ka)) return res.redirect('/tbilisi-events/admin/collections');
+    if (!(title.ru || title.en || title.ka)) return res.redirect(req.teBase + '/admin/collections');
     var id = await data.insertCollection({ title: title, heroId: (req.body.heroId || '').trim() || null });
-    res.redirect('/tbilisi-events/admin/collections/' + id);
+    res.redirect(req.teBase + '/admin/collections/' + id);
   } catch (e) { next(e); }
 });
 
@@ -701,7 +709,7 @@ router.post('/collections/:id/edit', requireAuth, express.urlencoded({ extended:
       heroId: (req.body.heroId || '').trim() || null,
       published: req.body.published === 'on',
     });
-    backTo(req, res, '/tbilisi-events/admin/collections/' + req.params.id);
+    backTo(req, res, req.teBase + '/admin/collections/' + req.params.id);
   } catch (e) { next(e); }
 });
 
@@ -720,7 +728,7 @@ router.post('/collections/:id/events/add', requireAuth, express.urlencoded({ ext
       if (eventId && ids.indexOf(eventId) === -1) ids.push(eventId);
       return ids;
     });
-    backTo(req, res, '/tbilisi-events/admin/collections/' + req.params.id);
+    backTo(req, res, req.teBase + '/admin/collections/' + req.params.id);
   } catch (e) { next(e); }
 });
 
@@ -730,7 +738,7 @@ router.post('/collections/:id/events/remove', requireAuth, express.urlencoded({ 
     await mutateCollectionEvents(req.params.id, function(ids) {
       return ids.filter(function(x) { return x !== eventId; });
     });
-    backTo(req, res, '/tbilisi-events/admin/collections/' + req.params.id);
+    backTo(req, res, req.teBase + '/admin/collections/' + req.params.id);
   } catch (e) { next(e); }
 });
 
@@ -746,14 +754,14 @@ router.post('/collections/:id/events/move', requireAuth, express.urlencoded({ ex
       }
       return ids;
     });
-    backTo(req, res, '/tbilisi-events/admin/collections/' + req.params.id);
+    backTo(req, res, req.teBase + '/admin/collections/' + req.params.id);
   } catch (e) { next(e); }
 });
 
 router.post('/collections/:id/delete', requireAuth, async function(req, res, next) {
   try {
     await data.deleteCollection(req.params.id);
-    res.redirect('/tbilisi-events/admin/collections');
+    res.redirect(req.teBase + '/admin/collections');
   } catch (e) { next(e); }
 });
 

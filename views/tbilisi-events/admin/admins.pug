@@ -13,7 +13,7 @@ include _admin.pug
   h2.sec-lbl Добавить админа
   if adminError
     p.error= adminError
-  form.block(method='POST' action='/tbilisi-events/admin/admins')
+  form.block(method='POST' action=base + '/admin/admins')
     .row
       div
         label(for='a-name') Имя
@@ -39,7 +39,7 @@ include _admin.pug
           span.badge суперадмин
         if a.id === currentAdminId
           span.badge вы
-      form(method='POST' action=`/tbilisi-events/admin/admins/${a.id}`)
+      form(method='POST' action=`${base}/admin/admins/${a.id}`)
         .row
           div
             label(for=`a-${a.id}-pass`) Новый пароль
@@ -53,4 +53,4 @@ include _admin.pug
         .toolbar
           button.btn.solid(type='submit') Сохранить
           if a.id !== currentAdminId
-            button.btn.sm.danger(type='submit' formaction=`/tbilisi-events/admin/admins/${a.id}/delete` formnovalidate onclick=`return confirm('Удалить админа ${a.name}?')`) Удалить
+            button.btn.sm.danger(type='submit' formaction=`${base}/admin/admins/${a.id}/delete` formnovalidate onclick=`return confirm('Удалить админа ${a.name}?')`) Удалить

@@ -110,7 +110,8 @@ async function isAdmin(req) {
 }
 
 // Attach the display fields the views expect onto a sanitized event.
-function decorateEvent(e, lang, venueById) {
+// `base` is req.teBase ('' on the subdomain, '/tbilisi-events' on the path mount).
+function decorateEvent(e, lang, venueById, base) {
   var typeLabelsL = i18n.EVENT_TYPE_LABELS[lang];
   var langLabelsL = i18n.LANGUAGE_LABELS[lang];
   e.venueName = e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : null;
@@ -121,8 +122,8 @@ function decorateEvent(e, lang, venueById) {
   e.langBadge = (e.language || []).map(function(c) { return String(c).toUpperCase(); }).join(' / ');
   e.langLabel = (e.language || []).map(function(c) { return langLabelsL[c] || c; }).join(', ');
   e.primaryUrl = (e.sources.find(function(s) { return s.safe; }) || {}).url || null;
-  e.href = '/tbilisi-events/e/' + e.id + langQuery(lang);
-  e.venueHref = e.venueId ? '/tbilisi-events/venues/' + e.venueId + langQuery(lang) : null;
+  e.href = base + '/e/' + e.id + langQuery(lang);
+  e.venueHref = e.venueId ? base + '/venues/' + e.venueId + langQuery(lang) : null;
   e.editorNoteText = i18n.pickDescription(e.editorNote, lang);
   e.cancelledLabel = e.cancelled ? i18n.UI[lang].cancelled : '';
   e.displayTitle = i18n.pickDescription(e.titleI18n, lang) || e.title;
@@ -135,6 +136,8 @@ function decorateEvent(e, lang, venueById) {
 // only headers on the wire). Requests carrying the admin cookie get the inline
 // "edit" control, so keep those responses out of any shared cache.
 router.use(function(req, res, next) {
+  req.teBase = req.teBase || '';
+  res.locals.base = req.teBase;
   if (req.method === 'GET') {
     var isAdminReq = !!(req.cookies && req.cookies.tbilisiEventsAdminToken);
     res.set('Cache-Control', isAdminReq ? 'private, no-cache' : 'no-cache');
@@ -152,7 +155,7 @@ router.get('/', async function(req, res, next) {
     var venues = await eventsData.getVenues();
     var venueById = {};
     venues.forEach(function(v) { venueById[v.id] = v; });
-    events.forEach(function(e) { decorateEvent(e, lang, venueById); });
+    events.forEach(function(e) { decorateEvent(e, lang, venueById, req.teBase); });
 
     var LIST_CAP = 40;
     var typeParam = taxonomy.EVENT_TYPE_SLUGS.indexOf(req.query.type) !== -1 ? req.query.type : null;
@@ -188,7 +191,7 @@ router.get('/', async function(req, res, next) {
       if (full) q.push('full=1');
       if (date) q.push('date=' + date);
       if (type) q.push('type=' + type);
-      return '/tbilisi-events' + (q.length ? '?' + q.join('&') : '');
+      return req.teBase + '/' + (q.length ? '?' + q.join('&') : '');
     }
 
     var upcomingAll = events.filter(function(e) { return e.date >= today; });
@@ -301,14 +304,14 @@ router.get('/', async function(req, res, next) {
         title: i18n.pickDescription(c.title, lang),
         heroName: h ? i18n.pickDescription(h.name, lang) : '',
         heroImage: h ? (h.imageUrl || null) : null,
-        href: '/tbilisi-events/collections/' + c.id + langQuery(lang),
+        href: req.teBase + '/collections/' + c.id + langQuery(lang),
       };
     }).filter(function(c) { return c.title; });
 
     var calendar = buildCalendar(events, today, monthStr, dateParam, i18n.MONTH_NOM[lang]);
     var lq = lang !== 'ru' ? '&lang=' + lang : '';
-    calendar.prevHref = '/tbilisi-events?year=' + calendar.prevYear + '&month=' + calendar.prevMonth + lq;
-    calendar.nextHref = '/tbilisi-events?year=' + calendar.nextYear + '&month=' + calendar.nextMonth + lq;
+    calendar.prevHref = req.teBase + '/?year=' + calendar.prevYear + '&month=' + calendar.prevMonth + lq;
+    calendar.nextHref = req.teBase + '/?year=' + calendar.nextYear + '&month=' + calendar.nextMonth + lq;
     var calWeekdays = [1, 2, 3, 4, 5, 6, 0].map(function(d) { return i18n.WD_SHORT[lang][d]; });
 
     res.render('tbilisi-events/list', {
@@ -334,8 +337,8 @@ router.get('/', async function(req, res, next) {
       allUpcomingHref: href({ date: null, all: false, full: false }),
       showAllHref: href({ full: true, date: null }),
       showPastHref: href({ all: true, date: null, full: false }),
-      venuesHref: '/tbilisi-events/venues' + (lang !== 'ru' ? '?lang=' + lang : ''),
-      collectionsHref: '/tbilisi-events/collections' + (lang !== 'ru' ? '?lang=' + lang : ''),
+      venuesHref: req.teBase + '/venues' + (lang !== 'ru' ? '?lang=' + lang : ''),
+      collectionsHref: req.teBase + '/collections' + (lang !== 'ru' ? '?lang=' + lang : ''),
       curated: curated,
       dateLinkFor: function(d) { return href({ date: d }); },
     });
@@ -355,7 +358,7 @@ router.get('/e/:id', async function(req, res, next) {
     var venues = await eventsData.getVenues();
     var venueById = {};
     venues.forEach(function(v) { venueById[v.id] = v; });
-    all.forEach(function(e) { decorateEvent(e, lang, venueById); });
+    all.forEach(function(e) { decorateEvent(e, lang, venueById, req.teBase); });
 
     var today = new Date().toISOString().slice(0, 10);
     var venue = event.venueId ? (venueById[event.venueId] || null) : null;
@@ -378,21 +381,21 @@ router.get('/e/:id', async function(req, res, next) {
       lang: lang,
       t: t,
       langLinks: i18n.LANGS.map(function(c) {
-        return { code: c.toUpperCase(), href: '/tbilisi-events/e/' + event.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang };
+        return { code: c.toUpperCase(), href: req.teBase + '/e/' + event.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang };
       }),
-      backHref: '/tbilisi-events' + langQuery(lang),
+      backHref: req.teBase + langQuery(lang),
       ev: event,
       isAdmin: await isAdmin(req),
-      editHref: '/tbilisi-events/admin/events/' + event.id + '/edit',
+      editHref: req.teBase + '/admin/events/' + event.id + '/edit',
       dateLong: i18n.formatLongDate(event.date, lang),
       venue: venue,
-      venueHref: venue ? '/tbilisi-events/venues/' + venue.id + langQuery(lang) : null,
+      venueHref: venue ? req.teBase + '/venues/' + venue.id + langQuery(lang) : null,
       venueEventsCount: venueEventsCount,
       mapHref: mapQuery ? 'https://maps.google.com/?q=' + encodeURIComponent(mapQuery) : null,
       sameDay: sameDay,
       related: related,
-      relatedHref: event.type ? '/tbilisi-events?type=' + event.type + (lang !== 'ru' ? '&lang=' + lang : '') : null,
-      venuesHref: '/tbilisi-events/venues' + langQuery(lang),
+      relatedHref: event.type ? req.teBase + '/?type=' + event.type + (lang !== 'ru' ? '&lang=' + lang : '') : null,
+      venuesHref: req.teBase + '/venues' + langQuery(lang),
     });
   } catch (e) { next(e); }
 });
@@ -411,7 +414,7 @@ router.get('/venues', async function(req, res, next) {
       return Object.assign({}, v, {
         typeLabel: v.type ? (vtl[v.type] || v.type) : '',
         upcomingCount: upcomingByVenue[v.id] || 0,
-        href: '/tbilisi-events/venues/' + v.id + langQuery(lang),
+        href: req.teBase + '/venues/' + v.id + langQuery(lang),
       });
     });
     venues.sort(function(a, b) { return (b.upcomingCount - a.upcomingCount) || (b.eventCount || 0) - (a.eventCount || 0); });
@@ -419,8 +422,8 @@ router.get('/venues', async function(req, res, next) {
     res.render('tbilisi-events/venues/list', {
       title: t.venuesTitle + ' — events.tbiliseli.com',
       lang: lang, t: t,
-      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: '/tbilisi-events/venues' + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
-      backHref: '/tbilisi-events' + langQuery(lang),
+      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues' + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
+      backHref: req.teBase + langQuery(lang),
       venues: venues,
     });
   } catch (e) { next(e); }
@@ -441,7 +444,7 @@ router.get('/venues/:id', async function(req, res, next) {
 
     var today = new Date().toISOString().slice(0, 10);
     var all = sanitizeEvents(await eventsData.getPublicEvents());
-    all.forEach(function(e) { decorateEvent(e, lang, venueById); });
+    all.forEach(function(e) { decorateEvent(e, lang, venueById, req.teBase); });
 
     var upcoming = all.filter(function(e) { return e.venueId === venue.id && e.date >= today; });
     upcoming.forEach(function(e) {
@@ -463,7 +466,7 @@ router.get('/venues/:id', async function(req, res, next) {
           name: v.name,
           meta: [v.area, v.type ? (vtl[v.type] || v.type) : null].filter(Boolean).join(' · '),
           imageUrl: v.imageUrl || null,
-          href: '/tbilisi-events/venues/' + v.id + langQuery(lang),
+          href: req.teBase + '/venues/' + v.id + langQuery(lang),
         };
       });
 
@@ -475,8 +478,8 @@ router.get('/venues/:id', async function(req, res, next) {
     res.render('tbilisi-events/venues/detail', {
       title: venue.name + ' — events.tbiliseli.com',
       lang: lang, t: t,
-      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: '/tbilisi-events/venues/' + venue.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
-      backHref: '/tbilisi-events/venues' + langQuery(lang),
+      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues/' + venue.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
+      backHref: req.teBase + '/venues' + langQuery(lang),
       venue: venue,
       venueTypeLabel: venue.type ? (vtl[venue.type] || venue.type) : '',
       venueDesc: i18n.pickDescription(venue.description, lang),
@@ -511,15 +514,15 @@ router.get('/collections', async function(req, res, next) {
         heroName: hero ? i18n.pickDescription(hero.name, lang) : '',
         heroImage: hero ? (hero.imageUrl || null) : null,
         count: (c.eventIds || []).filter(function(id) { return publicIds[id]; }).length,
-        href: '/tbilisi-events/collections/' + c.id + langQuery(lang),
+        href: req.teBase + '/collections/' + c.id + langQuery(lang),
       };
     }).filter(function(c) { return c.title; });
 
     res.render('tbilisi-events/collections/list', {
       title: t.collectionsTitle + ' — events.tbiliseli.com',
       lang: lang, t: t,
-      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: '/tbilisi-events/collections' + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
-      backHref: '/tbilisi-events' + langQuery(lang),
+      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/collections' + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
+      backHref: req.teBase + langQuery(lang),
       collections: collections,
     });
   } catch (e) { next(e); }
@@ -539,7 +542,7 @@ router.get('/collections/:id', async function(req, res, next) {
     var venueById = {};
     venues.forEach(function(v) { venueById[v.id] = v; });
     var all = sanitizeEvents(await eventsData.getPublicEvents());
-    all.forEach(function(e) { decorateEvent(e, lang, venueById); });
+    all.forEach(function(e) { decorateEvent(e, lang, venueById, req.teBase); });
     var byId = {};
     all.forEach(function(e) { byId[e.id] = e; });
 
@@ -585,7 +588,7 @@ router.get('/collections/:id', async function(req, res, next) {
           title: i18n.pickDescription(c.title, lang),
           heroName: h ? i18n.pickDescription(h.name, lang) : '',
           count: (c.eventIds || []).length,
-          href: '/tbilisi-events/collections/' + c.id + langQuery(lang),
+          href: req.teBase + '/collections/' + c.id + langQuery(lang),
         };
       })
       .filter(function(c) { return c.title; })
@@ -594,8 +597,8 @@ router.get('/collections/:id', async function(req, res, next) {
     res.render('tbilisi-events/collections/detail', {
       title: i18n.pickDescription(col.title, lang) + ' — events.tbiliseli.com',
       lang: lang, t: t,
-      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: '/tbilisi-events/collections/' + col.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
-      backHref: '/tbilisi-events/collections' + langQuery(lang),
+      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/collections/' + col.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
+      backHref: req.teBase + '/collections' + langQuery(lang),
       collectionTitle: i18n.pickDescription(col.title, lang),
       curatorNote: i18n.pickDescription(col.curatorNote, lang),
       hero: hero ? {

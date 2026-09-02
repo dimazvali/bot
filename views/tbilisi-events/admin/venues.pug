@@ -13,18 +13,18 @@ include _admin.pug
   h2.sec-lbl Авто-заполнение
   p.hint Веб-поиск через Claude + геокодирование адреса. Заполняет только пустые поля, ручные правки не трогает.
   .toolbar
-    form(method='POST' action='/tbilisi-events/admin/venues/research-missing')
+    form(method='POST' action=base + '/admin/venues/research-missing')
       button.btn(type='submit') Заполнить недостающие данные
 
   h2.sec-lbl Добавить площадку
-  form.block(method='POST' action='/tbilisi-events/admin/venues')
+  form.block(method='POST' action=base + '/admin/venues')
     label(for='v-name') Название
     input#v-name(type='text' name='name' placeholder='Название площадки' required)
     .toolbar
       button.btn(type='submit') Добавить
 
   h2.sec-lbl Слить площадки
-  form.block(method='POST' action='/tbilisi-events/admin/venues/merge')
+  form.block(method='POST' action=base + '/admin/venues/merge')
     .row
       div
         label(for='v-from') Из (будет удалена)
@@ -55,7 +55,7 @@ include _admin.pug
         each v in venues
           tr
             td
-              a.link(href=`/tbilisi-events/admin/venues/${v.id}`)= v.name
+              a.link(href=`${base}/admin/venues/${v.id}`)= v.name
             td= v.area || '—'
             td= v.type ? venueTypeLabels[v.type] : '—'
             td= v.eventCount || 0

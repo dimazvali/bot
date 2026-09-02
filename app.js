@@ -101,8 +101,26 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.use('/proxy',        require('./routes/proxy'));
 app.use('/test',        require('./routes/test'));
 app.use('/homeless',        require('./routes/homelessBot'));
-app.use('/tbilisi-events', require('./routes/tbilisi-events'));
-app.use('/tbilisi-events/admin', require('./routes/tbilisi-events-admin'));
+
+// Tbilisi Events is reachable two ways: under the /tbilisi-events path on the
+// main site, and as the whole events.tbiliseli.com subdomain. The routers build
+// every link from `req.teBase`, so the same instances serve both mounts.
+var tbilisiEventsRouter = require('./routes/tbilisi-events');
+var tbilisiEventsAdminRouter = require('./routes/tbilisi-events-admin');
+function tbilisiEventsBase(base) {
+  return function(req, _res, next) { req.teBase = base; next(); };
+}
+
+app.use('/tbilisi-events/admin', tbilisiEventsBase('/tbilisi-events'), tbilisiEventsAdminRouter);
+app.use('/tbilisi-events', tbilisiEventsBase('/tbilisi-events'), tbilisiEventsRouter);
+
+var eventsHost = express();
+eventsHost.use(tbilisiEventsBase(''));
+eventsHost.use('/admin', tbilisiEventsAdminRouter);
+eventsHost.use('/', tbilisiEventsRouter);
+app.use(vhost('events.tbiliseli.com', eventsHost));
+app.use(vhost('events.*.*', eventsHost));
+app.use(vhost('events.localhost', eventsHost));
 
 
 

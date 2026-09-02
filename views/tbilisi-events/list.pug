@@ -225,7 +225,7 @@ html(lang=lang)
                 dt= t.where
                 if hero.venueId && hero.venueName
                   dd
-                    a(href='/tbilisi-events/venues/' + hero.venueId + (lang !== 'ru' ? '?lang=' + lang : ''))= hero.venueName
+                    a(href=base + '/venues/' + hero.venueId + (lang !== 'ru' ? '?lang=' + lang : ''))= hero.venueName
                 else
                   dd= hero.place
               if hero.langLabel

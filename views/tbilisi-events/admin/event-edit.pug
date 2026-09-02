@@ -1,14 +1,14 @@
 include _admin.pug
 
 +adminPage({ title: title, nav: 'events' })
-  a.crumb(href='/tbilisi-events/admin/events') ← К списку
+  a.crumb(href=base + '/admin/events') ← К списку
   .pagehead
     h1= title
 
   if error
     .error-bar= error
 
-  form(method='POST' action=`/tbilisi-events/admin/events/${event.id}/edit`)
+  form(method='POST' action=`${base}/admin/events/${event.id}/edit`)
     .checks
       label
         input(type='checkbox' name='active' checked=(event.active !== false))
@@ -85,7 +85,7 @@ include _admin.pug
       button.btn.solid(type='submit') Сохранить
 
   h2.sec-lbl Картинка
-  form.block(method='POST' action=`/tbilisi-events/admin/events/${event.id}/fetch-image`)
+  form.block(method='POST' action=`${base}/admin/events/${event.id}/fetch-image`)
     label(for='f-img-url') URL картинки
     input#f-img-url(type='text' name='url' placeholder='пусто = повторить из imageSourceUrl')
     .toolbar

@@ -5,7 +5,7 @@ include _admin.pug
     h1 События
     span.count найдено #[b= events.length]
 
-  form.filters(method='GET' action='/tbilisi-events/admin/events')
+  form.filters(method='GET' action=base + '/admin/events')
     label источник
       select(name='source')
         option(value='') —
@@ -62,14 +62,14 @@ include _admin.pug
             td.mono= (e.sources || []).map(function(s){ return s.label; }).join(', ')
             td
               .acts
-                a.btn.sm(href=`/tbilisi-events/admin/events/${e.id}/edit`) править
-                form(method='POST' action=`/tbilisi-events/admin/events/${e.id}/reenrich`)
+                a.btn.sm(href=`${base}/admin/events/${e.id}/edit`) править
+                form(method='POST' action=`${base}/admin/events/${e.id}/reenrich`)
                   button.btn.sm(type='submit') обогатить
                 if e.hidden
-                  form(method='POST' action=`/tbilisi-events/admin/events/${e.id}/show`)
+                  form(method='POST' action=`${base}/admin/events/${e.id}/show`)
                     button.btn.sm(type='submit') показать
                 else
-                  form(method='POST' action=`/tbilisi-events/admin/events/${e.id}/hide`)
+                  form(method='POST' action=`${base}/admin/events/${e.id}/hide`)
                     button.btn.sm(type='submit') скрыть
-                form(method='POST' action=`/tbilisi-events/admin/events/${e.id}/delete` onsubmit='return confirm("Удалить событие?")')
+                form(method='POST' action=`${base}/admin/events/${e.id}/delete` onsubmit='return confirm("Удалить событие?")')
                   button.btn.sm.danger(type='submit') удалить

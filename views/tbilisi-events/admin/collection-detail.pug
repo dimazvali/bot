@@ -3,17 +3,17 @@ include _admin.pug
 +adminPage({ title: title, nav: 'collections' })
   .pagehead
     h1= (collection.title && collection.title.ru) || (collection.title && collection.title.en) || 'Подборка'
-    a.link(href='/tbilisi-events/admin/collections') ← Все подборки
+    a.link(href=base + '/admin/collections') ← Все подборки
 
   .toolbar
     if collection.published
       span.badge опубликована
     else
       span.dim черновик
-    a.btn.sm(href=`/tbilisi-events/collections/${collection.id}` target='_blank' rel='noopener') Открыть на сайте ↗
+    a.btn.sm(href=`${base}/collections/${collection.id}` target='_blank' rel='noopener') Открыть на сайте ↗
 
   h2.sec-lbl Данные подборки
-  form.block(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/edit`)
+  form.block(method='POST' action=`${base}/admin/collections/${collection.id}/edit`)
     .row
       div
         label(for='c-title-ru') Название RU
@@ -60,25 +60,25 @@ include _admin.pug
               td.mono= row.event ? (row.event.date || '—') : '—'
               td
                 if row.event
-                  a.link(href=`/tbilisi-events/admin/events/${row.id}/edit`)= row.event.title || row.id
+                  a.link(href=`${base}/admin/events/${row.id}/edit`)= row.event.title || row.id
                 else
                   span.dim= row.id + ' (событие не найдено)'
               td
                 .toolbar
-                  form(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/events/move`)
+                  form(method='POST' action=`${base}/admin/collections/${collection.id}/events/move`)
                     input(type='hidden' name='eventId' value=row.id)
                     input(type='hidden' name='dir' value='up')
                     button.btn.sm(type='submit' disabled=(idx === 0)) ↑
-                  form(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/events/move`)
+                  form(method='POST' action=`${base}/admin/collections/${collection.id}/events/move`)
                     input(type='hidden' name='eventId' value=row.id)
                     input(type='hidden' name='dir' value='down')
                     button.btn.sm(type='submit' disabled=(idx === attached.length - 1)) ↓
-                  form(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/events/remove`)
+                  form(method='POST' action=`${base}/admin/collections/${collection.id}/events/remove`)
                     input(type='hidden' name='eventId' value=row.id)
                     button.btn.sm.danger(type='submit') ✕
 
   h2.sec-lbl Добавить событие
-  form.block(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/events/add`)
+  form.block(method='POST' action=`${base}/admin/collections/${collection.id}/events/add`)
     select(name='eventId' required)
       option(value='') — выберите —
       each e in available
@@ -87,5 +87,5 @@ include _admin.pug
       button.btn(type='submit') Добавить в подборку
 
   h2.sec-lbl Опасная зона
-  form(method='POST' action=`/tbilisi-events/admin/collections/${collection.id}/delete` onsubmit='return confirm("Удалить подборку?")')
+  form(method='POST' action=`${base}/admin/collections/${collection.id}/delete` onsubmit='return confirm("Удалить подборку?")')
     button.btn.sm.danger(type='submit') Удалить подборку

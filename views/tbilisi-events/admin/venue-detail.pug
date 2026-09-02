@@ -6,7 +6,7 @@ mixin eventRows(list)
       td.mono= e.date || '—'
       td.mono= e.time || ''
       td
-        a.link(href=`/tbilisi-events/admin/events/${e.id}/edit`)= e.title || e.id
+        a.link(href=`${base}/admin/events/${e.id}/edit`)= e.title || e.id
       td.dim
         if e.hidden
           | скрыто
@@ -16,20 +16,20 @@ mixin eventRows(list)
 +adminPage({ title: title, nav: 'venues' })
   .pagehead
     h1= venue.name
-    a.link(href='/tbilisi-events/admin/venues') ← Все площадки
+    a.link(href=base + '/admin/venues') ← Все площадки
 
   .toolbar
     if venue.editorVerified
       span.badge ✓ проверено редактором
     else
       span.badge не проверено
-    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/verify`)
+    form(method='POST' action=`${base}/admin/venues/${venue.id}/verify`)
       button.btn.sm(type='submit')= venue.editorVerified ? 'Снять отметку' : 'Отметить проверенной'
     if venue.researchNote
       span.v-meta веб: #{venue.researchNote}
 
   h2.sec-lbl Данные площадки
-  form.block(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/edit`)
+  form.block(method='POST' action=`${base}/admin/venues/${venue.id}/edit`)
     label(for='v-name') Название
     input#v-name(type='text' name='name' value=venue.name)
     .row
@@ -66,14 +66,14 @@ mixin eventRows(list)
       button.btn.solid(type='submit') Сохранить
 
   .toolbar
-    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/research`)
+    form(method='POST' action=`${base}/admin/venues/${venue.id}/research`)
       button.btn.sm(type='submit') Найти данные (веб-поиск)
-    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/draft-description`)
+    form(method='POST' action=`${base}/admin/venues/${venue.id}/draft-description`)
       button.btn.sm(type='submit') Черновик описания (LLM)
-    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/image` enctype='multipart/form-data')
+    form(method='POST' action=`${base}/admin/venues/${venue.id}/image` enctype='multipart/form-data')
       input(type='file' name='image' accept='image/*')
       button.btn.sm(type='submit') Загрузить фото
-    form(method='POST' action=`/tbilisi-events/admin/venues/${venue.id}/delete` onsubmit='return confirm("Удалить площадку?")')
+    form(method='POST' action=`${base}/admin/venues/${venue.id}/delete` onsubmit='return confirm("Удалить площадку?")')
       button.btn.sm.danger(type='submit') Удалить
 
   if venue.imageUrl
@@ -110,7 +110,7 @@ mixin eventRows(list)
           tbody
             +eventRows(past)
     p.hint
-      a.link(href=`/tbilisi-events/admin/venues/${venue.id}`) Скрыть прошедшие
+      a.link(href=`${base}/admin/venues/${venue.id}`) Скрыть прошедшие
   else if past.length
     p.hint
-      a.link(href=`/tbilisi-events/admin/venues/${venue.id}?past=1`) Показать прошедшие (#{past.length})
+      a.link(href=`${base}/admin/venues/${venue.id}?past=1`) Показать прошедшие (#{past.length})

@@ -22,20 +22,20 @@ mixin adminPage(opts)
     body
       if !opts.bare
         header.abar
-          a.abrand(href='/tbilisi-events/admin/')
+          a.abrand(href=base + '/admin/')
             | Tbiliseli #[span.acc Events]
           span.atag= (typeof adminName !== 'undefined' && adminName) ? adminName : 'Admin'
           nav.anav
-            a(href='/tbilisi-events/admin/' class=(opts.nav === 'dashboard' ? 'on' : '')) Дашборд
-            a(href='/tbilisi-events/admin/sources' class=(opts.nav === 'sources' ? 'on' : '')) Источники
-            a(href='/tbilisi-events/admin/events' class=(opts.nav === 'events' ? 'on' : '')) События
-            a(href='/tbilisi-events/admin/venues' class=(opts.nav === 'venues' ? 'on' : '')) Площадки
-            a(href='/tbilisi-events/admin/collections' class=(opts.nav === 'collections' ? 'on' : '')) Подборки
-            a(href='/tbilisi-events/admin/heroes' class=(opts.nav === 'heroes' ? 'on' : '')) Герои
+            a(href=base + '/admin/' class=(opts.nav === 'dashboard' ? 'on' : '')) Дашборд
+            a(href=base + '/admin/sources' class=(opts.nav === 'sources' ? 'on' : '')) Источники
+            a(href=base + '/admin/events' class=(opts.nav === 'events' ? 'on' : '')) События
+            a(href=base + '/admin/venues' class=(opts.nav === 'venues' ? 'on' : '')) Площадки
+            a(href=base + '/admin/collections' class=(opts.nav === 'collections' ? 'on' : '')) Подборки
+            a(href=base + '/admin/heroes' class=(opts.nav === 'heroes' ? 'on' : '')) Герои
             if typeof isSuperadmin !== 'undefined' && isSuperadmin
-              a(href='/tbilisi-events/admin/admins' class=(opts.nav === 'admins' ? 'on' : '')) Админы
-            a(href='/tbilisi-events' target='_blank' rel='noopener') Афиша ↗
-          a.aout(href='/tbilisi-events/admin/logout') Выйти
+              a(href=base + '/admin/admins' class=(opts.nav === 'admins' ? 'on' : '')) Админы
+            a(href=(base + '/') target='_blank' rel='noopener') Афиша ↗
+          a.aout(href=base + '/admin/logout') Выйти
         main.awrap
           block
       else

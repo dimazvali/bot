@@ -1,7 +1,7 @@
 include _admin.pug
 
 +adminPage({ title: title, bare: true })
-  form.login-card(method='POST' action='/tbilisi-events/admin/login')
+  form.login-card(method='POST' action=base + '/admin/login')
     h1
       | Tbiliseli #[span.acc Events]
     p.sub admin

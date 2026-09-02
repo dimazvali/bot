@@ -88,7 +88,11 @@
       "Bash(node \"C:\\\\Users\\\\DSHEST~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-dshestakov-node-bot\\\\d8451058-4ab3-4d86-8e2a-f04b8daf66bd\\\\scratchpad\\\\probe.js\")",
       "Bash(grep -rn \",\\\\s*$\" lib/tbilisi-events-data.js)",
       "Bash(node --check public/javascripts/cyprus/web.js)",
-      "Bash(node --check public/javascripts/common.js)"
+      "Bash(node --check public/javascripts/common.js)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/firebase-admin/package.json'\\).version\\)\")",
+      "Bash(head -255 test/tbilisi-events-users.test.js)",
+      "Bash(node -e \"require\\('nodemailer'\\); console.log\\('nodemailer OK', require\\('nodemailer/package.json'\\).version\\)\")",
+      "Bash(node --test test/tbilisi-events-mailer.test.js)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad"

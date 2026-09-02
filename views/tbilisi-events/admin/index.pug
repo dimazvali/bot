@@ -6,7 +6,7 @@ include _admin.pug
 
   h2.sec-lbl Сбор событий
   .toolbar
-    form(method='POST' action='/tbilisi-events/admin/collect')
+    form(method='POST' action=base + '/admin/collect')
       button.btn.solid(type='submit') Собрать события
   if error
     p.error= error
@@ -93,7 +93,7 @@ include _admin.pug
       }
 
       try {
-        var es = new EventSource('/tbilisi-events/admin/collect/stream');
+        var es = new EventSource('#{base}/admin/collect/stream');
         es.onmessage = function (e) { try { handle(JSON.parse(e.data)); } catch (err) {} };
       } catch (err) {}
 

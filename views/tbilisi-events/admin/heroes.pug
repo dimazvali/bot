@@ -8,7 +8,7 @@ include _admin.pug
   p.hint Известные люди, от чьего имени собираются кураторские подборки. Фото, имя и описание — на трёх языках.
 
   h2.sec-lbl Добавить героя
-  form.block(method='POST' action='/tbilisi-events/admin/heroes')
+  form.block(method='POST' action=base + '/admin/heroes')
     .row
       div
         label(for='h-name-ru') Имя RU
@@ -29,7 +29,7 @@ include _admin.pug
         = (h.name && h.name.ru) || (h.name && h.name.en) || 'без имени'
         |  #[span.v-meta &mdash; #{h.imageUrl ? 'фото есть' : 'без фото'}]
       .v-body
-        form(method='POST' action=`/tbilisi-events/admin/heroes/${h.id}/edit`)
+        form(method='POST' action=`${base}/admin/heroes/${h.id}/edit`)
           .row
             div
               label Имя RU
@@ -50,10 +50,10 @@ include _admin.pug
             button.btn.solid(type='submit') Сохранить
 
         .toolbar
-          form(method='POST' action=`/tbilisi-events/admin/heroes/${h.id}/image` enctype='multipart/form-data')
+          form(method='POST' action=`${base}/admin/heroes/${h.id}/image` enctype='multipart/form-data')
             input(type='file' name='image' accept='image/*')
             button.btn.sm(type='submit') Загрузить фото
-          form(method='POST' action=`/tbilisi-events/admin/heroes/${h.id}/delete` onsubmit='return confirm("Удалить героя? Он отвяжется от всех подборок.")')
+          form(method='POST' action=`${base}/admin/heroes/${h.id}/delete` onsubmit='return confirm("Удалить героя? Он отвяжется от всех подборок.")')
             button.btn.sm.danger(type='submit') Удалить
 
         if h.imageUrl

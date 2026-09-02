@@ -9,7 +9,7 @@ include _admin.pug
     .notice Сначала заведите хотя бы одного героя во вкладке «Герои» — подборку нужно привязать к герою.
 
   h2.sec-lbl Новая подборка
-  form.block(method='POST' action='/tbilisi-events/admin/collections')
+  form.block(method='POST' action=base + '/admin/collections')
     .row
       div
         label(for='c-title-ru') Название RU
@@ -42,7 +42,7 @@ include _admin.pug
           - var hero = c.heroId ? heroById[c.heroId] : null
           tr
             td
-              a.link(href=`/tbilisi-events/admin/collections/${c.id}`)= (c.title && c.title.ru) || (c.title && c.title.en) || 'без названия'
+              a.link(href=`${base}/admin/collections/${c.id}`)= (c.title && c.title.ru) || (c.title && c.title.en) || 'без названия'
             td= hero ? ((hero.name && hero.name.ru) || (hero.name && hero.name.en) || 'герой') : '—'
             td= (c.eventIds || []).length
             td
