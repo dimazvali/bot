@@ -103,4 +103,24 @@ router.post('/auth/logout', guardCsrf, function(req, res) {
   res.redirect(users.safeNext(req.body.next, req.teBase + '/'));
 });
 
+router.get('/me', users.requireUser, async function(req, res) {
+  var lang = i18n.normalizeLang(req.query.lang);
+  var user = await users.getUserById(res.locals.user.uid);
+  if (!user) { users.clearSessionCookie(res); return res.redirect(req.teBase + '/login'); }
+  var tg = await users.ensureTgLinkToken(user.id);
+  res.render('tbilisi-events/me', {
+    title: 'Your account — events.tbiliseli.com',
+    lang: lang, t: i18n.UI[lang], base: req.teBase,
+    user: user,
+    tgLinked: !!user.tgUserId,
+    tgBlocked: !!user.tgBlocked,
+    tgDeepLink: tg.token ? users.deepLink(tg.token) : null,
+  });
+});
+
+router.post('/me/telegram/unlink', users.requireUser, guardCsrf, async function(req, res) {
+  await users.unlinkTelegram(res.locals.user.uid);
+  res.redirect(req.teBase + '/me');
+});
+
 module.exports = router;
