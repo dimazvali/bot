@@ -1,0 +1,58 @@
+doctype html
+html(lang=lang)
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    title= title
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Oswald:wght@600&display=swap')
+    style.
+      :root{--bg:#e6ded1;--paper2:#fffdf9;--ink:#14110e;--acc:#e2402a;--line:#ded4c4;--muted:#6f665c;--sans:'Manrope',system-ui,sans-serif;--disp:'Oswald',sans-serif}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{background:var(--bg);color:var(--ink);font-family:var(--sans);padding:32px 16px}
+      .wrap{max-width:600px;margin:0 auto}
+      h1{font-family:var(--disp);text-transform:uppercase;font-size:26px;border-bottom:8px solid var(--ink);padding-bottom:10px;margin-bottom:8px}
+      p.sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+      label{display:block;font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.1em;color:var(--muted);margin:14px 0 5px}
+      input,select,textarea{width:100%;font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--line);background:var(--paper2)}
+      input:focus,select:focus,textarea:focus{outline:2px solid var(--acc);border-color:var(--acc)}
+      textarea{min-height:110px;resize:vertical;line-height:1.5}
+      .row{display:flex;gap:12px}.row>div{flex:1}
+      .err{background:var(--acc);color:var(--paper2);font-family:var(--disp);text-transform:uppercase;font-size:12px;letter-spacing:.08em;padding:8px 12px;margin-bottom:14px}
+      button.btn{margin-top:18px;font:inherit;font-weight:700;font-size:14px;padding:12px 18px;border:1px solid var(--ink);background:var(--ink);color:var(--paper2);cursor:pointer}
+      button.btn:hover{background:var(--acc);border-color:var(--acc)}
+      a.back{color:var(--muted);font-size:13px;text-decoration:none}
+  body
+    .wrap
+      h1 Suggest an event
+      p.sub The editors review every submission before it appears.
+      if error
+        .err= error
+      form(method='POST' action=base + '/suggest')
+        input(type='hidden' name='lang' value=lang)
+        label(for='title') Title *
+        input#title(name='title' required value=values.title)
+        .row
+          div
+            label(for='date') Date *
+            input#date(name='date' type='date' required value=values.date)
+          div
+            label(for='time') Time
+            input#time(name='time' type='time' value=values.time)
+        label(for='place') Place
+        input#place(name='place' value=values.place)
+        label(for='type') Type
+        select#type(name='type')
+          option(value='') —
+          each slug in typeSlugs
+            option(value=slug selected=(values.type === slug))= typeLabels[slug] || slug
+        label(for='description') Description *
+        textarea#description(name='description' required)= values.description
+        label(for='url') Link (event page / tickets)
+        input#url(name='url' type='url' placeholder='https://…' value=values.url)
+        label(for='imageSourceUrl') Image URL
+        input#imageSourceUrl(name='imageSourceUrl' type='url' placeholder='https://…' value=values.imageSourceUrl)
+        label(for='contactNote') How to reach you (optional)
+        input#contactNote(name='contactNote' value=values.contactNote)
+        button.btn(type='submit') Send for review
+      p(style='margin-top:16px')
+        a.back(href=base + '/') ← Back to the listing
