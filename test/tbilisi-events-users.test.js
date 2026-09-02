@@ -21,6 +21,9 @@ test('safeNext accepts any single-slash-rooted path, rejects the rest', function
   assert.equal(users.safeNext('relative'), '/');
   assert.equal(users.safeNext('/x\nSet-Cookie: y'), '/');
   assert.equal(users.safeNext('/x\x7fy'), '/');
+  assert.equal(users.safeNext('/x</script><script>alert(1)</script>'), '/');
+  assert.equal(users.safeNext('/x y'), '/');
+  assert.equal(users.safeNext('/ok?a=1&b=2#frag'), '/ok?a=1&b=2#frag');
   assert.equal(users.safeNext(''), '/');
   assert.equal(users.safeNext(undefined), '/');
   assert.equal(users.safeNext('bad', '/tbilisi-events/'), '/tbilisi-events/');

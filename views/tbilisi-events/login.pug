@@ -29,7 +29,7 @@ html(lang=lang)
       h1 events.tbiliseli.com
       p.sub Sign in to suggest events and get updates
       if error
-        .err= error === 'expired' ? 'Link expired — request a new one' : (error === 'used' ? 'Link already used' : 'Sign-in link is not valid')
+        .err= error === 'expired' ? 'Link expired — request a new one' : (error === 'used' ? 'Link already used' : (error === 'server' ? 'Something went wrong — try again' : 'Sign-in link is not valid'))
       if googleClientId
         #g-btn.g
         .or or
@@ -41,7 +41,10 @@ html(lang=lang)
         button.btn(type='submit') Send me a sign-in link
     if googleClientId
       script.
-        var NEXT = !{JSON.stringify(next)}, LANG = !{JSON.stringify(lang)}, CID = !{JSON.stringify(googleClientId)}, BASE = !{JSON.stringify(base)};
+        var NEXT = !{JSON.stringify(next).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/\u2028/g,'\\u2028').replace(/\u2029/g,'\\u2029')},
+            LANG = !{JSON.stringify(lang).replace(/</g,'\\u003c').replace(/>/g,'\\u003e')},
+            CID  = !{JSON.stringify(googleClientId).replace(/</g,'\\u003c').replace(/>/g,'\\u003e')},
+            BASE = !{JSON.stringify(base).replace(/</g,'\\u003c').replace(/>/g,'\\u003e')};
         document.getElementById('email-form').addEventListener('submit', function(e){ e.target.querySelector('button').disabled = true; });
         function teGoogle(resp){
           fetch(BASE + '/auth/google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:resp.credential,next:NEXT,lang:LANG})})

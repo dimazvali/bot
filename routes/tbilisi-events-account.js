@@ -65,26 +65,37 @@ router.post('/auth/email', guardCsrf, async function(req, res) {
     res.render('tbilisi-events/check-email', { title: 'Check your email', lang: lang, t: i18n.UI[lang], base: req.teBase, email: email });
   };
   if (!email || email.indexOf('@') === -1) return okView();
-  try {
-    if (await users.recentLoginTokenFor(email)) return okView();
-    var token = await users.issueLoginToken(email, nextPath);
-    var url = BASE_ORIGIN + req.teBase + '/auth/magic?token=' + token;
-    await mailer.sendMagicLink(email, url, lang);
-  } catch (e) {
-    console.error('[te-account] email', e.message);
-  }
+  users.recentLoginTokenFor(email).then(function(recent) {
+    if (recent) return;
+    return users.issueLoginToken(email, nextPath).then(function(token) {
+      return mailer.sendMagicLink(email, BASE_ORIGIN + '/auth/magic?token=' + token, lang);
+    });
+  }).catch(function(e) { console.error('[te-account] email', e.message); });
   okView();
 });
 
-router.get('/auth/magic', async function(req, res) {
-  var lang = i18n.normalizeLang(req.query.lang);
-  var result = await users.redeemLoginToken(req.query.token);
-  if (!result.ok) {
-    return res.redirect(req.teBase + '/login?error=' + encodeURIComponent(result.reason));
+router.get('/auth/magic', function(req, res) {
+  // Corporate mail scanners GET links before the human clicks; render a confirm
+  // page whose button POSTs the token, so a bare GET can't consume it.
+  res.render('tbilisi-events/magic-confirm', {
+    title: 'Confirm sign-in', lang: i18n.normalizeLang(req.query.lang),
+    t: i18n.UI[i18n.normalizeLang(req.query.lang)], base: req.teBase,
+    token: String(req.query.token || ''),
+  });
+});
+
+router.post('/auth/magic', guardCsrf, async function(req, res) {
+  var lang = i18n.normalizeLang(req.body.lang);
+  try {
+    var result = await users.redeemLoginToken(req.body.token);
+    if (!result.ok) return res.redirect(req.teBase + '/login?error=' + encodeURIComponent(result.reason));
+    var user = await users.upsertEmailUser(result.email, lang);
+    users.setSessionCookie(res, user);
+    res.redirect(users.safeNext(result.next, req.teBase + '/'));
+  } catch (e) {
+    console.error('[te-account] magic', e.message);
+    res.redirect(req.teBase + '/login?error=server');
   }
-  var user = await users.upsertEmailUser(result.email, lang);
-  users.setSessionCookie(res, user);
-  res.redirect(users.safeNext(result.next, req.teBase + '/'));
 });
 
 router.post('/auth/logout', guardCsrf, function(req, res) {
