@@ -10,15 +10,19 @@ test('normalizeEmail lowercases and trims', function() {
   assert.equal(users.normalizeEmail(undefined), '');
 });
 
-test('safeNext accepts only same-app absolute paths', function() {
+test('safeNext accepts any single-slash-rooted path, rejects the rest', function() {
   assert.equal(users.safeNext('/tbilisi-events/suggest'), '/tbilisi-events/suggest');
-  assert.equal(users.safeNext('/tbilisi-events/e/abc?x=1'), '/tbilisi-events/e/abc?x=1');
-  assert.equal(users.safeNext('/other/place'), '/tbilisi-events');
-  assert.equal(users.safeNext('https://evil.com'), '/tbilisi-events');
-  assert.equal(users.safeNext('//evil.com'), '/tbilisi-events');
-  assert.equal(users.safeNext('/tbilisi-events/\\evil'), '/tbilisi-events');
-  assert.equal(users.safeNext(''), '/tbilisi-events');
-  assert.equal(users.safeNext(undefined), '/tbilisi-events');
+  assert.equal(users.safeNext('/suggest?x=1'), '/suggest?x=1');
+  assert.equal(users.safeNext('/'), '/');
+  assert.equal(users.safeNext('/other/place'), '/other/place');
+  assert.equal(users.safeNext('https://evil.com'), '/');
+  assert.equal(users.safeNext('//evil.com'), '/');
+  assert.equal(users.safeNext('/\\evil.com'), '/');
+  assert.equal(users.safeNext('relative'), '/');
+  assert.equal(users.safeNext('/x\nSet-Cookie: y'), '/');
+  assert.equal(users.safeNext(''), '/');
+  assert.equal(users.safeNext(undefined), '/');
+  assert.equal(users.safeNext('bad', '/tbilisi-events/'), '/tbilisi-events/');
 });
 
 test('sessionPayload keeps only the small public fields', function() {
@@ -296,11 +300,18 @@ test('requireUser: passes through when signed in', function() {
   assert.equal(called, true);
 });
 
-test('requireUser: redirects a page request to /login with next', function() {
+test('requireUser: redirects a page request to <teBase>/login with next', function() {
   var res = fakeRes();
-  var req = { get: function() { return ''; }, originalUrl: '/tbilisi-events/suggest', xhr: false };
+  var req = { get: function() { return ''; }, originalUrl: '/tbilisi-events/suggest', teBase: '/tbilisi-events', xhr: false };
   users.requireUser(req, res, function() { throw new Error('should not call next'); });
   assert.equal(res.redirectedTo, '/tbilisi-events/login?next=' + encodeURIComponent('/tbilisi-events/suggest'));
+});
+
+test('requireUser: on the subdomain mount uses bare paths', function() {
+  var res = fakeRes();
+  var req = { get: function() { return ''; }, originalUrl: '/suggest', teBase: '', xhr: false };
+  users.requireUser(req, res, function() { throw new Error('should not call next'); });
+  assert.equal(res.redirectedTo, '/login?next=' + encodeURIComponent('/suggest'));
 });
 
 test('requireUser: 401 JSON for an XHR / json request', function() {
