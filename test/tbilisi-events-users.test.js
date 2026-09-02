@@ -347,3 +347,23 @@ test('setSessionCookie / clearSessionCookie use the signed teUser cookie', funct
   users.clearSessionCookie(res);
   assert.deepEqual(calls[1], { fn: 'clear', n: 'teUser' });
 });
+
+test('setTgBlocked flips the flag', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var u = await users.upsertEmailUser('b@b.com', 'en');
+  await users.setTgBlocked(u.id, true);
+  assert.equal((await users.getUserById(u.id)).tgBlocked, true);
+  await users.setTgBlocked(u.id, false);
+  assert.equal((await users.getUserById(u.id)).tgBlocked, false);
+});
+
+test('listUsers returns all user docs', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  await users.upsertEmailUser('a@a.com', 'en');
+  await users.upsertGoogleUser({ sub: 'g1', email: 'c@c.com', name: 'C', picture: null, lang: 'ru' });
+  var list = await users.listUsers();
+  assert.equal(list.length, 2);
+  assert.ok(list.every(function(u) { return u.id && u.email; }));
+});

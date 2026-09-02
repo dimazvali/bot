@@ -3,7 +3,9 @@ var crypto = require('crypto');
 
 // Minimal Firestore stand-in: enough of the surface that lib/tbilisi-events-users.js
 // uses. Data is per-collection plain objects. Supports one where('field','==',value)
-// followed by an optional limit(n).
+// followed by an optional limit(n). Also supports a bare collection .get() (all docs)
+// and .orderBy(field[,dir]).get() / .orderBy(field[,dir]).limit(n).get() (dir 'asc'
+// default, or 'desc').
 // data() returns a SHALLOW copy of the stored doc (nested objects are shared) —
 // fine for current use; do not rely on it for deep mutation.
 module.exports = function makeFakeDb() {
@@ -57,6 +59,33 @@ module.exports = function makeFakeDb() {
         where: function(field, op, value) {
           if (op !== '==') throw new Error('fake firestore only supports ==');
           return queryApi(name, field, value);
+        },
+        get: async function() {
+          var c = coll(name);
+          var docs = Object.keys(c).map(function(k) {
+            return { id: k, exists: true, data: function() { return Object.assign({}, c[k]); }, ref: docApi(name, k) };
+          });
+          return { empty: docs.length === 0, docs: docs, size: docs.length };
+        },
+        orderBy: function(field, dir) {
+          var name_ = name;
+          return {
+            limit: function(n) { return { get: doGet.bind(null, n) }; },
+            get: doGet.bind(null, null),
+          };
+          function doGet(lim) {
+            var c = coll(name_);
+            var keys = Object.keys(c).sort(function(a, b) {
+              var av = c[a][field], bv = c[b][field];
+              if (av === bv) return 0;
+              return ((av > bv) ? 1 : -1) * (dir === 'desc' ? -1 : 1);
+            });
+            if (typeof lim === 'number') keys = keys.slice(0, lim);
+            var docs = keys.map(function(k) {
+              return { id: k, exists: true, data: function() { return Object.assign({}, c[k]); }, ref: docApi(name_, k) };
+            });
+            return Promise.resolve({ empty: docs.length === 0, docs: docs, size: docs.length });
+          }
         },
       };
     },
