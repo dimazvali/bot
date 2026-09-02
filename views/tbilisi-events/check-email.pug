@@ -1,0 +1,19 @@
+doctype html
+html(lang=lang)
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    title= title
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Oswald:wght@600&display=swap')
+    style.
+      :root{--bg:#e6ded1;--paper2:#fffdf9;--ink:#14110e;--line:#ded4c4;--muted:#6f665c;--sans:'Manrope',system-ui,sans-serif;--disp:'Oswald',sans-serif}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+      .card{width:min(380px,92vw);border:1px solid var(--ink);background:var(--paper2);padding:28px 24px;text-align:center}
+      h1{font-family:var(--disp);text-transform:uppercase;font-size:20px;margin-bottom:10px}
+      p{font-size:14px;line-height:1.55;color:var(--muted)}
+      b{color:var(--ink)}
+  body
+    .card
+      h1 Check your email
+      p We sent a sign-in link to #[b= email || 'your inbox']. It works once and expires in 30 minutes.

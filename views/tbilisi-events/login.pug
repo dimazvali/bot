@@ -1,0 +1,55 @@
+doctype html
+html(lang=lang)
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    title= title
+    if googleClientId
+      script(src='https://accounts.google.com/gsi/client' async defer)
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Oswald:wght@500;600&display=swap')
+    style.
+      :root{--bg:#e6ded1;--paper:#faf6f0;--paper2:#fffdf9;--ink:#14110e;--acc:#e2402a;--line:#ded4c4;--muted:#6f665c;--sans:'Manrope','Noto Sans Georgian',system-ui,sans-serif;--disp:'Oswald','Noto Sans Georgian',sans-serif}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+      .card{width:min(360px,92vw);border:1px solid var(--ink);background:var(--paper2);padding:26px 24px 28px}
+      h1{font-family:var(--disp);text-transform:uppercase;font-size:22px;font-weight:600;margin-bottom:4px}
+      p.sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+      .g{min-height:40px;margin-bottom:18px}
+      .or{display:flex;align-items:center;gap:10px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:6px 0 14px}
+      .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+      label{display:block;font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.1em;color:var(--muted);margin-bottom:5px}
+      input[type=email]{width:100%;font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--line);background:var(--paper2)}
+      input[type=email]:focus{outline:2px solid var(--acc);border-color:var(--acc)}
+      button.btn{width:100%;margin-top:12px;font:inherit;font-weight:700;font-size:14px;padding:11px 14px;border:1px solid var(--ink);background:var(--ink);color:var(--paper2);cursor:pointer}
+      button.btn:hover{background:var(--acc);border-color:var(--acc)}
+      button.btn[disabled]{opacity:.55;cursor:default}
+      .err{background:var(--acc);color:var(--paper2);font-family:var(--disp);text-transform:uppercase;font-size:12px;letter-spacing:.08em;padding:8px 12px;margin-bottom:14px}
+  body
+    .card
+      h1 events.tbiliseli.com
+      p.sub Sign in to suggest events and get updates
+      if error
+        .err= error === 'expired' ? 'Link expired — request a new one' : (error === 'used' ? 'Link already used' : 'Sign-in link is not valid')
+      if googleClientId
+        #g-btn.g
+        .or or
+      form#email-form(method='POST' action=base + '/auth/email')
+        input(type='hidden' name='next' value=next)
+        input(type='hidden' name='lang' value=lang)
+        label(for='email') Email
+        input#email(type='email' name='email' required autocomplete='email')
+        button.btn(type='submit') Send me a sign-in link
+    if googleClientId
+      script.
+        var NEXT = !{JSON.stringify(next)}, LANG = !{JSON.stringify(lang)}, CID = !{JSON.stringify(googleClientId)}, BASE = !{JSON.stringify(base)};
+        document.getElementById('email-form').addEventListener('submit', function(e){ e.target.querySelector('button').disabled = true; });
+        function teGoogle(resp){
+          fetch(BASE + '/auth/google',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({credential:resp.credential,next:NEXT,lang:LANG})})
+            .then(function(r){return r.json()}).then(function(d){ location.href = (d && d.ok && d.next) ? d.next : (BASE + '/login?error=google'); })
+            .catch(function(){ location.href = BASE + '/login?error=google'; });
+        }
+        window.addEventListener('load',function(){
+          if(!window.google) return;
+          google.accounts.id.initialize({client_id:CID,callback:teGoogle});
+          google.accounts.id.renderButton(document.getElementById('g-btn'),{type:'standard',theme:'outline',size:'large',width:312});
+        });

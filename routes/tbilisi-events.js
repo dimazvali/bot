@@ -9,6 +9,8 @@ var eventsData = require('../lib/tbilisi-events-data');
 var images = require('../lib/tbilisi-events-images');
 var taxonomy = require('../lib/tbilisi-events-taxonomy');
 var i18n = require('../lib/tbilisi-events-i18n');
+var teUsers = require('../lib/tbilisi-events-users');
+var teMailer = require('../lib/tbilisi-events-mailer');
 
 var tbilisiEventsApp = getApps().find(function(a) { return a.name === 'tbilisiEvents'; }) || initializeApp({
   credential: cert({
@@ -28,6 +30,8 @@ var tbilisiEventsApp = getApps().find(function(a) { return a.name === 'tbilisiEv
 var fb = getFirestore(tbilisiEventsApp);
 eventsData.init(fb);
 images.init(getStorage(tbilisiEventsApp));
+teUsers.init(fb);
+teMailer.init();
 
 function isSafeUrl(url) {
   return typeof url === 'string' && /^https?:\/\//i.test(url);
@@ -144,6 +148,9 @@ router.use(function(req, res, next) {
   }
   next();
 });
+
+router.use(teUsers.attachUser);
+router.use(require('./tbilisi-events-account'));
 
 router.get('/', async function(req, res, next) {
   try {
