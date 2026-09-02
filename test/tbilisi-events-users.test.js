@@ -76,3 +76,49 @@ test('fake firestore: add, get, query, update, delete', async function() {
   assert.equal(empty.empty, true);
   assert.equal(empty.docs.length, 0);
 });
+
+test('upsertGoogleUser creates then updates by googleId', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var u1 = await users.upsertGoogleUser({ sub: 'g1', email: 'A@B.com', name: 'Ann', picture: 'p1', lang: 'en' });
+  assert.ok(u1.id);
+  assert.equal(u1.email, 'a@b.com');
+  assert.equal(u1.googleId, 'g1');
+  assert.equal(u1.lang, 'en');
+
+  var u2 = await users.upsertGoogleUser({ sub: 'g1', email: 'A@B.com', name: 'Ann R', picture: 'p2', lang: 'ru' });
+  assert.equal(u2.id, u1.id);
+  assert.equal(u2.name, 'Ann R');
+  assert.equal(u2.picture, 'p2');
+  assert.equal(u2.lang, 'ru');
+});
+
+test('upsertGoogleUser merges into an existing email-only account', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var e = await users.upsertEmailUser('person@x.com', 'ru');
+  assert.equal(e.googleId, undefined);
+  var g = await users.upsertGoogleUser({ sub: 'g9', email: 'PERSON@x.com', name: 'P', picture: null, lang: 'en' });
+  assert.equal(g.id, e.id);
+  assert.equal(g.googleId, 'g9');
+  assert.equal(g.name, 'P');
+});
+
+test('upsertEmailUser is idempotent by normalized email', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var a = await users.upsertEmailUser('  Foo@Bar.com ', 'en');
+  var b = await users.upsertEmailUser('foo@bar.com', 'ka');
+  assert.equal(a.id, b.id);
+  assert.equal(b.lang, 'ka');
+});
+
+test('getUserById / getUserByEmail', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var u = await users.upsertEmailUser('z@z.com', 'en');
+  assert.equal((await users.getUserById(u.id)).email, 'z@z.com');
+  assert.equal((await users.getUserByEmail('Z@Z.com')).id, u.id);
+  assert.equal(await users.getUserById('missing'), null);
+  assert.equal(await users.getUserByEmail('missing@x.com'), null);
+});
