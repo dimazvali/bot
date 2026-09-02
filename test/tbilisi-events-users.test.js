@@ -255,3 +255,80 @@ test('ensureTgLinkToken returns error for a missing user', async function() {
   users.init(db);
   assert.deepEqual(await users.ensureTgLinkToken('nope'), { error: 'no_user' });
 });
+
+function fakeRes() {
+  return {
+    locals: {},
+    statusCode: 200,
+    body: null,
+    redirectedTo: null,
+    status: function(c) { this.statusCode = c; return this; },
+    json: function(o) { this.body = o; return this; },
+    redirect: function(u) { this.redirectedTo = u; return this; },
+  };
+}
+
+test('attachUser reads a valid signed cookie into res.locals.user', function() {
+  var req = { signedCookies: { teUser: JSON.stringify({ uid: 'u1', email: 'a@b.com', name: 'A', picture: null, tg: true }) } };
+  var res = fakeRes();
+  var called = false;
+  users.attachUser(req, res, function() { called = true; });
+  assert.equal(called, true);
+  assert.equal(res.locals.user.uid, 'u1');
+  assert.equal(res.locals.user.tg, true);
+});
+
+test('attachUser tolerates missing / malformed cookie', function() {
+  var res1 = fakeRes();
+  users.attachUser({ signedCookies: {} }, res1, function() {});
+  assert.equal(res1.locals.user, null);
+
+  var res2 = fakeRes();
+  users.attachUser({ signedCookies: { teUser: 'not json' } }, res2, function() {});
+  assert.equal(res2.locals.user, null);
+});
+
+test('requireUser: passes through when signed in', function() {
+  var res = fakeRes();
+  res.locals.user = { uid: 'u1' };
+  var called = false;
+  users.requireUser({ get: function() { return ''; }, originalUrl: '/tbilisi-events/me' }, res, function() { called = true; });
+  assert.equal(called, true);
+});
+
+test('requireUser: redirects a page request to /login with next', function() {
+  var res = fakeRes();
+  var req = { get: function() { return ''; }, originalUrl: '/tbilisi-events/suggest', xhr: false };
+  users.requireUser(req, res, function() { throw new Error('should not call next'); });
+  assert.equal(res.redirectedTo, '/tbilisi-events/login?next=' + encodeURIComponent('/tbilisi-events/suggest'));
+});
+
+test('requireUser: 401 JSON for an XHR / json request', function() {
+  var res = fakeRes();
+  var req = { get: function(h) { return h.toLowerCase() === 'accept' ? 'application/json' : ''; }, originalUrl: '/x', xhr: true };
+  users.requireUser(req, res, function() { throw new Error('should not call next'); });
+  assert.equal(res.statusCode, 401);
+  assert.deepEqual(res.body, { error: 'auth_required' });
+});
+
+test('requireUser: 401 JSON when Accept is application/json (no xhr)', function() {
+  var res = fakeRes();
+  var req = { xhr: false, get: function(h) { return h.toLowerCase() === 'accept' ? 'text/html, application/json' : ''; }, originalUrl: '/x' };
+  users.requireUser(req, res, function() { throw new Error('should not call next'); });
+  assert.equal(res.statusCode, 401);
+  assert.deepEqual(res.body, { error: 'auth_required' });
+});
+
+test('setSessionCookie / clearSessionCookie use the signed teUser cookie', function() {
+  var calls = [];
+  var res = { cookie: function(n, v, o) { calls.push({ fn: 'set', n: n, v: v, o: o }); }, clearCookie: function(n) { calls.push({ fn: 'clear', n: n }); } };
+  users.setSessionCookie(res, { id: 'u9', email: 'x@y.com', name: 'X', picture: null, tgUserId: null });
+  assert.equal(calls[0].fn, 'set');
+  assert.equal(calls[0].n, 'teUser');
+  assert.equal(calls[0].o.signed, true);
+  assert.equal(calls[0].o.httpOnly, true);
+  assert.equal(JSON.parse(calls[0].v).uid, 'u9');
+  assert.equal(JSON.parse(calls[0].v).tg, false);
+  users.clearSessionCookie(res);
+  assert.deepEqual(calls[1], { fn: 'clear', n: 'teUser' });
+});
