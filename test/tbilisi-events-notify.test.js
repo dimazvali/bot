@@ -16,6 +16,19 @@ test('notifCopy: known key per lang, en fallback', function() {
   assert.equal(unknown, null);
 });
 
+test('notifCopy: every key renders for every lang', function() {
+  var langs = ['en', 'ru', 'ka'];
+  ['published', 'rejected', 'updated', 'organizer_approved', 'organizer_rejected'].forEach(function(key) {
+    langs.forEach(function(lang) {
+      var m = notify.notifCopy(key, lang, { title: 'T', link: 'https://x/e/1', reason: 'R' });
+      assert.ok(m, key + '/' + lang + ' should render');
+      assert.ok(m.tg.length > 0, key + '/' + lang + ' tg should render');
+      assert.ok(m.email.subject.length > 0);
+      assert.ok(m.email.html.length > 0);
+    });
+  });
+});
+
 test('routeNotify: telegram present -> sends TG, not email', async function() {
   var calls = { tg: [], email: [], blocked: [] };
   await notify.routeNotify(
