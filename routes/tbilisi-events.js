@@ -383,6 +383,9 @@ router.get('/e/:id', async function(req, res, next) {
       ? ((venue.lat != null && venue.lng != null) ? venue.lat + ',' + venue.lng : (venue.address || venue.name))
       : null;
 
+    var organizerState = res.locals.user
+      ? (await eventsData.getActiveClaim(res.locals.user.uid, 'event', event.id) || {}).status || null
+      : null;
     res.render('tbilisi-events/event', {
       title: event.displayTitle + ' — events.tbiliseli.com',
       lang: lang,
@@ -393,6 +396,9 @@ router.get('/e/:id', async function(req, res, next) {
       backHref: req.teBase + langQuery(lang),
       ev: event,
       isAdmin: await isAdmin(req),
+      organizerState: organizerState,
+      organizerHref: req.teBase + '/organizer/claim?target=event:' + event.id,
+      loginHref: req.teBase + '/login?next=' + encodeURIComponent(req.teBase + '/e/' + event.id),
       editHref: req.teBase + '/admin/events/' + event.id + '/edit',
       dateLong: i18n.formatLongDate(event.date, lang),
       venue: venue,
@@ -482,12 +488,18 @@ router.get('/venues/:id', async function(req, res, next) {
     if (venue.area) facts.push({ k: t.district, v: venue.area });
     if (venue.type) facts.push({ k: t.venueType, v: vtl[venue.type] || venue.type });
 
+    var organizerState = res.locals.user
+      ? (await eventsData.getActiveClaim(res.locals.user.uid, 'venue', venue.id) || {}).status || null
+      : null;
     res.render('tbilisi-events/venues/detail', {
       title: venue.name + ' — events.tbiliseli.com',
       lang: lang, t: t,
       langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues/' + venue.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: req.teBase + '/venues' + langQuery(lang),
       venue: venue,
+      organizerState: organizerState,
+      organizerHref: req.teBase + '/organizer/claim?target=venue:' + venue.id,
+      loginHref: req.teBase + '/login?next=' + encodeURIComponent(req.teBase + '/venues/' + venue.id),
       venueTypeLabel: venue.type ? (vtl[venue.type] || venue.type) : '',
       venueDesc: i18n.pickDescription(venue.description, lang),
       facts: facts,

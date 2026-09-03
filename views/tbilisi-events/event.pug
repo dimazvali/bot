@@ -60,6 +60,11 @@ html(lang=lang)
       dl.facts dd{font-weight:600}
       dl.facts dd a{border-bottom:1px solid var(--acc)}
       .actions{display:flex;flex-direction:column;gap:8px;margin-top:18px}
+      .org-row{margin-top:14px}
+      .org-btn{display:inline-block;font-weight:700;font-size:13px;padding:9px 13px;border:1px solid var(--ink);color:var(--ink);text-decoration:none}
+      .org-btn:hover{background:var(--ink);color:var(--paper)}
+      .org-ok{color:var(--acc);font-weight:700;font-size:13px}
+      .org-pending{color:var(--muted);font-size:13px}
       .btn{display:block;text-align:center;font-weight:700;font-size:14px;padding:13px 14px;border-radius:2px;border:1px solid var(--ink);color:var(--ink)}
       .btn.solid{background:var(--ink);color:#fffdf9}
       .btn.solid:hover{background:var(--acc)}
@@ -192,6 +197,15 @@ html(lang=lang)
                       a(href=s.url target='_blank' rel='noopener noreferrer')= s.label
                     else
                       span= s.label
+            .org-row
+              if organizerState === 'approved'
+                span.org-ok You’re the organizer ✓
+              else if organizerState === 'new'
+                span.org-pending Organizer request pending
+              else if user
+                a.org-btn(href=organizerHref) I’m the organizer
+              else
+                a.org-btn(href=loginHref) I’m the organizer
 
           if ev.editorNoteText
             .sec.editor
