@@ -126,8 +126,9 @@ function decorateEvent(e, lang, venueById, base) {
   e.langBadge = (e.language || []).map(function(c) { return String(c).toUpperCase(); }).join(' / ');
   e.langLabel = (e.language || []).map(function(c) { return langLabelsL[c] || c; }).join(', ');
   e.primaryUrl = (e.sources.find(function(s) { return s.safe; }) || {}).url || null;
-  e.href = base + '/e/' + e.id + langQuery(lang);
-  e.venueHref = e.venueId ? base + '/venues/' + e.venueId + langQuery(lang) : null;
+  e.href = base + '/e/' + (e.slug || e.id) + langQuery(lang);
+  var vObj = e.venueId ? venueById[e.venueId] : null;
+  e.venueHref = vObj ? base + '/venues/' + (vObj.slug || vObj.id || e.venueId) + langQuery(lang) : null;
   e.editorNoteText = i18n.pickDescription(e.editorNote, lang);
   e.cancelledLabel = e.cancelled ? i18n.UI[lang].cancelled : '';
   e.displayTitle = i18n.pickDescription(e.titleI18n, lang) || e.title;
@@ -311,7 +312,7 @@ router.get('/', async function(req, res, next) {
         title: i18n.pickDescription(c.title, lang),
         heroName: h ? i18n.pickDescription(h.name, lang) : '',
         heroImage: h ? (h.imageUrl || null) : null,
-        href: req.teBase + '/collections/' + c.id + langQuery(lang),
+        href: req.teBase + '/collections/' + (c.slug || c.id) + langQuery(lang),
       };
     }).filter(function(c) { return c.title; });
 
@@ -359,8 +360,11 @@ router.get('/e/:id', async function(req, res, next) {
     var lang = i18n.normalizeLang(req.query.lang);
     var t = i18n.UI[lang];
     var all = sanitizeEvents(await eventsData.getPublicEvents());
-    var event = all.find(function(x) { return x.id === req.params.id; });
+    var event = all.find(function(x) { return x.slug === req.params.id || x.id === req.params.id; });
     if (!event) return next();
+    if (event.slug && req.params.id !== event.slug) {
+      return res.redirect(301, req.teBase + '/e/' + event.slug + langQuery(lang));
+    }
 
     var venues = await eventsData.getVenues();
     var venueById = {};
@@ -391,18 +395,18 @@ router.get('/e/:id', async function(req, res, next) {
       lang: lang,
       t: t,
       langLinks: i18n.LANGS.map(function(c) {
-        return { code: c.toUpperCase(), href: req.teBase + '/e/' + event.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang };
+        return { code: c.toUpperCase(), href: req.teBase + '/e/' + (event.slug || event.id) + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang };
       }),
       backHref: req.teBase + langQuery(lang),
       ev: event,
       isAdmin: await isAdmin(req),
       organizerState: organizerState,
       organizerHref: req.teBase + '/organizer/claim?target=event:' + event.id,
-      loginHref: req.teBase + '/login?next=' + encodeURIComponent(req.teBase + '/e/' + event.id + langQuery(lang)),
+      loginHref: req.teBase + '/login?next=' + encodeURIComponent(req.teBase + '/e/' + (event.slug || event.id) + langQuery(lang)),
       editHref: req.teBase + '/admin/events/' + event.id + '/edit',
       dateLong: i18n.formatLongDate(event.date, lang),
       venue: venue,
-      venueHref: venue ? req.teBase + '/venues/' + venue.id + langQuery(lang) : null,
+      venueHref: venue ? req.teBase + '/venues/' + (venue.slug || venue.id) + langQuery(lang) : null,
       venueEventsCount: venueEventsCount,
       mapHref: mapQuery ? 'https://maps.google.com/?q=' + encodeURIComponent(mapQuery) : null,
       sameDay: sameDay,
@@ -427,7 +431,7 @@ router.get('/venues', async function(req, res, next) {
       return Object.assign({}, v, {
         typeLabel: v.type ? (vtl[v.type] || v.type) : '',
         upcomingCount: upcomingByVenue[v.id] || 0,
-        href: req.teBase + '/venues/' + v.id + langQuery(lang),
+        href: req.teBase + '/venues/' + (v.slug || v.id) + langQuery(lang),
       });
     });
     venues.sort(function(a, b) { return (b.upcomingCount - a.upcomingCount) || (b.eventCount || 0) - (a.eventCount || 0); });
@@ -448,12 +452,15 @@ router.get('/venues/:id', async function(req, res, next) {
     var t = i18n.UI[lang];
     var vtl = i18n.VENUE_TYPE_LABELS[lang];
 
-    var venue = await eventsData.getVenueById(req.params.id);
-    if (!venue) return next();
-
     var allVenues = await eventsData.getVenues();
     var venueById = {};
     allVenues.forEach(function(v) { venueById[v.id] = v; });
+
+    var venue = allVenues.find(function(v) { return v.slug === req.params.id || v.id === req.params.id; }) || null;
+    if (!venue) return next();
+    if (venue.slug && req.params.id !== venue.slug) {
+      return res.redirect(301, req.teBase + '/venues/' + venue.slug + langQuery(lang));
+    }
 
     var today = new Date().toISOString().slice(0, 10);
     var all = sanitizeEvents(await eventsData.getPublicEvents());
@@ -479,7 +486,7 @@ router.get('/venues/:id', async function(req, res, next) {
           name: v.name,
           meta: [v.area, v.type ? (vtl[v.type] || v.type) : null].filter(Boolean).join(' · '),
           imageUrl: v.imageUrl || null,
-          href: req.teBase + '/venues/' + v.id + langQuery(lang),
+          href: req.teBase + '/venues/' + (v.slug || v.id) + langQuery(lang),
         };
       });
 
@@ -496,14 +503,14 @@ router.get('/venues/:id', async function(req, res, next) {
     res.render('tbilisi-events/venues/detail', {
       title: venue.name + ' — events.tbiliseli.com',
       lang: lang, t: t,
-      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues/' + venue.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
+      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues/' + (venue.slug || venue.id) + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: req.teBase + '/venues' + langQuery(lang),
       venue: venue,
       isAdmin: await isAdmin(req),
       editHref: req.teBase + '/admin/venues/' + venue.id,
       organizerState: organizerState,
       organizerHref: req.teBase + '/organizer/claim?target=venue:' + venue.id,
-      loginHref: req.teBase + '/login?next=' + encodeURIComponent(req.teBase + '/venues/' + venue.id + langQuery(lang)),
+      loginHref: req.teBase + '/login?next=' + encodeURIComponent(req.teBase + '/venues/' + (venue.slug || venue.id) + langQuery(lang)),
       venueTypeLabel: venue.type ? (vtl[venue.type] || venue.type) : '',
       venueDesc: i18n.pickDescription(venue.description, lang),
       facts: facts,
@@ -537,7 +544,7 @@ router.get('/collections', async function(req, res, next) {
         heroName: hero ? i18n.pickDescription(hero.name, lang) : '',
         heroImage: hero ? (hero.imageUrl || null) : null,
         count: (c.eventIds || []).filter(function(id) { return publicIds[id]; }).length,
-        href: req.teBase + '/collections/' + c.id + langQuery(lang),
+        href: req.teBase + '/collections/' + (c.slug || c.id) + langQuery(lang),
       };
     }).filter(function(c) { return c.title; });
 
@@ -556,8 +563,12 @@ router.get('/collections/:id', async function(req, res, next) {
     var lang = i18n.normalizeLang(req.query.lang);
     var t = i18n.UI[lang];
 
-    var col = await eventsData.getCollectionById(req.params.id);
+    var col = await eventsData.getCollectionById(req.params.id)
+      || await eventsData.getCollectionBySlug(req.params.id);
     if (!col || !col.published) return next();
+    if (col.slug && req.params.id !== col.slug) {
+      return res.redirect(301, req.teBase + '/collections/' + col.slug + langQuery(lang));
+    }
 
     var hero = col.heroId ? await eventsData.getHeroById(col.heroId) : null;
 
@@ -611,7 +622,7 @@ router.get('/collections/:id', async function(req, res, next) {
           title: i18n.pickDescription(c.title, lang),
           heroName: h ? i18n.pickDescription(h.name, lang) : '',
           count: (c.eventIds || []).length,
-          href: req.teBase + '/collections/' + c.id + langQuery(lang),
+          href: req.teBase + '/collections/' + (c.slug || c.id) + langQuery(lang),
         };
       })
       .filter(function(c) { return c.title; })
@@ -620,7 +631,7 @@ router.get('/collections/:id', async function(req, res, next) {
     res.render('tbilisi-events/collections/detail', {
       title: i18n.pickDescription(col.title, lang) + ' — events.tbiliseli.com',
       lang: lang, t: t,
-      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/collections/' + col.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
+      langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/collections/' + (col.slug || col.id) + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: req.teBase + '/collections' + langQuery(lang),
       collectionTitle: i18n.pickDescription(col.title, lang),
       curatorNote: i18n.pickDescription(col.curatorNote, lang),

@@ -138,10 +138,30 @@
       "Bash(node -c lib/tbilisi-events-extractor.js)",
       "Bash(node -c lib/tbilisi-events-enricher.js)",
       "Bash(node -c lib/tbilisi-events-pipeline.js)",
-      "Bash(node -e \"var pug=require\\('pug'\\);pug.compileFile\\('views/tbilisi-events/admin/organizer-claims.pug'\\);pug.compileFile\\('views/tbilisi-events/admin/_admin.pug'\\);console.log\\('compile OK'\\)\")"
+      "Bash(node -e \"var pug=require\\('pug'\\);pug.compileFile\\('views/tbilisi-events/admin/organizer-claims.pug'\\);pug.compileFile\\('views/tbilisi-events/admin/_admin.pug'\\);console.log\\('compile OK'\\)\")",
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/tbilisi-events/admin/organizer-claims.pug'\\);console.log\\('pug OK'\\)\")",
+      "Bash(node \"C:\\\\Users\\\\DSHEST~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-dshestakov-node-bot\\\\d8451058-4ab3-4d86-8e2a-f04b8daf66bd\\\\scratchpad\\\\render.js\")",
+      "Bash(cp \"C:\\\\Users\\\\DSHEST~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-dshestakov-node-bot\\\\d8451058-4ab3-4d86-8e2a-f04b8daf66bd\\\\scratchpad\\\\render.js\" \"C:\\\\Users\\\\dshestakov\\\\node\\\\bot\\\\__rev_render.js\")",
+      "Bash(node __rev_render.js)",
+      "Bash(rm \"C:\\\\Users\\\\dshestakov\\\\node\\\\bot\\\\__rev_render.js\")",
+      "Bash(node -e \"var pug=require\\('pug'\\);pug.compileFile\\('views/tbilisi-events/admin/organizer-claims.pug'\\);pug.render\\('include _admin.pug\\\\n+adminPage\\({title:\\\\\"t\\\\\"}\\)\\\\n  p x',{filename:'views/tbilisi-events/admin/x.pug'}\\);console.log\\('compile OK'\\)\")",
+      "Bash(node -e \"var pug=require\\('pug'\\);var h=pug.renderFile\\('views/tbilisi-events/admin/organizer-claims.pug',{cache:false,title:'t',claims:[{id:'c1',uid:'u1',targetType:'event',targetId:'e1',message:'hi',status:'new',createdAt:new Date\\(\\)}],events:{e1:{title:'X'}},venues:{},usersById:{u1:{email:'a@b.com'}},status:'',base:'',isSuperadmin:true,adminName:'x'}\\);if\\(h.indexOf\\('Одобрить'\\)===-1\\)throw new Error\\('no approve btn'\\);console.log\\('render OK'\\)\")",
+      "Bash(node -e \"var pug=require\\('pug'\\);pug.compileFile\\('views/tbilisi-events/admin/users.pug'\\);console.log\\('compile OK'\\)\")",
+      "Bash(PORT=3199 node ./bin/www > /c/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/d8451058-4ab3-4d86-8e2a-f04b8daf66bd/scratchpad/te-smoke.log 2>&1 & *)",
+      "Bash(PORT=3198 node ./bin/www)",
+      "Bash(echo \"pid=$!\")",
+      "Bash(node -e \"console.log\\(require\\('crypto'\\).createHash\\('sha256'\\).update\\('tbilisiEvents:123123123'\\).digest\\('hex'\\)\\)\")",
+      "Bash(curl -s -o /c/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/d8451058-4ab3-4d86-8e2a-f04b8daf66bd/scratchpad/te-users.html -D - -H 'Host: events.tbiliseli.com' -H 'Cookie: tbilisiEventsAdminToken=__CMDSUB_OUTPUT__' http://127.0.0.1:3198/admin/users)",
+      "Bash(curl -s -o /dev/null -D - -H \"Host: events.tbiliseli.com\" -H \"Cookie: tbilisiEventsAdminToken=26ad29e0eea7eb31c998ae239fcd0745f86485a1b654528faa5aa9106be739c3\" http://127.0.0.1:3198/admin/users)",
+      "Bash(kill 1885)",
+      "Bash(node -c lib/tbilisi-events-slug.js)",
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/tbilisi-events/admin/index.pug'\\); console.log\\('index.pug compiles'\\)\")",
+      "Bash(node __slugtest_tmp.js)",
+      "Bash(rm -f __slugtest_tmp.js)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad"
+      "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",
+      "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\d8451058-4ab3-4d86-8e2a-f04b8daf66bd\\scratchpad"
     ]
   }
 }

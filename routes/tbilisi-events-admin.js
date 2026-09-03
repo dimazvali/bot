@@ -874,4 +874,15 @@ router.get('/users', requireAuth, requireSuperAdmin, async function(req, res, ne
   } catch (e) { next(e); }
 });
 
+// One-off: generate readable slugs for every event/venue/collection that lacks one.
+// Runs in the background (hundreds of docs) and reports the result to Telegram.
+router.post('/tools/backfill-slugs', requireAuth, requireSuperAdmin, function(req, res) {
+  data.backfillSlugs().then(function(r) {
+    return alertMe({ text: '🔗 Slugs backfilled — events ' + r.events + ', venues ' + r.venues + ', collections ' + r.collections });
+  }).catch(function(e) {
+    return alertMe({ text: '❌ Slug backfill failed: ' + e.message });
+  });
+  backTo(req, res, req.teBase + '/admin/');
+});
+
 module.exports = router;

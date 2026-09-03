@@ -47,6 +47,13 @@ include _admin.pug
               td(class=errCount ? 'mk' : 'dim' title=(log.sourceErrors || []).map(function(e){ return e.source + ': ' + e.error; }).join('\n'))
                 = errCount
 
+  if typeof isSuperadmin !== 'undefined' && isSuperadmin
+    h2.sec-lbl Обслуживание
+    p.hint Разовая генерация читаемых слагов для событий/площадок/подборок без слага. Идёт в фоне, результат придёт в Telegram. Старые ссылки продолжат работать.
+    .toolbar
+      form(method='POST' action=base + '/admin/tools/backfill-slugs')
+        button.btn(type='submit') Сгенерировать слаги
+
   script.
     (function () {
       var box = document.getElementById('collect-progress');
