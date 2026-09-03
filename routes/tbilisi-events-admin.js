@@ -830,12 +830,16 @@ router.get('/organizer-claims', requireAuth, async function(req, res, next) {
 router.post('/organizer-claims/:id/approve', requireAuth, async function(req, res, next) {
   try {
     var c = await data.getOrganizerClaimById(req.params.id);
-    if (!c) return res.redirect(req.teBase + '/admin/organizer-claims');
+    if (!c || c.status !== 'new') return res.redirect(req.teBase + '/admin/organizer-claims');
+    var target = c.targetType === 'event'
+      ? await data.getEventById(c.targetId).catch(function() { return null; })
+      : await data.getVenueById(c.targetId).catch(function() { return null; });
+    if (target) {
+      if (c.targetType === 'event') await data.setEventOrganizer(c.targetId, c.uid);
+      else await data.setVenueOrganizer(c.targetId, c.uid);
+    }
     await data.decideOrganizerClaim(c.id, 'approved');
-    if (c.targetType === 'event') await data.setEventOrganizer(c.targetId, c.uid);
-    else await data.setVenueOrganizer(c.targetId, c.uid);
-    var name = c.targetType === 'event' ? (await data.getEventById(c.targetId) || {}).title : (await data.getVenueById(c.targetId) || {}).name;
-    teNotify.notifyUser(c.uid, 'organizer_approved', { title: name || c.targetId });
+    teNotify.notifyUser(c.uid, 'organizer_approved', { title: (target && (target.title || target.name)) || c.targetId });
     res.redirect(req.teBase + '/admin/organizer-claims');
   } catch (e) { next(e); }
 });
@@ -843,10 +847,12 @@ router.post('/organizer-claims/:id/approve', requireAuth, async function(req, re
 router.post('/organizer-claims/:id/reject', requireAuth, async function(req, res, next) {
   try {
     var c = await data.getOrganizerClaimById(req.params.id);
-    if (!c) return res.redirect(req.teBase + '/admin/organizer-claims');
+    if (!c || c.status !== 'new') return res.redirect(req.teBase + '/admin/organizer-claims');
     await data.decideOrganizerClaim(c.id, 'rejected');
-    var name = c.targetType === 'event' ? (await data.getEventById(c.targetId) || {}).title : (await data.getVenueById(c.targetId) || {}).name;
-    teNotify.notifyUser(c.uid, 'organizer_rejected', { title: name || c.targetId });
+    var target = c.targetType === 'event'
+      ? await data.getEventById(c.targetId).catch(function() { return null; })
+      : await data.getVenueById(c.targetId).catch(function() { return null; });
+    teNotify.notifyUser(c.uid, 'organizer_rejected', { title: (target && (target.title || target.name)) || c.targetId });
     res.redirect(req.teBase + '/admin/organizer-claims');
   } catch (e) { next(e); }
 });

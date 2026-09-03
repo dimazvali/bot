@@ -38,7 +38,7 @@ include _admin.pug
                 = c.targetType + ': '
                 a.link(href=objHref target='_blank' rel='noopener')= objName
               td= c.message || '—'
-              td.mono= c.createdAt && c.createdAt.toDate ? c.createdAt.toDate().toLocaleDateString('ru-RU') : ''
+              td.mono= c.createdAt ? (c.createdAt.toDate ? c.createdAt.toDate() : new Date(c.createdAt)).toLocaleDateString('ru-RU') : ''
               td= c.status
               td
                 if c.status === 'new'
