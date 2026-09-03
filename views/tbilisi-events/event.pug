@@ -199,13 +199,13 @@ html(lang=lang)
                       span= s.label
             .org-row
               if organizerState === 'approved'
-                span.org-ok You’re the organizer ✓
+                span.org-ok= t.orgYouAre
               else if organizerState === 'new'
-                span.org-pending Organizer request pending
+                span.org-pending= t.orgPending
               else if user
-                a.org-btn(href=organizerHref) I’m the organizer
+                a.org-btn(href=organizerHref)= t.orgClaim
               else
-                a.org-btn(href=loginHref) I’m the organizer
+                a.org-btn(href=loginHref)= t.orgClaim
 
           if ev.editorNoteText
             .sec.editor
