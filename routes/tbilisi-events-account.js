@@ -168,7 +168,7 @@ router.post('/suggest', users.requireUser, guardCsrf, express.urlencoded({ exten
       description: values.description, url: values.url || null, imageSourceUrl: values.imageSourceUrl || null,
       contactNote: values.contactNote || null,
     });
-    var adminLink = 'https://events.tbiliseli.com' + '/tbilisi-events/admin/events/' + id + '/edit';
+    var adminLink = BASE_ORIGIN + '/admin/events/' + id + '/edit';
     teNotify.notifyAdmins('📥 <b>Новая заявка на событие</b>\n' + escapeHtml(values.title) + '\nот ' + escapeHtml(res.locals.user.email) + '\n<a href="' + adminLink + '">Открыть</a>');
     res.redirect(req.teBase + '/suggest/thanks');
   } catch (e) { next(e); }
@@ -218,7 +218,7 @@ router.post('/organizer/claim', users.requireUser, guardCsrf, express.urlencoded
         ? (await eventsData.getEventById(tgt.id) || {}).title
         : (await eventsData.getVenueById(tgt.id) || {}).name;
       await eventsData.insertOrganizerClaim({ uid: res.locals.user.uid, targetType: tgt.type, targetId: tgt.id, message: req.body.message });
-      teNotify.notifyAdmins('👤 <b>Заявка «я организатор»</b>\n' + escapeHtml(name || tgt.id) + ' (' + tgt.type + ')\nот ' + escapeHtml(res.locals.user.email) + '\n<a href="https://events.tbiliseli.com/tbilisi-events/admin/organizer-claims">Список заявок</a>');
+      teNotify.notifyAdmins('👤 <b>Заявка «я организатор»</b>\n' + escapeHtml(name || tgt.id) + ' (' + tgt.type + ')\nот ' + escapeHtml(res.locals.user.email) + '\n<a href="' + BASE_ORIGIN + '/admin/organizer-claims">Список заявок</a>');
     }
     var backPath = tgt.type === 'event' ? (req.teBase + '/e/' + tgt.id) : (req.teBase + '/venues/' + tgt.id);
     res.redirect(backPath);

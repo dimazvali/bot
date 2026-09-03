@@ -51,6 +51,31 @@ test('routeNotify: TG send throws -> falls back to email + marks blocked', async
   assert.deepEqual(calls.blocked, [['u1', true]]);
 });
 
+test('routeNotify: TG 403 response object -> marks blocked', async function() {
+  var calls = { blocked: [] };
+  var err = new Error('Request failed with status code 403');
+  err.response = { status: 403, data: { ok: false, error_code: 403, description: 'Forbidden: bot was blocked by the user' } };
+  await notify.routeNotify(
+    { id: 'u1', tgUserId: '55', email: 'u@x.com', lang: 'en' },
+    { tg: 'hi', email: { subject: 's', html: '<p>h</p>', text: 't' } },
+    { sendTg: async function() { throw err; }, sendEmail: async function() {}, setBlocked: async function(id, b) { calls.blocked.push([id, b]); } }
+  );
+  assert.deepEqual(calls.blocked, [['u1', true]]);
+});
+
+test('routeNotify: transient TG failure -> email fallback, NOT marked blocked', async function() {
+  var calls = { email: [], blocked: [] };
+  var err = new Error('Request failed with status code 429');
+  err.response = { status: 429, data: { ok: false, error_code: 429, description: 'Too Many Requests: retry after 5' } };
+  await notify.routeNotify(
+    { id: 'u1', tgUserId: '55', email: 'u@x.com', lang: 'en' },
+    { tg: 'hi', email: { subject: 's', html: '<p>h</p>', text: 't' } },
+    { sendTg: async function() { throw err; }, sendEmail: async function(e, m) { calls.email.push([e, m]); }, setBlocked: async function(id, b) { calls.blocked.push([id, b]); } }
+  );
+  assert.equal(calls.email.length, 1);
+  assert.deepEqual(calls.blocked, []);
+});
+
 test('routeNotify: no TG -> email; no TG and no email -> swallowed', async function() {
   var sent = [];
   await notify.routeNotify({ id: 'u1', email: 'u@x.com', lang: 'en' }, { tg: 'hi', email: { subject: 's', html: '<p>h</p>', text: 't' } },

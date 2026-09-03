@@ -14,6 +14,10 @@ var venuesLib = require('../lib/tbilisi-events-venues');
 var multer = require('multer');
 var venueUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
 
+// Scheme+host for links that leave the app (contributor notifications). The
+// public site has no path prefix on the events.tbiliseli.com subdomain.
+var PUBLIC_ORIGIN = process.env.TBILISI_EVENTS_BASE_URL || 'https://events.tbiliseli.com';
+
 function backTo(req, res, fallback) {
   res.redirect(req.get('referer') || fallback);
 }
@@ -316,15 +320,17 @@ router.post('/events/:id/edit', requireAuth, express.urlencoded({ extended: fals
         : null,
     };
     var prev = await data.getEventById(req.params.id);
-    if (prev && prev.submission && prev.submission.userId && !prev.active && patch.active && prev.submission.status !== 'approved') {
+    var publishing = !!(prev && prev.submission && prev.submission.userId && !prev.active && patch.active && prev.submission.status !== 'approved');
+    if (publishing) {
       patch.submission = Object.assign({}, prev.submission, { status: 'approved' });
+      patch.hidden = false; // a submission is created hidden:true — reveal it on publish
     }
     await data.updateEvent(req.params.id, patch);
     if (prev && prev.submission && prev.submission.userId) {
-      var link = 'https://events.tbiliseli.com/tbilisi-events/e/' + req.params.id;
-      if (!prev.active && patch.active && prev.submission.status !== 'approved') {
+      var link = PUBLIC_ORIGIN + '/e/' + req.params.id;
+      if (publishing) {
         teNotify.notifyUser(prev.submission.userId, 'published', { title: patch.title || prev.title, link: link });
-      } else if (b.notifyAuthor === 'on') {
+      } else if (b.notifyAuthor === 'on' && prev.submission.status === 'approved') {
         teNotify.notifyUser(prev.submission.userId, 'updated', { title: patch.title || prev.title, link: link });
       }
     }
@@ -336,6 +342,7 @@ router.post('/events/:id/reject-submission', requireAuth, express.urlencoded({ e
   try {
     var ev = await data.getEventById(req.params.id);
     if (!ev || !ev.submission || !ev.submission.userId) return res.redirect(req.teBase + '/admin/events');
+    if (ev.submission.status === 'rejected') return res.redirect(req.teBase + '/admin/events/' + req.params.id + '/edit'); // idempotent — don't re-notify
     var reason = (req.body.reason || '').trim() || null;
     await data.updateEvent(req.params.id, { active: false, hidden: true, submission: Object.assign({}, ev.submission, { status: 'rejected', rejectReason: reason }) });
     teNotify.notifyUser(ev.submission.userId, 'rejected', { title: ev.title, reason: reason });
