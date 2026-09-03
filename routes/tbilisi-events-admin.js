@@ -322,7 +322,7 @@ router.post('/events/:id/edit', requireAuth, express.urlencoded({ extended: fals
     await data.updateEvent(req.params.id, patch);
     if (prev && prev.submission && prev.submission.userId) {
       var link = 'https://events.tbiliseli.com/tbilisi-events/e/' + req.params.id;
-      if (!prev.active && patch.active) {
+      if (!prev.active && patch.active && prev.submission.status !== 'approved') {
         teNotify.notifyUser(prev.submission.userId, 'published', { title: patch.title || prev.title, link: link });
       } else if (b.notifyAuthor === 'on') {
         teNotify.notifyUser(prev.submission.userId, 'updated', { title: patch.title || prev.title, link: link });
@@ -426,6 +426,8 @@ router.get('/venues/:id', requireAuth, async function(req, res, next) {
       venue: venue,
       venueTypeSlugs: taxonomy.VENUE_TYPE_SLUGS,
       venueTypeLabels: taxonomy.VENUE_TYPE_LABELS,
+      cities: taxonomy.CITIES,
+      districtsByCity: taxonomy.DISTRICTS,
       upcoming: upcoming,
       past: past,
       showPast: showPast,
@@ -448,9 +450,13 @@ router.post('/venues/:id/edit', requireAuth, express.urlencoded({ extended: fals
     var b = req.body;
     var latNum = parseFloat(b.lat);
     var lngNum = parseFloat(b.lng);
+    var city = taxonomy.isValidCity(b.city) ? b.city : null;
+    var district = (city && taxonomy.isValidDistrict(city, b.district)) ? b.district : null;
     var patch = {
       name: (b.name || '').trim(),
       nameKey: venuesLib.normalizeVenueName((b.name || '').trim()),
+      city: city,
+      district: district,
       area: (b.area || '').trim() || null,
       address: (b.address || '').trim() || null,
       website: (b.website || '').trim() || null,
