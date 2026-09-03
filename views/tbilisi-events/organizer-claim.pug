@@ -1,0 +1,39 @@
+doctype html
+html(lang=lang)
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    title= title
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Oswald:wght@600&display=swap')
+    style.
+      :root{--bg:#e6ded1;--paper2:#fffdf9;--ink:#14110e;--acc:#e2402a;--line:#ded4c4;--muted:#6f665c;--sans:'Manrope',system-ui,sans-serif;--disp:'Oswald',sans-serif}
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+      .card{width:min(440px,92vw);border:1px solid var(--ink);background:var(--paper2);padding:26px 24px}
+      h1{font-family:var(--disp);text-transform:uppercase;font-size:20px;margin-bottom:6px}
+      p{font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:14px}
+      b{color:var(--ink)}
+      label{display:block;font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.1em;color:var(--muted);margin:10px 0 5px}
+      textarea{width:100%;font:inherit;font-size:14px;padding:9px 10px;border:1px solid var(--line);background:var(--paper2);min-height:90px;resize:vertical}
+      button.btn{margin-top:14px;font:inherit;font-weight:700;font-size:14px;padding:11px 16px;border:1px solid var(--ink);background:var(--ink);color:var(--paper2);cursor:pointer}
+      button.btn:hover{background:var(--acc);border-color:var(--acc)}
+      a.plain{color:var(--muted);font-size:13px;text-decoration:none;display:inline-block;margin-top:12px}
+      .note{background:#f2ebe0;border:1px solid var(--line);padding:10px 12px;font-size:13px}
+  body
+    .card
+      h1 I’m the organizer
+      p Of #[b= targetName].
+      if existing === 'approved'
+        .note You’re already confirmed as the organizer.
+      else if existing === 'new'
+        .note Your request is pending review.
+      else
+        p The editors will verify and get in touch. Add a note if it helps.
+        form(method='POST' action=base + '/organizer/claim')
+          input(type='hidden' name='target' value=target)
+          input(type='hidden' name='lang' value=lang)
+          label(for='message') Note (optional)
+          textarea#message(name='message')
+          button.btn(type='submit') Send request
+      p
+        a.plain(href=base + '/') ← Back

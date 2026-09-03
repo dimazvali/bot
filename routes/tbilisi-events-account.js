@@ -186,4 +186,43 @@ router.get('/suggest/thanks', users.requireUser, async function(req, res, next) 
   } catch (e) { next(e); }
 });
 
+function parseTarget(s) {
+  var m = /^(event|venue):([A-Za-z0-9_-]+)$/.exec(String(s || ''));
+  return m ? { type: m[1], id: m[2] } : null;
+}
+
+router.get('/organizer/claim', users.requireUser, async function(req, res, next) {
+  try {
+    var lang = i18n.normalizeLang(req.query.lang);
+    var tgt = parseTarget(req.query.target);
+    if (!tgt) return res.redirect(req.teBase + '/');
+    var name = tgt.type === 'event'
+      ? (await eventsData.getEventById(tgt.id) || {}).title
+      : (await eventsData.getVenueById(tgt.id) || {}).name;
+    if (!name) return res.redirect(req.teBase + '/');
+    var existing = await eventsData.getActiveClaim(res.locals.user.uid, tgt.type, tgt.id);
+    res.render('tbilisi-events/organizer-claim', {
+      title: 'I’m the organizer', lang: lang, t: i18n.UI[lang], base: req.teBase,
+      target: req.query.target, targetName: name, existing: existing ? existing.status : null,
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/organizer/claim', users.requireUser, guardCsrf, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var tgt = parseTarget(req.body.target);
+    if (!tgt) return res.redirect(req.teBase + '/');
+    var dup = await eventsData.getActiveClaim(res.locals.user.uid, tgt.type, tgt.id);
+    if (!dup) {
+      var name = tgt.type === 'event'
+        ? (await eventsData.getEventById(tgt.id) || {}).title
+        : (await eventsData.getVenueById(tgt.id) || {}).name;
+      await eventsData.insertOrganizerClaim({ uid: res.locals.user.uid, targetType: tgt.type, targetId: tgt.id, message: req.body.message });
+      teNotify.notifyAdmins('👤 <b>Заявка «я организатор»</b>\n' + escapeHtml(name || tgt.id) + ' (' + tgt.type + ')\nот ' + escapeHtml(res.locals.user.email) + '\n<a href="https://events.tbiliseli.com/tbilisi-events/admin/organizer-claims">Список заявок</a>');
+    }
+    var backPath = tgt.type === 'event' ? (req.teBase + '/e/' + tgt.id) : (req.teBase + '/venues/' + tgt.id);
+    res.redirect(backPath);
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
