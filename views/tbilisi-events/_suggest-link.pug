@@ -1,0 +1,2 @@
+mixin suggestLink(base, user)
+  a(href=(user ? (base + '/suggest') : (base + '/login?next=' + encodeURIComponent(base + '/suggest'))))= 'Suggest an event'

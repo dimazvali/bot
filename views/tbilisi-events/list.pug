@@ -1,5 +1,6 @@
 doctype html
 include _card.pug
+include _suggest-link.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -341,5 +342,6 @@ html(lang=lang)
         p.note= t.footer
         p.flinks
           a(href=venuesHref)= t.venues
+          +suggestLink(base, user)
           each l in langLinks
             a(href=l.href)= l.code
