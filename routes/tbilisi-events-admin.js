@@ -480,6 +480,15 @@ router.post('/venues/:id/delete', requireAuth, async function(req, res, next) {
   } catch (e) { next(e); }
 });
 
+router.post('/events/:id/image', requireAuth, venueUpload.single('image'), async function(req, res, next) {
+  try {
+    if (!req.file) return backTo(req, res, req.teBase + '/admin/events/' + req.params.id + '/edit');
+    var url = await images.storeEventImage(req.file.buffer, req.params.id);
+    await data.updateEvent(req.params.id, { imageUrl: url });
+    backTo(req, res, req.teBase + '/admin/events/' + req.params.id + '/edit');
+  } catch (e) { next(e); }
+});
+
 router.post('/venues/:id/image', requireAuth, venueUpload.single('image'), async function(req, res, next) {
   try {
     if (req.file && req.file.buffer) {
@@ -797,6 +806,48 @@ router.post('/collections/:id/delete', requireAuth, async function(req, res, nex
   try {
     await data.deleteCollection(req.params.id);
     res.redirect(req.teBase + '/admin/collections');
+  } catch (e) { next(e); }
+});
+
+router.get('/organizer-claims', requireAuth, async function(req, res, next) {
+  try {
+    var status = req.query.status || '';
+    var claims = await data.getOrganizerClaims(status ? { status: status } : {});
+    var events = {}, venues = {}, usersById = {};
+    for (var i = 0; i < claims.length; i++) {
+      var c = claims[i];
+      if (c.targetType === 'event' && !events[c.targetId]) events[c.targetId] = await data.getEventById(c.targetId).catch(function() { return null; });
+      if (c.targetType === 'venue' && !venues[c.targetId]) venues[c.targetId] = await data.getVenueById(c.targetId).catch(function() { return null; });
+      if (!usersById[c.uid]) usersById[c.uid] = await teUsersLib.getUserById(c.uid).catch(function() { return null; });
+    }
+    res.render('tbilisi-events/admin/organizer-claims', {
+      title: 'Организаторы — Tbilisi Events Admin',
+      claims: claims, events: events, venues: venues, usersById: usersById, status: status,
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/organizer-claims/:id/approve', requireAuth, async function(req, res, next) {
+  try {
+    var c = await data.getOrganizerClaimById(req.params.id);
+    if (!c) return res.redirect(req.teBase + '/admin/organizer-claims');
+    await data.decideOrganizerClaim(c.id, 'approved');
+    if (c.targetType === 'event') await data.setEventOrganizer(c.targetId, c.uid);
+    else await data.setVenueOrganizer(c.targetId, c.uid);
+    var name = c.targetType === 'event' ? (await data.getEventById(c.targetId) || {}).title : (await data.getVenueById(c.targetId) || {}).name;
+    teNotify.notifyUser(c.uid, 'organizer_approved', { title: name || c.targetId });
+    res.redirect(req.teBase + '/admin/organizer-claims');
+  } catch (e) { next(e); }
+});
+
+router.post('/organizer-claims/:id/reject', requireAuth, async function(req, res, next) {
+  try {
+    var c = await data.getOrganizerClaimById(req.params.id);
+    if (!c) return res.redirect(req.teBase + '/admin/organizer-claims');
+    await data.decideOrganizerClaim(c.id, 'rejected');
+    var name = c.targetType === 'event' ? (await data.getEventById(c.targetId) || {}).title : (await data.getVenueById(c.targetId) || {}).name;
+    teNotify.notifyUser(c.uid, 'organizer_rejected', { title: name || c.targetId });
+    res.redirect(req.teBase + '/admin/organizer-claims');
   } catch (e) { next(e); }
 });
 

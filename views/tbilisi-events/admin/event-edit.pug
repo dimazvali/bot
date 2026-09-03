@@ -109,5 +109,10 @@ include _admin.pug
     input#f-img-url(type='text' name='url' placeholder='пусто = повторить из imageSourceUrl')
     .toolbar
       button.btn(type='submit') Подтянуть картинку
+  form.block(method='POST' action=`${base}/admin/events/${event.id}/image` enctype='multipart/form-data')
+    label(for='f-img-file') Загрузить файл
+    input#f-img-file(type='file' name='image' accept='image/*')
+    .toolbar
+      button.btn(type='submit') Загрузить фото
     if event.imageUrl
       img.thumb(src=event.imageUrl alt='')
