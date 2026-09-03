@@ -21,6 +21,7 @@ include _admin.pug
         option(value='all' selected=(filters.status === 'all')) все
         option(value='visible' selected=(filters.status === 'visible')) видимые
         option(value='hidden' selected=(filters.status === 'hidden')) скрытые
+        option(value='pending' selected=(filters.status === 'pending')) заявки
     label с даты
       input(type='date' name='dateFrom' value=filters.dateFrom)
     label по дату
@@ -50,6 +51,8 @@ include _admin.pug
             td.mono= e.date + (e.time ? ' ' + e.time : '')
             td
               span.t-title= e.title
+              if e.submission
+                span.badge(title=e.submission.status) заявка
               if e.editorsPick
                 |  #[span.mk ★]
               if e.cancelled

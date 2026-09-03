@@ -8,11 +8,29 @@ include _admin.pug
   if error
     .error-bar= error
 
+  if event.submission
+    .block
+      .block-t Заявка пользователя
+      p.hint
+        = 'От: ' + (submitter ? submitter.email : event.submission.userId)
+        |  · статус: #{event.submission.status}
+        if event.submission.submittedAt
+          |  · #{(event.submission.submittedAt.toDate ? event.submission.submittedAt.toDate() : new Date(event.submission.submittedAt)).toLocaleDateString('ru-RU')}
+      if event.submission.contactNote
+        p.hint= 'Контакт: ' + event.submission.contactNote
+      if event.submission.status === 'pending' || event.submission.status === 'approved'
+        form(method='POST' action=`${base}/admin/events/${event.id}/reject-submission` style='margin-top:8px')
+          input(type='text' name='reason' placeholder='причина отклонения (необязательно)')
+          button.btn.sm.danger(type='submit') Отклонить заявку
+
   form(method='POST' action=`${base}/admin/events/${event.id}/edit`)
     .checks
       label
         input(type='checkbox' name='active' checked=(event.active !== false))
         | Активно (показывать)
+      label
+        input(type='checkbox' name='notifyAuthor')
+        | Уведомить автора об изменениях
       label
         input(type='checkbox' name='editorsPick' checked=(event.editorsPick === true))
         | Выбор редакции
