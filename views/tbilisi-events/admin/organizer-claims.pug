@@ -1,0 +1,49 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'organizers' })
+  .pagehead
+    h1 Организаторы
+    span.count всего #[b= claims.length]
+
+  form.filters(method='GET' action=base + '/admin/organizer-claims')
+    label статус
+      select(name='status' onchange='this.form.submit()')
+        option(value='' selected=(status === '')) все
+        option(value='new' selected=(status === 'new')) новые
+        option(value='approved' selected=(status === 'approved')) одобрено
+        option(value='rejected' selected=(status === 'rejected')) отклонено
+
+  if !claims.length
+    p.hint Заявок нет.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Пользователь
+            th Объект
+            th Сообщение
+            th Дата
+            th Статус
+            th Действия
+        tbody
+          each c in claims
+            - var u = usersById[c.uid]
+            - var obj = c.targetType === 'event' ? events[c.targetId] : venues[c.targetId]
+            - var objName = obj ? (obj.title || obj.name) : c.targetId
+            - var objHref = base + (c.targetType === 'event' ? '/e/' : '/venues/') + c.targetId
+            tr
+              td.mono= u ? u.email : c.uid
+              td
+                = c.targetType + ': '
+                a.link(href=objHref target='_blank' rel='noopener')= objName
+              td= c.message || '—'
+              td.mono= c.createdAt && c.createdAt.toDate ? c.createdAt.toDate().toLocaleDateString('ru-RU') : ''
+              td= c.status
+              td
+                if c.status === 'new'
+                  .acts
+                    form(method='POST' action=`${base}/admin/organizer-claims/${c.id}/approve`)
+                      button.btn.sm(type='submit') Одобрить
+                    form(method='POST' action=`${base}/admin/organizer-claims/${c.id}/reject`)
+                      button.btn.sm.danger(type='submit') Отклонить

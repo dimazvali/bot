@@ -485,7 +485,9 @@ router.get('/venues/:id', async function(req, res, next) {
 
     var facts = [];
     if (venue.address) facts.push({ k: t.address, v: venue.address });
-    if (venue.area) facts.push({ k: t.district, v: venue.area });
+    if (venue.city) facts.push({ k: t.city, v: taxonomy.cityName(venue.city, lang) });
+    var districtLabel = taxonomy.districtName(venue.city, venue.district, lang) || venue.area;
+    if (districtLabel) facts.push({ k: t.district, v: districtLabel });
     if (venue.type) facts.push({ k: t.venueType, v: vtl[venue.type] || venue.type });
 
     var organizerState = res.locals.user
@@ -497,6 +499,8 @@ router.get('/venues/:id', async function(req, res, next) {
       langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues/' + venue.id + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: req.teBase + '/venues' + langQuery(lang),
       venue: venue,
+      isAdmin: await isAdmin(req),
+      editHref: req.teBase + '/admin/venues/' + venue.id,
       organizerState: organizerState,
       organizerHref: req.teBase + '/organizer/claim?target=venue:' + venue.id,
       loginHref: req.teBase + '/login?next=' + encodeURIComponent(req.teBase + '/venues/' + venue.id + langQuery(lang)),

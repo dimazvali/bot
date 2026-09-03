@@ -33,6 +33,7 @@ mixin adminPage(opts)
             a(href=base + '/admin/venues' class=(opts.nav === 'venues' ? 'on' : '')) Площадки
             a(href=base + '/admin/collections' class=(opts.nav === 'collections' ? 'on' : '')) Подборки
             a(href=base + '/admin/heroes' class=(opts.nav === 'heroes' ? 'on' : '')) Герои
+            a(href=base + '/admin/organizer-claims' class=(opts.nav === 'organizers' ? 'on' : '')) Организаторы
             if typeof isSuperadmin !== 'undefined' && isSuperadmin
               a(href=base + '/admin/admins' class=(opts.nav === 'admins' ? 'on' : '')) Админы
             a(href=(base + '/') target='_blank' rel='noopener') Афиша ↗
