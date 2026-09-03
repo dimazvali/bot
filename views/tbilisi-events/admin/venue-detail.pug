@@ -17,6 +17,7 @@ mixin eventRows(list)
   .pagehead
     h1= venue.name
     a.link(href=base + '/admin/venues') ← Все площадки
+    a.link(href=base + '/venues/' + venue.id target='_blank' rel='noopener') Публичная страница ↗
 
   .toolbar
     if venue.editorVerified
@@ -34,8 +35,22 @@ mixin eventRows(list)
     input#v-name(type='text' name='name' value=venue.name)
     .row
       div
-        label(for='v-area') Район
-        input#v-area(type='text' name='area' value=venue.area || '')
+        label(for='v-city') Город
+        select#v-city(name='city')
+          option(value='') —
+          each c in cities
+            option(value=c.slug selected=(venue.city === c.slug))= c.name.ru
+      div
+        label(for='v-district') Район (справочник)
+        select#v-district(name='district')
+          option(value='') —
+          each c in cities
+            each d in districtsByCity[c.slug]
+              option(value=d.slug data-city=c.slug selected=(venue.district === d.slug))= d.name.ru
+    .row
+      div
+        label(for='v-area') Район (свободный текст)
+        input#v-area(type='text' name='area' value=venue.area || '' placeholder='если нет в справочнике')
       div
         label(for='v-type') Тип
         select#v-type(name='type')
@@ -114,3 +129,22 @@ mixin eventRows(list)
   else if past.length
     p.hint
       a.link(href=`${base}/admin/venues/${venue.id}?past=1`) Показать прошедшие (#{past.length})
+
+  script.
+    (function () {
+      var city = document.getElementById('v-city');
+      var district = document.getElementById('v-district');
+      if (!city || !district) return;
+      function sync() {
+        var c = city.value;
+        for (var i = 0; i < district.options.length; i++) {
+          var o = district.options[i];
+          if (!o.value) continue;
+          var show = o.getAttribute('data-city') === c;
+          o.hidden = !show;
+          if (!show && o.selected) district.value = '';
+        }
+      }
+      city.addEventListener('change', sync);
+      sync();
+    })();
