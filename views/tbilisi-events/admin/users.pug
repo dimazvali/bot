@@ -1,0 +1,29 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'users' })
+  .pagehead
+    h1 Пользователи
+    span.count всего #[b= users.length]
+
+  if !users.length
+    p.hint Пока никто не зарегистрировался.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Email
+            th Имя
+            th Google
+            th Telegram
+            th Заявок
+            th Регистрация
+        tbody
+          each u in users
+            tr
+              td.mono= u.email
+              td= u.name || '—'
+              td= u.googleId ? '✓' : '—'
+              td= u.tgUserId ? (u.tgBlocked ? 'заблокирован' : '✓') : '—'
+              td= (pendingByUser[u.id] || 0)
+              td.mono= u.createdAt && u.createdAt.toDate ? u.createdAt.toDate().toLocaleDateString('ru-RU') : ''

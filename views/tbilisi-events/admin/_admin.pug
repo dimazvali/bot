@@ -36,6 +36,7 @@ mixin adminPage(opts)
             a(href=base + '/admin/organizer-claims' class=(opts.nav === 'organizers' ? 'on' : '')) Организаторы
             if typeof isSuperadmin !== 'undefined' && isSuperadmin
               a(href=base + '/admin/admins' class=(opts.nav === 'admins' ? 'on' : '')) Админы
+              a(href=base + '/admin/users' class=(opts.nav === 'users' ? 'on' : '')) Пользователи
             a(href=(base + '/') target='_blank' rel='noopener') Афиша ↗
           a.aout(href=base + '/admin/logout') Выйти
         main.awrap

@@ -857,4 +857,21 @@ router.post('/organizer-claims/:id/reject', requireAuth, async function(req, res
   } catch (e) { next(e); }
 });
 
+router.get('/users', requireAuth, requireSuperAdmin, async function(req, res, next) {
+  try {
+    var users = await teUsersLib.listUsers();
+    users.sort(function(a, b) {
+      var am = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().getTime() : 0;
+      var bm = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate().getTime() : 0;
+      return bm - am;
+    });
+    var allEvents = await data.getAllEvents().catch(function() { return []; });
+    var pendingByUser = {};
+    allEvents.forEach(function(e) {
+      if (e.submission && e.submission.userId) pendingByUser[e.submission.userId] = (pendingByUser[e.submission.userId] || 0) + 1;
+    });
+    res.render('tbilisi-events/admin/users', { title: 'Пользователи — Tbilisi Events Admin', users: users, pendingByUser: pendingByUser });
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
