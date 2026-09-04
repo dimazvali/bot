@@ -1,0 +1,44 @@
+//- Favorite toggle for an event or venue detail page. Locals: user, base,
+//- loginHref, t. `type` is 'event' | 'venue'.
+mixin favButton(type, entityId, isFav)
+  if user
+    button.fav(type='button' data-fav-type=type data-fav-id=entityId aria-pressed=(isFav ? 'true' : 'false'))
+      span.fav-star= isFav ? '★' : '☆'
+      span.fav-txt= isFav ? t.favRemove : t.favAdd
+  else
+    a.fav(href=loginHref)
+      span.fav-star ☆
+      span.fav-txt= t.favAdd
+
+//- Emit once per page, after any +favButton calls.
+mixin favScript()
+  script.
+    (function () {
+      var base = !{JSON.stringify(base)};
+      var loginHref = !{JSON.stringify(loginHref)};
+      var addTxt = !{JSON.stringify(t.favAdd)}, remTxt = !{JSON.stringify(t.favRemove)};
+      var btns = document.querySelectorAll('button.fav[data-fav-type]');
+      Array.prototype.forEach.call(btns, function (btn) {
+        btn.addEventListener('click', function () {
+          btn.disabled = true;
+          fetch(base + '/favorites/toggle', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', 'accept': 'application/json' },
+            body: JSON.stringify({
+              type: btn.getAttribute('data-fav-type'),
+              entityId: btn.getAttribute('data-fav-id')
+            })
+          }).then(function (r) {
+            if (r.status === 401) { location.href = loginHref; return null; }
+            return r.json();
+          }).then(function (j) {
+            if (j && j.ok) {
+              var on = !!j.favorited;
+              btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+              var txt = btn.querySelector('.fav-txt'); if (txt) txt.textContent = on ? remTxt : addTxt;
+              var star = btn.querySelector('.fav-star'); if (star) star.textContent = on ? '★' : '☆';
+            }
+          }).catch(function () {}).then(function () { btn.disabled = false; });
+        });
+      });
+    })();
