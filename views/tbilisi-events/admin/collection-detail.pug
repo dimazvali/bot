@@ -10,7 +10,7 @@ include _admin.pug
       span.badge опубликована
     else
       span.dim черновик
-    a.btn.sm(href=`${base}/collections/${collection.id}` target='_blank' rel='noopener') Открыть на сайте ↗
+    a.btn.sm(href=`${base}/collections/${collection.slug || collection.id}` target='_blank' rel='noopener') Открыть на сайте ↗
 
   h2.sec-lbl Данные подборки
   form.block(method='POST' action=`${base}/admin/collections/${collection.id}/edit`)

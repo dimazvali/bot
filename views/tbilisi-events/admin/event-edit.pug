@@ -4,7 +4,7 @@ include _admin.pug
   a.crumb(href=base + '/admin/events') ← К списку
   .pagehead
     h1= title
-    a.link(href=base + '/e/' + event.id target='_blank' rel='noopener') Публичная страница ↗
+    a.link(href=base + '/e/' + (event.slug || event.id) target='_blank' rel='noopener') Публичная страница ↗
 
   if error
     .error-bar= error

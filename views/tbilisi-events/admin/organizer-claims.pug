@@ -32,7 +32,7 @@ include _admin.pug
             - var u = usersById[c.uid]
             - var obj = c.targetType === 'event' ? events[c.targetId] : venues[c.targetId]
             - var objName = obj ? (obj.title || obj.name) : c.targetId
-            - var objHref = base + (c.targetType === 'event' ? '/e/' : '/venues/') + c.targetId
+            - var objHref = base + (c.targetType === 'event' ? '/e/' : '/venues/') + ((obj && obj.slug) || c.targetId)
             tr
               td
                 a.link(href=base + '/admin/organizers/' + c.uid)= u ? u.email : c.uid

@@ -13,11 +13,11 @@ mixin eventRows(list)
         if e.cancelled
           |  отменено
 
-+adminPage({ title: title, nav: 'venues' })
++adminPage({ title: title, nav: 'venues', leaflet: true })
   .pagehead
     h1= venue.name
     a.link(href=base + '/admin/venues') ← Все площадки
-    a.link(href=base + '/venues/' + venue.id target='_blank' rel='noopener') Публичная страница ↗
+    a.link(href=base + '/venues/' + (venue.slug || venue.id) target='_blank' rel='noopener') Публичная страница ↗
 
   .toolbar
     if venue.editorVerified
@@ -59,13 +59,27 @@ mixin eventRows(list)
             option(value=slug selected=(venue.type === slug))= venueTypeLabels[slug]
     label(for='v-addr') Адрес
     input#v-addr(type='text' name='address' value=venue.address || '')
-    .row
-      div
-        label(for='v-lat') Широта (lat)
-        input#v-lat(type='text' name='lat' value=(venue.lat != null ? venue.lat : ''))
-      div
-        label(for='v-lng') Долгота (lng)
-        input#v-lng(type='text' name='lng' value=(venue.lng != null ? venue.lng : ''))
+
+    label Точка на карте
+    #v-map.v-map(
+      data-lat=(venue.lat != null ? venue.lat : '')
+      data-lng=(venue.lng != null ? venue.lng : '')
+    )
+    input#v-lat(type='hidden' name='lat' value=(venue.lat != null ? venue.lat : ''))
+    input#v-lng(type='hidden' name='lng' value=(venue.lng != null ? venue.lng : ''))
+    .v-map-bar
+      span#v-coords(data-empty='точка не задана')
+        if venue.lat != null && venue.lng != null
+          = venue.lat + ', ' + venue.lng
+        else
+          | точка не задана
+      button#v-clear.btn.sm(type='button') Очистить точку
+    #v-confirm.v-confirm(hidden)
+      span Поставить точку сюда: #[b#v-confirm-coords]?
+      button#v-confirm-ok.btn.sm.solid(type='button') Подтвердить точку
+      button#v-confirm-cancel.btn.sm(type='button') Отмена
+    p.hint Кликните по карте, чтобы выбрать место, затем подтвердите. Точка сохранится вместе с формой по кнопке «Сохранить».
+
     label(for='v-site') Сайт
     input#v-site(type='text' name='website' value=venue.website || '')
     label(for='v-d-ru') Описание RU
@@ -77,6 +91,11 @@ mixin eventRows(list)
     label
       input(type='checkbox' name='editorVerified' checked=!!venue.editorVerified)
       |  Проверено редактором
+    label
+      input(type='checkbox' name='closed' checked=!!venue.closed)
+      |  Закрыто (площадка больше не работает)
+    label(for='v-closed-date') Дата закрытия (необязательно)
+    input#v-closed-date(type='date' name='closedDate' value=venue.closedDate || '')
     .toolbar
       button.btn.solid(type='submit') Сохранить
 
