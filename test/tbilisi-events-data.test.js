@@ -166,3 +166,46 @@ test('getViewRecords returns newest-first, optionally filtered by type/entityId'
   var limited = await data.getViewRecords({ limit: 2 });
   assert.equal(limited.length, 2);
 });
+
+test('setFavorite / isFavorited toggle a favorite on and off', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  assert.equal(await data.isFavorited('u1', 'event', 'e1'), false);
+
+  var r1 = await data.setFavorite('u1', 'event', 'e1', true);
+  assert.equal(r1, true);
+  assert.equal(await data.isFavorited('u1', 'event', 'e1'), true);
+
+  var r2 = await data.setFavorite('u1', 'event', 'e1', false);
+  assert.equal(r2, false);
+  assert.equal(await data.isFavorited('u1', 'event', 'e1'), false);
+
+  // toggling off when already off does not throw
+  await data.setFavorite('u1', 'event', 'e1', false);
+});
+
+test('setFavorite rejects an unknown type', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  await assert.rejects(function() { return data.setFavorite('u1', 'widget', 'x', true); }, /bad key/i);
+});
+
+test('getFavorites returns only the user rows, newest-first', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var gap = function() { return new Promise(function(r) { setTimeout(r, 2); }); };
+  await data.setFavorite('u1', 'event', 'e1', true);
+  await gap();
+  await data.setFavorite('u1', 'venue', 'v9', true);
+  await gap();
+  await data.setFavorite('u2', 'event', 'e1', true); // other user
+
+  var favs = await data.getFavorites('u1');
+  assert.equal(favs.length, 2);
+  assert.equal(favs[0].type, 'venue');   // v9 is newest
+  assert.equal(favs[0].entityId, 'v9');
+  assert.equal(favs[1].entityId, 'e1');
+  favs.forEach(function(f) { assert.equal(f.userId, 'u1'); });
+
+  assert.deepEqual(await data.getFavorites('nobody'), []);
+});
