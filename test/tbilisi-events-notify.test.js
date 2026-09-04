@@ -18,9 +18,9 @@ test('notifCopy: known key per lang, en fallback', function() {
 
 test('notifCopy: every key renders for every lang', function() {
   var langs = ['en', 'ru', 'ka'];
-  ['published', 'rejected', 'updated', 'organizer_approved', 'organizer_rejected'].forEach(function(key) {
+  ['published', 'rejected', 'updated', 'organizer_approved', 'organizer_rejected', 'favVenueEvent'].forEach(function(key) {
     langs.forEach(function(lang) {
-      var m = notify.notifCopy(key, lang, { title: 'T', link: 'https://x/e/1', reason: 'R' });
+      var m = notify.notifCopy(key, lang, { title: 'T', link: 'https://x/e/1', reason: 'R', venueName: 'Fabrika', eventTitle: 'Jazz Night', date: '2026-09-20' });
       assert.ok(m, key + '/' + lang + ' should render');
       assert.ok(m.tg.length > 0, key + '/' + lang + ' tg should render');
       assert.ok(m.email.subject.length > 0);
@@ -84,4 +84,12 @@ test('routeNotify: no TG -> email; no TG and no email -> swallowed', async funct
   await notify.routeNotify({ id: 'u1', lang: 'en' }, { tg: 'hi', email: { subject: 's', html: 'h', text: 't' } },
     { sendTg: async function() { throw new Error('x'); }, sendEmail: async function() { throw new Error('x'); }, setBlocked: async function() {} });
   // no throw
+});
+
+test('notifCopy: favVenueEvent mentions the venue and event', function() {
+  var ru = notify.notifCopy('favVenueEvent', 'ru', { venueName: 'Fabrika', eventTitle: 'Jazz Night', date: '2026-09-20', link: 'https://x/e/1' });
+  assert.ok(ru.tg.indexOf('Fabrika') !== -1);
+  assert.ok(ru.tg.indexOf('Jazz Night') !== -1);
+  assert.ok(ru.email.html.indexOf('Fabrika') !== -1);
+  assert.ok(ru.email.html.indexOf('Jazz Night') !== -1);
 });
