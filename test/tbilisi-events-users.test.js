@@ -358,6 +358,17 @@ test('setTgBlocked flips the flag', async function() {
   assert.equal((await users.getUserById(u.id)).tgBlocked, false);
 });
 
+test('setNotifyFavVenues flips the flag', async function() {
+  var db = makeFakeDb();
+  users.init(db);
+  var u = await users.upsertEmailUser('nfv@b.com', 'en');
+  assert.equal((await users.getUserById(u.id)).notifyFavVenues, undefined);
+  await users.setNotifyFavVenues(u.id, true);
+  assert.equal((await users.getUserById(u.id)).notifyFavVenues, true);
+  await users.setNotifyFavVenues(u.id, false);
+  assert.equal((await users.getUserById(u.id)).notifyFavVenues, false);
+});
+
 test('listUsers returns all user docs', async function() {
   var db = makeFakeDb();
   users.init(db);
