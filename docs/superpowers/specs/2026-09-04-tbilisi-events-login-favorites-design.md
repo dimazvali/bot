@@ -430,3 +430,14 @@ Disallow: /favorites
 - A global "N people saved this" count on entities.
 - Favoriting from list/card views, or favoriting collections.
 - localStorage favorites for signed-out visitors.
+
+## Status
+
+Phase 1 + Phase 2 implemented 2026-09-04 on branch `te-login-favorites` (plan:
+`docs/superpowers/plans/2026-09-04-tbilisi-events-login-favorites.md`). Smoke-tested
+end to end against a live Firestore-backed server: guest navbar/fav-button link
+to login with a correct `?next=`; `POST /favorites/toggle` 401s a guest and
+toggles on/off for a signed-in session; `/me` lists both a favorited event and
+a favorited venue with working links; `robots.txt` carries `Disallow:
+/favorites`. Georgian i18n strings are best-effort — flag for a native review.
+Phase 3 (Telegram notifications for favorited venues) not started.
