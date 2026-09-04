@@ -94,3 +94,75 @@ test('insertEvent / insertVenue / insertCollection seed viewCount 0', async func
   var cSnap = await db.collection('tbilisiEventsCollections').doc(cId).get();
   assert.equal(cSnap.data().viewCount, 0);
 });
+
+test('bumpViewCount increments the entity viewCount atomically', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var evId = await data.insertEvent({ title: 'E', date: '2026-09-20' });
+
+  await data.bumpViewCount('event', evId);
+  await data.bumpViewCount('event', evId);
+  assert.equal((await data.getEventById(evId)).viewCount, 2);
+
+  var vId = await data.insertVenue({ name: 'Hall' });
+  await data.bumpViewCount('venue', vId);
+  assert.equal((await data.getVenueById(vId)).viewCount, 1);
+});
+
+test('bumpViewCount rejects an unknown type', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  await assert.rejects(function() { return data.bumpViewCount('widget', 'x'); }, /unknown view type/i);
+});
+
+test('addViewRecord writes a row with defaults + stamps at', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  await data.addViewRecord({ type: 'event', entityId: 'abc', ipHash: '9f2c', ref: 'google.com', lang: 'ru', path: '/e/abc' });
+  var snap = await db.collection('tbilisiEventsViews').get();
+  assert.equal(snap.size, 1);
+  var row = snap.docs[0].data();
+  assert.equal(row.type, 'event');
+  assert.equal(row.entityId, 'abc');
+  assert.equal(row.ipHash, '9f2c');
+  assert.equal(row.ref, 'google.com');
+  assert.equal(row.lang, 'ru');
+  assert.equal(row.path, '/e/abc');
+  assert.ok(row.at instanceof Date);
+});
+
+test('addViewRecord fills null defaults for omitted fields', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  await data.addViewRecord({ type: 'venue', entityId: 'v1' });
+  var row = (await db.collection('tbilisiEventsViews').get()).docs[0].data();
+  assert.equal(row.ipHash, null);
+  assert.equal(row.ref, null);
+  assert.equal(row.lang, null);
+  assert.equal(row.path, null);
+});
+
+test('getViewRecords returns newest-first, optionally filtered by type/entityId', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var gap = function() { return new Promise(function(r) { setTimeout(r, 2); }); };
+  await data.addViewRecord({ type: 'event', entityId: 'a', path: '1' });
+  await gap();
+  await data.addViewRecord({ type: 'event', entityId: 'b', path: '2' });
+  await gap();
+  await data.addViewRecord({ type: 'venue', entityId: 'a', path: '3' });
+
+  var all = await data.getViewRecords({});
+  assert.equal(all.length, 3);
+  assert.equal(all[0].path, '3'); // newest first
+
+  var evOnly = await data.getViewRecords({ type: 'event' });
+  assert.deepEqual(evOnly.map(function(r) { return r.path; }).sort(), ['1', '2']);
+
+  var evA = await data.getViewRecords({ type: 'event', entityId: 'a' });
+  assert.equal(evA.length, 1);
+  assert.equal(evA[0].path, '1');
+
+  var limited = await data.getViewRecords({ limit: 2 });
+  assert.equal(limited.length, 2);
+});
