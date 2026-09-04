@@ -474,6 +474,8 @@ router.post('/venues/:id/edit', requireAuth, express.urlencoded({ extended: fals
         ? { ru: (b.desc_ru || '').trim(), en: (b.desc_en || '').trim(), ka: (b.desc_ka || '').trim() }
         : null,
       editorVerified: b.editorVerified === 'on',
+      closed: b.closed === 'on',
+      closedDate: /^\d{4}-\d{2}-\d{2}$/.test(b.closedDate || '') ? b.closedDate : null,
     };
     await data.updateVenue(req.params.id, patch);
     backTo(req, res, req.teBase + '/admin/venues/' + req.params.id);
@@ -532,6 +534,9 @@ function researchPatch(venue, r) {
   patch.researchNote = r.confidence + (r.canonicalName ? ' · ' + r.canonicalName : '');
   if (!venue.address && r.address) patch.address = r.address;
   if (!venue.area && r.area) patch.area = r.area;
+  if (!venue.city && r.city) patch.city = r.city;
+  var effectiveCity = venue.city || patch.city;
+  if (!venue.district && r.district && effectiveCity === r.city) patch.district = r.district;
   if (venue.lat == null && r.lat != null) patch.lat = r.lat;
   if (venue.lng == null && r.lng != null) patch.lng = r.lng;
   if (!venue.website && r.website) patch.website = r.website;
