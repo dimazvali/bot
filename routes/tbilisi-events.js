@@ -223,6 +223,7 @@ router.get('/robots.txt', function(req, res) {
     'Disallow: /me',
     'Disallow: /suggest',
     'Disallow: /organizer/',
+    'Disallow: /favorites',
     '',
     'Sitemap: ' + absUrl(req, '/sitemap.xml'),
     '',
