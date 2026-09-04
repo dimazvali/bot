@@ -1,5 +1,6 @@
 doctype html
 include ../_crumbs.pug
+include ../_account-link.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -33,6 +34,8 @@ html(lang=lang)
       .brand{font-family:var(--disp);font-size:18px;font-weight:600;text-transform:uppercase}
       .brand .acc{color:var(--acc)}
       .langs{margin-left:auto;display:flex;gap:3px}
+      .acct{margin-left:12px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dark-fg);white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+      .acct:hover{color:var(--acc)}
       .lang{font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 7px;border-radius:2px;color:var(--dark-muted)}
       .lang.on{background:var(--acc);color:#fffdf9}
 
@@ -71,6 +74,7 @@ html(lang=lang)
         .langs
           each l in langLinks
             a(href=l.href class=l.active ? 'lang on' : 'lang')= l.code
+        +accountLink()
 
       +crumbs(crumbs)
 
