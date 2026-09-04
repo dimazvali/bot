@@ -47,6 +47,14 @@ html(lang=lang)
               a.btn(href=tgDeepLink target='_blank' rel='noopener') Link Telegram
           else
             p(style='margin-top:10px;color:var(--muted);font-size:13px') Reload to get a link.
+      .row
+        .k Notifications
+        label(style='display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer')
+          form(method='POST' action=base + '/me/notify-fav-venues' style='display:contents')
+            input(type='checkbox' name='on' value='on' checked=notifyFavVenues onchange='this.form.submit()')
+          | Notify me about new events at my favorite venues
+        if notifyFavVenues && !tgLinked
+          p(style='margin-top:8px;color:var(--muted);font-size:12px') You'll get these by email until you link Telegram above.
       h2.sec= t.favTitle
       if favorites.events.length || favorites.venues.length
         if favorites.events.length

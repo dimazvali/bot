@@ -138,8 +138,16 @@ router.get('/me', users.requireUser, async function(req, res, next) {
       tgBlocked: !!user.tgBlocked,
       tgDeepLink: tg.token ? users.deepLink(tg.token) : null,
       favorites: { events: favEvents, venues: favVenues },
+      notifyFavVenues: !!user.notifyFavVenues,
     });
   } catch (e) { console.error('[te-account] me', e.message); next(e); }
+});
+
+router.post('/me/notify-fav-venues', users.requireUser, guardCsrf, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    await users.setNotifyFavVenues(res.locals.user.uid, req.body.on === 'on');
+    res.redirect(req.teBase + '/me');
+  } catch (e) { next(e); }
 });
 
 router.post('/favorites/toggle', express.json(), guardCsrf, users.requireUser, async function(req, res) {
