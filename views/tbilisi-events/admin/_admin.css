@@ -61,6 +61,10 @@ img{max-width:100%;display:block}
 .tbl tbody tr:last-child td{border-bottom:none}
 .tbl tbody tr:hover{background:var(--panel)}
 .tbl td.mono,.tbl .mono{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tbl th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.tbl th.sortable::after{content:"⇅";opacity:.35;margin-left:5px;font-size:10px}
+.tbl th.sort-asc::after{content:"▲";opacity:.9}
+.tbl th.sort-desc::after{content:"▼";opacity:.9}
 .tbl .t-title{font-weight:600}
 .tbl tr.is-off td{opacity:.5}
 .tbl tr.is-off .t-title{text-decoration:line-through;text-decoration-thickness:2px}

@@ -21,6 +21,8 @@ include _admin.pug
       div
         label(for='a-pass') Пароль
         input#a-pass(type='text' name='password' required)
+    label(for='a-tg') Telegram id (для уведомлений)
+    input#a-tg(type='text' name='tgId' inputmode='numeric' placeholder='напр. 144489840 — проверим доступность бота')
     .checks
       label
         input(type='checkbox' name='superadmin')
@@ -37,6 +39,8 @@ include _admin.pug
         = a.name
         if a.superadmin
           span.badge суперадмин
+        if a.tgId
+          span.badge TG #{a.tgId}
         if a.id === currentAdminId
           span.badge вы
       form(method='POST' action=`${base}/admin/admins/${a.id}`)
@@ -50,6 +54,8 @@ include _admin.pug
               label
                 input(type='checkbox' name='superadmin' checked=a.superadmin)
                 | Суперадмин
+        label(for=`a-${a.id}-tg`) Telegram id
+        input(id=`a-${a.id}-tg` type='text' name='tgId' inputmode='numeric' value=a.tgId || '' placeholder='пусто — отключить уведомления')
         .toolbar
           button.btn.solid(type='submit') Сохранить
           if a.id !== currentAdminId

@@ -455,11 +455,36 @@ router.post('/events/:id/fetch-image', requireAuth, express.urlencoded({ extende
 
 router.get('/venues', requireAuth, async function(req, res, next) {
   try {
+    var vFilters = {
+      type: taxonomy.isValidVenueType(req.query.type) ? req.query.type : '',
+      status: (req.query.status === 'open' || req.query.status === 'closed') ? req.query.status : '',
+    };
+
     var venues = await data.getVenues();
+
+    // Representatives per venue: distinct users who claimed it + its linked organizer.
+    var claims = await data.getOrganizerClaims({}).catch(function() { return []; });
+    var repsByVenue = {};
+    claims.forEach(function(c) {
+      if (c.targetType !== 'venue' || !c.targetId || !c.uid) return;
+      (repsByVenue[c.targetId] || (repsByVenue[c.targetId] = {}))[c.uid] = true;
+    });
+    venues.forEach(function(v) {
+      var set = repsByVenue[v.id] || (repsByVenue[v.id] = {});
+      if (v.organizerUserId) set[v.organizerUserId] = true;
+      v.repCount = Object.keys(set).length;
+    });
+
+    if (vFilters.type) venues = venues.filter(function(v) { return v.type === vFilters.type; });
+    if (vFilters.status === 'closed') venues = venues.filter(function(v) { return !!v.closed; });
+    else if (vFilters.status === 'open') venues = venues.filter(function(v) { return !v.closed; });
+
     venues.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
     res.render('tbilisi-events/admin/venues', {
       title: 'Площадки — Tbilisi Events Admin',
       venues: venues,
+      vFilters: vFilters,
       venueTypeSlugs: taxonomy.VENUE_TYPE_SLUGS,
       venueTypeLabels: taxonomy.VENUE_TYPE_LABELS,
       error: null,
@@ -699,33 +724,60 @@ router.get('/admins', requireAuth, requireSuperAdmin, async function(req, res) {
   await renderAdmins(res, { saved: req.query.saved === '1' });
 });
 
+// Validate a Telegram id and confirm the tour bot can reach it. Returns the
+// normalized id string, or an error message.
+async function checkAdminTgId(raw) {
+  var tgId = (raw || '').trim();
+  if (!tgId) return { tgId: '' };
+  if (!/^-?\d{5,}$/.test(tgId)) return { error: 'Telegram id должен быть числом' };
+  var chk = await teNotify.verifyTelegramReachable(tgId);
+  if (!chk.ok) return { error: 'Telegram недоступен: ' + chk.error + '. Попросите пользователя открыть @' + (process.env.EKA_BOT_NAME || 'tbiliseli_tour_bot') + ' и нажать «Start».' };
+  return { tgId: tgId };
+}
+
 router.post('/admins', requireAuth, requireSuperAdmin, express.urlencoded({ extended: false }), async function(req, res) {
-  var adminError = null;
+  var pass = (req.body.password || '').trim();
+  if (!pass) return renderAdmins(res, { adminError: 'Укажите пароль' });
+
+  var tg = await checkAdminTgId(req.body.tgId);
+  if (tg.error) return renderAdmins(res, { adminError: tg.error });
+
   try {
-    var pass = (req.body.password || '').trim();
-    if (!pass) throw new Error('Укажите пароль');
     await data.addAdmin({
       name: req.body.name,
       passwordHash: cookieToken(pass),
       superadmin: req.body.superadmin === 'on',
+      tgId: tg.tgId || null,
     });
   } catch (e) {
-    adminError = e.message;
+    return renderAdmins(res, { adminError: e.message });
   }
-  if (adminError) return renderAdmins(res, { adminError: adminError });
   audit(req, res, 'create', { entity: 'admin', summary: 'Добавлен админ: ' + ((req.body.name || '').trim() || '—') + (req.body.superadmin === 'on' ? ' (суперадмин)' : '') });
   res.redirect(req.teBase + '/admin/admins?saved=1');
 });
 
 router.post('/admins/:id', requireAuth, requireSuperAdmin, express.urlencoded({ extended: false }), async function(req, res) {
+  var admin = await data.getAdminById(req.params.id).catch(function() { return null; });
+  if (!admin) return res.redirect(req.teBase + '/admin/admins');
+
   var patch = { superadmin: req.body.superadmin === 'on' };
   var pass = (req.body.password || '').trim();
   if (pass) patch.passwordHash = cookieToken(pass);
+
+  // Only re-verify Telegram when the id actually changed.
+  var newTgId = (req.body.tgId || '').trim();
+  var tgChanged = newTgId !== (admin.tgId || '');
+  if (tgChanged) {
+    var tg = await checkAdminTgId(newTgId);
+    if (tg.error) return renderAdmins(res, { adminError: tg.error });
+    patch.tgId = tg.tgId || null;
+  }
+
   try {
     await data.updateAdmin(req.params.id, patch);
     audit(req, res, 'edit', {
       entity: 'admin', entityId: req.params.id,
-      summary: 'Правка админа' + (pass ? ' (смена пароля)' : '') + (patch.superadmin ? ', суперадмин' : ''),
+      summary: 'Правка админа' + (pass ? ' (смена пароля)' : '') + (tgChanged ? ' (telegram)' : '') + (patch.superadmin ? ', суперадмин' : ''),
     });
   } catch (e) { /* fall through to redirect */ }
   res.redirect(req.teBase + '/admin/admins?saved=1');

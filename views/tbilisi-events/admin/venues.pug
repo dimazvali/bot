@@ -42,6 +42,22 @@ include _admin.pug
       button.btn.danger(type='submit' onclick='return confirm("Слить? Первую удалит, события перепривяжет ко второй.")') Слить
 
   h2.sec-lbl Все площадки
+
+  form.filters(method='GET' action=base + '/admin/venues')
+    label тип
+      select(name='type')
+        option(value='') —
+        each slug in venueTypeSlugs
+          option(value=slug selected=(vFilters.type === slug))= venueTypeLabels[slug]
+    label статус
+      select(name='status')
+        option(value='' selected=(vFilters.status === '')) все
+        option(value='open' selected=(vFilters.status === 'open')) только открытые
+        option(value='closed' selected=(vFilters.status === 'closed')) только закрытые
+    button.btn.sm(type='submit') Фильтровать
+    if vFilters.type || vFilters.status
+      a.link(href=base + '/admin/venues') сбросить
+
   .tbl-scroll
     table.tbl
       thead
@@ -50,9 +66,12 @@ include _admin.pug
           th Район
           th Тип
           th Событий
+          th Представители
+          th Добавлена
           th Проверено
       tbody
         each v in venues
+          - var vCreated = v.createdAt && v.createdAt.toDate ? v.createdAt.toDate() : (v.createdAt ? new Date(v.createdAt) : null)
           tr
             td
               a.link(href=`${base}/admin/venues/${v.id}`)= v.name
@@ -61,6 +80,8 @@ include _admin.pug
             td= v.area || '—'
             td= v.type ? venueTypeLabels[v.type] : '—'
             td= v.eventCount || 0
+            td(class=(v.repCount ? '' : 'dim'))= v.repCount || 0
+            td.mono= vCreated ? vCreated.toLocaleDateString('ru-RU') : '—'
             td
               if v.editorVerified
                 span.badge ✓

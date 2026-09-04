@@ -30,26 +30,30 @@ include _admin.pug
       input(type='text' name='q' value=filters.q placeholder='название / место')
     button.btn.sm(type='submit') Фильтровать
 
+  p.hint Клик по заголовку колонки сортирует таблицу.
   .tbl-scroll
     table.tbl
       thead
         tr
           th
-          th Дата
-          th Название
-          th Тип
+          th.sortable Дата
+          th.sortable Название
+          th.sortable Тип
           th Язык
-          th Площадка
+          th.sortable Площадка
           th Источники
+          th.sortable Добавлено
           th Действия
       tbody
         each e in events
+          - var venueName = e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : (e.place || '')
+          - var created = e.createdAt && e.createdAt.toDate ? e.createdAt.toDate() : (e.createdAt ? new Date(e.createdAt) : null)
           tr(class=e.hidden ? 'is-off' : '')
             td
               if e.imageUrl
                 img(src=e.imageUrl alt='')
-            td.mono= e.date + (e.time ? ' ' + e.time : '')
-            td
+            td.mono(data-sort=(e.date || '') + (e.time ? 'T' + e.time : ''))= e.date + (e.time ? ' ' + e.time : '')
+            td(data-sort=(e.title || '').toLowerCase())
               span.t-title= e.title
               if e.submission
                 span.badge(title=e.submission.status) заявка
@@ -59,10 +63,11 @@ include _admin.pug
                 |  #[span.mk ⛔]
               if e.active === false
                 |  #[span.dim (неактивно)]
-            td= e.type ? (eventTypeLabels[e.type] || e.type) : ''
+            td(data-sort=e.type ? (eventTypeLabels[e.type] || e.type) : '')= e.type ? (eventTypeLabels[e.type] || e.type) : ''
             td= (e.language || []).map(function(l){ return languageLabels[l] || l; }).join(', ')
-            td= e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : (e.place || '')
+            td(data-sort=venueName.toLowerCase())= venueName
             td.mono= (e.sources || []).map(function(s){ return s.label; }).join(', ')
+            td.mono(data-sort=(created ? created.getTime() : 0))= created ? created.toLocaleDateString('ru-RU') : '—'
             td
               .acts
                 a.btn.sm(href=`${base}/admin/events/${e.id}/edit`) править
@@ -76,3 +81,34 @@ include _admin.pug
                     button.btn.sm(type='submit') скрыть
                 form(method='POST' action=`${base}/admin/events/${e.id}/delete` onsubmit='return confirm("Удалить событие?")')
                   button.btn.sm.danger(type='submit') удалить
+
+  script.
+    (function () {
+      var table = document.querySelector('table.tbl');
+      if (!table || !table.tHead) return;
+      var tbody = table.tBodies[0];
+      var heads = table.tHead.rows[0].cells;
+      var cur = -1, dir = 1;
+      function cellVal(tr, i) {
+        var td = tr.cells[i];
+        if (!td) return '';
+        var s = td.getAttribute('data-sort');
+        return s == null ? td.textContent.trim() : s;
+      }
+      function sortBy(i) {
+        dir = cur === i ? -dir : 1;
+        cur = i;
+        Array.prototype.slice.call(tbody.rows).sort(function (a, b) {
+          var x = cellVal(a, i), y = cellVal(b, i);
+          var nx = parseFloat(x), ny = parseFloat(y), num = x !== '' && y !== '' && !isNaN(nx) && !isNaN(ny);
+          return (num ? nx - ny : String(x).localeCompare(String(y), 'ru')) * dir;
+        }).forEach(function (r) { tbody.appendChild(r); });
+        for (var k = 0; k < heads.length; k++) heads[k].classList.remove('sort-asc', 'sort-desc');
+        heads[i].classList.add(dir > 0 ? 'sort-asc' : 'sort-desc');
+      }
+      for (var i = 0; i < heads.length; i++) {
+        if (heads[i].classList.contains('sortable')) {
+          (function (idx) { heads[idx].addEventListener('click', function () { sortBy(idx); }); })(i);
+        }
+      }
+    })();
