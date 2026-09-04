@@ -2,8 +2,9 @@ include _admin.pug
 
 +adminPage({ title: title, nav: 'organizers' })
   .pagehead
-    h1 Организаторы
+    h1 Организаторы — заявки
     span.count всего #[b= claims.length]
+    a.link(href=base + '/admin/organizers') Связи организаторов →
 
   form.filters(method='GET' action=base + '/admin/organizer-claims')
     label статус
@@ -33,7 +34,8 @@ include _admin.pug
             - var objName = obj ? (obj.title || obj.name) : c.targetId
             - var objHref = base + (c.targetType === 'event' ? '/e/' : '/venues/') + c.targetId
             tr
-              td.mono= u ? u.email : c.uid
+              td
+                a.link(href=base + '/admin/organizers/' + c.uid)= u ? u.email : c.uid
               td
                 = c.targetType + ': '
                 a.link(href=objHref target='_blank' rel='noopener')= objName

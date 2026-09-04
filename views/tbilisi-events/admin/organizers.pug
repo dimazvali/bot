@@ -1,0 +1,30 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'organizers' })
+  .pagehead
+    h1 Организаторы — связи
+    span.count всего #[b= rows.length]
+    a.link(href=base + '/admin/organizer-claims') Заявки →
+
+  if !rows.length
+    p.hint Пока нет организаторов со связанными событиями или площадками.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Пользователь
+            th События
+            th Площадки
+            th
+        tbody
+          each r in rows
+            tr
+              td
+                a.link(href=base + '/admin/organizers/' + r.uid)= (r.user && r.user.email) || r.uid
+                if r.user && r.user.name
+                  .mono= r.user.name
+              td= r.events
+              td= r.venues
+              td
+                a.btn.sm(href=base + '/admin/organizers/' + r.uid) Открыть

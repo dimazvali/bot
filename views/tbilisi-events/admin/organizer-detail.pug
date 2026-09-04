@@ -1,0 +1,94 @@
+include _admin.pug
+
+mixin linkRow(kind, item, label, editHref)
+  tr
+    td.mono= kind === 'event' ? (item.date || '—') : ''
+    td
+      if editHref
+        a.link(href=editHref)= label
+      else
+        = label
+    td
+      form(method='POST' action=`${base}/admin/organizers/${uid}/unlink`)
+        input(type='hidden' name='kind' value=kind)
+        input(type='hidden' name='targetId' value=item.id)
+        button.btn.sm.danger(type='submit') Отвязать
+
++adminPage({ title: title, nav: 'organizers' })
+  .pagehead
+    h1= (user && user.email) || uid
+    a.link(href=base + '/admin/organizers') ← Все организаторы
+    a.link(href=base + '/admin/organizer-claims') Заявки
+
+  .block
+    .block-t Пользователь
+    if user
+      p.mono= user.email
+      p= user.name || '—'
+      p.mono Google: #{user.googleId ? '✓' : '—'} · Telegram: #{user.tgUserId ? (user.tgBlocked ? 'заблокирован' : '✓') : '—'}
+      p.mono uid: #{uid}
+    else
+      p.dim Профиль пользователя не найден.
+      p.mono uid: #{uid}
+
+  h2.sec-lbl События (#{linkedEvents.length})
+  if !linkedEvents.length
+    p.hint Связанных событий нет.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Дата
+            th Название
+            th
+        tbody
+          each e in linkedEvents
+            +linkRow('event', e, e.title || e.id, `${base}/admin/events/${e.id}/edit`)
+  form.toolbar(method='POST' action=`${base}/admin/organizers/${uid}/link`)
+    input(type='hidden' name='kind' value='event')
+    select(name='targetId' required)
+      option(value='') — выбрать событие —
+      each e in allEvents
+        option(value=e.id)= (e.date || 'без даты') + ' · ' + (e.title || e.id)
+    button.btn.sm.solid(type='submit') Привязать событие
+
+  h2.sec-lbl Площадки (#{linkedVenues.length})
+  if !linkedVenues.length
+    p.hint Связанных площадок нет.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th
+            th Название
+            th
+        tbody
+          each v in linkedVenues
+            +linkRow('venue', v, v.name || v.id, `${base}/admin/venues/${v.id}`)
+  form.toolbar(method='POST' action=`${base}/admin/organizers/${uid}/link`)
+    input(type='hidden' name='kind' value='venue')
+    select(name='targetId' required)
+      option(value='') — выбрать площадку —
+      each v in allVenues
+        option(value=v.id)= (v.name || v.id) + (v.area ? ' · ' + v.area : '')
+    button.btn.sm.solid(type='submit') Привязать площадку
+
+  if claims.length
+    h2.sec-lbl Заявки этого пользователя
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Объект
+            th Сообщение
+            th Статус
+            th Дата
+        tbody
+          each c in claims
+            tr
+              td.mono= c.targetType + ': ' + c.targetId
+              td= c.message || '—'
+              td= c.status
+              td.mono= c.createdAt && c.createdAt.toDate ? c.createdAt.toDate().toLocaleDateString('ru-RU') : ''

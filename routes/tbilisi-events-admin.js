@@ -864,6 +864,83 @@ router.post('/organizer-claims/:id/reject', requireAuth, async function(req, res
   } catch (e) { next(e); }
 });
 
+// ---- per-organizer link management ----------------------------------------
+router.get('/organizers', requireAuth, async function(req, res, next) {
+  try {
+    var counts = await data.getOrganizerLinkCounts();
+    var approved = await data.getOrganizerClaims({ status: 'approved' });
+    var uids = {};
+    Object.keys(counts).forEach(function(u) { uids[u] = true; });
+    approved.forEach(function(c) { uids[c.uid] = true; });
+
+    var rows = [];
+    var keys = Object.keys(uids);
+    for (var i = 0; i < keys.length; i++) {
+      var u = keys[i];
+      var user = await teUsersLib.getUserById(u).catch(function() { return null; });
+      rows.push({
+        uid: u,
+        user: user,
+        events: (counts[u] && counts[u].events) || 0,
+        venues: (counts[u] && counts[u].venues) || 0,
+      });
+    }
+    rows.sort(function(a, b) { return (b.events + b.venues) - (a.events + a.venues); });
+
+    res.render('tbilisi-events/admin/organizers', { title: 'Организаторы — связи', rows: rows });
+  } catch (e) { next(e); }
+});
+
+router.get('/organizers/:uid', requireAuth, async function(req, res, next) {
+  try {
+    var uid = req.params.uid;
+    var user = await teUsersLib.getUserById(uid).catch(function() { return null; });
+
+    var linkedEvents = await data.getEventsByOrganizer(uid);
+    linkedEvents.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+    var linkedVenues = await data.getVenuesByOrganizer(uid);
+    linkedVenues.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+    var linkedE = {}; linkedEvents.forEach(function(e) { linkedE[e.id] = true; });
+    var linkedV = {}; linkedVenues.forEach(function(v) { linkedV[v.id] = true; });
+
+    var allEvents = (await data.getAllEvents()).filter(function(e) { return !linkedE[e.id]; });
+    allEvents.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+    var allVenues = (await data.getVenues()).filter(function(v) { return !linkedV[v.id]; });
+    allVenues.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+
+    var claims = (await data.getOrganizerClaims({})).filter(function(c) { return c.uid === uid; });
+
+    res.render('tbilisi-events/admin/organizer-detail', {
+      title: (user && user.email) || uid,
+      uid: uid, user: user,
+      linkedEvents: linkedEvents, linkedVenues: linkedVenues,
+      allEvents: allEvents, allVenues: allVenues,
+      claims: claims,
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/organizers/:uid/link', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var uid = req.params.uid;
+    var id = (req.body.targetId || '').trim();
+    if (id && req.body.kind === 'event') await data.setEventOrganizer(id, uid);
+    else if (id && req.body.kind === 'venue') await data.setVenueOrganizer(id, uid);
+    res.redirect(req.teBase + '/admin/organizers/' + uid);
+  } catch (e) { next(e); }
+});
+
+router.post('/organizers/:uid/unlink', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var uid = req.params.uid;
+    var id = (req.body.targetId || '').trim();
+    if (id && req.body.kind === 'event') await data.setEventOrganizer(id, null);
+    else if (id && req.body.kind === 'venue') await data.setVenueOrganizer(id, null);
+    res.redirect(req.teBase + '/admin/organizers/' + uid);
+  } catch (e) { next(e); }
+});
+
 router.get('/users', requireAuth, requireSuperAdmin, async function(req, res, next) {
   try {
     var users = await teUsersLib.listUsers();
