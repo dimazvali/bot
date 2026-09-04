@@ -26,7 +26,7 @@ function googleClient() {
 // router's own paths: the router is mounted path-less, so this middleware also
 // sees pass-through public requests, whose Cache-Control the parent set.
 router.use(function(req, res, next) {
-  if (/^\/(login|auth|me|suggest)(\/|$)/.test(req.path)) res.set('Cache-Control', 'private, no-cache');
+  if (/^\/(login|auth|me|suggest|favorites)(\/|$)/.test(req.path)) res.set('Cache-Control', 'private, no-cache');
   next();
 });
 
@@ -128,6 +128,27 @@ router.get('/me', users.requireUser, async function(req, res, next) {
       tgDeepLink: tg.token ? users.deepLink(tg.token) : null,
     });
   } catch (e) { console.error('[te-account] me', e.message); next(e); }
+});
+
+router.post('/favorites/toggle', express.json(), guardCsrf, users.requireUser, async function(req, res) {
+  try {
+    var type = String((req.body && req.body.type) || '');
+    var entityId = String((req.body && req.body.entityId) || '').trim();
+    if (['event', 'venue'].indexOf(type) === -1 || !entityId) {
+      return res.status(400).json({ ok: false, error: 'bad_request' });
+    }
+    var exists = type === 'event'
+      ? await eventsData.getEventById(entityId)
+      : await eventsData.getVenueById(entityId);
+    if (!exists) return res.status(404).json({ ok: false, error: 'not_found' });
+    var uid = res.locals.user.uid;
+    var now = await eventsData.isFavorited(uid, type, entityId);
+    await eventsData.setFavorite(uid, type, entityId, !now);
+    res.json({ ok: true, favorited: !now });
+  } catch (e) {
+    console.error('[te-account] favorites/toggle', e.message);
+    res.status(500).json({ ok: false });
+  }
 });
 
 router.post('/me/telegram/unlink', users.requireUser, guardCsrf, async function(req, res, next) {
