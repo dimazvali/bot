@@ -119,6 +119,17 @@ router.get('/me', users.requireUser, async function(req, res, next) {
     var user = await users.getUserById(res.locals.user.uid);
     if (!user) { users.clearSessionCookie(res); return res.redirect(req.teBase + '/login'); }
     var tg = await users.ensureTgLinkToken(user.id);
+    var favRows = await eventsData.getFavorites(user.id);
+    var favEvents = (await Promise.all(
+      favRows.filter(function (r) { return r.type === 'event'; })
+             .map(function (r) { return eventsData.getEventById(r.entityId); })
+    )).filter(function (e) { return e && !e.hidden; })
+      .map(function (e) { return { title: e.title, href: req.teBase + '/e/' + (e.slug || e.id) }; });
+    var favVenues = (await Promise.all(
+      favRows.filter(function (r) { return r.type === 'venue'; })
+             .map(function (r) { return eventsData.getVenueById(r.entityId); })
+    )).filter(Boolean)
+      .map(function (v) { return { title: v.name, href: req.teBase + '/venues/' + (v.slug || v.id) }; });
     res.render('tbilisi-events/me', {
       title: 'Your account — events.tbiliseli.com',
       lang: lang, t: i18n.UI[lang], base: req.teBase,
@@ -126,6 +137,7 @@ router.get('/me', users.requireUser, async function(req, res, next) {
       tgLinked: !!user.tgUserId,
       tgBlocked: !!user.tgBlocked,
       tgDeepLink: tg.token ? users.deepLink(tg.token) : null,
+      favorites: { events: favEvents, venues: favVenues },
     });
   } catch (e) { console.error('[te-account] me', e.message); next(e); }
 });
