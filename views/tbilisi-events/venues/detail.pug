@@ -3,6 +3,7 @@ include ../_card.pug
 include ../_map.pug
 include ../_crumbs.pug
 include ../_account-link.pug
+include ../_favorite.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -42,6 +43,10 @@ html(lang=lang)
       .langs{margin-left:auto;display:flex;gap:3px}
       .acct{margin-left:12px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dark-fg);white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis}
       .acct:hover{color:var(--acc)}
+      .fav{display:inline-flex;align-items:center;gap:6px;font:inherit;font-weight:700;font-size:13px;padding:11px 14px;border:1px solid var(--ink);border-radius:2px;background:var(--paper);color:var(--ink);cursor:pointer}
+      .fav:hover{background:var(--ink);color:var(--paper)}
+      .fav[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fffdf9}
+      .fav[disabled]{opacity:.5}
       .lang{font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 7px;border-radius:2px;color:var(--dark-muted)}
       .lang.on{background:var(--acc);color:#fffdf9}
 
@@ -169,6 +174,7 @@ html(lang=lang)
                   a(href=website target='_blank' rel='noopener noreferrer')= website.replace(/^https?:\/\//, '')
           .actions
             a.btn.solid(href=mapHref target='_blank' rel='noopener noreferrer')= t.routeMap
+            +favButton('venue', venue.id, isFavorited)
           .org-row
             if organizerState === 'approved'
               span.org-ok= t.orgYouAre
@@ -225,3 +231,5 @@ html(lang=lang)
 
     if isAdmin
       a.admin-edit(href=editHref) ✎ Редактировать
+
+    +favScript()

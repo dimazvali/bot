@@ -504,6 +504,9 @@ router.get('/e/:id', async function(req, res, next) {
       return res.redirect(301, req.teBase + '/e/' + event.slug + langQuery(lang));
     }
     if (views.isCountableView(req)) views.recordView('event', event.id, req);
+    var isFav = res.locals.user
+      ? await eventsData.isFavorited(res.locals.user.uid, 'event', event.id)
+      : false;
 
     var venues = await eventsData.getVenues();
     var venueById = {};
@@ -572,6 +575,7 @@ router.get('/e/:id', async function(req, res, next) {
       title: event.displayTitle + ' — events.tbiliseli.com',
       lang: lang,
       t: t,
+      isFavorited: isFav,
       crumbs: crumbs,
       jsonLd: ldGraph([eventLd, breadcrumbLd(crumbs)]),
       langLinks: i18n.LANGS.map(function(c) {
@@ -655,6 +659,9 @@ router.get('/venues/:id', async function(req, res, next) {
       return res.redirect(301, req.teBase + '/venues/' + venue.slug + langQuery(lang));
     }
     if (views.isCountableView(req)) views.recordView('venue', venue.id, req);
+    var isFav = res.locals.user
+      ? await eventsData.isFavorited(res.locals.user.uid, 'venue', venue.id)
+      : false;
 
     var today = new Date().toISOString().slice(0, 10);
     var all = sanitizeEvents(await eventsData.getPublicEvents());
@@ -713,6 +720,7 @@ router.get('/venues/:id', async function(req, res, next) {
     res.render('tbilisi-events/venues/detail', {
       title: venue.name + ' — events.tbiliseli.com',
       lang: lang, t: t,
+      isFavorited: isFav,
       crumbs: crumbs,
       jsonLd: ldGraph([placeLd, breadcrumbLd(crumbs)]),
       langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues/' + (venue.slug || venue.id) + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
