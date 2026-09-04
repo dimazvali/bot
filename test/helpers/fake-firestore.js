@@ -8,6 +8,8 @@ var crypto = require('crypto');
 // default, or 'desc'); like firebase-admin, orderBy omits docs missing the field.
 // data() returns a SHALLOW copy of the stored doc (nested objects are shared) —
 // fine for current use; do not rely on it for deep mutation.
+// update() also applies firebase-admin FieldValue.increment(n) sentinels
+// (detected by a numeric `operand` + an *Increment* constructor name).
 module.exports = function makeFakeDb() {
   var store = {}; // { collectionName: { docId: data } }
 
@@ -26,7 +28,18 @@ module.exports = function makeFakeDb() {
       set: async function(data) { coll(name)[id] = Object.assign({}, data); },
       update: async function(patch) {
         if (!coll(name)[id]) throw new Error('update on missing doc ' + name + '/' + id);
-        coll(name)[id] = Object.assign({}, coll(name)[id], patch);
+        var current = coll(name)[id];
+        var next = Object.assign({}, current);
+        Object.keys(patch).forEach(function(k) {
+          var v = patch[k];
+          if (v != null && typeof v === 'object' && typeof v.operand === 'number'
+              && v.constructor && /Increment/.test(v.constructor.name)) {
+            next[k] = (typeof current[k] === 'number' ? current[k] : 0) + v.operand;
+          } else {
+            next[k] = v;
+          }
+        });
+        coll(name)[id] = next;
       },
       delete: async function() { delete coll(name)[id]; },
     };

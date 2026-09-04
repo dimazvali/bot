@@ -3,6 +3,7 @@ var test = require('node:test');
 var assert = require('node:assert/strict');
 var makeFakeDb = require('./helpers/fake-firestore.js');
 var data = require('../lib/tbilisi-events-data.js');
+var { FieldValue } = require('firebase-admin/firestore');
 
 test('getEvents status=pending returns only pending submissions', async function() {
   var db = makeFakeDb();
@@ -61,4 +62,21 @@ test('insertSubmission builds the event doc shape', async function() {
   assert.equal(e.imageSourceUrl, 'https://x.com/i.jpg');
   assert.deepEqual(e.sources, [{ label: 'User submission', url: 'https://x.com/e' }]);
   assert.equal(e.type, 'concert');
+});
+
+test('fake-firestore update() applies FieldValue.increment sentinels', async function() {
+  var db = makeFakeDb();
+  await db.collection('c').doc('a').set({ n: 5, other: 'x' });
+  await db.collection('c').doc('a').update({ n: FieldValue.increment(3) });
+  var snap = await db.collection('c').doc('a').get();
+  assert.equal(snap.data().n, 8);
+  assert.equal(snap.data().other, 'x');
+});
+
+test('fake-firestore update() increment creates field from 0 when missing', async function() {
+  var db = makeFakeDb();
+  await db.collection('c').doc('a').set({ other: 'x' });
+  await db.collection('c').doc('a').update({ n: FieldValue.increment(1) });
+  var snap = await db.collection('c').doc('a').get();
+  assert.equal(snap.data().n, 1);
 });
