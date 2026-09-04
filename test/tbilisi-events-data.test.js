@@ -80,3 +80,17 @@ test('fake-firestore update() increment creates field from 0 when missing', asyn
   var snap = await db.collection('c').doc('a').get();
   assert.equal(snap.data().n, 1);
 });
+
+test('insertEvent / insertVenue / insertCollection seed viewCount 0', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var evId = await data.insertEvent({ title: 'V', date: '2026-09-20' });
+  assert.equal((await data.getEventById(evId)).viewCount, 0);
+
+  var vId = await data.insertVenue({ name: 'Hall' });
+  assert.equal((await data.getVenueById(vId)).viewCount, 0);
+
+  var cId = await data.insertCollection({ title: { ru: 'C', en: 'C', ka: 'C' } });
+  var cSnap = await db.collection('tbilisiEventsCollections').doc(cId).get();
+  assert.equal(cSnap.data().viewCount, 0);
+});
