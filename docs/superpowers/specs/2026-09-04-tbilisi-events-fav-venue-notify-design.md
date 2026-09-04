@@ -280,3 +280,20 @@ the event; confirm a second save/approval does not resend.
 - Digest/frequency controls, unsubscribe-per-venue, backfill notifications.
 - Notifying about favorited **events** (only venues, per this spec).
 - A dedicated `/me` page section styling upgrade beyond the one checkbox row.
+
+## Status
+
+Implemented 2026-09-04 on branch `te-fav-venue-notify` (plan:
+`docs/superpowers/plans/2026-09-04-tbilisi-events-fav-venue-notify.md`), built via
+subagent-driven development with spec-compliance + code-quality review on every
+task. Smoke-tested end to end against a live Firestore-backed server and a real
+event/venue: favorited a venue, enabled the checkbox, confirmed it persists on
+`/me`; called `notifyFavoritedVenue` directly — first call set
+`favVenueNotifiedAt` and fanned out, a second call was a verified no-op (dedup
+held, timestamp unchanged). Test artifacts (throwaway user, the dedup flag on
+the real event) were cleaned up afterward. One rocky spot during Task 3
+(notification copy) is worth noting for future work: an editing tool
+repeatedly mangled curly vs. straight quote characters in JS string literals
+across three fix attempts before the text was verified correct at the
+code-point level — a caution for any future task that hand-writes non-ASCII
+punctuation into source.
