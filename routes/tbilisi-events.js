@@ -11,6 +11,7 @@ var taxonomy = require('../lib/tbilisi-events-taxonomy');
 var i18n = require('../lib/tbilisi-events-i18n');
 var teUsers = require('../lib/tbilisi-events-users');
 var teMailer = require('../lib/tbilisi-events-mailer');
+var views = require('../lib/tbilisi-events-views');
 
 var tbilisiEventsApp = getApps().find(function(a) { return a.name === 'tbilisiEvents'; }) || initializeApp({
   credential: cert({
@@ -501,6 +502,7 @@ router.get('/e/:id', async function(req, res, next) {
     if (event.slug && req.params.id !== event.slug) {
       return res.redirect(301, req.teBase + '/e/' + event.slug + langQuery(lang));
     }
+    if (views.isCountableView(req)) views.recordView('event', event.id, req);
 
     var venues = await eventsData.getVenues();
     var venueById = {};
@@ -651,6 +653,7 @@ router.get('/venues/:id', async function(req, res, next) {
     if (venue.slug && req.params.id !== venue.slug) {
       return res.redirect(301, req.teBase + '/venues/' + venue.slug + langQuery(lang));
     }
+    if (views.isCountableView(req)) views.recordView('venue', venue.id, req);
 
     var today = new Date().toISOString().slice(0, 10);
     var all = sanitizeEvents(await eventsData.getPublicEvents());
@@ -790,6 +793,7 @@ router.get('/collections/:id', async function(req, res, next) {
     if (col.slug && req.params.id !== col.slug) {
       return res.redirect(301, req.teBase + '/collections/' + col.slug + langQuery(lang));
     }
+    if (views.isCountableView(req)) views.recordView('collection', col.id, req);
 
     var hero = col.heroId ? await eventsData.getHeroById(col.heroId) : null;
 
