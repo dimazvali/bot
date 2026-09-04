@@ -1,0 +1,7 @@
+//- Right-aligned account control for the site header. Reads template locals:
+//- user (res.locals.user | null), base (res.locals.base), loginHref, t.
+mixin accountLink()
+  if user
+    a.acct(href=base + '/me' title=user.email)= user.name || user.email
+  else
+    a.acct(href=loginHref)= t.signIn

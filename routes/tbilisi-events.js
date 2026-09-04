@@ -201,6 +201,7 @@ function decorateEvent(e, lang, venueById, base) {
 router.use(function(req, res, next) {
   req.teBase = req.teBase || '';
   res.locals.base = req.teBase;
+  res.locals.loginHref = req.teBase + '/login?next=' + encodeURIComponent(req.originalUrl);
   if (req.method === 'GET') {
     var isAdminReq = !!(req.cookies && req.cookies.tbilisiEventsAdminToken);
     res.set('Cache-Control', isAdminReq ? 'private, no-cache' : 'no-cache');
