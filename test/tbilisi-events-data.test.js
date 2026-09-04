@@ -209,3 +209,17 @@ test('getFavorites returns only the user rows, newest-first', async function() {
 
   assert.deepEqual(await data.getFavorites('nobody'), []);
 });
+
+test('getFavoritingUsers returns userIds for that (type, entityId) only', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  await data.setFavorite('u1', 'venue', 'v1', true);
+  await data.setFavorite('u2', 'venue', 'v1', true);
+  await data.setFavorite('u3', 'venue', 'v2', true);   // other venue
+  await data.setFavorite('u4', 'event', 'v1', true);   // same entityId, different type
+
+  var ids = await data.getFavoritingUsers('venue', 'v1');
+  assert.deepEqual(ids.sort(), ['u1', 'u2']);
+
+  assert.deepEqual(await data.getFavoritingUsers('venue', 'nobody'), []);
+});
