@@ -168,3 +168,11 @@ Implementation note: `recordView` needs `data` to be swappable in the test. Eith
 - Admin analytics page with view graphs over time (would consume `getViewRecords`).
 - Historical backfill (no data before ship; counts start at deploy).
 - Rate-limiting / per-visitor dedup / bounce filtering.
+
+## Status
+
+Implemented 2026-09-04 on branch `te-view-counters` (plan:
+`docs/superpowers/plans/2026-09-04-tbilisi-events-view-counters.md`). Smoke-tested
+against a live event page: a Chrome UA hit incremented `viewCount` by 1 and wrote
+one `tbilisiEventsViews` row; Googlebot and a bare `curl` (no `text/html`) did not
+count. Follow-ups (admin display, graphs, backfill) not started.
