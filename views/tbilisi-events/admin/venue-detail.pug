@@ -167,3 +167,70 @@ mixin eventRows(list)
       city.addEventListener('change', sync);
       sync();
     })();
+
+    // ---- point picker: click to choose, separate confirm before it sticks ----
+    (function () {
+      var el = document.getElementById('v-map');
+      if (!el || !window.L) return;
+      var latInput = document.getElementById('v-lat');
+      var lngInput = document.getElementById('v-lng');
+      var coordsEl = document.getElementById('v-coords');
+      var clearBtn = document.getElementById('v-clear');
+      var box = document.getElementById('v-confirm');
+      var boxCoords = document.getElementById('v-confirm-coords');
+      var okBtn = document.getElementById('v-confirm-ok');
+      var cancelBtn = document.getElementById('v-confirm-cancel');
+      var TBILISI = [41.7151, 44.8271];
+
+      function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+      var lat0 = num(el.getAttribute('data-lat'));
+      var lng0 = num(el.getAttribute('data-lng'));
+
+      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
+        .setView(lat0 != null && lng0 != null ? [lat0, lng0] : TBILISI, lat0 != null ? 16 : 12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+      function icon(extra) {
+        return L.divIcon({ className: '', html: '<div class="v-pin' + extra + '"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+      }
+      var committed = null, provisional = null, pending = null;
+
+      function fmt(a, b) { return a.toFixed(6) + ', ' + b.toFixed(6); }
+      function setCommitted(lat, lng) {
+        if (committed) map.removeLayer(committed);
+        committed = L.marker([lat, lng], { icon: icon('') }).addTo(map);
+        latInput.value = lat;
+        lngInput.value = lng;
+        coordsEl.textContent = fmt(lat, lng);
+      }
+      function clearCommitted() {
+        if (committed) { map.removeLayer(committed); committed = null; }
+        latInput.value = '';
+        lngInput.value = '';
+        coordsEl.textContent = coordsEl.getAttribute('data-empty') || '—';
+      }
+      function closeConfirm() {
+        box.hidden = true;
+        if (provisional) { map.removeLayer(provisional); provisional = null; }
+        pending = null;
+      }
+
+      if (lat0 != null && lng0 != null) setCommitted(lat0, lng0);
+
+      map.on('click', function (e) {
+        pending = [e.latlng.lat, e.latlng.lng];
+        if (provisional) map.removeLayer(provisional);
+        provisional = L.marker(pending, { icon: icon(' provisional') }).addTo(map);
+        boxCoords.textContent = fmt(pending[0], pending[1]);
+        box.hidden = false;
+      });
+      okBtn.addEventListener('click', function () {
+        if (pending) setCommitted(pending[0], pending[1]);
+        closeConfirm();
+      });
+      cancelBtn.addEventListener('click', closeConfirm);
+      clearBtn.addEventListener('click', function () { closeConfirm(); clearCommitted(); });
+
+      setTimeout(function () { map.invalidateSize(); }, 0);
+      window.addEventListener('load', function () { map.invalidateSize(); });
+    })();

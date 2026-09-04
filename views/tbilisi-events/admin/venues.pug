@@ -56,6 +56,8 @@ include _admin.pug
           tr
             td
               a.link(href=`${base}/admin/venues/${v.id}`)= v.name
+              if v.closed
+                span.badge закрыто
             td= v.area || '—'
             td= v.type ? venueTypeLabels[v.type] : '—'
             td= v.eventCount || 0

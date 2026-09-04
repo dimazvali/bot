@@ -99,6 +99,63 @@ function langQuery(lang) {
   return lang && lang !== 'ru' ? '?lang=' + lang : '';
 }
 
+// "Закрыто" / "Закрыто с 15 мар 2026" for a closed venue; null when it operates.
+function venueClosedLabel(v, lang) {
+  if (!v || !v.closed) return null;
+  var ui = i18n.UI[lang];
+  return v.closedDate
+    ? ui.venueClosedSince + ' ' + i18n.formatShortDay(v.closedDate, lang)
+    : ui.venueClosed;
+}
+
+// ---- absolute-URL + SEO helpers -------------------------------------------
+// TLS terminates at a reverse proxy, so trust X-Forwarded-Proto and assume
+// https for the public *.tbiliseli.com hosts.
+function siteOrigin(req) {
+  var host = req.get('host') || 'events.tbiliseli.com';
+  var proto = req.headers['x-forwarded-proto']
+    || (/tbiliseli\.com$/i.test(host.split(':')[0]) ? 'https' : req.protocol);
+  return proto + '://' + host;
+}
+function absUrl(req, path) {
+  return siteOrigin(req) + req.teBase + (path || '');
+}
+function xmlEscape(s) {
+  return String(s == null ? '' : s).replace(/[<>&'"]/g, function(c) {
+    return { '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;' }[c];
+  });
+}
+function toDateOnly(v) {
+  if (!v) return null;
+  var d = v && v.toDate ? v.toDate() : new Date(v);
+  return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+var SITE_NAME = 'Tbiliseli Events';
+// schema.org graph wrapper — nodes omit their own @context.
+function ldGraph(nodes) {
+  return { '@context': 'https://schema.org', '@graph': nodes.filter(Boolean) };
+}
+function breadcrumbLd(crumbs) {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: (crumbs || []).map(function(c, i) {
+      var node = { '@type': 'ListItem', position: i + 1, name: c.label };
+      if (c.abs) node.item = c.abs;
+      return node;
+    }),
+  };
+}
+function itemListLd(name, items) {
+  return {
+    '@type': 'ItemList',
+    name: name,
+    numberOfItems: items.length,
+    itemListElement: items.map(function(it, i) {
+      return { '@type': 'ListItem', position: i + 1, url: it.url, name: it.name };
+    }),
+  };
+}
+
 // Mirrors requireAuth in routes/tbilisi-events-admin.js — used only to decide
 // whether to show the inline "edit" shortcut on public pages.
 async function isAdmin(req) {
@@ -152,6 +209,81 @@ router.use(function(req, res, next) {
 
 router.use(teUsers.attachUser);
 router.use(require('./tbilisi-events-account'));
+
+// ---- robots.txt + sitemap.xml -------------------------------------------
+router.get('/robots.txt', function(req, res) {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.type('text/plain').send([
+    'User-agent: *',
+    'Disallow: /admin',
+    'Disallow: /login',
+    'Disallow: /auth/',
+    'Disallow: /me',
+    'Disallow: /suggest',
+    'Disallow: /organizer/',
+    '',
+    'Sitemap: ' + absUrl(req, '/sitemap.xml'),
+    '',
+  ].join('\n'));
+});
+
+router.get('/sitemap.xml', async function(req, res, next) {
+  try {
+    var today = new Date().toISOString().slice(0, 10);
+    // Keep the map bounded: drop events that ended more than ~6 weeks ago.
+    var horizon = new Date(Date.now() - 45 * 86400000).toISOString().slice(0, 10);
+    var events = (await eventsData.getPublicEvents())
+      .filter(function(e) { return !e.date || e.date >= horizon; });
+    var venues = await eventsData.getVenues();
+    var collections = await eventsData.getPublishedCollections();
+
+    var entries = [
+      { loc: absUrl(req, '/'), lastmod: today, changefreq: 'hourly', priority: '1.0' },
+      { loc: absUrl(req, '/venues'), lastmod: today, changefreq: 'daily', priority: '0.6' },
+      { loc: absUrl(req, '/collections'), lastmod: today, changefreq: 'daily', priority: '0.6' },
+    ];
+    events.forEach(function(e) {
+      entries.push({
+        loc: absUrl(req, '/e/' + (e.slug || e.id)),
+        lastmod: toDateOnly(e.updatedAt), changefreq: 'weekly', priority: '0.8',
+      });
+    });
+    venues.forEach(function(v) {
+      entries.push({
+        loc: absUrl(req, '/venues/' + (v.slug || v.id)),
+        lastmod: toDateOnly(v.updatedAt), changefreq: 'monthly', priority: '0.5',
+      });
+    });
+    collections.forEach(function(c) {
+      entries.push({
+        loc: absUrl(req, '/collections/' + (c.slug || c.id)),
+        lastmod: toDateOnly(c.updatedAt), changefreq: 'weekly', priority: '0.5',
+      });
+    });
+
+    var body = entries.map(function(u) {
+      var alts = i18n.LANGS.map(function(l) {
+        var href = u.loc + (l === 'ru' ? '' : (u.loc.indexOf('?') === -1 ? '?' : '&') + 'lang=' + l);
+        return '    <xhtml:link rel="alternate" hreflang="' + l + '" href="' + xmlEscape(href) + '"/>';
+      });
+      alts.push('    <xhtml:link rel="alternate" hreflang="x-default" href="' + xmlEscape(u.loc) + '"/>');
+      return '  <url>\n'
+        + '    <loc>' + xmlEscape(u.loc) + '</loc>\n'
+        + (u.lastmod ? '    <lastmod>' + u.lastmod + '</lastmod>\n' : '')
+        + alts.join('\n') + '\n'
+        + (u.changefreq ? '    <changefreq>' + u.changefreq + '</changefreq>\n' : '')
+        + (u.priority ? '    <priority>' + u.priority + '</priority>\n' : '')
+        + '  </url>';
+    }).join('\n');
+
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.type('application/xml').send(
+      '<?xml version="1.0" encoding="UTF-8"?>\n'
+      + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n'
+      + body + '\n</urlset>\n'
+    );
+  } catch (e) { next(e); }
+});
 
 router.get('/', async function(req, res, next) {
   try {
@@ -326,6 +458,10 @@ router.get('/', async function(req, res, next) {
       title: dateParam ? 'events.tbiliseli.com — ' + dateParam : 'events.tbiliseli.com',
       lang: lang,
       t: t,
+      jsonLd: ldGraph([
+        { '@type': 'WebSite', name: SITE_NAME, url: absUrl(req, '/'), inLanguage: lang },
+        { '@type': 'Organization', name: SITE_NAME, url: absUrl(req, '/') },
+      ]),
       langLinks: langLinks,
       navLinks: navLinks,
       hero: hero,
@@ -390,10 +526,51 @@ router.get('/e/:id', async function(req, res, next) {
     var organizerState = res.locals.user
       ? (await eventsData.getActiveClaim(res.locals.user.uid, 'event', event.id) || {}).status || null
       : null;
+
+    var evUrl = absUrl(req, '/e/' + (event.slug || event.id));
+    var crumbs = [{ label: SITE_NAME, href: req.teBase + langQuery(lang), abs: absUrl(req, '/') }];
+    if (event.type && event.typeLabel) {
+      crumbs.push({
+        label: event.typeLabel,
+        href: req.teBase + '/?type=' + event.type + (lang !== 'ru' ? '&lang=' + lang : ''),
+        abs: absUrl(req, '/?type=' + event.type),
+      });
+    }
+    crumbs.push({ label: event.displayTitle, abs: evUrl });
+
+    var eventLd = {
+      '@type': 'Event',
+      name: event.displayTitle,
+      url: evUrl,
+      eventStatus: event.cancelled ? 'https://schema.org/EventCancelled' : 'https://schema.org/EventScheduled',
+      eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+      organizer: { '@type': 'Organization', name: SITE_NAME, url: absUrl(req, '/') },
+    };
+    if (event.date) {
+      var hhmm = /^(\d{2}):(\d{2})/.exec(event.time || '');
+      eventLd.startDate = hhmm ? event.date + 'T' + hhmm[1] + ':' + hhmm[2] + ':00+04:00' : event.date;
+    }
+    if (event.desc) eventLd.description = event.desc;
+    if (event.imageUrl) eventLd.image = [event.imageUrl];
+    if (venue) {
+      eventLd.location = { '@type': 'Place', name: venue.name, url: absUrl(req, '/venues/' + (venue.slug || venue.id)) };
+      if (venue.address) eventLd.location.address = venue.address;
+      if (venue.lat != null && venue.lng != null) {
+        eventLd.location.geo = { '@type': 'GeoCoordinates', latitude: venue.lat, longitude: venue.lng };
+      }
+    } else if (event.place) {
+      eventLd.location = { '@type': 'Place', name: event.place };
+    }
+    if (event.primaryUrl) {
+      eventLd.offers = { '@type': 'Offer', url: event.primaryUrl, availability: 'https://schema.org/InStock' };
+    }
+
     res.render('tbilisi-events/event', {
       title: event.displayTitle + ' — events.tbiliseli.com',
       lang: lang,
       t: t,
+      crumbs: crumbs,
+      jsonLd: ldGraph([eventLd, breadcrumbLd(crumbs)]),
       langLinks: i18n.LANGS.map(function(c) {
         return { code: c.toUpperCase(), href: req.teBase + '/e/' + (event.slug || event.id) + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang };
       }),
@@ -407,6 +584,7 @@ router.get('/e/:id', async function(req, res, next) {
       dateLong: i18n.formatLongDate(event.date, lang),
       venue: venue,
       venueHref: venue ? req.teBase + '/venues/' + (venue.slug || venue.id) + langQuery(lang) : null,
+      venueClosedLabel: venueClosedLabel(venue, lang),
       venueEventsCount: venueEventsCount,
       mapHref: mapQuery ? 'https://maps.google.com/?q=' + encodeURIComponent(mapQuery) : null,
       sameDay: sameDay,
@@ -431,14 +609,26 @@ router.get('/venues', async function(req, res, next) {
       return Object.assign({}, v, {
         typeLabel: v.type ? (vtl[v.type] || v.type) : '',
         upcomingCount: upcomingByVenue[v.id] || 0,
+        closedLabel: venueClosedLabel(v, lang),
         href: req.teBase + '/venues/' + (v.slug || v.id) + langQuery(lang),
       });
     });
     venues.sort(function(a, b) { return (b.upcomingCount - a.upcomingCount) || (b.eventCount || 0) - (a.eventCount || 0); });
 
+    var crumbs = [
+      { label: SITE_NAME, href: req.teBase + langQuery(lang), abs: absUrl(req, '/') },
+      { label: t.venuesTitle, abs: absUrl(req, '/venues') },
+    ];
     res.render('tbilisi-events/venues/list', {
       title: t.venuesTitle + ' — events.tbiliseli.com',
       lang: lang, t: t,
+      crumbs: crumbs,
+      jsonLd: ldGraph([
+        breadcrumbLd(crumbs),
+        itemListLd(t.venuesTitle, venues.map(function(v) {
+          return { url: absUrl(req, '/venues/' + (v.slug || v.id)), name: v.name };
+        })),
+      ]),
       langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues' + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: req.teBase + langQuery(lang),
       venues: venues,
@@ -500,19 +690,38 @@ router.get('/venues/:id', async function(req, res, next) {
     var organizerState = res.locals.user
       ? (await eventsData.getActiveClaim(res.locals.user.uid, 'venue', venue.id) || {}).status || null
       : null;
+
+    var venueUrl = absUrl(req, '/venues/' + (venue.slug || venue.id));
+    var venueDescText = i18n.pickDescription(venue.description, lang);
+    var crumbs = [
+      { label: SITE_NAME, href: req.teBase + langQuery(lang), abs: absUrl(req, '/') },
+      { label: t.venuesTitle, href: req.teBase + '/venues' + langQuery(lang), abs: absUrl(req, '/venues') },
+      { label: venue.name, abs: venueUrl },
+    ];
+    var placeLd = { '@type': 'Place', name: venue.name, url: venueUrl };
+    if (venue.address) placeLd.address = venue.address;
+    if (venue.imageUrl) placeLd.image = [venue.imageUrl];
+    if (venueDescText) placeLd.description = venueDescText;
+    if (venue.lat != null && venue.lng != null) {
+      placeLd.geo = { '@type': 'GeoCoordinates', latitude: venue.lat, longitude: venue.lng };
+    }
+
     res.render('tbilisi-events/venues/detail', {
       title: venue.name + ' — events.tbiliseli.com',
       lang: lang, t: t,
+      crumbs: crumbs,
+      jsonLd: ldGraph([placeLd, breadcrumbLd(crumbs)]),
       langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/venues/' + (venue.slug || venue.id) + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: req.teBase + '/venues' + langQuery(lang),
       venue: venue,
+      venueClosedLabel: venueClosedLabel(venue, lang),
       isAdmin: await isAdmin(req),
       editHref: req.teBase + '/admin/venues/' + venue.id,
       organizerState: organizerState,
       organizerHref: req.teBase + '/organizer/claim?target=venue:' + venue.id,
       loginHref: req.teBase + '/login?next=' + encodeURIComponent(req.teBase + '/venues/' + (venue.slug || venue.id) + langQuery(lang)),
       venueTypeLabel: venue.type ? (vtl[venue.type] || venue.type) : '',
-      venueDesc: i18n.pickDescription(venue.description, lang),
+      venueDesc: venueDescText,
       facts: facts,
       upcoming: upcoming,
       upcomingShown: upcoming.slice(0, 8),
@@ -544,13 +753,25 @@ router.get('/collections', async function(req, res, next) {
         heroName: hero ? i18n.pickDescription(hero.name, lang) : '',
         heroImage: hero ? (hero.imageUrl || null) : null,
         count: (c.eventIds || []).filter(function(id) { return publicIds[id]; }).length,
+        slugOrId: c.slug || c.id,
         href: req.teBase + '/collections/' + (c.slug || c.id) + langQuery(lang),
       };
     }).filter(function(c) { return c.title; });
 
+    var crumbs = [
+      { label: SITE_NAME, href: req.teBase + langQuery(lang), abs: absUrl(req, '/') },
+      { label: t.collectionsTitle, abs: absUrl(req, '/collections') },
+    ];
     res.render('tbilisi-events/collections/list', {
       title: t.collectionsTitle + ' — events.tbiliseli.com',
       lang: lang, t: t,
+      crumbs: crumbs,
+      jsonLd: ldGraph([
+        breadcrumbLd(crumbs),
+        itemListLd(t.collectionsTitle, collections.map(function(c) {
+          return { url: absUrl(req, '/collections/' + c.slugOrId), name: c.title };
+        })),
+      ]),
       langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/collections' + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: req.teBase + langQuery(lang),
       collections: collections,
@@ -628,12 +849,26 @@ router.get('/collections/:id', async function(req, res, next) {
       .filter(function(c) { return c.title; })
       .slice(0, 4);
 
+    var colTitle = i18n.pickDescription(col.title, lang);
+    var crumbs = [
+      { label: SITE_NAME, href: req.teBase + langQuery(lang), abs: absUrl(req, '/') },
+      { label: t.collectionsTitle, href: req.teBase + '/collections' + langQuery(lang), abs: absUrl(req, '/collections') },
+      { label: colTitle, abs: absUrl(req, '/collections/' + (col.slug || col.id)) },
+    ];
+
     res.render('tbilisi-events/collections/detail', {
-      title: i18n.pickDescription(col.title, lang) + ' — events.tbiliseli.com',
+      title: colTitle + ' — events.tbiliseli.com',
       lang: lang, t: t,
+      crumbs: crumbs,
+      jsonLd: ldGraph([
+        breadcrumbLd(crumbs),
+        itemListLd(colTitle, events.map(function(e) {
+          return { url: absUrl(req, '/e/' + (e.slug || e.id)), name: e.displayTitle };
+        })),
+      ]),
       langLinks: i18n.LANGS.map(function(c) { return { code: c.toUpperCase(), href: req.teBase + '/collections/' + (col.slug || col.id) + (c !== 'ru' ? '?lang=' + c : ''), active: c === lang }; }),
       backHref: req.teBase + '/collections' + langQuery(lang),
-      collectionTitle: i18n.pickDescription(col.title, lang),
+      collectionTitle: colTitle,
       curatorNote: i18n.pickDescription(col.curatorNote, lang),
       hero: hero ? {
         name: i18n.pickDescription(hero.name, lang),

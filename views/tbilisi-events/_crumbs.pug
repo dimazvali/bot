@@ -1,0 +1,14 @@
+//- Visible breadcrumb trail. `items` is [{ label, href? }, ...]; the last entry
+//- is the current page and is rendered without a link. Mirrors the
+//- BreadcrumbList JSON-LD emitted from the route.
+mixin crumbs(items)
+  if items && items.length > 1
+    nav.te-crumbs(aria-label='Breadcrumb')
+      each c, i in items
+        - var last = i === items.length - 1
+        if c.href && !last
+          a(href=c.href)= c.label
+        else
+          span(aria-current=(last ? 'page' : false))= c.label
+        if !last
+          span.sep(aria-hidden='true') ›

@@ -1,0 +1,37 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'audit' })
+  .pagehead
+    h1 Журнал действий
+    span.count записей #[b= entries.length]
+
+  p.hint Запуск парсера, создание, правка и удаление сущностей. Последние 300 записей, новые сверху.
+
+  if !entries.length
+    p.hint Пока нет записей.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Дата
+            th Админ
+            th Действие
+            th Объект
+            th Описание
+        tbody
+          each e in entries
+            - var d = e.at && e.at.toDate ? e.at.toDate() : new Date(e.at)
+            tr
+              td.mono= d.toLocaleString('ru-RU')
+              td= e.admin || '—'
+              td= actionLabels[e.action] || e.action
+              td
+                if e.entity
+                  = entityLabels[e.entity] || e.entity
+                  if e.entityId
+                    br
+                    span.mono.dim= e.entityId
+                else
+                  span.dim —
+              td= e.summary || ''

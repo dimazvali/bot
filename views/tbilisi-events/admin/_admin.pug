@@ -6,6 +6,13 @@
 //- opts.nav: 'dashboard' | 'events' | 'venues' — highlights the bar link
 //- opts.bare: true — no header bar, centred content (login)
 
+//- Selectable URL + copy button. Use for links the admin must hand to someone
+//- else (e.g. a bot deep link), NOT follow themselves.
+mixin copyLink(url)
+  span.copylink
+    code.copylink-url= url
+    button.btn.sm(type='button' data-copy=url onclick="navigator.clipboard&&navigator.clipboard.writeText(this.dataset.copy);this.textContent='Скопировано'") Копировать
+
 mixin adminPage(opts)
   - opts = opts || {}
   doctype html
@@ -17,6 +24,9 @@ mixin adminPage(opts)
       link(rel='preconnect' href='https://fonts.googleapis.com')
       link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
       link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&family=Noto+Sans+Georgian:wght@400;500;600&display=swap')
+      if opts.leaflet
+        link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+        script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
       style
         include _admin.css
     body
@@ -37,6 +47,7 @@ mixin adminPage(opts)
             if typeof isSuperadmin !== 'undefined' && isSuperadmin
               a(href=base + '/admin/admins' class=(opts.nav === 'admins' ? 'on' : '')) Админы
               a(href=base + '/admin/users' class=(opts.nav === 'users' ? 'on' : '')) Пользователи
+            a(href=base + '/admin/audit' class=(opts.nav === 'audit' ? 'on' : '')) Журнал
             a(href=(base + '/') target='_blank' rel='noopener') Афиша ↗
           a.aout(href=base + '/admin/logout') Выйти
         main.awrap

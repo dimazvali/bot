@@ -26,6 +26,10 @@ mixin linkRow(kind, item, label, editHref)
       p.mono= user.email
       p= user.name || '—'
       p.mono Google: #{user.googleId ? '✓' : '—'} · Telegram: #{user.tgUserId ? (user.tgBlocked ? 'заблокирован' : '✓') : '—'}
+      if tgDeepLink
+        p.hint Ссылка привязки Telegram — отправьте её пользователю, не открывайте сами (иначе привяжется ваш аккаунт):
+        p
+          +copyLink(tgDeepLink)
       p.mono uid: #{uid}
     else
       p.dim Профиль пользователя не найден.

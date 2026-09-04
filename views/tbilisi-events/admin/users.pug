@@ -24,6 +24,12 @@ include _admin.pug
               td.mono= u.email
               td= u.name || '—'
               td= u.googleId ? '✓' : '—'
-              td= u.tgUserId ? (u.tgBlocked ? 'заблокирован' : '✓') : '—'
+              td
+                if u.tgUserId
+                  = u.tgBlocked ? 'заблокирован' : '✓'
+                else if tgLinkByUser[u.id]
+                  +copyLink(tgLinkByUser[u.id])
+                else
+                  | —
               td= (pendingByUser[u.id] || 0)
               td.mono= u.createdAt && u.createdAt.toDate ? u.createdAt.toDate().toLocaleDateString('ru-RU') : ''

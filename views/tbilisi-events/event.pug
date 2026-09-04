@@ -1,11 +1,14 @@
 doctype html
 include ./_card.pug
 include ./_map.pug
+include ./_crumbs.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width,initial-scale=1')
     title= title
+    include _analytics.pug
+    include _seo.pug
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
     link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&family=Noto+Sans+Georgian:wght@400;500;600&display=swap')
@@ -59,6 +62,7 @@ html(lang=lang)
       dl.facts dt{color:var(--muted2)}
       dl.facts dd{font-weight:600}
       dl.facts dd a{border-bottom:1px solid var(--acc)}
+      .closed-note{margin-left:8px;color:var(--acc);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
       .actions{display:flex;flex-direction:column;gap:8px;margin-top:18px}
       .org-row{margin-top:14px}
       .org-btn{display:inline-block;font-weight:700;font-size:13px;padding:9px 13px;border:1px solid var(--ink);color:var(--ink);text-decoration:none}
@@ -139,13 +143,7 @@ html(lang=lang)
           each l in langLinks
             a(href=l.href class=l.active ? 'lang on' : 'lang')= l.code
 
-      nav.crumbs
-        a(href=backHref)= t.today
-        span.sl /
-        if ev.typeLabel && relatedHref
-          a(href=relatedHref)= ev.typeLabel
-          span.sl /
-        span= ev.displayTitle
+      +crumbs(crumbs)
 
       if ev.cancelled
         .cancel-bar= t.cancelled
@@ -175,6 +173,8 @@ html(lang=lang)
                 if venue && ev.venueName
                   dd
                     a(href=venueHref)= ev.venueName
+                    if venueClosedLabel
+                      span.closed-note= venueClosedLabel
                 else
                   dd= ev.place
               if ev.langLabel

@@ -1,11 +1,14 @@
 doctype html
 include ../_card.pug
 include ../_map.pug
+include ../_crumbs.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width,initial-scale=1')
     title= title
+    include ../_analytics.pug
+    include ../_seo.pug
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
     link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&family=Noto+Sans+Georgian:wght@400;500;600&display=swap')
@@ -47,6 +50,7 @@ html(lang=lang)
       .body{padding:20px 16px 24px;border-bottom:8px solid var(--ink)}
       .kicker{font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:9px}
       h1.t{font-family:var(--disp);font-size:36px;font-weight:600;line-height:1.02;margin-bottom:12px;text-wrap:pretty}
+      .closed-note{display:inline-block;font-family:var(--disp);text-transform:uppercase;font-size:12px;letter-spacing:.08em;font-weight:600;color:var(--acc);border:1px solid var(--acc);padding:3px 8px;margin-bottom:12px}
       p.lead{font-size:16px;line-height:1.55;color:#4a423a;margin-bottom:16px;text-wrap:pretty}
       .stats{display:flex;gap:20px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;margin-bottom:16px}
       .stats .n{font-family:var(--disp);font-size:22px;font-weight:600;line-height:1.1;color:var(--acc)}
@@ -127,6 +131,8 @@ html(lang=lang)
           each l in langLinks
             a(href=l.href class=l.active ? 'lang on' : 'lang')= l.code
 
+      +crumbs(crumbs)
+
       .hero-row
         .hero
           if venue.imageUrl
@@ -137,6 +143,8 @@ html(lang=lang)
         .body
           .kicker= [venue.area, venueTypeLabel].filter(Boolean).join(' · ')
           h1.t= venue.name
+          if venueClosedLabel
+            .closed-note= venueClosedLabel
           if venueDesc
             p.lead= venueDesc
           .stats

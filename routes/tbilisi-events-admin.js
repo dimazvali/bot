@@ -6,7 +6,7 @@ var pipeline = require('../lib/tbilisi-events-pipeline');
 var data = require('../lib/tbilisi-events-data');
 var teUsersLib = require('../lib/tbilisi-events-users');
 var teNotify = require('../lib/tbilisi-events-notify');
-var alertMe = require('./common').alertMe;
+// Admin alerts go through @tbiliseli_tour_bot via teNotify.notifyAdmins.
 var taxonomy = require('../lib/tbilisi-events-taxonomy');
 var enricher = require('../lib/tbilisi-events-enricher');
 var images = require('../lib/tbilisi-events-images');
@@ -22,6 +22,22 @@ function backTo(req, res, fallback) {
   res.redirect(req.get('referer') || fallback);
 }
 
+// Human labels for the audit log UI.
+var AUDIT_ACTION_LABELS = { 'parser.run': 'Парсер', create: 'Создание', edit: 'Правка', delete: 'Удаление' };
+var AUDIT_ENTITY_LABELS = { event: 'Событие', venue: 'Площадка', collection: 'Подборка', hero: 'Герой', source: 'Источник', admin: 'Админ' };
+
+// Fire-and-forget audit trail. `requireAuth` has populated res.locals with the
+// acting admin; a logging failure must never break the action itself.
+function audit(req, res, action, fields) {
+  data.addAdminLog(Object.assign({
+    admin: res.locals.adminName || 'admin',
+    adminId: res.locals.adminId || null,
+    path: req.originalUrl,
+  }, fields || {}, { action: action })).catch(function(e) {
+    console.error('[te-admin audit] ' + (e && e.message));
+  });
+}
+
 // req.teBase is '' when mounted on events.tbiliseli.com, '/tbilisi-events' on the
 // path mount (set by app.js). Every generated link/redirect is built from it.
 router.use(function(req, res, next) {
@@ -30,13 +46,24 @@ router.use(function(req, res, next) {
   next();
 });
 
+function fmtDuration(ms) {
+  if (!ms || ms < 0) return '—';
+  var s = Math.round(ms / 1000);
+  if (s < 60) return s + ' с';
+  var m = Math.floor(s / 60);
+  return m + ' мин ' + (s % 60) + ' с';
+}
+
 function formatSummary(summary) {
   var text = '📋 <b>Tbilisi Events — сбор завершён</b>\n'
     + 'Источников обработано: ' + summary.sourcesProcessed + '\n'
     + 'Постов пропущено (без изменений): ' + (summary.itemsSkipped || 0) + '\n'
     + 'Событий найдено: ' + summary.eventsFound + '\n'
     + 'Новых: ' + summary.eventsNew + '\n'
-    + 'Объединено: ' + summary.eventsMerged;
+    + 'Объединено: ' + summary.eventsMerged + '\n'
+    + '⏱ Длительность: ' + fmtDuration(summary.durationMs)
+    + '\n💰 Стоимость LLM: $' + (summary.costUsd || 0).toFixed(4)
+    + ' (' + (summary.llmCalls || 0) + ' вызовов)';
   if (summary.sourceErrors.length) {
     text += '\n⚠️ Ошибок: ' + summary.sourceErrors.length;
     text += '\n' + summary.sourceErrors.slice(0, 10).map(function(e) { return '• ' + e.source + ': ' + e.error; }).join('\n');
@@ -74,16 +101,23 @@ function runCollectInBackground(sourcesOverride) {
   }
   emit({ phase: 'accepted', runId: run.id, scope: sourcesOverride ? 'single' : 'all' });
 
-  pipeline.run(sourcesOverride, emit).then(function(summary) {
+  pipeline.run(sourcesOverride, emit, run.id).then(function(summary) {
     run.summary = summary;
-    return data.addLog(summary).then(function() { return alertMe({ text: formatSummary(summary), parse_mode: 'HTML' }); });
+    return data.addLog(summary).then(function() { teNotify.notifyAdmins(formatSummary(summary)); });
   }).catch(function(e) {
     run.error = e.message;
-    var failedSummary = { sourcesProcessed: 0, eventsFound: 0, eventsNew: 0, eventsMerged: 0, sourceErrors: [{ source: 'pipeline', error: e.message }] };
+    var startedAt = new Date(run.startedAt);
+    var failedSummary = {
+      runId: run.id, startedAt: startedAt, finishedAt: new Date(), durationMs: Date.now() - run.startedAt,
+      sourcesProcessed: 0, eventsFound: 0, eventsNew: 0, eventsMerged: 0, itemsSkipped: 0,
+      newEventIds: [], mergedEventIds: [],
+      llmCalls: 0, tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, costUsd: 0,
+      sourceErrors: [{ source: 'pipeline', error: e.message }],
+    };
     if (!run.summary) run.summary = failedSummary;
     emit({ phase: 'error', error: e.message });
     data.addLog(failedSummary).catch(function() {});
-    alertMe({ text: '❌ <b>Tbilisi Events — сбор упал с ошибкой</b>\n' + e.message, parse_mode: 'HTML' }).catch(function() {});
+    teNotify.notifyAdmins('❌ <b>Tbilisi Events — сбор упал с ошибкой</b>\n' + e.message);
   }).finally(function() {
     run.done = true;
     emit({ phase: 'finished', summary: run.summary, error: run.error });
@@ -177,6 +211,27 @@ router.get('/sources', requireAuth, async function(req, res) {
   await renderSources(res, {});
 });
 
+// One parse run: its stats + every event it created or merged.
+router.get('/logs/:id', requireAuth, async function(req, res, next) {
+  try {
+    var log = await data.getLogById(req.params.id);
+    if (!log) return next();
+    var newEvents = await data.getEventsByIds(log.newEventIds || []);
+    var mergedEvents = await data.getEventsByIds(log.mergedEventIds || []);
+    var venues = await data.getVenues().catch(function() { return []; });
+    var venueById = {};
+    venues.forEach(function(v) { venueById[v.id] = v; });
+    res.render('tbilisi-events/admin/parse-run', {
+      title: 'Парсинг ' + (log.runId || log.id) + ' — Tbilisi Events Admin',
+      log: log,
+      newEvents: newEvents,
+      mergedEvents: mergedEvents,
+      venueById: venueById,
+      eventTypeLabels: taxonomy.EVENT_TYPE_LABELS,
+    });
+  } catch (e) { next(e); }
+});
+
 router.get('/collect/stream', requireAuth, function(req, res) {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -203,6 +258,7 @@ router.get('/collect/stream', requireAuth, function(req, res) {
 
 router.post('/collect', requireAuth, function(req, res) {
   runCollectInBackground();
+  audit(req, res, 'parser.run', { summary: 'Запущен полный сбор событий' });
   if (req.get('X-Requested-With')) return res.status(204).end();
   res.redirect(req.teBase + '/admin/?started=1');
 });
@@ -210,7 +266,10 @@ router.post('/collect', requireAuth, function(req, res) {
 router.post('/sources/collect', requireAuth, express.urlencoded({ extended: false }), async function(req, res) {
   var sources = await data.getAllSources().catch(function() { return []; });
   var source = sources.find(function(s) { return s.type === req.body.type && s.value === req.body.value; });
-  if (source) runCollectInBackground([source]);
+  if (source) {
+    runCollectInBackground([source]);
+    audit(req, res, 'parser.run', { entity: 'source', summary: 'Запущен сбор одного источника: ' + (source.label || source.value) });
+  }
   if (req.get('X-Requested-With')) return res.status(204).end();
   res.redirect(req.teBase + '/admin/?started=1');
 });
@@ -223,6 +282,7 @@ router.post('/sources', requireAuth, express.urlencoded({ extended: false }), as
     sourceError = e.message;
   }
   if (sourceError) return renderSources(res, { sourceError: sourceError });
+  audit(req, res, 'create', { entity: 'source', summary: 'Добавлен источник: ' + (req.body.label || req.body.value || req.body.type) });
   res.redirect(req.teBase + '/admin/sources');
 });
 
@@ -266,7 +326,9 @@ router.post('/events/:id/show', requireAuth, async function(req, res) {
 });
 
 router.post('/events/:id/delete', requireAuth, async function(req, res) {
+  var ev = await data.getEventById(req.params.id).catch(function() { return null; });
   await data.deleteEvent(req.params.id);
+  audit(req, res, 'delete', { entity: 'event', entityId: req.params.id, summary: 'Удалено событие: ' + ((ev && ev.title) || req.params.id) });
   backTo(req, res, req.teBase + '/admin/events');
 });
 
@@ -326,6 +388,10 @@ router.post('/events/:id/edit', requireAuth, express.urlencoded({ extended: fals
       patch.hidden = false; // a submission is created hidden:true — reveal it on publish
     }
     await data.updateEvent(req.params.id, patch);
+    audit(req, res, 'edit', {
+      entity: 'event', entityId: req.params.id,
+      summary: (publishing ? 'Опубликовано событие: ' : 'Правка события: ') + (patch.title || (prev && prev.title) || req.params.id),
+    });
     if (prev && prev.submission && prev.submission.userId) {
       var link = PUBLIC_ORIGIN + '/e/' + req.params.id;
       if (publishing) {
@@ -369,6 +435,7 @@ router.post('/events/:id/reenrich', requireAuth, async function(req, res, next) 
         await data.updateEvent(event.id, img);
       } catch (e) { /* ignore */ }
     }
+    audit(req, res, 'parser.run', { entity: 'event', entityId: event.id, summary: 'Переобогащение события: ' + (event.title || event.id) });
     backTo(req, res, req.teBase + '/admin/events');
   } catch (e) { next(e); }
 });
@@ -410,6 +477,7 @@ router.post('/venues', requireAuth, express.urlencoded({ extended: false }), asy
       nameKey: venuesLib.normalizeVenueName(name),
       origin: 'manual',
     });
+    audit(req, res, 'create', { entity: 'venue', entityId: id, summary: 'Добавлена площадка: ' + name });
     res.redirect(req.teBase + '/admin/venues/' + id);
   } catch (e) { next(e); }
 });
@@ -448,6 +516,10 @@ router.post('/venues/:id/verify', requireAuth, async function(req, res, next) {
     var venue = await data.getVenueById(req.params.id);
     if (!venue) return next();
     await data.updateVenue(venue.id, { editorVerified: !venue.editorVerified });
+    audit(req, res, 'edit', {
+      entity: 'venue', entityId: venue.id,
+      summary: (venue.editorVerified ? 'Снята отметка проверки: ' : 'Отмечена проверенной: ') + venue.name,
+    });
     backTo(req, res, req.teBase + '/admin/venues/' + venue.id);
   } catch (e) { next(e); }
 });
@@ -478,13 +550,16 @@ router.post('/venues/:id/edit', requireAuth, express.urlencoded({ extended: fals
       closedDate: /^\d{4}-\d{2}-\d{2}$/.test(b.closedDate || '') ? b.closedDate : null,
     };
     await data.updateVenue(req.params.id, patch);
+    audit(req, res, 'edit', { entity: 'venue', entityId: req.params.id, summary: 'Правка площадки: ' + (patch.name || req.params.id) });
     backTo(req, res, req.teBase + '/admin/venues/' + req.params.id);
   } catch (e) { next(e); }
 });
 
 router.post('/venues/:id/delete', requireAuth, async function(req, res, next) {
   try {
+    var venue = await data.getVenueById(req.params.id).catch(function() { return null; });
     await data.deleteVenue(req.params.id);
+    audit(req, res, 'delete', { entity: 'venue', entityId: req.params.id, summary: 'Удалена площадка: ' + ((venue && venue.name) || req.params.id) });
     res.redirect(req.teBase + '/admin/venues');
   } catch (e) { next(e); }
 });
@@ -569,10 +644,10 @@ function researchVenuesInBackground() {
     }
     return { targets: targets.length, filled: filled, notFound: notFound, failed: failed };
   })().then(function(s) {
-    alertMe({ parse_mode: 'HTML', text: '🏛 <b>Площадки — авто-заполнение завершено</b>\n'
-      + 'Обработано: ' + s.targets + '\nЗаполнено: ' + s.filled + '\nНе найдено: ' + s.notFound + '\nОшибок: ' + s.failed });
+    teNotify.notifyAdmins('🏛 <b>Площадки — авто-заполнение завершено</b>\n'
+      + 'Обработано: ' + s.targets + '\nЗаполнено: ' + s.filled + '\nНе найдено: ' + s.notFound + '\nОшибок: ' + s.failed);
   }).catch(function(e) {
-    alertMe({ text: '❌ Площадки — авто-заполнение упало: ' + e.message }).catch(function() {});
+    teNotify.notifyAdmins('❌ Площадки — авто-заполнение упало: ' + e.message);
   });
 }
 
@@ -582,18 +657,28 @@ router.post('/venues/:id/research', requireAuth, async function(req, res, next) 
     if (!venue) return next();
     var patch = researchPatch(venue, await venuesLib.researchVenue(venue.name));
     await data.updateVenue(venue.id, patch);
+    audit(req, res, 'parser.run', { entity: 'venue', entityId: venue.id, summary: 'Веб-поиск данных площадки: ' + venue.name });
     backTo(req, res, req.teBase + '/admin/venues/' + venue.id);
   } catch (e) { next(e); }
 });
 
 router.post('/venues/research-missing', requireAuth, function(req, res) {
   researchVenuesInBackground();
+  audit(req, res, 'parser.run', { entity: 'venue', summary: 'Запущено авто-заполнение данных площадок (пакетно)' });
   res.redirect(req.teBase + '/admin/venues?research=1');
 });
 
 router.post('/venues/merge', requireAuth, express.urlencoded({ extended: false }), async function(req, res) {
+  var fromId = (req.body.fromId || '').trim();
+  var toId = (req.body.toId || '').trim();
+  var from = fromId ? await data.getVenueById(fromId).catch(function() { return null; }) : null;
+  var to = toId ? await data.getVenueById(toId).catch(function() { return null; }) : null;
   try {
-    await data.mergeVenues((req.body.fromId || '').trim(), (req.body.toId || '').trim());
+    await data.mergeVenues(fromId, toId);
+    audit(req, res, 'delete', {
+      entity: 'venue', entityId: fromId,
+      summary: 'Слияние площадок: «' + ((from && from.name) || fromId) + '» → «' + ((to && to.name) || toId) + '»',
+    });
   } catch (e) { /* fall through to redirect; error is transient/operator-visible next load */ }
   res.redirect(req.teBase + '/admin/venues');
 });
@@ -628,6 +713,7 @@ router.post('/admins', requireAuth, requireSuperAdmin, express.urlencoded({ exte
     adminError = e.message;
   }
   if (adminError) return renderAdmins(res, { adminError: adminError });
+  audit(req, res, 'create', { entity: 'admin', summary: 'Добавлен админ: ' + ((req.body.name || '').trim() || '—') + (req.body.superadmin === 'on' ? ' (суперадмин)' : '') });
   res.redirect(req.teBase + '/admin/admins?saved=1');
 });
 
@@ -637,6 +723,10 @@ router.post('/admins/:id', requireAuth, requireSuperAdmin, express.urlencoded({ 
   if (pass) patch.passwordHash = cookieToken(pass);
   try {
     await data.updateAdmin(req.params.id, patch);
+    audit(req, res, 'edit', {
+      entity: 'admin', entityId: req.params.id,
+      summary: 'Правка админа' + (pass ? ' (смена пароля)' : '') + (patch.superadmin ? ', суперадмин' : ''),
+    });
   } catch (e) { /* fall through to redirect */ }
   res.redirect(req.teBase + '/admin/admins?saved=1');
 });
@@ -645,6 +735,7 @@ router.post('/admins/:id/delete', requireAuth, requireSuperAdmin, async function
   if (req.params.id !== res.locals.adminId) {
     try {
       await data.deleteAdmin(req.params.id);
+      audit(req, res, 'delete', { entity: 'admin', entityId: req.params.id, summary: 'Удалён админ' });
     } catch (e) { /* fall through to redirect */ }
   }
   res.redirect(req.teBase + '/admin/admins');
@@ -669,7 +760,8 @@ router.post('/heroes', requireAuth, express.urlencoded({ extended: false }), asy
   try {
     var name = i18nBody(req.body, 'name');
     if (name.ru || name.en || name.ka) {
-      await data.insertHero({ name: name, description: i18nBody(req.body, 'desc') });
+      var heroId = await data.insertHero({ name: name, description: i18nBody(req.body, 'desc') });
+      audit(req, res, 'create', { entity: 'hero', entityId: heroId || null, summary: 'Добавлен герой: ' + (name.ru || name.en || name.ka) });
     }
     res.redirect(req.teBase + '/admin/heroes');
   } catch (e) { next(e); }
@@ -677,7 +769,9 @@ router.post('/heroes', requireAuth, express.urlencoded({ extended: false }), asy
 
 router.post('/heroes/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
-    await data.updateHero(req.params.id, { name: i18nBody(req.body, 'name'), description: i18nBody(req.body, 'desc') });
+    var heroName = i18nBody(req.body, 'name');
+    await data.updateHero(req.params.id, { name: heroName, description: i18nBody(req.body, 'desc') });
+    audit(req, res, 'edit', { entity: 'hero', entityId: req.params.id, summary: 'Правка героя: ' + (heroName.ru || heroName.en || heroName.ka || req.params.id) });
     res.redirect(req.teBase + '/admin/heroes');
   } catch (e) { next(e); }
 });
@@ -695,6 +789,7 @@ router.post('/heroes/:id/image', requireAuth, venueUpload.single('image'), async
 router.post('/heroes/:id/delete', requireAuth, async function(req, res, next) {
   try {
     await data.deleteHero(req.params.id);
+    audit(req, res, 'delete', { entity: 'hero', entityId: req.params.id, summary: 'Удалён герой' });
     res.redirect(req.teBase + '/admin/heroes');
   } catch (e) { next(e); }
 });
@@ -753,17 +848,23 @@ router.post('/collections', requireAuth, express.urlencoded({ extended: false })
     var title = i18nBody(req.body, 'title');
     if (!(title.ru || title.en || title.ka)) return res.redirect(req.teBase + '/admin/collections');
     var id = await data.insertCollection({ title: title, heroId: (req.body.heroId || '').trim() || null });
+    audit(req, res, 'create', { entity: 'collection', entityId: id, summary: 'Создана подборка: ' + (title.ru || title.en || title.ka) });
     res.redirect(req.teBase + '/admin/collections/' + id);
   } catch (e) { next(e); }
 });
 
 router.post('/collections/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
+    var cTitle = i18nBody(req.body, 'title');
     await data.updateCollection(req.params.id, {
-      title: i18nBody(req.body, 'title'),
+      title: cTitle,
       curatorNote: i18nBody(req.body, 'note'),
       heroId: (req.body.heroId || '').trim() || null,
       published: req.body.published === 'on',
+    });
+    audit(req, res, 'edit', {
+      entity: 'collection', entityId: req.params.id,
+      summary: 'Правка подборки: ' + (cTitle.ru || cTitle.en || cTitle.ka || req.params.id) + (req.body.published === 'on' ? ' (опубликована)' : ' (черновик)'),
     });
     backTo(req, res, req.teBase + '/admin/collections/' + req.params.id);
   } catch (e) { next(e); }
@@ -816,7 +917,12 @@ router.post('/collections/:id/events/move', requireAuth, express.urlencoded({ ex
 
 router.post('/collections/:id/delete', requireAuth, async function(req, res, next) {
   try {
+    var col = await data.getCollectionById(req.params.id).catch(function() { return null; });
     await data.deleteCollection(req.params.id);
+    audit(req, res, 'delete', {
+      entity: 'collection', entityId: req.params.id,
+      summary: 'Удалена подборка: ' + ((col && col.title && (col.title.ru || col.title.en || col.title.ka)) || req.params.id),
+    });
     res.redirect(req.teBase + '/admin/collections');
   } catch (e) { next(e); }
 });
@@ -916,12 +1022,21 @@ router.get('/organizers/:uid', requireAuth, async function(req, res, next) {
 
     var claims = (await data.getOrganizerClaims({})).filter(function(c) { return c.uid === uid; });
 
+    // No Telegram yet → hand the admin a bot deep link that carries this user's
+    // link token, so /start te_<token> in the bot binds the chat to this account.
+    var tgDeepLink = null;
+    if (user && !user.tgUserId) {
+      var tg = await teUsersLib.ensureTgLinkToken(uid).catch(function() { return null; });
+      if (tg && tg.token) tgDeepLink = teUsersLib.deepLink(tg.token);
+    }
+
     res.render('tbilisi-events/admin/organizer-detail', {
       title: (user && user.email) || uid,
       uid: uid, user: user,
       linkedEvents: linkedEvents, linkedVenues: linkedVenues,
       allEvents: allEvents, allVenues: allVenues,
       claims: claims,
+      tgDeepLink: tgDeepLink,
     });
   } catch (e) { next(e); }
 });
@@ -959,7 +1074,24 @@ router.get('/users', requireAuth, requireSuperAdmin, async function(req, res, ne
     allEvents.forEach(function(e) {
       if (e.submission && e.submission.userId) pendingByUser[e.submission.userId] = (pendingByUser[e.submission.userId] || 0) + 1;
     });
-    res.render('tbilisi-events/admin/users', { title: 'Пользователи — Tbilisi Events Admin', users: users, pendingByUser: pendingByUser });
+
+    // For every user without a linked Telegram, expose a bot deep link with their
+    // link token (minted once if missing) so the admin can bind the chat.
+    var tgLinkByUser = {};
+    await Promise.all(users.map(async function(u) {
+      if (u.tgUserId) return;
+      var token = u.tgLinkToken;
+      if (!token) {
+        var tg = await teUsersLib.ensureTgLinkToken(u.id).catch(function() { return null; });
+        token = tg && tg.token;
+      }
+      if (token) tgLinkByUser[u.id] = teUsersLib.deepLink(token);
+    }));
+
+    res.render('tbilisi-events/admin/users', {
+      title: 'Пользователи — Tbilisi Events Admin',
+      users: users, pendingByUser: pendingByUser, tgLinkByUser: tgLinkByUser,
+    });
   } catch (e) { next(e); }
 });
 
@@ -967,11 +1099,25 @@ router.get('/users', requireAuth, requireSuperAdmin, async function(req, res, ne
 // Runs in the background (hundreds of docs) and reports the result to Telegram.
 router.post('/tools/backfill-slugs', requireAuth, requireSuperAdmin, function(req, res) {
   data.backfillSlugs().then(function(r) {
-    return alertMe({ text: '🔗 Slugs backfilled — events ' + r.events + ', venues ' + r.venues + ', collections ' + r.collections });
+    teNotify.notifyAdmins('🔗 Slugs backfilled — events ' + r.events + ', venues ' + r.venues + ', collections ' + r.collections);
   }).catch(function(e) {
-    return alertMe({ text: '❌ Slug backfill failed: ' + e.message });
+    teNotify.notifyAdmins('❌ Slug backfill failed: ' + e.message);
   });
+  audit(req, res, 'parser.run', { summary: 'Запущена генерация слагов (пакетно)' });
   backTo(req, res, req.teBase + '/admin/');
+});
+
+// --- admin audit log -------------------------------------------------------
+router.get('/audit', requireAuth, async function(req, res, next) {
+  try {
+    var entries = await data.getAdminLog(300);
+    res.render('tbilisi-events/admin/audit', {
+      title: 'Журнал действий — Tbilisi Events Admin',
+      entries: entries,
+      actionLabels: AUDIT_ACTION_LABELS,
+      entityLabels: AUDIT_ENTITY_LABELS,
+    });
+  } catch (e) { next(e); }
 });
 
 module.exports = router;

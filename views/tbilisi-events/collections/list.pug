@@ -1,9 +1,12 @@
 doctype html
+include ../_crumbs.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width,initial-scale=1')
     title= title
+    include ../_analytics.pug
+    include ../_seo.pug
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
     link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&family=Noto+Sans+Georgian:wght@400;500;600&display=swap')
@@ -68,6 +71,8 @@ html(lang=lang)
         .langs
           each l in langLinks
             a(href=l.href class=l.active ? 'lang on' : 'lang')= l.code
+
+      +crumbs(crumbs)
 
       .head
         h1= t.collectionsTitle

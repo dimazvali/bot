@@ -32,17 +32,24 @@ include _admin.pug
             th Найдено
             th Новых
             th Объединено
+            th Длит.
+            th Стоимость
             th Ошибок
         tbody
           each log in logs
             - var logDate = log.createdAt && log.createdAt.toDate ? log.createdAt.toDate() : new Date(log.createdAt)
+            - var durMs = log.durationMs || (log.startedAt && log.finishedAt ? ((log.finishedAt.toMillis ? log.finishedAt.toMillis() : +new Date(log.finishedAt)) - (log.startedAt.toMillis ? log.startedAt.toMillis() : +new Date(log.startedAt))) : 0)
+            - var durS = Math.round((durMs || 0) / 1000)
             tr
-              td.mono= logDate.toLocaleString('ru-RU')
+              td.mono
+                a.link(href=`${base}/admin/logs/${log.id}`)= logDate.toLocaleString('ru-RU')
               td= log.sourcesProcessed
               td.dim= log.itemsSkipped || 0
               td= log.eventsFound
               td= log.eventsNew
               td= log.eventsMerged
+              td.mono= durS ? (durS < 60 ? durS + 'с' : Math.floor(durS / 60) + 'м ' + (durS % 60) + 'с') : '—'
+              td.mono= (log.costUsd != null) ? ('$' + log.costUsd.toFixed(4)) : '—'
               - var errCount = (log.sourceErrors || []).length
               td(class=errCount ? 'mk' : 'dim' title=(log.sourceErrors || []).map(function(e){ return e.source + ': ' + e.error; }).join('\n'))
                 = errCount

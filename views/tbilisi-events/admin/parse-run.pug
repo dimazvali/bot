@@ -1,0 +1,89 @@
+include _admin.pug
+
+//- ts -> Date, tolerating Firestore Timestamp | ISO string | Date | null
+-
+  function toDate(v) {
+    if (!v) return null;
+    if (v.toDate) return v.toDate();
+    var d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function fmtDur(ms) {
+    if (!ms || ms < 0) return '—';
+    var s = Math.round(ms / 1000);
+    if (s < 60) return s + ' с';
+    return Math.floor(s / 60) + ' мин ' + (s % 60) + ' с';
+  }
+
+mixin eventTable(list)
+  if !list.length
+    p.hint Нет событий.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Дата
+            th Название
+            th Тип
+            th Площадка
+            th Источники
+            th
+        tbody
+          each e in list
+            tr(class=e.hidden ? 'is-off' : '')
+              td.mono= (e.date || '—') + (e.time ? ' ' + e.time : '')
+              td
+                span.t-title= e.title
+                if e.cancelled
+                  |  #[span.mk ⛔]
+              td= e.type ? (eventTypeLabels[e.type] || e.type) : ''
+              td= e.venueId && venueById[e.venueId] ? venueById[e.venueId].name : (e.place || '')
+              td.mono= (e.sources || []).map(function(s){ return s.label; }).join(', ')
+              td
+                a.btn.sm(href=`${base}/admin/events/${e.id}/edit`) править
+
++adminPage({ title: title, nav: 'dashboard' })
+  - var started = toDate(log.startedAt) || toDate(log.createdAt)
+  - var finished = toDate(log.finishedAt)
+  - var durMs = log.durationMs || (started && finished ? (finished - started) : 0)
+  - var tok = log.tokens || {}
+
+  .pagehead
+    h1 Парсинг
+    span.count #[b= log.runId || log.id]
+    a.link(href=base + '/admin/') ← Дашборд
+
+  h2.sec-lbl Сводка
+  .block
+    p.mono Запуск: #{started ? started.toLocaleString('ru-RU') : '—'}
+    p.mono Завершение: #{finished ? finished.toLocaleString('ru-RU') : '—'}
+    p.mono Длительность: #{fmtDur(durMs)}
+    p.mono Источников обработано: #{log.sourcesProcessed != null ? log.sourcesProcessed : '—'}
+    p.mono Постов пропущено (без изменений): #{log.itemsSkipped || 0}
+    p.mono Событий: найдено #{log.eventsFound || 0}, новых #{log.eventsNew || 0}, объединено #{log.eventsMerged || 0}
+    p.mono LLM: #{log.llmCalls || 0} вызовов · токенов in #{tok.input || 0} / out #{tok.output || 0}#{(tok.cacheRead || tok.cacheWrite) ? (' / cache ' + (tok.cacheRead || 0) + '+' + (tok.cacheWrite || 0)) : ''}
+    p.mono Стоимость LLM: #{log.costUsd != null ? ('$' + log.costUsd.toFixed(4)) : '—'}
+
+  if (log.sourceErrors || []).length
+    h2.sec-lbl Ошибки (#{log.sourceErrors.length})
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Источник
+            th Ошибка
+        tbody
+          each err in log.sourceErrors
+            tr
+              td= err.source
+              td.dim= err.error
+
+  h2.sec-lbl Новые события (#{newEvents.length})
+  if !(log.newEventIds || []).length && !newEvents.length
+    p.hint Этот лог создан до появления связи парсинга с событиями, поэтому список недоступен.
+  else
+    +eventTable(newEvents)
+
+  h2.sec-lbl Обновлённые события (#{mergedEvents.length})
+  +eventTable(mergedEvents)
