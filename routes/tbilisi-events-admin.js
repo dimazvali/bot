@@ -6,6 +6,7 @@ var pipeline = require('../lib/tbilisi-events-pipeline');
 var data = require('../lib/tbilisi-events-data');
 var teUsersLib = require('../lib/tbilisi-events-users');
 var teNotify = require('../lib/tbilisi-events-notify');
+var favNotify = require('../lib/tbilisi-events-fav-notify');
 // Admin alerts go through @tbiliseli_tour_bot via teNotify.notifyAdmins.
 var taxonomy = require('../lib/tbilisi-events-taxonomy');
 var enricher = require('../lib/tbilisi-events-enricher');
@@ -388,6 +389,7 @@ router.post('/events/:id/edit', requireAuth, express.urlencoded({ extended: fals
       patch.hidden = false; // a submission is created hidden:true — reveal it on publish
     }
     await data.updateEvent(req.params.id, patch);
+    if (publishing) favNotify.notifyFavoritedVenue(req.params.id); // fire-and-forget
     audit(req, res, 'edit', {
       entity: 'event', entityId: req.params.id,
       summary: (publishing ? 'Опубликовано событие: ' : 'Правка события: ') + (patch.title || (prev && prev.title) || req.params.id),
