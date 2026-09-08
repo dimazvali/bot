@@ -2,8 +2,9 @@ extends layout
 include mixins
 
 block content
+  - var LP = lang === 'en' ? '/en' : ''
   .gallery-header.gallery-header--sticky
-    span.gallery-label ТЕГ: #{tagLabel.toUpperCase()} · #{photos.length} фото
+    span.gallery-label #{ui.tagPrefix} #{tagLabel.toUpperCase()} · #{photos.length} #{ui.photosSuffix}
   if tagDesc
     p.photo-page-desc= tagDesc
   .masonry
@@ -11,7 +12,7 @@ block content
     each photo, _pi in photos
       if _pi === _igCardAt
         +instagramCard()
-      a.photo-card(href=`/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
+      a.photo-card(href=`${LP}/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
         img(
           src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
           srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined

@@ -1,38 +1,44 @@
 extends layout
 
 block content
+  - var LP = lang === 'en' ? '/en' : ''
   .about-page
-    h2.about-title ОБО МНЕ
+    h2.about-title= ui.aboutTitle
     img.about-photo(src='https://storage.googleapis.com/photo-dimazvalimisc/images/ks-05065-1780908582473-800.webp' alt='Дмитрий Шестаков — фотограф и разработчик из Тбилиси' title='Дмитрий Шестаков')
-    p.about-text.
-      გამარჯობა!
-      Меня зовут Дмитрий Шестаков. И вообще-то я журналист из Петербурга. Но в частоности — разработчик из Тбилиси. Или фотограф. Или велосипедист. По обстоятельствам.
+    if lang === 'en'
+      p.about-text.
+        გამარჯობა!
+        My name is Dmitry Shestakov. I'm a journalist from Saint Petersburg by training. But mostly — a developer based in Tbilisi. Or a photographer. Or a cyclist. Depends on the day.
+    else
+      p.about-text.
+        გამარჯობა!
+        Меня зовут Дмитрий Шестаков. И вообще-то я журналист из Петербурга. Но в частоности — разработчик из Тбилиси. Или фотограф. Или велосипедист. По обстоятельствам.
     .about-contact
-      span.about-label КОНТАКТ
+      span.about-label= ui.contactLabel
       a.about-link(href='mailto:dimazvali@gmail.com') email
       a.about-link(href='https://telegram.me/dimazvali') telegram
       a.about-link(href='https://www.instagram.com/dimazvali2') instagram
 
     if sent === 'contact'
-      p.about-sent ✓ Сообщение отправлено
+      p.about-sent= ui.sentContact
     if sent === 'review'
-      p.about-sent ✓ Отзыв отправлен, спасибо!
+      p.about-sent= ui.sentReview
 
     .about-accordion
-      button.about-accordion-btn(type='button' aria-expanded='false' data-target='#about-contact-form') НАПИСАТЬ МНЕ
+      button.about-accordion-btn(type='button' aria-expanded='false' data-target='#about-contact-form')= ui.writeToMe
       .about-accordion-body#about-contact-form
-        form.about-form(method='POST' action='/contact')
-          input.about-input(type='email' name='email' placeholder='ваш e-mail (необязательно)')
-          textarea.about-input(name='message' rows='4' placeholder='сообщение' required)
-          button.about-submit(type='submit') ОТПРАВИТЬ
+        form.about-form(method='POST' action=`${LP}/contact`)
+          input.about-input(type='email' name='email' placeholder=ui.emailPlaceholder)
+          textarea.about-input(name='message' rows='4' placeholder=ui.messagePlaceholder required)
+          button.about-submit(type='submit')= ui.submit
 
     .about-accordion
-      button.about-accordion-btn(type='button' aria-expanded='false' data-target='#about-review-form') ОСТАВИТЬ ОТЗЫВ
+      button.about-accordion-btn(type='button' aria-expanded='false' data-target='#about-review-form')= ui.leaveReview
       .about-accordion-body#about-review-form
-        form.about-form(method='POST' action='/review')
-          input.about-input(type='text' name='name' placeholder='ваше имя (необязательно)')
-          textarea.about-input(name='text' rows='4' placeholder='отзыв' required)
-          button.about-submit(type='submit') ОТПРАВИТЬ
+        form.about-form(method='POST' action=`${LP}/review`)
+          input.about-input(type='text' name='name' placeholder=ui.namePlaceholder)
+          textarea.about-input(name='text' rows='4' placeholder=ui.reviewPlaceholder required)
+          button.about-submit(type='submit')= ui.submit
 
   script.
     document.querySelectorAll('.about-accordion-btn').forEach(function(btn) {

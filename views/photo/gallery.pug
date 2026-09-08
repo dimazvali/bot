@@ -2,33 +2,34 @@ extends layout
 include mixins
 
 block content
+  - var LP = lang === 'en' ? '/en' : ''
   if isShoot
     .shoot-crumb
-      
+
   .gallery-header.gallery-header--sticky
     if isShoot
       span.gallery-label
-        a(href='/shoot') все съемки
-      span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} фото
+        a(href=`${LP}/shoot`)= ui.allShoots
+      span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} #{ui.photosSuffix}
       .gallery-header-right
-        a.gallery-download(href=`/shoot/${shootSlug}/download`) ↓ СКАЧАТЬ
-        button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
+        a.gallery-download(href=`${LP}/shoot/${shootSlug}/download`)= ui.download
+        button.gallery-shuffle(onclick='shuffleMasonry()')= ui.shuffle
     else if activeCountry && activeSeries
       - const country = data[activeCountry]
       - const series = country.series[activeSeries]
-      span.gallery-label #{country.label.toUpperCase()} · #{series.label.toUpperCase()} · #{photos.length} фото
+      span.gallery-label #{country.label.toUpperCase()} · #{series.label.toUpperCase()} · #{photos.length} #{ui.photosSuffix}
       .gallery-header-right
-        button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
+        button.gallery-shuffle(onclick='shuffleMasonry()')= ui.shuffle
         if isAdmin
-          a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/upload`) + фото
-          a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/edit`) ✎ серия
+          a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/upload`)= ui.addPhoto
+          a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/edit`)= ui.editSeries
     else if activeCountry
       - const country = data[activeCountry]
-      span.gallery-label #{country.label.toUpperCase()} · #{photos.length} фото
+      span.gallery-label #{country.label.toUpperCase()} · #{photos.length} #{ui.photosSuffix}
       .gallery-header-right
-        button.gallery-shuffle(onclick='shuffleMasonry()') ↺ ШАФЛ
+        button.gallery-shuffle(onclick='shuffleMasonry()')= ui.shuffle
     else
-      span.gallery-label ВСЕ РАБОТЫ · #{photos.length} фото
+      span.gallery-label #{ui.allWorks} · #{photos.length} #{ui.photosSuffix}
   if isShoot && peopleGroups && peopleGroups.length
     .faces-widget#faces-widget
       each g in peopleGroups
@@ -42,10 +43,10 @@ block content
             img(src=rf.thumb alt=g.name||'' title=g.name||undefined style=`width:${dw}%;height:${dh}%;left:${lp}%;top:${tp}%;`)
           if g.name
             span.faces-widget-name= g.name
-      button.faces-widget-reset(type='button') ✕ ВСЕ ЛИЦА
+      button.faces-widget-reset(type='button')= ui.allFaces
   if isShoot
     .shoot-collections#shoot-collections(style='display:none')
-      span.gallery-label ВАШИ ПОДБОРКИ
+      span.gallery-label= ui.yourSelections
       .shoot-collections-list#shoot-collections-list
   -
     var _types = photos.reduce(function(s,p){ s.add(p.type||'copter'); return s; }, new Set());
@@ -59,7 +60,7 @@ block content
   if !isShoot && activeTags && activeTags.length
     .gallery-tags
       each tag in activeTags
-        a.gallery-tag(href=`/tag/${tag.key}`) #{tag.label.toUpperCase()}
+        a.gallery-tag(href=`${LP}/tag/${tag.key}`) #{tag.label.toUpperCase()}
   if _showFilter
     .type-filter
       each t in ['copter','camera','mobile']
@@ -72,7 +73,7 @@ block content
       if _pi === _igCardAt
         +instagramCard()
       a.photo-card(
-        href=isShoot ? `/shoot/${shootSlug}/${photo.id}` : `/${photo.countryKey}/${photo.seriesKey}/${photo.id}`
+        href=isShoot ? `${LP}/shoot/${shootSlug}/${photo.id}` : `${LP}/${photo.countryKey}/${photo.seriesKey}/${photo.id}`
         data-type=photo.type||'copter'
         data-photo-id=photo.id
         data-person-keys=(isShoot && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined
@@ -101,11 +102,11 @@ block content
 
   if isShoot && otherShoots && otherShoots.length
     .gallery-header
-      span.gallery-label= otherShootsAreRelated ? 'СВЯЗАННЫЕ СЪЁМКИ' : 'ДРУГИЕ СЪЁМКИ'
+      span.gallery-label= otherShootsAreRelated ? ui.relatedShoots : ui.otherShoots
     .shoot-related
       each other in otherShoots
         - var cover = other.photos[0]
-        a.shoot-related-card(href=`/shoot/${other.key}`)
+        a.shoot-related-card(href=`${LP}/shoot/${other.key}`)
           if cover
             img(
               src=cover.urls ? cover.urls.preview : undefined
@@ -118,34 +119,35 @@ block content
             )
           .photo-overlay
             span.photo-title= other.label.toUpperCase()
-            span.photo-date= `${other.photos.length} фото`
+            span.photo-date= `${other.photos.length} ${ui.photosSuffix}`
 
   if isShoot
     .selection-popup#intro-popup
       .selection-popup-inner
-        p.intro-popup-text Привет! Кажется, мы еще не знакомы. Если вы здесь по делу, присмотритесь к картинкам: вы можете отметить нужные вам галочками — и сохранить созданную подборку. Я получу об этом уведомление.
+        p.intro-popup-text= ui.introText
         .selection-popup-actions
-          button#intro-popup-close(type='button') ПОНЯТНО
+          button#intro-popup-close(type='button')= ui.introClose
 
     .selection-bar#selection-bar
       span#selection-count
       .selection-bar-actions
-        button#selection-clear(type='button') ОЧИСТИТЬ
-        button#selection-save(type='button') СОХРАНИТЬ ПОДБОРКУ
+        button#selection-download(type='button')= ui.download
+        button#selection-clear(type='button')= ui.selectionClear
+        button#selection-save(type='button')= ui.selectionSave
 
     .selection-popup#selection-popup
       .selection-popup-inner
         .selection-popup-form#selection-popup-form
-          span.selection-popup-title НАЗВАНИЕ ПОДБОРКИ
-          input#selection-name-input(type='text' placeholder='например: на ретушь' maxlength='200')
+          span.selection-popup-title= ui.selectionPopupTitle
+          input#selection-name-input(type='text' placeholder=ui.namePlaceholderCollection maxlength='200')
           p#selection-popup-msg
           .selection-popup-actions
-            button#selection-popup-cancel(type='button') ОТМЕНА
-            button#selection-popup-submit(type='button') СОХРАНИТЬ
+            button#selection-popup-cancel(type='button')= ui.cancel
+            button#selection-popup-submit(type='button')= ui.save
         .selection-popup-success#selection-popup-success(style='display:none')
-          p.selection-popup-success-text Спасибо! Подборка сохранена и отправлена автору.
+          p.selection-popup-success-text= ui.successText
           .selection-popup-actions
-            button#selection-popup-close(type='button') ОК
+            button#selection-popup-close(type='button')= ui.ok
 
   if isShoot
     script.
@@ -202,6 +204,7 @@ block content
         var nameInput = document.getElementById('selection-name-input');
         var msgEl    = document.getElementById('selection-popup-msg');
         var saveBtn  = document.getElementById('selection-save');
+        var downloadBtn = document.getElementById('selection-download');
         var clearBtn = document.getElementById('selection-clear');
         var cancelBtn = document.getElementById('selection-popup-cancel');
         var submitBtn = document.getElementById('selection-popup-submit');
@@ -220,7 +223,7 @@ block content
         function updateBar() {
           var ids = selectedIds();
           if (bar) bar.classList.toggle('is-open', ids.length > 0);
-          if (countEl) countEl.textContent = 'ВЫБРАНО: ' + ids.length;
+          if (countEl) countEl.textContent = !{JSON.stringify(ui.selectionCount)} + ' ' + ids.length;
         }
 
         function clearSelection() {
@@ -257,7 +260,7 @@ block content
             var chip = document.createElement('button');
             chip.type = 'button';
             chip.className = 'shoot-collection-chip';
-            chip.textContent = c.name + ' · ' + c.count + ' фото';
+            chip.textContent = c.name + ' · ' + c.count + ' ' + !{JSON.stringify(ui.photosSuffix)};
             chip.addEventListener('click', function() { applySelection(c.photoIds || []); });
             collectionsList.appendChild(chip);
           });
@@ -295,6 +298,12 @@ block content
           if (restored) { saveStored(); updateBar(); }
         }());
 
+        if (downloadBtn) downloadBtn.addEventListener('click', function() {
+          var ids = selectedIds();
+          if (!ids.length) return;
+          window.location.href = saveUrl.replace(/\/collections$/, '/download') + '?ids=' + encodeURIComponent(ids.join(','));
+        });
+
         if (clearBtn) clearBtn.addEventListener('click', clearSelection);
 
         if (saveBtn) saveBtn.addEventListener('click', function() {
@@ -312,7 +321,7 @@ block content
 
         if (submitBtn) submitBtn.addEventListener('click', function() {
           var name = nameInput.value.trim();
-          if (!name) { msgEl.textContent = 'Введите название'; return; }
+          if (!name) { msgEl.textContent = !{JSON.stringify(ui.enterNameError)}; return; }
           var ids = selectedIds();
           if (!ids.length) { popup.classList.remove('is-open'); return; }
 
@@ -326,7 +335,7 @@ block content
             .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
             .then(function(res) {
               submitBtn.disabled = false;
-              if (!res.ok) { msgEl.textContent = (res.data && res.data.error) || 'Ошибка сохранения'; return; }
+              if (!res.ok) { msgEl.textContent = (res.data && res.data.error) || !{JSON.stringify(ui.saveError)}; return; }
               var savedList = loadSavedCollections();
               savedList.push({ id: res.data.id, name: name, count: ids.length, photoIds: ids, createdAt: Date.now() });
               saveSavedCollections(savedList);
@@ -337,7 +346,7 @@ block content
             })
             .catch(function() {
               submitBtn.disabled = false;
-              msgEl.textContent = 'Ошибка сети';
+              msgEl.textContent = !{JSON.stringify(ui.networkError)};
             });
         });
       }());

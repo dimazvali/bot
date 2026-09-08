@@ -1,9 +1,11 @@
 doctype html
-html(data-theme='dark')
+- var LP = lang === 'en' ? '/en' : ''
+- var ALT_LP = lang === 'en' ? '' : '/en'
+html(data-theme='dark' lang=lang || 'ru')
   head
     title= title
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    - var _desc = desc || 'Аэрофотосъёмка — Дмитрий Шестаков'
+    - var _desc = desc || (lang === 'en' ? 'Aerial photography — Dmitry Shestakov' : 'Аэрофотосъёмка — Дмитрий Шестаков')
     meta(name='description' content=_desc)
     if noindex
       meta(name='robots' content='noindex,nofollow')
@@ -18,9 +20,20 @@ html(data-theme='dark')
     if ogUrl
       meta(property='og:url' content=ogUrl)
       link(rel='canonical' href=ogUrl)
+      -
+        // Built structurally from currentPath (the clean, unprefixed path — set
+        // server-side from req.path after the /en prefix is stripped), not by
+        // string-replacing ogUrl: a substring replace would silently mangle the
+        // URL for any future country/series/tag whose key happens to start with
+        // "en" (e.g. "england"), since '/en' has no path-boundary awareness.
+        var _ruUrl = 'https://photo.dimazvali.com' + (currentPath || '')
+        var _enUrl = 'https://photo.dimazvali.com/en' + (currentPath || '')
+      link(rel='alternate' hreflang='ru' href=_ruUrl)
+      link(rel='alternate' hreflang='en' href=_enUrl)
+      link(rel='alternate' hreflang='x-default' href=_ruUrl)
     meta(name='twitter:card' content='summary_large_image')
     if breadcrumbs && breadcrumbs.length
-      - var _ldItems = [{"@type":"ListItem","position":1,"name":"Главная","item":"https://photo.dimazvali.com/"}].concat(breadcrumbs.map(function(b,i){return{"@type":"ListItem","position":i+2,"name":b.name,"item":b.url};}))
+      - var _ldItems = [{"@type":"ListItem","position":1,"name":(lang === 'en' ? 'Home' : 'Главная'),"item":"https://photo.dimazvali.com" + LP + "/"}].concat(breadcrumbs.map(function(b,i){return{"@type":"ListItem","position":i+2,"name":b.name,"item":b.url};}))
       script(type='application/ld+json')!= JSON.stringify({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":_ldItems})
     if googleClientId
       meta(name='google-client-id' content=googleClientId)
@@ -37,11 +50,12 @@ html(data-theme='dark')
     header.mobile-header
       button.burger#burger ☰
       a.mobile-logo(href='https://dimazvali.com') dimazvali.com
-      button.theme-toggle(onclick='toggleTheme()' title='Тема') ◐
+      a.lang-switch(href=ALT_LP + (currentPath || '')) #{ui.langSwitch}
+      button.theme-toggle(onclick='toggleTheme()' title=ui.theme) ◐
     .mobile-colors
       each family, key in colorFamilies
         a.color-dot(
-          href=`/color/${key}`
+          href=`${LP}/color/${key}`
           title=family.label
           style=`background:${family.hex}`
           class=activeColorFamily===key?'active':''
@@ -56,7 +70,7 @@ html(data-theme='dark')
             if !country.archived
               - var seriesOrder = country.seriesOrder || Object.keys(country.series)
               a.nav-country(
-                href=`/${countryKey}`
+                href=`${LP}/${countryKey}`
                 class=activeCountry === countryKey ? 'open' : ''
               )
                 span.arrow= activeCountry === countryKey ? '▾' : '▸'
@@ -67,13 +81,13 @@ html(data-theme='dark')
                   - var series = country.series[seriesKey]
                   if series && !series.archived
                     a.nav-series(
-                      href=`/${countryKey}/${seriesKey}`
+                      href=`${LP}/${countryKey}/${seriesKey}`
                       class=activeSeries === seriesKey ? 'active' : ''
                     ) #{series.label}
         .sidebar-colors
           each family, key in colorFamilies
             a.color-dot(
-              href=`/color/${key}`
+              href=`${LP}/color/${key}`
               title=family.label
               style=`background:${family.hex}`
               class=activeColorFamily===key?'active':''
@@ -84,18 +98,19 @@ html(data-theme='dark')
             a(href='https://telegram.me/dimazvali' target='_blank' rel='noopener') @dimazvali
             a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') @dimazvali2
           if photoUser && photoUser.subscribed
-            p.subscribe-msg ✓ вы подписаны (почта)
-            button.subscribe-unsub#unsubscribe-google-btn(type='button') отписаться
+            p.subscribe-msg= ui.subscribed
+            button.subscribe-unsub#unsubscribe-google-btn(type='button')= ui.unsubscribeBtn
           else
             .subscribe-wrap
               p.subscribe-msg#subscribe-msg(style='display:none')
-              button.subscribe-toggle#subscribe-toggle(type='button') подписаться →
+              button.subscribe-toggle#subscribe-toggle(type='button')= ui.subscribeBtn
               .subscribe-popup#subscribe-popup(style='display:none')
-                button.subscribe-option#subscribe-email-btn(type='button') по почте
-                a.subscribe-option(href='https://telegram.me/dimazvalibot?start=photo_sub' target='_blank' rel='noopener') в телеграм
+                button.subscribe-option#subscribe-email-btn(type='button')= ui.byEmail
+                a.subscribe-option(href='https://telegram.me/dimazvalibot?start=photo_sub' target='_blank' rel='noopener')= ui.byTelegram
           .sidebar-footer-bottom
             //- a(href='/about') О СЕБЕ
-            button.theme-toggle(onclick='toggleTheme()' title='Переключить тему') ◐
+            a.lang-switch(href=ALT_LP + (currentPath || '')) #{ui.langSwitch}
+            button.theme-toggle(onclick='toggleTheme()' title=ui.theme) ◐
       .sidebar-overlay#sidebar-overlay
       main.main
         block content

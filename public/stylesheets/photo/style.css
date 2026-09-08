@@ -134,6 +134,22 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
 }
 .theme-toggle:hover { color: var(--text); border-color: var(--text-muted); }
 
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 1px;
+  width: 24px;
+  height: 24px;
+  text-decoration: none;
+}
+.lang-switch:hover { color: var(--text); border-color: var(--text-muted); }
+.mobile-header .lang-switch { margin-right: 8px; }
+
 /* ─── MAIN ───────────────────────────────────────────────────── */
 .main { flex: 1; padding: 24px; overflow: hidden; }
 

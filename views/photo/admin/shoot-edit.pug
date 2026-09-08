@@ -18,7 +18,9 @@ html(data-theme='dark')
         h2.admin-title МЕТАДАННЫЕ
         form.admin-form(method='POST' action=`/admin/shoots/${slug}/edit`)
           input.admin-input(type='text' name='label' value=shoot.label placeholder='название' required)
+          input.admin-input(type='text' name='label_en' value=shoot.label_en || '' placeholder='name (EN)')
           input.admin-input(type='text' name='desc' value=shoot.desc placeholder='описание (необязательно)')
+          input.admin-input(type='text' name='desc_en' value=shoot.desc_en || '' placeholder='description (EN)')
           input.admin-input(type='text' name='password' value=shoot.password placeholder='пароль (оставьте пустым для открытого доступа)')
           label.admin-tag-check
             input(type='checkbox' name='public' checked=shoot.public)

@@ -14,6 +14,7 @@ var crypto = require('crypto');
 var archiver = require('archiver');
 var shoots = require('../lib/photo-shoots');
 var photoPeople = require('../lib/photo-people');
+var i18n = require('../lib/photo-i18n');
 
 function shootCookieToken(password, slug) {
   var secret = process.env.papersToken;
@@ -42,8 +43,46 @@ router.use('/admin', photoAdmin);
 router.use('/og', require('./photo-og'));
 router.use('/photo-comments', require('./photo-comments'));
 
+// EN lives at /en/*, RU stays exactly where it is (no prefix — so nothing about
+// the existing, already-indexed RU URLs changes). Strip the /en prefix from
+// req.url here so every route below stays written once and serves both
+// languages; req.lang says which. See lib/photo-i18n.js for the localization
+// helpers and UI strings, and views/photo/layout.pug for the resulting
+// canonical/hreflang tags and language switcher.
 router.use(function(req, res, next) {
-  res.locals.colorFamilies = COLOR_FAMILIES;
+  var m = req.url.match(/^\/en(\/.*)?$/);
+  if (m) {
+    req.lang = 'en';
+    req.url = m[1] || '/';
+  } else {
+    req.lang = 'ru';
+  }
+
+  // One-time, first-visit nudge: if this browser has never been through this check
+  // before and Accept-Language clearly prefers English, send it to the /en version
+  // once and remember we've decided (cookie) — never repeats, skips bots/crawlers
+  // and non-page requests, and never redirects a *returning* visitor away from a
+  // URL they specifically navigated to (that would break bookmarks/shared links and
+  // fight the self-referencing canonical each language version relies on).
+  if (
+    req.method === 'GET' &&
+    req.lang === 'ru' &&
+    !(req.signedCookies && req.signedCookies.photoLangSeen) &&
+    !BOT_UA_RE.test(req.headers['user-agent'] || '') &&
+    (req.headers.accept || '').indexOf('text/html') !== -1 &&
+    !/\.(xml|txt)$/i.test(req.path)
+  ) {
+    var preferred = i18n.pickPreferredLang(req.headers['accept-language']);
+    res.cookie('photoLangSeen', preferred, { signed: true, httpOnly: true, maxAge: 180 * 24 * 60 * 60 * 1000 });
+    if (preferred === 'en') {
+      return res.redirect(302, '/en' + req.url);
+    }
+  }
+
+  res.locals.lang = req.lang;
+  res.locals.ui = i18n.UI[req.lang];
+  res.locals.currentPath = req.path;
+  res.locals.colorFamilies = i18n.localizeColorFamilies(COLOR_FAMILIES, req.lang);
   res.locals.activeColorFamily = null;
   res.locals.isAdmin = !!(req.signedCookies && req.signedCookies.photoAdminToken);
   res.locals.subStatus = req.query.sub || null;
@@ -57,6 +96,9 @@ router.use(function(req, res, next) {
 
 var BASE = 'https://photo.dimazvali.com';
 
+// Full URL of the given (unprefixed) path in the given language.
+function pageUrl(lang, p) { return BASE + i18n.langPrefix(lang) + p; }
+
 function ogImg(photo) {
   return photo && photo.urls ? photo.urls.preview : null;
 }
@@ -66,8 +108,8 @@ function getActiveSeries(country) {
   return order.filter(k => country.series[k] && !country.series[k].archived);
 }
 
-function getAllPhotos() {
-  var data = getData();
+// data must already be localized (i18n.localizeDataTree) by the caller.
+function getAllPhotos(data) {
   var list = [];
   for (var countryKey of Object.keys(data)) {
     var country = data[countryKey];
@@ -84,31 +126,38 @@ function getAllPhotos() {
 
 // GET / — full gallery (all photos)
 router.get('/', (req, res) => {
-  var data = getData();
-  var photos = getAllPhotos();
+  var lang = req.lang;
+  var data = i18n.localizeDataTree(getData(), lang);
+  var photos = getAllPhotos(data);
+  var tags = i18n.localizeTags(getTags(), lang);
   res.render('photo/gallery', {
     data,
     activeCountry: null,
     activeSeries: null,
     photos,
     title: 'photo.dimazvali.com',
-    desc: 'Аэрофотосъёмка — Дмитрий Шестаков. Серийная документальная фотография с воздуха.',
-    keywords: buildPageKeywords(photos, getTags(), Object.keys(data).map(k => data[k].label)),
+    desc: lang === 'en'
+      ? 'Aerial photography — Dmitry Shestakov. Documentary series shot from the air.'
+      : 'Аэрофотосъёмка — Дмитрий Шестаков. Серийная документальная фотография с воздуха.',
+    keywords: buildPageKeywords(photos, tags, Object.keys(data).map(k => data[k].label)),
     ogImage: ogImg(photos[0]),
-    ogUrl: BASE + '/',
+    ogUrl: pageUrl(lang, '/'),
     breadcrumbs: null,
   });
 });
 
 // GET /about
 router.get('/about', (req, res) => {
+  var lang = req.lang;
   res.render('photo/about', {
-    data: getData(),
-    title: 'О себе — photo.dimazvali.com',
-    desc: 'Дмитрий Шестаков — аэрофотограф. Снимаю документальные серии с воздуха.',
+    data: i18n.localizeDataTree(getData(), lang),
+    title: lang === 'en' ? 'About — photo.dimazvali.com' : 'О себе — photo.dimazvali.com',
+    desc: lang === 'en'
+      ? 'Dmitry Shestakov — aerial photographer. I shoot documentary series from the air.'
+      : 'Дмитрий Шестаков — аэрофотограф. Снимаю документальные серии с воздуха.',
     ogImage: null,
-    ogUrl: BASE + '/about',
-    breadcrumbs: [{ name: 'О себе', url: BASE + '/about' }],
+    ogUrl: pageUrl(lang, '/about'),
+    breadcrumbs: [{ name: lang === 'en' ? 'About' : 'О себе', url: pageUrl(lang, '/about') }],
     sent: req.query.sent || null,
   });
 });
@@ -121,7 +170,7 @@ router.post('/contact', express.urlencoded({ extended: false }), (req, res) => {
 
     tgSend('<b>📬 Сообщение с photo.dimazvali.com</b>\n' + (email ? 'От: ' + email + '\n' : '') + '\n' + message);
   }
-  res.redirect('/about?sent=contact');
+  res.redirect(i18n.langPrefix(req.lang) + '/about?sent=contact');
 });
 
 // POST /review
@@ -131,17 +180,19 @@ router.post('/review', express.urlencoded({ extended: false }), (req, res) => {
   if (text) {
     tgSend('<b>⭐ Отзыв с photo.dimazvali.com</b>\n' + (name ? 'Автор: ' + name + '\n' : '') + '\n' + text);
   }
-  res.redirect('/about?sent=review');
+  res.redirect(i18n.langPrefix(req.lang) + '/about?sent=review');
 });
 
 // GET /tag/:slug — gallery filtered by tag
 router.get('/tag/:slug', (req, res) => {
+  var lang = req.lang;
   var { slug } = req.params;
-  var tags = getTags();
+  var tags = i18n.localizeTags(getTags(), lang);
   if (!tags[slug]) return res.status(404).render('error', { message: 'Not found', error: {} });
-  var photos = getAllPhotos().filter(p => p.tags && p.tags.includes(slug));
+  var data = i18n.localizeDataTree(getData(), lang);
+  var photos = getAllPhotos(data).filter(p => p.tags && p.tags.includes(slug));
   res.render('photo/tag-gallery', {
-    data: getData(),
+    data,
     activeCountry: null,
     activeSeries: null,
     tagLabel: tags[slug].label,
@@ -149,38 +200,43 @@ router.get('/tag/:slug', (req, res) => {
     tagSlug: slug,
     photos,
     title: `${tags[slug].label} — photo.dimazvali.com`,
-    desc: tags[slug].desc || `${photos.length} аэрофотоснимков по теме «${tags[slug].label}» — Дмитрий Шестаков`,
+    desc: tags[slug].desc || (lang === 'en'
+      ? `${photos.length} aerial photos on "${tags[slug].label}" — Dmitry Shestakov`
+      : `${photos.length} аэрофотоснимков по теме «${tags[slug].label}» — Дмитрий Шестаков`),
     keywords: tags[slug].label + ', ' + BASE_KEYWORDS,
     ogImage: ogImg(photos[0]),
-    ogUrl: `${BASE}/tag/${slug}`,
-    breadcrumbs: [{ name: tags[slug].label, url: `${BASE}/tag/${slug}` }],
+    ogUrl: pageUrl(lang, `/tag/${slug}`),
+    breadcrumbs: [{ name: tags[slug].label, url: pageUrl(lang, `/tag/${slug}`) }],
   });
 });
 
 // GET /color/:family — gallery filtered by color
 router.get('/color/:family', function(req, res) {
+  var lang = req.lang;
   var { family } = req.params;
   if (!COLOR_FAMILIES[family]) return res.status(404).render('error', { message: 'Not found', error: {} });
-  var photos = getAllPhotos().filter(function(p) { return p.colorFamily === family; });
-  var info = COLOR_FAMILIES[family];
+  var data = i18n.localizeDataTree(getData(), lang);
+  var photos = getAllPhotos(data).filter(function(p) { return p.colorFamily === family; });
+  var info = i18n.localizeColorFamilies(COLOR_FAMILIES, lang)[family];
   res.render('photo/color-gallery', {
-    data: getData(),
+    data,
     activeCountry: null,
     activeSeries: null,
     activeColorFamily: family,
     colorLabel: info.label,
     photos,
     title: info.label + ' — photo.dimazvali.com',
-    desc: info.label + ' — аэрофотосъёмка Дмитрия Шестакова',
+    desc: lang === 'en' ? info.label + ' — aerial photography by Dmitry Shestakov' : info.label + ' — аэрофотосъёмка Дмитрия Шестакова',
     keywords: info.label + ', ' + BASE_KEYWORDS,
     ogImage: ogImg(photos[0]),
-    ogUrl: BASE + '/color/' + family,
-    breadcrumbs: [{ name: info.label, url: BASE + '/color/' + family }],
+    ogUrl: pageUrl(lang, '/color/' + family),
+    breadcrumbs: [{ name: info.label, url: pageUrl(lang, '/color/' + family) }],
   });
 });
 
 // POST /:country/:series/:id/inquiry — photo inquiry form
 router.post('/:country/:series/:id/inquiry', express.urlencoded({ extended: false }), async (req, res) => {
+  var lang = req.lang;
   var { country: countryKey, series: seriesKey, id } = req.params;
   var data = getData();
   var country = data[countryKey];
@@ -197,7 +253,7 @@ router.post('/:country/:series/:id/inquiry', express.urlencoded({ extended: fals
 
   var emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!name || !emailRe.test(email)) {
-    return res.redirect(`/${countryKey}/${seriesKey}/${id}?inquiry=err`);
+    return res.redirect(i18n.langPrefix(lang) + `/${countryKey}/${seriesKey}/${id}?inquiry=err`);
   }
 
   try {
@@ -214,11 +270,12 @@ router.post('/:country/:series/:id/inquiry', express.urlencoded({ extended: fals
     console.error('[inquiry]', e.message);
   }
 
-  res.redirect(`/${countryKey}/${seriesKey}/${id}?inquiry=ok`);
+  res.redirect(i18n.langPrefix(lang) + `/${countryKey}/${seriesKey}/${id}?inquiry=ok`);
 });
 
 // POST /:country/:series/:id/review — photo review
 router.post('/:country/:series/:id/review', express.urlencoded({ extended: false }), async (req, res) => {
+  var lang = req.lang;
   var { country: countryKey, series: seriesKey, id } = req.params;
   var data = getData();
   var country = data[countryKey];
@@ -241,23 +298,26 @@ router.post('/:country/:series/:id/review', express.urlencoded({ extended: false
       await sendMessage2({ chat_id: 144489840, text: msg, parse_mode: 'HTML' }, false, process.env.dimazvaliToken);
     } catch (e) { console.error('[review]', e.message); }
   }
-  res.redirect('/' + countryKey + '/' + seriesKey + '/' + id + '?review=ok');
+  res.redirect(i18n.langPrefix(lang) + '/' + countryKey + '/' + seriesKey + '/' + id + '?review=ok');
 });
 
-// GET /sitemap.xml
+// GET /sitemap.xml — RU (unprefixed) and EN (/en/...) URLs, cross-linked with hreflang
 router.get('/sitemap.xml', (req, res) => {
   var base = 'https://photo.dimazvali.com';
   var data = getData();
   var tags = getTags();
 
-  // entries: { url, lastmod?, image? }
-  var entries = [
-    { url: base + '/' },
-    { url: base + '/about' },
-  ];
+  // entries: { url(lang), lastmod?, image? }
+  var entries = [];
+  function addPair(p, lastmod, image) {
+    entries.push({ url: p, ru: base + p, en: base + '/en' + p, lastmod, image });
+  }
 
-  for (var slug of Object.keys(tags)) entries.push({ url: base + '/tag/' + slug });
-  for (var family of Object.keys(COLOR_FAMILIES)) entries.push({ url: base + '/color/' + family });
+  addPair('/', null);
+  addPair('/about', null);
+
+  for (var slug of Object.keys(tags)) addPair('/tag/' + slug, null);
+  for (var family of Object.keys(COLOR_FAMILIES)) addPair('/color/' + family, null);
 
   for (var countryKey of Object.keys(data)) {
     var country = data[countryKey];
@@ -268,16 +328,15 @@ router.get('/sitemap.xml', (req, res) => {
       var seriesDates = series.photos.map(function(p) { return p.createdAt || ''; }).filter(Boolean);
       var seriesLastmod = seriesDates.length ? seriesDates.sort().pop() : null;
       if (seriesLastmod) countryDates.push(seriesLastmod);
-      entries.push({ url: base + '/' + countryKey + '/' + seriesKey, lastmod: seriesLastmod });
+      addPair('/' + countryKey + '/' + seriesKey, seriesLastmod);
       for (var photo of series.photos) {
-        var imgEntry = { url: base + '/' + countryKey + '/' + seriesKey + '/' + photo.id, lastmod: photo.createdAt || null };
-        if (photo.urls && (photo.urls.full || photo.urls.preview)) {
-          imgEntry.image = { loc: photo.urls.full || photo.urls.preview, title: photo.title };
-        }
-        entries.push(imgEntry);
+        var img = (photo.urls && (photo.urls.full || photo.urls.preview))
+          ? { loc: photo.urls.full || photo.urls.preview, title: photo.title }
+          : null;
+        addPair('/' + countryKey + '/' + seriesKey + '/' + photo.id, photo.createdAt || null, img);
       }
     }
-    entries.push({ url: base + '/' + countryKey, lastmod: countryDates.length ? countryDates.sort().pop() : null });
+    addPair('/' + countryKey, countryDates.length ? countryDates.sort().pop() : null);
   }
 
   var allShoots = shoots.getData();
@@ -286,28 +345,36 @@ router.get('/sitemap.xml', (req, res) => {
     if (!shoot.public) continue;
     var shootDates = shoot.photos.map(function(p) { return p.createdAt || ''; }).filter(Boolean).sort();
     var shootLastmod = shootDates.length ? shootDates[shootDates.length - 1] : null;
-    entries.push({ url: base + '/shoot/' + shootSlug, lastmod: shootLastmod });
+    addPair('/shoot/' + shootSlug, shootLastmod);
     for (var sp of shoot.photos) {
-      var spEntry = { url: base + '/shoot/' + shootSlug + '/' + sp.id, lastmod: sp.createdAt || null };
-      if (sp.urls && sp.urls.full) spEntry.image = { loc: sp.urls.full, title: sp.title };
-      entries.push(spEntry);
+      var spImg = (sp.urls && sp.urls.full) ? { loc: sp.urls.full, title: sp.title } : null;
+      addPair('/shoot/' + shootSlug + '/' + sp.id, sp.createdAt || null, spImg);
     }
   }
 
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
   var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
     + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
-    + '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
-  for (var entry of entries) {
-    xml += '  <url>\n    <loc>' + entry.url + '</loc>\n';
-    if (entry.lastmod) xml += '    <lastmod>' + entry.lastmod + '</lastmod>\n';
-    if (entry.image) {
-      xml += '    <image:image>\n'
-        + '      <image:loc>' + entry.image.loc + '</image:loc>\n'
-        + '      <image:title>' + entry.image.title.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</image:title>\n'
-        + '    </image:image>\n';
-    }
-    xml += '  </url>\n';
-  }
+    + '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"\n'
+    + '        xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
+  entries.forEach(function(e) {
+    [['ru', e.ru], ['en', e.en]].forEach(function(pair) {
+      var loc = pair[1];
+      xml += '  <url>\n    <loc>' + loc + '</loc>\n';
+      if (e.lastmod) xml += '    <lastmod>' + e.lastmod + '</lastmod>\n';
+      xml += '    <xhtml:link rel="alternate" hreflang="ru" href="' + e.ru + '"/>\n';
+      xml += '    <xhtml:link rel="alternate" hreflang="en" href="' + e.en + '"/>\n';
+      xml += '    <xhtml:link rel="alternate" hreflang="x-default" href="' + e.ru + '"/>\n';
+      if (e.image) {
+        xml += '    <image:image>\n'
+          + '      <image:loc>' + e.image.loc + '</image:loc>\n'
+          + '      <image:title>' + esc(e.image.title) + '</image:title>\n'
+          + '    </image:image>\n';
+      }
+      xml += '  </url>\n';
+    });
+  });
   xml += '</urlset>';
 
   res.set('Content-Type', 'application/xml');
@@ -363,6 +430,7 @@ router.post('/unsubscribe/google', async (req, res) => {
 
 // GET /unsubscribe
 router.get('/unsubscribe', async (req, res) => {
+  var lang = req.lang;
   var { token } = req.query;
   var ok = false;
   if (token) {
@@ -371,9 +439,9 @@ router.get('/unsubscribe', async (req, res) => {
     ok = r1 || r2;
   }
   res.render('photo/unsubscribe', {
-    title: 'Отписка — photo.dimazvali.com',
+    title: (lang === 'en' ? 'Unsubscribe' : 'Отписка') + ' — photo.dimazvali.com',
     ok,
-    data: getData(),
+    data: i18n.localizeDataTree(getData(), lang),
     ogImage: null, ogUrl: null, breadcrumbs: null,
   });
 });
@@ -411,9 +479,9 @@ function requireShootAuth(shoot, slug, req, res, adminUser, next) {
   return res.render('photo/shoot-password', {
     title: shoot.label + ' — photo.dimazvali.com',
     slug,
-    label: shoot.label,
+    label: i18n.pickField(shoot, 'label', req.lang),
     error: false,
-    data: getData(),
+    data: i18n.localizeDataTree(getData(), req.lang),
     activeCountry: null,
     activeSeries: null,
     ogImage: null,
@@ -425,45 +493,48 @@ function requireShootAuth(shoot, slug, req, res, adminUser, next) {
 
 // GET /shoot — список открытых съёмок (без пароля)
 router.get('/shoot', (req, res) => {
+  var lang = req.lang;
   var allShoots = shoots.getData();
   var openShoots = Object.keys(allShoots)
-    .map(function(slug) { return allShoots[slug]; })
+    .map(function(slug) { return i18n.localizeShoot(allShoots[slug], lang); })
     .filter(function(shoot) { return shoot.public; });
 
   res.render('photo/shoots', {
-    data: getData(),
+    data: i18n.localizeDataTree(getData(), lang),
     activeCountry: null,
     activeSeries: null,
     isShoot: true,
     shoots: openShoots,
-    title: 'Съёмки — photo.dimazvali.com',
-    desc: 'Открытые съёмки — Дмитрий Шестаков',
+    title: (lang === 'en' ? 'Shoots' : 'Съёмки') + ' — photo.dimazvali.com',
+    desc: lang === 'en' ? 'Open shoots — Dmitry Shestakov' : 'Открытые съёмки — Дмитрий Шестаков',
     keywords: null,
     ogImage: openShoots.length ? ogImg(openShoots[0].photos[0]) : null,
-    ogUrl: BASE + '/shoot',
-    breadcrumbs: [{ name: 'Съёмки', url: BASE + '/shoot' }],
+    ogUrl: pageUrl(lang, '/shoot'),
+    breadcrumbs: [{ name: lang === 'en' ? 'Shoots' : 'Съёмки', url: pageUrl(lang, '/shoot') }],
   });
 });
 
 // GET /shoot/:slug — галерея съёмки
 router.get('/shoot/:slug', async (req, res) => {
+  var lang = req.lang;
   var { slug } = req.params;
-  var shoot = shoots.getShoot(slug);
-  if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
+  var rawShoot = shoots.getShoot(slug);
+  if (!rawShoot) return res.status(404).render('error', { message: 'Not found', error: {} });
   var adminUser = await isAdmin(req);
 
-  requireShootAuth(shoot, slug, req, res, adminUser, function() {
+  requireShootAuth(rawShoot, slug, req, res, adminUser, function() {
+    var shoot = i18n.localizeShoot(rawShoot, lang);
     trackView('shoot', slug, req.path, req);
     if (!adminUser && !BOT_UA_RE.test(req.headers['user-agent'] || '')) {
       var now = Date.now();
       if (!shootNotifLastSent[slug] || now - shootNotifLastSent[slug] > 60 * 60 * 1000) {
         shootNotifLastSent[slug] = now;
-        tgSend('<b>👁 Съёмка открыта</b>\n' + shoot.label + '\n/shoot/' + slug);
+        tgSend('<b>👁 Съёмка открыта</b>\n' + rawShoot.label + '\n/shoot/' + slug);
       }
     }
-    var relatedInfo = getRelatedShoots(shoot, slug);
+    var relatedInfo = getRelatedShoots(rawShoot, slug);
     res.render('photo/gallery', {
-      data: getData(),
+      data: i18n.localizeDataTree(getData(), lang),
       activeCountry: null,
       activeSeries: null,
       isShoot: true,
@@ -475,20 +546,21 @@ router.get('/shoot/:slug', async (req, res) => {
       desc: shoot.desc || null,
       keywords: null,
       ogImage: shoot.photos.length ? `${BASE}/og/shoot/${slug}.jpg` : null,
-      ogUrl: shoot.public ? `${BASE}/shoot/${slug}` : null,
+      ogUrl: shoot.public ? pageUrl(lang, `/shoot/${slug}`) : null,
       noindex: !shoot.public,
       breadcrumbs: [
-        { name: 'Съёмки', url: BASE + '/shoot' },
-        { name: shoot.label, url: `${BASE}/shoot/${slug}` },
+        { name: lang === 'en' ? 'Shoots' : 'Съёмки', url: pageUrl(lang, '/shoot') },
+        { name: shoot.label, url: pageUrl(lang, `/shoot/${slug}`) },
       ],
-      otherShoots: relatedInfo.shoots,
+      otherShoots: relatedInfo.shoots.map(function(s) { return i18n.localizeShoot(s, lang); }),
       otherShootsAreRelated: relatedInfo.related,
-      peopleGroups: shoot.showFaces ? photoPeople.groupShootFaces(slug, shoot) : [],
+      peopleGroups: rawShoot.showFaces ? photoPeople.groupShootFaces(slug, rawShoot) : [],
     });
   });
 });
 
-// GET /shoot/:slug/download — скачать архив всех фото (до /:id чтобы не перехватило)
+// GET /shoot/:slug/download — скачать архив всех фото, либо только выбранных (?ids=a,b,c)
+// (маршрут должен идти до /:id, чтобы не перехватило)
 router.get('/shoot/:slug/download', async (req, res) => {
   var { slug } = req.params;
   var shoot = shoots.getShoot(slug);
@@ -496,11 +568,18 @@ router.get('/shoot/:slug/download', async (req, res) => {
   var adminUser = await isAdmin(req);
 
   requireShootAuth(shoot, slug, req, res, adminUser, function() {
-    var photos = shoot.photos.filter(function(p) { return p && p.id; });
+    var idsParam = req.query.ids;
+    var photos;
+    if (idsParam) {
+      var wanted = new Set(String(idsParam).split(',').map(function(s) { return s.trim(); }).filter(Boolean));
+      photos = shoot.photos.filter(function(p) { return p && p.id && wanted.has(p.id); });
+    } else {
+      photos = shoot.photos.filter(function(p) { return p && p.id; });
+    }
     if (!photos.length) return res.status(404).send('No photos');
 
     var bucket = photoAdmin.bucket;
-    var filename = slug + '.zip';
+    var filename = slug + (idsParam ? '-selection' : '') + '.zip';
     res.setHeader('Content-Disposition', 'attachment; filename="' + filename + '"');
     res.setHeader('Content-Type', 'application/zip');
 
@@ -524,12 +603,14 @@ router.get('/shoot/:slug/download', async (req, res) => {
 
 // GET /shoot/:slug/:id — страница фото
 router.get('/shoot/:slug/:id', async (req, res) => {
+  var lang = req.lang;
   var { slug, id } = req.params;
-  var shoot = shoots.getShoot(slug);
-  if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
+  var rawShoot = shoots.getShoot(slug);
+  if (!rawShoot) return res.status(404).render('error', { message: 'Not found', error: {} });
   var adminUser = await isAdmin(req);
 
-  requireShootAuth(shoot, slug, req, res, adminUser, function() {
+  requireShootAuth(rawShoot, slug, req, res, adminUser, function() {
+    var shoot = i18n.localizeShoot(rawShoot, lang);
     var photos = shoot.photos;
     var idx = photos.findIndex(function(p) { return p.id === id; });
     if (idx === -1) return res.status(404).render('error', { message: 'Not found', error: {} });
@@ -540,7 +621,7 @@ router.get('/shoot/:slug/:id', async (req, res) => {
 
     trackView('shoot-photo', slug + '/' + id, req.path, req);
     res.render('photo/photo', {
-      data: getData(),
+      data: i18n.localizeDataTree(getData(), lang),
       activeCountry: null,
       activeSeries: null,
       isShoot: true,
@@ -553,21 +634,21 @@ router.get('/shoot/:slug/:id', async (req, res) => {
       seriesKey: null,
       countryLabel: shoot.label,
       seriesLabel: shoot.label,
-      allTags: getTags(),
+      allTags: i18n.localizeTags(getTags(), lang),
       related: [],
-      seriesUrl: '/shoot/' + slug,
+      seriesUrl: i18n.langPrefix(lang) + '/shoot/' + slug,
       inquiryStatus: null,
       reviewStatus: null,
       title: photo.title + ' — ' + shoot.label,
       desc: photo.seo_desc || photo.desc || null,
       keywords: photo.seo_keywords || null,
       ogImage: photo.urls ? photo.urls.full : null,
-      ogUrl: shoot.public ? `${BASE}/shoot/${slug}/${id}` : null,
+      ogUrl: shoot.public ? pageUrl(lang, `/shoot/${slug}/${id}`) : null,
       noindex: !shoot.public,
       breadcrumbs: [
-        { name: 'Съёмки', url: BASE + '/shoot' },
-        { name: shoot.label, url: `${BASE}/shoot/${slug}` },
-        { name: photo.title, url: `${BASE}/shoot/${slug}/${id}` },
+        { name: lang === 'en' ? 'Shoots' : 'Съёмки', url: pageUrl(lang, '/shoot') },
+        { name: shoot.label, url: pageUrl(lang, `/shoot/${slug}`) },
+        { name: photo.title, url: pageUrl(lang, `/shoot/${slug}/${id}`) },
       ],
     });
   });
@@ -575,6 +656,7 @@ router.get('/shoot/:slug/:id', async (req, res) => {
 
 // POST /shoot/:slug/auth — сабмит пароля
 router.post('/shoot/:slug/auth', express.urlencoded({ extended: false }), (req, res) => {
+  var lang = req.lang;
   var { slug } = req.params;
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.status(404).render('error', { message: 'Not found', error: {} });
@@ -588,15 +670,15 @@ router.post('/shoot/:slug/auth', express.urlencoded({ extended: false }), (req, 
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
-    return res.redirect('/shoot/' + slug);
+    return res.redirect(i18n.langPrefix(lang) + '/shoot/' + slug);
   }
 
   res.render('photo/shoot-password', {
     title: shoot.label + ' — photo.dimazvali.com',
     slug,
-    label: shoot.label,
+    label: i18n.pickField(shoot, 'label', lang),
     error: true,
-    data: getData(),
+    data: i18n.localizeDataTree(getData(), lang),
     activeCountry: null,
     activeSeries: null,
     ogImage: null,
@@ -637,7 +719,8 @@ router.post('/shoot/:slug/collections', express.json(), async (req, res) => {
 
 // GET /:country — all photos in a country
 router.get('/:country', (req, res) => {
-  var data = getData();
+  var lang = req.lang;
+  var data = i18n.localizeDataTree(getData(), lang);
   var { country: countryKey } = req.params;
   var country = data[countryKey];
   if (!country || country.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
@@ -651,7 +734,7 @@ router.get('/:country', (req, res) => {
     }
   }
 
-  var allTags = getTags();
+  var allTags = i18n.localizeTags(getTags(), lang);
   var tagSet = new Set();
   photos.forEach(function (p) { if (p.tags) p.tags.forEach(function (t) { tagSet.add(t); }); });
   var activeTags = Array.from(tagSet).filter(function (k) { return allTags[k]; }).map(function (k) { return { key: k, label: allTags[k].label }; });
@@ -664,17 +747,20 @@ router.get('/:country', (req, res) => {
     photos,
     activeTags,
     title: `${country.label} — photo.dimazvali.com`,
-    desc: `${country.label} — ${photos.length} аэрофотоснимков в ${seriesLabels.length} сери${seriesLabels.length === 1 ? 'и' : 'ях'}. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
-    keywords: buildPageKeywords(photos, getTags(), [country.label, ...seriesLabels]),
+    desc: lang === 'en'
+      ? `${country.label} — ${photos.length} aerial photos in ${seriesLabels.length} series. Documentary aerial photography by Dmitry Shestakov.`
+      : `${country.label} — ${photos.length} аэрофотоснимков в ${seriesLabels.length} сери${seriesLabels.length === 1 ? 'и' : 'ях'}. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
+    keywords: buildPageKeywords(photos, allTags, [country.label, ...seriesLabels]),
     ogImage: photos.length ? `${BASE}/og/country/${countryKey}.jpg` : null,
-    ogUrl: `${BASE}/${countryKey}`,
-    breadcrumbs: [{ name: country.label, url: `${BASE}/${countryKey}` }],
+    ogUrl: pageUrl(lang, `/${countryKey}`),
+    breadcrumbs: [{ name: country.label, url: pageUrl(lang, `/${countryKey}`) }],
   });
 });
 
 // GET /:country/:series — filtered gallery
 router.get('/:country/:series', (req, res) => {
-  var data = getData();
+  var lang = req.lang;
+  var data = i18n.localizeDataTree(getData(), lang);
   var { country: countryKey, series: seriesKey } = req.params;
   var country = data[countryKey];
   if (!country || country.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
@@ -684,7 +770,7 @@ router.get('/:country/:series', (req, res) => {
   trackView('series', countryKey + '/' + seriesKey, req.path, req);
 
   var photos = series.photos.map(p => ({ countryKey, seriesKey, ...p }));
-  var allTagsSeries = getTags();
+  var allTagsSeries = i18n.localizeTags(getTags(), lang);
   var tagSetSeries = new Set();
   photos.forEach(function (p) { if (p.tags) p.tags.forEach(function (t) { tagSetSeries.add(t); }); });
   var activeTags = Array.from(tagSetSeries).filter(function (k) { return allTagsSeries[k]; }).map(function (k) { return { key: k, label: allTagsSeries[k].label }; });
@@ -696,20 +782,23 @@ router.get('/:country/:series', (req, res) => {
     photos,
     activeTags,
     title: `${series.label} · ${country.label} — photo.dimazvali.com`,
-    desc: `${series.label}, ${country.label} — ${photos.length} аэрофотоснимков. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
-    keywords: buildPageKeywords(photos, getTags(), [country.label, series.label]),
+    desc: lang === 'en'
+      ? `${series.label}, ${country.label} — ${photos.length} aerial photos. Documentary aerial photography by Dmitry Shestakov.`
+      : `${series.label}, ${country.label} — ${photos.length} аэрофотоснимков. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
+    keywords: buildPageKeywords(photos, allTagsSeries, [country.label, series.label]),
     ogImage: photos.length ? `${BASE}/og/series/${countryKey}/${seriesKey}.jpg` : null,
-    ogUrl: `${BASE}/${countryKey}/${seriesKey}`,
+    ogUrl: pageUrl(lang, `/${countryKey}/${seriesKey}`),
     breadcrumbs: [
-      { name: country.label, url: `${BASE}/${countryKey}` },
-      { name: series.label, url: `${BASE}/${countryKey}/${seriesKey}` },
+      { name: country.label, url: pageUrl(lang, `/${countryKey}`) },
+      { name: series.label, url: pageUrl(lang, `/${countryKey}/${seriesKey}`) },
     ],
   });
 });
 
 // GET /:country/:series/:id — single photo page
 router.get('/:country/:series/:id', (req, res) => {
-  var data = getData();
+  var lang = req.lang;
+  var data = i18n.localizeDataTree(getData(), lang);
   var { country: countryKey, series: seriesKey, id } = req.params;
   var country = data[countryKey];
   if (!country || country.archived) return res.status(404).render('error', { message: 'Not found', error: {} });
@@ -741,7 +830,7 @@ router.get('/:country/:series/:id', (req, res) => {
     }
   }
 
-  var allTagsPhoto = getTags();
+  var allTagsPhoto = i18n.localizeTags(getTags(), lang);
   var inquiryStatus = req.query.inquiry || null;
   var reviewStatus  = req.query.review  || null;
 
@@ -750,8 +839,8 @@ router.get('/:country/:series/:id', (req, res) => {
   if (photo.sourceShoot) {
     var sourceShoot = shoots.getShoot(photo.sourceShoot);
     if (sourceShoot && sourceShoot.public) {
-      sourceShootUrl = `/shoot/${photo.sourceShoot}`;
-      sourceShootLabel = sourceShoot.label;
+      sourceShootUrl = i18n.langPrefix(lang) + `/shoot/${photo.sourceShoot}`;
+      sourceShootLabel = i18n.pickField(sourceShoot, 'label', lang);
     }
   }
 
@@ -772,16 +861,18 @@ router.get('/:country/:series/:id', (req, res) => {
     related,
     sourceShootUrl,
     sourceShootLabel,
-    seriesUrl: `/${countryKey}/${seriesKey}`,
+    seriesUrl: i18n.langPrefix(lang) + `/${countryKey}/${seriesKey}`,
     title: `${photo.title} — photo.dimazvali.com`,
-    desc: photo.seo_desc || photo.desc || `${photo.title} · ${series.label} · ${country.label} — аэрофотоснимок Дмитрия Шестакова`,
+    desc: photo.seo_desc || photo.desc || (lang === 'en'
+      ? `${photo.title} · ${series.label} · ${country.label} — an aerial photo by Dmitry Shestakov`
+      : `${photo.title} · ${series.label} · ${country.label} — аэрофотоснимок Дмитрия Шестакова`),
     keywords: photo.seo_keywords || buildPageKeywords([photo], allTagsPhoto, [country.label, series.label]),
     ogImage: photo.urls ? photo.urls.full : null,
-    ogUrl: `${BASE}/${countryKey}/${seriesKey}/${photo.id}`,
+    ogUrl: pageUrl(lang, `/${countryKey}/${seriesKey}/${photo.id}`),
     breadcrumbs: [
-      { name: country.label, url: `${BASE}/${countryKey}` },
-      { name: series.label, url: `${BASE}/${countryKey}/${seriesKey}` },
-      { name: photo.title, url: `${BASE}/${countryKey}/${seriesKey}/${photo.id}` },
+      { name: country.label, url: pageUrl(lang, `/${countryKey}`) },
+      { name: series.label, url: pageUrl(lang, `/${countryKey}/${seriesKey}`) },
+      { name: photo.title, url: pageUrl(lang, `/${countryKey}/${seriesKey}/${photo.id}`) },
     ],
   });
 });

@@ -4,6 +4,7 @@ include mixins
 block head
   if !isShoot
     -
+      var _lp = lang === 'en' ? '/en' : ''
       var _imgUrl = photo.urls ? (photo.urls.full || photo.urls.preview) : null
       var _ld = {
         '@context': 'https://schema.org',
@@ -11,14 +12,14 @@ block head
         name: photo.title,
         contentUrl: _imgUrl,
         thumbnailUrl: photo.urls ? photo.urls.preview : null,
-        url: 'https://photo.dimazvali.com/' + countryKey + '/' + seriesKey + '/' + photo.id,
-        creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: 'https://photo.dimazvali.com/about' },
+        url: 'https://photo.dimazvali.com' + _lp + '/' + countryKey + '/' + seriesKey + '/' + photo.id,
+        creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: 'https://photo.dimazvali.com' + _lp + '/about' },
         copyrightHolder: { '@type': 'Person', name: 'Dmitry Shestakov' },
         copyrightYear: photo.date ? photo.date.match(/\d{4}/) && photo.date.match(/\d{4}/)[0] : null,
         copyrightNotice: '© Dmitry Shestakov. All rights reserved.',
         creditText: 'Dmitry Shestakov / photo.dimazvali.com',
-        license: 'https://photo.dimazvali.com/about',
-        acquireLicensePage: 'https://photo.dimazvali.com/' + countryKey + '/' + seriesKey + '/' + photo.id + '?inquiry=license',
+        license: 'https://photo.dimazvali.com' + _lp + '/about',
+        acquireLicensePage: 'https://photo.dimazvali.com' + _lp + '/' + countryKey + '/' + seriesKey + '/' + photo.id + '?inquiry=license',
       }
       if (photo.desc) _ld.description = photo.desc
       if (photo.coords) _ld.locationCreated = { '@type': 'Place', geo: { '@type': 'GeoCoordinates', latitude: photo.coords.lat, longitude: photo.coords.lng }, name: countryLabel }
@@ -28,13 +29,14 @@ block head
     script#ld-photo(type='application/ld+json')!= JSON.stringify(_ld)
 
 block content
+  - var LP = lang === 'en' ? '/en' : ''
   .photo-page
     .photo-page-back
-      a(href=isShoot ? `/shoot/${shootSlug}` : `/${countryKey}/${seriesKey}`) ← #{isShoot ? (backLabel || '').toUpperCase() : seriesLabel.toUpperCase()}
+      a(href=isShoot ? `${LP}/shoot/${shootSlug}` : `${LP}/${countryKey}/${seriesKey}`) ← #{isShoot ? (backLabel || '').toUpperCase() : seriesLabel.toUpperCase()}
       if isAdmin && !isShoot
         .admin-bar
-          a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`) ✎ редактировать
-          a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/upload`) + фото
+          a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`)= ui.editBtn
+          a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/upload`)= ui.addPhoto
     .photo-page-image
       .photo-page-bg(style=`background-image: url(${photo.urls ? photo.urls.full : '/images/photo/' + countryKey + '/' + seriesKey + '/' + photo.file})`)
       .photo-image-wrap
@@ -60,20 +62,20 @@ block content
           else
             | #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
         if !isShoot && sourceShootUrl
-          a.photo-source-shoot(href=sourceShootUrl) ИЗ СЪЁМКИ: #{sourceShootLabel.toUpperCase()} →
+          a.photo-source-shoot(href=sourceShootUrl) #{ui.fromShoot} #{sourceShootLabel.toUpperCase()} →
       .photo-page-nav
         if prev
           a.nav-btn(
-            href=isShoot ? `/shoot/${shootSlug}/${prev.id}` : `/${countryKey}/${seriesKey}/${prev.id}`
+            href=isShoot ? `${LP}/shoot/${shootSlug}/${prev.id}` : `${LP}/${countryKey}/${seriesKey}/${prev.id}`
             data-dir='prev'
             data-preload-src=prev.urls ? prev.urls.full : `/images/photo/${countryKey}/${seriesKey}/${prev.file}`
-          ) ← ПРЕД.
+          )= ui.prev
         if next
           a.nav-btn(
-            href=isShoot ? `/shoot/${shootSlug}/${next.id}` : `/${countryKey}/${seriesKey}/${next.id}`
+            href=isShoot ? `${LP}/shoot/${shootSlug}/${next.id}` : `${LP}/${countryKey}/${seriesKey}/${next.id}`
             data-dir='next'
             data-preload-src=next.urls ? next.urls.full : `/images/photo/${countryKey}/${seriesKey}/${next.file}`
-          ) СЛЕД. →
+          )= ui.next
     if photo.desc
       p.photo-page-desc= photo.desc
     if photo.annotations && photo.annotations.length
@@ -85,17 +87,17 @@ block content
     if !isShoot && photo.tags && photo.tags.length
       .photo-tags
         each tag in photo.tags
-          a.photo-tag(href=`/tag/${tag}`)= allTags[tag] ? allTags[tag].label.toUpperCase() : tag.toUpperCase()
+          a.photo-tag(href=`${LP}/tag/${tag}`)= allTags[tag] ? allTags[tag].label.toUpperCase() : tag.toUpperCase()
     .photo-actions
-      button.action-btn(onclick='sharePhoto()') ПОДЕЛИТЬСЯ
+      button.action-btn(onclick='sharePhoto()')= ui.share
       if photo.instagram
-        a.action-btn(href=photo.instagram target='_blank' rel='noopener') INSTAGRAM
+        a.action-btn(href=photo.instagram target='_blank' rel='noopener')= ui.instagram
     if !isShoot
       .photo-inquiry
         - var showInquiry = !!inquiryStatus
         .inquiry-tabs
-          button.inquiry-tab(type='button' data-tab='comments' class=showInquiry ? '' : 'is-active') КОММЕНТАРИИ
-          button.inquiry-tab(type='button' data-tab='inquiry' class=showInquiry ? 'is-active' : '') ЗАЯВКА
+          button.inquiry-tab(type='button' data-tab='comments' class=showInquiry ? '' : 'is-active')= ui.commentsTab
+          button.inquiry-tab(type='button' data-tab='inquiry' class=showInquiry ? 'is-active' : '')= ui.inquiryTab
         .inquiry-tab-panel(data-panel='comments' style=showInquiry ? 'display:none' : '')
           - var photoUserStr = photoUser ? JSON.stringify(photoUser) : ''
           .photo-comments-section(
@@ -106,23 +108,23 @@ block content
             data-google-client-id=googleClientId
             data-user=photoUserStr
           )
-            p.comments-loading ЗАГРУЗКА...
+            p.comments-loading= ui.loadingComments
         .inquiry-tab-panel(data-panel='inquiry' style=showInquiry ? '' : 'display:none')
           if inquiryStatus === 'ok'
-            p.inquiry-success ✓ ОТПРАВЛЕНО — ОТВЕЧУ В ТЕЧЕНИЕ 24 ЧАСОВ
+            p.inquiry-success= ui.inquirySuccess
           else
             if inquiryStatus === 'err'
-              p.inquiry-error ✗ ПРОВЕРЬТЕ ИМЯ И EMAIL
-            form.inquiry-form(method='POST' action=`/${countryKey}/${seriesKey}/${photo.id}/inquiry`)
+              p.inquiry-error= ui.inquiryError
+            form.inquiry-form(method='POST' action=`${LP}/${countryKey}/${seriesKey}/${photo.id}/inquiry`)
               .inquiry-type
-                each opt in [['print','ОТПЕЧАТОК'],['license','ЛИЦЕНЗИЯ'],['other','ВОПРОС']]
+                each opt in [['print',ui.print],['license',ui.license],['other',ui.other]]
                   label.inquiry-radio
                     input(type='radio' name='type' value=opt[0] checked=opt[0]==='print')
                     span= opt[1]
-              input.inquiry-input(type='text' name='name' placeholder='ИМЯ' required autocomplete='name')
-              input.inquiry-input(type='email' name='email' placeholder='EMAIL' required autocomplete='email')
-              textarea.inquiry-input.inquiry-textarea(name='message' placeholder='СООБЩЕНИЕ (НЕОБЯЗАТЕЛЬНО)' rows='3')
-              button.inquiry-submit(type='submit') ОТПРАВИТЬ →
+              input.inquiry-input(type='text' name='name' placeholder=ui.nameCaps required autocomplete='name')
+              input.inquiry-input(type='email' name='email' placeholder=ui.emailCaps required autocomplete='email')
+              textarea.inquiry-input.inquiry-textarea(name='message' placeholder=ui.messageOptional rows='3')
+              button.inquiry-submit(type='submit')= ui.submitArrow
 
     .annot-popup#annot-popup
       button.annot-popup-close#annot-popup-close ×
@@ -130,10 +132,10 @@ block content
 
     if !isShoot && related && related.length
       .related
-        .related-label ЕЩЁ ИЗ #{countryLabel.toUpperCase()}
+        .related-label #{ui.relatedFrom} #{countryLabel.toUpperCase()}
         .related-strip
           each r in related
-            a.related-thumb(href=`/${r.countryKey}/${r.seriesKey}/${r.id}` title=r.title)
+            a.related-thumb(href=`${LP}/${r.countryKey}/${r.seriesKey}/${r.id}` title=r.title)
               img(src=r.urls.preview alt=r.title title=r.title loading='lazy' onerror="this.closest('.related-thumb').style.display='none'")
 
   script.

@@ -15,6 +15,7 @@ html(data-theme='dark')
         h2.admin-title ПЕРЕИМЕНОВАТЬ
         form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/edit`)
           input.admin-input(type='text' name='label' value=series.label placeholder='название серии')
+          input.admin-input(type='text' name='label_en' value=series.label_en || '' placeholder='name (EN)')
           button.admin-btn(type='submit') СОХРАНИТЬ
 
       .admin-section

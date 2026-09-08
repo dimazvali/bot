@@ -16,6 +16,7 @@ html(data-theme='dark')
         h2.admin-title ПЕРЕИМЕНОВАТЬ
         form.admin-form(method='POST' action=`/admin/country/${countryKey}/edit`)
           input.admin-input(type='text' name='label' value=country.label placeholder='название страны')
+          input.admin-input(type='text' name='label_en' value=country.label_en || '' placeholder='name (EN)')
           p.admin-hint ТИП СЪЁМКИ ПО УМОЛЧАНИЮ:
           .type-radio-group
             each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]

@@ -312,11 +312,12 @@ router.get('/country/:key/edit', requireAuth, (req, res) => {
 router.post('/country/:key/edit', requireAuth, (req, res) => {
   var { key } = req.params;
   if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
-  var { label } = req.body;
+  var { label, label_en } = req.body;
   if (!label || !label.trim()) return res.redirect(`/admin/country/${key}/edit`);
   var data = getData();
   if (!data[key]) return res.redirect('/admin');
   data[key].label = label.trim();
+  if (label_en && label_en.trim()) { data[key].label_en = label_en.trim(); } else { delete data[key].label_en; }
   var defaultPhotoType = req.body.defaultPhotoType;
   if (['copter', 'camera', 'mobile'].includes(defaultPhotoType)) {
     data[key].defaultPhotoType = defaultPhotoType;
@@ -617,7 +618,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
-  var { label, desc, password, public: isPublic, showFaces, relatedShoots } = req.body;
+  var { label, desc, label_en, desc_en, password, public: isPublic, showFaces, relatedShoots } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
   var knownSlugs = Object.keys(shoots.getData());
   var relatedList = Array.isArray(relatedShoots) ? relatedShoots : (relatedShoots ? [relatedShoots] : []);
@@ -625,7 +626,9 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   try {
     await shoots.saveShoot(slug, {
       label: label.trim(),
+      label_en: (label_en || '').trim(),
       desc: (desc || '').trim(),
+      desc_en: (desc_en || '').trim(),
       password: (password || '').trim(),
       public: !!isPublic,
       showFaces: !!showFaces,
@@ -725,7 +728,7 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
           previousCaptions: previousCaptions,
           knownPeople: knownPeople,
         });
-        await shoots.updatePhotoSeo(slug, photoEntry.id, result.desc, result.keywords);
+        await shoots.updatePhotoSeo(slug, photoEntry.id, result.desc, result.keywords, result.descEn, result.keywordsEn);
       } catch (e) {
         console.error('[auto-faces+seo]', e.message);
       }
@@ -757,19 +760,23 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   var { slug, id } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
-  var { title, date, desc } = req.body;
+  var { title, date, desc, title_en, desc_en } = req.body;
   var photoType = req.body.type;
   var seoDesc = (req.body.seo_desc || '').trim();
   var seoKeywords = (req.body.seo_keywords || '').trim();
+  var seoDescEn = (req.body.seo_desc_en || '').trim();
+  var seoKeywordsEn = (req.body.seo_keywords_en || '').trim();
   if (!title || !title.trim()) return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
   try {
     await shoots.updatePhoto(slug, id, {
       title: title.trim(),
+      title_en: (title_en || '').trim(),
       date: (date || '').trim(),
       desc: (desc || '').trim(),
+      desc_en: (desc_en || '').trim(),
       type: photoType,
     });
-    await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords);
+    await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords, seoDescEn, seoKeywordsEn);
   } catch (e) {
     console.error('[shoots] update photo error:', e);
   }
@@ -801,8 +808,8 @@ router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json()
       previousCaptions: previousCaptions,
       knownPeople: photoPeople.resolvePhotoPeopleNames(photo),
     });
-    await shoots.updatePhotoSeo(slug, id, result.desc, result.keywords);
-    res.json({ ok: true, desc: result.desc, keywords: result.keywords });
+    await shoots.updatePhotoSeo(slug, id, result.desc, result.keywords, result.descEn, result.keywordsEn);
+    res.json({ ok: true, desc: result.desc, keywords: result.keywords, descEn: result.descEn, keywordsEn: result.keywordsEn });
   } catch (err) {
     console.error('[shoots generate-seo]', err.message);
     res.status(500).json({ error: err.message });
@@ -1053,14 +1060,14 @@ router.get('/tags', requireAuth, (req, res) => {
 var TAG_TYPES = ['person', 'location', 'misc'];
 
 router.post('/tags', requireAuth, (req, res) => {
-  var { slug, label, desc } = req.body;
+  var { slug, label, desc, label_en, desc_en } = req.body;
   var type = TAG_TYPES.includes(req.body.type) ? req.body.type : 'misc';
   if (!slug || !label) return res.redirect('/admin/tags');
   var clean = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/^-+|-+$/g, '');
   if (!clean) return res.redirect('/admin/tags');
   var tags = getTags();
   if (!tags[clean]) {
-    tags[clean] = { label, type, desc: (desc || '').trim(), createdAt: new Date().toISOString().slice(0, 10) };
+    tags[clean] = { label, label_en: (label_en || '').trim(), type, desc: (desc || '').trim(), desc_en: (desc_en || '').trim(), createdAt: new Date().toISOString().slice(0, 10) };
     saveTags(tags);
   }
   res.redirect('/admin/tags');
@@ -1070,13 +1077,15 @@ router.post('/tags/:slug/edit', requireAuth, (req, res) => {
   var { slug } = req.params;
   var tags = getTags();
   if (!tags[slug]) return res.redirect('/admin/tags');
-  var { label, desc } = req.body;
+  var { label, desc, label_en, desc_en } = req.body;
   var type = TAG_TYPES.includes(req.body.type) ? req.body.type : 'misc';
   if (!label || !label.trim()) return res.redirect('/admin/tags');
   tags[slug] = Object.assign({}, tags[slug], {
     label: label.trim(),
+    label_en: (label_en || '').trim(),
     type,
     desc: (desc || '').trim(),
+    desc_en: (desc_en || '').trim(),
   });
   saveTags(tags);
   res.redirect('/admin/tags');
@@ -1180,11 +1189,12 @@ router.get('/:country/:series/edit', requireAuth, (req, res) => {
 router.post('/:country/:series/edit', requireAuth, (req, res) => {
   var { country, series: seriesKey } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
-  var { label } = req.body;
+  var { label, label_en } = req.body;
   if (!label || !label.trim()) return res.redirect(`/admin/${country}/${seriesKey}/edit`);
   var data = getData();
   if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
   data[country].series[seriesKey].label = label.trim();
+  if (label_en && label_en.trim()) { data[country].series[seriesKey].label_en = label_en.trim(); } else { delete data[country].series[seriesKey].label_en; }
   saveData(data);
   res.redirect(`/admin/${country}/${seriesKey}/edit`);
 });
@@ -1276,9 +1286,11 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
     return res.redirect('/admin');
   }
-  var { title, date, desc } = req.body;
+  var { title, date, desc, title_en, desc_en } = req.body;
   var seoDesc = (req.body.seo_desc || '').trim();
   var seoKeywords = (req.body.seo_keywords || '').trim();
+  var seoDescEn = (req.body.seo_desc_en || '').trim();
+  var seoKeywordsEn = (req.body.seo_keywords_en || '').trim();
   var photoType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'copter';
   if (!title || !title.trim()) return res.redirect(`/admin/${country}/${seriesKey}/${id}/edit`);
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
@@ -1298,6 +1310,8 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   photo.title = title.trim();
   photo.date = date ? date.trim() : '';
   photo.desc = desc ? desc.trim() : '';
+  if (title_en && title_en.trim()) { photo.title_en = title_en.trim(); } else { delete photo.title_en; }
+  if (desc_en && desc_en.trim()) { photo.desc_en = desc_en.trim(); } else { delete photo.desc_en; }
   if (instagramUrl) { photo.instagram = instagramUrl; } else { delete photo.instagram; }
   if (!isNaN(latRaw) && !isNaN(lngRaw) && Math.abs(latRaw) <= 90 && Math.abs(lngRaw) <= 180) {
     photo.coords = { lat: latRaw, lng: lngRaw };
@@ -1308,6 +1322,8 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (tags.length) { photo.tags = tags; } else { delete photo.tags; }
   if (seoDesc) { photo.seo_desc = seoDesc; } else { delete photo.seo_desc; }
   if (seoKeywords) { photo.seo_keywords = seoKeywords; } else { delete photo.seo_keywords; }
+  if (seoDescEn) { photo.seo_desc_en = seoDescEn; } else { delete photo.seo_desc_en; }
+  if (seoKeywordsEn) { photo.seo_keywords_en = seoKeywordsEn; } else { delete photo.seo_keywords_en; }
   photo.type = photoType;
   try {
     if (req.file) {
@@ -1498,8 +1514,10 @@ router.post('/:country/:series/:id/generate-seo', requireAuth, express.json(), a
     });
     photo.seo_desc = result.desc;
     photo.seo_keywords = result.keywords;
+    photo.seo_desc_en = result.descEn;
+    photo.seo_keywords_en = result.keywordsEn;
     saveData(data);
-    res.json({ ok: true, desc: photo.seo_desc, keywords: photo.seo_keywords });
+    res.json({ ok: true, desc: photo.seo_desc, keywords: photo.seo_keywords, descEn: photo.seo_desc_en, keywordsEn: photo.seo_keywords_en });
   } catch (err) {
     console.error('[generate-seo]', err.message);
     res.status(500).json({ error: err.message });

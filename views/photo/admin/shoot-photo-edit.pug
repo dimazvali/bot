@@ -35,13 +35,17 @@ html(data-theme='dark')
               button#annot-cancel-btn.admin-btn(type='button') Отмена
         form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/edit`)
           input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
+          input.admin-input(type='text' name='title_en' value=photo.title_en || '' placeholder='title (EN)')
           input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. июнь 2026)')
           textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='4')= photo.desc || ''
+          textarea.admin-input(name='desc_en' placeholder='description (EN, необязательно)' rows='4')= photo.desc_en || ''
           .admin-desc-row
             input.admin-input#photo-seo-desc(type='text' name='seo_desc' value=photo.seo_desc || '' placeholder='meta-описание (только в метатегах, SEO)')
             button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать meta-описание и ключевые слова через AI') 🤖
           input.admin-input#photo-keywords(type='text' name='seo_keywords' value=photo.seo_keywords || '' placeholder='ключевые слова (SEO, необязательно)')
           p.admin-hint#gen-seo-status(style='display:none')
+          input.admin-input(type='text' name='seo_desc_en' value=photo.seo_desc_en || '' placeholder='meta description (EN, SEO)')
+          input.admin-input(type='text' name='seo_keywords_en' value=photo.seo_keywords_en || '' placeholder='keywords (EN, SEO)')
           p.admin-hint ТИП СЪЁМКИ:
           .type-radio-group
             each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
@@ -200,6 +204,8 @@ html(data-theme='dark')
           if (!resp.ok || !data.ok) throw new Error(data.error || 'Ошибка');
           document.getElementById('photo-seo-desc').value = data.desc;
           document.getElementById('photo-keywords').value = data.keywords;
+          if (data.descEn) document.querySelector('[name="seo_desc_en"]').value = data.descEn;
+          if (data.keywordsEn) document.querySelector('[name="seo_keywords_en"]').value = data.keywordsEn;
           status.style.color = '#4caf50';
           status.textContent = '✓ Готово — не забудьте сохранить';
         } catch (e) {

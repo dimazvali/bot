@@ -1,15 +1,16 @@
 extends layout
 
 block content
+  - var LP = lang === 'en' ? '/en' : ''
   .gallery-header
-    span.gallery-label СЪЁМКИ · #{shoots.length}
+    span.gallery-label #{ui.shootsTitle} · #{shoots.length}
   if !shoots.length
-    p.admin-hint Пока нет открытых съёмок.
+    p.admin-hint= ui.noOpenShoots
   else
     .masonry
       each shoot in shoots
         - var cover = shoot.photos[0]
-        a.photo-card(href=`/shoot/${shoot.key}`)
+        a.photo-card(href=`${LP}/shoot/${shoot.key}`)
           if cover
             img(
               src=cover.urls ? cover.urls.preview : undefined
@@ -25,4 +26,4 @@ block content
             )
           .photo-overlay
             span.photo-title= shoot.label.toUpperCase()
-            span.photo-date= `${shoot.photos.length} фото`
+            span.photo-date= `${shoot.photos.length} ${ui.photosSuffix}`

@@ -1,42 +1,58 @@
 {
   "cablecars": {
     "label": "Канатки",
+    "label_en": "Cable cars",
     "type": "misc",
-    "desc": "Канатки-манатки"
+    "desc": "Канатки-манатки",
+    "desc_en": "Cable cars and the like"
   },
   "chronicles": {
     "label": "Хроники Грузии",
+    "label_en": "Chronicles of Georgia",
     "type": "misc",
-    "desc": ""
+    "desc": "",
+    "desc_en": ""
   },
   "mountains": {
     "label": "Горы",
+    "label_en": "Mountains",
     "type": "misc",
-    "desc": ""
+    "desc": "",
+    "desc_en": ""
   },
   "mtkvari": {
     "label": "Мтквари",
+    "label_en": "Mtkvari",
     "type": "misc",
-    "desc": ""
+    "desc": "",
+    "desc_en": ""
   },
   "night": {
     "label": "Ночь",
+    "label_en": "Night",
     "type": "misc",
-    "desc": ""
+    "desc": "",
+    "desc_en": ""
   },
   "sameba": {
     "label": "Самеба",
+    "label_en": "Sameba",
     "type": "misc",
-    "desc": ""
+    "desc": "",
+    "desc_en": ""
   },
   "tbilisea": {
     "label": "Тбилисское море",
+    "label_en": "Tbilisi Sea",
     "type": "misc",
-    "desc": ""
+    "desc": "",
+    "desc_en": ""
   },
   "winter": {
     "label": "Зима",
+    "label_en": "Winter",
     "type": "misc",
-    "desc": ""
+    "desc": "",
+    "desc_en": ""
   }
 }

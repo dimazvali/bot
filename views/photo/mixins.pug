@@ -23,8 +23,8 @@ mixin instagramCard()
   a.photo-card.photo-card--promo(href='https://www.instagram.com/dimazvali2' target='_blank' rel='noopener')
     img.photo-card-promo-img(
       src='https://storage.googleapis.com/photo-dimazvalimisc/images/ks-05065-1780908582473-800.webp'
-      alt='До встречи в Instagram'
-      title='До встречи в Instagram'
+      alt=ui.igAlt
+      title=ui.igAlt
       loading='lazy'
       onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
     )
@@ -34,4 +34,4 @@ mixin instagramCard()
         path(d='M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z')
         line(x1='17.5' y1='6.5' x2='17.51' y2='6.5')
     .photo-overlay
-      span.photo-title до встречи в инстаграм
+      span.photo-title= ui.igOverlay
