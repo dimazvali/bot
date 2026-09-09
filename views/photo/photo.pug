@@ -159,6 +159,13 @@ block content
             button#point-popup-cancel(type='button')= ui.cancel
             button#point-popup-save(type='button')= ui.save
 
+      .selection-popup#point-signin-popup
+        .selection-popup-inner
+          span.selection-popup-title= ui.pointSignInTitle
+          div#point-signin-btn
+          .selection-popup-actions
+            button#point-signin-cancel(type='button')= ui.cancel
+
     if !isShoot && related && related.length
       .related
         .related-label #{ui.relatedFrom} #{countryLabel.toUpperCase()}

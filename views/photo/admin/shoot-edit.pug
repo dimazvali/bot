@@ -85,6 +85,18 @@ html(data-theme='dark')
 
       if shoot.photos.length
         .admin-section
+          h2.admin-title ПРОВЕРКА ИСПОЛЬЗОВАНИЯ
+          p.admin-hint Поиск копий фотографий этой съёмки в интернете (Google Vision). Проверяются только фото из этой съёмки.
+          button.admin-btn#run-check-btn(type='button') ▶ ПРОВЕРИТЬ ИСПОЛЬЗОВАНИЕ
+          .copyright-progress#run-status(style='display:none;margin-top:12px')
+            .copyright-progress-bar
+              .copyright-progress-fill#progress-fill
+            span#progress-text
+          p.admin-hint
+            a(href='/admin/copyright' target='_blank' rel='noopener') → все найденные использования
+
+      if shoot.photos.length
+        .admin-section
           h2.admin-title ФОТО (#{shoot.photos.length})
           p.admin-hint Перетащите для изменения порядка.
           ul#photo-list.admin-sort-list(data-url=`/admin/shoots/${slug}/photos/reorder`)
@@ -134,18 +146,6 @@ html(data-theme='dark')
                   if p && p.urls
                     a(href=`/admin/shoots/${slug}/photos/${pid}/edit` target='_blank')
                       img.admin-collection-thumb(src=p.urls.preview alt=p.title)
-
-      if shoot.photos.length
-        .admin-section
-          h2.admin-title ПРОВЕРКА ИСПОЛЬЗОВАНИЯ
-          p.admin-hint Поиск копий фотографий этой съёмки в интернете (Google Vision). Проверяются только фото из этой съёмки.
-          button.admin-btn#run-check-btn(type='button') ▶ ПРОВЕРИТЬ ИСПОЛЬЗОВАНИЕ
-          .copyright-progress#run-status(style='display:none;margin-top:12px')
-            .copyright-progress-bar
-              .copyright-progress-fill#progress-fill
-            span#progress-text
-          p.admin-hint
-            a(href='/admin/copyright' target='_blank' rel='noopener') → все найденные использования
 
       .admin-section
         h2.admin-title УДАЛИТЬ СЪЁМКУ

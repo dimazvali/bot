@@ -45,9 +45,15 @@
     setArmed(false);
   }
 
+  var signInPopup = document.getElementById('point-signin-popup');
+  var signInBtnContainer = document.getElementById('point-signin-btn');
+  var signInCancelBtn = document.getElementById('point-signin-cancel');
+  var gsiInitialized = false;
+  var gsiButtonRendered = false;
+
   addBtn.addEventListener('click', function () {
     if (armed) { setArmed(false); return; }
-    if (!user) { signIn(function () { setArmed(true); }); return; }
+    if (!user) { openSignIn(); return; }
     setArmed(true);
   });
 
@@ -113,27 +119,51 @@
       });
   });
 
-  function signIn(onSuccess) {
-    if (!googleClientId || typeof google === 'undefined') return;
-    /* global google */
-    google.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: function (response) {
-        fetch('/photo-comments/auth/google', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: response.credential }),
-        })
-          .then(function (r) { return r.json(); })
-          .then(function (data) {
-            if (data.ok) {
-              user = data.user;
-              if (section) section.dataset.user = JSON.stringify(data.user);
-              onSuccess();
-            }
-          });
-      },
-    });
-    google.accounts.id.prompt();
+  // Waits for the (deferred) GSI script to actually be ready — clicking right as the
+  // page loads can otherwise silently do nothing if google.accounts isn't defined yet.
+  function waitForGsi(cb, attemptsLeft) {
+    attemptsLeft = attemptsLeft == null ? 50 : attemptsLeft; // ~5s at 100ms/try, then give up quietly
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) { cb(); return; }
+    if (attemptsLeft <= 0) return;
+    setTimeout(function () { waitForGsi(cb, attemptsLeft - 1); }, 100);
   }
+
+  function handleCredential(response) {
+    /* global google */
+    fetch('/photo-comments/auth/google', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        user = data.user;
+        if (section) section.dataset.user = JSON.stringify(data.user);
+        if (signInPopup) signInPopup.classList.remove('is-open');
+        setArmed(true); // straight into placement mode — no extra click needed after signing in
+      });
+  }
+
+  // A real, rendered "Sign in with Google" button rather than the One Tap prompt() —
+  // prompt() can be silently suppressed (dismissed before, opted out, etc.), which from
+  // a custom "add a mark" button would look like clicking it just does nothing. A
+  // button the visitor explicitly clicks always opens the sign-in flow.
+  function openSignIn() {
+    if (!googleClientId || !signInPopup || !signInBtnContainer) return;
+    signInPopup.classList.add('is-open');
+    waitForGsi(function () {
+      if (!gsiInitialized) {
+        gsiInitialized = true;
+        google.accounts.id.initialize({ client_id: googleClientId, callback: handleCredential });
+      }
+      if (!gsiButtonRendered) {
+        gsiButtonRendered = true;
+        google.accounts.id.renderButton(signInBtnContainer, { theme: 'filled_black', size: 'medium', text: 'signin_with' });
+      }
+    });
+  }
+
+  if (signInCancelBtn) signInCancelBtn.addEventListener('click', function () { signInPopup.classList.remove('is-open'); });
+  if (signInPopup) signInPopup.addEventListener('click', function (e) { if (e.target === signInPopup) signInPopup.classList.remove('is-open'); });
 }());
