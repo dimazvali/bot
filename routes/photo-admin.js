@@ -603,15 +603,21 @@ router.post('/shoots', requireAuth, express.urlencoded({ extended: false }), asy
   }
 });
 
-router.get('/shoots/:slug/edit', requireAuth, (req, res) => {
+router.get('/shoots/:slug/edit', requireAuth, async (req, res) => {
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.redirect('/admin/shoots');
+  var stats = await photoStats.getStatsByType('shoot-photo').catch(function() { return {}; });
+  var photoViews = {};
+  (shoot.photos || []).forEach(function(photo) {
+    photoViews[photo.id] = stats[slug + '/' + photo.id] || 0;
+  });
   res.render('photo/admin/shoot-edit', {
     title: shoot.label + ' — AERO Admin',
     slug,
     shoot,
+    photoViews,
     data: getData(),
     allShoots: shoots.getData(),
     error: req.query.error || null,

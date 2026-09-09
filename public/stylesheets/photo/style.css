@@ -1506,6 +1506,28 @@ body.sidebar-open { overflow: hidden; }
   padding: 0;
 }
 .photo-annot:hover { background: rgba(0, 0, 0, 0.78); border-color: #fff; }
+.photo-annot--client { background: rgba(184, 134, 11, 0.75); border-color: rgba(255, 210, 100, 0.85); }
+.photo-annot--client:hover { background: rgba(184, 134, 11, 0.95); border-color: #ffd264; }
+.photo-annot--pending { border-style: dashed; opacity: 0.85; pointer-events: none; background: rgba(184, 134, 11, 0.75); border-color: rgba(255, 210, 100, 0.85); }
+
+.photo-image-wrap.is-placing { cursor: crosshair; }
+.photo-annot-item--client .photo-annot-item-author { color: #d4a537; font-size: 0.6875rem; letter-spacing: 1px; margin-right: 6px; }
+
+#add-point-btn.is-active { color: #d4a537; border-color: #d4a537; }
+
+.point-popup-input {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: monospace;
+  font-size: 0.75rem;
+  padding: 8px 10px;
+  outline: none;
+  resize: vertical;
+  min-height: 60px;
+}
+.point-popup-input:focus { border-color: var(--text-dim); }
+.point-popup-msg { font-size: 0.625rem; color: var(--text-muted); font-family: monospace; min-height: 14px; }
 
 .annot-popup {
   position: fixed;

@@ -44,7 +44,7 @@ block content
           +typeIcon(photo.type||'copter')
         if photo.annotations && photo.annotations.length
           each a, idx in photo.annotations
-            button.photo-annot(type='button' data-x=a.x data-y=a.y data-text=a.text)= idx + 1
+            button.photo-annot(class=a.source==='client' ? 'photo-annot--client' : '' type='button' data-x=a.x data-y=a.y data-text=a.text data-author=a.authorName||undefined)= idx + 1
         img(
           src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
           alt=photo.title
@@ -81,8 +81,10 @@ block content
     if photo.annotations && photo.annotations.length
       .photo-annot-list
         each a, i in photo.annotations
-          .photo-annot-item
+          .photo-annot-item(class=a.source==='client' ? 'photo-annot-item--client' : '')
             span.photo-annot-num= i + 1
+            if a.source === 'client' && a.authorName
+              span.photo-annot-item-author= ui.pointAuthorPrefix + ' ' + a.authorName
             span.photo-annot-item-text= a.text
     if !isShoot && photo.tags && photo.tags.length
       .photo-tags
@@ -92,6 +94,8 @@ block content
       button.action-btn(onclick='sharePhoto()')= ui.share
       if photo.instagram
         a.action-btn(href=photo.instagram target='_blank' rel='noopener')= ui.instagram
+      if isShoot
+        button.action-btn#add-point-btn(type='button' data-slug=shootSlug data-photo-id=photo.id)= ui.addPoint
     if !isShoot
       .photo-inquiry
         - var showInquiry = !!inquiryStatus
@@ -125,10 +129,35 @@ block content
               input.inquiry-input(type='email' name='email' placeholder=ui.emailCaps required autocomplete='email')
               textarea.inquiry-input.inquiry-textarea(name='message' placeholder=ui.messageOptional rows='3')
               button.inquiry-submit(type='submit')= ui.submitArrow
+    else
+      .photo-inquiry
+        .inquiry-tabs
+          span.inquiry-tab.is-active(style='cursor:default;')= ui.commentsTab
+        .inquiry-tab-panel(data-panel='comments')
+          - var photoUserStrShoot = photoUser ? JSON.stringify(photoUser) : ''
+          .photo-comments-section(
+            data-country='shoot'
+            data-series=shootSlug
+            data-photo-id=photo.id
+            data-is-admin=isAdmin ? '1' : '0'
+            data-google-client-id=googleClientId
+            data-user=photoUserStrShoot
+          )
+            p.comments-loading= ui.loadingComments
 
     .annot-popup#annot-popup
       button.annot-popup-close#annot-popup-close ×
       p.annot-popup-text#annot-popup-text
+
+    if isShoot
+      .selection-popup#point-popup
+        .selection-popup-inner
+          span.selection-popup-title= ui.pointPopupTitle
+          textarea.point-popup-input#point-popup-input(rows='3' placeholder=ui.pointPlaceholder maxlength='500')
+          p.point-popup-msg#point-popup-msg
+          .selection-popup-actions
+            button#point-popup-cancel(type='button')= ui.cancel
+            button#point-popup-save(type='button')= ui.save
 
     if !isShoot && related && related.length
       .related
@@ -301,11 +330,12 @@ block content
         document.querySelectorAll('.photo-image-wrap .photo-annot').forEach(function(btn) {
           var marker = document.createElement('button');
           marker.type = 'button';
-          marker.className = 'photo-annot lb-annot';
+          marker.className = 'photo-annot lb-annot' + (btn.classList.contains('photo-annot--client') ? ' photo-annot--client' : '');
           marker.textContent = btn.textContent;
           marker.style.left = btn.dataset.x + '%';
           marker.style.top  = btn.dataset.y + '%';
           marker.dataset.text = btn.dataset.text;
+          if (btn.dataset.author) marker.dataset.author = btn.dataset.author;
           lbWrap.appendChild(marker);
         });
       }
@@ -333,7 +363,7 @@ block content
           var popup = document.getElementById('annot-popup');
           var popupText = document.getElementById('annot-popup-text');
           if (popup && popupText) {
-            popupText.textContent = annotBtn.dataset.text;
+            popupText.textContent = annotBtn.dataset.author ? (window.PhotoI18n.t.pointAuthorPrefix + ' ' + annotBtn.dataset.author + '\n' + annotBtn.dataset.text) : annotBtn.dataset.text;
             var rect = annotBtn.getBoundingClientRect();
             var popW = 240;
             var top = rect.bottom + 10;
@@ -365,7 +395,7 @@ block content
         var annotBtn = e.target.closest && e.target.closest('.photo-annot');
         var popup = document.getElementById('annot-popup');
         if (annotBtn && popup) {
-          document.getElementById('annot-popup-text').textContent = annotBtn.dataset.text;
+          document.getElementById('annot-popup-text').textContent = annotBtn.dataset.author ? (window.PhotoI18n.t.pointAuthorPrefix + ' ' + annotBtn.dataset.author + '\n' + annotBtn.dataset.text) : annotBtn.dataset.text;
           var rect = annotBtn.getBoundingClientRect();
           var popW = 240;
           var top = rect.bottom + 10;
@@ -399,5 +429,6 @@ block content
       loadComments();
     }());
 
-  if !isShoot
-    script(src='https://accounts.google.com/gsi/client' async defer)
+  script(src='https://accounts.google.com/gsi/client' async defer)
+  if isShoot
+    script(src='/javascripts/photo/points.js' defer)

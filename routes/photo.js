@@ -716,6 +716,57 @@ router.post('/shoot/:slug/collections', express.json(), async (req, res) => {
   res.json({ ok: true, id: collection.id });
 });
 
+// POST /shoot/:slug/:id/point — visitor drops a marker/point on a shoot photo.
+// Requires Google sign-in (same photoUser cookie as comments) on top of the
+// shoot's own password gate — points are visible to everyone who opens the
+// photo afterward, same as the admin's own curated annotations.
+router.post('/shoot/:slug/:id/point', express.json(), async (req, res) => {
+  var { slug, id } = req.params;
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ ok: false, error: 'Not found' });
+
+  var user = res.locals.photoUser;
+  if (!user) return res.status(401).json({ ok: false, error: 'Not authenticated' });
+
+  var adminUser = await isAdmin(req);
+  var cookieKey = 'shoot_' + slug;
+  var authed = adminUser || !shoot.password ||
+    (req.signedCookies && req.signedCookies[cookieKey] === shootCookieToken(shoot.password, slug));
+  if (!authed) return res.status(401).json({ ok: false, error: 'Unauthorized' });
+
+  var photo = shoot.photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.status(404).json({ ok: false, error: 'Not found' });
+
+  var x = parseFloat(req.body.x);
+  var y = parseFloat(req.body.y);
+  var text = String((req.body && req.body.text) || '').trim().slice(0, 500);
+  if (!text || isNaN(x) || isNaN(y) || x < 0 || x > 100 || y < 0 || y > 100) {
+    return res.status(400).json({ ok: false, error: 'Invalid data' });
+  }
+
+  var annot = {
+    id: Date.now().toString(),
+    x: Math.round(x * 100) / 100,
+    y: Math.round(y * 100) / 100,
+    text: text,
+    createdAt: new Date().toISOString().slice(0, 10),
+    source: 'client',
+    authorName: user.name || '',
+    authorPicture: user.picture || '',
+    authorId: user.googleId || '',
+  };
+
+  try {
+    await shoots.addAnnotation(slug, id, annot);
+    tgSend('<b>📍 Новая точка от клиента</b>\n' + shoot.label + ' — «' + photo.title + '»\n'
+      + (user.name || 'аноним') + ': ' + text + '\n' + BASE + '/admin/shoots/' + slug + '/edit');
+    res.json({ ok: true, annotation: annot });
+  } catch (e) {
+    console.error('[shoot point]', e.message);
+    res.status(500).json({ ok: false, error: 'Server error' });
+  }
+});
+
 // GET /:country — all photos in a country
 router.get('/:country', (req, res) => {
   var lang = req.lang;
