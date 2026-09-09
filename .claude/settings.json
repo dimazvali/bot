@@ -290,11 +290,30 @@
       "Bash(curl -s -H \"Host: photo.localhost\" http://127.0.0.1:3500/en/about -o /tmp/en_about.html -w \"status=%{http_code}\\\\n\" --max-time 15)",
       "Bash(curl -s -H \"Host: photo.localhost\" http://127.0.0.1:3500/en/georgia/tbilisi/5 -o /tmp/en_photo2.html -w \"status=%{http_code}\\\\n\" --max-time 15)",
       "Bash(curl -s -H \"Host: photo.localhost\" http://127.0.0.1:3500/en/tag/winter -o /tmp/en_tag.html -w \"status=%{http_code}\\\\n\" --max-time 15)",
-      "Bash(taskkill //PID 37284 //F)"
+      "Bash(taskkill //PID 37284 //F)",
+      "Bash(node -e \"const pug=require\\('pug'\\); pug.compileFile\\('views/photo/admin/shoot-edit.pug'\\); console.log\\('OK shoot-edit'\\);\")",
+      "Bash(node -e \"require\\('./lib/photo-copyright-check.js'\\); console.log\\('OK lib'\\);\")",
+      "Bash(PHOTO_ENV=prod node \"C:/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/47d363f7-cbd4-4b20-b5e6-51eab13de47c/scratchpad/translate-prod-photos.js\")",
+      "Bash(cp \"C:/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/47d363f7-cbd4-4b20-b5e6-51eab13de47c/scratchpad/translate-prod-photos.js\" \"c:/Users/dshestakov/node/bot/scripts/translate-prod-photos.js\")",
+      "Bash(PHOTO_ENV=prod node scripts/translate-prod-photos.js)",
+      "Bash(node -c scripts/generate-photo-seo.js)",
+      "Bash(node -c scripts/translate-prod-tags.js)",
+      "Bash(PHOTO_ENV=prod node scripts/translate-prod-tags.js)",
+      "Bash(node -c scripts/photo-views-debot.js)",
+      "Bash(node -e \"require\\('./lib/photo-stats.js'\\); console.log\\('photo-stats loads OK'\\)\")",
+      "Bash(timeout 90 node scripts/photo-views-debot.js --env=dev)",
+      "Bash(timeout 150 node scripts/photo-views-debot.js --env=prod)",
+      "Bash(node -c public/javascripts/photo/i18n.js)",
+      "Bash(node -c public/javascripts/photo/main.js)",
+      "Bash(node -c public/javascripts/photo/subscribe.js)",
+      "Bash(node -c public/javascripts/photo/comments.js)",
+      "Bash(node -c scripts/translate-prod-annotations.js)",
+      "Bash(PHOTO_ENV=prod node scripts/translate-prod-annotations.js)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",
-      "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\d8451058-4ab3-4d86-8e2a-f04b8daf66bd\\scratchpad"
+      "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\d8451058-4ab3-4d86-8e2a-f04b8daf66bd\\scratchpad",
+      "c:\\Users\\dshestakov\\node\\bot\\scripts"
     ]
   }
 }

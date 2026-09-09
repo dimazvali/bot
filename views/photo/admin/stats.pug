@@ -32,6 +32,8 @@ html(data-theme='dark')
       else
         .admin-section
           h2.admin-title ПРОСМОТРЫ · #{days} ДНЕЙ · ИТОГО #{total}
+          if botTotal
+            p.admin-hint исключено ботов и краулеров: #{botTotal}
           .stats-chart
             each item in allDays
               .stats-bar-row

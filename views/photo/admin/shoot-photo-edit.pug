@@ -25,11 +25,15 @@ html(data-theme='dark')
                 .annot-list-item
                   .annot-list-badge i
                   span.annot-list-text= a.text
+                  if a.text_en
+                    span.annot-list-text(style='color:var(--text-dim);font-style:italic;')= a.text_en
                   form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/annotation/${a.id}/delete` style='margin:0')
                     button.admin-btn(type='submit' style='padding:1px 8px;font-size:.7rem;') ✕
           .annot-pending-form#annot-pending-form
             p.admin-hint ТЕКСТ АННОТАЦИИ:
             textarea#annot-new-text.admin-input(rows='2' placeholder='Текст аннотации...' style='margin-bottom:6px;')
+            p.admin-hint TEXT (EN, необязательно):
+            textarea#annot-new-text-en.admin-input(rows='2' placeholder='Annotation text (EN)...' style='margin-bottom:6px;')
             .annot-form-btns(style='display:flex;gap:8px;')
               button#annot-save-btn.admin-btn(type='button') Сохранить
               button#annot-cancel-btn.admin-btn(type='button') Отмена
@@ -81,6 +85,7 @@ html(data-theme='dark')
         var pendingX = 0, pendingY = 0;
         var form = document.getElementById('annot-pending-form');
         var textArea = document.getElementById('annot-new-text');
+        var textAreaEn = document.getElementById('annot-new-text-en');
         var saveBtn = document.getElementById('annot-save-btn');
         var cancelBtn = document.getElementById('annot-cancel-btn');
         var baseUrl = window.location.pathname.replace('/edit', '');
@@ -155,6 +160,7 @@ html(data-theme='dark')
 
           form.style.display = 'block';
           textArea.value = '';
+          if (textAreaEn) textAreaEn.value = '';
           textArea.focus();
         });
 
@@ -162,10 +168,12 @@ html(data-theme='dark')
           if (pendingMarker) { pendingMarker.remove(); pendingMarker = null; }
           form.style.display = 'none';
           textArea.value = '';
+          if (textAreaEn) textAreaEn.value = '';
         });
 
         saveBtn.addEventListener('click', async function() {
           var text = textArea.value.trim();
+          var textEn = textAreaEn ? textAreaEn.value.trim() : '';
           if (!text) return;
           saveBtn.disabled = true;
           saveBtn.textContent = '…';
@@ -173,7 +181,7 @@ html(data-theme='dark')
             var resp = await fetch(baseUrl + '/annotation/add', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ x: pendingX, y: pendingY, text: text }),
+              body: JSON.stringify({ x: pendingX, y: pendingY, text: text, text_en: textEn }),
             });
             var data = await resp.json();
             if (!data.ok) throw new Error(data.error || 'Ошибка');

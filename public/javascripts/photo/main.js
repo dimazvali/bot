@@ -111,7 +111,7 @@
         var btn = document.querySelector('.action-btn[onclick="sharePhoto()"]');
         if (btn) {
           var orig = btn.textContent;
-          btn.textContent = 'СКОПИРОВАНО';
+          btn.textContent = window.PhotoI18n.t.shareCopied;
           setTimeout(function () { btn.textContent = orig; }, 2000);
         }
       });

@@ -41,6 +41,10 @@ html(data-theme='dark')
             .stats-summary-item
               span.stats-summary-val= total
               span.stats-summary-key ПРОСМОТРОВ · #{days} ДНЕЙ
+            if botTotal
+              .stats-summary-item
+                span.stats-summary-val= botTotal
+                span.stats-summary-key БОТЫ (искл.)
             each count, type in byDevice
               if count
                 .stats-summary-item

@@ -2,6 +2,14 @@
   var section = document.querySelector('.photo-comments-section');
   if (!section) return;
 
+  var lang = window.PhotoI18n.lang;
+  var UI = {
+    empty: window.PhotoI18n.t.commentsEmpty, hide: window.PhotoI18n.t.commentsHide, signOut: window.PhotoI18n.t.commentsSignOut,
+    writePlaceholder: window.PhotoI18n.t.commentsWritePlaceholder, submit: window.PhotoI18n.t.commentsSubmit,
+    signInNote: window.PhotoI18n.t.commentsSignInNote, signInGoogle: window.PhotoI18n.t.commentsSignInGoogle,
+    loadError: window.PhotoI18n.t.commentsLoadError,
+  };
+
   var country = section.dataset.country;
   var series = section.dataset.series;
   var photoId = section.dataset.photoId;
@@ -20,13 +28,14 @@
 
   function formatDate(iso) {
     if (!iso) return '';
-    return new Date(iso).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+    return new Date(iso).toLocaleDateString(window.PhotoI18n.dateLocale, { day: 'numeric', month: 'long', year: 'numeric' });
   }
 
   function pluralComments(n) {
-    if (n % 10 === 1 && n % 100 !== 11) return n + ' КОММЕНТАРИЙ';
-    if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + ' КОММЕНТАРИЯ';
-    return n + ' КОММЕНТАРИЕВ';
+    if (lang === 'en') return n + ' ' + (n === 1 ? window.PhotoI18n.t.commentsOne : window.PhotoI18n.t.commentsMany);
+    if (n % 10 === 1 && n % 100 !== 11) return n + ' ' + window.PhotoI18n.t.commentsOne;
+    if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return n + ' ' + window.PhotoI18n.t.commentsFew;
+    return n + ' ' + window.PhotoI18n.t.commentsMany;
   }
 
   function avatarHtml(picture, name, cls) {
@@ -38,7 +47,7 @@
   }
 
   function renderCommentsList(comments) {
-    if (!comments.length) return '<p class="comments-empty">КОММЕНТАРИЕВ ЕЩЁ НЕТ</p>';
+    if (!comments.length) return '<p class="comments-empty">' + UI.empty + '</p>';
     var html = '<p class="comments-count">' + pluralComments(comments.length) + '</p>';
     html += '<div class="comments-list">';
     comments.forEach(function (c) {
@@ -49,7 +58,7 @@
       html += '<span class="comment-name">' + esc((c.userName || '').toUpperCase()) + '</span>';
       html += '<span class="comment-date">' + esc(formatDate(c.createdAt)) + '</span>';
       if (isAdmin) {
-        html += '<button class="comment-hide-btn" data-id="' + esc(c.id) + '">СКРЫТЬ</button>';
+        html += '<button class="comment-hide-btn" data-id="' + esc(c.id) + '">' + UI.hide + '</button>';
       }
       html += '</div>';
       html += '<div class="comment-text">' + esc(c.text).replace(/\n/g, '<br>') + '</div>';
@@ -65,14 +74,14 @@
         '<div class="comment-user-line">' +
         avatarHtml(user.picture, user.name, 'comment-avatar comment-avatar-sm') +
         '<span class="comment-user-name">' + esc(user.name.toUpperCase()) + '</span>' +
-        '<button class="comment-signout-btn">ВЫЙТИ</button>' +
+        '<button class="comment-signout-btn">' + UI.signOut + '</button>' +
         '</div>' +
-        '<textarea class="inquiry-input comment-textarea" placeholder="НАПИСАТЬ КОММЕНТАРИЙ..." rows="3"></textarea>' +
-        '<button class="inquiry-submit comment-submit-btn">ОТПРАВИТЬ →</button>' +
+        '<textarea class="inquiry-input comment-textarea" placeholder="' + esc(UI.writePlaceholder) + '" rows="3"></textarea>' +
+        '<button class="inquiry-submit comment-submit-btn">' + UI.submit + '</button>' +
         '</div>';
     }
     return '<div class="comment-signin-block">' +
-      '<span class="comment-signin-note">ВОЙДИТЕ, ЧТОБЫ ОСТАВИТЬ КОММЕНТАРИЙ</span>' +
+      '<span class="comment-signin-note">' + UI.signInNote + '</span>' +
       '<button class="comment-google-btn">' +
       '<svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0">' +
       '<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>' +
@@ -80,7 +89,7 @@
       '<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>' +
       '<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>' +
       '</svg>' +
-      'ВОЙТИ ЧЕРЕЗ GOOGLE' +
+      UI.signInGoogle +
       '</button>' +
       '</div>';
   }
@@ -163,10 +172,10 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (data.ok) render(data.comments);
-        else section.innerHTML = '<p class="comments-empty">ОШИБКА ЗАГРУЗКИ</p>';
+        else section.innerHTML = '<p class="comments-empty">' + UI.loadError + '</p>';
       })
       .catch(function () {
-        section.innerHTML = '<p class="comments-empty">ОШИБКА ЗАГРУЗКИ</p>';
+        section.innerHTML = '<p class="comments-empty">' + UI.loadError + '</p>';
       });
   }
 

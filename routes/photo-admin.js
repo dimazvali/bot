@@ -209,8 +209,10 @@ router.get('/stats', requireAuth, async (req, res) => {
       .limit(10000)
       .get();
     var byDay = {}, byEntity = {}, byDevice = { desktop: 0, mobile: 0, tablet: 0, unknown: 0 };
+    var botTotal = 0;
     snap.docs.forEach(function(doc) {
       var d = doc.data();
+      if (d.bot) { botTotal++; return; }
       var ts = d.timestamp ? d.timestamp.toDate() : null;
       if (!ts) return;
       var day = ts.toISOString().slice(0, 10);
@@ -227,9 +229,9 @@ router.get('/stats', requireAuth, async (req, res) => {
     }
     var maxCount = Math.max.apply(null, allDays.map(function(d) { return d.count; }).concat([1]));
     var entityGroups = buildEntityGroups(byEntity, getData(), shoots.getData());
-    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: snap.size, allDays: allDays, maxCount: maxCount, entityGroups: entityGroups, byDevice: byDevice, error: null });
+    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: snap.size - botTotal, botTotal: botTotal, allDays: allDays, maxCount: maxCount, entityGroups: entityGroups, byDevice: byDevice, error: null });
   } catch (err) {
-    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: 0, allDays: [], maxCount: 1, entityGroups: [], byDevice: {}, error: err.message });
+    res.render('photo/admin/stats', { title: 'Статистика — Admin', days: days, total: 0, botTotal: 0, allDays: [], maxCount: 1, entityGroups: [], byDevice: {}, error: err.message });
   }
 });
 
@@ -250,8 +252,10 @@ router.get('/stats/entity', requireAuth, async (req, res) => {
       .limit(5000)
       .get();
     var byDay = {}, byDevice = { desktop: 0, mobile: 0, tablet: 0, unknown: 0 };
+    var botTotal = 0;
     snap.docs.forEach(function(doc) {
       var d = doc.data();
+      if (d.bot) { botTotal++; return; }
       var ts = d.timestamp ? d.timestamp.toDate() : null;
       if (!ts) return;
       var day = ts.toISOString().slice(0, 10);
@@ -269,13 +273,13 @@ router.get('/stats/entity', requireAuth, async (req, res) => {
     res.render('photo/admin/stats-entity', {
       title: 'Статистика · ' + entityInfo.label,
       entityType, entityId, entityInfo, days,
-      total: snap.size, allDays, maxCount, byDevice, error: null,
+      total: snap.size - botTotal, botTotal, allDays, maxCount, byDevice, error: null,
     });
   } catch (err) {
     var entityInfo = { type: entityType, id: entityId, label: entityId, url: null };
     res.render('photo/admin/stats-entity', {
       title: 'Статистика', entityType, entityId, entityInfo, days,
-      total: 0, allDays: [], maxCount: 1, byDevice: {}, error: err.message,
+      total: 0, botTotal: 0, allDays: [], maxCount: 1, byDevice: {}, error: err.message,
     });
   }
 });
@@ -612,6 +616,15 @@ router.get('/shoots/:slug/edit', requireAuth, (req, res) => {
     allShoots: shoots.getData(),
     error: req.query.error || null,
   });
+});
+
+// Copyright / usage check scoped to a single shoot
+router.post('/shoots/:slug/copyright/run', requireAuth, (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ started: false });
+  if (!shoots.getShoot(slug)) return res.status(404).json({ started: false });
+  var started = copyrightCheck.run(fb, getData(), process.env.PHOTO_ENV || 'dev', shoots.getData(), { shootSlug: slug });
+  res.json({ started });
 });
 
 router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
@@ -953,11 +966,12 @@ router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded(
 router.post('/shoots/:slug/photos/:id/annotation/add', requireAuth, express.json(), async (req, res) => {
   var { slug, id } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.status(400).json({ ok: false });
-  var { x, y, text } = req.body;
+  var { x, y, text, text_en } = req.body;
   if (typeof x !== 'number' || typeof y !== 'number' || !text || !text.trim()) return res.status(400).json({ ok: false, error: 'invalid params' });
   if (x < 0 || x > 100 || y < 0 || y > 100) return res.status(400).json({ ok: false });
   if (!shoots.getShoot(slug)) return res.status(404).json({ ok: false });
   var annot = { id: Date.now().toString(), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, text: text.trim(), createdAt: new Date().toISOString().slice(0, 10) };
+  if (text_en && text_en.trim()) annot.text_en = text_en.trim();
   try {
     await shoots.addAnnotation(slug, id, annot);
     res.json({ ok: true, annotation: annot });
@@ -1442,6 +1456,7 @@ router.post('/:country/:series/:id/annotation/add', requireAuth, express.json(),
   var x = parseFloat(req.body.x);
   var y = parseFloat(req.body.y);
   var text = (req.body.text || '').trim();
+  var text_en = (req.body.text_en || '').trim();
   if (!text || isNaN(x) || isNaN(y) || x < 0 || x > 100 || y < 0 || y > 100) {
     return res.status(400).json({ ok: false, error: 'invalid data' });
   }
@@ -1450,6 +1465,7 @@ router.post('/:country/:series/:id/annotation/add', requireAuth, express.json(),
   var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
   if (!photo) return res.status(404).json({ ok: false });
   var annot = { id: Date.now().toString(), x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100, text, createdAt: new Date().toISOString().slice(0, 10) };
+  if (text_en) annot.text_en = text_en;
   if (!photo.annotations) photo.annotations = [];
   photo.annotations.push(annot);
   saveData(data);

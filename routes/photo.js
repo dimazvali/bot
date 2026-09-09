@@ -4,7 +4,7 @@ var path = require('path');
 var axios = require('axios');
 var { getData } = require('../lib/photo-data');
 var { getTags } = require('../lib/photo-tags');
-var { trackView } = require('../lib/photo-stats');
+var { trackView, BOT_UA_RE } = require('../lib/photo-stats');
 var { COLOR_FAMILIES } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var photoUsers = require('../lib/photo-users');
@@ -23,7 +23,6 @@ function shootCookieToken(password, slug) {
 
 var DIMA_CHAT_ID = 144489840;
 var shootNotifLastSent = {};
-var BOT_UA_RE = /bot|crawl|spider|slurp|preview|fetch|telegram|facebook|twitter|whatsapp|slack|discord|linkedin|vk|yandex|baidu|bytespider/i;
 
 function tgSend(text) {
   var token = process.env.dimazvaliToken;

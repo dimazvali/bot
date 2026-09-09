@@ -50,7 +50,7 @@
             .then(function (r) { return r.json(); })
             .then(function (data) {
               if (data.ok) {
-                if (msg) { msg.textContent = '✓ вы подписаны (почта)'; msg.style.display = ''; }
+                if (msg) { msg.textContent = window.PhotoI18n.t.subscribedEmail; msg.style.display = ''; }
                 if (toggle) toggle.style.display = 'none';
               } else {
                 emailBtn.disabled = false;
