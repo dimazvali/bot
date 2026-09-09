@@ -43,16 +43,33 @@ html(data-theme='dark')
               a.admin-link(href=`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(group.imageUrl)}` target='_blank' rel='noopener') 🔍 Google Lens
               form(method='POST' action='/admin/copyright/clear-photo' style='display:inline')
                 input(type='hidden' name='photoId' value=group.photoId)
+                input(type='hidden' name='countryKey' value=group.countryKey)
+                input(type='hidden' name='seriesKey' value=group.seriesKey)
                 button.admin-link(type='submit' onclick='return confirm("Удалить все совпадения для этого фото?")' style='color:#e57373') ✕ очистить
 
             each hit in group.hits
+              - var isPage = hit.matchType === 'page'
+              - var lensUrl = hit.matchImageUrl || group.imageUrl
               .copyright-hit(class=hit.dismissed?'is-dismissed':'')
                 .copyright-hit-main
-                  a.copyright-hit-url(href=hit.matchUrl target='_blank' rel='noopener')= hit.matchUrl
-                  if hit.pageTitle
-                    span.copyright-hit-page= hit.pageTitle
+                  if isPage
+                    a.copyright-hit-url(href=hit.matchUrl target='_blank' rel='noopener')= hit.pageTitle || hit.matchUrl
+                    if hit.pageTitle
+                      span.copyright-hit-page= hit.matchUrl
+                  else
+                    a.copyright-hit-url(href=hit.matchUrl target='_blank' rel='noopener')= hit.matchUrl
+                    if hit.pageUrl
+                      span.copyright-hit-page
+                        | на странице:&nbsp;
+                        a(href=hit.pageUrl target='_blank' rel='noopener')= hit.pageTitle || hit.pageUrl
                 .copyright-hit-meta
-                  span.copyright-hit-type= hit.matchType === 'full_image' ? 'точное совпадение' : 'страница'
+                  span.copyright-hit-type= isPage ? 'страница' : 'файл изображения'
+                  if hit.partial
+                    span.copyright-hit-partial частичное совпадение
+                  else
+                    span.copyright-hit-exact точное
+                  if lensUrl
+                    a.admin-link(href=`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(lensUrl)}` target='_blank' rel='noopener') 🔍 Lens
                   if hit.firstSeen
                     span.copyright-hit-date= new Date(hit.firstSeen.toDate ? hit.firstSeen.toDate() : hit.firstSeen).toLocaleDateString('ru')
                   if hit.lastSeen && hit.lastSeen !== hit.firstSeen
@@ -134,8 +151,11 @@ html(data-theme='dark')
       .copyright-hit-url { color:var(--text-muted); word-break:break-all; text-decoration:none; font-size:.6875rem; font-family:monospace; }
       .copyright-hit-url:hover { color:var(--accent); }
       .copyright-hit-page { font-size:.6875rem; color:var(--text-dim); }
-      .copyright-hit-meta { display:flex; gap:12px; font-size:.5625rem; letter-spacing:1px; color:var(--text-dim); }
+      .copyright-hit-meta { display:flex; gap:12px; align-items:center; flex-wrap:wrap; font-size:.5625rem; letter-spacing:1px; color:var(--text-dim); }
       .copyright-hit-type { color:#888; }
+      .copyright-hit-page a { color:var(--text-muted); }
+      .copyright-hit-exact { color:#6a9; }
+      .copyright-hit-partial { color:#c9a24a; }
       .copyright-hit-actions { display:flex; gap:12px; }
       .copyright-hit-actions button { background:none; border:none; padding:0; cursor:pointer; font-family:monospace; font-size:.5625rem; letter-spacing:1px; }
       .copyright-progress { display:flex; flex-direction:column; gap:6px; }

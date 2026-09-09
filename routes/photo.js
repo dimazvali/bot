@@ -758,7 +758,7 @@ router.post('/shoot/:slug/:id/point', express.json(), async (req, res) => {
 
   try {
     await shoots.addAnnotation(slug, id, annot);
-    tgSend('<b>📍 Новая точка от клиента</b>\n' + shoot.label + ' — «' + photo.title + '»\n'
+    tgSend('<b>📍 Новая точка от гостя</b>\n' + shoot.label + ' — «' + photo.title + '»\n'
       + (user.name || 'аноним') + ': ' + text + '\n' + BASE + '/admin/shoots/' + slug + '/edit');
     res.json({ ok: true, annotation: annot });
   } catch (e) {

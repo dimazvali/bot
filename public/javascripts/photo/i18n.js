@@ -24,7 +24,7 @@ window.PhotoI18n = (function () {
       commentsSignInGoogle: 'ВОЙТИ ЧЕРЕЗ GOOGLE',
       commentsLoadError: 'ОШИБКА ЗАГРУЗКИ',
       pointArmed: 'КЛИКНИ ПО ФОТО', pointEmptyError: 'Введите текст', pointSaveError: 'Ошибка сохранения',
-      pointAuthorPrefix: 'клиент:',
+      pointAuthorPrefix: 'гость:',
     },
     en: {
       shareCopied: 'COPIED',
@@ -41,7 +41,7 @@ window.PhotoI18n = (function () {
       commentsSignInGoogle: 'SIGN IN WITH GOOGLE',
       commentsLoadError: 'FAILED TO LOAD',
       pointArmed: 'CLICK ON PHOTO', pointEmptyError: 'Enter some text', pointSaveError: 'Save error',
-      pointAuthorPrefix: 'client:',
+      pointAuthorPrefix: 'guest:',
     },
   };
 

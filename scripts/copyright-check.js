@@ -1,18 +1,18 @@
 'use strict';
-// Checks all photos via Google Vision Web Detection and stores new hits in Firestore.
-// Requires Vision API to be enabled: console.cloud.google.com/apis/library/vision.googleapis.com
-// Run: PHOTO_ENV=prod node scripts/copyright-check.js
+// Runs the same copyright/usage check as the admin "▶ ПРОВЕРИТЬ" button, from CLI.
+// Scans every non-archived series photo AND every shoot photo via Google Vision
+// Web Detection, stores new external uses in `photo_copyright_hits`, emails a
+// digest. Requires Vision API enabled: console.cloud.google.com/apis/library/vision.googleapis.com
+//
+//   PHOTO_ENV=prod node scripts/copyright-check.js
 require('dotenv').config();
 
-var https = require('https');
-var crypto = require('crypto');
-var { google } = require('googleapis');
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
-var { initFromFirestore, getData } = require('../lib/photo-data');
+var photoData = require('../lib/photo-data');
+var photoShoots = require('../lib/photo-shoots');
+var copyrightCheck = require('../lib/photo-copyright-check');
 var mailer = require('../lib/photo-mailer');
-
-var SKIP_DOMAINS = ['photo.dimazvali.com', 'dimazvalimisc', 'storage.googleapis.com', 'googleusercontent.com'];
 
 var photoApp = getApps().find(function(a) { return a.name === 'photo'; }) || initializeApp({
   credential: cert({
@@ -31,157 +31,29 @@ var photoApp = getApps().find(function(a) { return a.name === 'photo'; }) || ini
 }, 'photo');
 
 var fb = getFirestore(photoApp);
-
-var auth = new google.auth.GoogleAuth({
-  credentials: {
-    type: 'service_account',
-    project_id: 'dimazvalimisc',
-    private_key: process.env.sssGCPKey.replace(/\\n/g, '\n'),
-    client_email: 'firebase-adminsdk-4iwd4@dimazvalimisc.iam.gserviceaccount.com',
-  },
-  scopes: ['https://www.googleapis.com/auth/cloud-vision'],
-});
-
-function urlHash(url) {
-  return crypto.createHash('sha256').update(url).digest('hex').slice(0, 12);
-}
-
-function isOwnUrl(url) {
-  return SKIP_DOMAINS.some(function(d) { return url.includes(d); });
-}
-
-async function detectWeb(imageUrl) {
-  var client = await auth.getClient();
-  var token = (await client.getAccessToken()).token;
-
-  return new Promise(function(resolve, reject) {
-    var body = JSON.stringify({
-      requests: [{
-        image: { source: { imageUri: imageUrl } },
-        features: [{ type: 'WEB_DETECTION', maxResults: 20 }],
-      }],
-    });
-
-    var req = https.request({
-      method: 'POST',
-      hostname: 'vision.googleapis.com',
-      path: '/v1/images:annotate',
-      headers: {
-        Authorization: 'Bearer ' + token,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-      },
-    }, function(res) {
-      var chunks = [];
-      res.on('data', function(c) { chunks.push(c); });
-      res.on('end', function() {
-        try {
-          var data = JSON.parse(Buffer.concat(chunks).toString());
-          if (data.error) return reject(new Error(data.error.message));
-          resolve(data.responses && data.responses[0] ? data.responses[0].webDetection || {} : {});
-        } catch (e) { reject(e); }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
-
-async function processPhoto(photo, countryKey, seriesKey, env, newHits) {
-  var imageUrl = photo.urls && (photo.urls.full || photo.urls.preview);
-  if (!imageUrl) return;
-
-  var detection = await detectWeb(imageUrl);
-  var now = new Date();
-  var seen = new Set();
-
-  var candidates = [];
-
-  // Only exact image matches — pagesWithMatchingImages produces too many false positives
-  for (var img of (detection.fullMatchingImages || [])) {
-    if (!isOwnUrl(img.url) && !seen.has(img.url)) {
-      seen.add(img.url);
-      candidates.push({ matchUrl: img.url, pageUrl: null, pageTitle: null, matchType: 'full_image' });
-    }
-  }
-
-  for (var match of candidates) {
-    var docId = env + '_' + photo.id + '_' + urlHash(match.matchUrl);
-    var ref = fb.collection('photo_copyright_hits').doc(docId);
-    var snap = await ref.get();
-
-    if (!snap.exists) {
-      await ref.set({
-        env,
-        photoId: photo.id,
-        photoTitle: photo.title || '',
-        countryKey,
-        seriesKey,
-        imageUrl,
-        matchUrl: match.matchUrl,
-        pageUrl: match.pageUrl,
-        pageTitle: match.pageTitle,
-        matchType: match.matchType,
-        firstSeen: now,
-        lastSeen: now,
-        notified: false,
-      });
-      newHits.push({ photo, countryKey, seriesKey, matchUrl: match.matchUrl, pageTitle: match.pageTitle, matchType: match.matchType });
-    } else {
-      await ref.update({ lastSeen: now });
-    }
-  }
-}
+var env = process.env.PHOTO_ENV || 'dev';
 
 async function run() {
-  await initFromFirestore(fb);
+  await Promise.all([photoData.initFromFirestore(fb), photoShoots.initFromFirestore(fb)]);
   mailer.init();
 
-  var data = getData();
-  var env = process.env.PHOTO_ENV || 'dev';
+  var started = copyrightCheck.run(fb, photoData.getData(), env, photoShoots.getData());
+  if (!started) { console.error('Another check is already running.'); process.exit(1); }
 
-  var todos = [];
-  for (var countryKey of Object.keys(data)) {
-    var country = data[countryKey];
-    if (country.archived) continue;
-    for (var seriesKey of Object.keys(country.series)) {
-      var series = country.series[seriesKey];
-      if (series.archived) continue;
-      for (var photo of series.photos) {
-        if (photo.urls) todos.push({ photo: photo, countryKey: countryKey, seriesKey: seriesKey });
-      }
+  var lastDone = -1;
+  while (true) {
+    var s = copyrightCheck.getState();
+    if (s.done !== lastDone) {
+      lastDone = s.done;
+      process.stdout.write('\r[' + s.done + '/' + s.total + '] new: ' + s.newHits + ', errors: ' + s.errors + '   ');
     }
-  }
-
-  console.log('Checking ' + todos.length + ' photos (env=' + env + ')...');
-  var newHits = [];
-  var done = 0, errors = 0;
-
-  for (var i = 0; i < todos.length; i++) {
-    var item = todos[i];
-    try {
-      await processPhoto(item.photo, item.countryKey, item.seriesKey, env, newHits);
-      done++;
-    } catch (e) {
-      errors++;
-      process.stderr.write('\nError [' + item.photo.id + ']: ' + e.message + '\n');
+    if (!s.running) {
+      console.log('\nDone: ' + s.done + ' checked, ' + s.newHits + ' new uses, ' + s.errors + ' errors'
+        + (s.lastError ? ' (last: ' + s.lastError + ')' : ''));
+      process.exit(s.errors && !s.done ? 1 : 0);
     }
-    process.stdout.write('\r[' + (done + errors) + '/' + todos.length + '] done, ' + newHits.length + ' new hits');
-    await new Promise(function(r) { setTimeout(r, 1100); });
-  }
-
-  console.log('\nDone: ' + done + ', errors: ' + errors + ', new hits: ' + newHits.length);
-
-  if (newHits.length > 0) {
-    await mailer.sendCopyrightAlert(newHits);
-    var notifyOps = newHits.map(function(h) {
-      var docId = env + '_' + h.photo.id + '_' + urlHash(h.matchUrl);
-      return fb.collection('photo_copyright_hits').doc(docId).update({ notified: true });
-    });
-    await Promise.all(notifyOps);
-    console.log('Hits marked as notified.');
+    await new Promise(function(r) { setTimeout(r, 2000); });
   }
 }
 
-run().then(function() { process.exit(0); }).catch(function(e) { console.error(e); process.exit(1); });
+run().catch(function(e) { console.error(e); process.exit(1); });

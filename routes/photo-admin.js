@@ -1408,6 +1408,13 @@ router.get('/copyright', requireAuth, async (req, res) => {
       if (!byPhoto[key]) byPhoto[key] = { photoTitle: h.photoTitle, countryKey: h.countryKey, seriesKey: h.seriesKey, photoId: h.photoId, imageUrl: h.imageUrl, hits: [] };
       byPhoto[key].hits.push(h);
     });
+    // within a photo: exact before partial, pages before bare image files
+    function hitRank(h) {
+      return (h.partial ? 2 : 0) + (h.matchType === 'page' ? 0 : 1);
+    }
+    Object.values(byPhoto).forEach(function(g) {
+      g.hits.sort(function(a, b) { return hitRank(a) - hitRank(b); });
+    });
     res.render('photo/admin/copyright', {
       title: 'Использования — AERO Admin',
       groups: Object.values(byPhoto),
@@ -1431,8 +1438,10 @@ router.get('/copyright/run/status', requireAuth, (req, res) => {
 
 router.post('/copyright/clear-photo', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
   var photoId = (req.body.photoId || '').trim();
+  var countryKey = (req.body.countryKey || '').trim();
+  var seriesKey = (req.body.seriesKey || '').trim();
   if (photoId) {
-    try { await copyright.clearPhoto(photoId); } catch (e) { console.error(e.message); }
+    try { await copyright.clearPhoto(photoId, countryKey, seriesKey); } catch (e) { console.error(e.message); }
   }
   res.redirect(req.headers.referer || '/admin/copyright');
 });

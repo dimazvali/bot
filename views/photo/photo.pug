@@ -274,6 +274,7 @@ block content
         window.scrollTo(0, 0);
         checkPageImageAlreadyLoaded();
         loadComments();
+        if (lb.classList.contains('lb-open')) refreshLbImage();
         return true;
       }
 
@@ -309,6 +310,41 @@ block content
           });
       }
 
+      // ── swipe navigation (mobile): swipe left = next photo, swipe right = prev ──
+      var SWIPE_MIN_DX = 50; // px — below this it's a tap, not a swipe
+      var SWIPE_MAX_DY = 80; // px — above this it's a vertical scroll, not a swipe
+
+      function getNavUrl(dir) {
+        var link = document.querySelector('.nav-btn[data-dir="' + dir + '"]');
+        return link ? link.getAttribute('href') : null;
+      }
+      function swipeNext() { var url = getNavUrl('next'); if (url) navigate(url); }
+      function swipePrev() { var url = getNavUrl('prev'); if (url) navigate(url); }
+
+      // el must be a stable element that survives soft-nav swaps (main itself, or the
+      // lightbox — both live outside the innerHTML that gets replaced on navigation).
+      // filterSelector, if given, restricts which touchstart targets count (delegation);
+      // pass null when el itself is already the exact area to track (the lightbox).
+      function bindSwipe(el, filterSelector) {
+        var startX = 0, startY = 0, tracking = false;
+        el.addEventListener('touchstart', function(e) {
+          tracking = e.touches.length === 1 && (!filterSelector || (e.target.closest && e.target.closest(filterSelector)));
+          if (tracking) { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }
+        }, { passive: true });
+        el.addEventListener('touchend', function(e) {
+          if (!tracking) return;
+          tracking = false;
+          // points.js arms '.photo-image-wrap.is-placing' while the visitor is placing a
+          // point — don't also navigate away out from under that click.
+          if (document.querySelector('.photo-image-wrap.is-placing')) return;
+          var t = e.changedTouches[0];
+          var dx = t.clientX - startX, dy = t.clientY - startY;
+          if (Math.abs(dx) < SWIPE_MIN_DX || Math.abs(dy) > SWIPE_MAX_DY) return;
+          if (dx < 0) swipeNext(); else swipePrev();
+        }, { passive: true });
+      }
+      bindSwipe(main, '.photo-page-image');
+
       // ── zoom lightbox: single #lb element created once, reused across soft-nav swaps ──
       var lb = document.createElement('div');
       lb.id = 'lb';
@@ -339,16 +375,23 @@ block content
           lbWrap.appendChild(marker);
         });
       }
+      // (re)points the lightbox at whatever photo is currently shown in the main view —
+      // called on open, and again after a swipe/soft-nav while the lightbox stays open.
+      function refreshLbImage() {
+        var pageImg = document.querySelector('.photo-page-image img');
+        if (!pageImg) return;
+        lbImg.src = pageImg.src;
+        if (lbImg.complete && lbImg.naturalWidth) addLbAnnots();
+        else lbImg.addEventListener('load', addLbAnnots, { once: true });
+      }
       function openLb() {
         var pageImg = document.querySelector('.photo-page-image img');
         if (!pageImg) return;
         var popup = document.getElementById('annot-popup');
         if (popup) popup.style.display = 'none';
-        lbImg.src = pageImg.src;
         lb.classList.add('lb-open');
         document.body.style.overflow = 'hidden';
-        if (lbImg.complete && lbImg.naturalWidth) addLbAnnots();
-        else lbImg.addEventListener('load', addLbAnnots, { once: true });
+        refreshLbImage();
       }
       function closeLb() {
         lb.classList.remove('lb-open');
@@ -356,6 +399,7 @@ block content
         var popup = document.getElementById('annot-popup');
         if (popup) popup.style.display = 'none';
       }
+      bindSwipe(lbWrap, null);
       lb.addEventListener('click', function(e) {
         var annotBtn = e.target.closest && e.target.closest('.lb-annot');
         if (annotBtn) {

@@ -25,7 +25,7 @@ html(data-theme='dark')
                 .annot-list-item
                   .annot-list-badge i
                   if a.source === 'client'
-                    span.annot-list-text(style='color:#d4a537;font-size:.6875rem;letter-spacing:1px;')= 'клиент: ' + (a.authorName || '?') + ' · '
+                    span.annot-list-text(style='color:#d4a537;font-size:.6875rem;letter-spacing:1px;')= 'гость: ' + (a.authorName || '?') + ' · '
                   span.annot-list-text= a.text
                   if a.text_en
                     span.annot-list-text(style='color:var(--text-dim);font-style:italic;')= a.text_en

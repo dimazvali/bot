@@ -53,6 +53,11 @@
 
   wrap.addEventListener('click', function (e) {
     if (!armed) return;
+    // Placing a point takes over the click entirely — without this, the same
+    // click also bubbles up to the document-level handler (photo.pug) that
+    // opens the fullscreen lightbox on any click on the image.
+    e.stopPropagation();
+    e.preventDefault();
     var img = wrap.querySelector('img');
     if (!img || !img.naturalWidth) return;
     var rect = wrap.getBoundingClientRect();
