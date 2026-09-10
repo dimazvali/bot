@@ -1,0 +1,70 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    mixin avatar(picture, name)
+      .comment-avatar.comment-avatar-sm
+        if picture
+          img(src=picture alt='' referrerpolicy='no-referrer')
+        else
+          = (name || '?').trim().charAt(0).toUpperCase()
+
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo КОММЕНТАРИИ И ОТМЕТКИ
+
+      .admin-section
+        h2.admin-title КОММЕНТАРИИ (#{comments.length})
+        if !comments.length
+          p.admin-hint Пока нет комментариев.
+        each c in comments
+          .admin-collection(style=c.hidden ? 'opacity:0.55' : '')
+            .admin-collection-head
+              +avatar(c.userPicture, c.userName)
+              span.admin-collection-name= (c.userName || '—')
+              span.admin-collection-meta
+                = c.photoLabel
+                if c.createdAt
+                  |  · #{new Date(c.createdAt).toLocaleDateString('ru-RU')} #{new Date(c.createdAt).toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
+                if c.hidden
+                  |  · СКРЫТ
+            p.admin-hint(style='color:var(--text);margin-bottom:8px;white-space:pre-wrap')= c.text
+            .admin-series-actions
+              a.admin-link(href=c.photoUrl target='_blank' rel='noopener') → на фото
+              if c.photoEditUrl
+                a.admin-link(href=c.photoEditUrl) ред. фото
+              if c.hidden
+                form.admin-delete-form(method='POST' action='/admin/feedback/comment-unhide')
+                  input(type='hidden' name='commentId' value=c.id)
+                  button.admin-btn.admin-btn--sm(type='submit') показать
+              else
+                form.admin-delete-form(method='POST' action='/admin/feedback/comment-hide')
+                  input(type='hidden' name='commentId' value=c.id)
+                  button.admin-btn.admin-btn--sm.admin-btn--danger(type='submit') скрыть
+
+      .admin-section
+        h2.admin-title ОТМЕТКИ ГОСТЕЙ (#{marks.length})
+        if !marks.length
+          p.admin-hint Пока нет отметок.
+        each m in marks
+          .admin-collection
+            .admin-collection-head
+              +avatar(m.authorPicture, m.authorName)
+              span.admin-collection-name= (m.authorName || '—')
+              span.admin-collection-meta
+                = m.shootLabel + ' · ' + m.photoTitle
+                if m.createdAt
+                  |  · #{m.createdAt}
+            p.admin-hint(style='color:var(--text);margin-bottom:8px;white-space:pre-wrap')= m.text
+            .admin-series-actions
+              a.admin-link(href=m.photoUrl target='_blank' rel='noopener') → на фото
+              a.admin-link(href=m.photoEditUrl) ред. кадр
+              form.admin-delete-form(method='POST' action='/admin/feedback/mark-delete')
+                input(type='hidden' name='slug' value=m.slug)
+                input(type='hidden' name='photoId' value=m.photoId)
+                input(type='hidden' name='annotId' value=m.annotId)
+                button.admin-btn.admin-btn--sm.admin-btn--danger(type='submit') удалить

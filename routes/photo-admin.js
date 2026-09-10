@@ -16,6 +16,7 @@ var shoots = require('../lib/photo-shoots');
 var photoPeople = require('../lib/photo-people');
 var photoUsers = require('../lib/photo-users');
 var tgNotifier = require('../lib/photo-tg-notifier');
+var photoComments = require('../lib/photo-comments');
 
 var axios = require('axios');
 
@@ -48,6 +49,7 @@ initTagsFromFirestore(fb).catch(console.error);
 photoStats.init(fb);
 subscriptions.init(fb);
 photoUsers.init(fb);
+photoComments.init(fb);
 mailer.init();
 copyright.init(fb);
 shoots.initFromFirestore(fb).catch(console.error);
@@ -136,6 +138,101 @@ router.get('/logout', async (req, res) => {
 
 router.get('/', requireAuth, (req, res) => {
   res.render('photo/admin/index', { data: getData(), title: 'photo.dimazvali.com Admin' });
+});
+
+// Resolves a comment's opaque photoId ("country_series_id" for gallery photos,
+// "shoot_slug_id" for shoot photos — no part contains "_", validateSlug enforces
+// it) to a human label + public URL.
+function resolveCommentPhoto(photoId, photoData, shootsData) {
+  var parts = String(photoId || '').split('_');
+  if (parts[0] === 'shoot') {
+    var slug = parts[1], pid = parts.slice(2).join('_');
+    var sh = shootsData[slug];
+    var ph = sh && (sh.photos || []).find(function(x) { return x.id === pid; });
+    return {
+      kind: 'shoot',
+      label: (sh ? sh.label : slug) + ' · ' + (ph ? ph.title : pid),
+      url: '/shoot/' + slug + '/' + pid,
+      editUrl: sh ? '/admin/shoots/' + slug + '/photos/' + pid + '/edit' : null,
+    };
+  }
+  var country = parts[0], series = parts[1], pid2 = parts.slice(2).join('_');
+  var c = photoData[country];
+  var s = c && c.series && c.series[series];
+  var ph2 = s && s.photos.find(function(x) { return x.id === pid2; });
+  return {
+    kind: 'gallery',
+    label: (c ? c.label : country) + ' · ' + (s ? s.label : series) + ' · ' + (ph2 ? ph2.title : pid2),
+    url: '/' + country + '/' + series + '/' + pid2,
+    editUrl: s ? '/admin/' + country + '/' + series + '/' + pid2 + '/edit' : null,
+  };
+}
+
+// GET /admin/feedback — all visitor comments + all visitor marks in one place
+router.get('/feedback', requireAuth, async (req, res) => {
+  var photoData = getData();
+  var shootsData = shoots.getData();
+
+  var rawComments = await photoComments.getAllComments(500).catch(function(e) {
+    console.error('[feedback] getAllComments:', e.message);
+    return [];
+  });
+  var comments = rawComments.map(function(c) {
+    var loc = resolveCommentPhoto(c.photoId, photoData, shootsData);
+    return Object.assign({}, c, { photoLabel: loc.label, photoUrl: loc.url, photoEditUrl: loc.editUrl });
+  });
+
+  var marks = [];
+  Object.keys(shootsData).forEach(function(slug) {
+    var sh = shootsData[slug];
+    (sh.photos || []).forEach(function(photo) {
+      (photo.annotations || []).forEach(function(a) {
+        if (a.source !== 'client') return;
+        marks.push({
+          slug: slug,
+          shootLabel: sh.label,
+          photoId: photo.id,
+          photoTitle: photo.title,
+          annotId: a.id,
+          text: a.text,
+          authorName: a.authorName || '',
+          authorPicture: a.authorPicture || '',
+          createdAt: a.createdAt || '',
+          photoUrl: '/shoot/' + slug + '/' + photo.id,
+          photoEditUrl: '/admin/shoots/' + slug + '/photos/' + photo.id + '/edit',
+        });
+      });
+    });
+  });
+  marks.sort(function(a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
+
+  res.render('photo/admin/feedback', {
+    title: 'Комментарии и отметки — AERO Admin',
+    comments: comments,
+    marks: marks,
+  });
+});
+
+router.post('/feedback/comment-hide', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var id = (req.body.commentId || '').trim();
+  if (/^[A-Za-z0-9]+$/.test(id)) await photoComments.hideComment(id).catch(function(e) { console.error('[feedback hide]', e.message); });
+  res.redirect('/admin/feedback');
+});
+
+router.post('/feedback/comment-unhide', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var id = (req.body.commentId || '').trim();
+  if (/^[A-Za-z0-9]+$/.test(id)) await photoComments.unhideComment(id).catch(function(e) { console.error('[feedback unhide]', e.message); });
+  res.redirect('/admin/feedback');
+});
+
+router.post('/feedback/mark-delete', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var slug = (req.body.slug || '').trim();
+  var photoId = (req.body.photoId || '').trim();
+  var annotId = (req.body.annotId || '').trim();
+  if (/^[a-z0-9-]+$/.test(slug) && /^[a-z0-9-]+$/.test(photoId) && annotId) {
+    await shoots.removeAnnotation(slug, photoId, annotId).catch(function(e) { console.error('[feedback mark-delete]', e.message); });
+  }
+  res.redirect('/admin/feedback');
 });
 
 var ENTITY_TYPE_ORDER = ['country', 'series', 'photo', 'shoot', 'shoot-photo'];
