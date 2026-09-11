@@ -1,4 +1,5 @@
 doctype html
+include _wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -23,6 +24,7 @@ html(lang=lang)
       button.btn:hover{background:var(--acc);border-color:var(--acc)}
       a.back{color:var(--muted);font-size:13px;text-decoration:none}
   body
+    +wipNotice()
     .wrap
       h1 Suggest an event
       p.sub The editors review every submission before it appears.

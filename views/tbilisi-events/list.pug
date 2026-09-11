@@ -2,6 +2,7 @@ doctype html
 include _card.pug
 include _suggest-link.pug
 include _account-link.pug
+include _wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -188,6 +189,7 @@ html(lang=lang)
     style
       include _card.css
   body
+    +wipNotice()
     .wrap
       header.hdr
         .brand
@@ -286,14 +288,14 @@ html(lang=lang)
       .dash
         section.list
           .list-head
-            h2= dateParam ? t.onDate : (showAll ? t.upcoming : t.today)
+            h2= dateParam ? t.onDate : (todayOnly ? t.today : t.upcoming)
             span.cnt= countLabel
           if !hero && !listEvents.length
             p.empty= dateParam ? t.nothing : t.nothingUpcoming
           .cards.grid3
             each e in listEvents
               +eventCard(e)
-          if listTruncated
+          if listTruncated || todayOnly
             a.more(href=showAllHref)= t.showAllUpcoming
           else if showAll
             a.more(href=allUpcomingHref)= t.allUpcoming

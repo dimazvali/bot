@@ -4,6 +4,7 @@ include ../_map.pug
 include ../_crumbs.pug
 include ../_account-link.pug
 include ../_favorite.pug
+include ../_wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -54,6 +55,20 @@ html(lang=lang)
       .hero img{width:100%;height:100%;object-fit:cover}
       .ph{width:100%;height:100%;background-image:repeating-linear-gradient(135deg,#e5ddce 0 8px,#efe8dc 8px 16px)}
       .hero .tag{position:absolute;top:0;left:0;background:var(--ink);color:#fffdf9;font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.14em;padding:6px 11px}
+      .hero .tag.pick{left:auto;right:0;background:var(--acc)}
+
+      .gal{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--ink)}
+      .gal img{flex:0 0 140px;height:100px;object-fit:cover}
+
+      .social-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+      .social-link{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--acc);padding-bottom:1px}
+      .social-link:hover{color:var(--acc)}
+
+      .hours-list{display:flex;flex-direction:column;font-size:13px}
+      .hours-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+      .hours-row:last-child{border-bottom:none}
+      .hours-row .hd{color:var(--muted2);text-transform:uppercase;font-size:11px;letter-spacing:.06em;padding-top:1px}
+      .hours-row .hv{font-weight:600;text-align:right}
 
       .body{padding:20px 16px 24px;border-bottom:8px solid var(--ink)}
       .kicker{font-family:var(--disp);text-transform:uppercase;font-size:11px;letter-spacing:.14em;color:var(--acc);margin-bottom:9px}
@@ -130,6 +145,7 @@ html(lang=lang)
     style
       include ../_card.css
   body
+    +wipNotice()
     .wrap
       header.hdr
         a.back(href=backHref) ←
@@ -149,6 +165,8 @@ html(lang=lang)
           else
             .ph
           span.tag= t.venues
+          if editorsPick
+            span.tag.pick= t.editorsPickTag
         .body
           .kicker= [venue.area, venueTypeLabel].filter(Boolean).join(' · ')
           h1.t= venue.name
@@ -175,6 +193,10 @@ html(lang=lang)
           .actions
             a.btn.solid(href=mapHref target='_blank' rel='noopener noreferrer')= t.routeMap
             +favButton('venue', venue.id, isFavorited)
+          if socialLinks.length
+            .social-row
+              each s in socialLinks
+                a.social-link(href=s.href target='_blank' rel='noopener noreferrer')= s.label
           .org-row
             if organizerState === 'approved'
               span.org-ok= t.orgYouAre
@@ -184,6 +206,11 @@ html(lang=lang)
               a.org-btn(href=organizerHref)= t.orgClaim
             else
               a.org-btn(href=loginHref)= t.orgClaim
+
+      if gallery.length
+        .gal.scr
+          each url in gallery
+            img(src=url alt=venue.name loading='lazy')
 
       .split
         .main
@@ -202,6 +229,14 @@ html(lang=lang)
                 a.more(href=backHref)= t.showAllUpcoming
 
         .aside
+          if hoursRows.length
+            .sec
+              .sec-lbl= t.hours
+              .hours-list
+                each h in hoursRows
+                  .hours-row
+                    span.hd= h.d
+                    span.hv= h.v
           .sec
             .sec-lbl= t.routeMap
             if venue.lat != null && venue.lng != null

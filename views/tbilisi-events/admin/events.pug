@@ -3,7 +3,10 @@ include _admin.pug
 +adminPage({ title: title, nav: 'events' })
   .pagehead
     h1 События
-    span.count найдено #[b= events.length]
+    span.count
+      | найдено #[b= total]
+      if pageCount > 1
+        |  · стр. #{page}/#{pageCount}
 
   form.filters(method='GET' action=base + '/admin/events')
     label источник
@@ -29,8 +32,10 @@ include _admin.pug
     label поиск
       input(type='text' name='q' value=filters.q placeholder='название / место')
     button.btn.sm(type='submit') Фильтровать
+    if filters.seriesId
+      a.link(href=base + '/admin/events') сбросить фильтр серии
 
-  p.hint Клик по заголовку колонки сортирует таблицу.
+  p.hint Клик по заголовку колонки сортирует текущую страницу.
   .tbl-scroll
     table.tbl
       thead
@@ -63,6 +68,8 @@ include _admin.pug
                 |  #[span.mk ⛔]
               if e.active === false
                 |  #[span.dim (неактивно)]
+              if e.seriesId
+                |  #[a.badge(href=base + '/admin/events?seriesId=' + e.seriesId) серия]
             td(data-sort=e.type ? (eventTypeLabels[e.type] || e.type) : '')= e.type ? (eventTypeLabels[e.type] || e.type) : ''
             td= (e.language || []).map(function(l){ return languageLabels[l] || l; }).join(', ')
             td(data-sort=venueName.toLowerCase())= venueName
@@ -81,6 +88,29 @@ include _admin.pug
                     button.btn.sm(type='submit') скрыть
                 form(method='POST' action=`${base}/admin/events/${e.id}/delete` onsubmit='return confirm("Удалить событие?")')
                   button.btn.sm.danger(type='submit') удалить
+
+  if pageCount > 1
+    - var pf = pagerQs ? pagerQs + '&' : ''
+    - var lo = Math.max(1, page - 3)
+    - var hi = Math.min(pageCount, page + 3)
+    nav.pager
+      if page > 1
+        a.btn.sm(href=`${base}/admin/events?${pf}page=${page - 1}`) ← назад
+      if lo > 1
+        a.btn.sm(href=`${base}/admin/events?${pf}page=1`) 1
+        if lo > 2
+          span.pager-gap …
+      each n in Array.from({ length: hi - lo + 1 }, (_, i) => lo + i)
+        if n === page
+          span.btn.sm.is-cur= n
+        else
+          a.btn.sm(href=`${base}/admin/events?${pf}page=${n}`)= n
+      if hi < pageCount
+        if hi < pageCount - 1
+          span.pager-gap …
+        a.btn.sm(href=`${base}/admin/events?${pf}page=${pageCount}`)= pageCount
+      if page < pageCount
+        a.btn.sm(href=`${base}/admin/events?${pf}page=${page + 1}`) вперёд →
 
   script.
     (function () {

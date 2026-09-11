@@ -4,6 +4,7 @@ include ./_map.pug
 include ./_crumbs.pug
 include ./_account-link.pug
 include ./_favorite.pug
+include ./_wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -142,6 +143,7 @@ html(lang=lang)
     style
       include ./_card.css
   body
+    +wipNotice()
     .wrap
       header.hdr
         a.back(href=backHref) ←
@@ -229,6 +231,20 @@ html(lang=lang)
               .from-src= t.sourcesLabel + ': ' + (ev.sources && ev.sources[0] ? ev.sources[0].label : '')
 
         .aside
+          if otherDates.length
+            .sec
+              .sec-lbl= t.otherDates
+              .mini-list
+                each s in otherDates
+                  a.mini(href=s.href)
+                    .th
+                      if s.imageUrl
+                        img(src=s.imageUrl alt=s.displayTitle)
+                      else
+                        .ph
+                    div
+                      .tm= s.dateShort + (s.time ? ', ' + s.time : '')
+                      .mt= s.displayTitle
           if venue
             .sec
               .sec-lbl Как добраться

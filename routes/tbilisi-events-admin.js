@@ -14,6 +14,8 @@ var images = require('../lib/tbilisi-events-images');
 var venuesLib = require('../lib/tbilisi-events-venues');
 var multer = require('multer');
 var venueUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 15 * 1024 * 1024 } });
+var VENUE_DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+var VENUE_SOCIAL_KEYS = ['instagram', 'facebook', 'tiktok'];
 
 // Scheme+host for links that leave the app (contributor notifications). The
 // public site has no path prefix on the events.tbiliseli.com subdomain.
@@ -296,9 +298,22 @@ router.get('/events', requireAuth, async function(req, res, next) {
       dateFrom: req.query.dateFrom || '',
       dateTo: req.query.dateTo || '',
       q: req.query.q || '',
+      seriesId: req.query.seriesId || '',
     };
     var events = await data.getEvents(filters);
     events.sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+
+    var PAGE_SIZE = 50;
+    var total = events.length;
+    var pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    var page = Math.min(pageCount, Math.max(1, parseInt(req.query.page, 10) || 1));
+    events = events.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+    // query string carrying the current filters (without page) for pager links
+    var pagerQs = Object.keys(filters)
+      .filter(function(k) { return filters[k] && filters[k] !== 'all'; })
+      .map(function(k) { return encodeURIComponent(k) + '=' + encodeURIComponent(filters[k]); })
+      .join('&');
+
     var venues = await data.getVenues();
     var venueById = {};
     venues.forEach(function(v) { venueById[v.id] = v; });
@@ -306,6 +321,10 @@ router.get('/events', requireAuth, async function(req, res, next) {
     res.render('tbilisi-events/admin/events', {
       title: 'События — Tbilisi Events Admin',
       events: events,
+      total: total,
+      page: page,
+      pageCount: pageCount,
+      pagerQs: pagerQs,
       venueById: venueById,
       sources: sources,
       filters: filters,
@@ -558,6 +577,19 @@ router.post('/venues/:id/edit', requireAuth, express.urlencoded({ extended: fals
     var lngNum = parseFloat(b.lng);
     var city = taxonomy.isValidCity(b.city) ? b.city : null;
     var district = (city && taxonomy.isValidDistrict(city, b.district)) ? b.district : null;
+
+    var hours = {};
+    VENUE_DAY_KEYS.forEach(function(k) {
+      var v = (b['hours_' + k] || '').trim();
+      if (v) hours[k] = v;
+    });
+
+    var social = {};
+    VENUE_SOCIAL_KEYS.forEach(function(k) {
+      var v = (b['social_' + k] || '').trim();
+      if (v) social[k] = v;
+    });
+
     var patch = {
       name: (b.name || '').trim(),
       nameKey: venuesLib.normalizeVenueName((b.name || '').trim()),
@@ -572,7 +604,10 @@ router.post('/venues/:id/edit', requireAuth, express.urlencoded({ extended: fals
       description: (b.desc_ru || b.desc_en || b.desc_ka)
         ? { ru: (b.desc_ru || '').trim(), en: (b.desc_en || '').trim(), ka: (b.desc_ka || '').trim() }
         : null,
+      hours: Object.keys(hours).length ? hours : null,
+      social: Object.keys(social).length ? social : null,
       editorVerified: b.editorVerified === 'on',
+      editorsPick: b.editorsPick === 'on',
       closed: b.closed === 'on',
       closedDate: /^\d{4}-\d{2}-\d{2}$/.test(b.closedDate || '') ? b.closedDate : null,
     };
@@ -606,6 +641,36 @@ router.post('/venues/:id/image', requireAuth, venueUpload.single('image'), async
       var url = await images.storeVenueImage(req.file.buffer, req.params.id);
       await data.updateVenue(req.params.id, { imageUrl: url });
     }
+    backTo(req, res, req.teBase + '/admin/venues/' + req.params.id);
+  } catch (e) { next(e); }
+});
+
+// Gallery: several photos alongside the single cover (`imageUrl`) above. Files
+// are stored and appended one at a time so concurrent uploads never race.
+router.post('/venues/:id/images', requireAuth, venueUpload.array('images', 12), async function(req, res, next) {
+  try {
+    var files = req.files || [];
+    for (var i = 0; i < files.length; i++) {
+      var url = await images.storeVenueImage(files[i].buffer, req.params.id, i);
+      await data.addVenueImage(req.params.id, url);
+    }
+    if (files.length) {
+      audit(req, res, 'edit', { entity: 'venue', entityId: req.params.id, summary: 'Добавлено фото в галерею (' + files.length + '): ' + req.params.id });
+    }
+    backTo(req, res, req.teBase + '/admin/venues/' + req.params.id);
+  } catch (e) { next(e); }
+});
+
+router.post('/venues/:id/images/cover', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    if (req.body.url) await data.setVenueCoverImage(req.params.id, req.body.url);
+    backTo(req, res, req.teBase + '/admin/venues/' + req.params.id);
+  } catch (e) { next(e); }
+});
+
+router.post('/venues/:id/images/delete', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    if (req.body.url) await data.removeVenueImage(req.params.id, req.body.url);
     backTo(req, res, req.teBase + '/admin/venues/' + req.params.id);
   } catch (e) { next(e); }
 });

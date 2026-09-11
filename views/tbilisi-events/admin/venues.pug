@@ -75,6 +75,8 @@ include _admin.pug
           tr
             td
               a.link(href=`${base}/admin/venues/${v.id}`)= v.name
+              if v.editorsPick
+                |  #[span.mk ★]
               if v.closed
                 span.badge закрыто
             td= v.area || '—'

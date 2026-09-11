@@ -193,6 +193,35 @@ function decorateEvent(e, lang, venueById, base) {
   return e;
 }
 
+// Several occurrences of the same recurring event share a seriesId (see
+// resolveSeriesId() in lib/tbilisi-events-pipeline.js) but are still one
+// document per date — merging them would lose per-date sources/price/cancel
+// state. Here, for display only, collapse them to a single representative
+// card: the first one encountered in `list` (which is already in whatever
+// order the caller sorted it), annotated with its other dates. `pool` is a
+// wider reference set (e.g. every event) so the "other dates" list is
+// complete even when `list` itself got capped or date/type-filtered.
+function groupSeries(list, pool, lang) {
+  var siblingsBySeries = {};
+  (pool || list).forEach(function(e) {
+    if (!e.seriesId) return;
+    (siblingsBySeries[e.seriesId] || (siblingsBySeries[e.seriesId] = [])).push(e);
+  });
+  var seen = {};
+  var out = [];
+  list.forEach(function(e) {
+    if (!e.seriesId) { out.push(e); return; }
+    if (seen[e.seriesId]) return;
+    seen[e.seriesId] = true;
+    var siblings = (siblingsBySeries[e.seriesId] || [e]).slice()
+      .sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); });
+    e.seriesOtherDates = siblings.filter(function(s) { return s.id !== e.id; });
+    if (e.seriesOtherDates.length) e.seriesBadge = i18n.moreDatesLabel(e.seriesOtherDates.length, lang);
+    out.push(e);
+  });
+  return out;
+}
+
 // Public pages must always reflect the latest data — no shared staleness window —
 // but repeat navigation should stay cheap: revalidate every time and let the
 // weak ETag on the rendered HTML turn an unchanged load into a 304 (body reused,
@@ -339,16 +368,27 @@ router.get('/', async function(req, res, next) {
 
     var upcomingAll = events.filter(function(e) { return e.date >= today; });
     var typeUpcoming = typeParam ? upcomingAll.filter(function(e) { return e.type === typeParam; }) : upcomingAll;
+    var todayUpcoming = typeUpcoming.filter(function(e) { return e.date === today; });
 
+    // The bare landing view shows only today's events ("Сегодня" + count of today).
+    // `?full=1` opens the whole upcoming list; on a quiet day with nothing on
+    // today we fall back to that list so the page is never empty.
     var visibleEvents;
+    var todayOnly = false;
     if (dateParam) {
       visibleEvents = events.filter(function(e) { return e.date === dateParam; });
       if (typeParam) visibleEvents = visibleEvents.filter(function(e) { return e.type === typeParam; });
     } else if (showAll) {
       visibleEvents = typeParam ? events.filter(function(e) { return e.type === typeParam; }) : events.slice();
+    } else if (fullList) {
+      visibleEvents = typeUpcoming.slice();
+    } else if (todayUpcoming.length) {
+      visibleEvents = todayUpcoming.slice();
+      todayOnly = true;
     } else {
       visibleEvents = typeUpcoming.slice();
     }
+    visibleEvents = groupSeries(visibleEvents, events, lang);
 
     // Hero, on the default / type-filtered view only: an editor's pick first,
     // otherwise the first upcoming event with an image / a description.
@@ -366,9 +406,10 @@ router.get('/', async function(req, res, next) {
       : visibleEvents;
     var totalVisible = visibleEvents.length;
 
-    // Cap the default upcoming list; a single-date view, ?all=1 and ?full=1 are uncapped.
+    // Cap the fallback upcoming list; the today-only view, a single-date view,
+    // ?all=1 and ?full=1 are all uncapped.
     var listTruncated = false;
-    if (!dateParam && !showAll && !fullList && listEvents.length > LIST_CAP) {
+    if (!dateParam && !showAll && !fullList && !todayOnly && listEvents.length > LIST_CAP) {
       listTruncated = true;
       listEvents = listEvents.slice(0, LIST_CAP);
     }
@@ -386,7 +427,7 @@ router.get('/', async function(req, res, next) {
         wd: i18n.weekdayShort(ds, lang),
         dm: i18n.formatShortDay(ds, lang),
         count: stripCounts[ds] || 0,
-        active: ds === dateParam,
+        active: ds === dateParam || (todayOnly && ds === today),
         href: href({ date: ds }),
       });
     }
@@ -474,6 +515,7 @@ router.get('/', async function(req, res, next) {
       heroDate: hero ? i18n.formatLongDate(hero.date, lang) : null,
       showAll: showAll,
       fullList: fullList,
+      todayOnly: todayOnly,
       listTruncated: listTruncated,
       dayStrip: dayStrip,
       weekend: weekend,
@@ -481,7 +523,7 @@ router.get('/', async function(req, res, next) {
       calendar: calendar,
       calWeekdays: calWeekdays,
       countLabel: i18n.countLabel(totalVisible + (hero ? 1 : 0), lang),
-      allUpcomingHref: href({ date: null, all: false, full: false }),
+      allUpcomingHref: href({ date: null, all: false, full: true }),
       showAllHref: href({ full: true, date: null }),
       showPastHref: href({ all: true, date: null, full: false }),
       venuesHref: req.teBase + '/venues' + (lang !== 'ru' ? '?lang=' + lang : ''),
@@ -520,6 +562,10 @@ router.get('/e/:id', async function(req, res, next) {
     var sameDay = all.filter(function(e) {
       return e.id !== event.id && e.date === event.date;
     }).slice(0, 6);
+    var otherDates = event.seriesId
+      ? all.filter(function(e) { return e.seriesId === event.seriesId && e.id !== event.id && e.date >= today; })
+        .sort(function(a, b) { return (a.date || '').localeCompare(b.date || ''); })
+      : [];
     var related = all.filter(function(e) {
       return e.id !== event.id && e.type && e.type === event.type && e.date >= today;
     }).slice(0, 6);
@@ -596,6 +642,7 @@ router.get('/e/:id', async function(req, res, next) {
       venueEventsCount: venueEventsCount,
       mapHref: mapQuery ? 'https://maps.google.com/?q=' + encodeURIComponent(mapQuery) : null,
       sameDay: sameDay,
+      otherDates: otherDates,
       related: related,
       relatedHref: event.type ? req.teBase + '/?type=' + event.type + (lang !== 'ru' ? '&lang=' + lang : '') : null,
       venuesHref: req.teBase + '/venues' + langQuery(lang),
@@ -621,7 +668,11 @@ router.get('/venues', async function(req, res, next) {
         href: req.teBase + '/venues/' + (v.slug || v.id) + langQuery(lang),
       });
     });
-    venues.sort(function(a, b) { return (b.upcomingCount - a.upcomingCount) || (b.eventCount || 0) - (a.eventCount || 0); });
+    venues.sort(function(a, b) {
+      return ((b.editorsPick ? 1 : 0) - (a.editorsPick ? 1 : 0))
+        || (b.upcomingCount - a.upcomingCount)
+        || ((b.eventCount || 0) - (a.eventCount || 0));
+    });
 
     var crumbs = [
       { label: SITE_NAME, href: req.teBase + langQuery(lang), abs: absUrl(req, '/') },
@@ -669,6 +720,7 @@ router.get('/venues/:id', async function(req, res, next) {
     all.forEach(function(e) { decorateEvent(e, lang, venueById, req.teBase); });
 
     var upcoming = all.filter(function(e) { return e.venueId === venue.id && e.date >= today; });
+    upcoming = groupSeries(upcoming, all, lang);
     upcoming.forEach(function(e) {
       e.dBig = i18n.formatShortDay(e.date, lang);
       e.dWd = i18n.weekdayShort(e.date, lang);
@@ -698,6 +750,18 @@ router.get('/venues/:id', async function(req, res, next) {
     var districtLabel = taxonomy.districtName(venue.city, venue.district, lang) || venue.area;
     if (districtLabel) facts.push({ k: t.district, v: districtLabel });
     if (venue.type) facts.push({ k: t.venueType, v: vtl[venue.type] || venue.type });
+
+    var hoursRows = i18n.DAY_KEYS
+      .filter(function(k) { return venue.hours && venue.hours[k]; })
+      .map(function(k) { return { d: i18n.dayKeyLabel(k, lang), v: venue.hours[k] }; });
+
+    var SOCIAL_LABELS = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok' };
+    var socialLinks = Object.keys(SOCIAL_LABELS)
+      .filter(function(k) { return venue.social && venue.social[k]; })
+      .map(function(k) { return { label: SOCIAL_LABELS[k], href: venue.social[k] }; });
+
+    // Cover (venue.imageUrl) already leads the hero — the strip shows the rest.
+    var gallery = (venue.images || []).filter(function(u) { return u !== venue.imageUrl; });
 
     var organizerState = res.locals.user
       ? (await eventsData.getActiveClaim(res.locals.user.uid, 'venue', venue.id) || {}).status || null
@@ -736,6 +800,10 @@ router.get('/venues/:id', async function(req, res, next) {
       venueTypeLabel: venue.type ? (vtl[venue.type] || venue.type) : '',
       venueDesc: venueDescText,
       facts: facts,
+      hoursRows: hoursRows,
+      socialLinks: socialLinks,
+      gallery: gallery,
+      editorsPick: !!venue.editorsPick,
       upcoming: upcoming,
       upcomingShown: upcoming.slice(0, 8),
       totalHere: totalHere,

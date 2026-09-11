@@ -1,0 +1,36 @@
+//- "Site under construction" notice, shown once per browser (localStorage).
+//- Local used implicitly: lang. Self-contained copy (not in tbilisi-events-i18n.js)
+//- since this is meant to come out once the site is done, not stay as permanent UI chrome.
+- var WIP_COPY = { ru: { title: '⚠ Сайт в разработке', body: 'Мы дорабатываем events.tbiliseli.com — некоторые разделы и данные ещё могут меняться. Спасибо за понимание!', close: 'Понятно' }, en: { title: '⚠ Site under construction', body: 'events.tbiliseli.com is still being built — some sections and data may still change. Thanks for your patience!', close: 'Got it' }, ka: { title: '⚠ საიტი მუშავდება', body: 'events.tbiliseli.com ჯერ კიდევ მუშავდება — ზოგიერთი განყოფილება და მონაცემი შეიძლება შეიცვალოს. გმადლობთ მოთმინებისთვის!', close: 'გასაგებია' } }
+- var wipT = WIP_COPY[lang] || WIP_COPY.ru
+
+mixin wipNotice()
+  .wip-ovl#wip-notice(hidden)
+    .wip-box
+      .wip-ico ⚠
+      h2.wip-t= wipT.title
+      p.wip-p= wipT.body
+      button.wip-btn#wip-close(type='button')= wipT.close
+  style.
+    .wip-ovl{position:fixed;inset:0;z-index:999;background:rgba(20,17,14,.72);display:flex;align-items:center;justify-content:center;padding:20px}
+    .wip-box{max-width:420px;width:100%;background:var(--paper2);border:1px solid var(--ink);box-shadow:0 16px 44px rgba(20,17,14,.4);padding:30px 26px;text-align:center;font-family:var(--sans);color:var(--ink)}
+    .wip-ico{font-size:36px;line-height:1;margin-bottom:12px}
+    .wip-t{font-family:var(--disp);text-transform:uppercase;font-size:23px;font-weight:600;line-height:1.15;margin-bottom:12px}
+    .wip-p{font-size:14px;line-height:1.55;color:var(--muted);margin-bottom:20px}
+    .wip-btn{display:inline-block;font-family:var(--sans);font-weight:700;font-size:14px;padding:12px 26px;border:1px solid var(--ink);border-radius:2px;background:var(--ink);color:var(--paper2);cursor:pointer}
+    .wip-btn:hover{background:var(--acc);border-color:var(--acc)}
+  script.
+    (function () {
+      var KEY = 'teWipNoticeSeen';
+      var el = document.getElementById('wip-notice');
+      if (!el) return;
+      var seen = false;
+      try { seen = localStorage.getItem(KEY) === '1'; } catch (e) { /* private mode / blocked storage — show it */ }
+      if (seen) return;
+      el.hidden = false;
+      var btn = document.getElementById('wip-close');
+      if (btn) btn.addEventListener('click', function () {
+        el.hidden = true;
+        try { localStorage.setItem(KEY, '1'); } catch (e) { /* nothing to persist to — just closes for this view */ }
+      });
+    })();

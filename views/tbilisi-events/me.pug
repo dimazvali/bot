@@ -1,4 +1,5 @@
 doctype html
+include _wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -27,6 +28,7 @@ html(lang=lang)
       .fav-list a:hover{color:var(--acc)}
       .fav-empty{color:var(--muted);font-size:14px}
   body
+    +wipNotice()
     .wrap
       h1 Your account
       .row

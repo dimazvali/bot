@@ -88,9 +88,27 @@ mixin eventRows(list)
     textarea#v-d-en(name='desc_en')= venue.description ? venue.description.en : ''
     label(for='v-d-ka') Описание KA
     textarea#v-d-ka(name='desc_ka')= venue.description ? venue.description.ka : ''
+
+    label Часы работы
+    .hours-grid
+      each dayLabel, key in { mon: 'Пн', tue: 'Вт', wed: 'Ср', thu: 'Чт', fri: 'Пт', sat: 'Сб', sun: 'Вс' }
+        .hours-row
+          span.hd= dayLabel
+          input(type='text' name=`hours_${key}` value=(venue.hours && venue.hours[key]) || '' placeholder='10:00–20:00 / выходной')
+
+    label(for='v-soc-instagram') Instagram
+    input#v-soc-instagram(type='text' name='social_instagram' value=(venue.social && venue.social.instagram) || '' placeholder='https://instagram.com/...')
+    label(for='v-soc-facebook') Facebook
+    input#v-soc-facebook(type='text' name='social_facebook' value=(venue.social && venue.social.facebook) || '' placeholder='https://facebook.com/...')
+    label(for='v-soc-tiktok') TikTok
+    input#v-soc-tiktok(type='text' name='social_tiktok' value=(venue.social && venue.social.tiktok) || '' placeholder='https://tiktok.com/@...')
+
     label
       input(type='checkbox' name='editorVerified' checked=!!venue.editorVerified)
       |  Проверено редактором
+    label
+      input(type='checkbox' name='editorsPick' checked=!!venue.editorsPick)
+      |  ★ Выбор редакции
     label
       input(type='checkbox' name='closed' checked=!!venue.closed)
       |  Закрыто (площадка больше не работает)
@@ -106,12 +124,34 @@ mixin eventRows(list)
       button.btn.sm(type='submit') Черновик описания (LLM)
     form(method='POST' action=`${base}/admin/venues/${venue.id}/image` enctype='multipart/form-data')
       input(type='file' name='image' accept='image/*')
-      button.btn.sm(type='submit') Загрузить фото
+      button.btn.sm(type='submit') Обложка
     form(method='POST' action=`${base}/admin/venues/${venue.id}/delete` onsubmit='return confirm("Удалить площадку?")')
       button.btn.sm.danger(type='submit') Удалить
 
   if venue.imageUrl
     img.thumb(src=venue.imageUrl alt='')
+
+  h2.sec-lbl Галерея
+  form.block(method='POST' action=`${base}/admin/venues/${venue.id}/images` enctype='multipart/form-data')
+    input(type='file' name='images' accept='image/*' multiple)
+    button.btn.sm(type='submit') Добавить фото
+  if (venue.images || []).length
+    .gallery
+      each url in venue.images
+        .gallery-item
+          img(src=url alt='')
+          .gallery-acts
+            if url === venue.imageUrl
+              span.badge обложка
+            else
+              form(method='POST' action=`${base}/admin/venues/${venue.id}/images/cover`)
+                input(type='hidden' name='url' value=url)
+                button.btn.sm(type='submit') сделать обложкой
+            form(method='POST' action=`${base}/admin/venues/${venue.id}/images/delete` onsubmit='return confirm("Удалить фото?")')
+              input(type='hidden' name='url' value=url)
+              button.btn.sm.danger(type='submit') удалить
+  else
+    p.hint Фото в галерее пока нет — загрузите выше.
 
   h2.sec-lbl События площадки (#{totalCount})
   if !upcoming.length && !(showPast && past.length)

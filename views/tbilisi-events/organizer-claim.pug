@@ -1,4 +1,5 @@
 doctype html
+include _wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -21,6 +22,7 @@ html(lang=lang)
       a.plain{color:var(--muted);font-size:13px;text-decoration:none;display:inline-block;margin-top:12px}
       .note{background:#f2ebe0;border:1px solid var(--line);padding:10px 12px;font-size:13px}
   body
+    +wipNotice()
     .card
       h1 I’m the organizer
       p Of #[b= targetName].

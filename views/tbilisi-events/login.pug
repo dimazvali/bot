@@ -1,4 +1,5 @@
 doctype html
+include _wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -26,6 +27,7 @@ html(lang=lang)
       button.btn[disabled]{opacity:.55;cursor:default}
       .err{background:var(--acc);color:var(--paper2);font-family:var(--disp);text-transform:uppercase;font-size:12px;letter-spacing:.08em;padding:8px 12px;margin-bottom:14px}
   body
+    +wipNotice()
     .card
       h1 events.tbiliseli.com
       p.sub Sign in to suggest events and get updates

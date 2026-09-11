@@ -1,4 +1,5 @@
 doctype html
+include _wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -15,6 +16,7 @@ html(lang=lang)
       p{font-size:14px;line-height:1.55;color:var(--muted)}
       b{color:var(--ink)}
   body
+    +wipNotice()
     .card
       h1 Check your email
       p We sent a sign-in link to #[b= email || 'your inbox']. It works once and expires in 30 minutes.

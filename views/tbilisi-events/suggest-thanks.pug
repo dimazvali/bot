@@ -1,4 +1,5 @@
 doctype html
+include _wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -17,6 +18,7 @@ html(lang=lang)
       a.btn:hover{background:var(--acc);border-color:var(--acc)}
       a.plain{color:var(--muted);font-size:13px;text-decoration:none;display:inline-block;margin-top:14px}
   body
+    +wipNotice()
     .card
       h1 Thank you
       p We got your event and the editors will review it. You'll be notified when it's published.

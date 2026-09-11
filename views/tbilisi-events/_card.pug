@@ -21,6 +21,9 @@ mixin eventCard(e)
         span.time= e.time
         span.sep /
       span.ven= e.venueName || e.place || ''
+      if e.seriesBadge
+        span.sep /
+        span.more-dates(title=(e.seriesOtherDates || []).map(function(s) { return s.dateShort; }).join(', '))= e.seriesBadge
     a.card-title(href=e.href)= e.displayTitle
     if e.desc
       p.card-lead= e.desc

@@ -1,4 +1,5 @@
 doctype html
+include _wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -16,6 +17,7 @@ html(lang=lang)
       button.btn{font:inherit;font-weight:700;font-size:14px;padding:11px 20px;border:1px solid var(--ink);background:var(--ink);color:var(--paper2);cursor:pointer}
       button.btn:hover{background:var(--acc);border-color:var(--acc)}
   body
+    +wipNotice()
     .card
       h1 Confirm sign-in
       p Click to finish signing in to events.tbiliseli.com.

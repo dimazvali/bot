@@ -1,6 +1,7 @@
 doctype html
 include ../_crumbs.pug
 include ../_account-link.pug
+include ../_wip-notice.pug
 html(lang=lang)
   head
     meta(charset='utf-8')
@@ -122,6 +123,7 @@ html(lang=lang)
         .cev-head h2{font-size:32px}
       }
   body
+    +wipNotice()
     .wrap
       header.hdr
         a.back(href=backHref) ←
