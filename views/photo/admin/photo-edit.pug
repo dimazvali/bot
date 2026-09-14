@@ -82,6 +82,9 @@ html(data-theme='dark')
                       circle(cx='3' cy='21' r='2')
                       circle(cx='21' cy='21' r='2')
                   | #{t[1]}
+          label.admin-tag-check
+            input(type='checkbox' name='panorama' checked=!!photo.panorama)
+            span панорама (доп. копия в оригинальном размере, зум/пан — генерируется при загрузке нового файла)
           if tags && Object.keys(tags).length
             .admin-tags-select
               p.admin-hint ТЕГИ:

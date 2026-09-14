@@ -57,7 +57,9 @@ photoPeople.initFromFirestore(fb).catch(console.error);
 
 var upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 30 * 1024 * 1024 },
+  // Panoramas keep an unresized original-size copy (see savePanoAsset) — those
+  // source files routinely exceed the old 30MB cap, so give plenty of headroom.
+  limits: { fileSize: 200 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.originalname) return cb(null, false);
     if (!file.mimetype.startsWith('image/')) return cb(new Error('Only images allowed'));
@@ -87,6 +89,10 @@ function slugify(str) {
     а:'a',б:'b',в:'v',г:'g',д:'d',е:'e',ё:'yo',ж:'zh',з:'z',и:'i',й:'j',
     к:'k',л:'l',м:'m',н:'n',о:'o',п:'p',р:'r',с:'s',т:'t',у:'u',ф:'f',
     х:'h',ц:'ts',ч:'ch',ш:'sh',щ:'sch',ъ:'',ы:'y',ь:'',э:'e',ю:'yu',я:'ya',
+    // Georgian (Mkhedruli) — no case, safe to list alongside the (already lower) Cyrillic map
+    ა:'a',ბ:'b',გ:'g',დ:'d',ე:'e',ვ:'v',ზ:'z',თ:'t',ი:'i',კ:'k',ლ:'l',
+    მ:'m',ნ:'n',ო:'o',პ:'p',ჟ:'zh',რ:'r',ს:'s',ტ:'t',უ:'u',ფ:'f',ქ:'k',
+    ღ:'gh',ყ:'q',შ:'sh',ჩ:'ch',ც:'ts',ძ:'dz',წ:'ts',ჭ:'ch',ხ:'kh',ჯ:'j',ჰ:'h',
   };
   return str.toLowerCase()
     .split('').map(c => map[c] !== undefined ? map[c] : c).join('')
@@ -95,10 +101,24 @@ function slugify(str) {
 }
 
 function uniqueId(base, existingIds) {
+  // slugify() can legitimately return '' — a title in a script it has no transliteration
+  // table for (or emoji-only) leaves nothing after the [^a-z0-9]+ strip. Never hand back
+  // an empty id: it breaks every link built from it (/country/series/ with a trailing
+  // slash and nothing after).
+  if (!base) base = 'photo-' + Date.now().toString(36);
   if (!existingIds.includes(base)) return base;
   var n = 2;
   while (existingIds.includes(`${base}-${n}`)) n++;
   return `${base}-${n}`;
+}
+
+// Panoramas get one extra asset: a full-resolution (unresized) webp, used by the
+// zoom/pan viewer instead of the 2400px "full" copy. Re-encoded (not stored raw)
+// to keep it a reasonable size while staying pixel-original.
+async function savePanoAsset(fileBuffer, storagePath) {
+  var buf = await sharp(fileBuffer).webp({ quality: 90 }).toBuffer();
+  await bucket.file(storagePath).save(buf, { contentType: 'image/webp' });
+  await bucket.file(storagePath).makePublic();
 }
 
 async function requireAuth(req, res, next) {
@@ -531,6 +551,7 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
   var { title, date, desc } = req.body;
   var photoType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'copter';
+  var isPanorama = !!req.body.panorama;
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
   var data = getData();
@@ -578,11 +599,13 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     var path400 = `${country}/${series}/${id}-400.webp`;
     var path800 = `${country}/${series}/${id}-800.webp`;
     var path2400 = `${country}/${series}/${id}-2400.webp`;
+    var pathPano = `${country}/${series}/${id}-orig.webp`;
 
     await Promise.all([
       bucket.file(path400).save(buf400, { contentType: 'image/webp' }).then(() => bucket.file(path400).makePublic()),
       bucket.file(path800).save(buf800, { contentType: 'image/webp' }).then(() => bucket.file(path800).makePublic()),
       bucket.file(path2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(path2400).makePublic()),
+      isPanorama ? savePanoAsset(req.file.buffer, pathPano) : Promise.resolve(),
     ]);
 
     var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
@@ -601,6 +624,10 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
         full: `${base}/${path2400}`,
       },
     };
+    if (isPanorama) {
+      photoEntry.panorama = true;
+      photoEntry.urls.pano = `${base}/${pathPano}`;
+    }
     if (tags.length) photoEntry.tags = tags;
     if (coords) photoEntry.coords = coords;
     if (altitude !== null) photoEntry.altitude = altitude;
@@ -766,6 +793,7 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
 
   var { title, date, desc } = req.body;
   var shootType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'camera';
+  var isPanorama = !!req.body.panorama;
   var shootCoords = null;
   var shootShotAt = null;
   try {
@@ -793,11 +821,13 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     var p400  = 'shoots/' + slug + '/' + id + '-400.webp';
     var p800  = 'shoots/' + slug + '/' + id + '-800.webp';
     var p2400 = 'shoots/' + slug + '/' + id + '-2400.webp';
+    var pPano = 'shoots/' + slug + '/' + id + '-orig.webp';
 
     await Promise.all([
       bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(function() { return bucket.file(p400).makePublic(); }),
       bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(function() { return bucket.file(p800).makePublic(); }),
       bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(function() { return bucket.file(p2400).makePublic(); }),
+      isPanorama ? savePanoAsset(req.file.buffer, pPano) : Promise.resolve(),
     ]);
 
     var base = 'https://storage.googleapis.com/' + process.env.PHOTO_BUCKET;
@@ -816,6 +846,10 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
         full:    base + '/' + p2400,
       },
     };
+    if (isPanorama) {
+      photoEntry.panorama = true;
+      photoEntry.urls.pano = base + '/' + pPano;
+    }
     if (colorFamily) photoEntry.colorFamily = colorFamily;
     if (shootCoords) photoEntry.coords = shootCoords;
     if (shootShotAt) photoEntry.shotAt = shootShotAt;
@@ -891,6 +925,7 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
       desc: (desc || '').trim(),
       desc_en: (desc_en || '').trim(),
       type: photoType,
+      panorama: !!req.body.panorama,
     });
     await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords, seoDescEn, seoKeywordsEn);
   } catch (e) {
@@ -1039,7 +1074,7 @@ router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded(
   }
 
   var existingIds = data[country].series[series].photos.map(function(p) { return p.id; });
-  var newId = uniqueId(slugify(photo.title || photo.id), existingIds);
+  var newId = uniqueId(slugify(photo.title) || photo.id, existingIds);
 
   var photoEntry = {
     id: newId,
@@ -1409,6 +1444,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   var seoDescEn = (req.body.seo_desc_en || '').trim();
   var seoKeywordsEn = (req.body.seo_keywords_en || '').trim();
   var photoType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'copter';
+  var isPanorama = !!req.body.panorama;
   if (!title || !title.trim()) return res.redirect(`/admin/${country}/${seriesKey}/${id}/edit`);
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
@@ -1442,6 +1478,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (seoDescEn) { photo.seo_desc_en = seoDescEn; } else { delete photo.seo_desc_en; }
   if (seoKeywordsEn) { photo.seo_keywords_en = seoKeywordsEn; } else { delete photo.seo_keywords_en; }
   photo.type = photoType;
+  if (isPanorama) { photo.panorama = true; } else { delete photo.panorama; }
   try {
     if (req.file) {
       var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
@@ -1454,13 +1491,16 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
       var path400 = `${country}/${seriesKey}/${id}-400.webp`;
       var path800 = `${country}/${seriesKey}/${id}-800.webp`;
       var path2400 = `${country}/${seriesKey}/${id}-2400.webp`;
+      var pathPano = `${country}/${seriesKey}/${id}-orig.webp`;
       await Promise.all([
         bucket.file(path400).save(buf400, { contentType: 'image/webp' }).then(() => bucket.file(path400).makePublic()),
         bucket.file(path800).save(buf800, { contentType: 'image/webp' }).then(() => bucket.file(path800).makePublic()),
         bucket.file(path2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(path2400).makePublic()),
+        isPanorama ? savePanoAsset(req.file.buffer, pathPano) : Promise.resolve(),
       ]);
       var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
       photo.urls = { thumb: `${base}/${path400}`, preview: `${base}/${path800}`, full: `${base}/${path2400}` };
+      if (isPanorama) photo.urls.pano = `${base}/${pathPano}`;
       photo.width = imgMeta.width;
       photo.height = imgMeta.height;
       if (colorFamily) photo.colorFamily = colorFamily;

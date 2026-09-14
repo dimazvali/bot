@@ -42,6 +42,11 @@ block content
       .photo-image-wrap
         .photo-type-badge(title=photo.type||'copter')
           +typeIcon(photo.type||'copter')
+        if photo.panorama
+          .photo-panorama-badge(title=ui.panorama)
+            svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round')
+              rect(x='2' y='6' width='20' height='12' rx='1')
+              path(d='M2 15l5-5 4 4 4-6 7 7')
         if photo.annotations && photo.annotations.length
           each a, idx in photo.annotations
             button.photo-annot(class=a.source==='client' ? 'photo-annot--client' : '' type='button' data-x=a.x data-y=a.y data-text=a.text data-author=a.authorName||undefined)= idx + 1
@@ -51,6 +56,8 @@ block content
           title=photo.desc||photo.title
           width=photo.width||undefined
           height=photo.height||undefined
+          data-panorama=photo.panorama ? '1' : undefined
+          data-pano-src=photo.panorama ? (photo.urls && (photo.urls.pano || photo.urls.full)) : undefined
           onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
         )
     .photo-page-info
@@ -335,6 +342,8 @@ block content
       function bindSwipe(el, filterSelector) {
         var startX = 0, startY = 0, tracking = false;
         el.addEventListener('touchstart', function(e) {
+          // panorama pan/zoom mode repurposes drag for panning, not swipe-navigation
+          if (lb.classList.contains('lb-pan')) { tracking = false; return; }
           tracking = e.touches.length === 1 && (!filterSelector || (e.target.closest && e.target.closest(filterSelector)));
           if (tracking) { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }
         }, { passive: true });
@@ -363,6 +372,7 @@ block content
       lbWrap.className = 'lb-wrap';
       var lbImg = document.createElement('img');
       lbImg.className = 'lb-img';
+      lbImg.draggable = false; // no native image drag-ghost fighting the pan/zoom below
       lbWrap.appendChild(lbImg);
       lb.appendChild(lbClose);
       lb.appendChild(lbWrap);
@@ -382,14 +392,146 @@ block content
           lbWrap.appendChild(marker);
         });
       }
+      // ── panorama pan/zoom: only active while the lightbox shows a panorama photo.
+      // Non-panorama photos never touch this — panState.active stays false and every
+      // handler below no-ops, so the plain fit-to-screen/click-to-close lightbox is
+      // untouched for the common case. ──
+      var panState = { active: false, scale: 1, tx: 0, ty: 0, minScale: 1, maxScale: 1 };
+
+      function applyPanTransform() {
+        lbImg.style.transform = 'translate(' + panState.tx + 'px,' + panState.ty + 'px) scale(' + panState.scale + ')';
+      }
+      function clampPan() {
+        var scaledW = lbImg.offsetWidth * panState.scale;
+        var scaledH = lbImg.offsetHeight * panState.scale;
+        var maxTx = Math.max(0, (scaledW - window.innerWidth) / 2);
+        var maxTy = Math.max(0, (scaledH - window.innerHeight) / 2);
+        panState.tx = Math.max(-maxTx, Math.min(maxTx, panState.tx));
+        panState.ty = Math.max(-maxTy, Math.min(maxTy, panState.ty));
+      }
+      // Pure: scale/pan the image around viewport point (mx,my), keeping the image
+      // point under the cursor/finger visually fixed. Base state passed in explicitly
+      // so both live (wheel/dblclick) and gesture-baseline (pinch) callers can use it.
+      function computeZoom(baseScale, baseTx, baseTy, mx, my, newScale) {
+        newScale = Math.max(panState.minScale, Math.min(panState.maxScale, newScale));
+        var cx0 = window.innerWidth / 2, cy0 = window.innerHeight / 2;
+        var ratio = newScale / baseScale;
+        return {
+          scale: newScale,
+          tx: mx - cx0 - (mx - cx0 - baseTx) * ratio,
+          ty: my - cy0 - (my - cy0 - baseTy) * ratio,
+        };
+      }
+      function zoomAt(mx, my, newScale) {
+        var r = computeZoom(panState.scale, panState.tx, panState.ty, mx, my, newScale);
+        panState.scale = r.scale; panState.tx = r.tx; panState.ty = r.ty;
+        clampPan();
+        applyPanTransform();
+      }
+      function animatedZoomAt(mx, my, newScale) {
+        lbImg.style.transition = 'transform 0.25s ease';
+        zoomAt(mx, my, newScale);
+        setTimeout(function() { lbImg.style.transition = ''; }, 260);
+      }
+      function resetPan() {
+        panState.scale = panState.minScale; panState.tx = 0; panState.ty = 0;
+        applyPanTransform();
+      }
+
+      lbWrap.addEventListener('wheel', function(e) {
+        if (!panState.active) return;
+        e.preventDefault();
+        zoomAt(e.clientX, e.clientY, panState.scale * Math.exp(-e.deltaY * 0.0015));
+      }, { passive: false });
+
+      lbWrap.addEventListener('dblclick', function(e) {
+        if (!panState.active) return;
+        e.preventDefault();
+        if (panState.scale > panState.minScale + 0.01) resetPan();
+        else animatedZoomAt(e.clientX, e.clientY, panState.maxScale);
+      });
+
+      var mouseDrag = null;
+      lbWrap.addEventListener('mousedown', function(e) {
+        if (!panState.active) return;
+        e.preventDefault(); // stop native text/image selection from fighting the drag
+        mouseDrag = { x: e.clientX, y: e.clientY, tx: panState.tx, ty: panState.ty };
+        lb.classList.add('lb-dragging');
+      });
+      window.addEventListener('mousemove', function(e) {
+        if (!mouseDrag) return;
+        panState.tx = mouseDrag.tx + (e.clientX - mouseDrag.x);
+        panState.ty = mouseDrag.ty + (e.clientY - mouseDrag.y);
+        clampPan();
+        applyPanTransform();
+      });
+      window.addEventListener('mouseup', function() {
+        mouseDrag = null;
+        lb.classList.remove('lb-dragging');
+      });
+
+      // touch: one finger pans, two fingers pinch-zoom (midpoint fixed for the gesture)
+      var touchState = null;
+      function touchDist(a, b) { return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY); }
+      lbWrap.addEventListener('touchstart', function(e) {
+        if (!panState.active) return;
+        if (e.touches.length === 1) {
+          var t = e.touches[0];
+          touchState = { mode: 'drag', x: t.clientX, y: t.clientY, tx: panState.tx, ty: panState.ty };
+        } else if (e.touches.length === 2) {
+          touchState = {
+            mode: 'pinch', dist: touchDist(e.touches[0], e.touches[1]), scale: panState.scale,
+            tx: panState.tx, ty: panState.ty,
+            midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+            midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+          };
+        }
+      }, { passive: true });
+      lbWrap.addEventListener('touchmove', function(e) {
+        if (!panState.active || !touchState) return;
+        if (touchState.mode === 'drag' && e.touches.length === 1) {
+          e.preventDefault();
+          var t = e.touches[0];
+          panState.tx = touchState.tx + (t.clientX - touchState.x);
+          panState.ty = touchState.ty + (t.clientY - touchState.y);
+          clampPan();
+          applyPanTransform();
+        } else if (touchState.mode === 'pinch' && e.touches.length === 2) {
+          e.preventDefault();
+          var d = touchDist(e.touches[0], e.touches[1]);
+          var r = computeZoom(touchState.scale, touchState.tx, touchState.ty, touchState.midX, touchState.midY, touchState.scale * (d / touchState.dist));
+          panState.scale = r.scale; panState.tx = r.tx; panState.ty = r.ty;
+          clampPan();
+          applyPanTransform();
+        }
+      }, { passive: false });
+      lbWrap.addEventListener('touchend', function(e) {
+        if (!panState.active) return;
+        if (e.touches.length === 0) touchState = null;
+        else if (e.touches.length === 1) {
+          var t = e.touches[0];
+          touchState = { mode: 'drag', x: t.clientX, y: t.clientY, tx: panState.tx, ty: panState.ty };
+        }
+      }, { passive: true });
+
       // (re)points the lightbox at whatever photo is currently shown in the main view —
       // called on open, and again after a swipe/soft-nav while the lightbox stays open.
       function refreshLbImage() {
         var pageImg = document.querySelector('.photo-page-image img');
         if (!pageImg) return;
-        lbImg.src = pageImg.src;
-        if (lbImg.complete && lbImg.naturalWidth) addLbAnnots();
-        else lbImg.addEventListener('load', addLbAnnots, { once: true });
+        var isPano = pageImg.dataset.panorama === '1';
+        lb.classList.toggle('lb-pan', isPano);
+        panState.active = isPano;
+        panState.scale = 1; panState.tx = 0; panState.ty = 0; panState.maxScale = 1;
+        lbImg.style.transition = '';
+        applyPanTransform();
+        lbImg.src = isPano ? (pageImg.dataset.panoSrc || pageImg.src) : pageImg.src;
+        function onLoaded() {
+          addLbAnnots();
+          if (isPano) panState.maxScale = Math.max(2, Math.min(10, lbImg.naturalWidth / (lbImg.offsetWidth || 1)));
+        }
+        if (lbImg.complete && lbImg.naturalWidth) onLoaded();
+        else lbImg.addEventListener('load', onLoaded, { once: true });
       }
       function openLb() {
         var pageImg = document.querySelector('.photo-page-image img');
@@ -402,9 +544,13 @@ block content
       }
       function closeLb() {
         lb.classList.remove('lb-open');
+        lb.classList.remove('lb-pan');
         document.body.style.overflow = '';
         var popup = document.getElementById('annot-popup');
         if (popup) popup.style.display = 'none';
+        panState.active = false;
+        mouseDrag = null;
+        touchState = null;
       }
       bindSwipe(lbWrap, null);
       lb.addEventListener('click', function(e) {
@@ -428,9 +574,14 @@ block content
           }
           return;
         }
+        // panorama mode: the whole overlay is a pan/zoom surface — only ✕ / Esc close it
+        if (panState.active) return;
         closeLb();
       });
       lbClose.addEventListener('click', function(e) { e.stopPropagation(); closeLb(); });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && lb.classList.contains('lb-open')) closeLb();
+      });
 
       document.addEventListener('click', function(e) {
         var link = e.target.closest && e.target.closest('.nav-btn[href]');

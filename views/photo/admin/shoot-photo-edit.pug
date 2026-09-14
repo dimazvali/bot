@@ -76,6 +76,9 @@ html(data-theme='dark')
                       circle(cx='3' cy='21' r='2')
                       circle(cx='21' cy='21' r='2')
                   | #{t[1]}
+          label.admin-tag-check
+            input(type='checkbox' name='panorama' checked=!!photo.panorama)
+            span панорама (зум/пан в просмотре; копия в оригинальном размере не перегенерируется — загрузите фото заново с этой галочкой, если её ещё нет)
           button.admin-btn(type='submit') СОХРАНИТЬ
 
     script.

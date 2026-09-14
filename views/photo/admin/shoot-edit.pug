@@ -50,6 +50,9 @@ html(data-theme='dark')
           input.admin-input(type='text' name='date' placeholder='дата (напр. июнь 2026)')
           input.admin-input(type='text' name='desc' placeholder='описание (необязательно)')
           input.admin-input(type='file' name='photo' accept='image/*' required)
+          label.admin-tag-check
+            input(type='checkbox' name='panorama')
+            span панорама (доп. копия в оригинальном размере, зум/пан)
           button.admin-btn(type='submit') ЗАГРУЗИТЬ
 
       .admin-section
@@ -57,6 +60,9 @@ html(data-theme='dark')
         p.admin-hint Выберите несколько файлов — загрузятся последовательно. Название = имя файла.
         input#bulk-files.admin-input(type='file' name='photos' accept='image/*' multiple)
         input.admin-input(type='text' id='bulk-date' placeholder='дата для всех (необязательно)')
+        label.admin-tag-check
+          input#bulk-panorama(type='checkbox')
+          span все — панорамы (доп. копия в оригинальном размере, зум/пан)
         .type-radio-group#bulk-type
           each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
             label.type-radio-label
@@ -181,6 +187,7 @@ html(data-theme='dark')
         var date = bulkDate.value.trim();
         var bulkTypeChecked = bulkTypeGroup.querySelector('input[name="bulk-type"]:checked');
         var type = bulkTypeChecked ? bulkTypeChecked.value : 'camera';
+        var panorama = document.getElementById('bulk-panorama').checked;
         var total = files.length;
         var done = 0;
         var errors = [];
@@ -215,6 +222,7 @@ html(data-theme='dark')
           fd.append('date', date);
           fd.append('type', type);
           fd.append('desc', '');
+          if (panorama) fd.append('panorama', '1');
           fetch(bulkUploadUrl, { method: 'POST', body: fd })
             .then(function(r) {
               if (!r.ok) errors.push(file.name + ' (' + r.status + ')');

@@ -1141,8 +1141,13 @@ body.sidebar-open { overflow: hidden; }
   height: auto;
   object-fit: contain;
   pointer-events: none;
+  transform-origin: 50% 50%;
 }
 .lb-wrap .photo-annot { pointer-events: auto; }
+
+/* panorama photos: whole overlay becomes a pan/zoom surface instead of click-to-close */
+.lb.lb-pan { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.lb.lb-pan.lb-dragging { cursor: grabbing; }
 .lb-close {
   position: fixed;
   top: 16px;
@@ -1455,6 +1460,22 @@ body.sidebar-open { overflow: hidden; }
   z-index: 2;
 }
 .photo-type-badge svg { width: 14px; height: 14px; }
+
+.photo-panorama-badge {
+  position: absolute;
+  top: 8px;
+  left: 44px;
+  width: 28px;
+  height: 28px;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 2;
+}
+.photo-panorama-badge svg { width: 14px; height: 14px; }
 
 .type-radio-group {
   display: flex;
