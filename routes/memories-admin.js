@@ -61,8 +61,51 @@ router.get('/logout', function(req, res) {
   res.redirect('/admin/login');
 });
 
-router.get('/', requireAuth, function(req, res) {
-  res.send('Logged in as ' + (res.locals.adminName || 'admin'));
+router.get('/', requireAuth, async function(req, res, next) {
+  try {
+    var memories = await memoriesData.getAllMemories();
+    var withCounts = await Promise.all(memories.map(async function(m) {
+      var photos = await memoriesData.getMemoryPhotos(m.id);
+      return Object.assign({}, m, { photoCount: photos.length });
+    }));
+    res.render('memories/admin/memories', { title: 'Воспоминания — Memories Admin', memories: withCounts, saved: req.query.saved });
+  } catch (e) { next(e); }
+});
+
+router.post('/', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var name = (req.body.name || '').trim();
+    if (!name) return res.redirect('/admin/');
+    var id = await memoriesData.insertMemory({ name: name, description: (req.body.description || '').trim() });
+    res.redirect('/admin/' + id);
+  } catch (e) { next(e); }
+});
+
+router.get('/:id', requireAuth, async function(req, res, next) {
+  try {
+    var memory = await memoriesData.getMemoryById(req.params.id);
+    if (!memory) return next();
+    var photos = await memoriesData.getMemoryPhotos(memory.id);
+    res.render('memories/admin/memory-detail', { title: memory.name + ' — Memories Admin', memory: memory, photos: photos, saved: req.query.saved });
+  } catch (e) { next(e); }
+});
+
+router.post('/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    await memoriesData.updateMemory(req.params.id, {
+      name: (req.body.name || '').trim(),
+      description: (req.body.description || '').trim(),
+      active: req.body.active === 'on',
+    });
+    res.redirect('/admin/' + req.params.id + '?saved=1');
+  } catch (e) { next(e); }
+});
+
+router.post('/:id/delete', requireAuth, async function(req, res, next) {
+  try {
+    await memoriesData.deleteMemory(req.params.id);
+    res.redirect('/admin/');
+  } catch (e) { next(e); }
 });
 
 module.exports = router;

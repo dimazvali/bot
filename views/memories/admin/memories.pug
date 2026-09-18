@@ -1,0 +1,37 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'memories' })
+  .pagehead
+    h1 Воспоминания
+    span.count= memories.length + ' шт.'
+  if saved
+    .notice Сохранено
+  .block
+    .block-t Новое воспоминание
+    form(method='POST' action='/admin/')
+      label(for='m-name') Название
+      input#m-name(type='text' name='name' required)
+      label(for='m-desc') Описание
+      textarea#m-desc(name='description')
+      .toolbar
+        button.btn.solid(type='submit') Создать
+  if memories.length
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Название
+            th Slug
+            th Фото
+            th
+        tbody
+          each m in memories
+            tr(class=(m.active === false ? 'is-off' : ''))
+              td
+                a.link(href='/admin/' + m.id)= m.name
+              td.mono= m.slug
+              td= m.photoCount
+              td
+                a.link(href='/' + m.slug target='_blank') открыть ↗
+  else
+    p.hint Воспоминаний пока нет — создайте первое выше.

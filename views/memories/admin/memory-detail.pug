@@ -1,0 +1,34 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'memories' })
+  a.crumb(href='/admin/') ← Воспоминания
+  .pagehead
+    h1= memory.name
+  if saved
+    .notice Сохранено
+  .block
+    .block-t Редактировать
+    form(method='POST' action='/admin/' + memory.id + '/edit')
+      label(for='m-name') Название
+      input#m-name(type='text' name='name' value=memory.name required)
+      label Slug
+      input(type='text' value=memory.slug disabled)
+      label(for='m-desc') Описание
+      textarea#m-desc(name='description')= memory.description
+      .checks
+        label
+          input(type='checkbox' name='active' checked=(memory.active !== false))
+          |  Активно (видно на публичной странице)
+      .toolbar
+        button.btn.solid(type='submit') Сохранить
+  form(method='POST' action='/admin/' + memory.id + '/delete' onsubmit='return confirm("Удалить воспоминание вместе со всеми фото?")')
+    button.btn.sm.danger(type='submit') Удалить воспоминание
+
+  h2.sec-lbl Фото (#{photos.length})
+  if photos.length
+    p.hint Фото пока просто список — добавление и редактирование точек появится в следующей задаче.
+    ul
+      each p in photos
+        li= p.caption || '(без подписи)'
+  else
+    p.hint Фото пока нет.
