@@ -15,6 +15,18 @@ include _admin.pug
       input(type='text' value=memory.slug disabled)
       label(for='m-desc') Описание
       textarea#m-desc(name='description')= memory.description
+      label Точка старта (центр карты в админке)
+      #start-map.pt-map
+      input#start-lat(type='hidden' name='startLat' value=memory.startLat)
+      input#start-lng(type='hidden' name='startLng' value=memory.startLng)
+      .pt-map-bar
+        span#start-coords(data-empty='не задана')= (memory.startLat != null && memory.startLng != null) ? memory.startLat.toFixed(6) + ', ' + memory.startLng.toFixed(6) : 'не задана'
+        button#start-clear.btn.sm(type='button') Очистить точку
+      #start-confirm.pt-confirm(hidden)
+        span Поставить точку сюда: #[b#start-confirm-coords]?
+        button#start-confirm-ok.btn.sm.solid(type='button') Подтвердить точку
+        button#start-confirm-cancel.btn.sm(type='button') Отмена
+      p.hint Кликните по карте, чтобы задать точку старта — на неё центрируется карта при добавлении новых фото.
       .checks
         label
           input(type='checkbox' name='active' checked=(memory.active !== false))
@@ -32,10 +44,12 @@ include _admin.pug
           img(src=p.urls.w400 alt='')
           .photo-meta
             span.mono(data-coords-for=p.id)= p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)
+          - var takenAtVal = p.takenAt ? (p.takenAt.toDate ? p.takenAt.toDate() : new Date(p.takenAt)).toISOString().slice(0, 10) : ''
           form.photo-caption-form(method='POST' action='/admin/photos/' + p.id + '/edit')
             input(type='hidden' name='lat' value=p.lat)
             input(type='hidden' name='lng' value=p.lng)
             input(type='text' name='caption' value=p.caption placeholder='подпись' onchange='this.form.requestSubmit()')
+            input(type='date' name='takenAt' value=takenAtVal title='Дата съёмки' onchange='this.form.requestSubmit()')
           .acts
             if i > 0
               form(method='POST' action='/admin/photos/' + p.id + '/move')
@@ -51,41 +65,55 @@ include _admin.pug
     p.hint Фото пока нет — добавьте ниже.
 
   h2.sec-lbl Добавить фото
-  form.block(method='POST' action='/admin/' + memory.id + '/photos' enctype='multipart/form-data')
-    label(for='p-file') Файл
-    input#p-file(type='file' name='photo' accept='image/*' required)
-    label(for='p-caption') Подпись
-    input#p-caption(type='text' name='caption')
-    label Точка на карте
+  .block
+    label(for='p-file') Файлы (можно выбрать несколько)
+    input#p-file(type='file' name='photo' accept='image/*,.heic,.heif' multiple)
+    p#p-queue-status.hint
+    label Точка на карте (для фото без координат в EXIF)
     #p-map.pt-map
-    input#p-lat(type='hidden' name='lat' required)
-    input#p-lng(type='hidden' name='lng' required)
     .pt-map-bar
       span#p-coords(data-empty='точка не задана') точка не задана
     #p-confirm.pt-confirm(hidden)
       span Поставить точку сюда: #[b#p-confirm-coords]?
       button#p-confirm-ok.btn.sm.solid(type='button') Подтвердить точку
       button#p-confirm-cancel.btn.sm(type='button') Отмена
-    p.hint Кликните по карте, чтобы выбрать место съёмки, затем подтвердите.
-    .toolbar
-      button.btn.solid(type='submit') Загрузить
+    p.hint Фото с координатами в EXIF загрузятся автоматически. У остальных нажмите «Указать на карте» в списке ниже, затем кликните точку.
+    .pending-list#p-pending-list
 
+  script(src='https://unpkg.com/exifr@7.1.3/dist/full.umd.js')
+  script(src='https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js')
   script#p-photos-data(type='application/json')!= photosMapData
   script.
+    function showToast(msg, isError) {
+      var el = document.createElement('div');
+      el.className = 'toast' + (isError ? ' error' : '');
+      el.textContent = msg;
+      document.body.appendChild(el);
+      requestAnimationFrame(function () { el.classList.add('show'); });
+      setTimeout(function () {
+        el.classList.remove('show');
+        setTimeout(function () { el.remove(); }, 250);
+      }, 3500);
+    }
+
     (function () {
+      var MEMORY_ID = '#{memory.id}';
       var el = document.getElementById('p-map');
       if (!el || !window.L) return;
-      var latInput = document.getElementById('p-lat');
-      var lngInput = document.getElementById('p-lng');
       var coordsEl = document.getElementById('p-coords');
       var box = document.getElementById('p-confirm');
       var boxCoords = document.getElementById('p-confirm-coords');
       var okBtn = document.getElementById('p-confirm-ok');
       var cancelBtn = document.getElementById('p-confirm-cancel');
+      var fileInput = document.getElementById('p-file');
+      var queueStatusEl = document.getElementById('p-queue-status');
+      var pendingListEl = document.getElementById('p-pending-list');
       var existingPhotos = JSON.parse(document.getElementById('p-photos-data').textContent);
-      var DEFAULT_CENTER = existingPhotos.length ? [existingPhotos[0].lat, existingPhotos[0].lng] : [41.7151, 44.8271];
+      var MEMORY_START = !{memory.startLat != null && memory.startLng != null ? JSON.stringify([memory.startLat, memory.startLng]) : 'null'};
+      var DEFAULT_CENTER = MEMORY_START || (existingPhotos.length ? [existingPhotos[0].lat, existingPhotos[0].lng] : [41.7151, 44.8271]);
+      var DEFAULT_ZOOM = MEMORY_START ? 15 : (existingPhotos.length ? 16 : 12);
 
-      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false }).setView(DEFAULT_CENTER, existingPhotos.length ? 16 : 12);
+      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false }).setView(DEFAULT_CENTER, DEFAULT_ZOOM);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
       function icon(extra) {
@@ -93,11 +121,9 @@ include _admin.pug
       }
       var committed = null, provisional = null, pending = null;
       function fmt(a, b) { return a.toFixed(6) + ', ' + b.toFixed(6); }
-      function setCommitted(lat, lng) {
+      function setCommittedMarker(lat, lng) {
         if (committed) map.removeLayer(committed);
         committed = L.marker([lat, lng], { icon: icon('') }).addTo(map);
-        latInput.value = lat;
-        lngInput.value = lng;
         coordsEl.textContent = fmt(lat, lng);
       }
       function closeConfirm() {
@@ -112,11 +138,172 @@ include _admin.pug
         boxCoords.textContent = fmt(pending[0], pending[1]);
         box.hidden = false;
       });
-      okBtn.addEventListener('click', function () {
-        if (pending) setCommitted(pending[0], pending[1]);
+
+      // ---- bulk upload: EXIF-ready files upload right away; files with no
+      // GPS EXIF wait in a list for a manually-placed point, one at a time.
+      var pendingFiles = [];      // File[] still needing a point
+      var activePendingFile = null; // which pendingFiles entry the next map click applies to
+      var batchTotal = 0, batchDone = 0, uploadedCount = 0, failedCount = 0;
+
+      function uploadFile(file, lat, lng, takenAt) {
+        var fd = new FormData();
+        fd.append('photo', convertedFiles.get(file) || file);
+        fd.append('lat', lat);
+        fd.append('lng', lng);
+        fd.append('caption', '');
+        if (takenAt) fd.append('takenAt', takenAt.toISOString());
+        return fetch('/admin/' + MEMORY_ID + '/photos', {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'fetch' },
+          body: fd,
+        }).then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          uploadedCount++;
+        }).catch(function () {
+          failedCount++;
+          showToast('Не удалось загрузить «' + file.name + '»', true);
+        });
+      }
+
+      function updateQueueStatus() {
+        queueStatusEl.textContent = batchTotal ? 'Обработано ' + batchDone + ' из ' + batchTotal : '';
+      }
+
+      function batchStep() {
+        batchDone++;
+        updateQueueStatus();
+        if (batchDone >= batchTotal) {
+          showToast('Готово — загружено ' + uploadedCount + (failedCount ? ', ошибок ' + failedCount : ''));
+          fileInput.value = '';
+          setTimeout(function () { location.reload(); }, 900);
+        }
+      }
+
+      function renderPendingList() {
+        pendingListEl.innerHTML = '';
+        pendingFiles.forEach(function (file) {
+          var row = document.createElement('div');
+          row.className = 'pending-row';
+          var name = document.createElement('span');
+          name.className = 'name';
+          name.textContent = file.name;
+          row.appendChild(name);
+          var placeBtn = document.createElement('button');
+          placeBtn.type = 'button';
+          placeBtn.className = 'btn sm' + (file === activePendingFile ? ' solid' : '');
+          placeBtn.disabled = file === activePendingFile;
+          placeBtn.textContent = file === activePendingFile ? 'Кликните точку на карте…' : 'Указать на карте →';
+          placeBtn.addEventListener('click', function () { armForFile(file); });
+          row.appendChild(placeBtn);
+          var skipBtn = document.createElement('button');
+          skipBtn.type = 'button';
+          skipBtn.className = 'btn sm';
+          skipBtn.textContent = 'Пропустить';
+          skipBtn.addEventListener('click', function () { finishPendingFile(file); });
+          row.appendChild(skipBtn);
+          pendingListEl.appendChild(row);
+        });
+      }
+
+      function armForFile(file) {
+        activePendingFile = file;
         closeConfirm();
+        renderPendingList();
+        showToast('Кликните на карте точку для «' + file.name + '»');
+      }
+
+      function finishPendingFile(file) {
+        pendingFiles = pendingFiles.filter(function (f) { return f !== file; });
+        if (activePendingFile === file) activePendingFile = null;
+        renderPendingList();
+        batchStep();
+      }
+
+      okBtn.addEventListener('click', function () {
+        if (!pending) { closeConfirm(); return; }
+        var lat = pending[0], lng = pending[1];
+        if (activePendingFile) {
+          var file = activePendingFile;
+          setCommittedMarker(lat, lng);
+          closeConfirm();
+          uploadFile(file, lat, lng, fileDates.get(file)).then(function () { finishPendingFile(file); });
+        } else {
+          closeConfirm();
+          if (pendingFiles.length) showToast('Сначала нажмите «Указать на карте» у нужного файла в списке ниже', true);
+        }
       });
       cancelBtn.addEventListener('click', closeConfirm);
+
+      // File -> Date|null, its EXIF DateTimeOriginal (if any) — kept around
+      // so a manually-placed point (no GPS in EXIF) still carries whatever
+      // date WAS found, rather than losing it just because GPS was missing.
+      var fileDates = new Map();
+      // File (original) -> File (converted, uploadable) — see convertIfHeic.
+      var convertedFiles = new Map();
+
+      function extractDate(file) {
+        return exifr.parse(file, { pick: ['DateTimeOriginal'] }).then(function (data) {
+          return (data && data.DateTimeOriginal instanceof Date) ? data.DateTimeOriginal : null;
+        }).catch(function () { return null; });
+      }
+
+      function isHeic(file) {
+        return /^image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+      }
+
+      // The server can't decode real iPhone HEIC (HEVC-compressed) photos —
+      // the sharp/libvips build here only has an AV1 decoder, not HEVC, for
+      // licensing reasons that are true of most prebuilt sharp binaries. So
+      // HEIC files are converted to JPEG right here in the browser (via
+      // libheif-wasm) before ever being uploaded; EXIF (gps/date) is read
+      // from the ORIGINAL file first, since the conversion doesn't carry it
+      // through, and we send those values as separate form fields anyway.
+      function convertIfHeic(file) {
+        if (!isHeic(file) || typeof heic2any !== 'function') return Promise.resolve(file);
+        return heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 }).then(function (result) {
+          var blob = Array.isArray(result) ? result[0] : result;
+          return new File([blob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' });
+        }).catch(function (err) {
+          showToast('Не удалось конвертировать HEIC «' + file.name + '»: ' + (err && err.message ? err.message : 'ошибка'), true);
+          return file;
+        });
+      }
+
+      if (fileInput && window.exifr) {
+        fileInput.addEventListener('change', function () {
+          var files = Array.prototype.slice.call(fileInput.files || []);
+          if (!files.length) return;
+          pendingFiles = [];
+          activePendingFile = null;
+          fileDates = new Map();
+          convertedFiles = new Map();
+          uploadedCount = 0;
+          failedCount = 0;
+          batchTotal = files.length;
+          batchDone = 0;
+          renderPendingList();
+          updateQueueStatus();
+
+          files.forEach(function (file) {
+            Promise.all([
+              exifr.gps(file).catch(function () { return null; }),
+              extractDate(file),
+              convertIfHeic(file),
+            ]).then(function (results) {
+              var gps = results[0], takenAt = results[1], uploadable = results[2];
+              fileDates.set(file, takenAt);
+              convertedFiles.set(file, uploadable);
+              if (gps && typeof gps.latitude === 'number' && typeof gps.longitude === 'number') {
+                uploadFile(file, gps.latitude, gps.longitude, takenAt).then(batchStep);
+              } else {
+                pendingFiles.push(file);
+                renderPendingList();
+                showToast('В «' + file.name + '» нет координат в EXIF — укажите точку вручную', true);
+              }
+            });
+          });
+        });
+      }
 
       // Draggable markers for already-uploaded photos — drag to correct a
       // point, dropping it POSTs the new coordinates immediately (keeping
@@ -144,6 +331,71 @@ include _admin.pug
           });
         });
       });
+
+      setTimeout(function () { map.invalidateSize(); }, 0);
+    })();
+
+    // Memory start point — a separate small map picker, submitted as part of
+    // the regular "Редактировать" form (not fetch-driven like the photo
+    // queue above): just two hidden inputs, normal <form> POST.
+    (function () {
+      var el = document.getElementById('start-map');
+      if (!el || !window.L) return;
+      var latInput = document.getElementById('start-lat');
+      var lngInput = document.getElementById('start-lng');
+      var coordsEl = document.getElementById('start-coords');
+      var clearBtn = document.getElementById('start-clear');
+      var box = document.getElementById('start-confirm');
+      var boxCoords = document.getElementById('start-confirm-coords');
+      var okBtn = document.getElementById('start-confirm-ok');
+      var cancelBtn = document.getElementById('start-confirm-cancel');
+      var DEFAULT_CENTER = [41.7151, 44.8271];
+
+      function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+      var lat0 = num(latInput.value);
+      var lng0 = num(lngInput.value);
+
+      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
+        .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, lat0 != null ? 15 : 12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+      function icon(extra) {
+        return L.divIcon({ className: '', html: '<div class="pt-pin' + extra + '"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+      }
+      var committed = null, provisional = null, pending = null;
+      function fmt(a, b) { return a.toFixed(6) + ', ' + b.toFixed(6); }
+      function setCommitted(lat, lng) {
+        if (committed) map.removeLayer(committed);
+        committed = L.marker([lat, lng], { icon: icon('') }).addTo(map);
+        latInput.value = lat;
+        lngInput.value = lng;
+        coordsEl.textContent = fmt(lat, lng);
+      }
+      function clearCommitted() {
+        if (committed) { map.removeLayer(committed); committed = null; }
+        latInput.value = '';
+        lngInput.value = '';
+        coordsEl.textContent = coordsEl.getAttribute('data-empty') || '—';
+      }
+      function closeConfirm() {
+        box.hidden = true;
+        if (provisional) { map.removeLayer(provisional); provisional = null; }
+        pending = null;
+      }
+      if (lat0 != null && lng0 != null) setCommitted(lat0, lng0);
+      map.on('click', function (e) {
+        pending = [e.latlng.lat, e.latlng.lng];
+        if (provisional) map.removeLayer(provisional);
+        provisional = L.marker(pending, { icon: icon(' provisional') }).addTo(map);
+        boxCoords.textContent = fmt(pending[0], pending[1]);
+        box.hidden = false;
+      });
+      okBtn.addEventListener('click', function () {
+        if (pending) setCommitted(pending[0], pending[1]);
+        closeConfirm();
+      });
+      cancelBtn.addEventListener('click', closeConfirm);
+      clearBtn.addEventListener('click', function () { closeConfirm(); clearCommitted(); });
 
       setTimeout(function () { map.invalidateSize(); }, 0);
     })();

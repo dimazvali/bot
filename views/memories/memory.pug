@@ -6,12 +6,18 @@ html(lang='ru')
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width,initial-scale=1')
     title= title
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap' rel='stylesheet')
     link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
     script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
     link(rel='stylesheet' href=`/stylesheets/memories/style.css?v=${v}`)
   body
     main.wrap
-      a.link(href='/') ← Все воспоминания
+      .top-row
+        .wordmark memories#[span.dim  / dimazvali.com]
+        a.back-link(href='/') ← Все воспоминания
+      .meta= photoCount + (photoCount === 1 ? ' точка на карте' : ' точек на карте')
       h1= memory.name
       if memory.description
         p.desc= memory.description

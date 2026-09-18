@@ -55,23 +55,34 @@ function photosMapJson(photos) {
 router.get('/', async function(req, res, next) {
   try {
     var memories = await memoriesData.getPublicMemories();
-    res.render('memories/index', { title: 'Memories', memories: memories });
+    var withCovers = await Promise.all(memories.map(async function(m) {
+      var photos = await memoriesData.getMemoryPhotos(m.id);
+      return Object.assign({}, m, {
+        photoCount: photos.length,
+        coverUrl: photos.length ? (photos[0].urls && (photos[0].urls.w800 || photos[0].urls.w400)) : null,
+      });
+    }));
+    res.render('memories/index', { title: 'Memories', memories: withCovers });
   } catch (e) { next(e); }
 });
 
+// `active` only controls whether a memory is listed on the index page — a
+// direct link to its slug (or its AR page) always works, same as an
+// "unlisted" post elsewhere. Only getPublicMemories() (used by the index
+// route above) filters on it.
 router.get('/:slug', async function(req, res, next) {
   try {
     var memory = await memoriesData.getMemoryBySlug(req.params.slug);
-    if (!memory || memory.active === false) return next();
+    if (!memory) return next();
     var photos = await memoriesData.getMemoryPhotos(memory.id);
-    res.render('memories/memory', { title: memory.name, memory: memory, mapData: photosMapJson(photos) });
+    res.render('memories/memory', { title: memory.name, memory: memory, mapData: photosMapJson(photos), photoCount: photos.length });
   } catch (e) { next(e); }
 });
 
 router.get('/:slug/ar', async function(req, res, next) {
   try {
     var memory = await memoriesData.getMemoryBySlug(req.params.slug);
-    if (!memory || memory.active === false) return next();
+    if (!memory) return next();
     var photos = await memoriesData.getMemoryPhotos(memory.id);
     var settings = await memoriesData.getArSettings();
     var arData = JSON.stringify({

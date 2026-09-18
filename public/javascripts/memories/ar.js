@@ -11,7 +11,9 @@
   var debugEl = document.getElementById('ar-debug');
   var debugSummaryEl = document.getElementById('ar-debug-summary');
   var debugTextEl = document.getElementById('ar-debug-text');
-  var debugMapEl = document.getElementById('ar-debug-map');
+  var mapEl = document.getElementById('ar-map');
+  var mapWidgetEl = document.getElementById('ar-map-widget');
+  var mapToggleEl = document.getElementById('ar-map-toggle');
 
   var state = { lat: null, lng: null, heading: null };
 
@@ -354,10 +356,13 @@
     return ts == null ? '—' : ((Date.now() - ts) / 1000).toFixed(1) + 'с назад';
   }
 
-  // ---- mini debug map: device marker (rotated arrow) + accuracy circle + photo pins ----
-  var debugMap = null;
-  var debugDeviceMarker = null;
-  var debugAccuracyCircle = null;
+  // ---- map widget: user-facing, toggled open/closed — device marker
+  // (rotated arrow) + accuracy circle + photo pins. Independent of the
+  // debug panel below (that one's readouts, this one's a real feature).
+  var mapWidget = null;
+  var mapDeviceMarker = null;
+  var mapAccuracyCircle = null;
+  var mapInited = false;
 
   function deviceArrowIcon(heading) {
     var deg = heading == null ? 0 : heading;
@@ -369,45 +374,55 @@
     });
   }
 
-  function initDebugMap() {
-    if (debugMap || !debugMapEl || !window.L) return;
-    debugMap = L.map(debugMapEl, { attributionControl: false, zoomControl: false });
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(debugMap);
+  function initMapWidget() {
+    if (mapInited || !mapEl || !window.L) return;
+    mapInited = true;
+    mapWidget = L.map(mapEl, { attributionControl: false, zoomControl: false });
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapWidget);
     var bounds = AR_DATA.photos.map(function(p) { return [p.lat, p.lng]; });
     AR_DATA.photos.forEach(function(p) {
       L.marker([p.lat, p.lng], {
         icon: L.divIcon({ className: '', html: '<div class="mm-pin"></div>', iconSize: [12, 12], iconAnchor: [6, 6] }),
-      }).addTo(debugMap).bindTooltip(p.id.slice(0, 6));
+      }).addTo(mapWidget).bindTooltip(p.id.slice(0, 6));
     });
-    debugMap.setView(bounds.length ? bounds[0] : [0, 0], bounds.length ? 17 : 2);
-    setTimeout(function() { debugMap.invalidateSize(); }, 0);
+    mapWidget.setView(bounds.length ? bounds[0] : [0, 0], bounds.length ? 17 : 2);
   }
 
-  function updateDebugMap() {
-    if (!debugMap || state.lat == null) return;
+  function updateMapWidget() {
+    if (!mapWidget || state.lat == null) return;
     var pos = [state.lat, state.lng];
-    if (!debugDeviceMarker) {
-      debugDeviceMarker = L.marker(pos, { icon: deviceArrowIcon(state.heading) }).addTo(debugMap);
+    if (!mapDeviceMarker) {
+      mapDeviceMarker = L.marker(pos, { icon: deviceArrowIcon(state.heading) }).addTo(mapWidget);
       var bounds = AR_DATA.photos.map(function(p) { return [p.lat, p.lng]; }).concat([pos]);
-      debugMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 18 });
+      mapWidget.fitBounds(bounds, { padding: [30, 30], maxZoom: 18 });
     } else {
-      debugDeviceMarker.setLatLng(pos);
-      debugDeviceMarker.setIcon(deviceArrowIcon(state.heading));
+      mapDeviceMarker.setLatLng(pos);
+      mapDeviceMarker.setIcon(deviceArrowIcon(state.heading));
     }
     if (debug.geo.accuracy != null) {
-      if (!debugAccuracyCircle) {
-        debugAccuracyCircle = L.circle(pos, { radius: debug.geo.accuracy, color: '#4af', weight: 1, fillOpacity: 0.1 }).addTo(debugMap);
+      if (!mapAccuracyCircle) {
+        mapAccuracyCircle = L.circle(pos, { radius: debug.geo.accuracy, color: '#4af', weight: 1, fillOpacity: 0.1 }).addTo(mapWidget);
       } else {
-        debugAccuracyCircle.setLatLng(pos).setRadius(debug.geo.accuracy);
+        mapAccuracyCircle.setLatLng(pos).setRadius(debug.geo.accuracy);
       }
     }
+  }
+
+  if (mapToggleEl && mapWidgetEl) {
+    mapToggleEl.addEventListener('click', function() {
+      var open = mapWidgetEl.classList.toggle('open');
+      if (open) {
+        initMapWidget();
+        setTimeout(function() { if (mapWidget) mapWidget.invalidateSize(); }, 0);
+      }
+    });
   }
 
   function renderDebugPanel() {
     if (!debugSummaryEl || !debugTextEl) return;
     debugSummaryEl.textContent = '🐛 cam:' + debug.camera.status + ' geo:' + debug.geo.status +
       ' heading:' + fmt(state.heading) + '° (тап — свернуть/развернуть)';
-    updateDebugMap();
+    updateMapWidget();
     var lines = [];
     lines.push('Камера: ' + debug.camera.status);
     lines.push('Геолокация: ' + debug.geo.status +
@@ -440,9 +455,6 @@
   if (debugSummaryEl && debugEl) {
     debugSummaryEl.addEventListener('click', function() {
       debugEl.classList.toggle('expanded');
-      if (debugEl.classList.contains('expanded') && debugMap) {
-        setTimeout(function() { debugMap.invalidateSize(); }, 0);
-      }
     });
   }
 
@@ -456,7 +468,6 @@
         .then(function() {
           gate.hidden = true;
           stage.hidden = false;
-          initDebugMap();
           requestAnimationFrame(renderFrame);
         })
         .catch(function(err) {

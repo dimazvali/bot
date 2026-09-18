@@ -4,16 +4,29 @@ html(lang='ru')
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width,initial-scale=1')
     title= title
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap' rel='stylesheet')
     link(rel='stylesheet' href=`/stylesheets/memories/style.css?v=${v}`)
   body
     main.wrap
-      h1 Memories
+      .top-row
+        .wordmark memories#[span.dim  / dimazvali.com]
+      h1 Воспоминания
       if memories.length
-        ul.memory-list
+        .memory-grid
           each m in memories
-            li
-              a.link(href='/' + m.slug)= m.name
-              if m.description
-                p.desc= m.description
+            a.memory-card(class=(!m.coverUrl ? 'no-photo' : '') href='/' + m.slug)
+              if m.coverUrl
+                img(src=m.coverUrl alt='')
+                .overlay
+              .card-body
+                .card-top
+                  span.count= m.photoCount + ' фото'
+                  span.arrow →
+                div
+                  .card-name= m.name
+                  if m.description
+                    p.card-desc= m.description
       else
         p.hint Пока нет воспоминаний.

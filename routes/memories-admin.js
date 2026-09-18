@@ -151,14 +151,27 @@ router.get('/:id', requireAuth, async function(req, res, next) {
 
 router.post('/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
   try {
+    var startLat = parseFloat(req.body.startLat);
+    var startLng = parseFloat(req.body.startLng);
     await memoriesData.updateMemory(req.params.id, {
       name: (req.body.name || '').trim(),
       description: (req.body.description || '').trim(),
       active: req.body.active === 'on',
+      startLat: isNaN(startLat) ? null : startLat,
+      startLng: isNaN(startLng) ? null : startLng,
     });
     res.redirect('/admin/' + req.params.id + '?saved=1');
   } catch (e) { next(e); }
 });
+
+// Accepts either an ISO datetime (client sends EXIF DateTimeOriginal this
+// way) or a plain YYYY-MM-DD (the admin's manual <input type=date>); '' or
+// anything unparseable means "not set" / "cleared".
+function parseTakenAt(v) {
+  if (!v) return null;
+  var d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
 
 router.post('/:id/photos', requireAuth, upload.single('photo'), async function(req, res, next) {
   try {
@@ -166,12 +179,19 @@ router.post('/:id/photos', requireAuth, upload.single('photo'), async function(r
     if (!memory) return next();
     var lat = parseFloat(req.body.lat);
     var lng = parseFloat(req.body.lng);
-    if (!req.file || isNaN(lat) || isNaN(lng)) return res.redirect('/admin/' + memory.id + '?error=missing');
+    if (!req.file || isNaN(lat) || isNaN(lng)) {
+      if (req.get('X-Requested-With') === 'fetch') return res.sendStatus(400);
+      return res.redirect('/admin/' + memory.id + '?error=missing');
+    }
     var urls = await memoriesPhotos.uploadMemoryPhoto(req.file.buffer, memory.id);
     await memoriesData.insertMemoryPhoto({
       memoryId: memory.id, lat: lat, lng: lng,
       caption: (req.body.caption || '').trim(), urls: urls,
+      takenAt: parseTakenAt(req.body.takenAt),
     });
+    // The bulk-upload queue on memory-detail.pug calls this via fetch() once
+    // per file and doesn't need the redirect a normal <form> submit expects.
+    if (req.get('X-Requested-With') === 'fetch') return res.sendStatus(204);
     res.redirect('/admin/' + memory.id + '?saved=1');
   } catch (e) { next(e); }
 });
@@ -185,6 +205,7 @@ router.post('/photos/:id/edit', requireAuth, express.urlencoded({ extended: fals
     var lng = parseFloat(req.body.lng);
     if (!isNaN(lat)) patch.lat = lat;
     if (!isNaN(lng)) patch.lng = lng;
+    if (req.body.takenAt !== undefined) patch.takenAt = parseTakenAt(req.body.takenAt);
     await memoriesData.updateMemoryPhoto(photo.id, patch);
     // The drag-to-reposition marker on memory-detail.pug calls this via
     // fetch() and just needs a status, not the redirect a normal <form>

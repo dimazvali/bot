@@ -4,23 +4,41 @@ html(lang='ru')
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no')
     title= title
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;700&display=swap' rel='stylesheet')
     link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
     script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
     link(rel='stylesheet' href=`/stylesheets/memories/style.css?v=${v}`)
   body.ar-body
     #ar-gate.ar-gate
+      a.back-link(href='/' + memory.slug) ← назад
+      .ar-kicker AR-режим
       h1= memory.name
-      p Для AR-режима нужен доступ к камере, геолокации и датчикам ориентации.
+      p.desc Понадобится доступ к камере, геолокации и датчикам ориентации телефона.
+      .ar-chips
+        span.ar-chip камера
+        span.ar-chip геолокация
+        span.ar-chip ориентация
       button#ar-start.ar-btn(type='button') Начать AR
       p#ar-error.ar-error(hidden)
+      p.ar-foot memories.dimazvali.com
     #ar-stage.ar-stage(hidden)
       video#ar-video(autoplay playsinline muted)
       #ar-overlay.ar-overlay
       p#ar-status.ar-status Ищем ваше местоположение…
-      #ar-debug.ar-debug.expanded
-        p#ar-debug-summary.ar-debug-summary (тап — свернуть/развернуть)
+
+      button#ar-map-toggle.ar-map-toggle(type='button' aria-label='Показать карту')
+        svg(width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='#f4f1ea' stroke-width='2' stroke-linecap='round' stroke-linejoin='round')
+          polygon(points='1,6 8,3 16,6 23,3 23,18 16,21 8,18 1,21')
+          line(x1='8' y1='3' x2='8' y2='18')
+          line(x1='16' y1='6' x2='16' y2='21')
+      #ar-map-widget.ar-map-widget
+        #ar-map.ar-map
+
+      #ar-debug.ar-debug
+        p#ar-debug-summary.ar-debug-summary (тап — развернуть отладку)
         .ar-debug-details
-          #ar-debug-map.ar-debug-map
           pre#ar-debug-text.ar-debug-text
     script#ar-data(type='application/json')!= arData
     script(src=`/javascripts/memories/ar.js?v=${v}`)

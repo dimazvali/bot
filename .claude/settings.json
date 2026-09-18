@@ -398,12 +398,40 @@
       "Bash(curl -s -b /tmp/memcookie.txt -H \"Host: memories.localhost\" http://localhost:3501/admin/z4BgFhovIyeAovMaGYsB)",
       "Bash(curl -s -i -b /tmp/memcookie.txt -H 'Host: memories.localhost' -H 'X-Requested-With: fetch' -X POST -d 'lat=41.71511&lng=44.82711&caption=Old Town' http://localhost:3501/admin/photos/bIi2K1MEGm1TpaNLPZLA/edit)",
       "Bash(curl -s -i -b /tmp/memcookie.txt -H 'Host: memories.localhost' -X POST -d 'lat=41.7151&lng=44.8271&caption=Old Town' http://localhost:3501/admin/photos/bIi2K1MEGm1TpaNLPZLA/edit)",
-      "WebFetch(domain:www.w3.org)"
+      "WebFetch(domain:www.w3.org)",
+      "Bash(mkdir -p \"/c/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/d07c8032-1fd9-4eea-9de8-32c1b63f63dc/scratchpad/memories-design/project\" 2>/dev/null *)",
+      "Bash(curl -s -H \"Host: memories.localhost\" \"http://localhost:3500/trip-to-svaneti/ar\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code} %{content_type}\\\\n\" \"https://unpkg.com/exifr/dist/lite.umd.js\")",
+      "Bash(curl -sL -o /dev/null -w \"%{http_code} %{content_type} %{size_download}\\\\n\" \"https://unpkg.com/exifr/dist/lite.umd.js\")",
+      "Bash(curl -sI \"https://unpkg.com/exifr/dist/lite.umd.js\")",
+      "Bash(PORT=3502 node ./bin/www)",
+      "Bash(curl -s -b /tmp/memcookie.txt -H \"Host: memories.localhost\" http://localhost:3502/admin/z4BgFhovIyeAovMaGYsB -o /tmp/memdetail.html -w \"%{http_code}\\\\n\")",
+      "Bash(curl -s -i -b /tmp/memcookie.txt -H 'Host: memories.localhost' -H 'X-Requested-With: fetch' -F photo=@/c/Windows/Web/4K/Wallpaper/Windows/img19_1920x1200.jpg -F lat=41.7160 -F lng=44.8280 -F caption= http://localhost:3502/admin/z4BgFhovIyeAovMaGYsB/photos)",
+      "Bash(curl -s -i -b /tmp/memcookie.txt -H 'Host: memories.localhost' -H 'X-Requested-With: fetch' -F caption= http://localhost:3502/admin/z4BgFhovIyeAovMaGYsB/photos)",
+      "Bash(curl -s -b /tmp/memcookie.txt -H \"Host: memories.localhost\" http://localhost:3502/admin/z4BgFhovIyeAovMaGYsB)",
+      "Bash(xargs -I{} sh -c 'echo \"{}\"; stat -c \"%y\" \"{}\"')",
+      "Bash(node --check lib/memories-data.js)",
+      "Bash(curl -s -i -b /tmp/memcookie.txt -H 'Host: memories.localhost' -X POST -d 'name=Trip+to+Svaneti&description=A+week+in+the+mountains&active=on&startLat=41.72&startLng=44.79' http://localhost:3502/admin/z4BgFhovIyeAovMaGYsB/edit)",
+      "Bash(curl -s -i -b /tmp/memcookie.txt -H 'Host: memories.localhost' -H 'X-Requested-With: fetch' -F photo=@/c/Windows/Web/4K/Wallpaper/Windows/img0_1920x1200.jpg -F lat=41.7161 -F lng=44.8281 -F caption= -F takenAt=2026-01-15T10:23:00.000Z http://localhost:3502/admin/z4BgFhovIyeAovMaGYsB/photos)",
+      "Bash(node -e \"console.log\\(require\\('sharp'\\).format.heif\\)\")",
+      "Bash(curl -sIL \"https://unpkg.com/heic2any\")",
+      "Bash(curl -sI \"https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js\")",
+      "Bash(curl -sL -o /dev/null -w \"%{http_code} %{size_download}\\\\n\" \"https://unpkg.com/heic2any@0.0.4/dist/heic2any.min.js\")",
+      "Bash(curl -sL -o /dev/null -w \"%{http_code} %{size_download}\\\\n\" \"https://unpkg.com/exifr@7.1.3/dist/full.umd.js\")",
+      "Bash(curl -s -i -b /tmp/memcookie.txt -H 'Host: memories.localhost' -X POST -d 'name=Trip+to+Svaneti&description=A+week+in+the+mountains&startLat=41.72&startLng=44.79' http://localhost:3502/admin/z4BgFhovIyeAovMaGYsB/edit)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -H \"Host: memories.localhost\" http://localhost:3502/trip-to-svaneti)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -H \"Host: memories.localhost\" http://localhost:3502/trip-to-svaneti/ar)",
+      "Bash(curl -s -H \"Host: memories.localhost\" http://localhost:3502/)",
+      "Bash(tasklist //FI \"IMAGENAME eq ngrok.exe\")",
+      "Bash(tasklist)",
+      "Bash(awk '{print $NF}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" --max-time 5 \"https://model-strongly-ringtail.ngrok-free.app/\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\d8451058-4ab3-4d86-8e2a-f04b8daf66bd\\scratchpad",
-      "c:\\Users\\dshestakov\\node\\bot\\scripts"
+      "c:\\Users\\dshestakov\\node\\bot\\scripts",
+      "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\d07c8032-1fd9-4eea-9de8-32c1b63f63dc\\scratchpad\\memories-design"
     ]
   }
 }

@@ -12,6 +12,18 @@ test('insertMemory assigns a unique slug from the name', async function() {
   assert.equal(m.slug, 'trip-to-svaneti');
   assert.equal(m.active, true);
   assert.equal(m.ownerId, null);
+  assert.equal(m.startLat, null);
+  assert.equal(m.startLng, null);
+});
+
+test('updateMemory can set the start point', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var id = await data.insertMemory({ name: 'M' });
+  await data.updateMemory(id, { startLat: 41.7151, startLng: 44.8271 });
+  var m = await data.getMemoryById(id);
+  assert.equal(m.startLat, 41.7151);
+  assert.equal(m.startLng, 44.8271);
 });
 
 test('insertMemory de-dupes slugs', async function() {
@@ -68,6 +80,17 @@ test('insertMemoryPhoto appends to the end of the order', async function() {
   assert.deepEqual(photos.map(function(p) { return p.id; }), [p1, p2]);
   assert.equal(photos[0].order, 0);
   assert.equal(photos[1].order, 1);
+});
+
+test('insertMemoryPhoto defaults takenAt to null, updateMemoryPhoto can set it', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var mid = await data.insertMemory({ name: 'M' });
+  var pid = await data.insertMemoryPhoto({ memoryId: mid, lat: 41.7, lng: 44.8, urls: {} });
+  assert.equal((await data.getMemoryPhotoById(pid)).takenAt, null);
+  var takenAt = new Date('2026-01-15T10:00:00Z');
+  await data.updateMemoryPhoto(pid, { takenAt: takenAt });
+  assert.equal((await data.getMemoryPhotoById(pid)).takenAt.getTime(), takenAt.getTime());
 });
 
 test('getMemoryPhotos returns only photos for that memory, sorted by order', async function() {
