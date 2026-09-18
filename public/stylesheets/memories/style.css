@@ -26,3 +26,12 @@ h1{font-family:var(--disp);text-transform:uppercase;font-size:clamp(26px,5vw,40p
 #ar-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ar-overlay{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .ar-photo{position:absolute;object-fit:contain;border:2px solid #fff;box-shadow:0 4px 18px rgba(0,0,0,.5);transition:opacity .15s linear}
+.ar-status{position:absolute;left:50%;bottom:32px;transform:translateX(-50%);margin:0;padding:8px 16px;background:rgba(0,0,0,.6);color:#fff;font-size:13px;border-radius:4px;white-space:nowrap}
+.ar-debug{position:absolute;top:8px;left:8px;right:8px;max-height:70vh;overflow:auto;background:rgba(0,0,0,.72);color:#8f8;font:11px/1.5 'Courier New',ui-monospace,monospace;border-radius:4px;pointer-events:auto}
+.ar-debug-summary{margin:0;padding:8px 10px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.ar-debug-details{display:none}
+.ar-debug.expanded .ar-debug-details{display:block}
+.ar-debug-map{height:180px;width:100%;background:#efe8dc}
+.ar-debug-map .leaflet-tile-pane{filter:grayscale(1) contrast(.82) brightness(1.06) sepia(.28)}
+.ar-debug-text{margin:0;padding:6px 10px 10px;white-space:pre-wrap;word-break:break-word}
+.ar-device-pin{width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:16px solid #2f6fff;filter:drop-shadow(0 0 2px #fff)}

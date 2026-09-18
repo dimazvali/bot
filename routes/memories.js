@@ -32,6 +32,16 @@ var fb = getFirestore(memoriesApp);
 memoriesData.init(fb);
 memoriesPhotos.init(getStorage(memoriesApp).bucket(BUCKET));
 
+// Static assets (public/) are served with a 1-year immutable Cache-Control
+// (see app.js), so every deploy needs a fresh ?v= query string or browsers
+// keep serving whatever they cached on first load — same pattern as
+// routes/pelamushi.js.
+var ASSET_VER = process.env.APP_VER || Date.now().toString(36);
+router.use(function(req, res, next) {
+  res.locals.v = ASSET_VER;
+  next();
+});
+
 // Turns photos into the JSON a public page's inline map script reads. `<`
 // is escaped so a caption can never break out of the <script type=json> tag
 // it's embedded in.

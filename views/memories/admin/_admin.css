@@ -176,6 +176,7 @@ code{font-family:var(--mono);font-size:.92em;background:var(--panel);border:1px 
 .pt-map .leaflet-container{font-family:var(--sans)}
 .pt-pin{width:14px;height:14px;background:var(--acc);border:2px solid var(--ink);border-radius:50%}
 .pt-pin.provisional{background:var(--paper2)}
+.pt-pin.existing{background:#2f6fff;cursor:move}
 .pt-map-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted)}
 .pt-confirm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--ink);background:var(--panel);padding:8px 10px;margin:8px 0;font-size:13px}
 .pt-confirm b{font-family:var(--mono)}

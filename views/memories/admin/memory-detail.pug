@@ -31,7 +31,7 @@ include _admin.pug
         .photo-card
           img(src=p.urls.w400 alt='')
           .photo-meta
-            span.mono= p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)
+            span.mono(data-coords-for=p.id)= p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)
           form.photo-caption-form(method='POST' action='/admin/photos/' + p.id + '/edit')
             input(type='hidden' name='lat' value=p.lat)
             input(type='hidden' name='lng' value=p.lng)
@@ -70,6 +70,7 @@ include _admin.pug
     .toolbar
       button.btn.solid(type='submit') Загрузить
 
+  script#p-photos-data(type='application/json')!= photosMapData
   script.
     (function () {
       var el = document.getElementById('p-map');
@@ -81,9 +82,10 @@ include _admin.pug
       var boxCoords = document.getElementById('p-confirm-coords');
       var okBtn = document.getElementById('p-confirm-ok');
       var cancelBtn = document.getElementById('p-confirm-cancel');
-      var DEFAULT_CENTER = [41.7151, 44.8271];
+      var existingPhotos = JSON.parse(document.getElementById('p-photos-data').textContent);
+      var DEFAULT_CENTER = existingPhotos.length ? [existingPhotos[0].lat, existingPhotos[0].lng] : [41.7151, 44.8271];
 
-      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false }).setView(DEFAULT_CENTER, 12);
+      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false }).setView(DEFAULT_CENTER, existingPhotos.length ? 16 : 12);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
       function icon(extra) {
@@ -115,5 +117,33 @@ include _admin.pug
         closeConfirm();
       });
       cancelBtn.addEventListener('click', closeConfirm);
+
+      // Draggable markers for already-uploaded photos — drag to correct a
+      // point, dropping it POSTs the new coordinates immediately (keeping
+      // the caption unchanged) via the same endpoint the inline caption
+      // field already uses.
+      existingPhotos.forEach(function (photo) {
+        var marker = L.marker([photo.lat, photo.lng], { icon: icon(' existing'), draggable: true }).addTo(map);
+        marker.bindTooltip(photo.caption || '(без подписи)');
+        marker.on('dragend', function () {
+          var pos = marker.getLatLng();
+          var body = new URLSearchParams({ lat: pos.lat, lng: pos.lng, caption: photo.caption });
+          fetch('/admin/photos/' + photo.id + '/edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'fetch' },
+            body: body.toString(),
+          }).then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            photo.lat = pos.lat;
+            photo.lng = pos.lng;
+            var coordsSpan = document.querySelector('[data-coords-for="' + photo.id + '"]');
+            if (coordsSpan) coordsSpan.textContent = pos.lat.toFixed(5) + ', ' + pos.lng.toFixed(5);
+          }).catch(function () {
+            marker.setLatLng([photo.lat, photo.lng]); // snap back on failure
+            alert('Не удалось сохранить новую точку — попробуйте ещё раз.');
+          });
+        });
+      });
+
       setTimeout(function () { map.invalidateSize(); }, 0);
     })();

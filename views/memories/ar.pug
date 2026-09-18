@@ -4,7 +4,9 @@ html(lang='ru')
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no')
     title= title
-    link(rel='stylesheet' href='/stylesheets/memories/style.css')
+    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+    link(rel='stylesheet' href=`/stylesheets/memories/style.css?v=${v}`)
   body.ar-body
     #ar-gate.ar-gate
       h1= memory.name
@@ -14,5 +16,11 @@ html(lang='ru')
     #ar-stage.ar-stage(hidden)
       video#ar-video(autoplay playsinline muted)
       #ar-overlay.ar-overlay
+      p#ar-status.ar-status Ищем ваше местоположение…
+      #ar-debug.ar-debug.expanded
+        p#ar-debug-summary.ar-debug-summary (тап — свернуть/развернуть)
+        .ar-debug-details
+          #ar-debug-map.ar-debug-map
+          pre#ar-debug-text.ar-debug-text
     script#ar-data(type='application/json')!= arData
-    script(src='/javascripts/memories/ar.js')
+    script(src=`/javascripts/memories/ar.js?v=${v}`)

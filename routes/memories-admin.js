@@ -140,7 +140,12 @@ router.get('/:id', requireAuth, async function(req, res, next) {
     var memory = await memoriesData.getMemoryById(req.params.id);
     if (!memory) return next();
     var photos = await memoriesData.getMemoryPhotos(memory.id);
-    res.render('memories/admin/memory-detail', { title: memory.name + ' — Memories Admin', memory: memory, photos: photos, saved: req.query.saved });
+    // Feeds the draggable existing-photo markers on the point-picker map —
+    // `<` escaped so a caption can never break out of the <script type=json> tag.
+    var photosMapData = JSON.stringify(photos.map(function(p) {
+      return { id: p.id, lat: p.lat, lng: p.lng, caption: p.caption || '' };
+    })).replace(/</g, '\\u003c');
+    res.render('memories/admin/memory-detail', { title: memory.name + ' — Memories Admin', memory: memory, photos: photos, photosMapData: photosMapData, saved: req.query.saved });
   } catch (e) { next(e); }
 });
 
@@ -181,6 +186,10 @@ router.post('/photos/:id/edit', requireAuth, express.urlencoded({ extended: fals
     if (!isNaN(lat)) patch.lat = lat;
     if (!isNaN(lng)) patch.lng = lng;
     await memoriesData.updateMemoryPhoto(photo.id, patch);
+    // The drag-to-reposition marker on memory-detail.pug calls this via
+    // fetch() and just needs a status, not the redirect a normal <form>
+    // submit expects (the inline caption field still submits as a form).
+    if (req.get('X-Requested-With') === 'fetch') return res.sendStatus(204);
     res.redirect('/admin/' + photo.memoryId + '?saved=1');
   } catch (e) { next(e); }
 });

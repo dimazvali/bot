@@ -1,6 +1,7 @@
 ﻿var express = require('express');
 var router = express.Router();
 var path = require('path');
+var cron = require('node-cron');
 var multer = require('multer');
 var sharp = require('sharp');
 var exifr = require('exifr');
@@ -54,6 +55,15 @@ mailer.init();
 copyright.init(fb);
 shoots.initFromFirestore(fb).catch(console.error);
 photoPeople.initFromFirestore(fb).catch(console.error);
+
+// Daily copyright/usage scan, chunked to stay within Vision Web Detection's
+// 1000-unit/month free tier (see photo-copyright-check.js#runQuotaBatch for
+// the cursor + monthly-budget bookkeeping). Skips silently if a manual scan
+// (admin button) is already running.
+cron.schedule('0 4 * * *', function() {
+  copyrightCheck.runQuotaBatch(fb, getData(), process.env.PHOTO_ENV || 'dev', shoots.getData())
+    .catch(function(e) { console.error('[copyright-check cron]', e.message); });
+});
 
 var upload = multer({
   storage: multer.memoryStorage(),
