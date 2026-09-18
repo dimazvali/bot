@@ -111,6 +111,30 @@ router.post('/settings', requireAuth, express.urlencoded({ extended: false }), a
   } catch (e) { next(e); }
 });
 
+router.get('/admins', requireAuth, requireSuperAdmin, async function(req, res, next) {
+  try {
+    var admins = await memoriesData.getAdmins();
+    res.render('memories/admin/admins', { title: 'Администраторы — Memories Admin', admins: admins, saved: req.query.saved, currentAdminId: res.locals.adminId });
+  } catch (e) { next(e); }
+});
+
+router.post('/admins', requireAuth, requireSuperAdmin, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var name = (req.body.name || '').trim();
+    var pass = (req.body.password || '').trim();
+    if (!name || !pass) return res.redirect('/admin/admins');
+    await memoriesData.insertAdmin({ name: name, password_hash: cookieToken(pass), superadmin: req.body.superadmin === 'on' });
+    res.redirect('/admin/admins?saved=1');
+  } catch (e) { next(e); }
+});
+
+router.post('/admins/:id/delete', requireAuth, requireSuperAdmin, async function(req, res, next) {
+  try {
+    await memoriesData.deleteAdmin(req.params.id);
+    res.redirect('/admin/admins');
+  } catch (e) { next(e); }
+});
+
 router.get('/:id', requireAuth, async function(req, res, next) {
   try {
     var memory = await memoriesData.getMemoryById(req.params.id);

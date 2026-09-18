@@ -1,0 +1,36 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'admins' })
+  .pagehead
+    h1 Администраторы
+  if saved
+    .notice Сохранено
+  .block
+    .block-t Новый админ
+    form(method='POST' action='/admin/admins')
+      label(for='a-name') Имя
+      input#a-name(type='text' name='name' required)
+      label(for='a-pass') Пароль
+      input#a-pass(type='password' name='password' required)
+      .checks
+        label
+          input(type='checkbox' name='superadmin')
+          |  Суперадмин
+      .toolbar
+        button.btn.solid(type='submit') Добавить
+  .tbl-scroll
+    table.tbl
+      thead
+        tr
+          th Имя
+          th Роль
+          th
+      tbody
+        each a in admins
+          tr
+            td= a.name
+            td= a.superadmin ? 'суперадмин' : 'админ'
+            td
+              if a.id !== currentAdminId
+                form(method='POST' action='/admin/admins/' + a.id + '/delete' onsubmit='return confirm("Удалить админа?")')
+                  button.btn.sm.danger(type='submit') удалить
