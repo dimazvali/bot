@@ -1,0 +1,18 @@
+include _admin.pug
+
++adminPage({ title: title, nav: 'settings' })
+  .pagehead
+    h1 Настройки AR
+  if saved
+    .notice Сохранено
+  if error
+    .error-bar Дистанция 100% размера должна быть меньше дистанции появления
+  .block
+    form(method='POST' action='/admin/settings')
+      label(for='s-min') Дистанция появления (м)
+      input#s-min(type='number' name='minVisibleDistance' value=settings.minVisibleDistance min='1' step='1' required)
+      label(for='s-full') Дистанция 100% размера (м)
+      input#s-full(type='number' name='fullSizeDistance' value=settings.fullSizeDistance min='1' step='1' required)
+      p.hint Фото начинает проявляться на дистанции появления и достигает полного размера на дистанции 100% (должна быть меньше первой).
+      .toolbar
+        button.btn.solid(type='submit') Сохранить

@@ -92,6 +92,25 @@ router.post('/', requireAuth, express.urlencoded({ extended: false }), async fun
   } catch (e) { next(e); }
 });
 
+router.get('/settings', requireAuth, async function(req, res, next) {
+  try {
+    var settings = await memoriesData.getArSettings();
+    res.render('memories/admin/settings', { title: 'Настройки AR — Memories Admin', settings: settings, saved: req.query.saved, error: req.query.error });
+  } catch (e) { next(e); }
+});
+
+router.post('/settings', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var minVisibleDistance = parseFloat(req.body.minVisibleDistance);
+    var fullSizeDistance = parseFloat(req.body.fullSizeDistance);
+    if (isNaN(minVisibleDistance) || isNaN(fullSizeDistance) || fullSizeDistance >= minVisibleDistance) {
+      return res.redirect('/admin/settings?error=1');
+    }
+    await memoriesData.updateArSettings({ minVisibleDistance: minVisibleDistance, fullSizeDistance: fullSizeDistance });
+    res.redirect('/admin/settings?saved=1');
+  } catch (e) { next(e); }
+});
+
 router.get('/:id', requireAuth, async function(req, res, next) {
   try {
     var memory = await memoriesData.getMemoryById(req.params.id);
