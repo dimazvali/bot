@@ -32,8 +32,30 @@ var fb = getFirestore(memoriesApp);
 memoriesData.init(fb);
 memoriesPhotos.init(getStorage(memoriesApp).bucket(BUCKET));
 
-router.get('/', function(req, res) {
-  res.send('memories: ok');
+// Turns photos into the JSON a public page's inline map script reads. `<`
+// is escaped so a caption can never break out of the <script type=json> tag
+// it's embedded in.
+function photosMapJson(photos) {
+  var points = photos.map(function(p) {
+    return { lat: p.lat, lng: p.lng, caption: p.caption || '', thumb: (p.urls && p.urls.w400) || '' };
+  });
+  return JSON.stringify(points).replace(/</g, '\\u003c');
+}
+
+router.get('/', async function(req, res, next) {
+  try {
+    var memories = await memoriesData.getPublicMemories();
+    res.render('memories/index', { title: 'Memories', memories: memories });
+  } catch (e) { next(e); }
+});
+
+router.get('/:slug', async function(req, res, next) {
+  try {
+    var memory = await memoriesData.getMemoryBySlug(req.params.slug);
+    if (!memory || memory.active === false) return next();
+    var photos = await memoriesData.getMemoryPhotos(memory.id);
+    res.render('memories/memory', { title: memory.name, memory: memory, mapData: photosMapJson(photos) });
+  } catch (e) { next(e); }
 });
 
 module.exports = router;

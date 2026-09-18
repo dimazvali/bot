@@ -1,0 +1,21 @@
+:root{
+  --bg:#e6ded1; --paper:#faf6f0; --paper2:#fffdf9; --ink:#14110e; --acc:#e2402a;
+  --muted:#6f665c; --line:#ded4c4;
+  --sans:'Manrope',system-ui,sans-serif;
+  --disp:'Oswald',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5}
+a{color:inherit}
+img{max-width:100%;display:block}
+.wrap{max-width:720px;margin:0 auto;padding:32px 16px 64px}
+h1{font-family:var(--disp);text-transform:uppercase;font-size:clamp(26px,5vw,40px);margin:16px 0 8px}
+.desc{color:var(--muted);margin-bottom:20px}
+.link{color:var(--acc);font-weight:700;text-decoration:none}
+.memory-list{list-style:none;margin-top:16px}
+.memory-list li{border-bottom:1px solid var(--line);padding:14px 0}
+.hint{color:var(--muted);margin-top:16px}
+.mm-map{height:360px;border:1px solid var(--ink);background:#efe8dc;margin:16px 0}
+.mm-pin{width:14px;height:14px;background:var(--acc);border:2px solid var(--ink);border-radius:50%}
+.ar-btn{display:inline-block;margin-top:8px;font-weight:700;padding:12px 22px;border:1px solid var(--ink);background:var(--ink);color:var(--paper2);text-decoration:none}
+.ar-btn:hover{background:var(--acc);border-color:var(--acc)}

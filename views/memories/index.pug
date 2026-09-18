@@ -1,0 +1,19 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    title= title
+    link(rel='stylesheet' href='/stylesheets/memories/style.css')
+  body
+    main.wrap
+      h1 Memories
+      if memories.length
+        ul.memory-list
+          each m in memories
+            li
+              a.link(href='/' + m.slug)= m.name
+              if m.description
+                p.desc= m.description
+      else
+        p.hint Пока нет воспоминаний.

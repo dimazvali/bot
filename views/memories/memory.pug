@@ -1,0 +1,19 @@
+include _map.pug
+
+doctype html
+html(lang='ru')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1')
+    title= title
+    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+    link(rel='stylesheet' href='/stylesheets/memories/style.css')
+  body
+    main.wrap
+      a.link(href='/') ← Все воспоминания
+      h1= memory.name
+      if memory.description
+        p.desc= memory.description
+      +memoryMap(mapData)
+      a.ar-btn(href='/' + memory.slug + '/ar') Войти в AR ↗
