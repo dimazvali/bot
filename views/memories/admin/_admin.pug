@@ -1,0 +1,42 @@
+//- Shared page shell for every Memories admin screen.
+//- Usage:
+//-   include _admin.pug
+//-   +adminPage({ title: title, nav: 'memories' })
+//-     .pagehead ...
+//- opts.nav: 'memories' | 'settings' | 'admins' — highlights the bar link
+//- opts.bare: true — no header bar, centred content (login)
+//- opts.leaflet: true — load Leaflet for a map picker/viewer on this page
+
+mixin adminPage(opts)
+  - opts = opts || {}
+  doctype html
+  html(lang='ru')
+    head
+      meta(charset='utf-8')
+      meta(name='viewport' content='width=device-width,initial-scale=1')
+      title= opts.title
+      link(rel='preconnect' href='https://fonts.googleapis.com')
+      link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+      link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&display=swap')
+      if opts.leaflet
+        link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+        script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+      style
+        include _admin.css
+    body
+      if !opts.bare
+        header.abar
+          a.abrand(href='/admin/') Memories
+          span.atag= (typeof adminName !== 'undefined' && adminName) ? adminName : 'Admin'
+          nav.anav
+            a(href='/admin/' class=(opts.nav === 'memories' ? 'on' : '')) Воспоминания
+            a(href='/admin/settings' class=(opts.nav === 'settings' ? 'on' : '')) Настройки
+            if typeof isSuperadmin !== 'undefined' && isSuperadmin
+              a(href='/admin/admins' class=(opts.nav === 'admins' ? 'on' : '')) Админы
+            a(href='/' target='_blank' rel='noopener') Сайт ↗
+          a.aout(href='/admin/logout') Выйти
+        main.awrap
+          block
+      else
+        main.awrap.bare
+          block
