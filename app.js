@@ -126,6 +126,20 @@ app.use(vhost('events.tbiliseli.com', eventsHost));
 app.use(vhost('events.*.*', eventsHost));
 app.use(vhost('events.localhost', eventsHost));
 
+// Memories: an admin-authored place+photos gallery with an AR viewer.
+// routes/memories.js must be required first — it initializes the 'memories'
+// Firebase app that routes/memories-admin.js expects to already exist.
+var memoriesRouter = require('./routes/memories');
+var memoriesAdminRouter = require('./routes/memories-admin');
+var memoriesHost = express();
+memoriesHost.set('views', app.get('views'));
+memoriesHost.set('view engine', app.get('view engine'));
+memoriesHost.use('/admin', memoriesAdminRouter);
+memoriesHost.use('/', memoriesRouter);
+app.use(vhost('memories.dimazvali.com', memoriesHost));
+app.use(vhost('memories.*.*', memoriesHost));
+app.use(vhost('memories.localhost', memoriesHost));
+
 
 
 // app.use(vhost(`neva.localhost`,require('./routes/neva')))
