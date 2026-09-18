@@ -132,3 +132,46 @@ test('deleteMemoryPhoto removes just that photo', async function() {
   var photos = await data.getMemoryPhotos(mid);
   assert.deepEqual(photos.map(function(p) { return p.id; }), [p2]);
 });
+
+test('getArSettings returns defaults when unset', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var s = await data.getArSettings();
+  assert.equal(s.minVisibleDistance, 200);
+  assert.equal(s.fullSizeDistance, 50);
+});
+
+test('updateArSettings persists and getArSettings reflects it', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  await data.updateArSettings({ minVisibleDistance: 300, fullSizeDistance: 80 });
+  var s = await data.getArSettings();
+  assert.equal(s.minVisibleDistance, 300);
+  assert.equal(s.fullSizeDistance, 80);
+});
+
+test('insertAdmin + getAdminByPasswordHash finds it', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  await data.insertAdmin({ name: 'Dima', password_hash: 'abc123', superadmin: true });
+  var admin = await data.getAdminByPasswordHash('abc123');
+  assert.equal(admin.name, 'Dima');
+  assert.equal(admin.superadmin, true);
+  assert.equal(await data.getAdminByPasswordHash('nope'), null);
+});
+
+test('getAdmins lists all admins', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  await data.insertAdmin({ name: 'A', password_hash: 'a' });
+  await data.insertAdmin({ name: 'B', password_hash: 'b' });
+  assert.equal((await data.getAdmins()).length, 2);
+});
+
+test('deleteAdmin removes it', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var id = await data.insertAdmin({ name: 'A', password_hash: 'a' });
+  await data.deleteAdmin(id);
+  assert.equal((await data.getAdmins()).length, 0);
+});
