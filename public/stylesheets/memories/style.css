@@ -25,3 +25,4 @@ h1{font-family:var(--disp);text-transform:uppercase;font-size:clamp(26px,5vw,40p
 .ar-stage{position:fixed;inset:0;background:#000}
 #ar-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ar-overlay{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.ar-photo{position:absolute;object-fit:contain;border:2px solid #fff;box-shadow:0 4px 18px rgba(0,0,0,.5);transition:opacity .15s linear}
