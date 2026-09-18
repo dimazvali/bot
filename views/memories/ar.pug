@@ -1,0 +1,18 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no')
+    title= title
+    link(rel='stylesheet' href='/stylesheets/memories/style.css')
+  body.ar-body
+    #ar-gate.ar-gate
+      h1= memory.name
+      p Для AR-режима нужен доступ к камере, геолокации и датчикам ориентации.
+      button#ar-start.ar-btn(type='button') Начать AR
+      p#ar-error.ar-error(hidden)
+    #ar-stage.ar-stage(hidden)
+      video#ar-video(autoplay playsinline muted)
+      #ar-overlay.ar-overlay
+    script#ar-data(type='application/json')!= arData
+    script(src='/javascripts/memories/ar.js')

@@ -17,5 +17,11 @@ h1{font-family:var(--disp);text-transform:uppercase;font-size:clamp(26px,5vw,40p
 .hint{color:var(--muted);margin-top:16px}
 .mm-map{height:360px;border:1px solid var(--ink);background:#efe8dc;margin:16px 0}
 .mm-pin{width:14px;height:14px;background:var(--acc);border:2px solid var(--ink);border-radius:50%}
-.ar-btn{display:inline-block;margin-top:8px;font-weight:700;padding:12px 22px;border:1px solid var(--ink);background:var(--ink);color:var(--paper2);text-decoration:none}
+.ar-btn{display:inline-block;margin-top:8px;font-weight:700;padding:12px 22px;border:1px solid var(--ink);background:var(--ink);color:var(--paper2);text-decoration:none;cursor:pointer;font-size:15px;font-family:var(--sans)}
 .ar-btn:hover{background:var(--acc);border-color:var(--acc)}
+.ar-body{margin:0;overflow:hidden;background:#000}
+.ar-gate{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:var(--ink);background:var(--bg)}
+.ar-error{color:var(--acc);font-size:13px;max-width:320px}
+.ar-stage{position:fixed;inset:0;background:#000}
+#ar-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ar-overlay{position:absolute;inset:0;overflow:hidden;pointer-events:none}

@@ -58,4 +58,20 @@ router.get('/:slug', async function(req, res, next) {
   } catch (e) { next(e); }
 });
 
+router.get('/:slug/ar', async function(req, res, next) {
+  try {
+    var memory = await memoriesData.getMemoryBySlug(req.params.slug);
+    if (!memory || memory.active === false) return next();
+    var photos = await memoriesData.getMemoryPhotos(memory.id);
+    var settings = await memoriesData.getArSettings();
+    var arData = JSON.stringify({
+      photos: photos.map(function(p) {
+        return { id: p.id, lat: p.lat, lng: p.lng, url: (p.urls && p.urls.w2400) || (p.urls && p.urls.w800) || '' };
+      }),
+      settings: settings,
+    }).replace(/</g, '\\u003c');
+    res.render('memories/ar', { title: memory.name + ' — AR', memory: memory, arData: arData });
+  } catch (e) { next(e); }
+});
+
 module.exports = router;
