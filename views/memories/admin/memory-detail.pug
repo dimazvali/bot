@@ -1,6 +1,6 @@
 include _admin.pug
 
-+adminPage({ title: title, nav: 'memories' })
++adminPage({ title: title, nav: 'memories', leaflet: true })
   a.crumb(href='/admin/') ← Воспоминания
   .pagehead
     h1= memory.name
@@ -26,9 +26,94 @@ include _admin.pug
 
   h2.sec-lbl Фото (#{photos.length})
   if photos.length
-    p.hint Фото пока просто список — добавление и редактирование точек появится в следующей задаче.
-    ul
-      each p in photos
-        li= p.caption || '(без подписи)'
+    .photo-grid
+      each p, i in photos
+        .photo-card
+          img(src=p.urls.w400 alt='')
+          .photo-meta
+            span.mono= p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)
+          form.photo-caption-form(method='POST' action='/admin/photos/' + p.id + '/edit')
+            input(type='hidden' name='lat' value=p.lat)
+            input(type='hidden' name='lng' value=p.lng)
+            input(type='text' name='caption' value=p.caption placeholder='подпись' onchange='this.form.requestSubmit()')
+          .acts
+            if i > 0
+              form(method='POST' action='/admin/photos/' + p.id + '/move')
+                input(type='hidden' name='direction' value='up')
+                button.btn.sm(type='submit') ↑
+            if i < photos.length - 1
+              form(method='POST' action='/admin/photos/' + p.id + '/move')
+                input(type='hidden' name='direction' value='down')
+                button.btn.sm(type='submit') ↓
+            form(method='POST' action='/admin/photos/' + p.id + '/delete' onsubmit='return confirm("Удалить фото?")')
+              button.btn.sm.danger(type='submit') удалить
   else
-    p.hint Фото пока нет.
+    p.hint Фото пока нет — добавьте ниже.
+
+  h2.sec-lbl Добавить фото
+  form.block(method='POST' action='/admin/' + memory.id + '/photos' enctype='multipart/form-data')
+    label(for='p-file') Файл
+    input#p-file(type='file' name='photo' accept='image/*' required)
+    label(for='p-caption') Подпись
+    input#p-caption(type='text' name='caption')
+    label Точка на карте
+    #p-map.pt-map
+    input#p-lat(type='hidden' name='lat' required)
+    input#p-lng(type='hidden' name='lng' required)
+    .pt-map-bar
+      span#p-coords(data-empty='точка не задана') точка не задана
+    #p-confirm.pt-confirm(hidden)
+      span Поставить точку сюда: #[b#p-confirm-coords]?
+      button#p-confirm-ok.btn.sm.solid(type='button') Подтвердить точку
+      button#p-confirm-cancel.btn.sm(type='button') Отмена
+    p.hint Кликните по карте, чтобы выбрать место съёмки, затем подтвердите.
+    .toolbar
+      button.btn.solid(type='submit') Загрузить
+
+  script.
+    (function () {
+      var el = document.getElementById('p-map');
+      if (!el || !window.L) return;
+      var latInput = document.getElementById('p-lat');
+      var lngInput = document.getElementById('p-lng');
+      var coordsEl = document.getElementById('p-coords');
+      var box = document.getElementById('p-confirm');
+      var boxCoords = document.getElementById('p-confirm-coords');
+      var okBtn = document.getElementById('p-confirm-ok');
+      var cancelBtn = document.getElementById('p-confirm-cancel');
+      var DEFAULT_CENTER = [41.7151, 44.8271];
+
+      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false }).setView(DEFAULT_CENTER, 12);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+      function icon(extra) {
+        return L.divIcon({ className: '', html: '<div class="pt-pin' + extra + '"></div>', iconSize: [16, 16], iconAnchor: [8, 8] });
+      }
+      var committed = null, provisional = null, pending = null;
+      function fmt(a, b) { return a.toFixed(6) + ', ' + b.toFixed(6); }
+      function setCommitted(lat, lng) {
+        if (committed) map.removeLayer(committed);
+        committed = L.marker([lat, lng], { icon: icon('') }).addTo(map);
+        latInput.value = lat;
+        lngInput.value = lng;
+        coordsEl.textContent = fmt(lat, lng);
+      }
+      function closeConfirm() {
+        box.hidden = true;
+        if (provisional) { map.removeLayer(provisional); provisional = null; }
+        pending = null;
+      }
+      map.on('click', function (e) {
+        pending = [e.latlng.lat, e.latlng.lng];
+        if (provisional) map.removeLayer(provisional);
+        provisional = L.marker(pending, { icon: icon(' provisional') }).addTo(map);
+        boxCoords.textContent = fmt(pending[0], pending[1]);
+        box.hidden = false;
+      });
+      okBtn.addEventListener('click', function () {
+        if (pending) setCommitted(pending[0], pending[1]);
+        closeConfirm();
+      });
+      cancelBtn.addEventListener('click', closeConfirm);
+      setTimeout(function () { map.invalidateSize(); }, 0);
+    })();

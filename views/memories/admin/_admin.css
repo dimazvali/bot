@@ -170,4 +170,23 @@ code{font-family:var(--mono);font-size:.92em;background:var(--panel);border:1px 
 .login-card p.sub{font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:18px}
 .login-card .btn{width:100%;margin-top:14px}
 
+/* ---- photo point picker (memory-detail "add photo" form) ---- */
+.pt-map{height:320px;border:1px solid var(--ink);background:#efe8dc;margin:5px 0 8px}
+.pt-map .leaflet-tile-pane{filter:grayscale(1) contrast(.82) brightness(1.06) sepia(.28)}
+.pt-map .leaflet-container{font-family:var(--sans)}
+.pt-pin{width:14px;height:14px;background:var(--acc);border:2px solid var(--ink);border-radius:50%}
+.pt-pin.provisional{background:var(--paper2)}
+.pt-map-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.pt-confirm{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--ink);background:var(--panel);padding:8px 10px;margin:8px 0;font-size:13px}
+.pt-confirm b{font-family:var(--mono)}
+
+/* ---- memory photo gallery ---- */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin:12px 0}
+.photo-card{border:1px solid var(--line);background:var(--paper2)}
+.photo-card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.photo-meta{padding:4px 8px 0;font-size:11px;color:var(--muted)}
+.photo-caption-form{padding:6px 8px}
+.photo-caption-form input{font-size:12px;padding:5px 6px}
+.photo-card .acts{padding:0 8px 8px}
+
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}

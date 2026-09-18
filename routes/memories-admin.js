@@ -2,8 +2,19 @@
 var express = require('express');
 var router = express.Router();
 var { getApps } = require('firebase-admin/app');
+var multer = require('multer');
 var memoriesData = require('../lib/memories-data');
+var memoriesPhotos = require('../lib/memories-photos');
 var { cookieToken } = require('../lib/memories-auth');
+
+var upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 30 * 1024 * 1024 },
+  fileFilter: function(req, file, cb) {
+    if (!file.mimetype.startsWith('image/')) return cb(new Error('Only images allowed'));
+    cb(null, true);
+  },
+});
 
 // Only used to assert the app exists — memoriesData was already init()'d
 // with its Firestore handle by routes/memories.js (loaded first, see app.js).
@@ -98,6 +109,55 @@ router.post('/:id/edit', requireAuth, express.urlencoded({ extended: false }), a
       active: req.body.active === 'on',
     });
     res.redirect('/admin/' + req.params.id + '?saved=1');
+  } catch (e) { next(e); }
+});
+
+router.post('/:id/photos', requireAuth, upload.single('photo'), async function(req, res, next) {
+  try {
+    var memory = await memoriesData.getMemoryById(req.params.id);
+    if (!memory) return next();
+    var lat = parseFloat(req.body.lat);
+    var lng = parseFloat(req.body.lng);
+    if (!req.file || isNaN(lat) || isNaN(lng)) return res.redirect('/admin/' + memory.id + '?error=missing');
+    var urls = await memoriesPhotos.uploadMemoryPhoto(req.file.buffer, memory.id);
+    await memoriesData.insertMemoryPhoto({
+      memoryId: memory.id, lat: lat, lng: lng,
+      caption: (req.body.caption || '').trim(), urls: urls,
+    });
+    res.redirect('/admin/' + memory.id + '?saved=1');
+  } catch (e) { next(e); }
+});
+
+router.post('/photos/:id/edit', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var photo = await memoriesData.getMemoryPhotoById(req.params.id);
+    if (!photo) return next();
+    var patch = { caption: (req.body.caption || '').trim() };
+    var lat = parseFloat(req.body.lat);
+    var lng = parseFloat(req.body.lng);
+    if (!isNaN(lat)) patch.lat = lat;
+    if (!isNaN(lng)) patch.lng = lng;
+    await memoriesData.updateMemoryPhoto(photo.id, patch);
+    res.redirect('/admin/' + photo.memoryId + '?saved=1');
+  } catch (e) { next(e); }
+});
+
+router.post('/photos/:id/move', requireAuth, express.urlencoded({ extended: false }), async function(req, res, next) {
+  try {
+    var photo = await memoriesData.getMemoryPhotoById(req.params.id);
+    if (!photo) return next();
+    await memoriesData.moveMemoryPhoto(photo.id, req.body.direction === 'up' ? 'up' : 'down');
+    res.redirect('/admin/' + photo.memoryId);
+  } catch (e) { next(e); }
+});
+
+router.post('/photos/:id/delete', requireAuth, async function(req, res, next) {
+  try {
+    var photo = await memoriesData.getMemoryPhotoById(req.params.id);
+    if (!photo) return next();
+    await memoriesPhotos.deleteMemoryPhotoFiles(photo.urls).catch(function() {});
+    await memoriesData.deleteMemoryPhoto(photo.id);
+    res.redirect('/admin/' + photo.memoryId);
   } catch (e) { next(e); }
 });
 
