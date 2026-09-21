@@ -581,17 +581,15 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     coords = { lat: latRaw, lng: lngRaw };
   }
   var shotAt = null;
-  if (!coords || altitude === null) {
-    try {
-      var exifData = await exifr.parse(req.file.buffer, { gps: true, pick: ['DateTimeOriginal', 'CreateDate'] });
-      if (exifData) {
-        if (!coords && exifData.latitude != null) coords = { lat: exifData.latitude, lng: exifData.longitude };
-        if (altitude === null && exifData.GPSAltitude != null) altitude = Math.round(exifData.GPSAltitude);
-        var exifDate = exifData.DateTimeOriginal || exifData.CreateDate;
-        if (exifDate instanceof Date && !isNaN(exifDate)) shotAt = exifDate.toISOString();
-      }
-    } catch (e) {}
-  }
+  try {
+    var exifData = await exifr.parse(req.file.buffer, { gps: true, pick: ['DateTimeOriginal', 'CreateDate'] });
+    if (exifData) {
+      if (!coords && exifData.latitude != null) coords = { lat: exifData.latitude, lng: exifData.longitude };
+      if (altitude === null && exifData.GPSAltitude != null) altitude = Math.round(exifData.GPSAltitude);
+      var exifDate = exifData.DateTimeOriginal || exifData.CreateDate;
+      if (exifDate instanceof Date && !isNaN(exifDate)) shotAt = exifDate.toISOString();
+    }
+  } catch (e) {}
 
   try {
     var baseName = path.basename(req.file.originalname, path.extname(req.file.originalname));
