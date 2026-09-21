@@ -139,9 +139,6 @@ memoriesHost.use('/', memoriesRouter);
 app.use(vhost('memories.dimazvali.com', memoriesHost));
 app.use(vhost('memories.*.*', memoriesHost));
 app.use(vhost('memories.localhost', memoriesHost));
-// TEMP dev-only: ngrok tunnel for on-device AR testing (doesn't send a
-// "memories.*" Host header) — remove before committing.
-app.use(vhost('model-strongly-ringtail.ngrok-free.app', memoriesHost));
 
 
 

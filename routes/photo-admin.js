@@ -944,6 +944,66 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   res.redirect('/admin/shoots/' + slug + '/edit');
 });
 
+// POST /admin/shoots/:slug/photos/:id/replace-file — swap the source image, keep id/title/desc/SEO/annotations
+router.post('/shoots/:slug/photos/:id/replace-file', requireAuth, upload.single('photo'), async (req, res) => {
+  var { slug, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  var photo = shoot.photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.redirect('/admin/shoots/' + slug + '/edit');
+  if (!req.file) return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
+
+  try {
+    var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
+      sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+      extractColorFamily(req.file.buffer),
+      sharp(req.file.buffer).metadata(),
+    ]);
+
+    var p400  = 'shoots/' + slug + '/' + id + '-400.webp';
+    var p800  = 'shoots/' + slug + '/' + id + '-800.webp';
+    var p2400 = 'shoots/' + slug + '/' + id + '-2400.webp';
+    var pPano = 'shoots/' + slug + '/' + id + '-orig.webp';
+
+    await Promise.all([
+      bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(function() { return bucket.file(p400).makePublic(); }),
+      bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(function() { return bucket.file(p800).makePublic(); }),
+      bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(function() { return bucket.file(p2400).makePublic(); }),
+      photo.panorama ? savePanoAsset(req.file.buffer, pPano) : Promise.resolve(),
+    ]);
+
+    var base = 'https://storage.googleapis.com/' + process.env.PHOTO_BUCKET;
+    var fields = {
+      width: imgMeta.width,
+      height: imgMeta.height,
+      urls: Object.assign({}, photo.urls, {
+        thumb: base + '/' + p400,
+        preview: base + '/' + p800,
+        full: base + '/' + p2400,
+      }),
+    };
+    if (photo.panorama) fields.urls.pano = base + '/' + pPano;
+    if (colorFamily) fields.colorFamily = colorFamily;
+
+    await shoots.updatePhotoAssets(slug, id, fields);
+
+    // Faces were detected against the old image content — re-run so bounding boxes match.
+    try {
+      var faces = await photoPeople.indexAndMatchFaces(buf800);
+      await shoots.updatePhotoFaces(slug, id, faces);
+    } catch (e) {
+      console.error('[shoots replace-file] face reindex:', e.message);
+    }
+  } catch (err) {
+    console.error('[shoots] replace-file error:', err);
+    return res.status(500).send('Ошибка при замене файла: ' + err.message);
+  }
+  res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
+});
+
 // POST /admin/shoots/:slug/photos/:id/generate-seo — AI SEO generation for a shoot photo
 router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json(), async (req, res) => {
   var { slug, id } = req.params;
