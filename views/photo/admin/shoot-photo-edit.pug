@@ -84,6 +84,9 @@ html(data-theme='dark')
           label.admin-tag-check
             input(type='checkbox' name='panorama' checked=!!photo.panorama)
             span панорама (зум/пан в просмотре; копия в оригинальном размере не перегенерируется — загрузите фото заново с этой галочкой, если её ещё нет)
+          label.admin-tag-check
+            input(type='checkbox' name='curatorPick' checked=!!photo.curatorPick)
+            span авторский отбор
           button.admin-btn(type='submit') СОХРАНИТЬ
 
     script.

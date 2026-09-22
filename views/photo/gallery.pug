@@ -1,6 +1,29 @@
 extends layout
 include mixins
 
+block head
+  if ogUrl && photos && photos.length
+    -
+      var _lp = lang === 'en' ? '/en' : ''
+      var _base = 'https://photo.dimazvali.com'
+      var _galleryLd = {
+        '@context': 'https://schema.org',
+        '@type': 'ImageGallery',
+        name: title,
+        description: desc,
+        url: ogUrl,
+        numberOfItems: photos.length,
+        image: photos.slice(0, 60).map(function(p) {
+          var src = p.urls ? (p.urls.full || p.urls.preview) : null
+          if (!src) return null
+          var pageUrl = isShoot
+            ? _base + _lp + '/shoot/' + shootSlug + '/' + p.id
+            : _base + _lp + '/' + p.countryKey + '/' + p.seriesKey + '/' + p.id
+          return { '@type': 'ImageObject', contentUrl: src, name: p.title, url: pageUrl }
+        }).filter(Boolean),
+      }
+    script#ld-gallery(type='application/ld+json')!= JSON.stringify(_galleryLd)
+
 block content
   - var LP = lang === 'en' ? '/en' : ''
   if isShoot
@@ -77,6 +100,7 @@ block content
         data-type=photo.type||'copter'
         data-photo-id=photo.id
         data-person-keys=(isShoot && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined
+        data-curator-hidden=photo._curatorExtra ? '' : undefined
       )
         if isShoot
           span.photo-select
@@ -99,6 +123,18 @@ block content
             span.photo-date= photo.date
     if _igCardAt === photos.length
       +instagramCard()
+
+  if curatorSelectionActive
+    button.curator-show-all#curator-show-all(type='button')= ui.showAllPhotos
+    script.
+      (function() {
+        var btn = document.getElementById('curator-show-all');
+        if (!btn) return;
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.photo-card[data-curator-hidden]').forEach(function(c) { c.removeAttribute('data-curator-hidden'); });
+          btn.remove();
+        });
+      }());
 
   if isShoot && otherShoots && otherShoots.length
     .gallery-header
@@ -148,6 +184,101 @@ block content
           p.selection-popup-success-text= ui.successText
           .selection-popup-actions
             button#selection-popup-close(type='button')= ui.ok
+
+  if promo
+    .selection-popup#promo-popup
+      .selection-popup-inner.promo-popup-inner
+        button.promo-popup-close#promo-popup-close(type='button' aria-label=ui.cancel) ×
+        p.promo-popup-title= ui.promoTitle
+        p.promo-popup-subtitle= ui.promoSubtitle
+        form.inquiry-form#promo-form
+          input.inquiry-input(type='text' name='name' placeholder=ui.nameCaps required autocomplete='name')
+          input.inquiry-input(type='text' name='contact' placeholder=ui.promoContactPlaceholder required)
+          textarea.inquiry-input.inquiry-textarea(name='message' placeholder=ui.messageOptional rows='3')
+          p.inquiry-error#promo-form-msg(style='display:none')
+          button.inquiry-submit(type='submit')= ui.promoSubmit
+        .promo-popup-success#promo-popup-success(style='display:none')
+          p.inquiry-success= ui.promoSuccessText
+        .promo-contacts
+          span.promo-contacts-label= ui.promoOrContact
+          .promo-contacts-links
+            a(href='https://telegram.me/dimazvali' target='_blank' rel='noopener') Telegram
+            a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') Instagram
+            a(href='https://wa.me/995555542110' target='_blank' rel='noopener') WhatsApp
+
+    button.promo-footer-bar#promo-footer-bar(type='button')= ui.promoFooterCta
+
+    script.
+      (function() {
+        var popup = document.getElementById('promo-popup');
+        if (!popup) return;
+        var seenKey = 'photoPromoPopupSeen';
+        var closeBtn = document.getElementById('promo-popup-close');
+        var footerBar = document.getElementById('promo-footer-bar');
+        var form = document.getElementById('promo-form');
+        var msgEl = document.getElementById('promo-form-msg');
+        var successView = document.getElementById('promo-popup-success');
+        var submitBtn = form.querySelector('.inquiry-submit');
+        var autoShown = false;
+
+        try { autoShown = !!sessionStorage.getItem(seenKey); } catch (e) {}
+
+        function showPopup() { popup.classList.add('is-open'); }
+
+        function autoOpen() {
+          if (autoShown) return;
+          autoShown = true;
+          try { sessionStorage.setItem(seenKey, '1'); } catch (e) {}
+          showPopup();
+          window.removeEventListener('scroll', onScroll);
+          clearTimeout(timer);
+        }
+
+        function closePopup() { popup.classList.remove('is-open'); }
+
+        function onScroll() {
+          if (window.scrollY > window.innerHeight) autoOpen();
+        }
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        var timer = setTimeout(autoOpen, 5000);
+
+        if (footerBar) footerBar.addEventListener('click', showPopup);
+        if (closeBtn) closeBtn.addEventListener('click', closePopup);
+        popup.addEventListener('click', function(e) { if (e.target === popup) closePopup(); });
+
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          var name = form.name.value.trim();
+          var contact = form.contact.value.trim();
+          if (!name || !contact) { msgEl.textContent = !{JSON.stringify(ui.promoError)}; msgEl.style.display = ''; return; }
+
+          submitBtn.disabled = true;
+          msgEl.style.display = 'none';
+          fetch('/shoot-request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+              name: name,
+              contact: contact,
+              message: form.message.value.trim(),
+              source: window.location.pathname,
+            }),
+          })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+              submitBtn.disabled = false;
+              if (!res.ok) { msgEl.textContent = !{JSON.stringify(ui.networkError)}; msgEl.style.display = ''; return; }
+              form.style.display = 'none';
+              successView.style.display = '';
+            })
+            .catch(function() {
+              submitBtn.disabled = false;
+              msgEl.textContent = !{JSON.stringify(ui.networkError)};
+              msgEl.style.display = '';
+            });
+        });
+      }());
 
   if isShoot
     script.

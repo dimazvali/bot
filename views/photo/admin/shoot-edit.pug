@@ -28,6 +28,9 @@ html(data-theme='dark')
           label.admin-tag-check
             input(type='checkbox' name='showFaces' checked=shoot.showFaces)
             span показывать лица (виджет «найти себя»)
+          label.admin-tag-check
+            input(type='checkbox' name='showCuratorSelection' checked=shoot.showCuratorSelection)
+            span показывать авторский отбор (сначала отмеченные фото, остальные — по кнопке «показать все»)
           label(style='font-size:0.625rem;color:var(--text-dim);letter-spacing:1px;width:100%;') СВЯЗАННЫЕ СЪЁМКИ (напр. другие сессии этого же героя)
           select.admin-input(name='relatedShoots' multiple size='6')
             each other, otherSlug in allShoots
@@ -104,15 +107,34 @@ html(data-theme='dark')
       if shoot.photos.length
         .admin-section
           h2.admin-title ФОТО (#{shoot.photos.length})
-          p.admin-hint Перетащите для изменения порядка.
-          ul#photo-list.admin-sort-list(data-url=`/admin/shoots/${slug}/photos/reorder`)
+          p.admin-hint Перетащите для изменения порядка. Чекбоксы — временный выбор для кнопок ниже; ★ у фото — оно уже в авторском отборе.
+          p.admin-hint
+            | Показ авторского отбора на сайте сейчас:
+            b(style=`color:${shoot.showCuratorSelection ? 'var(--accent)' : 'var(--text-dim)'}`)= shoot.showCuratorSelection ? ' ВКЛЮЧЁН' : ' ВЫКЛЮЧЕН'
+            | .
+            form(method='POST' action=`/admin/shoots/${slug}/toggle-curator-selection` style='display:inline;margin-left:6px;')
+              button.admin-btn.admin-btn--sm(type='submit')= shoot.showCuratorSelection ? 'выключить' : 'включить'
+          .admin-bulk-bar#photo-bulk-bar
+            label.admin-tag-check(style='margin:0;')
+              input#photo-select-all(type='checkbox')
+              span выбрать все
+            span#photo-bulk-count.admin-hint 0 выбрано
+            button.admin-btn.admin-btn--sm#photo-bulk-curator(type='button' disabled) ★ в авторский отбор
+            button.admin-btn.admin-btn--sm#photo-bulk-curator-remove(type='button' disabled) ☆ убрать из отбора
+            button.admin-btn.admin-btn--sm.admin-btn--danger#photo-bulk-delete(type='button' disabled) удалить выбранные
+          ul#photo-list.admin-sort-list(data-url=`/admin/shoots/${slug}/photos/reorder` data-bulk-delete-url=`/admin/shoots/${slug}/photos/bulk-delete` data-bulk-curator-url=`/admin/shoots/${slug}/photos/bulk-curator-pick`)
             each photo in shoot.photos
               li.admin-sort-item(data-id=photo.id)
                 span.admin-sort-handle ⠿
+                label.admin-photo-check
+                  input.photo-check(type='checkbox' value=photo.id)
                 if photo.urls
                   img.admin-thumb(src=photo.urls.preview alt=photo.title)
                 .admin-photo-info
-                  span.admin-photo-title= photo.title
+                  span.admin-photo-title
+                    if photo.curatorPick
+                      span(title='авторский отбор') ★
+                    = photo.title
                   span.admin-photo-id= photo.id
                   span.admin-photo-id 👁 просмотров: #{(photoViews && photoViews[photo.id]) || 0}
                   if photo.seo_desc
@@ -258,6 +280,79 @@ html(data-theme='dark')
             }).catch(function() { alert('Ошибка сохранения порядка'); });
           },
         });
+      }
+
+      // ── Bulk photo selection (delete / curator pick) ──
+      if (list) {
+        var bulkDeleteUrl  = list.getAttribute('data-bulk-delete-url');
+        var bulkCuratorUrl = list.getAttribute('data-bulk-curator-url');
+        var selectAll     = document.getElementById('photo-select-all');
+        var countEl       = document.getElementById('photo-bulk-count');
+        var curatorBtn    = document.getElementById('photo-bulk-curator');
+        var curatorRemoveBtn = document.getElementById('photo-bulk-curator-remove');
+        var deleteBtn     = document.getElementById('photo-bulk-delete');
+        var checkboxes    = Array.from(list.querySelectorAll('.photo-check'));
+
+        function selectedIds() {
+          return checkboxes.filter(function(cb) { return cb.checked; }).map(function(cb) { return cb.value; });
+        }
+
+        function updateBulkBar() {
+          var ids = selectedIds();
+          countEl.textContent = ids.length + ' выбрано';
+          curatorBtn.disabled = ids.length === 0;
+          curatorRemoveBtn.disabled = ids.length === 0;
+          deleteBtn.disabled = ids.length === 0;
+          selectAll.checked = ids.length > 0 && ids.length === checkboxes.length;
+          selectAll.indeterminate = ids.length > 0 && ids.length < checkboxes.length;
+        }
+
+        checkboxes.forEach(function(cb) { cb.addEventListener('change', updateBulkBar); });
+
+        selectAll.addEventListener('change', function() {
+          checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
+          updateBulkBar();
+        });
+
+        function setCuratorPick(value, btn) {
+          var ids = selectedIds();
+          if (!ids.length) return;
+          btn.disabled = true;
+          fetch(bulkCuratorUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids, value: value }),
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (!data.ok) { alert('Ошибка сохранения'); btn.disabled = false; return; }
+              window.location.reload();
+            })
+            .catch(function() { alert('Ошибка сети'); btn.disabled = false; });
+        }
+
+        curatorBtn.addEventListener('click', function() { setCuratorPick(true, curatorBtn); });
+        curatorRemoveBtn.addEventListener('click', function() { setCuratorPick(false, curatorRemoveBtn); });
+
+        deleteBtn.addEventListener('click', function() {
+          var ids = selectedIds();
+          if (!ids.length) return;
+          if (!confirm('Удалить выбранные фото (' + ids.length + ')? Отменить нельзя.')) return;
+          deleteBtn.disabled = true;
+          fetch(bulkDeleteUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: ids }),
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (!data.ok) { alert('Ошибка удаления'); deleteBtn.disabled = false; return; }
+              window.location.reload();
+            })
+            .catch(function() { alert('Ошибка сети'); deleteBtn.disabled = false; });
+        });
+
+        updateBulkBar();
       }
 
       // ── Usage check (scoped to this shoot) ──

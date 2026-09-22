@@ -136,8 +136,8 @@ router.get('/', (req, res) => {
     photos,
     title: 'photo.dimazvali.com',
     desc: lang === 'en'
-      ? 'Aerial photography — Dmitry Shestakov. Documentary series shot from the air.'
-      : 'Аэрофотосъёмка — Дмитрий Шестаков. Серийная документальная фотография с воздуха.',
+      ? 'Photography — Dmitry Shestakov. Documentary series and portraits.'
+      : 'Фотография — Дмитрий Шестаков. Серийная документальная фотография и портреты.',
     keywords: buildPageKeywords(photos, tags, Object.keys(data).map(k => data[k].label)),
     ogImage: ogImg(photos[0]),
     ogUrl: pageUrl(lang, '/'),
@@ -152,8 +152,8 @@ router.get('/about', (req, res) => {
     data: i18n.localizeDataTree(getData(), lang),
     title: lang === 'en' ? 'About — photo.dimazvali.com' : 'О себе — photo.dimazvali.com',
     desc: lang === 'en'
-      ? 'Dmitry Shestakov — aerial photographer. I shoot documentary series from the air.'
-      : 'Дмитрий Шестаков — аэрофотограф. Снимаю документальные серии с воздуха.',
+      ? 'Dmitry Shestakov — photographer. I shoot documentary series and portraits.'
+      : 'Дмитрий Шестаков — фотограф. Снимаю документальные серии и портреты.',
     ogImage: null,
     ogUrl: pageUrl(lang, '/about'),
     breadcrumbs: [{ name: lang === 'en' ? 'About' : 'О себе', url: pageUrl(lang, '/about') }],
@@ -200,8 +200,8 @@ router.get('/tag/:slug', (req, res) => {
     photos,
     title: `${tags[slug].label} — photo.dimazvali.com`,
     desc: tags[slug].desc || (lang === 'en'
-      ? `${photos.length} aerial photos on "${tags[slug].label}" — Dmitry Shestakov`
-      : `${photos.length} аэрофотоснимков по теме «${tags[slug].label}» — Дмитрий Шестаков`),
+      ? `${photos.length} photos on "${tags[slug].label}" — Dmitry Shestakov`
+      : `${photos.length} фотографий по теме «${tags[slug].label}» — Дмитрий Шестаков`),
     keywords: tags[slug].label + ', ' + BASE_KEYWORDS,
     ogImage: ogImg(photos[0]),
     ogUrl: pageUrl(lang, `/tag/${slug}`),
@@ -225,7 +225,7 @@ router.get('/color/:family', function(req, res) {
     colorLabel: info.label,
     photos,
     title: info.label + ' — photo.dimazvali.com',
-    desc: lang === 'en' ? info.label + ' — aerial photography by Dmitry Shestakov' : info.label + ' — аэрофотосъёмка Дмитрия Шестакова',
+    desc: lang === 'en' ? info.label + ' — photography by Dmitry Shestakov' : info.label + ' — фотография Дмитрия Шестакова',
     keywords: info.label + ', ' + BASE_KEYWORDS,
     ogImage: ogImg(photos[0]),
     ogUrl: pageUrl(lang, '/color/' + family),
@@ -298,6 +298,23 @@ router.post('/:country/:series/:id/review', express.urlencoded({ extended: false
     } catch (e) { console.error('[review]', e.message); }
   }
   res.redirect(i18n.langPrefix(lang) + '/' + countryKey + '/' + seriesKey + '/' + id + '?review=ok');
+});
+
+// POST /shoot-request — "want a shoot?" promo popup form (see ?promo on /shoot/:slug and /:country/:series)
+router.post('/shoot-request', express.urlencoded({ extended: false }), async (req, res) => {
+  var name = (req.body.name || '').trim().slice(0, 100);
+  var contact = (req.body.contact || '').trim().slice(0, 200);
+  var message = (req.body.message || '').trim().slice(0, 1000);
+  var source = (req.body.source || '').trim().slice(0, 200);
+  if (!name || !contact) return res.status(400).json({ ok: false });
+
+  var text = '🎬 <b>Заявка на съёмку (promo)</b>\n'
+    + 'Имя: ' + name + '\n'
+    + 'Контакт: ' + contact
+    + (source ? '\nСтраница: ' + BASE + source : '')
+    + (message ? '\n\n' + message : '');
+  tgSend(text);
+  res.json({ ok: true });
 });
 
 // GET /sitemap.xml — RU (unprefixed) and EN (/en/...) URLs, cross-linked with hreflang
@@ -532,6 +549,18 @@ router.get('/shoot/:slug', async (req, res) => {
       }
     }
     var relatedInfo = getRelatedShoots(rawShoot, slug);
+
+    // "Author's pick" mode: when the shoot has it enabled and at least one photo is
+    // flagged, show the picked photos first and stash the rest behind a "show all"
+    // button (see the .photo-card[data-curator-hidden] rule in gallery.pug).
+    var galleryPhotos = shoot.photos;
+    var curatorSelectionActive = !!rawShoot.showCuratorSelection && galleryPhotos.some(function(p) { return p.curatorPick; });
+    if (curatorSelectionActive) {
+      var picked = galleryPhotos.filter(function(p) { return p.curatorPick; });
+      var rest = galleryPhotos.filter(function(p) { return !p.curatorPick; }).map(function(p) { return Object.assign({}, p, { _curatorExtra: true }); });
+      galleryPhotos = picked.concat(rest);
+    }
+
     res.render('photo/gallery', {
       data: i18n.localizeDataTree(getData(), lang),
       activeCountry: null,
@@ -539,8 +568,10 @@ router.get('/shoot/:slug', async (req, res) => {
       isShoot: true,
       shootSlug: slug,
       shootLabel: shoot.label,
-      photos: shoot.photos,
+      photos: galleryPhotos,
+      curatorSelectionActive: curatorSelectionActive,
       activeTags: [],
+      promo: 'promo' in req.query,
       title: shoot.label + ' — photo.dimazvali.com',
       desc: shoot.desc || null,
       keywords: null,
@@ -798,8 +829,8 @@ router.get('/:country', (req, res) => {
     activeTags,
     title: `${country.label} — photo.dimazvali.com`,
     desc: lang === 'en'
-      ? `${country.label} — ${photos.length} aerial photos in ${seriesLabels.length} series. Documentary aerial photography by Dmitry Shestakov.`
-      : `${country.label} — ${photos.length} аэрофотоснимков в ${seriesLabels.length} сери${seriesLabels.length === 1 ? 'и' : 'ях'}. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
+      ? `${country.label} — ${photos.length} photos in ${seriesLabels.length} series. Documentary photography by Dmitry Shestakov.`
+      : `${country.label} — ${photos.length} фотографий в ${seriesLabels.length} сери${seriesLabels.length === 1 ? 'и' : 'ях'}. Документальная фотография, Дмитрий Шестаков.`,
     keywords: buildPageKeywords(photos, allTags, [country.label, ...seriesLabels]),
     ogImage: photos.length ? `${BASE}/og/country/${countryKey}.jpg` : null,
     ogUrl: pageUrl(lang, `/${countryKey}`),
@@ -831,10 +862,11 @@ router.get('/:country/:series', (req, res) => {
     activeSeries: seriesKey,
     photos,
     activeTags,
+    promo: 'promo' in req.query,
     title: `${series.label} · ${country.label} — photo.dimazvali.com`,
     desc: lang === 'en'
-      ? `${series.label}, ${country.label} — ${photos.length} aerial photos. Documentary aerial photography by Dmitry Shestakov.`
-      : `${series.label}, ${country.label} — ${photos.length} аэрофотоснимков. Документальная съёмка с воздуха, Дмитрий Шестаков.`,
+      ? `${series.label}, ${country.label} — ${photos.length} photos. Documentary photography by Dmitry Shestakov.`
+      : `${series.label}, ${country.label} — ${photos.length} фотографий. Документальная фотография, Дмитрий Шестаков.`,
     keywords: buildPageKeywords(photos, allTagsSeries, [country.label, series.label]),
     ogImage: photos.length ? `${BASE}/og/series/${countryKey}/${seriesKey}.jpg` : null,
     ogUrl: pageUrl(lang, `/${countryKey}/${seriesKey}`),
@@ -913,9 +945,13 @@ router.get('/:country/:series/:id', (req, res) => {
     sourceShootLabel,
     seriesUrl: i18n.langPrefix(lang) + `/${countryKey}/${seriesKey}`,
     title: `${photo.title} — photo.dimazvali.com`,
-    desc: photo.seo_desc || photo.desc || (lang === 'en'
-      ? `${photo.title} · ${series.label} · ${country.label} — an aerial photo by Dmitry Shestakov`
-      : `${photo.title} · ${series.label} · ${country.label} — аэрофотоснимок Дмитрия Шестакова`),
+    desc: photo.seo_desc || photo.desc || (photo.type === 'copter'
+      ? (lang === 'en'
+        ? `${photo.title} · ${series.label} · ${country.label} — an aerial photo by Dmitry Shestakov`
+        : `${photo.title} · ${series.label} · ${country.label} — аэрофотоснимок Дмитрия Шестакова`)
+      : (lang === 'en'
+        ? `${photo.title} · ${series.label} · ${country.label} — a photo by Dmitry Shestakov`
+        : `${photo.title} · ${series.label} · ${country.label} — фотография Дмитрия Шестакова`)),
     keywords: photo.seo_keywords || buildPageKeywords([photo], allTagsPhoto, [country.label, series.label]),
     ogImage: photo.urls ? photo.urls.full : null,
     ogUrl: pageUrl(lang, `/${countryKey}/${seriesKey}/${photo.id}`),

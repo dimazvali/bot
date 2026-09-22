@@ -24,6 +24,9 @@ var axios = require('axios');
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { getStorage } = require('firebase-admin/storage');
+var { JWT } = require('google-auth-library');
+
+var GCP_SERVICE_ACCOUNT_EMAIL = 'firebase-adminsdk-4iwd4@dimazvalimisc.iam.gserviceaccount.com';
 
 var photoApp = getApps().find(a => a.name === 'photo') || initializeApp({
   credential: cert({
@@ -31,7 +34,7 @@ var photoApp = getApps().find(a => a.name === 'photo') || initializeApp({
     project_id: 'dimazvalimisc',
     private_key_id: '5eb5025afc0fe53b63f518ba071f89e7b7ce03af',
     private_key: process.env.sssGCPKey.replace(/\\n/g, '\n'),
-    client_email: 'firebase-adminsdk-4iwd4@dimazvalimisc.iam.gserviceaccount.com',
+    client_email: GCP_SERVICE_ACCOUNT_EMAIL,
     client_id: '110523994931477712119',
     auth_uri: 'https://accounts.google.com/o/oauth2/auth',
     token_uri: 'https://oauth2.googleapis.com/token',
@@ -40,6 +43,18 @@ var photoApp = getApps().find(a => a.name === 'photo') || initializeApp({
   }),
   storageBucket: process.env.PHOTO_BUCKET,
 }, 'photo');
+
+// Reuses the Firebase service account key — it must also be added as an
+// Owner of the photo.dimazvali.com property in Search Console, and the
+// "Web Search Indexing API" must be enabled on the dimazvalimisc GCP project.
+// Note: this API is only officially sanctioned for JobPosting/BroadcastEvent
+// pages; using it for regular photo pages works in practice but is unsupported
+// by Google and could stop working or get the account rate-limited without notice.
+var indexingAuth = new JWT({
+  email: GCP_SERVICE_ACCOUNT_EMAIL,
+  key: process.env.sssGCPKey.replace(/\\n/g, '\n'),
+  scopes: ['https://www.googleapis.com/auth/indexing'],
+});
 
 var fb = getFirestore(photoApp);
 var bucket = getStorage(photoApp).bucket();
@@ -92,6 +107,16 @@ function indexNowSubmit(urls) {
     keyLocation: 'https://photo.dimazvali.com/' + INDEX_NOW_KEY + '.txt',
     urlList: Array.isArray(urls) ? urls : [urls],
   }, { timeout: 8000 }).catch(function(e) { console.error('[indexnow]', e.message); });
+}
+
+function googleIndexingSubmit(urls) {
+  (Array.isArray(urls) ? urls : [urls]).forEach(function(url) {
+    indexingAuth.request({
+      url: 'https://indexing.googleapis.com/v3/urlNotifications:publish',
+      method: 'POST',
+      data: { url: url, type: 'URL_UPDATED' },
+    }).catch(function(e) { console.error('[google-indexing]', e.message); });
+  });
 }
 
 function slugify(str) {
@@ -646,6 +671,7 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     saveData(data);
     pingSitemaps();
     indexNowSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + id);
+    googleIndexingSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + id);
 
     // Auto-generate SEO desc+keywords async (fire-and-forget)
     (function() {
@@ -769,7 +795,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
-  var { label, desc, label_en, desc_en, password, public: isPublic, showFaces, relatedShoots } = req.body;
+  var { label, desc, label_en, desc_en, password, public: isPublic, showFaces, showCuratorSelection, relatedShoots } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
   var knownSlugs = Object.keys(shoots.getData());
   var relatedList = Array.isArray(relatedShoots) ? relatedShoots : (relatedShoots ? [relatedShoots] : []);
@@ -783,6 +809,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
       password: (password || '').trim(),
       public: !!isPublic,
       showFaces: !!showFaces,
+      showCuratorSelection: !!showCuratorSelection,
     });
     await shoots.setRelatedShoots(slug, relatedList);
     res.redirect('/admin/shoots/' + slug + '/edit');
@@ -865,6 +892,7 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     await shoots.addPhoto(slug, photoEntry);
     pingSitemaps();
     indexNowSubmit('https://photo.dimazvali.com/shoot/' + slug);
+    googleIndexingSubmit('https://photo.dimazvali.com/shoot/' + slug);
 
     // Index faces, then auto-generate SEO desc+keywords (fire-and-forget, faces first so names are known)
     (async function() {
@@ -934,6 +962,7 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
       desc_en: (desc_en || '').trim(),
       type: photoType,
       panorama: !!req.body.panorama,
+      curatorPick: !!req.body.curatorPick,
     });
     await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords, seoDescEn, seoKeywordsEn);
   } catch (e) {
@@ -1165,6 +1194,7 @@ router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded(
   saveData(data);
   pingSitemaps();
   indexNowSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + newId);
+  googleIndexingSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + newId);
 
   res.redirect('/admin/shoots/' + slug + '/edit');
 });
@@ -1229,6 +1259,62 @@ router.post('/shoots/:slug/photos/reorder', requireAuth, express.json(), async (
     await shoots.reorderPhotos(slug, order);
     res.json({ ok: true });
   } catch (e) {
+    res.status(500).json({ ok: false });
+  }
+});
+
+router.post('/shoots/:slug/toggle-curator-selection', requireAuth, async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  try {
+    await shoots.saveShoot(slug, { showCuratorSelection: !shoot.showCuratorSelection });
+  } catch (e) {
+    console.error('[shoots] toggle-curator-selection error:', e);
+  }
+  res.redirect('/admin/shoots/' + slug + '/edit');
+});
+
+router.post('/shoots/:slug/photos/bulk-delete', requireAuth, express.json(), async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ ok: false });
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ ok: false });
+  var validIds = new Set(shoot.photos.map(function(p) { return p.id; }));
+  var ids = Array.isArray(req.body.ids) ? req.body.ids.filter(function(id) { return validIds.has(id); }) : [];
+  if (!ids.length) return res.status(400).json({ ok: false });
+  try {
+    await Promise.all(ids.map(async function(id) {
+      await Promise.all([
+        bucket.file('shoots/' + slug + '/' + id + '-400.webp').delete().catch(function() {}),
+        bucket.file('shoots/' + slug + '/' + id + '-800.webp').delete().catch(function() {}),
+        bucket.file('shoots/' + slug + '/' + id + '-2400.webp').delete().catch(function() {}),
+        bucket.file('shoots/' + slug + '/' + id + '-orig.webp').delete().catch(function() {}),
+      ]);
+      await shoots.removePhoto(slug, id);
+    }));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[shoots] bulk-delete error:', e);
+    res.status(500).json({ ok: false });
+  }
+});
+
+router.post('/shoots/:slug/photos/bulk-curator-pick', requireAuth, express.json(), async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ ok: false });
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ ok: false });
+  var validIds = new Set(shoot.photos.map(function(p) { return p.id; }));
+  var ids = Array.isArray(req.body.ids) ? req.body.ids.filter(function(id) { return validIds.has(id); }) : [];
+  if (!ids.length) return res.status(400).json({ ok: false });
+  var value = !!req.body.value;
+  try {
+    await Promise.all(ids.map(function(id) { return shoots.updatePhotoCuratorPick(slug, id, value); }));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[shoots] bulk-curator-pick error:', e);
     res.status(500).json({ ok: false });
   }
 });
