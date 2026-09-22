@@ -845,10 +845,11 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     var existingIds = shoot.photos.map(function(p) { return p.id; });
     var id = uniqueId(slugify((title && title.trim()) || baseName), existingIds);
 
-    var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
+    var [buf400, buf800, buf2400, bufInstagram, colorFamily, imgMeta] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer(),
       extractColorFamily(req.file.buffer),
       sharp(req.file.buffer).metadata(),
     ]);
@@ -856,12 +857,14 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     var p400  = 'shoots/' + slug + '/' + id + '-400.webp';
     var p800  = 'shoots/' + slug + '/' + id + '-800.webp';
     var p2400 = 'shoots/' + slug + '/' + id + '-2400.webp';
+    var pInstagram = 'shoots/' + slug + '/' + id + '-instagram.jpg';
     var pPano = 'shoots/' + slug + '/' + id + '-orig.webp';
 
     await Promise.all([
       bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(function() { return bucket.file(p400).makePublic(); }),
       bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(function() { return bucket.file(p800).makePublic(); }),
       bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(function() { return bucket.file(p2400).makePublic(); }),
+      bucket.file(pInstagram).save(bufInstagram, { contentType: 'image/jpeg' }).then(function() { return bucket.file(pInstagram).makePublic(); }),
       isPanorama ? savePanoAsset(req.file.buffer, pPano) : Promise.resolve(),
     ]);
 
@@ -876,9 +879,10 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
       width: imgMeta.width,
       height: imgMeta.height,
       urls: {
-        thumb:   base + '/' + p400,
-        preview: base + '/' + p800,
-        full:    base + '/' + p2400,
+        thumb:     base + '/' + p400,
+        preview:   base + '/' + p800,
+        full:      base + '/' + p2400,
+        instagram: base + '/' + pInstagram,
       },
     };
     if (isPanorama) {
@@ -982,10 +986,11 @@ router.post('/shoots/:slug/photos/:id/replace-file', requireAuth, upload.single(
   if (!req.file) return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
 
   try {
-    var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
+    var [buf400, buf800, buf2400, bufInstagram, colorFamily, imgMeta] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer(),
       extractColorFamily(req.file.buffer),
       sharp(req.file.buffer).metadata(),
     ]);
@@ -993,12 +998,14 @@ router.post('/shoots/:slug/photos/:id/replace-file', requireAuth, upload.single(
     var p400  = 'shoots/' + slug + '/' + id + '-400.webp';
     var p800  = 'shoots/' + slug + '/' + id + '-800.webp';
     var p2400 = 'shoots/' + slug + '/' + id + '-2400.webp';
+    var pInstagram = 'shoots/' + slug + '/' + id + '-instagram.jpg';
     var pPano = 'shoots/' + slug + '/' + id + '-orig.webp';
 
     await Promise.all([
       bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(function() { return bucket.file(p400).makePublic(); }),
       bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(function() { return bucket.file(p800).makePublic(); }),
       bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(function() { return bucket.file(p2400).makePublic(); }),
+      bucket.file(pInstagram).save(bufInstagram, { contentType: 'image/jpeg' }).then(function() { return bucket.file(pInstagram).makePublic(); }),
       photo.panorama ? savePanoAsset(req.file.buffer, pPano) : Promise.resolve(),
     ]);
 
@@ -1010,6 +1017,7 @@ router.post('/shoots/:slug/photos/:id/replace-file', requireAuth, upload.single(
         thumb: base + '/' + p400,
         preview: base + '/' + p800,
         full: base + '/' + p2400,
+        instagram: base + '/' + pInstagram,
       }),
     };
     if (photo.panorama) fields.urls.pano = base + '/' + pPano;

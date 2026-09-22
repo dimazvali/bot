@@ -102,6 +102,8 @@ block content
       if photo.instagram
         a.action-btn(href=photo.instagram target='_blank' rel='noopener')= ui.instagram
       if isShoot
+        if photo.urls && photo.urls.instagram
+          a.action-btn(href=`${LP}/shoot/${shootSlug}/${photo.id}/download-instagram`)= ui.downloadInstagram
         button.action-btn#add-point-btn(type='button' data-slug=shootSlug data-photo-id=photo.id)= ui.addPoint
     if !isShoot
       .photo-inquiry

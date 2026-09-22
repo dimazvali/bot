@@ -631,6 +631,31 @@ router.get('/shoot/:slug/download', async (req, res) => {
   });
 });
 
+// GET /shoot/:slug/:id/download-instagram — скачать JPG-версию фото (2400px) для инстаграма
+router.get('/shoot/:slug/:id/download-instagram', async (req, res) => {
+  var { slug, id } = req.params;
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).send('Not found');
+  var adminUser = await isAdmin(req);
+
+  requireShootAuth(shoot, slug, req, res, adminUser, function() {
+    var photo = shoot.photos.find(function(p) { return p.id === id; });
+    if (!photo || !photo.urls || !photo.urls.instagram) return res.status(404).send('Not found');
+
+    var bucket = photoAdmin.bucket;
+    var filePath = 'shoots/' + slug + '/' + id + '-instagram.jpg';
+    res.setHeader('Content-Disposition', 'attachment; filename="' + id + '.jpg"');
+    res.setHeader('Content-Type', 'image/jpeg');
+
+    var stream = bucket.file(filePath).createReadStream();
+    stream.on('error', function(err) {
+      console.error('[shoot/download-instagram] stream error:', err);
+      if (!res.headersSent) res.status(500).send('Download error');
+    });
+    stream.pipe(res);
+  });
+});
+
 // GET /shoot/:slug/:id — страница фото
 router.get('/shoot/:slug/:id', async (req, res) => {
   var lang = req.lang;

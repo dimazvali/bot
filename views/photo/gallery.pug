@@ -31,9 +31,9 @@ block content
 
   .gallery-header.gallery-header--sticky
     if isShoot
-      span.gallery-label
-        a(href=`${LP}/shoot`)= ui.allShoots
-      span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} #{ui.photosSuffix}
+      .gallery-header-left
+        a.gallery-back(href=`${LP}/shoot`) ← #{ui.allShoots}
+        span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} #{ui.photosSuffix}
       .gallery-header-right
         a.gallery-download(href=`${LP}/shoot/${shootSlug}/download`)= ui.download
         button.gallery-shuffle(onclick='shuffleMasonry()')= ui.shuffle
