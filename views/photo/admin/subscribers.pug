@@ -1,0 +1,68 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo ПОДПИСЧИКИ
+      if error
+        .admin-section
+          p.admin-hint= error
+
+      .admin-section
+        h2.admin-title ПОЛЬЗОВАТЕЛИ (GOOGLE) (#{googleUsers.length})
+        if !googleUsers.length
+          p.admin-hint Пока никто не входил через Google.
+        else
+          table.admin-table
+            thead
+              tr
+                th Профиль
+                th Email
+                th Статус
+                th Регистрация
+                th
+            tbody
+              each u in googleUsers
+                tr
+                  td
+                    .admin-user-cell
+                      if u.picture
+                        img.admin-avatar(src=u.picture alt='' referrerpolicy='no-referrer')
+                      span= u.name || '—'
+                  td= u.email || '—'
+                  td= u.active ? '✓ подписан' : 'отписан'
+                  td= u.createdAt && u.createdAt.toDate ? u.createdAt.toDate().toLocaleDateString('ru-RU') : '—'
+                  td
+                    form(method='POST' action=`/admin/subscribers/google/${u.id}/toggle`)
+                      button.admin-btn.admin-btn--sm(type='submit')= u.active ? 'отписать' : 'вернуть подписку'
+
+      .admin-section
+        h2.admin-title ПОДПИСЧИКИ (EMAIL) (#{emailSubs.length})
+        if !emailSubs.length
+          p.admin-hint Нет email-подписчиков.
+        else
+          table.admin-table
+            thead
+              tr
+                th Email
+                th Статус
+                th Регистрация
+                th
+            tbody
+              each s in emailSubs
+                tr
+                  td= s.email
+                  td= s.active ? '✓ подписан' : 'отписан'
+                  td= s.createdAt && s.createdAt.toDate ? s.createdAt.toDate().toLocaleDateString('ru-RU') : '—'
+                  td
+                    form(method='POST' action=`/admin/subscribers/email/${s.id}/toggle`)
+                      button.admin-btn.admin-btn--sm(type='submit')= s.active ? 'отписать' : 'вернуть подписку'
+
+    style.
+      .admin-user-cell { display: flex; align-items: center; gap: 8px; }
+      .admin-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }

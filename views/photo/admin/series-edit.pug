@@ -4,6 +4,12 @@ html(data-theme='dark')
     title= title
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
     link(rel='stylesheet' href='/stylesheets/photo/style.css')
+    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+    style.
+      #coords-map { width: 100%; height: 260px; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
+      #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
+      .coords-map-bar { display: flex; flex: 1 1 100%; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
   body
     .admin-wrap
       .admin-header
@@ -16,6 +22,13 @@ html(data-theme='dark')
         form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/edit`)
           input.admin-input(type='text' name='label' value=series.label placeholder='название серии')
           input.admin-input(type='text' name='label_en' value=series.label_en || '' placeholder='name (EN)')
+          p.admin-hint Центр карты (опционально — куда центрируется карта локации при редактировании фото этой серии; клик — поставить точку, перетаскивание — сдвинуть):
+          #coords-map
+          input#coords-lat(type='hidden' name='mapLat' value=(series.mapCenter ? series.mapCenter.lat : ''))
+          input#coords-lng(type='hidden' name='mapLng' value=(series.mapCenter ? series.mapCenter.lng : ''))
+          .coords-map-bar
+            span#coords-label(data-empty='не задан')= series.mapCenter ? series.mapCenter.lat.toFixed(6) + ', ' + series.mapCenter.lng.toFixed(6) : 'не задан'
+            button#coords-clear.admin-btn(type='button') Убрать точку
           button.admin-btn(type='submit') СОХРАНИТЬ
 
       .admin-section
@@ -72,3 +85,51 @@ html(data-theme='dark')
           },
         });
       }
+
+      // ── Series map-center picker: click to place, drag to adjust ──
+      (function() {
+        var el = document.getElementById('coords-map');
+        if (!el || !window.L) return;
+        var latInput = document.getElementById('coords-lat');
+        var lngInput = document.getElementById('coords-lng');
+        var label = document.getElementById('coords-label');
+        var clearBtn = document.getElementById('coords-clear');
+        var DEFAULT_CENTER = [41.7151, 44.8271];
+
+        function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+        var lat0 = num(latInput.value);
+        var lng0 = num(lngInput.value);
+
+        var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
+          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, lat0 != null ? 11 : 6);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+        var marker = null;
+        function fmt(lat, lng) { return lat.toFixed(6) + ', ' + lng.toFixed(6); }
+        function setPoint(lat, lng) {
+          latInput.value = lat;
+          lngInput.value = lng;
+          label.textContent = fmt(lat, lng);
+          if (marker) {
+            marker.setLatLng([lat, lng]);
+          } else {
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            marker.on('dragend', function() {
+              var pos = marker.getLatLng();
+              setPoint(pos.lat, pos.lng);
+            });
+          }
+        }
+        if (lat0 != null && lng0 != null) setPoint(lat0, lng0);
+
+        map.on('click', function(e) { setPoint(e.latlng.lat, e.latlng.lng); });
+
+        if (clearBtn) clearBtn.addEventListener('click', function() {
+          if (marker) { map.removeLayer(marker); marker = null; }
+          latInput.value = '';
+          lngInput.value = '';
+          label.textContent = label.getAttribute('data-empty') || '—';
+        });
+
+        setTimeout(function() { map.invalidateSize(); }, 0);
+      }());

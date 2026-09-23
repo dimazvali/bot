@@ -41,9 +41,10 @@ html(data-theme='dark')
                     if shoot.password
                       |  🔑
                   td(data-value=createdAt ? createdAt.getTime() : 0)= createdAt ? createdAt.toLocaleDateString('ru-RU') : '—'
-                  td.admin-table-actions
-                    a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') открыть
-                    a.admin-link(href=`/admin/shoots/${slug}/edit`) редактировать
+                  td
+                    .admin-table-actions
+                      a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') открыть
+                      a.admin-link(href=`/admin/shoots/${slug}/edit`) редактировать
       .admin-section
         h2.admin-title СОЗДАТЬ СЪЁМКУ
         form.admin-form(method='POST' action='/admin/shoots')

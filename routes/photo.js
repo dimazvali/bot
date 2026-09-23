@@ -4,7 +4,7 @@ var path = require('path');
 var axios = require('axios');
 var { getData } = require('../lib/photo-data');
 var { getTags } = require('../lib/photo-tags');
-var { trackView, BOT_UA_RE } = require('../lib/photo-stats');
+var { trackView, BOT_UA_RE, getStatsByType } = require('../lib/photo-stats');
 var { COLOR_FAMILIES } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var photoUsers = require('../lib/photo-users');
@@ -664,6 +664,12 @@ router.get('/shoot/:slug/:id', async (req, res) => {
   if (!rawShoot) return res.status(404).render('error', { message: 'Not found', error: {} });
   var adminUser = await isAdmin(req);
 
+  var photoViews = null;
+  if (adminUser) {
+    var viewStats = await getStatsByType('shoot-photo').catch(function() { return {}; });
+    photoViews = viewStats[slug + '/' + id] || 0;
+  }
+
   requireShootAuth(rawShoot, slug, req, res, adminUser, function() {
     var shoot = i18n.localizeShoot(rawShoot, lang);
     var photos = shoot.photos;
@@ -683,6 +689,7 @@ router.get('/shoot/:slug/:id', async (req, res) => {
       shootSlug: slug,
       backLabel: shoot.label,
       photo,
+      photoViews,
       prev,
       next,
       countryKey: null,
@@ -903,7 +910,7 @@ router.get('/:country/:series', (req, res) => {
 });
 
 // GET /:country/:series/:id — single photo page
-router.get('/:country/:series/:id', (req, res) => {
+router.get('/:country/:series/:id', async (req, res) => {
   var lang = req.lang;
   var data = i18n.localizeDataTree(getData(), lang);
   var { country: countryKey, series: seriesKey, id } = req.params;
@@ -921,6 +928,12 @@ router.get('/:country/:series/:id', (req, res) => {
   var next = idx < photos.length - 1 ? photos[idx + 1] : null;
 
   trackView('photo', countryKey + '/' + seriesKey + '/' + id, req.path, req);
+
+  var photoViews = null;
+  if (res.locals.isAdmin) {
+    var viewStats = await getStatsByType('photo').catch(function() { return {}; });
+    photoViews = viewStats[countryKey + '/' + seriesKey + '/' + id] || 0;
+  }
 
   var photoTags = new Set(photo.tags || []);
   var related = [];
@@ -958,6 +971,7 @@ router.get('/:country/:series/:id', (req, res) => {
     activeCountry: countryKey,
     activeSeries: seriesKey,
     photo,
+    photoViews,
     prev,
     next,
     countryKey,

@@ -70,6 +70,8 @@ block content
             | #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
         if !isShoot && sourceShootUrl
           a.photo-source-shoot(href=sourceShootUrl) #{ui.fromShoot} #{sourceShootLabel.toUpperCase()} →
+        if isAdmin && photoViews != null
+          .photo-page-views(title='видно только админам') 👁 #{photoViews}
       .photo-page-nav
         if prev
           a.nav-btn(

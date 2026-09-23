@@ -577,6 +577,7 @@ body { background: var(--bg); color: var(--text); font-family: -apple-system, Bl
   transition: color 0.15s;
 }
 .photo-source-shoot:hover { color: var(--accent); }
+.photo-page-views { display: block; font-size: 0.5625rem; letter-spacing: 2px; font-family: monospace; color: var(--text-dim); margin-top: 6px; }
 
 .photo-page-nav { display: flex; gap: 8px; }
 .nav-btn {

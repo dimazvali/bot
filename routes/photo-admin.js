@@ -8,7 +8,7 @@ var exifr = require('exifr');
 var { getData, saveData, initFromFirestore } = require('../lib/photo-data');
 var { getTags, saveTags, initTagsFromFirestore } = require('../lib/photo-tags');
 var photoStats = require('../lib/photo-stats');
-var { extractColorFamily } = require('../lib/color-utils');
+var { extractColorFamily, COLOR_FAMILIES } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
@@ -288,6 +288,29 @@ router.post('/feedback/mark-delete', requireAuth, express.urlencoded({ extended:
     await shoots.removeAnnotation(slug, photoId, annotId).catch(function(e) { console.error('[feedback mark-delete]', e.message); });
   }
   res.redirect('/admin/feedback');
+});
+
+router.get('/subscribers', requireAuth, async (req, res) => {
+  try {
+    var [emailSubs, googleUsers] = await Promise.all([
+      subscriptions.listAll(),
+      photoUsers.listAll(),
+    ]);
+    res.render('photo/admin/subscribers', { title: 'Подписчики — AERO Admin', emailSubs, googleUsers, error: null });
+  } catch (err) {
+    console.error('[subscribers] list error:', err.message);
+    res.render('photo/admin/subscribers', { title: 'Подписчики — AERO Admin', emailSubs: [], googleUsers: [], error: err.message });
+  }
+});
+
+router.post('/subscribers/email/:id/toggle', requireAuth, async (req, res) => {
+  await subscriptions.toggleActive(req.params.id).catch(function(e) { console.error('[subscribers] toggle email error:', e.message); });
+  res.redirect('/admin/subscribers');
+});
+
+router.post('/subscribers/google/:id/toggle', requireAuth, async (req, res) => {
+  await photoUsers.toggleActive(req.params.id).catch(function(e) { console.error('[subscribers] toggle google error:', e.message); });
+  res.redirect('/admin/subscribers');
 });
 
 var ENTITY_TYPE_ORDER = ['country', 'series', 'photo', 'shoot', 'shoot-photo'];
@@ -931,18 +954,21 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
   }
 });
 
-router.get('/shoots/:slug/photos/:id/edit', requireAuth, (req, res) => {
+router.get('/shoots/:slug/photos/:id/edit', requireAuth, async (req, res) => {
   var { slug, id } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.redirect('/admin/shoots');
   var photo = shoot.photos.find(function(p) { return p.id === id; });
   if (!photo) return res.redirect('/admin/shoots/' + slug + '/edit');
+  var viewStats = await photoStats.getStatsByType('shoot-photo').catch(function() { return {}; });
   res.render('photo/admin/shoot-photo-edit', {
     title: photo.title + ' — AERO Admin',
     slug,
     shootLabel: shoot.label,
     photo,
+    photoViews: viewStats[slug + '/' + id] || 0,
+    colorFamilies: COLOR_FAMILIES,
   });
 });
 
@@ -957,16 +983,41 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   var seoDescEn = (req.body.seo_desc_en || '').trim();
   var seoKeywordsEn = (req.body.seo_keywords_en || '').trim();
   if (!title || !title.trim()) return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
+  var latRaw = parseFloat(req.body.lat);
+  var lngRaw = parseFloat(req.body.lng);
+  var coords = (!isNaN(latRaw) && !isNaN(lngRaw) && Math.abs(latRaw) <= 90 && Math.abs(lngRaw) <= 180)
+    ? { lat: latRaw, lng: lngRaw }
+    : null;
+  var colorFamily = COLOR_FAMILIES[req.body.colorFamily] ? req.body.colorFamily : null;
+  var titleTrim = title.trim();
+  var descTrim = (desc || '').trim();
+  var titleEnTrim = (title_en || '').trim();
+  var descEnTrim = (desc_en || '').trim();
   try {
+    if (!titleEnTrim || (descTrim && !descEnTrim)) {
+      try {
+        var { translateTitleDesc } = require('../lib/photo-seo');
+        var translated = await translateTitleDesc({
+          title: !titleEnTrim ? titleTrim : null,
+          desc: (descTrim && !descEnTrim) ? descTrim : null,
+        });
+        if (translated.title) titleEnTrim = translated.title;
+        if (translated.desc) descEnTrim = translated.desc;
+      } catch (e) {
+        console.error('[shoots] auto-translate error:', e.message);
+      }
+    }
     await shoots.updatePhoto(slug, id, {
-      title: title.trim(),
-      title_en: (title_en || '').trim(),
+      title: titleTrim,
+      title_en: titleEnTrim,
       date: (date || '').trim(),
-      desc: (desc || '').trim(),
-      desc_en: (desc_en || '').trim(),
+      desc: descTrim,
+      desc_en: descEnTrim,
       type: photoType,
       panorama: !!req.body.panorama,
       curatorPick: !!req.body.curatorPick,
+      coords: coords,
+      colorFamily: colorFamily,
     });
     await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords, seoDescEn, seoKeywordsEn);
   } catch (e) {
@@ -1509,6 +1560,13 @@ router.post('/:country/:series/edit', requireAuth, (req, res) => {
   if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
   data[country].series[seriesKey].label = label.trim();
   if (label_en && label_en.trim()) { data[country].series[seriesKey].label_en = label_en.trim(); } else { delete data[country].series[seriesKey].label_en; }
+  var mapLatRaw = parseFloat(req.body.mapLat);
+  var mapLngRaw = parseFloat(req.body.mapLng);
+  if (!isNaN(mapLatRaw) && !isNaN(mapLngRaw) && Math.abs(mapLatRaw) <= 90 && Math.abs(mapLngRaw) <= 180) {
+    data[country].series[seriesKey].mapCenter = { lat: mapLatRaw, lng: mapLngRaw };
+  } else {
+    delete data[country].series[seriesKey].mapCenter;
+  }
   saveData(data);
   res.redirect(`/admin/${country}/${seriesKey}/edit`);
 });
@@ -1577,7 +1635,7 @@ router.post('/:country/:series/reorder-photos', requireAuth, express.json(), (re
   res.json({ ok: true });
 });
 
-router.get('/:country/:series/:id/edit', requireAuth, (req, res) => {
+router.get('/:country/:series/:id/edit', requireAuth, async (req, res) => {
   var { country, series: seriesKey, id } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
     return res.redirect('/admin');
@@ -1586,12 +1644,16 @@ router.get('/:country/:series/:id/edit', requireAuth, (req, res) => {
   if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
   var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
   if (!photo) return res.redirect('/admin');
+  var viewStats = await photoStats.getStatsByType('photo').catch(function() { return {}; });
   res.render('photo/admin/photo-edit', {
     title: `${photo.title} — AERO Admin`,
     countryKey: country,
     seriesKey,
     photo,
+    photoViews: viewStats[country + '/' + seriesKey + '/' + id] || 0,
+    seriesMapCenter: data[country].series[seriesKey].mapCenter || null,
     tags: getTags(),
+    colorFamilies: COLOR_FAMILIES,
   });
 });
 
@@ -1628,6 +1690,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (title_en && title_en.trim()) { photo.title_en = title_en.trim(); } else { delete photo.title_en; }
   if (desc_en && desc_en.trim()) { photo.desc_en = desc_en.trim(); } else { delete photo.desc_en; }
   if (instagramUrl) { photo.instagram = instagramUrl; } else { delete photo.instagram; }
+  var needsTranslation = !photo.title_en || (photo.desc && !photo.desc_en);
   if (!isNaN(latRaw) && !isNaN(lngRaw) && Math.abs(latRaw) <= 90 && Math.abs(lngRaw) <= 180) {
     photo.coords = { lat: latRaw, lng: lngRaw };
   } else {
@@ -1666,6 +1729,23 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
       photo.width = imgMeta.width;
       photo.height = imgMeta.height;
       if (colorFamily) photo.colorFamily = colorFamily;
+    } else if (COLOR_FAMILIES[req.body.colorFamily]) {
+      photo.colorFamily = req.body.colorFamily;
+    } else {
+      delete photo.colorFamily;
+    }
+    if (needsTranslation) {
+      try {
+        var { translateTitleDesc } = require('../lib/photo-seo');
+        var translated = await translateTitleDesc({
+          title: !photo.title_en ? photo.title : null,
+          desc: (photo.desc && !photo.desc_en) ? photo.desc : null,
+        });
+        if (translated.title) photo.title_en = translated.title;
+        if (translated.desc) photo.desc_en = translated.desc;
+      } catch (e) {
+        console.error('[photo-edit] auto-translate error:', e.message);
+      }
     }
     saveData(data);
     res.redirect(`/admin/${country}/${seriesKey}/edit`);

@@ -4,11 +4,14 @@ html(data-theme='dark')
     title= title
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
     link(rel='stylesheet' href='/stylesheets/photo/style.css')
+    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
   body
     .admin-wrap
       .admin-header
         a.admin-back(href=`/admin/${countryKey}/${seriesKey}/edit`) ← назад
         span.admin-logo= photo.title
+        span.admin-hint 👁 #{photoViews}
 
       .admin-section
         h2.admin-title РЕДАКТИРОВАТЬ ФОТО
@@ -19,6 +22,16 @@ html(data-theme='dark')
               each a in (photo.annotations || [])
                 .annot-marker(style=`left:${a.x}%;top:${a.y}%;` data-id=a.id title=a.text) i
             a.admin-link(href=`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(photo.urls.full || photo.urls.preview)}` target='_blank' rel='noopener' style='display:inline-block;margin-top:6px;font-size:.6875rem') 🔍 Проверить в Google Lens
+          if colorFamilies
+            p.admin-hint ЦВЕТ (определяется автоматически при загрузке; можно скорректировать):
+            .color-radio-group
+              label.color-radio-label(title='нет')
+                input(type='radio' form='photo-edit-form' name='colorFamily' value='' checked=!photo.colorFamily)
+                span(style='background:transparent;')
+              each fam, key in colorFamilies
+                label.color-radio-label(title=fam.label)
+                  input(type='radio' form='photo-edit-form' name='colorFamily' value=key checked=(photo.colorFamily === key))
+                  span(style=`background:${fam.hex}`)
           if photo.annotations && photo.annotations.length
             .annot-list
               p.admin-hint АННОТАЦИИ:
@@ -38,7 +51,7 @@ html(data-theme='dark')
             .annot-form-btns(style='display:flex;gap:8px;')
               button#annot-save-btn.admin-btn(type='button') Сохранить
               button#annot-cancel-btn.admin-btn(type='button') Отмена
-        form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit` enctype='multipart/form-data')
+        form#photo-edit-form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit` enctype='multipart/form-data')
           input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
           input.admin-input(type='text' name='title_en' value=photo.title_en || '' placeholder='title (EN)')
           p.admin-hint ЗАМЕНИТЬ ФАЙЛ (необязательно):
@@ -54,9 +67,13 @@ html(data-theme='dark')
           input.admin-input(type='text' name='seo_desc_en' value=photo.seo_desc_en || '' placeholder='meta description (EN, SEO)')
           input.admin-input(type='text' name='seo_keywords_en' value=photo.seo_keywords_en || '' placeholder='keywords (EN, SEO)')
           input.admin-input(type='url' name='instagram' value=photo.instagram || '' placeholder='ссылка на публикацию в instagram (необязательно)')
-          .admin-coords
-            input.admin-input(type='text' name='lat' value=(photo.coords ? photo.coords.lat : '') placeholder='широта (напр. 41.693)')
-            input.admin-input(type='text' name='lng' value=(photo.coords ? photo.coords.lng : '') placeholder='долгота (напр. 44.801)')
+          p.admin-hint ЛОКАЦИЯ (клик — поставить точку, перетаскивание — сдвинуть):
+          #coords-map
+          input#coords-lat(type='hidden' name='lat' value=(photo.coords ? photo.coords.lat : ''))
+          input#coords-lng(type='hidden' name='lng' value=(photo.coords ? photo.coords.lng : ''))
+          .coords-map-bar
+            span#coords-label(data-empty='точка не задана')= (photo.coords) ? photo.coords.lat.toFixed(6) + ', ' + photo.coords.lng.toFixed(6) : 'точка не задана'
+            button#coords-clear.admin-btn(type='button') Убрать точку
           input.admin-input(type='number' name='altitude' value=(photo.altitude != null ? photo.altitude : '') placeholder='высота над уровнем моря (м)')
           p.admin-hint ТИП СЪЁМКИ:
           .type-radio-group
@@ -100,6 +117,14 @@ html(data-theme='dark')
       .admin-btn-ai:hover { background: #2a2a4e; }
       .admin-btn-ai:disabled { opacity: .4; cursor: wait; }
       #gen-seo-status { font-size: .75rem; margin: 2px 0 0; }
+      #coords-map { width: 100%; height: 260px; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
+      #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
+      .coords-map-bar { display: flex; flex: 1 1 100%; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
+      .color-radio-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 12px; }
+      .color-radio-label { cursor: pointer; }
+      .color-radio-label input { display: none; }
+      .color-radio-label span { display: block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); box-sizing: border-box; }
+      .color-radio-label input:checked + span { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
 
     script.
       // ── Annotation canvas ──
@@ -249,3 +274,52 @@ html(data-theme='dark')
           btn.textContent = '🤖';
         }
       });
+
+      // ── Location map: click to place, drag to adjust ──
+      (function() {
+        var el = document.getElementById('coords-map');
+        if (!el || !window.L) return;
+        var latInput = document.getElementById('coords-lat');
+        var lngInput = document.getElementById('coords-lng');
+        var label = document.getElementById('coords-label');
+        var clearBtn = document.getElementById('coords-clear');
+        var SERIES_CENTER = !{typeof seriesMapCenter !== 'undefined' && seriesMapCenter ? JSON.stringify([seriesMapCenter.lat, seriesMapCenter.lng]) : 'null'};
+        var DEFAULT_CENTER = SERIES_CENTER || [41.7151, 44.8271];
+
+        function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+        var lat0 = num(latInput.value);
+        var lng0 = num(lngInput.value);
+
+        var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
+          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, lat0 != null ? 13 : (SERIES_CENTER ? 12 : 6));
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+        var marker = null;
+        function fmt(lat, lng) { return lat.toFixed(6) + ', ' + lng.toFixed(6); }
+        function setPoint(lat, lng) {
+          latInput.value = lat;
+          lngInput.value = lng;
+          label.textContent = fmt(lat, lng);
+          if (marker) {
+            marker.setLatLng([lat, lng]);
+          } else {
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            marker.on('dragend', function() {
+              var pos = marker.getLatLng();
+              setPoint(pos.lat, pos.lng);
+            });
+          }
+        }
+        if (lat0 != null && lng0 != null) setPoint(lat0, lng0);
+
+        map.on('click', function(e) { setPoint(e.latlng.lat, e.latlng.lng); });
+
+        if (clearBtn) clearBtn.addEventListener('click', function() {
+          if (marker) { map.removeLayer(marker); marker = null; }
+          latInput.value = '';
+          lngInput.value = '';
+          label.textContent = label.getAttribute('data-empty') || '—';
+        });
+
+        setTimeout(function() { map.invalidateSize(); }, 0);
+      }());
