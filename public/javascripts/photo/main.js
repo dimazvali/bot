@@ -3,19 +3,38 @@
 
   // Beacon any outbound Instagram link click, site-wide — delegated, so it
   // covers the promo card, sidebar contact link, per-photo IG link, everything,
-  // without needing a per-template hook. See POST /track/instagram-click.
+  // without needing a per-template hook. See POST /ig-click.
   document.addEventListener('click', function (e) {
     var a = e.target.closest('a[href*="instagram.com"]');
     if (!a) return;
     var payload = JSON.stringify({ path: location.pathname });
     try {
       if (navigator.sendBeacon) {
-        navigator.sendBeacon('/track/instagram-click', new Blob([payload], { type: 'application/json' }));
+        navigator.sendBeacon('/ig-click', new Blob([payload], { type: 'application/json' }));
       } else {
-        fetch('/track/instagram-click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
+        fetch('/ig-click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
       }
     } catch (err) {}
   });
+
+  // ── Instagram promo card: closable, stays hidden for ~2 weeks once dismissed ──
+  (function () {
+    var COOKIE_NAME = 'photoIgDismiss';
+    function hasDismissCookie() {
+      return document.cookie.split('; ').some(function (c) { return c.indexOf(COOKIE_NAME + '=') === 0; });
+    }
+    if (hasDismissCookie()) {
+      document.querySelectorAll('.photo-card--promo').forEach(function (card) { card.remove(); });
+      return;
+    }
+    document.querySelectorAll('.photo-card-promo-close').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.cookie = COOKIE_NAME + '=1; max-age=1209600; path=/';
+        var card = btn.closest('.photo-card--promo');
+        if (card) card.remove();
+      });
+    });
+  }());
 
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);

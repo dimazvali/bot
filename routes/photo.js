@@ -93,13 +93,16 @@ router.use(function(req, res, next) {
   next();
 });
 
-// POST /track/instagram-click — beacon fired by main.js on any outbound Instagram
-// link click. Logs into the same photo_stats/photo_views store as page views
-// (entityType 'instagram', entityId = the page the click happened on) so it
-// shows up in /admin/stats, and pings the owner's Telegram (rate-limited, skips
-// admin/bots) for a near-real-time heads-up.
+// POST /ig-click — beacon fired by main.js on any outbound Instagram link click.
+// Deliberately NOT named /track/... or /analytics/... — generic ad/privacy
+// blocklists (EasyPrivacy etc.) match those path segments and silently drop
+// the request client-side, which looks exactly like "notifications don't fire".
+// Logs into the same photo_stats/photo_views store as page views (entityType
+// 'instagram', entityId = the page the click happened on) so it shows up in
+// /admin/stats, and pings the owner's Telegram (rate-limited, skips admin/bots)
+// for a near-real-time heads-up.
 var igClickNotifLastSent = 0;
-router.post('/track/instagram-click', express.json(), function(req, res) {
+router.post('/ig-click', express.json(), function(req, res) {
   res.status(204).end();
   if (res.locals.isAdmin) return;
   var pagePath = (req.body && typeof req.body.path === 'string' && req.body.path.slice(0, 200)) || 'unknown';

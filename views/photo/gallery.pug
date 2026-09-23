@@ -120,7 +120,7 @@ block content
           button.type-filter-btn(data-type=t title=t)
             +typeIcon(t)
   .masonry
-    - var _igCardAt = !isShoot ? Math.floor(Math.random() * (photos.length + 1)) : -1
+    - var _igCardAt = Math.floor(Math.random() * (photos.length + 1))
     - var _actionCardAt = _actionCardType ? Math.floor(Math.random() * (photos.length + 1)) : -1
     each photo, _pi in photos
       if _pi === _igCardAt
