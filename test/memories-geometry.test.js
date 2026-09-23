@@ -54,3 +54,34 @@ test('photoScale: never returns exactly 0 for a visible-but-far photo (fades in,
   var s = photoScale(199, 200, 50);
   assert.ok(s > 0);
 });
+
+// Wall-orientation viewing angle (public/javascripts/memories/ar.js) is
+// built directly from these two primitives — composed here, not a separate
+// function, but the composition's direction matters: it's the bearing FROM
+// the photo TO the viewer, compared against the photo's own outward-facing
+// bearing, not the other way around. These pin that down.
+test('wall orientation: viewer due East of a photo facing East sees it straight-on', function() {
+  var photo = { lat: 0, lng: 0 };
+  var viewer = { lat: 0, lng: 1 }; // due east of the photo
+  var bearingFromPhotoToViewer = bearingDegrees(photo, viewer);
+  var viewAngle = angleDiffDegrees(bearingFromPhotoToViewer, /* orientation */ 90);
+  assert.ok(Math.abs(viewAngle) < 0.5, 'got ' + viewAngle);
+});
+
+test('wall orientation: viewer level with an East-facing wall sees it edge-on (~90)', function() {
+  var photo = { lat: 0, lng: 0 };
+  var viewer = { lat: 1, lng: 0 }; // due north of the photo
+  var bearingFromPhotoToViewer = bearingDegrees(photo, viewer);
+  var viewAngle = angleDiffDegrees(bearingFromPhotoToViewer, /* orientation */ 90);
+  assert.ok(Math.abs(Math.abs(viewAngle) - 90) < 0.5, 'got ' + viewAngle);
+});
+
+test('wall orientation: viewer due West of an East-facing wall is behind it (~180)', function() {
+  var photo = { lat: 0, lng: 0 };
+  var viewer = { lat: 0, lng: -1 }; // due west of the photo
+  var bearingFromPhotoToViewer = bearingDegrees(photo, viewer);
+  var viewAngle = angleDiffDegrees(bearingFromPhotoToViewer, /* orientation */ 90);
+  // ar.js doesn't hide the card at this angle anymore — it shows the back
+  // face (.ar-photo-back) instead. This just confirms the angle itself.
+  assert.ok(Math.abs(viewAngle) > 150, 'got ' + viewAngle);
+});

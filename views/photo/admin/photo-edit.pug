@@ -23,14 +23,11 @@ html(data-theme='dark')
                 .annot-marker(style=`left:${a.x}%;top:${a.y}%;` data-id=a.id title=a.text) i
             a.admin-link(href=`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(photo.urls.full || photo.urls.preview)}` target='_blank' rel='noopener' style='display:inline-block;margin-top:6px;font-size:.6875rem') 🔍 Проверить в Google Lens
           if colorFamilies
-            p.admin-hint ЦВЕТ (определяется автоматически при загрузке; можно скорректировать):
+            p.admin-hint ЦВЕТ (определяется автоматически при загрузке, можно несколько; можно скорректировать):
             .color-radio-group
-              label.color-radio-label(title='нет')
-                input(type='radio' form='photo-edit-form' name='colorFamily' value='' checked=!photo.colorFamily)
-                span(style='background:transparent;')
               each fam, key in colorFamilies
                 label.color-radio-label(title=fam.label)
-                  input(type='radio' form='photo-edit-form' name='colorFamily' value=key checked=(photo.colorFamily === key))
+                  input(type='checkbox' form='photo-edit-form' name='colorFamilies' value=key checked=(photoColors.indexOf(key) !== -1))
                   span(style=`background:${fam.hex}`)
           if photo.annotations && photo.annotations.length
             .annot-list
@@ -291,7 +288,7 @@ html(data-theme='dark')
         var lng0 = num(lngInput.value);
 
         var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
-          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, lat0 != null ? 13 : (SERIES_CENTER ? 12 : 6));
+          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, SERIES_CENTER ? 15 : (lat0 != null ? 13 : 6));
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
         var marker = null;

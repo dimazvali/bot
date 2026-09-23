@@ -5,7 +5,7 @@ var axios = require('axios');
 var { getData } = require('../lib/photo-data');
 var { getTags } = require('../lib/photo-tags');
 var { trackView, BOT_UA_RE, getStatsByType } = require('../lib/photo-stats');
-var { COLOR_FAMILIES } = require('../lib/color-utils');
+var { COLOR_FAMILIES, getPhotoColorFamilies } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var photoUsers = require('../lib/photo-users');
 var { OAuth2Client } = require('google-auth-library');
@@ -91,6 +91,25 @@ router.use(function(req, res, next) {
   } catch (e) { res.locals.photoUser = null; }
   res.locals.googleClientId = process.env.GOOGLE_CLIENT_ID || '';
   next();
+});
+
+// POST /track/instagram-click — beacon fired by main.js on any outbound Instagram
+// link click. Logs into the same photo_stats/photo_views store as page views
+// (entityType 'instagram', entityId = the page the click happened on) so it
+// shows up in /admin/stats, and pings the owner's Telegram (rate-limited, skips
+// admin/bots) for a near-real-time heads-up.
+var igClickNotifLastSent = 0;
+router.post('/track/instagram-click', express.json(), function(req, res) {
+  res.status(204).end();
+  if (res.locals.isAdmin) return;
+  var pagePath = (req.body && typeof req.body.path === 'string' && req.body.path.slice(0, 200)) || 'unknown';
+  trackView('instagram', pagePath, pagePath, req);
+  if (BOT_UA_RE.test(req.headers['user-agent'] || '')) return;
+  var now = Date.now();
+  if (!igClickNotifLastSent || now - igClickNotifLastSent > 5 * 60 * 1000) {
+    igClickNotifLastSent = now;
+    tgSend('<b>📸 Переход в Instagram</b>\n' + pagePath);
+  }
 });
 
 var BASE = 'https://photo.dimazvali.com';
@@ -215,7 +234,7 @@ router.get('/color/:family', function(req, res) {
   var { family } = req.params;
   if (!COLOR_FAMILIES[family]) return res.status(404).render('error', { message: 'Not found', error: {} });
   var data = i18n.localizeDataTree(getData(), lang);
-  var photos = getAllPhotos(data).filter(function(p) { return p.colorFamily === family; });
+  var photos = getAllPhotos(data).filter(function(p) { return getPhotoColorFamilies(p).indexOf(family) !== -1; });
   var info = i18n.localizeColorFamilies(COLOR_FAMILIES, lang)[family];
   res.render('photo/color-gallery', {
     data,

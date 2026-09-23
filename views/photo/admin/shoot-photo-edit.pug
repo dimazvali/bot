@@ -22,14 +22,11 @@ html(data-theme='dark')
               each a in (photo.annotations || [])
                 .annot-marker(style=`left:${a.x}%;top:${a.y}%;` data-id=a.id title=a.text) i
           if colorFamilies
-            p.admin-hint ЦВЕТ (определяется автоматически при загрузке; можно скорректировать):
+            p.admin-hint ЦВЕТ (определяется автоматически при загрузке, можно несколько; можно скорректировать):
             .color-radio-group
-              label.color-radio-label(title='нет')
-                input(type='radio' form='shoot-photo-edit-form' name='colorFamily' value='' checked=!photo.colorFamily)
-                span(style='background:transparent;')
               each fam, key in colorFamilies
                 label.color-radio-label(title=fam.label)
-                  input(type='radio' form='shoot-photo-edit-form' name='colorFamily' value=key checked=(photo.colorFamily === key))
+                  input(type='checkbox' form='shoot-photo-edit-form' name='colorFamilies' value=key checked=(photoColors.indexOf(key) !== -1))
                   span(style=`background:${fam.hex}`)
           if photo.annotations && photo.annotations.length
             .annot-list
@@ -276,14 +273,15 @@ html(data-theme='dark')
         var lngInput = document.getElementById('coords-lng');
         var label = document.getElementById('coords-label');
         var clearBtn = document.getElementById('coords-clear');
-        var DEFAULT_CENTER = [41.7151, 44.8271];
+        var SHOOT_CENTER = !{typeof shootMapCenter !== 'undefined' && shootMapCenter ? JSON.stringify([shootMapCenter.lat, shootMapCenter.lng]) : 'null'};
+        var DEFAULT_CENTER = SHOOT_CENTER || [41.7151, 44.8271];
 
         function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
         var lat0 = num(latInput.value);
         var lng0 = num(lngInput.value);
 
         var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
-          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, lat0 != null ? 13 : 6);
+          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, SHOOT_CENTER ? 15 : (lat0 != null ? 13 : 6));
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
 
         var marker = null;

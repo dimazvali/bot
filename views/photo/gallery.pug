@@ -2,6 +2,20 @@ extends layout
 include mixins
 
 block head
+  -
+    var _mapEligible = isShoot || (activeCountry && activeSeries)
+    var _mapLp = lang === 'en' ? '/en' : ''
+    var _mapPoints = _mapEligible ? (photos || []).filter(function(p) { return p.coords; }).map(function(p) {
+      return {
+        lat: p.coords.lat,
+        lng: p.coords.lng,
+        title: p.title,
+        href: isShoot ? (_mapLp + '/shoot/' + shootSlug + '/' + p.id) : (_mapLp + '/' + p.countryKey + '/' + p.seriesKey + '/' + p.id),
+      }
+    }) : []
+  if _mapPoints.length
+    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
   if ogUrl && photos && photos.length
     -
       var _lp = lang === 'en' ? '/en' : ''
@@ -37,12 +51,18 @@ block content
       .gallery-header-right
         a.gallery-download(href=`${LP}/shoot/${shootSlug}/download`)= ui.download
         button.gallery-shuffle(onclick='shuffleMasonry()')= ui.shuffle
+        button.gallery-shuffle(onclick='startPresentation()')= ui.present
+        if _mapPoints.length
+          button.gallery-shuffle.gallery-map-trigger(type='button')= ui.mapToggle
     else if activeCountry && activeSeries
       - const country = data[activeCountry]
       - const series = country.series[activeSeries]
       span.gallery-label #{country.label.toUpperCase()} · #{series.label.toUpperCase()} · #{photos.length} #{ui.photosSuffix}
       .gallery-header-right
         button.gallery-shuffle(onclick='shuffleMasonry()')= ui.shuffle
+        button.gallery-shuffle(onclick='startPresentation()')= ui.present
+        if _mapPoints.length
+          button.gallery-shuffle.gallery-map-trigger(type='button')= ui.mapToggle
         if isAdmin
           a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/upload`)= ui.addPhoto
           a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/edit`)= ui.editSeries
@@ -53,6 +73,10 @@ block content
         button.gallery-shuffle(onclick='shuffleMasonry()')= ui.shuffle
     else
       span.gallery-label #{ui.allWorks} · #{photos.length} #{ui.photosSuffix}
+  if _mapPoints.length
+    #gallery-map-panel.gallery-map-panel(style='display:none')
+      #gallery-map.gallery-map-canvas
+    script#gallery-map-data(type='application/json')!= JSON.stringify(_mapPoints)
   if isShoot && peopleGroups && peopleGroups.length
     .faces-widget#faces-widget
       each g in peopleGroups
@@ -74,6 +98,11 @@ block content
   -
     var _types = photos.reduce(function(s,p){ s.add(p.type||'copter'); return s; }, new Set());
     var _showFilter = _types.size > 1;
+    var _photoUserSubscribed = typeof photoUser !== 'undefined' && photoUser && photoUser.subscribed
+    // Feed action-card (map-view / subscribe tile) — disabled for now pending a
+    // design pass; logic and markup stay in place, just force it off.
+    var _actionCardEnabled = false
+    var _actionCardType = _actionCardEnabled ? (_mapPoints.length ? 'map' : (!_photoUserSubscribed ? 'subscribe' : null)) : null
     var _faceKeyByFaceId = {};
     if (isShoot && peopleGroups) {
       peopleGroups.forEach(function(g) {
@@ -92,13 +121,17 @@ block content
             +typeIcon(t)
   .masonry
     - var _igCardAt = !isShoot ? Math.floor(Math.random() * (photos.length + 1)) : -1
+    - var _actionCardAt = _actionCardType ? Math.floor(Math.random() * (photos.length + 1)) : -1
     each photo, _pi in photos
       if _pi === _igCardAt
         +instagramCard()
+      if _pi === _actionCardAt
+        +actionCard(_actionCardType)
       a.photo-card(
         href=isShoot ? `${LP}/shoot/${shootSlug}/${photo.id}` : `${LP}/${photo.countryKey}/${photo.seriesKey}/${photo.id}`
         data-type=photo.type||'copter'
         data-photo-id=photo.id
+        data-full=photo.urls ? (photo.urls.full || photo.urls.preview) : undefined
         data-person-keys=(isShoot && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined
         data-curator-hidden=photo._curatorExtra ? '' : undefined
       )
@@ -123,6 +156,13 @@ block content
             span.photo-date= photo.date
     if _igCardAt === photos.length
       +instagramCard()
+    if _actionCardAt === photos.length
+      +actionCard(_actionCardType)
+
+  if isShoot || (activeCountry && activeSeries)
+    .presentation-overlay#presentation-overlay
+      button.presentation-close#presentation-close(type='button' aria-label=ui.cancel) ×
+      img.presentation-img#presentation-img(alt='')
 
   if curatorSelectionActive
     button.curator-show-all#curator-show-all(type='button')= ui.showAllPhotos

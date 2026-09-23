@@ -298,17 +298,38 @@
   }
 
   var HALF_FOV_DEG = 35; // assumed horizontal field of view half-angle
+
+  // "Hang on a wall" orientation: photo.orientation (compass bearing the
+  // photo's face points outward, from the admin) vs. the bearing FROM the
+  // photo TO the viewer decides how face-on the card looks. 0 = viewer
+  // straight in front (flat, no foreshortening); ±90 = edge-on; beyond that
+  // the card has turned past its edge and shows its back face (ensureEl) —
+  // it stays visible all the way round, just flips which face is showing.
+  var WALL_PERSPECTIVE_PX = 500;
   var overlay = document.getElementById('ar-overlay');
   var els = {}; // photo id -> <img>
 
+  // A photo with a wall orientation is a two-sided card, not just an <img>:
+  // .ar-photo-face is the real photo (front), .ar-photo-back is a neutral
+  // placeholder pre-rotated 180° so it only shows once the wrapper itself
+  // has turned past 90° — i.e. once the viewer has walked around to the
+  // side that isn't the photo's face. Both use backface-visibility:hidden
+  // so exactly one is ever showing.
   function ensureEl(photo) {
     if (els[photo.id]) return els[photo.id];
+    var wrap = document.createElement('div');
+    wrap.className = 'ar-photo-frame';
     var img = document.createElement('img');
-    img.className = 'ar-photo';
+    img.className = 'ar-photo-face';
     img.src = photo.url;
-    overlay.appendChild(img);
-    els[photo.id] = img;
-    return img;
+    var back = document.createElement('div');
+    back.className = 'ar-photo-back';
+    wrap.appendChild(img);
+    wrap.appendChild(back);
+    overlay.appendChild(wrap);
+    var entry = { wrap: wrap, img: img, back: back };
+    els[photo.id] = entry;
+    return entry;
   }
 
   function renderFrame() {
@@ -320,19 +341,31 @@
     }
     var vw = window.innerWidth, vh = window.innerHeight;
     AR_DATA.photos.forEach(function(photo) {
-      var el = ensureEl(photo);
+      var entry = ensureEl(photo);
+      var el = entry.wrap;
       var distance = haversineMeters(state, photo);
       var bearing = bearingDegrees(state, photo);
       var angleDiff = angleDiffDegrees(bearing, state.heading);
       var inFov = Math.abs(angleDiff) <= HALF_FOV_DEG;
+
+      // Wall orientation, if this photo has one: how face-on the viewer's
+      // current position is. Doesn't hide the photo anymore — walking
+      // around to the far side just turns the card past 90° and its back
+      // face (pre-rotated 180°, see ensureEl) takes over from the front.
+      var viewAngle = null;
+      if (photo.orientation != null) {
+        var bearingFromPhoto = bearingDegrees(photo, state);
+        viewAngle = angleDiffDegrees(bearingFromPhoto, photo.orientation);
+      }
+
       var visible = distance <= AR_DATA.settings.minVisibleDistance && inFov;
       var scale = visible ? photoScale(distance, AR_DATA.settings.minVisibleDistance, AR_DATA.settings.fullSizeDistance) : 0;
-      photoDebug.push({ id: photo.id, distance: distance, bearing: bearing, angleDiff: angleDiff, visible: visible, scale: scale });
+      photoDebug.push({ id: photo.id, distance: distance, bearing: bearing, angleDiff: angleDiff, visible: visible, scale: scale, orientation: photo.orientation, viewAngle: viewAngle });
       if (!visible) {
         el.style.display = 'none';
         return;
       }
-      var naturalW = el.naturalWidth || 1600, naturalH = el.naturalHeight || 1200;
+      var naturalW = entry.img.naturalWidth || 1600, naturalH = entry.img.naturalHeight || 1200;
       var maxScale = Math.min(vw / naturalW, vh / naturalH);
       var w = naturalW * maxScale * scale;
       var h = naturalH * maxScale * scale;
@@ -344,6 +377,13 @@
       el.style.left = (screenX - w / 2) + 'px';
       el.style.top = (screenY - h / 2) + 'px';
       el.style.opacity = String(Math.max(0.15, scale));
+      // Negated: viewAngle is bearingFromPhoto - orientation (compass,
+      // clockwise-positive), but CSS rotateY's positive direction recedes
+      // the element's right edge — for a viewer who has moved toward the
+      // photo's own left side (viewAngle negative in compass terms) we
+      // need the right edge to recede, i.e. a *positive* rotateY. Worked
+      // through by hand (see conversation), not yet confirmed on-device.
+      el.style.transform = viewAngle != null ? 'perspective(' + WALL_PERSPECTIVE_PX + 'px) rotateY(' + (-viewAngle) + 'deg)' : '';
     });
     debug.photos = photoDebug;
   }
@@ -446,7 +486,8 @@
     } else {
       debug.photos.forEach(function(p) {
         lines.push('  ' + p.id.slice(0, 6) + ': ' + fmt(p.distance, 0) + 'м, азимут=' + fmt(p.bearing, 0) +
-          '°, Δ=' + fmt(p.angleDiff, 0) + '° ' + (p.visible ? 'видно scale=' + fmt(p.scale, 2) : 'скрыто'));
+          '°, Δ=' + fmt(p.angleDiff, 0) + '° ' + (p.visible ? 'видно scale=' + fmt(p.scale, 2) : 'скрыто') +
+          (p.orientation != null ? ' · стена=' + fmt(p.orientation, 0) + '° угол-обзора=' + fmt(p.viewAngle, 0) + '°' : ''));
       });
     }
     debugTextEl.textContent = lines.join('\n');

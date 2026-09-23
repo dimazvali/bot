@@ -50,6 +50,11 @@ include _admin.pug
             input(type='hidden' name='lng' value=p.lng)
             input(type='text' name='caption' value=p.caption placeholder='подпись' onchange='this.form.requestSubmit()')
             input(type='date' name='takenAt' value=takenAtVal title='Дата съёмки' onchange='this.form.requestSubmit()')
+            .orientation-field
+              .compass-mini(class=(p.orientation == null ? 'unset' : ''))
+                .compass-mini-needle(style='transform:rotate(' + (p.orientation || 0) + 'deg)')
+              input.orientation-input(type='number' name='orientation' min='0' max='359' step='1' value=p.orientation placeholder='—' title='Направление стены, ° (0=С, по часовой). Пусто — фото всегда лицом к камере' oninput='updateOrientationArrow(this)' onchange='this.form.requestSubmit()')
+              button.btn.sm(type='button' title='Сбросить (всегда лицом к камере)' onclick='clearOrientation(this)') ×
           .acts
             if i > 0
               form(method='POST' action='/admin/photos/' + p.id + '/move')
@@ -94,6 +99,29 @@ include _admin.pug
         el.classList.remove('show');
         setTimeout(function () { el.remove(); }, 250);
       }, 3500);
+    }
+
+    // Live compass-arrow feedback for the "orientation" field (wall-mount
+    // bearing) on each photo card — updates as the admin types, before the
+    // field's onchange actually saves it.
+    function updateOrientationArrow(input) {
+      var field = input.closest('.orientation-field');
+      var wrap = field.querySelector('.compass-mini');
+      var needle = field.querySelector('.compass-mini-needle');
+      var v = input.value === '' ? NaN : parseFloat(input.value);
+      if (isNaN(v)) {
+        wrap.classList.add('unset');
+      } else {
+        wrap.classList.remove('unset');
+        needle.style.transform = 'rotate(' + v + 'deg)';
+      }
+    }
+    function clearOrientation(btn) {
+      var field = btn.closest('.orientation-field');
+      var input = field.querySelector('.orientation-input');
+      input.value = '';
+      updateOrientationArrow(input);
+      input.form.requestSubmit();
     }
 
     (function () {

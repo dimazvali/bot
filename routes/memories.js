@@ -87,7 +87,7 @@ router.get('/:slug/ar', async function(req, res, next) {
     var settings = await memoriesData.getArSettings();
     var arData = JSON.stringify({
       photos: photos.map(function(p) {
-        return { id: p.id, lat: p.lat, lng: p.lng, url: (p.urls && p.urls.w2400) || (p.urls && p.urls.w800) || '' };
+        return { id: p.id, lat: p.lat, lng: p.lng, orientation: p.orientation != null ? p.orientation : null, url: (p.urls && p.urls.w2400) || (p.urls && p.urls.w800) || '' };
       }),
       settings: settings,
     }).replace(/</g, '\\u003c');

@@ -1,6 +1,22 @@
 (function () {
   var THEME_KEY = 'photo-theme';
 
+  // Beacon any outbound Instagram link click, site-wide — delegated, so it
+  // covers the promo card, sidebar contact link, per-photo IG link, everything,
+  // without needing a per-template hook. See POST /track/instagram-click.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href*="instagram.com"]');
+    if (!a) return;
+    var payload = JSON.stringify({ path: location.pathname });
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/track/instagram-click', new Blob([payload], { type: 'application/json' }));
+      } else {
+        fetch('/track/instagram-click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
+      }
+    } catch (err) {}
+  });
+
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem(THEME_KEY, theme);
@@ -42,6 +58,8 @@
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
+      var presEl = document.getElementById('presentation-overlay');
+      if (presEl && presEl.classList.contains('is-open')) { closePresentation(); return; }
       var lbEl = document.getElementById('lb');
       if (lbEl && lbEl.classList.contains('lb-open')) { lbEl.classList.remove('lb-open'); document.body.style.overflow = ''; return; }
       var url = document.body.getAttribute('data-series-url');
@@ -100,6 +118,98 @@
     }
     cards.forEach(function (card) { masonry.appendChild(card); });
   };
+
+  var presentationSlides = [];
+  var presentationIndex = 0;
+  var presentationTimer = null;
+
+  function showPresentationSlide(idx) {
+    if (!presentationSlides.length) return;
+    presentationIndex = (idx + presentationSlides.length) % presentationSlides.length;
+    var slide = presentationSlides[presentationIndex];
+    var img = document.getElementById('presentation-img');
+    img.src = slide.src;
+    img.alt = slide.title;
+  }
+
+  function closePresentation() {
+    var overlay = document.getElementById('presentation-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('is-open');
+    document.body.style.overflow = '';
+    if (presentationTimer) { clearInterval(presentationTimer); presentationTimer = null; }
+  }
+
+  window.startPresentation = function () {
+    var overlay = document.getElementById('presentation-overlay');
+    if (!overlay) return;
+    var cards = document.querySelectorAll('.masonry .photo-card[data-full]:not([data-hidden]):not([data-curator-hidden])');
+    presentationSlides = Array.prototype.map.call(cards, function (card) {
+      var img = card.querySelector('img');
+      return { src: card.getAttribute('data-full'), href: card.getAttribute('href'), title: img ? img.alt : '' };
+    });
+    if (!presentationSlides.length) return;
+
+    overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    showPresentationSlide(0);
+    if (presentationTimer) clearInterval(presentationTimer);
+    presentationTimer = setInterval(function () { showPresentationSlide(presentationIndex + 1); }, 5000);
+  };
+
+  (function () {
+    var overlay = document.getElementById('presentation-overlay');
+    if (!overlay) return;
+    var img = document.getElementById('presentation-img');
+    var closeBtn = document.getElementById('presentation-close');
+    img.addEventListener('click', function () {
+      var slide = presentationSlides[presentationIndex];
+      if (slide && slide.href) location.href = slide.href;
+    });
+    if (closeBtn) closeBtn.addEventListener('click', closePresentation);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closePresentation(); });
+  }());
+
+  // ── Gallery map: markers for this series'/shoot's photos that have coordinates ──
+  (function () {
+    var toggleBtns = document.querySelectorAll('.gallery-map-trigger');
+    var panel = document.getElementById('gallery-map-panel');
+    var dataEl = document.getElementById('gallery-map-data');
+    if (!toggleBtns.length || !panel || !dataEl) return;
+
+    var points;
+    try { points = JSON.parse(dataEl.textContent); } catch (e) { points = []; }
+    if (!points.length) return;
+
+    var map = null;
+
+    function initMap() {
+      if (map || !window.L) return;
+      map = L.map('gallery-map', { scrollWheelZoom: true, attributionControl: false });
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+      var pinIcon = L.divIcon({ className: 'gallery-map-pin-wrap', html: '<span class="gallery-map-pin"></span>', iconSize: [12, 12], iconAnchor: [6, 6] });
+      var markers = points.map(function (p) {
+        var m = L.marker([p.lat, p.lng], { icon: pinIcon }).addTo(map);
+        m.bindTooltip(p.title || '');
+        m.on('click', function () { location.href = p.href; });
+        return m;
+      });
+      var group = L.featureGroup(markers);
+      map.fitBounds(group.getBounds().pad(0.2), { maxZoom: 15 });
+    }
+
+    toggleBtns.forEach(function (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        var isHidden = panel.style.display === 'none';
+        panel.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          initMap();
+          panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          setTimeout(function () { if (map) map.invalidateSize(); }, 0);
+        }
+      });
+    });
+  }());
 
   window.sharePhoto = function () {
     var title = document.title;

@@ -84,6 +84,8 @@ html(data-theme='dark' lang=lang || 'ru')
                       href=`${LP}/${countryKey}/${seriesKey}`
                       class=activeSeries === seriesKey ? 'active' : ''
                     ) #{series.label}
+          .nav-shoots
+            a.nav-country(href=`${LP}/shoot` class=isShoot ? 'open' : '')= ui.shootsTitle
         .sidebar-colors
           each family, key in colorFamilies
             a.color-dot(
@@ -102,10 +104,9 @@ html(data-theme='dark' lang=lang || 'ru')
             button.subscribe-unsub#unsubscribe-google-btn(type='button')= ui.unsubscribeBtn
           else
             .subscribe-wrap
-              p.subscribe-msg#subscribe-msg(style='display:none')
               button.subscribe-toggle#subscribe-toggle(type='button')= ui.subscribeBtn
               .subscribe-popup#subscribe-popup(style='display:none')
-                button.subscribe-option#subscribe-email-btn(type='button')= ui.byEmail
+                button.subscribe-option.subscribe-email-btn(type='button')= ui.byEmail
                 a.subscribe-option(href='https://telegram.me/dimazvalibot?start=photo_sub' target='_blank' rel='noopener')= ui.byTelegram
           .sidebar-footer-bottom
             //- a(href='/about') О СЕБЕ

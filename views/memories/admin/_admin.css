@@ -190,6 +190,14 @@ code{font-family:var(--mono);font-size:.92em;background:var(--panel);border:1px 
 .photo-caption-form input{font-size:12px;padding:5px 6px}
 .photo-card .acts{padding:0 8px 8px}
 
+/* ---- orientation: "hang on a wall" bearing, with a live compass preview ---- */
+.orientation-field{display:flex;align-items:center;gap:6px;margin-top:4px}
+.compass-mini{width:26px;height:26px;flex-shrink:0;border:1px solid var(--line);border-radius:50%;position:relative;background:var(--paper2)}
+.compass-mini.unset{opacity:.35}
+.compass-mini-needle{position:absolute;inset:0;display:flex;justify-content:center;transition:transform .1s linear}
+.compass-mini-needle::before{content:'';display:block;margin-top:2px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:9px solid var(--ink)}
+.orientation-input{flex:1;min-width:0}
+
 /* ---- bulk upload: files waiting for a manually-placed point ---- */
 .pending-list{margin:10px 0}
 .pending-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:13px}

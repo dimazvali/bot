@@ -173,6 +173,17 @@ function parseTakenAt(v) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Compass bearing the photo's face points outward, normalized to [0, 360).
+// '' (the admin clears the field) or anything unparseable means "not set" —
+// back to always facing the camera.
+function parseOrientation(v) {
+  if (v === '' || v == null) return null;
+  var n = parseFloat(v);
+  if (isNaN(n)) return null;
+  n = n % 360;
+  return n < 0 ? n + 360 : n;
+}
+
 router.post('/:id/photos', requireAuth, upload.single('photo'), async function(req, res, next) {
   try {
     var memory = await memoriesData.getMemoryById(req.params.id);
@@ -188,6 +199,7 @@ router.post('/:id/photos', requireAuth, upload.single('photo'), async function(r
       memoryId: memory.id, lat: lat, lng: lng,
       caption: (req.body.caption || '').trim(), urls: urls,
       takenAt: parseTakenAt(req.body.takenAt),
+      orientation: parseOrientation(req.body.orientation),
     });
     // The bulk-upload queue on memory-detail.pug calls this via fetch() once
     // per file and doesn't need the redirect a normal <form> submit expects.
@@ -206,6 +218,7 @@ router.post('/photos/:id/edit', requireAuth, express.urlencoded({ extended: fals
     if (!isNaN(lat)) patch.lat = lat;
     if (!isNaN(lng)) patch.lng = lng;
     if (req.body.takenAt !== undefined) patch.takenAt = parseTakenAt(req.body.takenAt);
+    if (req.body.orientation !== undefined) patch.orientation = parseOrientation(req.body.orientation);
     await memoriesData.updateMemoryPhoto(photo.id, patch);
     // The drag-to-reposition marker on memory-detail.pug calls this via
     // fetch() and just needs a status, not the redirect a normal <form>

@@ -8,7 +8,7 @@ var exifr = require('exifr');
 var { getData, saveData, initFromFirestore } = require('../lib/photo-data');
 var { getTags, saveTags, initTagsFromFirestore } = require('../lib/photo-tags');
 var photoStats = require('../lib/photo-stats');
-var { extractColorFamily, COLOR_FAMILIES } = require('../lib/color-utils');
+var { extractColorFamilies, COLOR_FAMILIES, getPhotoColorFamilies } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
@@ -313,8 +313,8 @@ router.post('/subscribers/google/:id/toggle', requireAuth, async (req, res) => {
   res.redirect('/admin/subscribers');
 });
 
-var ENTITY_TYPE_ORDER = ['country', 'series', 'photo', 'shoot', 'shoot-photo'];
-var ENTITY_TYPE_LABELS = { country: 'СТРАНЫ', series: 'СЕРИИ', photo: 'ФОТО', shoot: 'СЪЁМКИ', 'shoot-photo': 'КАДРЫ СЪЁМОК' };
+var ENTITY_TYPE_ORDER = ['country', 'series', 'photo', 'shoot', 'shoot-photo', 'instagram'];
+var ENTITY_TYPE_LABELS = { country: 'СТРАНЫ', series: 'СЕРИИ', photo: 'ФОТО', shoot: 'СЪЁМКИ', 'shoot-photo': 'КАДРЫ СЪЁМОК', instagram: 'ПЕРЕХОДЫ В INSTAGRAM' };
 
 function resolveEntityInfo(typeStr, idStr, photoData, shootsData) {
   var label = idStr;
@@ -346,6 +346,8 @@ function resolveEntityInfo(typeStr, idStr, photoData, shootsData) {
       var ph = (sh.photos || []).find(function(x) { return x.id === p[1]; });
       if (ph) label = ph.title || idStr;
     }
+  } else if (typeStr === 'instagram') {
+    url = idStr !== 'unknown' ? idStr : null;
   }
   return { type: typeStr, id: idStr, label: label, url: url };
 }
@@ -644,11 +646,11 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     var existingIds = data[country].series[series].photos.map(p => p.id);
     var id = uniqueId(slugify((title && title.trim()) || baseName), existingIds);
 
-    var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
+    var [buf400, buf800, buf2400, colorFamilies, imgMeta] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
-      extractColorFamily(req.file.buffer),
+      extractColorFamilies(req.file.buffer),
       sharp(req.file.buffer).metadata(),
     ]);
 
@@ -689,7 +691,7 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     if (altitude !== null) photoEntry.altitude = altitude;
     if (shotAt) photoEntry.shotAt = shotAt;
     if (instagramUrl) photoEntry.instagram = instagramUrl;
-    if (colorFamily) photoEntry.colorFamily = colorFamily;
+    if (colorFamilies.length) photoEntry.colorFamilies = colorFamilies;
     data[country].series[series].photos.push(photoEntry);
     saveData(data);
     pingSitemaps();
@@ -823,6 +825,11 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   var knownSlugs = Object.keys(shoots.getData());
   var relatedList = Array.isArray(relatedShoots) ? relatedShoots : (relatedShoots ? [relatedShoots] : []);
   relatedList = relatedList.filter(function(s) { return s && s !== slug && knownSlugs.indexOf(s) !== -1; });
+  var mapLatRaw = parseFloat(req.body.mapLat);
+  var mapLngRaw = parseFloat(req.body.mapLng);
+  var mapCenter = (!isNaN(mapLatRaw) && !isNaN(mapLngRaw) && Math.abs(mapLatRaw) <= 90 && Math.abs(mapLngRaw) <= 180)
+    ? { lat: mapLatRaw, lng: mapLngRaw }
+    : null;
   try {
     await shoots.saveShoot(slug, {
       label: label.trim(),
@@ -833,6 +840,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
       public: !!isPublic,
       showFaces: !!showFaces,
       showCuratorSelection: !!showCuratorSelection,
+      mapCenter: mapCenter,
     });
     await shoots.setRelatedShoots(slug, relatedList);
     res.redirect('/admin/shoots/' + slug + '/edit');
@@ -868,12 +876,12 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     var existingIds = shoot.photos.map(function(p) { return p.id; });
     var id = uniqueId(slugify((title && title.trim()) || baseName), existingIds);
 
-    var [buf400, buf800, buf2400, bufInstagram, colorFamily, imgMeta] = await Promise.all([
+    var [buf400, buf800, buf2400, bufInstagram, colorFamilies, imgMeta] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer(),
-      extractColorFamily(req.file.buffer),
+      extractColorFamilies(req.file.buffer),
       sharp(req.file.buffer).metadata(),
     ]);
 
@@ -912,7 +920,7 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
       photoEntry.panorama = true;
       photoEntry.urls.pano = base + '/' + pPano;
     }
-    if (colorFamily) photoEntry.colorFamily = colorFamily;
+    if (colorFamilies.length) photoEntry.colorFamilies = colorFamilies;
     if (shootCoords) photoEntry.coords = shootCoords;
     if (shootShotAt) photoEntry.shotAt = shootShotAt;
 
@@ -969,6 +977,8 @@ router.get('/shoots/:slug/photos/:id/edit', requireAuth, async (req, res) => {
     photo,
     photoViews: viewStats[slug + '/' + id] || 0,
     colorFamilies: COLOR_FAMILIES,
+    photoColors: getPhotoColorFamilies(photo),
+    shootMapCenter: shoot.mapCenter || null,
   });
 });
 
@@ -988,7 +998,8 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   var coords = (!isNaN(latRaw) && !isNaN(lngRaw) && Math.abs(latRaw) <= 90 && Math.abs(lngRaw) <= 180)
     ? { lat: latRaw, lng: lngRaw }
     : null;
-  var colorFamily = COLOR_FAMILIES[req.body.colorFamily] ? req.body.colorFamily : null;
+  var rawColors = req.body.colorFamilies ? (Array.isArray(req.body.colorFamilies) ? req.body.colorFamilies : [req.body.colorFamilies]) : [];
+  var colorFamilies = rawColors.filter(function(c) { return COLOR_FAMILIES[c]; });
   var titleTrim = title.trim();
   var descTrim = (desc || '').trim();
   var titleEnTrim = (title_en || '').trim();
@@ -1017,7 +1028,7 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
       panorama: !!req.body.panorama,
       curatorPick: !!req.body.curatorPick,
       coords: coords,
-      colorFamily: colorFamily,
+      colorFamilies: colorFamilies,
     });
     await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords, seoDescEn, seoKeywordsEn);
   } catch (e) {
@@ -1037,12 +1048,12 @@ router.post('/shoots/:slug/photos/:id/replace-file', requireAuth, upload.single(
   if (!req.file) return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
 
   try {
-    var [buf400, buf800, buf2400, bufInstagram, colorFamily, imgMeta] = await Promise.all([
+    var [buf400, buf800, buf2400, bufInstagram, colorFamilies, imgMeta] = await Promise.all([
       sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
       sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer(),
-      extractColorFamily(req.file.buffer),
+      extractColorFamilies(req.file.buffer),
       sharp(req.file.buffer).metadata(),
     ]);
 
@@ -1072,7 +1083,7 @@ router.post('/shoots/:slug/photos/:id/replace-file', requireAuth, upload.single(
       }),
     };
     if (photo.panorama) fields.urls.pano = base + '/' + pPano;
-    if (colorFamily) fields.colorFamily = colorFamily;
+    if (colorFamilies.length) fields.colorFamilies = colorFamilies;
 
     await shoots.updatePhotoAssets(slug, id, fields);
 
@@ -1247,7 +1258,7 @@ router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded(
   if (photo.coords) photoEntry.coords = photo.coords;
   if (photo.altitude != null) photoEntry.altitude = photo.altitude;
   if (photo.shotAt) photoEntry.shotAt = photo.shotAt;
-  if (photo.colorFamily) photoEntry.colorFamily = photo.colorFamily;
+  if (photo.colorFamilies && photo.colorFamilies.length) photoEntry.colorFamilies = photo.colorFamilies;
 
   data[country].series[series].photos.push(photoEntry);
   saveData(data);
@@ -1654,6 +1665,7 @@ router.get('/:country/:series/:id/edit', requireAuth, async (req, res) => {
     seriesMapCenter: data[country].series[seriesKey].mapCenter || null,
     tags: getTags(),
     colorFamilies: COLOR_FAMILIES,
+    photoColors: getPhotoColorFamilies(photo),
   });
 });
 
@@ -1706,11 +1718,11 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (isPanorama) { photo.panorama = true; } else { delete photo.panorama; }
   try {
     if (req.file) {
-      var [buf400, buf800, buf2400, colorFamily, imgMeta] = await Promise.all([
+      var [buf400, buf800, buf2400, colorFamilies, imgMeta] = await Promise.all([
         sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
         sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
         sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
-        extractColorFamily(req.file.buffer),
+        extractColorFamilies(req.file.buffer),
         sharp(req.file.buffer).metadata(),
       ]);
       var path400 = `${country}/${seriesKey}/${id}-400.webp`;
@@ -1728,11 +1740,11 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
       if (isPanorama) photo.urls.pano = `${base}/${pathPano}`;
       photo.width = imgMeta.width;
       photo.height = imgMeta.height;
-      if (colorFamily) photo.colorFamily = colorFamily;
-    } else if (COLOR_FAMILIES[req.body.colorFamily]) {
-      photo.colorFamily = req.body.colorFamily;
+      if (colorFamilies.length) photo.colorFamilies = colorFamilies;
     } else {
-      delete photo.colorFamily;
+      var rawColors = req.body.colorFamilies ? (Array.isArray(req.body.colorFamilies) ? req.body.colorFamilies : [req.body.colorFamilies]) : [];
+      var manualColors = rawColors.filter(function(c) { return COLOR_FAMILIES[c]; });
+      if (manualColors.length) { photo.colorFamilies = manualColors; } else { delete photo.colorFamilies; }
     }
     if (needsTranslation) {
       try {

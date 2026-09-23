@@ -93,6 +93,16 @@ test('insertMemoryPhoto defaults takenAt to null, updateMemoryPhoto can set it',
   assert.equal((await data.getMemoryPhotoById(pid)).takenAt.getTime(), takenAt.getTime());
 });
 
+test('insertMemoryPhoto defaults orientation to null, updateMemoryPhoto can set it', async function() {
+  var db = makeFakeDb();
+  data.init(db);
+  var mid = await data.insertMemory({ name: 'M' });
+  var pid = await data.insertMemoryPhoto({ memoryId: mid, lat: 41.7, lng: 44.8, urls: {} });
+  assert.equal((await data.getMemoryPhotoById(pid)).orientation, null);
+  await data.updateMemoryPhoto(pid, { orientation: 90 });
+  assert.equal((await data.getMemoryPhotoById(pid)).orientation, 90);
+});
+
 test('getMemoryPhotos returns only photos for that memory, sorted by order', async function() {
   var db = makeFakeDb();
   data.init(db);

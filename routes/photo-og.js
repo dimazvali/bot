@@ -3,7 +3,7 @@ var router = express.Router();
 var axios = require('axios');
 var sharp = require('sharp');
 var { getData } = require('../lib/photo-data');
-var { COLOR_FAMILIES } = require('../lib/color-utils');
+var { COLOR_FAMILIES, getPhotoColorFamilies } = require('../lib/color-utils');
 var shoots = require('../lib/photo-shoots');
 
 var OG_W = 1200;
@@ -74,8 +74,9 @@ async function generate(imageUrl, title, pageUrl, colorHex) {
 }
 
 function colorFor(photo) {
-  if (!photo || !photo.colorFamily) return null;
-  var cf = COLOR_FAMILIES[photo.colorFamily];
+  var families = getPhotoColorFamilies(photo);
+  if (!families.length) return null;
+  var cf = COLOR_FAMILIES[families[0]];
   return cf ? cf.hex : null;
 }
 
