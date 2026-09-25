@@ -1,0 +1,24 @@
+extends layout
+
+block content
+  - var LP = lang === 'en' ? '/en' : ''
+  .nf
+    .nf-main
+      .kicker= t.notFoundKicker
+      h1.nf-code 404
+      p.nf-lead= t.notFoundLead
+      .nf-actions
+        a.btn.btn--ink(href=`${LP}/`) ← #{t.toHome}
+        if randomHref
+          a.btn.btn--line(href=randomHref) ↺ #{t.randomFrame}
+      p.nf-foot #{t.notFoundFoot} #[a(href='mailto:dimazvali@gmail.com') mail@dimazvali.com]
+    if nfTiles && nfTiles.length
+      aside.nf-side
+        .nf-side-title= t.maybeThese
+        .nf-grid
+          each tile in nfTiles
+            a.nf-tile(href=tile.href)
+              .nf-cover
+                img(src=tile.cover alt=tile.label loading='lazy' onerror="this.style.background='#e6e1d7';this.removeAttribute('src')")
+              span.nf-name= tile.label
+              span.nf-sub= tile.sub

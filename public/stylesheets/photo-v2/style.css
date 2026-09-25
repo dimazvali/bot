@@ -1145,6 +1145,24 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
 .presentation-overlay.is-open { display: flex; }
 .presentation-img { width: auto; max-width: 92vw; max-height: 92vh; height: auto; object-fit: contain; cursor: pointer; }
 
+/* ─── 404 ─────────────────────────────────────────────────────── */
+.nf { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); min-height: 100vh; }
+.nf-main { padding: 64px 40px 40px; display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+.nf-code { font-family: var(--f-display); font-weight: 700; font-size: clamp(120px, 15vw, 220px); line-height: .85; letter-spacing: -.02em; }
+.nf-lead { font-family: var(--f-serif); font-style: italic; font-size: 24px; line-height: 1.4; color: var(--ink-2); max-width: 520px; text-wrap: pretty; }
+.nf-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.nf-foot { margin-top: 18px; font-size: 11px; color: var(--meta); }
+.nf-foot a { border-bottom: 1px solid var(--dim); }
+.nf-side { border-left: 1px solid var(--line); padding: 64px 32px 40px; display: flex; flex-direction: column; gap: 20px; }
+.nf-side-title { font-family: var(--f-display); font-weight: 600; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; }
+.nf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.nf-tile { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.nf-cover { aspect-ratio: 4 / 5; overflow: hidden; background: var(--ph); }
+.nf-cover img { height: 100%; object-fit: cover; transition: transform .3s ease; }
+.nf-tile:hover .nf-cover img { transform: scale(1.03); }
+.nf-name { font-family: var(--f-display); font-weight: 600; font-size: 14px; text-transform: uppercase; line-height: 1.1; }
+.nf-sub { display: block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--meta); margin-top: -4px; }
+
 /* ─── ABOUT / PASSWORD / MISC PAGES ──────────────────────────── */
 .about-page { padding: 56px 40px 72px; max-width: 1040px; }
 .about-page .hero-title { font-size: clamp(44px, 6vw, 88px); line-height: .9; margin: 10px 0 36px; }
@@ -1185,6 +1203,7 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
 }
 @media (max-width: 900px) {
   .masonry { column-count: 2; }
+  .nf { grid-template-columns: 1fr; min-height: 0; }
   .showcase-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .hero--home { grid-template-columns: 1fr; gap: 24px; align-items: start; }
   .hero--series { grid-template-columns: 1fr; min-height: 0; }
@@ -1272,6 +1291,9 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
   .fb-actions { gap: 6px; margin-left: 0; width: 100%; justify-content: flex-start; } /* own row, left-aligned */
   .fb-btn { padding: 8px 10px; }
 
+  .nf-main { padding: 28px 16px 24px; min-height: 0; }
+  .nf-lead { font-size: 20px; }
+  .nf-side { border-left: none; border-top: 1px solid var(--line); padding: 24px 16px 40px; }
   .hero--home, .hero--country, .hero--compact { padding: 20px 16px 24px; }
   .hero-name { font-size: 50px; margin: 8px 0 12px; }
   .hero--home .hero-lead { font-size: 17px; }
