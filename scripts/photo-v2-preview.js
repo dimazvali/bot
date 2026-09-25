@@ -113,6 +113,12 @@ var shoots = {
   },
 };
 
+// more open shoots, so the "other shoots" block has something to list
+for (var oi = 1; oi <= 6; oi++) {
+  shoots['open-' + oi] = { key: 'open-' + oi, label: 'Открытая съёмка ' + oi, desc: '', public: true, password: '',
+    photos: pool.slice(oi, oi + 3 + oi), photoOrder: pool.slice(oi, oi + 3 + oi).map(function(p) { return p.id; }) };
+}
+
 // ── stubs for everything that would touch Firebase / Telegram / AWS ─────────
 var noopRouter = function() { return express.Router(); };
 stub('lib/photo-data.js', { getData: function() { return data; } });

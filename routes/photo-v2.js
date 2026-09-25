@@ -27,6 +27,8 @@ var notFound = require('../lib/photo-404');
 
 var router = express.Router();
 
+var OTHER_SHOOTS_LIMIT = 12; // how many open shoots the "Other shoots" block shows (routes/photo.js gives 3)
+
 // The preview host (photo-v2.*) must never compete with the real site in search results. The same router
 // also serves photo.* (production) — there nothing is blocked and routes/photo.js answers robots.txt/sitemap.
 function isPreviewHost(req) {
@@ -108,6 +110,17 @@ router.use(function(req, res, next) {
     if (view === 'photo/photo' && options && options.isShoot && options.shootSlug) {
       var sh = shoots.getShoot(options.shootSlug);
       opts.nearList = sh ? sh.photos.map(function(p) { return { id: p.id, urls: p.urls }; }) : [];
+    }
+    // "Other shoots" under a shoot gallery: routes/photo.js hands over only the 3 biggest. When no curated
+    // "related shoots" are set (that list wins and stays as is), show more of the open ones.
+    if (view === 'photo/gallery' && options && options.isShoot && options.shootSlug && !options.otherShootsAreRelated) {
+      var allShoots = shoots.getData();
+      opts.otherShoots = Object.keys(allShoots)
+        .map(function(k) { return allShoots[k]; })
+        .filter(function(s) { return s.key !== options.shootSlug && s.public && s.photos && s.photos.length; })
+        .sort(function(a, b) { return b.photos.length - a.photos.length; })
+        .slice(0, OTHER_SHOOTS_LIMIT)
+        .map(function(s) { return i18n.localizeShoot(s, lang); });
     }
     return origRender.call(res, v2view, opts, cb);
   };
