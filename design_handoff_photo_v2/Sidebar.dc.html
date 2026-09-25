@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="width: 232px; flex-shrink: 0; align-self: stretch; border-right: 1px solid #d8d3c8; background: #f4f1ea; padding: 28px 22px 24px; display: flex; flex-direction: column; gap: 26px; font-family: 'JetBrains Mono', monospace; color: #15120f;">
+  <div style="display: flex; flex-direction: column; gap: 3px;">
+    <span style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.01em; text-transform: uppercase; line-height: 1;">dimazvali.com</span>
+    <span style="font-family: 'Lora', serif; font-style: italic; font-size: 15px; color: #56514a;">Дмитрий Шестаков</span>
+  </div>
+  <nav style="display: flex; flex-direction: column; gap: 4px;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #6b6459; margin-bottom: 6px;">Портфолио</div>
+    <sc-for list="{{ countries }}" as="c" hint-placeholder-count="5">
+      <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 5px 0; cursor: pointer;">
+          <span style="font-size: 9px; color: #6b6459; width: 9px;">{{ c.arrow }}</span>
+          <span style="font-family: 'Oswald', sans-serif; font-weight: {{ c.weight }}; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; flex: 1; color: {{ c.color }};">{{ c.label }}</span>
+          <span style="font-size: 10px; color: #a49e92;">{{ c.photoCount }}</span>
+        </div>
+        <sc-if value="{{ c.open }}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; gap: 1px; padding: 2px 0 8px 17px; border-left: 1px solid #d8d3c8; margin-left: 4px;">
+            <sc-for list="{{ c.series }}" as="s" hint-placeholder-count="4">
+              <span style="font-size: 12px; padding: 3px 0 3px 8px; color: {{ s.color }}; background: {{ s.bg }}; cursor: pointer;">{{ s.label }}</span>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+    <div style="height: 1px; background: #d8d3c8; margin: 12px 0 8px;"></div>
+    <span style="font-family: 'Oswald', sans-serif; font-weight: 500; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 0 5px 17px; color: {{ shootColor }};">Съёмки</span>
+    <span style="font-family: 'Oswald', sans-serif; font-weight: 500; font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 0 5px 17px; color: #56514a;">Обо мне</span>
+  </nav>
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #6b6459;">Цвет</div>
+    <div style="display: flex; gap: 7px; flex-wrap: wrap;">
+      <sc-for list="{{ dots }}" as="d" hint-placeholder-count="8">
+        <span title="{{ d.name }}" style="width: 16px; height: 16px; border-radius: 50%; background: {{ d.hex }}; cursor: pointer;"></span>
+      </sc-for>
+    </div>
+  </div>
+  <div style="margin-top: auto; display: flex; flex-direction: column; gap: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #56514a;">
+      <span>mail@dimazvali.com</span>
+      <span>tg @dimazvali</span>
+      <span>ig @dimazvali2</span>
+    </div>
+    <button style="cursor: pointer; text-align: left; background: transparent; border: 1px solid #15120f; color: #15120f; font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; padding: 9px 12px;">Подписаться →</button>
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <span style="display: inline-flex; border: 1px solid #c8c3b8; font-size: 10px; letter-spacing: 0.08em;">
+        <span style="background: #15120f; color: #f4f1ea; padding: 4px 8px;">RU</span>
+        <span style="padding: 4px 8px; color: #6b6459;">EN</span>
+      </span>
+      <span style="font-size: 16px; color: #56514a; cursor: pointer;">◐</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:232,&quot;height&quot;:900},&quot;active&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;georgia&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;activeSeries&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;tbilisi&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() {
+    if (!window.GALLERY) this._t = setInterval(() => { if (window.GALLERY) { clearInterval(this._t); this.forceUpdate(); } }, 60);
+  }
+  componentWillUnmount() { clearInterval(this._t); }
+  renderVals() {
+    const G = window.GALLERY;
+    const active = this.props.active ?? 'home';
+    const activeSeries = this.props.activeSeries ?? '';
+    const dots = [['Красный','#a8493f'],['Оранжевый','#c07a44'],['Жёлтый','#c9a44a'],['Зелёный','#5f7350'],['Бирюзовый','#2f6a6f'],['Синий','#3a5a86'],['Фиолетовый','#6b5578'],['Монохром','#8a857b']].map(d => ({ name: d[0], hex: d[1] }));
+    const countries = (G ? G.countries : []).map(c => {
+      const open = c.key === active;
+      return {
+        label: c.label, photoCount: c.photoCount, open, arrow: open ? '▾' : '▸',
+        weight: open ? 700 : 500, color: open ? '#15120f' : '#56514a',
+        series: c.series.map(s => ({ label: s.label, color: s.key === activeSeries ? '#f4f1ea' : '#56514a', bg: s.key === activeSeries ? '#15120f' : 'transparent' })),
+      };
+    });
+    return { countries, dots, shootColor: active === 'shoot' ? '#15120f' : '#56514a' };
+  }
+}
+</script>
+</body>
+</html>

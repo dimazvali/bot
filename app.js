@@ -67,8 +67,13 @@ app.use(vhost('it.localhost',    require('./routes/it')))
 
 app.use(vhost('photo2.*.*', require('./routes/photo2')))
 app.use(vhost('photo2.localhost', require('./routes/photo2')))
-app.use(vhost('photo.*.*', require('./routes/photo')))
-app.use(vhost('photo.localhost', require('./routes/photo')))
+// photo.dimazvali.com serves the v2 redesign: routes/photo-v2.js wraps routes/photo.js (same data, URLs, forms,
+// admin) and only swaps the views. ROLLBACK: point these two lines back at ./routes/photo.
+app.use(vhost('photo.*.*', require('./routes/photo-v2')))
+app.use(vhost('photo.localhost', require('./routes/photo-v2')))
+// Same redesign on the old preview host — noindex (see routes/photo-v2.js).
+app.use(vhost('photo-v2.*.*', require('./routes/photo-v2')))
+app.use(vhost('photo-v2.localhost', require('./routes/photo-v2')))
 
 app.use(vhost('eka.*.*', require('./routes/eka')))
 app.use(vhost('eka.localhost', require('./routes/eka')))

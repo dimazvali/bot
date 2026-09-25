@@ -1,0 +1,11 @@
+extends layout
+include mixins
+
+block content
+  section.hero.hero--compact
+    .kicker= t.color
+    h1.hero-title
+      span.hero-dot.cdot(data-c=activeColorFamily)
+      | #{colorLabel}
+  +filterbarFor(photos, colorLabel, { hideColors: true })
+  +feedMasonry(photos)

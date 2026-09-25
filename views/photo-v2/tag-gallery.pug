@@ -1,0 +1,11 @@
+extends layout
+include mixins
+
+block content
+  section.hero.hero--compact
+    .kicker= t.tagWord
+    h1.hero-title= tagLabel
+    if tagDesc
+      p.hero-lead= tagDesc
+  +filterbarFor(photos, tagLabel.toUpperCase(), { hideTags: true })
+  +feedMasonry(photos)

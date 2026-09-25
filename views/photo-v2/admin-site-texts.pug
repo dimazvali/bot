@@ -1,0 +1,26 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(name='robots' content='noindex,nofollow')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/') ← на сайт
+        span.admin-logo ТЕКСТЫ ГЛАВНОЙ
+
+      p.admin-hint Пустое поле — используется текст по умолчанию (он показан серым в подсказке). Перенос строки сохраняется.
+      if saved
+        p.admin-hint ✓ Сохранено
+
+      form(method='POST' action='/admin/site-texts')
+        each lang in ['ru', 'en']
+          .admin-section
+            h2.admin-title= lang === 'ru' ? 'РУССКИЙ' : 'ENGLISH'
+            p.admin-subtitle Надзаголовок (над именем)
+            input.admin-input(type='text' name=`${lang}_homeKicker` value=values[lang].homeKicker || '' placeholder=defaults[lang].homeKicker maxlength=max)
+            p.admin-subtitle Текст справа от имени
+            textarea.admin-input(name=`${lang}_homeLead` rows='4' placeholder=defaults[lang].homeLead maxlength=max)= values[lang].homeLead || ''
+        button.admin-btn(type='submit') СОХРАНИТЬ
