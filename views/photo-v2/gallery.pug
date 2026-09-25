@@ -409,6 +409,7 @@ block content
         if (downloadBtn) downloadBtn.addEventListener('click', function() {
           var ids = selectedIds();
           if (!ids.length) return;
+          window.photoTrack && window.photoTrack('shoot_download', { scope: 'selection', count: ids.length, shoot: !{JSON.stringify(shootSlug)} });
           window.location.href = saveUrl.replace(/\/collections$/, '/download') + '?ids=' + encodeURIComponent(ids.join(','));
         });
 
@@ -445,6 +446,7 @@ block content
               submitBtn.disabled = false;
               if (!res.ok) { msgEl.textContent = (res.data && res.data.error) || !{JSON.stringify(ui.saveError)}; return; }
               var savedList = loadSavedCollections();
+              window.photoTrack && window.photoTrack('shoot_selection_saved', { shoot: !{JSON.stringify(shootSlug)}, count: ids.length });
               savedList.push({ id: res.data.id, name: name, count: ids.length, photoIds: ids, createdAt: Date.now() });
               saveSavedCollections(savedList);
               renderSavedCollections();
@@ -466,6 +468,7 @@ block content
         var bar = document.getElementById('curator-bar');
         if (!btn) return;
         btn.addEventListener('click', function() {
+          window.photoTrack && window.photoTrack('curator_show_all');
           document.querySelectorAll('.photo-card[data-curator-hidden]').forEach(function(c) { c.removeAttribute('data-curator-hidden'); });
           if (window.PhotoFilters) window.PhotoFilters.apply();
           var rest = bar && bar.querySelector('.curator-rest');

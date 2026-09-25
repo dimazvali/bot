@@ -4,9 +4,19 @@
   // Beacon any outbound Instagram link click, site-wide — delegated, so it
   // covers the promo card, sidebar contact link, per-photo IG link, everything,
   // without needing a per-template hook. See POST /ig-click.
+  function placement(el) {
+    if (el.closest('.photo-card--promo')) return 'feed_card';
+    if (el.closest('.sidebar')) return 'sidebar';
+    if (el.closest('.promo-card')) return 'promo_popup';
+    if (el.closest('.photo-actions')) return 'photo_page';
+    if (el.closest('.about-page')) return 'about';
+    return 'other';
+  }
+
   document.addEventListener('click', function (e) {
     var a = e.target.closest('a[href*="instagram.com"]');
     if (!a) return;
+    window.photoTrack && window.photoTrack('instagram_click', { placement: placement(a), link_url: a.getAttribute('href') });
     var payload = JSON.stringify({ path: location.pathname });
     try {
       if (navigator.sendBeacon) {
@@ -15,6 +25,22 @@
         fetch('/ig-click', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
       }
     } catch (err) {}
+  });
+
+  // ── other clicks worth counting: contacts, Telegram subscribe, shoot downloads, language switch ──
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a) return;
+    var h = a.getAttribute('href') || '';
+    var path = h.split('?')[0];
+    var shootSlug = (path.match(/\/shoot\/([^/]+)\//) || [])[1];
+    if (/dimazvalibot/.test(h)) window.photoTrack && window.photoTrack('subscribe_click', { method: 'telegram', placement: placement(a) });
+    else if (/^mailto:/.test(h)) window.photoTrack && window.photoTrack('contact_click', { method: 'email', placement: placement(a) });
+    else if (/(telegram\.me|t\.me)\//.test(h)) window.photoTrack && window.photoTrack('contact_click', { method: 'telegram', placement: placement(a) });
+    else if (/wa\.me\//.test(h)) window.photoTrack && window.photoTrack('contact_click', { method: 'whatsapp', placement: placement(a) });
+    else if (/\/download-instagram$/.test(path)) window.photoTrack && window.photoTrack('instagram_download', Object.assign({ shoot: shootSlug }, window.photoTrack.photo()));
+    else if (/\/shoot\/[^/]+\/download$/.test(path)) window.photoTrack && window.photoTrack('shoot_download', { scope: 'all', shoot: shootSlug });
+    else if (a.matches('.lang-switch, .lang-seg a, .fb-lang')) window.photoTrack && window.photoTrack('language_switch', { to: document.documentElement.lang === 'en' ? 'ru' : 'en' });
   });
 
   // ── Instagram promo card: closable, stays hidden for ~2 weeks once dismissed ──
@@ -30,6 +56,7 @@
     document.querySelectorAll('.photo-card-promo-close').forEach(function (btn) {
       btn.addEventListener('click', function () {
         document.cookie = COOKIE_NAME + '=1; max-age=1209600; path=/';
+        window.photoTrack && window.photoTrack('instagram_card_dismiss');
         var card = btn.closest('.photo-card--promo');
         if (card) card.remove();
       });
@@ -39,6 +66,7 @@
   function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem(THEME_KEY, theme);
+    window.photoTrack && window.photoTrack('theme_change', { theme: theme });
   }
 
   function getAutoTheme() {
@@ -80,6 +108,7 @@
     var next = document.documentElement.getAttribute('data-focus-theme') === 'light' ? 'dark' : 'light';
     document.documentElement.setAttribute('data-focus-theme', next);
     try { localStorage.setItem('photo-focus-theme', next); } catch (e) {}
+    window.photoTrack && window.photoTrack('theme_change', { theme: next, scope: 'shoot' });
   };
 
   document.addEventListener('keydown', function (e) {
@@ -175,6 +204,7 @@
       return { src: card.getAttribute('data-full'), href: card.getAttribute('href'), title: img ? img.alt : '' };
     });
     if (!presentationSlides.length) return;
+    window.photoTrack && window.photoTrack('presentation_start', { photos: presentationSlides.length });
 
     overlay.classList.add('is-open');
     document.body.style.overflow = 'hidden';
@@ -230,6 +260,7 @@
         panel.style.display = isHidden ? 'block' : 'none';
         toggleBtns.forEach(function (b) { b.classList.toggle('is-active', isHidden); });
         if (isHidden) {
+          window.photoTrack && window.photoTrack('map_open', { points: points.length });
           initMap();
           panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
           setTimeout(function () { if (map) map.invalidateSize(); }, 0);
@@ -265,7 +296,8 @@
 
     try { autoShown = !!sessionStorage.getItem(seenKey); } catch (e) {}
 
-    function showPopup() {
+    function showPopup(trigger) {
+      window.photoTrack && window.photoTrack('promo_open', { trigger: typeof trigger === 'string' ? trigger : 'button' });
       popup.classList.add('is-open');
       document.body.classList.remove('sidebar-open');
       var sb = document.getElementById('sidebar');
@@ -277,7 +309,7 @@
       if (autoShown) return;
       autoShown = true;
       try { sessionStorage.setItem(seenKey, '1'); } catch (e) {}
-      showPopup();
+      showPopup('auto');
       window.removeEventListener('scroll', onScroll);
       clearTimeout(timer);
     }
@@ -289,9 +321,10 @@
     }
 
     document.addEventListener('click', function (e) {
-      if (e.target.closest && e.target.closest('[data-open-promo]')) { e.preventDefault(); showPopup(); }
+      var opener = e.target.closest && e.target.closest('[data-open-promo]');
+      if (opener) { e.preventDefault(); showPopup(opener.closest('.sidebar') ? 'sidebar' : 'hero'); }
     });
-    if (footerBar) footerBar.addEventListener('click', showPopup);
+    if (footerBar) footerBar.addEventListener('click', function () { showPopup('bar'); });
     if (closeBtn) closeBtn.addEventListener('click', closePopup);
     popup.addEventListener('click', function (e) { if (e.target === popup) closePopup(); });
     document.addEventListener('keydown', function (e) {
@@ -321,6 +354,7 @@
         .then(function (res) {
           submitBtn.disabled = false;
           if (!res.ok) { msgEl.textContent = form.getAttribute('data-err-network') || ''; msgEl.style.display = ''; return; }
+          window.photoTrack && window.photoTrack('generate_lead', { form: 'shoot_request', source: location.pathname });
           form.style.display = 'none';
           successView.style.display = '';
         })
@@ -333,6 +367,7 @@
   }());
 
   window.sharePhoto = function () {
+    window.photoTrack && window.photoTrack('share', Object.assign({ method: navigator.share ? 'web_share' : 'copy_link', content_type: 'photo' }, window.photoTrack.photo()));
     var title = document.title;
     var url = location.href;
     if (navigator.share) {

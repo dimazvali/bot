@@ -283,7 +283,7 @@ block content
         if (!document.querySelector('.photo-comments-section')) return;
         var s = document.createElement('script');
         s.id = 'comments-script';
-        s.src = '/javascripts/photo/comments.js';
+        s.src = '/javascripts/photo-v2/comments.js';
         document.body.appendChild(s);
       }
 
@@ -342,7 +342,7 @@ block content
       }
 
       var navigating = false;
-      function navigate(url, isPop) {
+      function navigate(url, isPop, method) {
         if (navigating) return;
         navigating = true;
         fetch(url)
@@ -352,6 +352,7 @@ block content
             if (!swap(html)) { location.href = url; return; }
             if (!isPop) history.pushState({ photoNav: true }, '', url);
             trackPageView();
+            window.photoTrack && window.photoTrack('photo_navigate', { method: method || 'click' });
           })
           .catch(function() {
             navigating = false;
@@ -367,8 +368,8 @@ block content
         var link = document.querySelector('.nav-btn[data-dir="' + dir + '"]');
         return link ? link.getAttribute('href') : null;
       }
-      function swipeNext() { var url = getNavUrl('next'); if (url) navigate(url); }
-      function swipePrev() { var url = getNavUrl('prev'); if (url) navigate(url); }
+      function swipeNext() { var url = getNavUrl('next'); if (url) navigate(url, false, 'swipe'); }
+      function swipePrev() { var url = getNavUrl('prev'); if (url) navigate(url, false, 'swipe'); }
 
       // el must be a stable element that survives soft-nav swaps (main itself, or the
       // lightbox — both live outside the innerHTML that gets replaced on navigation).
@@ -586,6 +587,7 @@ block content
         if (lbInfo.classList.contains('is-open') === open) return;
         lbInfo.classList.toggle('is-open', open);
         lbInfoWanted = open;
+        window.photoTrack && window.photoTrack('lightbox_caption_toggle', { open: open });
         try { localStorage.setItem(LB_INFO_KEY, open ? '1' : '0'); } catch (e) {}
         if (!open) lbInfo.scrollTop = 0;
       }
@@ -627,6 +629,7 @@ block content
         if (popup) popup.style.display = 'none';
         lb.classList.add('lb-open');
         document.body.style.overflow = 'hidden';
+        window.photoTrack && window.photoTrack('lightbox_open', Object.assign({ panorama: pageImg.dataset.panorama === '1' }, window.photoTrack.photo()));
         refreshLbImage();
       }
       function closeLb() {
@@ -746,11 +749,11 @@ block content
         }
       });
 
-      window.addEventListener('popstate', function() { navigate(location.href, true); });
+      window.addEventListener('popstate', function() { navigate(location.href, true, 'history'); });
 
       loadComments();
     }());
 
   script(src='https://accounts.google.com/gsi/client' async defer)
   if isShoot
-    script(src='/javascripts/photo/points.js' defer)
+    script(src='/javascripts/photo-v2/points.js' defer)

@@ -68,6 +68,11 @@ html(data-theme='light' lang=lang || 'ru')
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-LDMN4XFB42');
+    //- custom GA4 events (window.photoTrack); the owner's own clicks are not counted
+    if isAdmin
+      script.
+        window.photoIsAdmin = true;
+    script(src='/javascripts/photo-v2/analytics.js')
   body(class=focus ? 'is-focus' : '' data-series-url=seriesUrl || '')
     if !focus
       header.mobile-header
@@ -165,4 +170,4 @@ html(data-theme='light' lang=lang || 'ru')
     script(src='/javascripts/photo-v2/main.js')
     if googleClientId
       script(src='https://accounts.google.com/gsi/client' async defer)
-      script(src='/javascripts/photo/subscribe.js' defer)
+      script(src='/javascripts/photo-v2/subscribe.js' defer)

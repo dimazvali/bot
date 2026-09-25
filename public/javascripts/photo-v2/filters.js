@@ -38,6 +38,7 @@
 
   function set(key, value) {
     state[key] = state[key] === value ? null : value; // clicking the active one clears it
+    if (state[key]) window.photoTrack && window.photoTrack('filter_apply', { filter_type: key, filter_value: value });
     apply();
   }
 
@@ -95,6 +96,7 @@
 
     function applyPerson(key) {
       state.person = key;
+      if (key) window.photoTrack && window.photoTrack('filter_apply', { filter_type: 'person', filter_value: key });
       if (key) widget.setAttribute('data-active', ''); else widget.removeAttribute('data-active');
       items.forEach(function (el) { el.classList.toggle('is-active', el.dataset.personKey === key); });
       apply();
