@@ -69,7 +69,7 @@ G.photos.forEach(function(p, i) {
   ser.photos.push({
     id: p.id, title: p.title, date: p.date, desc: p.desc || '', tags: p.tags || [],
     colorFamily: p.colorFamily, width: p.w, height: p.h, type: typeFor(p.id, i),
-    urls: { thumb: p.thumb, preview: p.preview, full: p.preview },
+    urls: { thumb: p.thumb, preview: p.preview, full: p.preview.replace(/-800.webp$/, '-2400.webp') }, // the real 2400px file sits next to the 800px one
   });
 });
 // a few extras so annotations / panorama / coordinates / series intro can be eyeballed

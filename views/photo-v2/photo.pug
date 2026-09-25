@@ -40,6 +40,18 @@ block content
       var _ix = _list.findIndex(function(p) { return p.id === photo.id })
       if (_ix !== -1) { _pos = _ix + 1; _total = _list.length }
     }
+  //- Responsive frame: the browser picks 800w (preview) or 2400w (full) from the real layout width × device
+  //- pixel ratio, so a retina phone still gets the sharp one. The preloader below asks for the SAME candidate.
+  - var PAGE_SIZES = '(max-width: 768px) 100vw, 1200px'
+  - var _srcsetOf = function(p) { return (p && p.urls && p.urls.preview && p.urls.full && p.urls.preview !== p.urls.full) ? (p.urls.preview + ' 800w, ' + p.urls.full + ' 2400w') : null }
+  - var _srcOf = function(p) { return p.urls ? (p.urls.full || p.urls.preview) : ('/images/photo/' + countryKey + '/' + seriesKey + '/' + p.file) }
+  -
+    // frames within two steps of this one (nearest first) — preloaded quietly once this one has loaded
+    var _near = []
+    var _nl = isShoot ? (nearList || []) : ((data && data[countryKey] && data[countryKey].series[seriesKey]) ? (data[countryKey].series[seriesKey].photos || []) : [])
+    var _ni = _nl.findIndex(function(p) { return p.id === photo.id })
+    if (_ni !== -1) [-1, 1, -2, 2].forEach(function(d) { var p = _nl[_ni + d]; if (p) _near.push({ d: Math.abs(d), src: _srcOf(p), srcset: _srcsetOf(p) }) })
+  script#photo-near(type='application/json')!= JSON.stringify(_near).replace(/</g, '\\u003c')
   .photo-page
     .pp-top
       a.pp-back(href=_backHref) ← #{_backLabel.toUpperCase()}
@@ -55,7 +67,8 @@ block content
             a.nav-btn(
               href=isShoot ? `${LP}/shoot/${shootSlug}/${prev.id}` : `${LP}/${countryKey}/${seriesKey}/${prev.id}`
               data-dir='prev'
-              data-preload-src=prev.urls ? prev.urls.full : `/images/photo/${countryKey}/${seriesKey}/${prev.file}`
+              data-preload-src=_srcOf(prev)
+              data-preload-srcset=_srcsetOf(prev)
             )= ui.prev
           else
             span.nav-btn.is-off= ui.prev
@@ -65,7 +78,8 @@ block content
             a.nav-btn(
               href=isShoot ? `${LP}/shoot/${shootSlug}/${next.id}` : `${LP}/${countryKey}/${seriesKey}/${next.id}`
               data-dir='next'
-              data-preload-src=next.urls ? next.urls.full : `/images/photo/${countryKey}/${seriesKey}/${next.file}`
+              data-preload-src=_srcOf(next)
+              data-preload-srcset=_srcsetOf(next)
             )= ui.next
           else
             span.nav-btn.is-off= ui.next
@@ -85,6 +99,8 @@ block content
             button.photo-annot(class=a.source==='client' ? 'photo-annot--client' : '' type='button' data-x=a.x data-y=a.y data-text=a.text data-author=a.authorName||undefined)= idx + 1
         img(
           src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
+          srcset=_srcsetOf(photo)
+          sizes=_srcsetOf(photo) ? PAGE_SIZES : undefined
           alt=photo.title
           title=photo.desc||photo.title
           width=photo.width||undefined
@@ -238,21 +254,38 @@ block content
 
       // turns off the shimmer skeleton on .photo-page-image once the current image is ready
       function markPageImageLoaded() {
-        var pageImg = document.querySelector('.photo-page-image img');
+        var pageImg = document.querySelector('.photo-page-image .photo-image-wrap img');
         var container = pageImg && pageImg.closest('.photo-page-image');
         if (container) container.classList.add('loaded');
       }
 
-      // warms the browser cache for the neighboring photos so ПРЕД./СЛЕД. feel instant
-      var preloadedSrcs = {};
+      // Warms the cache for the frames around this one (±1 right away, ±2 when the browser is idle) so the
+      // deck swipe and ПРЕД./СЛЕД. feel instant. Each preload uses the SAME srcset/sizes as the page image,
+      // so the browser fetches exactly the candidate the page will show (preview vs full, retina-aware) and
+      // the later real load is a cache hit. Skipped entirely on Save-Data / 2G connections.
+      var PAGE_SIZES = '(max-width: 768px) 100vw, 1200px'; // keep in sync with the <img sizes> above
+      var preloadedKeys = {};
       function preloadNeighbors() {
-        ['prev', 'next'].forEach(function(dir) {
-          var link = document.querySelector('.nav-btn[data-dir="' + dir + '"]');
-          var src = link && link.getAttribute('data-preload-src');
-          if (!src || preloadedSrcs[src]) return;
-          preloadedSrcs[src] = true;
-          var img = new Image();
-          img.src = src;
+        var conn = navigator.connection || {};
+        if (conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '')) return;
+        var el = document.getElementById('photo-near');
+        var list = [];
+        try { list = el ? JSON.parse(el.textContent) : []; } catch (e) { return; }
+        list.forEach(function(n) {
+          var key = (n.srcset || '') + '|' + n.src;
+          if (preloadedKeys[key]) return;
+          preloadedKeys[key] = true;
+          function go() {
+            var im = new Image();
+            im.decoding = 'async';
+            try { im.fetchPriority = 'low'; } catch (e) {}
+            im.sizes = PAGE_SIZES;
+            if (n.srcset) im.srcset = n.srcset;
+            im.src = n.src;
+          }
+          if (n.d === 1) go();
+          else if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 3000 });
+          else setTimeout(go, 1500);
         });
       }
 
@@ -264,15 +297,15 @@ block content
 
       // load/error don't bubble, so catch them in the capture phase to survive DOM swaps
       document.addEventListener('load', function(e) {
-        if (e.target.matches && e.target.matches('.photo-page-image img')) onPageImageReady();
+        if (e.target.matches && e.target.matches('.photo-page-image .photo-image-wrap img') && !e.target.closest('.deck-card')) onPageImageReady();
       }, true);
       document.addEventListener('error', function(e) {
-        if (e.target.matches && e.target.matches('.photo-page-image img')) markPageImageLoaded();
+        if (e.target.matches && e.target.matches('.photo-page-image .photo-image-wrap img')) markPageImageLoaded();
       }, true);
       window.addEventListener('resize', repositionAnnots);
 
       function checkPageImageAlreadyLoaded() {
-        var pageImg = document.querySelector('.photo-page-image img');
+        var pageImg = document.querySelector('.photo-page-image .photo-image-wrap img');
         if (pageImg && pageImg.complete && pageImg.naturalWidth) onPageImageReady();
       }
       checkPageImageAlreadyLoaded();
@@ -342,6 +375,7 @@ block content
       }
 
       var navigating = false;
+      var afterSwap = []; // one-shot callbacks, run right after the next successful soft-nav swap
       function navigate(url, isPop, method) {
         if (navigating) return;
         navigating = true;
@@ -350,6 +384,7 @@ block content
           .then(function(html) {
             navigating = false;
             if (!swap(html)) { location.href = url; return; }
+            afterSwap.splice(0).forEach(function(fn) { try { fn(); } catch (e) {} });
             if (!isPop) history.pushState({ photoNav: true }, '', url);
             trackPageView();
             window.photoTrack && window.photoTrack('photo_navigate', { method: method || 'click' });
@@ -395,7 +430,155 @@ block content
           if (dx < 0) swipeNext(); else swipePrev();
         }, { passive: true });
       }
-      bindSwipe(main, '.photo-page-image');
+      // ── v2 (touch): "deck of cards" swipe, used on the photo scene AND in the fullscreen lightbox. ──
+      // The current frame follows the finger; dragging left slides it away and reveals the NEXT frame lying
+      // underneath, dragging right pulls the PREVIOUS frame in from the left ON TOP of the current one.
+      // Released far/fast enough → the deck moves on (cfg.commit does the real navigation right after the
+      // animation, and the destination page shows the very same frame), else it springs back. At the first/last
+      // frame the card only rubber-bands. Vertical drags are left to the browser (page scroll).
+      // cfg: { root, start(e) → {holder, wrap} | null, width(st), sizeCard(card, st), insertUnder/insertOver(st, card),
+      //        onDrag(st), onEnd(st), commit(target, st, done) }
+      function makeDeckSwipe(cfg) {
+        var st = null;
+        var COMMIT_RATIO = 0.28;  // fraction of the width that commits a slow drag
+        var COMMIT_SPEED = 0.45;  // px/ms — a quick flick commits even a short drag
+        var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        function neighbour(dir) {
+          var l = document.querySelector('.nav-btn[data-dir="' + dir + '"]');
+          return l ? { url: l.getAttribute('href'), src: l.getAttribute('data-preload-src'), srcset: l.getAttribute('data-preload-srcset') } : null;
+        }
+        function makeCard(nb, cls) {
+          var c = document.createElement('div');
+          c.className = 'deck-card ' + cls;
+          cfg.sizeCard(c, st);
+          var im = document.createElement('img');
+          // same candidate the preloader fetched → already in the cache
+          im.sizes = PAGE_SIZES; if (nb.srcset) im.srcset = nb.srcset;
+          im.src = nb.src; im.alt = ''; im.draggable = false;
+          c.appendChild(im);
+          return c;
+        }
+        function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+
+        function render(dx) {
+          var W = st.W, p = clamp01(Math.abs(dx) / W);
+          if (dx < 0) {
+            var eff = st.next ? dx : dx * 0.3;
+            st.wrap.style.transform = 'translateX(' + eff + 'px)' + (reduceMotion ? '' : ' rotate(' + (eff / W * 5) + 'deg)');
+            st.wrap.style.filter = '';
+            if (st.under) {
+              st.under.style.opacity = '1';
+              st.under.style.transform = 'scale(' + (0.94 + 0.06 * p) + ')';
+              st.under.firstChild.style.filter = 'brightness(' + (0.65 + 0.35 * p) + ')';
+            }
+            if (st.over) st.over.style.transform = 'translateX(-105%)';
+          } else {
+            if (st.under) st.under.style.opacity = '0';
+            if (st.prev) {
+              st.over.style.transform = 'translateX(' + (-W + dx) + 'px)';
+              st.wrap.style.transform = 'scale(' + (1 - 0.05 * p) + ')';
+              st.wrap.style.filter = 'brightness(' + (1 - 0.3 * p) + ')';
+            } else {
+              st.wrap.style.transform = 'translateX(' + (dx * 0.3) + 'px)';
+              st.wrap.style.filter = '';
+            }
+          }
+        }
+        function cleanup() {
+          if (!st) return;
+          if (cfg.onEnd) cfg.onEnd(st);
+          st.wrap.style.transition = st.wrap.style.transform = st.wrap.style.filter = '';
+          if (st.under) st.under.remove();
+          if (st.over) st.over.remove();
+          st = null;
+        }
+
+        cfg.root.addEventListener('touchstart', function(e) {
+          if (navigating || e.touches.length !== 1) { st = null; return; }
+          var ctx = cfg.start(e);
+          if (!ctx) { st = null; return; }
+          var t = e.touches[0];
+          st = { x0: t.clientX, y0: t.clientY, t0: Date.now(), dx: 0, mode: null, holder: ctx.holder, wrap: ctx.wrap };
+        }, { passive: true });
+
+        cfg.root.addEventListener('touchmove', function(e) {
+          if (!st) return;
+          var t = e.touches[0];
+          var dx = t.clientX - st.x0, dy = t.clientY - st.y0;
+          if (!st.mode) {
+            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+            if (Math.abs(dy) > Math.abs(dx)) { st = null; return; } // a vertical scroll, not our gesture
+            st.mode = 'drag';
+            st.W = cfg.width(st);
+            st.next = neighbour('next');
+            st.prev = neighbour('prev');
+            if (cfg.onDrag) cfg.onDrag(st);
+            if (st.next) { st.under = makeCard(st.next, 'deck-card--under'); cfg.insertUnder(st, st.under); }
+            if (st.prev) { st.over = makeCard(st.prev, 'deck-card--over'); cfg.insertOver(st, st.over); }
+          }
+          st.dx = dx;
+          render(dx);
+        }, { passive: true });
+
+        function finish(cancelled) {
+          if (!st || st.mode !== 'drag') { st = null; return; }
+          var s = st, dx = s.dx, W = s.W, dt = Math.max(1, Date.now() - s.t0);
+          var dir = dx < 0 ? 'next' : 'prev';
+          var target = dir === 'next' ? s.next : s.prev;
+          var commit = !cancelled && target && (Math.abs(dx) / W > COMMIT_RATIO || (Math.abs(dx) / dt > COMMIT_SPEED && Math.abs(dx) > 30));
+          s.wrap.style.transition = 'transform .22s ease-out, filter .22s ease-out';
+          if (s.under) { s.under.style.transition = 'transform .22s ease-out, opacity .22s'; s.under.firstChild.style.transition = 'filter .22s ease-out'; }
+          if (s.over) s.over.style.transition = 'transform .22s ease-out';
+          if (commit) {
+            if (dir === 'next') {
+              s.wrap.style.transform = 'translateX(' + (-W * 1.15) + 'px)' + (reduceMotion ? '' : ' rotate(-6deg)');
+              if (s.under) { s.under.style.transform = 'scale(1)'; s.under.firstChild.style.filter = 'brightness(1)'; }
+            } else {
+              s.over.style.transform = 'translateX(0)';
+              s.wrap.style.transform = 'scale(.95)';
+              s.wrap.style.filter = 'brightness(.7)';
+            }
+            setTimeout(function() {
+              // the cards now show the destination frame full-size; move the page on underneath them
+              cfg.commit(target, s, function done() { if (st === s) cleanup(); });
+              // safety net: never leave cards lying around if the navigation stalls
+              setTimeout(function() { if (st === s) cleanup(); }, 5000);
+            }, reduceMotion ? 0 : 230);
+          } else {
+            s.wrap.style.transform = '';
+            s.wrap.style.filter = '';
+            if (s.under) { s.under.style.opacity = '0'; s.under.style.transform = 'scale(.94)'; }
+            if (s.over) s.over.style.transform = 'translateX(-105%)';
+            setTimeout(function() { if (st === s) cleanup(); }, 240);
+          }
+        }
+        cfg.root.addEventListener('touchend', function() { finish(false); }, { passive: true });
+        cfg.root.addEventListener('touchcancel', function() { finish(true); }, { passive: true });
+      }
+
+      // photo scene on the page (main survives soft-nav swaps; the cards live inside the scene and vanish with it)
+      makeDeckSwipe({
+        root: main,
+        start: function(e) {
+          var scene = e.target.closest && e.target.closest('.photo-page-image');
+          // not while a point is being placed (points.js arms .is-placing) and not under the lightbox
+          if (!scene || document.querySelector('.photo-image-wrap.is-placing') || lb.classList.contains('lb-open')) return null;
+          return { holder: scene, wrap: scene.querySelector('.photo-image-wrap') };
+        },
+        width: function(st) { return st.holder.clientWidth || window.innerWidth; },
+        sizeCard: function(c, st) {
+          // same box as the current frame, so the neighbour lines up with it exactly
+          var r = st.wrap.getBoundingClientRect(), sr = st.holder.getBoundingClientRect();
+          c.style.left = (r.left - sr.left) + 'px'; c.style.top = (r.top - sr.top) + 'px';
+          c.style.width = r.width + 'px'; c.style.height = r.height + 'px';
+        },
+        insertUnder: function(st, c) { st.holder.insertBefore(c, st.wrap); },
+        insertOver: function(st, c) { st.holder.appendChild(c); },
+        onDrag: function(st) { st.holder.classList.add('is-dragging'); },
+        onEnd: function(st) { st.holder.classList.remove('is-dragging'); },
+        commit: function(target) { navigate(target.url, false, 'swipe'); },
+      });
 
       // ── zoom lightbox: single #lb element created once, reused across soft-nav swaps ──
       var lb = document.createElement('div');
@@ -605,7 +788,7 @@ block content
       // (re)points the lightbox at whatever photo is currently shown in the main view —
       // called on open, and again after a swipe/soft-nav while the lightbox stays open.
       function refreshLbImage() {
-        var pageImg = document.querySelector('.photo-page-image img');
+        var pageImg = document.querySelector('.photo-page-image .photo-image-wrap img');
         if (!pageImg) return;
         var isPano = pageImg.dataset.panorama === '1';
         lb.classList.toggle('lb-pan', isPano);
@@ -613,7 +796,14 @@ block content
         panState.scale = 1; panState.tx = 0; panState.ty = 0; panState.maxScale = 1;
         lbImg.style.transition = '';
         applyPanTransform();
-        lbImg.src = isPano ? (pageImg.dataset.panoSrc || pageImg.src) : pageImg.src;
+        if (isPano) {
+          lbImg.removeAttribute('srcset'); lbImg.removeAttribute('sizes');
+          lbImg.src = pageImg.dataset.panoSrc || pageImg.src;
+        } else {
+          var pageSrcset = pageImg.getAttribute('srcset');
+          if (pageSrcset) { lbImg.sizes = PAGE_SIZES; lbImg.srcset = pageSrcset; } else { lbImg.removeAttribute('srcset'); lbImg.removeAttribute('sizes'); }
+          lbImg.src = pageImg.src;
+        }
         refreshLbInfo();
         function onLoaded() {
           addLbAnnots();
@@ -623,7 +813,7 @@ block content
         else lbImg.addEventListener('load', onLoaded, { once: true });
       }
       function openLb() {
-        var pageImg = document.querySelector('.photo-page-image img');
+        var pageImg = document.querySelector('.photo-page-image .photo-image-wrap img');
         if (!pageImg) return;
         var popup = document.getElementById('annot-popup');
         if (popup) popup.style.display = 'none';
@@ -642,7 +832,31 @@ block content
         mouseDrag = null;
         touchState = null;
       }
-      bindSwipe(lbWrap, null);
+      // fullscreen lightbox: the same deck, full-screen cards over the black backdrop. Panoramas keep their own
+      // pan/zoom drag; the caption layer is hidden while a card is in flight.
+      makeDeckSwipe({
+        root: lb,
+        start: function(e) {
+          if (!lb.classList.contains('lb-open') || lb.classList.contains('lb-pan')) return null;
+          if (e.target.closest && e.target.closest('.lb-info, .lb-close')) return null;
+          return { holder: lb, wrap: lbWrap };
+        },
+        width: function() { return window.innerWidth; },
+        sizeCard: function() {},                                 // .lb .deck-card is full-screen in CSS
+        insertUnder: function(st, c) { lb.insertBefore(c, lbWrap); },
+        insertOver: function(st, c) { lb.appendChild(c); },
+        onDrag: function() { lbInfo.style.transition = 'opacity .12s'; lbInfo.style.opacity = '0'; },
+        onEnd: function() { lbInfo.style.opacity = ''; lbInfo.style.transition = ''; },
+        commit: function(target, st, done) {
+          // the swap re-points #lb at the new frame (refreshLbImage); once that image is showing, drop the cards
+          afterSwap.push(function() {
+            var settle = function() { setTimeout(done, 60); };
+            if (lbImg.complete && lbImg.naturalWidth) settle();
+            else { lbImg.addEventListener('load', settle, { once: true }); lbImg.addEventListener('error', settle, { once: true }); }
+          });
+          navigate(target.url, false, 'swipe');
+        },
+      });
       lb.addEventListener('click', function(e) {
         var annotBtn = e.target.closest && e.target.closest('.lb-annot');
         if (annotBtn) {
@@ -681,7 +895,7 @@ block content
           return;
         }
 
-        var pageImgEl = e.target.closest && e.target.closest('.photo-page-image img');
+        var pageImgEl = e.target.closest && e.target.closest('.photo-page-image .photo-image-wrap img');
         if (pageImgEl) { openLb(); return; }
 
         var annotBtn = e.target.closest && e.target.closest('.photo-annot');

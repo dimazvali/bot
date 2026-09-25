@@ -894,6 +894,19 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
   animation: shimmer 1.5s infinite linear;
 }
 .photo-page-image.loaded { animation: none; background: #2e2a24; }
+/* touch: horizontal drags belong to the deck swipe (photo.pug), vertical ones still scroll the page */
+.photo-page-image { touch-action: pan-y; }
+.photo-page-image.is-dragging .photo-image-wrap { transform-origin: 50% 100%; will-change: transform; }
+.deck-card { position: absolute; overflow: hidden; background: #2e2a24; pointer-events: none; }
+.photo-page-image .deck-card img { width: 100%; height: 100%; object-fit: contain; cursor: default; filter: none; }
+.deck-card--under { z-index: 1; opacity: 0; transform: scale(.94); }  /* below the current frame (it comes earlier in the DOM) */
+.deck-card--over  { z-index: 3; transform: translateX(-105%); box-shadow: 12px 0 30px -8px rgba(0, 0, 0, .55); }
+/* the same cards inside the fullscreen lightbox: full-screen, over the black backdrop */
+.lb .deck-card { left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: transparent; }
+.lb .deck-card--under { z-index: auto; }                 /* inserted before .lb-wrap → paints beneath it */
+.lb .deck-card--over { background: #000; z-index: 3; }
+.lb .deck-card img { width: auto; height: auto; max-width: 100vw; max-height: 100vh; object-fit: contain; }
+.lb:not(.lb-pan) { touch-action: pan-y; }
 .photo-page-bg {
   position: absolute;
   inset: -40px;
@@ -1126,7 +1139,7 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
 .lb-info-title + .lb-info-desc { margin-top: 8px; }
 .lb-info-desc { font-family: var(--f-serif); font-size: 15px; color: #dedad3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; }
 .lb-info.is-open .lb-info-desc { display: block; overflow: visible; -webkit-line-clamp: unset; }
-.lb-close, .presentation-close { position: fixed; top: 16px; right: 20px; z-index: 2; font-size: 24px; line-height: 1; color: rgba(255, 255, 255, .5); background: none; border: none; padding: 8px; transition: color .15s; }
+.lb-close, .presentation-close { position: fixed; top: 16px; right: 20px; z-index: 4; font-size: 24px; line-height: 1; color: rgba(255, 255, 255, .5); background: none; border: none; padding: 8px; transition: color .15s; }
 .lb-close:hover, .presentation-close:hover { color: #fff; }
 .presentation-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(0, 0, 0, .96); display: none; align-items: center; justify-content: center; }
 .presentation-overlay.is-open { display: flex; }

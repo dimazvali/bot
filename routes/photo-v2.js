@@ -21,6 +21,7 @@ var { getPhotoColorFamilies } = require('../lib/color-utils');
 var i18n = require('../lib/photo-i18n');
 var V2_UI = require('../lib/photo-v2-strings');
 var siteTexts = require('../lib/photo-site-texts');
+var shoots = require('../lib/photo-shoots');
 
 var router = express.Router();
 
@@ -65,6 +66,11 @@ router.use(function(req, res, next) {
       // (child-template variables aren't visible to the layout)
       hasFilterbar: /^photo\/(gallery|tag-gallery|color-gallery)$/.test(view) && !(options && options.isShoot && options.shootSlug),
     }, options);
+    // shoot photo page: minimal list (id + urls) of the shoot's frames, for the neighbour preloader
+    if (view === 'photo/photo' && options && options.isShoot && options.shootSlug) {
+      var sh = shoots.getShoot(options.shootSlug);
+      opts.nearList = sh ? sh.photos.map(function(p) { return { id: p.id, urls: p.urls }; }) : [];
+    }
     return origRender.call(res, v2view, opts, cb);
   };
   next();
