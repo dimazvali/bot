@@ -154,6 +154,8 @@ block content
           a.photo-source-shoot(href=sourceShootUrl) #{ui.fromShoot} #{sourceShootLabel.toUpperCase()} →
         if isAdmin && photoViews != null
           .photo-page-views(title='видно только админам') 👁 #{photoViews}
+        if isAdmin && isShoot && downloadStats
+          .photo-page-views(title='скачали для Instagram (видно только админам)') ⬇ #{downloadStats.igPhoto}
       .pp-side
         if !isShoot
           .photo-inquiry
