@@ -544,6 +544,21 @@ a.cdot:hover, .cdot.is-active, button.cdot:hover { box-shadow: 0 0 0 2px var(--b
 .photo-card:hover img { transform: scale(1.02); }
 .photo-card[data-hidden], .photo-card[data-curator-hidden] { display: none; }
 
+/* marks in a listing: this frame has a description / notes on it (always visible — touch has no hover) */
+.photo-flags { position: absolute; top: 8px; right: 8px; z-index: 2; display: flex; gap: 4px; }
+.photo-flag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: rgba(12, 11, 10, .62);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+  color: #f4f1ea;
+}
+.photo-flag svg { width: 14px; height: 14px; }
+
 .photo-overlay {
   position: absolute;
   left: 0; right: 0; bottom: 0;
@@ -652,6 +667,7 @@ a.cdot:hover, .cdot.is-active, button.cdot:hover { box-shadow: 0 0 0 2px var(--b
 .focus-back:hover { color: var(--ink); }
 .focus-brand { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .02em; text-transform: uppercase; }
 .focus-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.admin-counter { font-size: 11px; color: var(--meta); letter-spacing: .04em; cursor: help; }
 .fb-lang { font-size: 11px; letter-spacing: .08em; color: var(--ink-3); padding: 0 6px; }
 .focus-title {
   display: grid;

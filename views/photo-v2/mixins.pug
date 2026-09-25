@@ -45,6 +45,20 @@ mixin photoCard(photo, href, opts)
       style=photo.width && photo.height ? `aspect-ratio:${photo.width}/${photo.height}` : undefined
       onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
     )
+    //- "there's more to read" marks, always visible (touch screens have no hover): a text description, and/or notes pinned on the frame
+    - var _hasDesc = !!(photo.desc && String(photo.desc).trim())
+    - var _hasNotes = !!(photo.annotations && photo.annotations.length)
+    if _hasDesc || _hasNotes
+      span.photo-flags
+        if _hasDesc
+          span.photo-flag(title=t.hasCaption)
+            svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' aria-hidden='true')
+              path(d='M4 6h16M4 12h16M4 18h9')
+        if _hasNotes
+          span.photo-flag(title=t.hasNotes)
+            svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true')
+              path(d='M12 21s-6-5.6-6-10a6 6 0 0 1 12 0c0 4.4-6 10-6 10z')
+              circle(cx='12' cy='11' r='2')
     .photo-overlay
       span.photo-title= photo.title
       if photo.date

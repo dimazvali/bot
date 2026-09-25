@@ -24,8 +24,11 @@ var siteTexts = require('../lib/photo-site-texts');
 var shoots = require('../lib/photo-shoots');
 var { getData } = require('../lib/photo-data');
 var notFound = require('../lib/photo-404');
+var downloads = require('../lib/photo-downloads');
 
 var router = express.Router();
+
+var OTHER_SHOOTS_LIMIT = 12; // how many open shoots the "Other shoots" block shows (routes/photo.js gives 3)
 
 // The preview host (photo-v2.*) must never compete with the real site in search results. The same router
 // also serves photo.* (production) — there nothing is blocked and routes/photo.js answers robots.txt/sitemap.
@@ -109,6 +112,21 @@ router.use(function(req, res, next) {
       var sh = shoots.getShoot(options.shootSlug);
       opts.nearList = sh ? sh.photos.map(function(p) { return { id: p.id, urls: p.urls }; }) : [];
     }
+    // "Other shoots" under a shoot gallery: routes/photo.js hands over only the 3 biggest. When no curated
+    // "related shoots" are set (that list wins and stays as is), show more of the open ones.
+    if (view === 'photo/gallery' && options && options.isShoot && options.shootSlug && !options.otherShootsAreRelated) {
+      var allShoots = shoots.getData();
+      opts.otherShoots = Object.keys(allShoots)
+        .map(function(k) { return allShoots[k]; })
+        .filter(function(s) { return s.key !== options.shootSlug && s.public && s.photos && s.photos.length; })
+        .sort(function(a, b) { return b.photos.length - a.photos.length; })
+        .slice(0, OTHER_SHOOTS_LIMIT)
+        .map(function(s) { return i18n.localizeShoot(s, lang); });
+    }
+    // shoot pages, admin only: download counters (zip / selection / Instagram JPG)
+    if (options && options.isShoot && options.shootSlug && res.locals.isAdmin && (view === 'photo/gallery' || view === 'photo/photo')) {
+      opts.downloadStats = downloads.stats(options.shootSlug, options.photo && options.photo.id);
+    }
     return origRender.call(res, v2view, opts, cb);
   };
   next();
@@ -120,7 +138,9 @@ var photoAdmin = require('./photo-admin');
 // (texts then live in memory only).
 try {
   var fbApp = require('firebase-admin/app').getApps().find(function(a) { return a.name === 'photo'; });
-  siteTexts.init(fbApp ? require('firebase-admin/firestore').getFirestore(fbApp) : null).catch(console.error);
+  var fsDb = fbApp ? require('firebase-admin/firestore').getFirestore(fbApp) : null;
+  siteTexts.init(fsDb).catch(console.error);
+  downloads.init(fsDb).catch(console.error);
 } catch (e) { console.error('[photo-v2] site texts init:', e.message); }
 
 // /admin/site-texts — edit the home page copy. Lives only in this router (the live photo-admin is untouched),
@@ -151,6 +171,10 @@ router.post('/admin/site-texts', requireAdmin, express.urlencoded({ extended: fa
     res.status(500).send('Не удалось сохранить');
   }
 });
+
+// count shoot downloads (the handlers themselves live in routes/photo.js and run untouched right after these)
+router.get(/^(?:\/en)?\/shoot\/[^/]+\/download$/, downloads.middleware('zip', shoots.getShoot));
+router.get(/^(?:\/en)?\/shoot\/[^/]+\/[^/]+\/download-instagram$/, downloads.middleware('ig', shoots.getShoot));
 
 router.use(require('./photo'));
 

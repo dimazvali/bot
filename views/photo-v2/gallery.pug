@@ -113,6 +113,8 @@ block content
     header.focus-bar
       a.focus-back(href=`${LP}/shoot`) ← #{ui.allShoots}
       span.focus-brand dimazvali · #{noindex ? t.shootClosed : t.shootOpen}
+      if isAdmin && downloadStats
+        span.admin-counter(title='скачиваний: архив всех кадров · подборки клиентов · кадры для Instagram (видно только админам)') ⬇ #{downloadStats.zip} · #{downloadStats.sel} · #{downloadStats.ig}
       .focus-actions
         button.fb-btn(type='button' onclick='shuffleMasonry()')= ui.shuffle
         button.fb-btn(type='button' onclick='startPresentation()')= ui.present

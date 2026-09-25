@@ -113,6 +113,14 @@ var shoots = {
   },
 };
 
+// more open shoots, so the "other shoots" block has something to list
+for (var oi = 1; oi <= 6; oi++) {
+  shoots['open-' + oi] = { key: 'open-' + oi, label: 'Открытая съёмка ' + oi, desc: '', public: true, password: '',
+    photos: pool.slice(oi, oi + 3 + oi), photoOrder: pool.slice(oi, oi + 3 + oi).map(function(p) { return p.id; }) };
+}
+// every shoot frame has the "for Instagram" JPG (the download-instagram route needs urls.instagram)
+Object.keys(shoots).forEach(function(k) { shoots[k].photos.forEach(function(ph) { ph.urls = Object.assign({}, ph.urls, { instagram: 'https://example.invalid/ig.jpg' }); }); });
+
 // ── stubs for everything that would touch Firebase / Telegram / AWS ─────────
 var noopRouter = function() { return express.Router(); };
 stub('lib/photo-data.js', { getData: function() { return data; } });
@@ -144,7 +152,8 @@ stub('lib/photo-people.js', {
 });
 var adminRouter = express.Router();
 adminRouter.checkAdminToken = async function(req) { return !!(req.signedCookies && req.signedCookies.photoAdminToken); };
-adminRouter.bucket = {};
+// fake storage: any file 'exists' and streams a few bytes (enough for zip / jpeg download responses)
+adminRouter.bucket = { file: function() { return { createReadStream: function() { return require('stream').Readable.from([Buffer.from('fake-image-bytes')]); } }; } };
 adminRouter.indexNowSubmit = function() {};
 stub('routes/photo-admin.js', adminRouter);
 stub('routes/photo-og.js', noopRouter());
