@@ -652,6 +652,7 @@ a.cdot:hover, .cdot.is-active, button.cdot:hover { box-shadow: 0 0 0 2px var(--b
 .focus-back:hover { color: var(--ink); }
 .focus-brand { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: .02em; text-transform: uppercase; }
 .focus-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.admin-counter { font-size: 11px; color: var(--meta); letter-spacing: .04em; cursor: help; }
 .fb-lang { font-size: 11px; letter-spacing: .08em; color: var(--ink-3); padding: 0 6px; }
 .focus-title {
   display: grid;

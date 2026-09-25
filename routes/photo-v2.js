@@ -24,6 +24,7 @@ var siteTexts = require('../lib/photo-site-texts');
 var shoots = require('../lib/photo-shoots');
 var { getData } = require('../lib/photo-data');
 var notFound = require('../lib/photo-404');
+var downloads = require('../lib/photo-downloads');
 
 var router = express.Router();
 
@@ -109,6 +110,10 @@ router.use(function(req, res, next) {
       var sh = shoots.getShoot(options.shootSlug);
       opts.nearList = sh ? sh.photos.map(function(p) { return { id: p.id, urls: p.urls }; }) : [];
     }
+    // shoot pages, admin only: download counters (zip / selection / Instagram JPG)
+    if (options && options.isShoot && options.shootSlug && res.locals.isAdmin && (view === 'photo/gallery' || view === 'photo/photo')) {
+      opts.downloadStats = downloads.stats(options.shootSlug, options.photo && options.photo.id);
+    }
     return origRender.call(res, v2view, opts, cb);
   };
   next();
@@ -120,7 +125,9 @@ var photoAdmin = require('./photo-admin');
 // (texts then live in memory only).
 try {
   var fbApp = require('firebase-admin/app').getApps().find(function(a) { return a.name === 'photo'; });
-  siteTexts.init(fbApp ? require('firebase-admin/firestore').getFirestore(fbApp) : null).catch(console.error);
+  var fsDb = fbApp ? require('firebase-admin/firestore').getFirestore(fbApp) : null;
+  siteTexts.init(fsDb).catch(console.error);
+  downloads.init(fsDb).catch(console.error);
 } catch (e) { console.error('[photo-v2] site texts init:', e.message); }
 
 // /admin/site-texts — edit the home page copy. Lives only in this router (the live photo-admin is untouched),
@@ -151,6 +158,10 @@ router.post('/admin/site-texts', requireAdmin, express.urlencoded({ extended: fa
     res.status(500).send('Не удалось сохранить');
   }
 });
+
+// count shoot downloads (the handlers themselves live in routes/photo.js and run untouched right after these)
+router.get(/^(?:\/en)?\/shoot\/[^/]+\/download$/, downloads.middleware('zip', shoots.getShoot));
+router.get(/^(?:\/en)?\/shoot\/[^/]+\/[^/]+\/download-instagram$/, downloads.middleware('ig', shoots.getShoot));
 
 router.use(require('./photo'));
 
