@@ -1,0 +1,756 @@
+extends layout
+include mixins
+
+block head
+  if !isShoot
+    -
+      var _lp = lang === 'en' ? '/en' : ''
+      var _imgUrl = photo.urls ? (photo.urls.full || photo.urls.preview) : null
+      var _ld = {
+        '@context': 'https://schema.org',
+        '@type': 'ImageObject',
+        name: photo.title,
+        contentUrl: _imgUrl,
+        thumbnailUrl: photo.urls ? photo.urls.preview : null,
+        url: 'https://photo.dimazvali.com' + _lp + '/' + countryKey + '/' + seriesKey + '/' + photo.id,
+        creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: 'https://photo.dimazvali.com' + _lp + '/about' },
+        copyrightHolder: { '@type': 'Person', name: 'Dmitry Shestakov' },
+        copyrightYear: photo.date ? photo.date.match(/\d{4}/) && photo.date.match(/\d{4}/)[0] : null,
+        copyrightNotice: '© Dmitry Shestakov. All rights reserved.',
+        creditText: 'Dmitry Shestakov / photo.dimazvali.com',
+        license: 'https://photo.dimazvali.com' + _lp + '/about',
+        acquireLicensePage: 'https://photo.dimazvali.com' + _lp + '/' + countryKey + '/' + seriesKey + '/' + photo.id + '?inquiry=license',
+      }
+      if (photo.desc) _ld.description = photo.desc
+      if (photo.coords) _ld.locationCreated = { '@type': 'Place', geo: { '@type': 'GeoCoordinates', latitude: photo.coords.lat, longitude: photo.coords.lng }, name: countryLabel }
+      if (photo.altitude) _ld.altitude = photo.altitude
+      if (photo.tags && photo.tags.length) _ld.keywords = photo.tags.map(function(t){ return allTags[t] ? allTags[t].label : t }).join(', ')
+      Object.keys(_ld).forEach(function(k){ if (_ld[k] == null) delete _ld[k] })
+    script#ld-photo(type='application/ld+json')!= JSON.stringify(_ld)
+
+block content
+  - var LP = lang === 'en' ? '/en' : ''
+  - var _backHref = isShoot ? `${LP}/shoot/${shootSlug}` : `${LP}/${countryKey}/${seriesKey}`
+  - var _backLabel = isShoot ? (backLabel || '') : seriesLabel
+  -
+    // "3 / 34" position within the series (not known for shoots — the route only hands us prev/next)
+    var _pos = null, _total = null
+    if (!isShoot && data && data[countryKey] && data[countryKey].series[seriesKey]) {
+      var _list = data[countryKey].series[seriesKey].photos || []
+      var _ix = _list.findIndex(function(p) { return p.id === photo.id })
+      if (_ix !== -1) { _pos = _ix + 1; _total = _list.length }
+    }
+  .photo-page
+    .pp-top
+      a.pp-back(href=_backHref) ← #{_backLabel.toUpperCase()}
+      .pp-top-right
+        if isAdmin && !isShoot
+          .admin-bar
+            a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`)= ui.editBtn
+            a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/upload`)= ui.addPhoto
+        if isShoot
+          button.fb-btn.fb-btn--icon(type='button' onclick='toggleFocusTheme()' title=ui.theme aria-label=ui.theme) ◐
+        .photo-page-nav
+          if prev
+            a.nav-btn(
+              href=isShoot ? `${LP}/shoot/${shootSlug}/${prev.id}` : `${LP}/${countryKey}/${seriesKey}/${prev.id}`
+              data-dir='prev'
+              data-preload-src=prev.urls ? prev.urls.full : `/images/photo/${countryKey}/${seriesKey}/${prev.file}`
+            )= ui.prev
+          else
+            span.nav-btn.is-off= ui.prev
+          if _pos
+            span.pp-count #{_pos} / #{_total}
+          if next
+            a.nav-btn(
+              href=isShoot ? `${LP}/shoot/${shootSlug}/${next.id}` : `${LP}/${countryKey}/${seriesKey}/${next.id}`
+              data-dir='next'
+              data-preload-src=next.urls ? next.urls.full : `/images/photo/${countryKey}/${seriesKey}/${next.file}`
+            )= ui.next
+          else
+            span.nav-btn.is-off= ui.next
+    .photo-page-image
+      .photo-page-bg(style=`background-image: url(${photo.urls ? (photo.urls.preview || photo.urls.full) : '/images/photo/' + countryKey + '/' + seriesKey + '/' + photo.file})`)
+      .photo-image-wrap
+        .photo-badges
+          .photo-type-badge(title=photo.type||'copter')
+            +typeIcon(photo.type||'copter')
+          if photo.panorama
+            .photo-panorama-badge(title=ui.panorama)
+              svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round')
+                rect(x='2' y='6' width='20' height='12' rx='1')
+                path(d='M2 15l5-5 4 4 4-6 7 7')
+        if photo.annotations && photo.annotations.length
+          each a, idx in photo.annotations
+            button.photo-annot(class=a.source==='client' ? 'photo-annot--client' : '' type='button' data-x=a.x data-y=a.y data-text=a.text data-author=a.authorName||undefined)= idx + 1
+        img(
+          src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
+          alt=photo.title
+          title=photo.desc||photo.title
+          width=photo.width||undefined
+          height=photo.height||undefined
+          data-panorama=photo.panorama ? '1' : undefined
+          data-pano-src=photo.panorama ? (photo.urls && (photo.urls.pano || photo.urls.full)) : undefined
+          onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+        )
+    .pp-body
+      .pp-main
+        .photo-page-loc
+          if isShoot
+            | #{(backLabel || '').toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
+          else
+            | #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
+        h1.photo-page-title= photo.title
+        if photo.desc
+          p.photo-page-desc= photo.desc
+        if !isShoot && photo.tags && photo.tags.length
+          .photo-tags
+            each tag in photo.tags
+              a.photo-tag(href=`${LP}/tag/${tag}`)= allTags[tag] ? allTags[tag].label : tag
+        if photo.annotations && photo.annotations.length
+          .photo-annot-list
+            each a, i in photo.annotations
+              .photo-annot-item(class=a.source==='client' ? 'photo-annot-item--client' : '')
+                span.photo-annot-num= i + 1
+                span.photo-annot-item-text
+                  = a.text
+                  if a.source === 'client' && a.authorName
+                    |
+                    span.photo-annot-item-author= ui.pointAuthorPrefix + ' ' + a.authorName
+        .photo-actions
+          button.action-btn(type='button' onclick='sharePhoto()')= ui.share
+          if photo.instagram
+            a.action-btn(href=photo.instagram target='_blank' rel='noopener') #{ui.instagram} ↗
+          if !isShoot
+            button.action-btn.action-btn--ink.only-mobile(type='button' data-goto-tab='inquiry')= t.buyPrint
+          if isShoot
+            if photo.urls && photo.urls.instagram
+              a.action-btn(href=`${LP}/shoot/${shootSlug}/${photo.id}/download-instagram`)= ui.downloadInstagram
+            button.action-btn#add-point-btn(type='button' data-slug=shootSlug data-photo-id=photo.id)= ui.addPoint
+            if isAdmin
+              button.action-btn.action-btn--pick(type='button' data-curator-toggle data-slug=shootSlug data-photo-id=photo.id data-picked=photo.curatorPick ? '1' : '0' data-label-add=t.curatorAdd data-label-remove=t.curatorRemove data-error=ui.saveError class=photo.curatorPick ? 'is-picked' : '')= photo.curatorPick ? t.curatorRemove : t.curatorAdd
+        if !isShoot && sourceShootUrl
+          a.photo-source-shoot(href=sourceShootUrl) #{ui.fromShoot} #{sourceShootLabel.toUpperCase()} →
+        if isAdmin && photoViews != null
+          .photo-page-views(title='видно только админам') 👁 #{photoViews}
+      .pp-side
+        if !isShoot
+          .photo-inquiry
+            - var showInquiry = !!inquiryStatus
+            .inquiry-tabs
+              button.inquiry-tab(type='button' data-tab='comments' class=showInquiry ? '' : 'is-active')= ui.commentsTab
+              button.inquiry-tab(type='button' data-tab='inquiry' class=showInquiry ? 'is-active' : '')= ui.inquiryTab
+            .inquiry-tab-panel(data-panel='comments' style=showInquiry ? 'display:none' : '')
+              - var photoUserStr = photoUser ? JSON.stringify(photoUser) : ''
+              .photo-comments-section(
+                data-country=countryKey
+                data-series=seriesKey
+                data-photo-id=photo.id
+                data-is-admin=isAdmin ? '1' : '0'
+                data-google-client-id=googleClientId
+                data-user=photoUserStr
+              )
+                p.comments-loading= ui.loadingComments
+            .inquiry-tab-panel(data-panel='inquiry' style=showInquiry ? '' : 'display:none')
+              if inquiryStatus === 'ok'
+                p.inquiry-success= ui.inquirySuccess
+              else
+                p.inquiry-hint= t.inquiryHint
+                if inquiryStatus === 'err'
+                  p.inquiry-error= ui.inquiryError
+                form.inquiry-form(method='POST' action=`${LP}/${countryKey}/${seriesKey}/${photo.id}/inquiry`)
+                  .inquiry-type
+                    each opt in [['print',ui.print],['license',ui.license],['other',ui.other]]
+                      label.inquiry-radio
+                        input(type='radio' name='type' value=opt[0] checked=(inquiryStatus === 'license' ? opt[0]==='license' : opt[0]==='print'))
+                        span= opt[1]
+                  .inquiry-row
+                    input.inquiry-input(type='text' name='name' placeholder=ui.nameCaps required autocomplete='name')
+                    input.inquiry-input(type='email' name='email' placeholder=ui.emailCaps required autocomplete='email')
+                  textarea.inquiry-input.inquiry-textarea(name='message' placeholder=t.inquiryMessage rows='3')
+                  .inquiry-foot
+                    span.inquiry-note= t.inquiryNote
+                    button.btn.btn--ink.inquiry-submit(type='submit')= ui.submitArrow
+        else
+          .photo-inquiry
+            .inquiry-tabs
+              span.inquiry-tab.is-active(style='cursor:default;')= ui.commentsTab
+            .inquiry-tab-panel(data-panel='comments')
+              - var photoUserStrShoot = photoUser ? JSON.stringify(photoUser) : ''
+              .photo-comments-section(
+                data-country='shoot'
+                data-series=shootSlug
+                data-photo-id=photo.id
+                data-is-admin=isAdmin ? '1' : '0'
+                data-google-client-id=googleClientId
+                data-user=photoUserStrShoot
+              )
+                p.comments-loading= ui.loadingComments
+
+    .annot-popup#annot-popup
+      button.annot-popup-close#annot-popup-close ×
+      p.annot-popup-text#annot-popup-text
+
+    if isShoot
+      .selection-popup#point-popup
+        .selection-popup-inner
+          span.selection-popup-title= ui.pointPopupTitle
+          textarea.point-popup-input#point-popup-input(rows='3' placeholder=ui.pointPlaceholder maxlength='500')
+          p.point-popup-msg#point-popup-msg
+          .selection-popup-actions
+            button#point-popup-cancel(type='button')= ui.cancel
+            button.btn.btn--ink#point-popup-save(type='button')= ui.save
+
+      .selection-popup#point-signin-popup
+        .selection-popup-inner
+          span.selection-popup-title= ui.pointSignInTitle
+          div#point-signin-btn
+          .selection-popup-actions
+            button#point-signin-cancel(type='button')= ui.cancel
+
+    if !isShoot && related && related.length
+      .related
+        .related-label #{ui.relatedFrom} #{countryLabel.toUpperCase()}
+        .related-strip
+          each r in related
+            a.related-thumb(href=`${LP}/${r.countryKey}/${r.seriesKey}/${r.id}` title=r.title)
+              img(src=r.urls.preview alt=r.title title=r.title loading='lazy' onerror="this.closest('.related-thumb').style.display='none'")
+
+  script.
+    (function() {
+      // ── soft (SPA-like) navigation between photos: swaps <main> + <head> via fetch
+      // instead of a full page reload; falls back to a real navigation on any failure ──
+      var main = document.querySelector('main.main');
+
+      function repositionAnnots() {
+        var pageImg = document.querySelector('.photo-image-wrap img');
+        var annots = document.querySelectorAll('.photo-image-wrap .photo-annot');
+        if (!pageImg || !pageImg.naturalWidth || !annots.length) return;
+        var W = pageImg.clientWidth, H = pageImg.clientHeight;
+        var scale = Math.min(W / pageImg.naturalWidth, H / pageImg.naturalHeight);
+        var rW = pageImg.naturalWidth * scale, rH = pageImg.naturalHeight * scale;
+        var rL = (W - rW) / 2, rT = (H - rH) / 2;
+        annots.forEach(function(btn) {
+          btn.style.left = (rL + rW * parseFloat(btn.dataset.x) / 100) + 'px';
+          btn.style.top  = (rT + rH * parseFloat(btn.dataset.y) / 100) + 'px';
+        });
+      }
+
+      // turns off the shimmer skeleton on .photo-page-image once the current image is ready
+      function markPageImageLoaded() {
+        var pageImg = document.querySelector('.photo-page-image img');
+        var container = pageImg && pageImg.closest('.photo-page-image');
+        if (container) container.classList.add('loaded');
+      }
+
+      // warms the browser cache for the neighboring photos so ПРЕД./СЛЕД. feel instant
+      var preloadedSrcs = {};
+      function preloadNeighbors() {
+        ['prev', 'next'].forEach(function(dir) {
+          var link = document.querySelector('.nav-btn[data-dir="' + dir + '"]');
+          var src = link && link.getAttribute('data-preload-src');
+          if (!src || preloadedSrcs[src]) return;
+          preloadedSrcs[src] = true;
+          var img = new Image();
+          img.src = src;
+        });
+      }
+
+      function onPageImageReady() {
+        repositionAnnots();
+        markPageImageLoaded();
+        preloadNeighbors();
+      }
+
+      // load/error don't bubble, so catch them in the capture phase to survive DOM swaps
+      document.addEventListener('load', function(e) {
+        if (e.target.matches && e.target.matches('.photo-page-image img')) onPageImageReady();
+      }, true);
+      document.addEventListener('error', function(e) {
+        if (e.target.matches && e.target.matches('.photo-page-image img')) markPageImageLoaded();
+      }, true);
+      window.addEventListener('resize', repositionAnnots);
+
+      function checkPageImageAlreadyLoaded() {
+        var pageImg = document.querySelector('.photo-page-image img');
+        if (pageImg && pageImg.complete && pageImg.naturalWidth) onPageImageReady();
+      }
+      checkPageImageAlreadyLoaded();
+
+      function loadComments() {
+        var old = document.getElementById('comments-script');
+        if (old) old.remove();
+        if (!document.querySelector('.photo-comments-section')) return;
+        var s = document.createElement('script');
+        s.id = 'comments-script';
+        s.src = '/javascripts/photo/comments.js';
+        document.body.appendChild(s);
+      }
+
+      function updateHead(doc) {
+        document.title = doc.title;
+        var newDesc = doc.querySelector('meta[name="description"]');
+        var curDesc = document.querySelector('meta[name="description"]');
+        if (newDesc && curDesc) curDesc.setAttribute('content', newDesc.getAttribute('content') || '');
+
+        ['og:title', 'og:description', 'og:image', 'og:url'].forEach(function(prop) {
+          var n = doc.querySelector('meta[property="' + prop + '"]');
+          var cur = document.querySelector('meta[property="' + prop + '"]');
+          if (n) {
+            if (!cur) { cur = document.createElement('meta'); cur.setAttribute('property', prop); document.head.appendChild(cur); }
+            cur.setAttribute('content', n.getAttribute('content') || '');
+          } else if (cur) {
+            cur.remove();
+          }
+        });
+
+        var newCanon = doc.querySelector('link[rel="canonical"]');
+        var curCanon = document.querySelector('link[rel="canonical"]');
+        if (newCanon && curCanon) curCanon.setAttribute('href', newCanon.getAttribute('href'));
+
+        var oldLd = document.getElementById('ld-photo');
+        if (oldLd) oldLd.remove();
+        var newLd = doc.getElementById('ld-photo');
+        if (newLd) document.head.appendChild(newLd.cloneNode(true));
+      }
+
+      function swap(html) {
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var newMain = doc.querySelector('main.main');
+        if (!newMain) return false;
+        updateHead(doc);
+        main.innerHTML = newMain.innerHTML;
+        window.scrollTo(0, 0);
+        checkPageImageAlreadyLoaded();
+        loadComments();
+        if (lb.classList.contains('lb-open')) refreshLbImage();
+        return true;
+      }
+
+      // GA doesn't see soft-nav'd URL changes on its own — gtag('config',...) in <head>
+      // only auto-fires a page_view for the real (first) page load, so send one by hand
+      // per swap. The internal Firestore view counter (trackView, routes/photo.js) needs
+      // no such fix — it runs server-side on every fetch(), same as a normal navigation.
+      function trackPageView() {
+        if (typeof gtag === 'function') {
+          gtag('event', 'page_view', {
+            page_title: document.title,
+            page_location: location.href,
+            page_path: location.pathname + location.search,
+          });
+        }
+      }
+
+      var navigating = false;
+      function navigate(url, isPop) {
+        if (navigating) return;
+        navigating = true;
+        fetch(url)
+          .then(function(r) { if (!r.ok) throw new Error('nav failed'); return r.text(); })
+          .then(function(html) {
+            navigating = false;
+            if (!swap(html)) { location.href = url; return; }
+            if (!isPop) history.pushState({ photoNav: true }, '', url);
+            trackPageView();
+          })
+          .catch(function() {
+            navigating = false;
+            location.href = url;
+          });
+      }
+
+      // ── swipe navigation (mobile): swipe left = next photo, swipe right = prev ──
+      var SWIPE_MIN_DX = 50; // px — below this it's a tap, not a swipe
+      var SWIPE_MAX_DY = 80; // px — above this it's a vertical scroll, not a swipe
+
+      function getNavUrl(dir) {
+        var link = document.querySelector('.nav-btn[data-dir="' + dir + '"]');
+        return link ? link.getAttribute('href') : null;
+      }
+      function swipeNext() { var url = getNavUrl('next'); if (url) navigate(url); }
+      function swipePrev() { var url = getNavUrl('prev'); if (url) navigate(url); }
+
+      // el must be a stable element that survives soft-nav swaps (main itself, or the
+      // lightbox — both live outside the innerHTML that gets replaced on navigation).
+      // filterSelector, if given, restricts which touchstart targets count (delegation);
+      // pass null when el itself is already the exact area to track (the lightbox).
+      function bindSwipe(el, filterSelector) {
+        var startX = 0, startY = 0, tracking = false;
+        el.addEventListener('touchstart', function(e) {
+          // panorama pan/zoom mode repurposes drag for panning, not swipe-navigation
+          if (lb.classList.contains('lb-pan')) { tracking = false; return; }
+          tracking = e.touches.length === 1 && (!filterSelector || (e.target.closest && e.target.closest(filterSelector)));
+          if (tracking) { startX = e.touches[0].clientX; startY = e.touches[0].clientY; }
+        }, { passive: true });
+        el.addEventListener('touchend', function(e) {
+          if (!tracking) return;
+          tracking = false;
+          // points.js arms '.photo-image-wrap.is-placing' while the visitor is placing a
+          // point — don't also navigate away out from under that click.
+          if (document.querySelector('.photo-image-wrap.is-placing')) return;
+          var t = e.changedTouches[0];
+          var dx = t.clientX - startX, dy = t.clientY - startY;
+          if (Math.abs(dx) < SWIPE_MIN_DX || Math.abs(dy) > SWIPE_MAX_DY) return;
+          if (dx < 0) swipeNext(); else swipePrev();
+        }, { passive: true });
+      }
+      bindSwipe(main, '.photo-page-image');
+
+      // ── zoom lightbox: single #lb element created once, reused across soft-nav swaps ──
+      var lb = document.createElement('div');
+      lb.id = 'lb';
+      lb.className = 'lb';
+      var lbClose = document.createElement('button');
+      lbClose.className = 'lb-close';
+      lbClose.textContent = '✕';
+      var lbWrap = document.createElement('div');
+      lbWrap.className = 'lb-wrap';
+      var lbImg = document.createElement('img');
+      lbImg.className = 'lb-img';
+      lbImg.draggable = false; // no native image drag-ghost fighting the pan/zoom below
+      lbWrap.appendChild(lbImg);
+      lb.appendChild(lbClose);
+      lb.appendChild(lbWrap);
+      // v2: caption layer over the photo (bottom-left): title + first line of the description; scroll/tap it to read the rest
+      var lbInfo = document.createElement('div');
+      lbInfo.className = 'lb-info';
+      lb.appendChild(lbInfo);
+      document.body.appendChild(lb);
+
+      function addLbAnnots() {
+        lbWrap.querySelectorAll('.lb-annot').forEach(function(el) { el.remove(); });
+        document.querySelectorAll('.photo-image-wrap .photo-annot').forEach(function(btn) {
+          var marker = document.createElement('button');
+          marker.type = 'button';
+          marker.className = 'photo-annot lb-annot' + (btn.classList.contains('photo-annot--client') ? ' photo-annot--client' : '');
+          marker.textContent = btn.textContent;
+          marker.style.left = btn.dataset.x + '%';
+          marker.style.top  = btn.dataset.y + '%';
+          marker.dataset.text = btn.dataset.text;
+          if (btn.dataset.author) marker.dataset.author = btn.dataset.author;
+          lbWrap.appendChild(marker);
+        });
+      }
+      // ── panorama pan/zoom: only active while the lightbox shows a panorama photo.
+      // Non-panorama photos never touch this — panState.active stays false and every
+      // handler below no-ops, so the plain fit-to-screen/click-to-close lightbox is
+      // untouched for the common case. ──
+      var panState = { active: false, scale: 1, tx: 0, ty: 0, minScale: 1, maxScale: 1 };
+
+      function applyPanTransform() {
+        lbImg.style.transform = 'translate(' + panState.tx + 'px,' + panState.ty + 'px) scale(' + panState.scale + ')';
+      }
+      function clampPan() {
+        var scaledW = lbImg.offsetWidth * panState.scale;
+        var scaledH = lbImg.offsetHeight * panState.scale;
+        var maxTx = Math.max(0, (scaledW - window.innerWidth) / 2);
+        var maxTy = Math.max(0, (scaledH - window.innerHeight) / 2);
+        panState.tx = Math.max(-maxTx, Math.min(maxTx, panState.tx));
+        panState.ty = Math.max(-maxTy, Math.min(maxTy, panState.ty));
+      }
+      // Pure: scale/pan the image around viewport point (mx,my), keeping the image
+      // point under the cursor/finger visually fixed. Base state passed in explicitly
+      // so both live (wheel/dblclick) and gesture-baseline (pinch) callers can use it.
+      function computeZoom(baseScale, baseTx, baseTy, mx, my, newScale) {
+        newScale = Math.max(panState.minScale, Math.min(panState.maxScale, newScale));
+        var cx0 = window.innerWidth / 2, cy0 = window.innerHeight / 2;
+        var ratio = newScale / baseScale;
+        return {
+          scale: newScale,
+          tx: mx - cx0 - (mx - cx0 - baseTx) * ratio,
+          ty: my - cy0 - (my - cy0 - baseTy) * ratio,
+        };
+      }
+      function zoomAt(mx, my, newScale) {
+        var r = computeZoom(panState.scale, panState.tx, panState.ty, mx, my, newScale);
+        panState.scale = r.scale; panState.tx = r.tx; panState.ty = r.ty;
+        clampPan();
+        applyPanTransform();
+      }
+      function animatedZoomAt(mx, my, newScale) {
+        lbImg.style.transition = 'transform 0.25s ease';
+        zoomAt(mx, my, newScale);
+        setTimeout(function() { lbImg.style.transition = ''; }, 260);
+      }
+      function resetPan() {
+        panState.scale = panState.minScale; panState.tx = 0; panState.ty = 0;
+        applyPanTransform();
+      }
+
+      lbWrap.addEventListener('wheel', function(e) {
+        if (!panState.active) return;
+        e.preventDefault();
+        zoomAt(e.clientX, e.clientY, panState.scale * Math.exp(-e.deltaY * 0.0015));
+      }, { passive: false });
+
+      lbWrap.addEventListener('dblclick', function(e) {
+        if (!panState.active) return;
+        e.preventDefault();
+        if (panState.scale > panState.minScale + 0.01) resetPan();
+        else animatedZoomAt(e.clientX, e.clientY, panState.maxScale);
+      });
+
+      var mouseDrag = null;
+      lbWrap.addEventListener('mousedown', function(e) {
+        if (!panState.active) return;
+        e.preventDefault(); // stop native text/image selection from fighting the drag
+        mouseDrag = { x: e.clientX, y: e.clientY, tx: panState.tx, ty: panState.ty };
+        lb.classList.add('lb-dragging');
+      });
+      window.addEventListener('mousemove', function(e) {
+        if (!mouseDrag) return;
+        panState.tx = mouseDrag.tx + (e.clientX - mouseDrag.x);
+        panState.ty = mouseDrag.ty + (e.clientY - mouseDrag.y);
+        clampPan();
+        applyPanTransform();
+      });
+      window.addEventListener('mouseup', function() {
+        mouseDrag = null;
+        lb.classList.remove('lb-dragging');
+      });
+
+      // touch: one finger pans, two fingers pinch-zoom (midpoint fixed for the gesture)
+      var touchState = null;
+      function touchDist(a, b) { return Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY); }
+      lbWrap.addEventListener('touchstart', function(e) {
+        if (!panState.active) return;
+        if (e.touches.length === 1) {
+          var t = e.touches[0];
+          touchState = { mode: 'drag', x: t.clientX, y: t.clientY, tx: panState.tx, ty: panState.ty };
+        } else if (e.touches.length === 2) {
+          touchState = {
+            mode: 'pinch', dist: touchDist(e.touches[0], e.touches[1]), scale: panState.scale,
+            tx: panState.tx, ty: panState.ty,
+            midX: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+            midY: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+          };
+        }
+      }, { passive: true });
+      lbWrap.addEventListener('touchmove', function(e) {
+        if (!panState.active || !touchState) return;
+        if (touchState.mode === 'drag' && e.touches.length === 1) {
+          e.preventDefault();
+          var t = e.touches[0];
+          panState.tx = touchState.tx + (t.clientX - touchState.x);
+          panState.ty = touchState.ty + (t.clientY - touchState.y);
+          clampPan();
+          applyPanTransform();
+        } else if (touchState.mode === 'pinch' && e.touches.length === 2) {
+          e.preventDefault();
+          var d = touchDist(e.touches[0], e.touches[1]);
+          var r = computeZoom(touchState.scale, touchState.tx, touchState.ty, touchState.midX, touchState.midY, touchState.scale * (d / touchState.dist));
+          panState.scale = r.scale; panState.tx = r.tx; panState.ty = r.ty;
+          clampPan();
+          applyPanTransform();
+        }
+      }, { passive: false });
+      lbWrap.addEventListener('touchend', function(e) {
+        if (!panState.active) return;
+        if (e.touches.length === 0) touchState = null;
+        else if (e.touches.length === 1) {
+          var t = e.touches[0];
+          touchState = { mode: 'drag', x: t.clientX, y: t.clientY, tx: panState.tx, ty: panState.ty };
+        }
+      }, { passive: true });
+
+      // Fills the caption from the same title/description block that is shown under the photo.
+      // Collapsed: title + one line of the description; opens (scrollable) on tap, wheel or an upward swipe.
+      // The reader's choice (expanded or not) is remembered: it survives switching frames and page reloads,
+      // so it doesn't have to be re-opened on every photo.
+      var LB_INFO_KEY = 'photoLbInfoOpen';
+      var lbInfoWanted = false;
+      try { lbInfoWanted = localStorage.getItem(LB_INFO_KEY) === '1'; } catch (e) {}
+      function refreshLbInfo() {
+        var t = document.querySelector('.photo-page-title');
+        // camera file names (IMG_1234…) aren't titles — don't show them in the caption
+        if (t && /^img_/i.test(t.textContent.trim())) t = null;
+        var d = document.querySelector('.photo-page-desc');
+        lbInfo.textContent = '';
+        lbInfo.classList.remove('is-open', 'has-more');
+        if (!t && !d) { lbInfo.style.display = 'none'; return; }
+        lbInfo.style.display = '';
+        var cap = document.createElement('div');
+        cap.className = 'lb-info-inner';
+        if (t) { var h = document.createElement('h2'); h.className = 'lb-info-title'; h.textContent = t.textContent; cap.appendChild(h); }
+        if (d) { var pd = document.createElement('p'); pd.className = 'lb-info-desc'; pd.textContent = d.textContent; cap.appendChild(pd); }
+        lbInfo.appendChild(cap);
+        // expandable only when the description doesn't fit on its single collapsed line (measured collapsed, in place)
+        var pd2 = lbInfo.querySelector('.lb-info-desc');
+        if (pd2 && pd2.scrollHeight > pd2.clientHeight + 1) {
+          lbInfo.classList.add('has-more');
+          if (lbInfoWanted) lbInfo.classList.add('is-open');
+        }
+      }
+      function setLbInfoOpen(open) {
+        if (!lbInfo.classList.contains('has-more')) return; // short/no description: nothing to expand, keep the remembered choice
+        if (lbInfo.classList.contains('is-open') === open) return;
+        lbInfo.classList.toggle('is-open', open);
+        lbInfoWanted = open;
+        try { localStorage.setItem(LB_INFO_KEY, open ? '1' : '0'); } catch (e) {}
+        if (!open) lbInfo.scrollTop = 0;
+      }
+      lbInfo.addEventListener('click', function(e) {
+        e.stopPropagation(); // the layer must not close the lightbox
+        setLbInfoOpen(!lbInfo.classList.contains('is-open'));
+      });
+      lbInfo.addEventListener('wheel', function() { setLbInfoOpen(true); }, { passive: true });
+      var infoTouchY = null;
+      lbInfo.addEventListener('touchstart', function(e) { infoTouchY = e.touches[0].clientY; }, { passive: true });
+      lbInfo.addEventListener('touchmove', function(e) {
+        if (infoTouchY !== null && infoTouchY - e.touches[0].clientY > 12) setLbInfoOpen(true);
+      }, { passive: true });
+
+      // (re)points the lightbox at whatever photo is currently shown in the main view —
+      // called on open, and again after a swipe/soft-nav while the lightbox stays open.
+      function refreshLbImage() {
+        var pageImg = document.querySelector('.photo-page-image img');
+        if (!pageImg) return;
+        var isPano = pageImg.dataset.panorama === '1';
+        lb.classList.toggle('lb-pan', isPano);
+        panState.active = isPano;
+        panState.scale = 1; panState.tx = 0; panState.ty = 0; panState.maxScale = 1;
+        lbImg.style.transition = '';
+        applyPanTransform();
+        lbImg.src = isPano ? (pageImg.dataset.panoSrc || pageImg.src) : pageImg.src;
+        refreshLbInfo();
+        function onLoaded() {
+          addLbAnnots();
+          if (isPano) panState.maxScale = Math.max(2, Math.min(10, lbImg.naturalWidth / (lbImg.offsetWidth || 1)));
+        }
+        if (lbImg.complete && lbImg.naturalWidth) onLoaded();
+        else lbImg.addEventListener('load', onLoaded, { once: true });
+      }
+      function openLb() {
+        var pageImg = document.querySelector('.photo-page-image img');
+        if (!pageImg) return;
+        var popup = document.getElementById('annot-popup');
+        if (popup) popup.style.display = 'none';
+        lb.classList.add('lb-open');
+        document.body.style.overflow = 'hidden';
+        refreshLbImage();
+      }
+      function closeLb() {
+        lb.classList.remove('lb-open');
+        lb.classList.remove('lb-pan');
+        document.body.style.overflow = '';
+        var popup = document.getElementById('annot-popup');
+        if (popup) popup.style.display = 'none';
+        panState.active = false;
+        mouseDrag = null;
+        touchState = null;
+      }
+      bindSwipe(lbWrap, null);
+      lb.addEventListener('click', function(e) {
+        var annotBtn = e.target.closest && e.target.closest('.lb-annot');
+        if (annotBtn) {
+          e.stopPropagation();
+          var popup = document.getElementById('annot-popup');
+          var popupText = document.getElementById('annot-popup-text');
+          if (popup && popupText) {
+            popupText.textContent = annotBtn.dataset.author ? (window.PhotoI18n.t.pointAuthorPrefix + ' ' + annotBtn.dataset.author + '\n' + annotBtn.dataset.text) : annotBtn.dataset.text;
+            var rect = annotBtn.getBoundingClientRect();
+            var popW = 240;
+            var top = rect.bottom + 10;
+            var left = rect.left + rect.width / 2 - popW / 2;
+            left = Math.max(10, Math.min(window.innerWidth - popW - 10, left));
+            if (top + 120 > window.innerHeight) top = rect.top - 130;
+            if (top < 10) top = 10;
+            popup.style.top = top + 'px';
+            popup.style.left = left + 'px';
+            popup.style.display = 'block';
+          }
+          return;
+        }
+        // panorama mode: the whole overlay is a pan/zoom surface — only ✕ / Esc close it
+        if (panState.active) return;
+        closeLb();
+      });
+      lbClose.addEventListener('click', function(e) { e.stopPropagation(); closeLb(); });
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && lb.classList.contains('lb-open')) closeLb();
+      });
+
+      document.addEventListener('click', function(e) {
+        var link = e.target.closest && e.target.closest('.nav-btn[href]');
+        if (link && main.contains(link)) {
+          e.preventDefault();
+          navigate(link.getAttribute('href'));
+          return;
+        }
+
+        var pageImgEl = e.target.closest && e.target.closest('.photo-page-image img');
+        if (pageImgEl) { openLb(); return; }
+
+        var annotBtn = e.target.closest && e.target.closest('.photo-annot');
+        var popup = document.getElementById('annot-popup');
+        if (annotBtn && popup) {
+          document.getElementById('annot-popup-text').textContent = annotBtn.dataset.author ? (window.PhotoI18n.t.pointAuthorPrefix + ' ' + annotBtn.dataset.author + '\n' + annotBtn.dataset.text) : annotBtn.dataset.text;
+          var rect = annotBtn.getBoundingClientRect();
+          var popW = 240;
+          var top = rect.bottom + 10;
+          var left = rect.left + rect.width / 2 - popW / 2;
+          left = Math.max(10, Math.min(window.innerWidth - popW - 10, left));
+          if (top + 120 > window.innerHeight) top = rect.top - 130;
+          if (top < 10) top = 10;
+          popup.style.top = top + 'px';
+          popup.style.left = left + 'px';
+          popup.style.display = 'block';
+          return;
+        }
+        if (popup && popup.style.display === 'block' && !popup.contains(e.target)) {
+          popup.style.display = 'none';
+        }
+
+        // v2 (admin, shoot photo): add to / remove from the author's pick via the existing admin endpoint
+        var pickBtn = e.target.closest && e.target.closest('[data-curator-toggle]');
+        if (pickBtn) {
+          if (pickBtn.disabled) return;
+          var wasPicked = pickBtn.dataset.picked === '1';
+          pickBtn.disabled = true;
+          fetch('/admin/shoots/' + encodeURIComponent(pickBtn.dataset.slug) + '/photos/bulk-curator-pick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: [pickBtn.dataset.photoId], value: !wasPicked }),
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+              pickBtn.disabled = false;
+              if (!res.ok) throw new Error('not ok');
+              pickBtn.dataset.picked = wasPicked ? '0' : '1';
+              pickBtn.classList.toggle('is-picked', !wasPicked);
+              pickBtn.textContent = wasPicked ? pickBtn.dataset.labelAdd : pickBtn.dataset.labelRemove;
+            })
+            .catch(function() {
+              pickBtn.disabled = false;
+              var orig = pickBtn.textContent;
+              pickBtn.textContent = pickBtn.dataset.error || 'Error';
+              setTimeout(function() { pickBtn.textContent = orig; }, 2000);
+            });
+          return;
+        }
+
+        // v2: the mobile "buy a print" button jumps straight to the inquiry tab
+        var gotoBtn = e.target.closest && e.target.closest('[data-goto-tab]');
+        var tabBtn = gotoBtn
+          ? document.querySelector('.inquiry-tab[data-tab="' + gotoBtn.dataset.gotoTab + '"]')
+          : (e.target.closest && e.target.closest('.inquiry-tab'));
+        if (tabBtn) {
+          var tab = tabBtn.dataset.tab;
+          if (gotoBtn) tabBtn.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          document.querySelectorAll('.inquiry-tab').forEach(function(b) {
+            b.classList.toggle('is-active', b.dataset.tab === tab);
+          });
+          document.querySelectorAll('.inquiry-tab-panel').forEach(function(p) {
+            p.style.display = p.dataset.panel === tab ? '' : 'none';
+          });
+        }
+      });
+
+      window.addEventListener('popstate', function() { navigate(location.href, true); });
+
+      loadComments();
+    }());
+
+  script(src='https://accounts.google.com/gsi/client' async defer)
+  if isShoot
+    script(src='/javascripts/photo/points.js' defer)

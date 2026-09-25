@@ -1,0 +1,168 @@
+include mixins
+doctype html
+- var LP = lang === 'en' ? '/en' : ''
+- var ALT_LP = lang === 'en' ? '' : '/en'
+//- Client shoot gallery/photo = the sidebar-less "editing room" (always dark, independent of the site theme)
+- var focus = !!(isShoot && shootSlug)
+- var _sbData = (typeof data !== 'undefined' && data) ? data : {}
+html(data-theme='light' lang=lang || 'ru')
+  head
+    meta(charset='utf-8')
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    - var _desc = desc || (lang === 'en' ? 'Photography — Dmitry Shestakov' : 'Фотография — Дмитрий Шестаков')
+    meta(name='description' content=_desc)
+    if noindex
+      meta(name='robots' content='noindex,nofollow')
+    if keywords
+      meta(name='keywords' content=keywords)
+    meta(property='og:title' content=title)
+    meta(property='og:description' content=_desc)
+    meta(property='og:type' content='website')
+    meta(property='og:site_name' content='photo.dimazvali.com')
+    if ogImage
+      meta(property='og:image' content=ogImage)
+    if ogUrl
+      meta(property='og:url' content=ogUrl)
+      link(rel='canonical' href=ogUrl)
+      -
+        // Same as the live layout: built from currentPath (clean, unprefixed path), never by string-replacing ogUrl.
+        var _ruUrl = 'https://photo.dimazvali.com' + (currentPath || '')
+        var _enUrl = 'https://photo.dimazvali.com/en' + (currentPath || '')
+      link(rel='alternate' hreflang='ru' href=_ruUrl)
+      link(rel='alternate' hreflang='en' href=_enUrl)
+      link(rel='alternate' hreflang='x-default' href=_ruUrl)
+    meta(name='twitter:card' content='summary_large_image')
+    if breadcrumbs && breadcrumbs.length
+      - var _ldItems = [{"@type":"ListItem","position":1,"name":(lang === 'en' ? 'Home' : 'Главная'),"item":"https://photo.dimazvali.com" + LP + "/"}].concat(breadcrumbs.map(function(b,i){return{"@type":"ListItem","position":i+2,"name":b.name,"item":b.url};}))
+      script(type='application/ld+json')!= JSON.stringify({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":_ldItems})
+    if googleClientId
+      meta(name='google-client-id' content=googleClientId)
+    block head
+    link(rel='icon' href='/images/photo/ds_georgian.ico')
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;1,400;1,500;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap')
+    link(rel='stylesheet' href='/stylesheets/photo-v2/style.css')
+    //- set the theme before first paint (no light/dark flash); main.js keeps it in sync afterwards
+    script.
+      (function () {
+        try {
+          var s = localStorage.getItem('photo-theme');
+          if (!s) {
+            var mq = window.matchMedia('(prefers-color-scheme: dark)');
+            s = mq.media !== 'not all' ? (mq.matches ? 'dark' : 'light') : ((new Date().getHours() >= 7 && new Date().getHours() < 21) ? 'light' : 'dark');
+          }
+          document.documentElement.setAttribute('data-theme', s);
+        } catch (e) {}
+      }());
+    //- client shoot mode has its own light switch (dark by default, remembered separately from the site theme)
+    if focus
+      script.
+        (function () {
+          try { document.documentElement.setAttribute('data-focus-theme', localStorage.getItem('photo-focus-theme') === 'light' ? 'light' : 'dark'); } catch (e) {}
+        }());
+    script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
+    script.
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-LDMN4XFB42');
+  body(class=focus ? 'is-focus' : '' data-series-url=seriesUrl || '')
+    if !focus
+      header.mobile-header
+        button.burger#burger(type='button' aria-label='menu')
+        .mobile-logo
+          a.sb-logo-photo(href=`${LP}/`) photo.
+          a.sb-logo-root(href='https://dimazvali.com') dimazvali
+        .mobile-header-right
+          a.lang-switch(href=ALT_LP + (currentPath || '')) #{ui.langSwitch}
+          button.theme-toggle(type='button' onclick='toggleTheme()' title=ui.theme) ◐
+      .mobile-filters
+        if hasFilterbar
+          button.mobile-filters-btn#mobile-filters-btn(type='button') #{t.filters} ▾
+          span.mobile-filters-sep
+        each family, key in colorFamilies
+          a.cdot(
+            href=`${LP}/color/${key}`
+            data-c=key
+            title=family.label
+            class=activeColorFamily === key ? 'is-active' : ''
+          )
+    .site(class=focus ? 'site--focus' : '')
+      if !focus
+        aside.sidebar#sidebar
+          .sb-brand
+            //- "photo." → root of this sub-site (keeps the language), "dimazvali.com" → the main site
+            .sb-logo
+              a.sb-logo-photo(href=`${LP}/`) photo.
+              a.sb-logo-root(href='https://dimazvali.com') dimazvali.com
+            span.sb-sub #{t.heroName[0]} #{t.heroName[1]}
+          nav.sb-nav
+            .sb-label= t.portfolio
+            each country, countryKey in _sbData
+              if !country.archived
+                - var _open = activeCountry === countryKey
+                - var _seriesOrder = country.seriesOrder || Object.keys(country.series)
+                - var _cCount = 0
+                each sk in _seriesOrder
+                  if country.series[sk] && !country.series[sk].archived
+                    - _cCount += (country.series[sk].photos || []).length
+                a.sb-country(href=`${LP}/${countryKey}` class=_open ? 'is-open' : '')
+                  span.sb-arrow= _open ? '▾' : '▸'
+                  span.sb-name= country.label
+                  span.sb-count= _cCount
+                if _open
+                  .sb-series
+                    each seriesKey in _seriesOrder
+                      - var _ser = country.series[seriesKey]
+                      if _ser && !_ser.archived
+                        a.sb-serie(href=`${LP}/${countryKey}/${seriesKey}` class=activeSeries === seriesKey ? 'is-active' : '')= _ser.label
+            .sb-sep
+            .sb-links
+              a.sb-link(href=`${LP}/shoot` class=isShoot ? 'is-active' : '')= ui.shootsTitle
+              a.sb-link(href=`${LP}/about` class=(currentPath || '').indexOf('/about') === 0 ? 'is-active' : '')= t.about
+          .sb-colors
+            .sb-label= t.color
+            .sb-dots
+              each family, key in colorFamilies
+                a.cdot(
+                  href=`${LP}/color/${key}`
+                  data-c=key
+                  title=family.label
+                  class=activeColorFamily === key ? 'is-active' : ''
+                )
+          .sb-foot
+            .sb-cta
+              button.btn.btn--ink(type='button' data-open-promo) #{t.orderShoot} →
+            .sb-contacts
+              a(href='mailto:dimazvali@gmail.com') mail@dimazvali.com
+              a(href='https://telegram.me/dimazvali' target='_blank' rel='noopener') tg @dimazvali
+              a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') ig @dimazvali2
+            if photoUser && photoUser.subscribed
+              p.subscribe-msg= ui.subscribed
+              button.subscribe-unsub#unsubscribe-google-btn(type='button')= ui.unsubscribeBtn
+            else
+              .subscribe-wrap
+                button.subscribe-toggle#subscribe-toggle(type='button') #{t.subscribeCaps} →
+                .subscribe-popup#subscribe-popup(style='display:none')
+                  button.subscribe-option.subscribe-email-btn(type='button')= ui.byEmail
+                  a.subscribe-option(href='https://telegram.me/dimazvalibot?start=photo_sub' target='_blank' rel='noopener')= ui.byTelegram
+            .sb-foot-bottom
+              .lang-seg
+                if lang === 'en'
+                  a(href=ALT_LP + (currentPath || '')) RU
+                  span.is-on EN
+                else
+                  span.is-on RU
+                  a(href=ALT_LP + (currentPath || '')) EN
+              button.theme-toggle(type='button' onclick='toggleTheme()' title=ui.theme) ◐
+        .sidebar-overlay#sidebar-overlay
+      main.main(class=focus ? 'main--focus' : '')
+        block content
+    +promoPopup()
+    script(src='/javascripts/photo/i18n.js')
+    script(src='/javascripts/photo-v2/main.js')
+    if googleClientId
+      script(src='https://accounts.google.com/gsi/client' async defer)
+      script(src='/javascripts/photo/subscribe.js' defer)

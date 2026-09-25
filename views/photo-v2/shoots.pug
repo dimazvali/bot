@@ -1,0 +1,33 @@
+extends layout
+include mixins
+
+block content
+  - var LP = lang === 'en' ? '/en' : ''
+  section.hero.hero--compact
+    .kicker= t.portfolio
+    h1.hero-title= ui.shootsTitle
+    p.hero-meta #{shoots.length} #{t.shootsWord}
+  if !shoots.length
+    p.empty-note= ui.noOpenShoots
+  else
+    .works
+      .masonry
+        each shoot in shoots
+          - var cover = shoot.photos[0]
+          a.photo-card(href=`${LP}/shoot/${shoot.key}`)
+            if cover
+              img(
+                src=cover.urls ? cover.urls.preview : undefined
+                srcset=cover.urls ? `${cover.urls.thumb || cover.urls.preview} 400w, ${cover.urls.preview} 800w` : undefined
+                sizes='(max-width: 480px) 100vw, (max-width: 900px) 50vw, 400px'
+                alt=shoot.label
+                title=shoot.label
+                width=cover.width||undefined
+                height=cover.height||undefined
+                loading='lazy'
+                style=cover.width && cover.height ? `aspect-ratio:${cover.width}/${cover.height}` : undefined
+                onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+              )
+            .photo-overlay
+              span.photo-title= shoot.label.toUpperCase()
+              span.photo-date= `${shoot.photos.length} ${ui.photosSuffix}`

@@ -1,0 +1,196 @@
+mixin typeIcon(type)
+  if type === 'camera'
+    svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round')
+      path(d='M3 8h4l2-3h6l2 3h4v11H3z')
+      circle(cx='12' cy='13' r='3.5')
+  else if type === 'mobile'
+    svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round')
+      rect(x='7' y='2.5' width='10' height='19' rx='2')
+      path(d='M11 18.5h2')
+  else
+    svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round')
+      circle(cx='5' cy='5' r='3')
+      circle(cx='19' cy='5' r='3')
+      circle(cx='5' cy='19' r='3')
+      circle(cx='19' cy='19' r='3')
+      path(d='M7 7l3 3M17 7l-3 3M7 17l3-3M17 17l-3-3')
+      rect(x='10' y='10' width='4' height='4')
+
+//- One masonry tile. opts: { select: bool (shoot checkboxes), personKeys: 'a,b', curatorExtra: bool }
+mixin photoCard(photo, href, opts)
+  - opts = opts || {}
+  - var _pc = photoColors ? photoColors(photo) : []
+  a.photo-card(
+    href=href
+    data-type=photo.type || 'copter'
+    data-colors=_pc.join(',')
+    data-tags=(photo.tags || []).join(',')
+    data-photo-id=photo.id
+    data-full=photo.urls ? (photo.urls.full || photo.urls.preview) : undefined
+    data-person-keys=opts.personKeys || undefined
+    data-curator-hidden=opts.curatorExtra ? '' : undefined
+  )
+    if opts.select
+      span.photo-select
+        span.photo-select-box
+    img(
+      src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
+      srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined
+      sizes=photo.urls ? '(max-width: 480px) 100vw, (max-width: 900px) 50vw, 400px' : undefined
+      alt=photo.title
+      title=photo.desc || photo.title
+      width=photo.width || undefined
+      height=photo.height || undefined
+      loading='lazy'
+      style=photo.width && photo.height ? `aspect-ratio:${photo.width}/${photo.height}` : undefined
+      onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+    )
+    .photo-overlay
+      span.photo-title= photo.title
+      if photo.date
+        span.photo-date= photo.date
+
+mixin instagramCard()
+  .photo-card.photo-card--promo
+    button.photo-card-promo-close(type='button' aria-label=ui.cancel) ✕
+    a.photo-card-promo-link(href='https://www.instagram.com/dimazvali2' target='_blank' rel='noopener')
+      img.photo-card-promo-img(
+        src='https://storage.googleapis.com/photo-dimazvalimisc/images/ks-05065-1780908582473-800.webp'
+        alt=ui.igAlt
+        loading='lazy'
+        onerror="this.style.background='#3a352e';this.removeAttribute('src')"
+      )
+      span.photo-card-promo-text= ui.igOverlay
+      span.photo-card-promo-cta @dimazvali2 →
+
+//- "Subscribe" tile planted in the feed; hidden for already-subscribed visitors
+mixin subscribeCard()
+  .photo-card.action-card
+    span.kicker= t.subscribeKicker
+    span.action-card-title= t.subscribeTitle
+    span.action-card-text= t.subscribeText
+    .action-card-actions
+      button.subscribe-email-btn(type='button')= ui.byEmail
+      a(href='https://telegram.me/dimazvalibot?start=photo_sub' target='_blank' rel='noopener')= t.byTelegramShort
+
+//- Series cover tiles. scope: a country key to show only that country's series; falsy = home (respects "hidden from feed")
+mixin seriesShowcase(scope, cap)
+  - var _tiles = []
+  each country, ck in data
+    if !country.archived && (scope ? scope === ck : !country.hiddenFromFeed)
+      each sk in (country.seriesOrder || Object.keys(country.series))
+        - var _s = country.series[sk]
+        if _s && !_s.archived && _s.photos && _s.photos.length
+          - var _c = _s.photos[0]
+          - _tiles.push({ href: (lang === 'en' ? '/en' : '') + '/' + ck + '/' + sk, label: _s.label, sub: country.label + ' · ' + _s.photos.length + ' ' + ui.photosSuffix, cover: _c.urls ? _c.urls.preview : ('/images/photo/' + ck + '/' + sk + '/' + _c.file) })
+  if _tiles.length
+    section.showcase
+      .showcase-head
+        span.showcase-title= t.series
+        span.showcase-meta #{t.seriesN(_tiles.length)}
+      .showcase-grid
+        each tile in _tiles.slice(0, cap || 10)
+          a.showcase-tile(href=tile.href)
+            .showcase-cover
+              img(src=tile.cover alt=tile.label loading='lazy' onerror="this.style.background='#e6e1d7';this.removeAttribute('src')")
+            span.showcase-name= tile.label
+            span.showcase-sub= tile.sub
+
+//- Unified filter bar: type · colour · tag combine client-side (filters.js); actions on the right.
+//- cfg: { title, count, types[], colors[], tags[{key,label}], shuffle, present, map }
+mixin filterbar(cfg)
+  .filterbar#filterbar
+    .fb-title
+      span.fb-name= cfg.title
+      span.fb-count · #[span#fb-count-n= cfg.count] #{ui.photosSuffix}
+    if cfg.types && cfg.types.length > 1
+      span.fb-sep
+      .fb-group
+        span.fb-label= t.type
+        each tp in ['copter', 'camera', 'mobile']
+          if cfg.types.indexOf(tp) !== -1
+            button.type-filter-btn(type='button' data-type=tp title=tp)
+              +typeIcon(tp)
+    if cfg.colors && cfg.colors.length
+      span.fb-sep
+      .fb-group
+        span.fb-label= t.color
+        each key in cfg.colors
+          button.cdot.fb-color(type='button' data-c=key data-color=key title=(colorFamilies[key] ? colorFamilies[key].label : key))
+    if cfg.tags && cfg.tags.length
+      span.fb-sep
+      .fb-tag
+        button.fb-btn#fb-tag-btn(type='button' aria-expanded='false' data-label=t.tag) #{t.tag} ▾
+        .fb-tag-menu#fb-tag-menu
+          each tg in cfg.tags
+            button.fb-tag-item(type='button' data-tag=tg.key data-href=`${lang === 'en' ? '/en' : ''}/tag/${tg.key}`)= tg.label
+          a.fb-tag-open#fb-tag-open(href='#' style='display:none') #{t.openTagPage} →
+    .fb-actions
+      if cfg.shuffle !== false
+        button.fb-btn(type='button' onclick='shuffleMasonry()')= ui.shuffle
+      if cfg.present
+        button.fb-btn(type='button' onclick='startPresentation()')= ui.present
+      if cfg.map
+        button.fb-btn.gallery-map-trigger(type='button')= t.map
+
+//- "Want a shoot?" modal (+ floating bar when ?promo). Available on every page; auto-opens only with ?promo.
+mixin promoPopup()
+  .selection-popup#promo-popup(data-auto=(typeof promo !== 'undefined' && promo) ? '1' : undefined)
+    .promo-card
+      .promo-card-photo
+        img(src='https://storage.googleapis.com/photo-dimazvalimisc/images/ks-05065-1780908582473-800.webp' alt='' loading='lazy')
+      .promo-card-body
+        button.promo-popup-close#promo-popup-close(type='button' aria-label=ui.cancel) ✕
+        span.kicker= t.promoKicker
+        p.promo-popup-title= ui.promoTitle
+        p.promo-popup-subtitle= t.promoSubtitle
+        form.inquiry-form#promo-form(data-err-required=ui.promoError data-err-network=ui.networkError)
+          input.inquiry-input(type='text' name='name' placeholder=ui.nameCaps required autocomplete='name')
+          input.inquiry-input(type='text' name='contact' placeholder=ui.promoContactPlaceholder required)
+          textarea.inquiry-input.inquiry-textarea(name='message' placeholder=t.promoMessage rows='2')
+          p.inquiry-error#promo-form-msg(style='display:none')
+          button.btn.btn--ink.btn--block.inquiry-submit(type='submit')= t.promoSubmit
+        .promo-popup-success#promo-popup-success(style='display:none')
+          p.inquiry-success= ui.promoSuccessText
+        .promo-contacts
+          span.promo-contacts-label= t.promoDirect
+          .promo-contacts-links
+            a(href='https://telegram.me/dimazvali' target='_blank' rel='noopener') Telegram
+            a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') Instagram
+            a(href='https://wa.me/995555542110' target='_blank' rel='noopener') WhatsApp
+  if typeof promo !== 'undefined' && promo
+    .promo-footer-wrap
+      button.promo-footer-bar#promo-footer-bar(type='button')
+        span.promo-footer-text= t.promoBarText
+        span.promo-footer-cta #{t.orderShoot} →
+
+//- Filter bar computed from a photo list (tag / colour pages). opts: { hideColors, hideTags }
+mixin filterbarFor(list, title, opts)
+  - opts = opts || {}
+  -
+    var _fTypes = new Set(), _fColors = new Set(), _fTags = new Set()
+    list.forEach(function(p) {
+      _fTypes.add(p.type || 'copter')
+      ;(photoColors ? photoColors(p) : []).forEach(function(c) { _fColors.add(c) })
+      ;(p.tags || []).forEach(function(tg) { _fTags.add(tg) })
+    })
+    var _fColorList = opts.hideColors ? [] : ['red','orange','yellow','green','teal','blue','purple','mono'].filter(function(c) { return _fColors.has(c) })
+    var _fTagList = opts.hideTags ? [] : Array.from(_fTags).filter(function(k) { return allTags && allTags[k] }).map(function(k) { return { key: k, label: allTags[k].label } })
+  +filterbar({ title: title, count: list.length, types: Array.from(_fTypes), colors: _fColorList, tags: _fTagList })
+
+//- Flat masonry of portfolio photos (tag / colour pages)
+mixin feedMasonry(list)
+  - var _fl = lang === 'en' ? '/en' : ''
+  - var _fIg = Math.min(4, list.length)
+  .works#works
+    .masonry
+      each photo, _pi in list
+        if _pi === _fIg
+          +instagramCard()
+        +photoCard(photo, `${_fl}/${photo.countryKey}/${photo.seriesKey}/${photo.id}`)
+      if _fIg === list.length
+        +instagramCard()
+    .filter-empty#filter-empty(style='display:none')
+      p= t.noMatches
+      button.fb-btn(type='button' id='filter-reset')= t.resetFilters
+  script(src='/javascripts/photo-v2/filters.js' defer)

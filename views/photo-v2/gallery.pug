@@ -1,0 +1,477 @@
+extends layout
+include mixins
+
+block head
+  -
+    var _mapEligible = isShoot || (activeCountry && activeSeries)
+    var _mapLp = lang === 'en' ? '/en' : ''
+    var _mapPoints = _mapEligible ? (photos || []).filter(function(p) { return p.coords; }).map(function(p) {
+      return {
+        lat: p.coords.lat,
+        lng: p.coords.lng,
+        title: p.title,
+        href: isShoot ? (_mapLp + '/shoot/' + shootSlug + '/' + p.id) : (_mapLp + '/' + p.countryKey + '/' + p.seriesKey + '/' + p.id),
+      }
+    }) : []
+  if _mapPoints.length
+    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+  if ogUrl && photos && photos.length
+    -
+      var _lp = lang === 'en' ? '/en' : ''
+      var _base = 'https://photo.dimazvali.com'
+      var _galleryLd = {
+        '@context': 'https://schema.org',
+        '@type': 'ImageGallery',
+        name: title,
+        description: desc,
+        url: ogUrl,
+        numberOfItems: photos.length,
+        image: photos.slice(0, 60).map(function(p) {
+          var src = p.urls ? (p.urls.full || p.urls.preview) : null
+          if (!src) return null
+          var pageUrl = isShoot
+            ? _base + _lp + '/shoot/' + shootSlug + '/' + p.id
+            : _base + _lp + '/' + p.countryKey + '/' + p.seriesKey + '/' + p.id
+          return { '@type': 'ImageObject', contentUrl: src, name: p.title, url: pageUrl }
+        }).filter(Boolean),
+      }
+    script#ld-gallery(type='application/ld+json')!= JSON.stringify(_galleryLd)
+
+block content
+  - var LP = lang === 'en' ? '/en' : ''
+  - var focus = !!(isShoot && shootSlug)
+  - var mode = focus ? 'shoot' : ((activeCountry && activeSeries) ? 'series' : (activeCountry ? 'country' : 'home'))
+  - var _photoUserSubscribed = typeof photoUser !== 'undefined' && photoUser && photoUser.subscribed
+  -
+    // what the unified filter can offer for this photo set
+    var _typeSet = new Set(), _colorSet = new Set(), _tagSet = new Set()
+    photos.forEach(function(p) {
+      _typeSet.add(p.type || 'copter')
+      ;(photoColors ? photoColors(p) : []).forEach(function(c) { _colorSet.add(c) })
+      ;(p.tags || []).forEach(function(tg) { _tagSet.add(tg) })
+    })
+    var _types = Array.from(_typeSet)
+    var _colors = ['red','orange','yellow','green','teal','blue','purple','mono'].filter(function(c) { return _colorSet.has(c) })
+    var _tags = Array.from(_tagSet).filter(function(k) { return allTags && allTags[k] }).map(function(k) { return { key: k, label: allTags[k].label } })
+    var _faceKeyByFaceId = {}
+    if (isShoot && peopleGroups) {
+      peopleGroups.forEach(function(g) { g.faces.forEach(function(f) { _faceKeyByFaceId[f.faceId] = g.key }) })
+    }
+    var _country = activeCountry ? data[activeCountry] : null
+    var _series = (_country && activeSeries) ? _country.series[activeSeries] : null
+    var _cover = (photos && photos[0]) ? (photos[0].urls ? photos[0].urls.preview : ('/images/photo/' + photos[0].countryKey + '/' + photos[0].seriesKey + '/' + photos[0].file)) : null
+    // feed tiles planted between photos (never inside a client's shoot)
+    var _igAt = focus ? -1 : Math.min(4, photos.length)
+    var _subAt = (focus || _photoUserSubscribed) ? -1 : Math.min(13, photos.length)
+
+  //- ───────────────────────── HOME ─────────────────────────
+  if mode === 'home'
+    section.hero.hero--home
+      .hero-main
+        .kicker= t.homeKicker
+        h1.hero-name
+          | #{t.heroName[0]}#{' '}
+          br
+          | #{t.heroName[1]}
+      .hero-side
+        p.hero-lead= t.homeLead
+        .hero-actions
+          button.btn.btn--ink(type='button' data-open-promo) #{t.orderShoot} →
+          a.btn.btn--line(href=`${LP}/about#write`)= t.printsLicenses
+        if isAdmin
+          .admin-bar
+            a.admin-bar-btn(href='/admin/site-texts') ✎ тексты
+    +seriesShowcase(null, 10)
+
+  //- ───────────────────────── COUNTRY ─────────────────────────
+  if mode === 'country'
+    section.hero.hero--country
+      .kicker= t.countryWord
+      h1.hero-title= _country.label
+      p.hero-meta #{photos.length} #{ui.photosSuffix}
+    +seriesShowcase(activeCountry, 12)
+
+  //- ───────────────────────── SERIES ─────────────────────────
+  if mode === 'series'
+    section.hero.hero--series
+      .hero-text
+        .kicker #{_country.label} · #{t.seriesWord}
+        h1.hero-title= _series.label
+        if _series.intro || _series.desc
+          p.hero-lead= _series.intro || _series.desc
+        if activeTags && activeTags.length
+          .hero-tags
+            each tag in activeTags
+              a.hero-tag(href=`${LP}/tag/${tag.key}`) ##{tag.label}
+      .hero-cover
+        if _cover
+          img(src=_cover alt=_series.label onerror="this.style.background='#cbc4b6';this.removeAttribute('src')")
+
+  //- ───────────────────────── SHOOT (client mode) ─────────────────────────
+  if mode === 'shoot'
+    header.focus-bar
+      a.focus-back(href=`${LP}/shoot`) ← #{ui.allShoots}
+      span.focus-brand dimazvali · #{noindex ? t.shootClosed : t.shootOpen}
+      .focus-actions
+        button.fb-btn(type='button' onclick='shuffleMasonry()')= ui.shuffle
+        button.fb-btn(type='button' onclick='startPresentation()')= ui.present
+        if _mapPoints.length
+          button.fb-btn.gallery-map-trigger(type='button')= t.map
+        a.fb-btn.fb-btn--solid(href=`${LP}/shoot/${shootSlug}/download`)= t.downloadAll
+        button.fb-btn.fb-btn--icon(type='button' onclick='toggleFocusTheme()' title=ui.theme aria-label=ui.theme) ◐
+        a.fb-lang(href=(lang === 'en' ? '' : '/en') + (currentPath || '')) #{ui.langSwitch}
+    if desc
+      //- a shoot with a description gets the same hero as a series: title + description left, first frame right
+      section.hero.hero--series.hero--shoot
+        .hero-text
+          .kicker #{photos.length} #{ui.photosSuffix}
+          h1.hero-title= shootLabel
+          p.hero-lead= desc
+          p.hero-note= t.shootHint
+        .hero-cover
+          if _cover
+            img(src=_cover alt=shootLabel onerror="this.style.background='#2a2622';this.removeAttribute('src')")
+      .shoot-collections.shoot-collections--row#shoot-collections(style='display:none')
+        span.fb-label= ui.yourSelections
+        .shoot-collections-list#shoot-collections-list
+    else
+      section.focus-title
+        .focus-title-main
+          h1.focus-name= shootLabel
+          p.focus-sub #{photos.length} #{ui.photosSuffix} · #{t.shootHint}
+        .shoot-collections#shoot-collections(style='display:none')
+          span.fb-label= ui.yourSelections
+          .shoot-collections-list#shoot-collections-list
+    if peopleGroups && peopleGroups.length
+      .faces-widget#faces-widget
+        span.fb-label= t.findYourself
+        each g in peopleGroups
+          - var rf = g.faces[0]
+          - var dw = 100 / rf.boundingBox.Width
+          - var dh = 100 / rf.boundingBox.Height
+          - var lp = -(rf.boundingBox.Left / rf.boundingBox.Width) * 100
+          - var tp = -(rf.boundingBox.Top / rf.boundingBox.Height) * 100
+          button.faces-widget-item(type='button' data-person-key=g.key)
+            .faces-widget-avatar
+              img(src=rf.thumb alt=g.name || '' title=g.name || undefined style=`width:${dw}%;height:${dh}%;left:${lp}%;top:${tp}%;`)
+            if g.name
+              span.faces-widget-name= g.name
+        button.faces-widget-reset(type='button')= ui.allFaces
+    if _types.length > 1
+      .type-filter
+        each tp in ['copter', 'camera', 'mobile']
+          if _types.indexOf(tp) !== -1
+            button.type-filter-btn(type='button' data-type=tp title=tp)
+              +typeIcon(tp)
+    if curatorSelectionActive
+      - var _pickedN = photos.filter(function(p) { return !p._curatorExtra }).length
+      .curator-bar#curator-bar
+        span.curator-count ★ #{t.curatorPick} · #{_pickedN}
+        span.curator-rest #{t.curatorRest(photos.length - _pickedN)}
+        button.fb-btn#curator-show-all(type='button')= ui.showAllPhotos
+
+  //- ───────────────────────── unified filter bar (portfolio pages) ─────────────────────────
+  if mode !== 'shoot'
+    -
+      var _fbTitle = mode === 'series' ? (_country.label.toUpperCase() + ' · ' + _series.label.toUpperCase())
+        : (mode === 'country' ? _country.label.toUpperCase() : ui.allWorks)
+    +filterbar({ title: _fbTitle, count: photos.length, types: _types, colors: _colors, tags: _tags, present: mode === 'series', map: _mapPoints.length > 0 })
+    if isAdmin && mode === 'series'
+      .admin-strip
+        a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/upload`)= ui.addPhoto
+        a.admin-bar-btn(href=`/admin/${activeCountry}/${activeSeries}/edit`)= ui.editSeries
+
+  if _mapPoints.length
+    #gallery-map-panel.gallery-map-panel(style='display:none')
+      #gallery-map.gallery-map-canvas
+    script#gallery-map-data(type='application/json')!= JSON.stringify(_mapPoints)
+
+  .works#works
+    .masonry
+      each photo, _pi in photos
+        if _pi === _igAt
+          +instagramCard()
+        if _pi === _subAt
+          +subscribeCard()
+        +photoCard(photo, focus ? `${LP}/shoot/${shootSlug}/${photo.id}` : `${LP}/${photo.countryKey}/${photo.seriesKey}/${photo.id}`, { select: focus, curatorExtra: photo._curatorExtra, personKeys: (focus && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined })
+      if _igAt === photos.length
+        +instagramCard()
+      if _subAt === photos.length
+        +subscribeCard()
+    .filter-empty#filter-empty(style='display:none')
+      p= t.noMatches
+      button.fb-btn(type='button' id='filter-reset')= t.resetFilters
+
+  if focus || mode === 'series'
+    .presentation-overlay#presentation-overlay
+      button.presentation-close#presentation-close(type='button' aria-label=ui.cancel) ×
+      img.presentation-img#presentation-img(alt='')
+
+  if focus && otherShoots && otherShoots.length
+    .related-shoots
+      span.fb-label= otherShootsAreRelated ? ui.relatedShoots : ui.otherShoots
+      .shoot-related
+        each other in otherShoots
+          - var cover = other.photos[0]
+          a.shoot-related-card(href=`${LP}/shoot/${other.key}`)
+            if cover
+              img(
+                src=cover.urls ? cover.urls.preview : undefined
+                srcset=cover.urls ? `${cover.urls.thumb || cover.urls.preview} 400w, ${cover.urls.preview} 800w` : undefined
+                sizes='(max-width: 640px) calc(50vw - 12px), 240px'
+                alt=other.label
+                title=other.label
+                loading='lazy'
+                onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+              )
+            .photo-overlay
+              span.photo-title= other.label.toUpperCase()
+              span.photo-date= `${other.photos.length} ${ui.photosSuffix}`
+
+  if focus
+    .selection-popup#intro-popup
+      .selection-popup-inner
+        p.intro-popup-text= ui.introText
+        .selection-popup-actions
+          button.btn.btn--ink#intro-popup-close(type='button')= ui.introClose
+
+    .selection-bar#selection-bar
+      span#selection-count
+      .selection-bar-actions
+        button#selection-clear.selection-clear(type='button')= ui.selectionClear
+        button#selection-download(type='button')= ui.download
+        button#selection-save(type='button')= ui.selectionSave
+
+    .selection-popup#selection-popup
+      .selection-popup-inner
+        .selection-popup-form#selection-popup-form
+          span.selection-popup-title= ui.selectionPopupTitle
+          input#selection-name-input(type='text' placeholder=ui.namePlaceholderCollection maxlength='200')
+          p#selection-popup-msg
+          .selection-popup-actions
+            button#selection-popup-cancel(type='button')= ui.cancel
+            button.btn.btn--ink#selection-popup-submit(type='button')= ui.save
+        .selection-popup-success#selection-popup-success(style='display:none')
+          p.selection-popup-success-text= ui.successText
+          .selection-popup-actions
+            button.btn.btn--ink#selection-popup-close(type='button')= ui.ok
+
+    script.
+      (function() {
+        var introKey = 'photoShootIntroSeen';
+        var introPopup = document.getElementById('intro-popup');
+        var introClose = document.getElementById('intro-popup-close');
+        if (introPopup) {
+          var seen = true;
+          try { seen = !!localStorage.getItem(introKey); } catch (e) {}
+          if (!seen) introPopup.classList.add('is-open');
+          function dismissIntro() {
+            introPopup.classList.remove('is-open');
+            try { localStorage.setItem(introKey, '1'); } catch (e) {}
+          }
+          if (introClose) introClose.addEventListener('click', dismissIntro);
+          introPopup.addEventListener('click', function(e) { if (e.target === introPopup) dismissIntro(); });
+        }
+      }());
+
+    script.
+      (function() {
+        var saveUrl = '/shoot/' + !{JSON.stringify(shootSlug)} + '/collections';
+        var storageKey = 'shootSelection:' + !{JSON.stringify(shootSlug)};
+        var savedKey = 'shootCollections:' + !{JSON.stringify(shootSlug)};
+        var selected = {};
+
+        function loadSavedCollections() {
+          try {
+            var raw = localStorage.getItem(savedKey);
+            return raw ? JSON.parse(raw) : [];
+          } catch (e) { return []; }
+        }
+        function saveSavedCollections(list) {
+          try { localStorage.setItem(savedKey, JSON.stringify(list.slice(-20))); } catch (e) {}
+        }
+
+        function loadStored() {
+          try {
+            var raw = sessionStorage.getItem(storageKey);
+            return raw ? JSON.parse(raw) : {};
+          } catch (e) { return {}; }
+        }
+        function saveStored() {
+          try { sessionStorage.setItem(storageKey, JSON.stringify(selected)); } catch (e) {}
+        }
+
+        var bar      = document.getElementById('selection-bar');
+        var countEl  = document.getElementById('selection-count');
+        var popup    = document.getElementById('selection-popup');
+        var formView = document.getElementById('selection-popup-form');
+        var successView = document.getElementById('selection-popup-success');
+        var nameInput = document.getElementById('selection-name-input');
+        var msgEl    = document.getElementById('selection-popup-msg');
+        var saveBtn  = document.getElementById('selection-save');
+        var downloadBtn = document.getElementById('selection-download');
+        var clearBtn = document.getElementById('selection-clear');
+        var cancelBtn = document.getElementById('selection-popup-cancel');
+        var submitBtn = document.getElementById('selection-popup-submit');
+        var closeBtn = document.getElementById('selection-popup-close');
+
+        function closePopup() {
+          popup.classList.remove('is-open');
+          formView.style.display = '';
+          successView.style.display = 'none';
+        }
+
+        function selectedIds() {
+          return Object.keys(selected).filter(function(id) { return selected[id]; });
+        }
+
+        function updateBar() {
+          var ids = selectedIds();
+          if (bar) bar.classList.toggle('is-open', ids.length > 0);
+          // v2: unselected frames dim while a selection exists (see .has-selection in style.css)
+          document.body.classList.toggle('has-selection', ids.length > 0);
+          if (countEl) countEl.textContent = !{JSON.stringify(ui.selectionCount)} + ' ' + ids.length;
+        }
+
+        function clearSelection() {
+          selected = {};
+          saveStored();
+          document.querySelectorAll('.photo-select.is-checked').forEach(function(el) { el.classList.remove('is-checked'); });
+          document.querySelectorAll('.photo-card.is-selected').forEach(function(el) { el.classList.remove('is-selected'); });
+          updateBar();
+        }
+
+        function applySelection(ids) {
+          clearSelection();
+          document.querySelectorAll('.photo-card[data-photo-id]').forEach(function(card) {
+            var id = card.dataset.photoId;
+            if (ids.indexOf(id) === -1) return;
+            selected[id] = true;
+            card.classList.add('is-selected');
+            var box = card.querySelector('.photo-select');
+            if (box) box.classList.add('is-checked');
+          });
+          saveStored();
+          updateBar();
+        }
+
+        var collectionsWrap = document.getElementById('shoot-collections');
+        var collectionsList = document.getElementById('shoot-collections-list');
+
+        function renderSavedCollections() {
+          if (!collectionsWrap || !collectionsList) return;
+          var list = loadSavedCollections();
+          if (!list.length) { collectionsWrap.style.display = 'none'; return; }
+          collectionsList.innerHTML = '';
+          list.forEach(function(c) {
+            var chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'shoot-collection-chip';
+            chip.textContent = c.name + ' · ' + c.count + ' ' + !{JSON.stringify(ui.photosSuffix)};
+            chip.addEventListener('click', function() { applySelection(c.photoIds || []); });
+            collectionsList.appendChild(chip);
+          });
+          collectionsWrap.style.display = '';
+        }
+        renderSavedCollections();
+
+        document.querySelectorAll('.photo-select').forEach(function(el) {
+          el.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var card = el.closest('.photo-card');
+            var id = card.dataset.photoId;
+            selected[id] = !selected[id];
+            el.classList.toggle('is-checked', !!selected[id]);
+            card.classList.toggle('is-selected', !!selected[id]);
+            saveStored();
+            updateBar();
+          });
+        });
+
+        // restore selection saved before navigating away (e.g. to a photo detail page)
+        (function restore() {
+          var stored = loadStored();
+          var restored = false;
+          document.querySelectorAll('.photo-card[data-photo-id]').forEach(function(card) {
+            var id = card.dataset.photoId;
+            if (!stored[id]) return;
+            selected[id] = true;
+            restored = true;
+            card.classList.add('is-selected');
+            var box = card.querySelector('.photo-select');
+            if (box) box.classList.add('is-checked');
+          });
+          if (restored) { saveStored(); updateBar(); }
+        }());
+
+        if (downloadBtn) downloadBtn.addEventListener('click', function() {
+          var ids = selectedIds();
+          if (!ids.length) return;
+          window.location.href = saveUrl.replace(/\/collections$/, '/download') + '?ids=' + encodeURIComponent(ids.join(','));
+        });
+
+        if (clearBtn) clearBtn.addEventListener('click', clearSelection);
+
+        if (saveBtn) saveBtn.addEventListener('click', function() {
+          nameInput.value = '';
+          msgEl.textContent = '';
+          formView.style.display = '';
+          successView.style.display = 'none';
+          popup.classList.add('is-open');
+          nameInput.focus();
+        });
+
+        if (cancelBtn) cancelBtn.addEventListener('click', closePopup);
+        if (closeBtn) closeBtn.addEventListener('click', closePopup);
+        if (popup) popup.addEventListener('click', function(e) { if (e.target === popup) closePopup(); });
+
+        if (submitBtn) submitBtn.addEventListener('click', function() {
+          var name = nameInput.value.trim();
+          if (!name) { msgEl.textContent = !{JSON.stringify(ui.enterNameError)}; return; }
+          var ids = selectedIds();
+          if (!ids.length) { popup.classList.remove('is-open'); return; }
+
+          submitBtn.disabled = true;
+          msgEl.textContent = '';
+          fetch(saveUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, photoIds: ids }),
+          })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+              submitBtn.disabled = false;
+              if (!res.ok) { msgEl.textContent = (res.data && res.data.error) || !{JSON.stringify(ui.saveError)}; return; }
+              var savedList = loadSavedCollections();
+              savedList.push({ id: res.data.id, name: name, count: ids.length, photoIds: ids, createdAt: Date.now() });
+              saveSavedCollections(savedList);
+              renderSavedCollections();
+              clearSelection();
+              formView.style.display = 'none';
+              successView.style.display = '';
+            })
+            .catch(function() {
+              submitBtn.disabled = false;
+              msgEl.textContent = !{JSON.stringify(ui.networkError)};
+            });
+        });
+      }());
+
+  if curatorSelectionActive
+    script.
+      (function() {
+        var btn = document.getElementById('curator-show-all');
+        var bar = document.getElementById('curator-bar');
+        if (!btn) return;
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.photo-card[data-curator-hidden]').forEach(function(c) { c.removeAttribute('data-curator-hidden'); });
+          if (window.PhotoFilters) window.PhotoFilters.apply();
+          var rest = bar && bar.querySelector('.curator-rest');
+          if (rest) rest.remove();
+          btn.remove();
+        });
+      }());
+
+  script(src='/javascripts/photo-v2/filters.js' defer)
