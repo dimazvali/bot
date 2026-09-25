@@ -56,10 +56,15 @@ block content
     .pp-top
       a.pp-back(href=_backHref) ← #{_backLabel.toUpperCase()}
       .pp-top-right
-        if isAdmin && !isShoot
+        if isAdmin
           .admin-bar
-            a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`)= ui.editBtn
-            a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/upload`)= ui.addPhoto
+            if isShoot
+              //- shoot frames have their own editor in the admin (the live template never linked to it)
+              a.admin-bar-btn(href=`/admin/shoots/${shootSlug}/photos/${photo.id}/edit`)= ui.editBtn
+              a.admin-bar-btn(href=`/admin/shoots/${shootSlug}/edit`) ✎ съёмка
+            else
+              a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit`)= ui.editBtn
+              a.admin-bar-btn(href=`/admin/${countryKey}/${seriesKey}/upload`)= ui.addPhoto
         if isShoot
           button.fb-btn.fb-btn--icon(type='button' onclick='toggleFocusTheme()' title=ui.theme aria-label=ui.theme) ◐
         .photo-page-nav
