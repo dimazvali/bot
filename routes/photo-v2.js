@@ -22,6 +22,8 @@ var i18n = require('../lib/photo-i18n');
 var V2_UI = require('../lib/photo-v2-strings');
 var siteTexts = require('../lib/photo-site-texts');
 var shoots = require('../lib/photo-shoots');
+var { getData } = require('../lib/photo-data');
+var notFound = require('../lib/photo-404');
 
 var router = express.Router();
 
@@ -50,11 +52,47 @@ function v2ViewFor(view) {
   return _viewExists[candidate] ? candidate : view;
 }
 
+// Every dead link ends up here: routes/photo.js renders the shared 'error' view with status 404 (unknown tag,
+// colour, shoot…) or nothing matches at all (see the catch-all at the bottom). Both get the redesigned 404 page,
+// plus a Telegram heads-up (lib/photo-404.js) for real visitors on the production host.
+function random(list, n) {
+  var a = list.slice();
+  for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a.slice(0, n);
+}
+function notFoundLocals(res, lang) {
+  var LP = i18n.langPrefix(lang);
+  var data = i18n.localizeDataTree(getData(), lang);
+  var series = [], frames = [];
+  Object.keys(data).forEach(function(ck) {
+    var c = data[ck];
+    if (c.archived || c.hiddenFromFeed) return;
+    (c.seriesOrder || Object.keys(c.series)).forEach(function(sk) {
+      var s = c.series[sk];
+      if (!s || s.archived || !s.photos || !s.photos.length) return;
+      var cover = s.photos[0];
+      series.push({ href: LP + '/' + ck + '/' + sk, label: s.label, sub: c.label + ' · ' + s.photos.length + ' ' + res.locals.ui.photosSuffix,
+                    cover: cover.urls ? cover.urls.preview : '/images/photo/' + ck + '/' + sk + '/' + cover.file });
+      s.photos.forEach(function(p) { frames.push(LP + '/' + ck + '/' + sk + '/' + p.id); });
+    });
+  });
+  return { data: data, activeCountry: null, activeSeries: null, nfTiles: random(series, 4), randomHref: frames.length ? random(frames, 1)[0] : null };
+}
+
 router.use(function(req, res, next) {
   var origRender = res.render;
   res.render = function(view, options, cb) {
     if (typeof options === 'function') { cb = options; options = {}; }
     var lang = res.locals.lang === 'en' ? 'en' : 'ru';
+    if (view === 'error' && res.statusCode === 404) {
+      notFound.notifyNotFound(req, { lang: lang, isAdmin: !!res.locals.isAdmin });
+      var nfOpts = Object.assign({
+        v2: true, t: Object.assign({}, V2_UI[lang], siteTexts.get(lang)), title: V2_UI[lang].notFoundTitle + ' — photo.dimazvali.com',
+        noindex: true, isShoot: false, hasFilterbar: false, breadcrumbs: null, ogUrl: null, ogImage: null,
+        allTags: {}, photoColors: getPhotoColorFamilies,
+      }, notFoundLocals(res, lang));
+      return origRender.call(res, 'photo-v2/404', nfOpts, cb);
+    }
     var v2view = v2ViewFor(view);
     if (v2view === view) return origRender.call(res, view, options, cb);
     var opts = Object.assign({
@@ -115,5 +153,10 @@ router.post('/admin/site-texts', requireAdmin, express.urlencoded({ extended: fa
 });
 
 router.use(require('./photo'));
+
+// nothing above matched (unknown path, deeper URLs, missing files): same 404 page
+router.use(function(req, res) {
+  res.status(404).render('error', { message: 'Not found', error: {} });
+});
 
 module.exports = router;

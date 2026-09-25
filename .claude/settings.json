@@ -476,7 +476,8 @@
       "Bash(node --check routes/photo-v2.js)",
       "Bash(curl -s http://localhost:3613/shoot/masha-retouch/2)",
       "PowerShell($c = Get-NetTCPConnection -LocalPort 3613 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if \\($c\\) { Stop-Process -Id $c.OwningProcess -Force; \"stopped $\\($c.OwningProcess\\)\" } else { \"nothing on 3613\" }; cd C:\\\\Users\\\\dshestakov\\\\node\\\\bot; git status --short)",
-      "PowerShell($c = Get-NetTCPConnection -LocalPort 3613 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if \\($c\\) { Stop-Process -Id $c.OwningProcess -Force; \"stopped $\\($c.OwningProcess\\)\" } else { \"nothing on 3613\" }; cd C:\\\\Users\\\\dshestakov\\\\node\\\\bot; node --check routes/photo-v2.js; git status --short)"
+      "PowerShell($c = Get-NetTCPConnection -LocalPort 3613 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if \\($c\\) { Stop-Process -Id $c.OwningProcess -Force; \"stopped $\\($c.OwningProcess\\)\" } else { \"nothing on 3613\" }; cd C:\\\\Users\\\\dshestakov\\\\node\\\\bot; node --check routes/photo-v2.js; git status --short)",
+      "Bash(node \"C:/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/d8511ec5-db96-4279-9ec0-e8c726c5cf7a/scratchpad/nf-notify-test.js\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",
