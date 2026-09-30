@@ -807,6 +807,29 @@ router.get('/shoots/:slug/edit', requireAuth, async (req, res) => {
   });
 });
 
+// Manual "announce this shoot to subscribers" button — deliberately not automatic
+// on shoot creation, since at that point there's usually no photos/cover/password
+// decided yet. Admin clicks it once the shoot is actually ready to show.
+router.post('/shoots/:slug/notify-subscribers', requireAuth, async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ ok: false, error: 'Bad slug' });
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ ok: false, error: 'Not found' });
+  if (!shoot.public) return res.status(400).json({ ok: false, error: 'Съёмка не публична — сделайте её публичной, чтобы оповестить подписчиков' });
+  if (!shoot.photos.length) return res.status(400).json({ ok: false, error: 'В съёмке нет фото' });
+  try {
+    var [emailResult, tgResult] = await Promise.all([
+      mailer.sendShootNotification(shoot, slug),
+      tgNotifier.notifyShoot(shoot, slug),
+    ]);
+    await shoots.saveShoot(slug, { notifiedAt: new Date().toISOString() });
+    res.json({ ok: true, emailSent: emailResult.sent, tgSent: tgResult.sent });
+  } catch (e) {
+    console.error('[shoots] notify-subscribers error:', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // Copyright / usage check scoped to a single shoot
 router.post('/shoots/:slug/copyright/run', requireAuth, (req, res) => {
   var { slug } = req.params;

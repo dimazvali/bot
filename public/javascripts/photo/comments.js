@@ -6,7 +6,7 @@
   var UI = {
     empty: window.PhotoI18n.t.commentsEmpty, hide: window.PhotoI18n.t.commentsHide, signOut: window.PhotoI18n.t.commentsSignOut,
     writePlaceholder: window.PhotoI18n.t.commentsWritePlaceholder, submit: window.PhotoI18n.t.commentsSubmit,
-    signInNote: window.PhotoI18n.t.commentsSignInNote, signInGoogle: window.PhotoI18n.t.commentsSignInGoogle,
+    signInNote: window.PhotoI18n.t.commentsSignInNote,
     loadError: window.PhotoI18n.t.commentsLoadError,
   };
 
@@ -82,15 +82,7 @@
     }
     return '<div class="comment-signin-block">' +
       '<span class="comment-signin-note">' + UI.signInNote + '</span>' +
-      '<button class="comment-google-btn">' +
-      '<svg width="16" height="16" viewBox="0 0 24 24" style="flex-shrink:0">' +
-      '<path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>' +
-      '<path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>' +
-      '<path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>' +
-      '<path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>' +
-      '</svg>' +
-      UI.signInGoogle +
-      '</button>' +
+      '<div class="comment-google-mount"></div>' +
       '</div>';
   }
 
@@ -144,9 +136,15 @@
       });
     }
 
-    var googleBtn = section.querySelector('.comment-google-btn');
-    if (googleBtn && googleClientId) {
-      googleBtn.addEventListener('click', function () {
+    // A real, rendered "Sign in with Google" button rather than prompt() — prompt()
+    // relies on a cross-site FedCM/One Tap credential check that browsers with
+    // third-party cookies blocked (Incognito, Safari, tracking-protection modes)
+    // silently refuse, so the button would just do nothing. A rendered button opens
+    // an explicit sign-in flow instead, which works everywhere. See points.js for
+    // the same fix already applied to the "add a mark" sign-in.
+    var googleMount = section.querySelector('.comment-google-mount');
+    if (googleMount && googleClientId) {
+      waitForGsi(function () {
         /* global google */
         google.accounts.id.initialize({
           client_id: googleClientId,
@@ -162,9 +160,19 @@
               });
           },
         });
-        google.accounts.id.prompt();
+        google.accounts.id.renderButton(googleMount, { theme: 'filled_black', size: 'medium', text: 'signin_with' });
       });
     }
+  }
+
+  // Waits for the (deferred) GSI script to actually be ready — rendering right as
+  // the page loads can otherwise silently do nothing if google.accounts isn't
+  // defined yet.
+  function waitForGsi(cb, attemptsLeft) {
+    attemptsLeft = attemptsLeft == null ? 50 : attemptsLeft; // ~5s at 100ms/try, then give up quietly
+    if (typeof google !== 'undefined' && google.accounts && google.accounts.id) { cb(); return; }
+    if (attemptsLeft <= 0) return;
+    setTimeout(function () { waitForGsi(cb, attemptsLeft - 1); }, 100);
   }
 
   function load() {

@@ -1578,19 +1578,7 @@ body.sidebar-open { overflow: hidden; }
   letter-spacing: 2px;
   color: var(--text-dim);
 }
-.comment-google-btn {
-  display: flex; align-items: center; gap: 8px;
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-family: monospace;
-  font-size: 0.5625rem;
-  letter-spacing: 2px;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-.comment-google-btn:hover { border-color: var(--text-muted); color: var(--accent); }
+.comment-google-mount { min-height: 40px; }
 
 /* ── Photo type filter & badge ───────────────────────────────────────────── */
 .type-filter {

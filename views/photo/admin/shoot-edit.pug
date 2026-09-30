@@ -74,6 +74,19 @@ html(data-theme='dark')
           |  · #{shoot.public ? 'публична' : 'не публична'}
 
       .admin-section
+        h2.admin-title ОПОВЕЩЕНИЕ ПОДПИСЧИКОВ
+        p.admin-hint Разошлёт подписчикам (email и телеграм) сообщение о новой съёмке со ссылкой на неё. Не срабатывает автоматически при создании — нажимайте, когда съёмка готова к показу (фото загружены, обложка и доступ настроены).
+        if shoot.notifiedAt
+          - var _notifiedD = new Date(shoot.notifiedAt)
+          p.admin-hint Последнее оповещение: #{_notifiedD.toLocaleDateString('ru-RU')} #{_notifiedD.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
+        if !shoot.public
+          p.admin-hint(style='color:#c44;') Съёмка не публична — включите «показывать в /shoot и в сайтмапе» выше и сохраните.
+        else if !shoot.photos.length
+          p.admin-hint(style='color:#c44;') В съёмке пока нет фото.
+        button#notify-subscribers-btn.admin-btn(type='button' disabled=(!shoot.public || !shoot.photos.length)) 📣 ОПОВЕСТИТЬ ПОДПИСЧИКОВ
+        p#notify-status.admin-hint(style='display:none')
+
+      .admin-section
         h2.admin-title ЗАГРУЗИТЬ ФОТО
         form.admin-form(method='POST' action=`/admin/shoots/${slug}/upload` enctype='multipart/form-data')
           input.admin-input(type='text' name='title' placeholder='название')
@@ -382,6 +395,33 @@ html(data-theme='dark')
         });
 
         updateBulkBar();
+      }
+
+      // ── Notify subscribers ──
+      var notifyBtn = document.getElementById('notify-subscribers-btn');
+      if (notifyBtn) {
+        var notifyStatus = document.getElementById('notify-status');
+        notifyBtn.addEventListener('click', function() {
+          if (!confirm('Разослать подписчикам сообщение об этой съёмке?')) return;
+          notifyBtn.disabled = true;
+          notifyStatus.style.display = '';
+          notifyStatus.textContent = 'Отправка…';
+          fetch(window.location.pathname.replace(/\/edit$/, '') + '/notify-subscribers', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (!d.ok) {
+                notifyStatus.textContent = 'Ошибка: ' + (d.error || '?');
+                notifyBtn.disabled = false;
+                return;
+              }
+              notifyStatus.textContent = '✓ Отправлено — email: ' + d.emailSent + ', телеграм: ' + d.tgSent;
+              setTimeout(function() { location.reload(); }, 1200);
+            })
+            .catch(function() {
+              notifyStatus.textContent = 'Ошибка сети';
+              notifyBtn.disabled = false;
+            });
+        });
       }
 
       // ── Usage check (scoped to this shoot) ──

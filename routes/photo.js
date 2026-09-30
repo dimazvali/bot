@@ -560,6 +560,12 @@ router.get('/shoot/:slug', async (req, res) => {
   if (!rawShoot) return res.status(404).render('error', { message: 'Not found', error: {} });
   var adminUser = await isAdmin(req);
 
+  var shootViews = null;
+  if (adminUser) {
+    var shootViewStats = await getStatsByType('shoot').catch(function() { return {}; });
+    shootViews = shootViewStats[slug] || 0;
+  }
+
   requireShootAuth(rawShoot, slug, req, res, adminUser, function() {
     var shoot = i18n.localizeShoot(rawShoot, lang);
     trackView('shoot', slug, req.path, req);
@@ -593,6 +599,8 @@ router.get('/shoot/:slug', async (req, res) => {
       photos: galleryPhotos,
       curatorSelectionActive: curatorSelectionActive,
       offerSelection: rawShoot.offerSelection !== false,
+      shootViews: shootViews,
+      collectionsCount: (rawShoot.collections || []).length,
       activeTags: [],
       promo: 'promo' in req.query,
       title: shoot.label + ' — photo.dimazvali.com',

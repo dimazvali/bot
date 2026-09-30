@@ -45,9 +45,13 @@ block content
 
   .gallery-header.gallery-header--sticky
     if isShoot
+      - var _shootStats = [shootLabel.toUpperCase()]
+      - if (isAdmin && shootViews != null) _shootStats.push('👁 ' + shootViews)
+      - if (isAdmin) _shootStats.push('🗂 ' + collectionsCount)
+      - _shootStats.push('🖼 ' + photos.length)
       .gallery-header-left
         a.gallery-back(href=`${LP}/shoot`) ← #{ui.allShoots}
-        span.gallery-label #{shootLabel.toUpperCase()} · #{photos.length} #{ui.photosSuffix}
+        span.gallery-label= _shootStats.join(' · ')
       .gallery-header-right
         a.gallery-download(href=`${LP}/shoot/${shootSlug}/download`)= ui.download
         button.gallery-shuffle(onclick='shuffleMasonry()')= ui.shuffle
