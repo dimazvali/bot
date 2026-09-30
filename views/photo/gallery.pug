@@ -91,7 +91,7 @@ block content
           if g.name
             span.faces-widget-name= g.name
       button.faces-widget-reset(type='button')= ui.allFaces
-  if isShoot
+  if isShoot && offerSelection
     .shoot-collections#shoot-collections(style='display:none')
       span.gallery-label= ui.yourSelections
       .shoot-collections-list#shoot-collections-list
@@ -135,7 +135,7 @@ block content
         data-person-keys=(isShoot && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined
         data-curator-hidden=photo._curatorExtra ? '' : undefined
       )
-        if isShoot
+        if isShoot && offerSelection
           span.photo-select
             span.photo-select-box
         img(
@@ -181,7 +181,7 @@ block content
       span.gallery-label= otherShootsAreRelated ? ui.relatedShoots : ui.otherShoots
     .shoot-related
       each other in otherShoots
-        - var cover = other.photos[0]
+        - var cover = (other.heroPhotoId && other.photos.find(function(p) { return p.id === other.heroPhotoId; })) || other.photos[0]
         a.shoot-related-card(href=`${LP}/shoot/${other.key}`)
           if cover
             img(
@@ -197,7 +197,7 @@ block content
             span.photo-title= other.label.toUpperCase()
             span.photo-date= `${other.photos.length} ${ui.photosSuffix}`
 
-  if isShoot
+  if isShoot && offerSelection
     .selection-popup#intro-popup
       .selection-popup-inner
         p.intro-popup-text= ui.introText
@@ -224,6 +224,13 @@ block content
           p.selection-popup-success-text= ui.successText
           .selection-popup-actions
             button#selection-popup-close(type='button')= ui.ok
+
+    .selection-popup#selection-signin-popup
+      .selection-popup-inner
+        span.selection-popup-title= ui.selectionSignInTitle
+        div#selection-signin-btn
+        .selection-popup-actions
+          button#selection-signin-cancel(type='button')= ui.cancel
 
   if promo
     .selection-popup#promo-popup
@@ -320,7 +327,7 @@ block content
         });
       }());
 
-  if isShoot
+  if isShoot && offerSelection
     script.
       (function() {
         var introKey = 'photoShootIntroSeen';
@@ -339,7 +346,7 @@ block content
         }
       }());
 
-  if isShoot
+  if isShoot && offerSelection
     script.
       (function() {
         var saveUrl = '/shoot/' + !{JSON.stringify(shootSlug)} + '/collections';
@@ -380,6 +387,71 @@ block content
         var cancelBtn = document.getElementById('selection-popup-cancel');
         var submitBtn = document.getElementById('selection-popup-submit');
         var closeBtn = document.getElementById('selection-popup-close');
+
+        // ── Google sign-in gate: saving a collection requires it, same auth
+        // (photoUser cookie) as comments/points — see /shoot/:slug/collections ──
+        var googleClientId = (document.querySelector('meta[name="google-client-id"]') || {}).content || '';
+        var user = null;
+        try {
+          var userMeta = document.querySelector('meta[name="photo-user"]');
+          user = userMeta ? JSON.parse(userMeta.content) : null;
+        } catch (e) {}
+
+        var signInPopup = document.getElementById('selection-signin-popup');
+        var signInBtnContainer = document.getElementById('selection-signin-btn');
+        var signInCancelBtn = document.getElementById('selection-signin-cancel');
+        var gsiInitialized = false;
+        var gsiButtonRendered = false;
+
+        function waitForGsi(cb, attemptsLeft) {
+          attemptsLeft = attemptsLeft == null ? 50 : attemptsLeft;
+          if (typeof google !== 'undefined' && google.accounts && google.accounts.id) { cb(); return; }
+          if (attemptsLeft <= 0) return;
+          setTimeout(function() { waitForGsi(cb, attemptsLeft - 1); }, 100);
+        }
+
+        function openSelectionPopup() {
+          nameInput.value = '';
+          msgEl.textContent = '';
+          formView.style.display = '';
+          successView.style.display = 'none';
+          popup.classList.add('is-open');
+          nameInput.focus();
+        }
+
+        function handleCredential(response) {
+          /* global google */
+          fetch('/photo-comments/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential }),
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (!data.ok) return;
+              user = data.user;
+              if (signInPopup) signInPopup.classList.remove('is-open');
+              openSelectionPopup();
+            });
+        }
+
+        function openSignIn() {
+          if (!googleClientId || !signInPopup || !signInBtnContainer) return;
+          signInPopup.classList.add('is-open');
+          waitForGsi(function() {
+            if (!gsiInitialized) {
+              gsiInitialized = true;
+              google.accounts.id.initialize({ client_id: googleClientId, callback: handleCredential });
+            }
+            if (!gsiButtonRendered) {
+              gsiButtonRendered = true;
+              google.accounts.id.renderButton(signInBtnContainer, { theme: 'filled_black', size: 'medium', text: 'signin_with' });
+            }
+          });
+        }
+
+        if (signInCancelBtn) signInCancelBtn.addEventListener('click', function() { signInPopup.classList.remove('is-open'); });
+        if (signInPopup) signInPopup.addEventListener('click', function(e) { if (e.target === signInPopup) signInPopup.classList.remove('is-open'); });
 
         function closePopup() {
           popup.classList.remove('is-open');
@@ -478,12 +550,8 @@ block content
         if (clearBtn) clearBtn.addEventListener('click', clearSelection);
 
         if (saveBtn) saveBtn.addEventListener('click', function() {
-          nameInput.value = '';
-          msgEl.textContent = '';
-          formView.style.display = '';
-          successView.style.display = 'none';
-          popup.classList.add('is-open');
-          nameInput.focus();
+          if (!user) { openSignIn(); return; }
+          openSelectionPopup();
         });
 
         if (cancelBtn) cancelBtn.addEventListener('click', closePopup);

@@ -819,8 +819,9 @@ router.post('/shoots/:slug/copyright/run', requireAuth, (req, res) => {
 router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
-  if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
-  var { label, desc, label_en, desc_en, password, public: isPublic, showFaces, showCuratorSelection, relatedShoots } = req.body;
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  var { label, desc, label_en, desc_en, password, public: isPublic, showFaces, showCuratorSelection, offerSelection, relatedShoots } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
   var knownSlugs = Object.keys(shoots.getData());
   var relatedList = Array.isArray(relatedShoots) ? relatedShoots : (relatedShoots ? [relatedShoots] : []);
@@ -830,6 +831,9 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   var mapCenter = (!isNaN(mapLatRaw) && !isNaN(mapLngRaw) && Math.abs(mapLatRaw) <= 90 && Math.abs(mapLngRaw) <= 180)
     ? { lat: mapLatRaw, lng: mapLngRaw }
     : null;
+  var knownPhotoIds = shoot.photos.map(function(p) { return p.id; });
+  var ogPhotoId = (req.body.ogPhotoId && knownPhotoIds.indexOf(req.body.ogPhotoId) !== -1) ? req.body.ogPhotoId : null;
+  var heroPhotoId = (req.body.heroPhotoId && knownPhotoIds.indexOf(req.body.heroPhotoId) !== -1) ? req.body.heroPhotoId : null;
   try {
     await shoots.saveShoot(slug, {
       label: label.trim(),
@@ -840,7 +844,10 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
       public: !!isPublic,
       showFaces: !!showFaces,
       showCuratorSelection: !!showCuratorSelection,
+      offerSelection: !!offerSelection,
       mapCenter: mapCenter,
+      ogPhotoId: ogPhotoId,
+      heroPhotoId: heroPhotoId,
     });
     await shoots.setRelatedShoots(slug, relatedList);
     res.redirect('/admin/shoots/' + slug + '/edit');

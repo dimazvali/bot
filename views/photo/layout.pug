@@ -37,6 +37,8 @@ html(data-theme='dark' lang=lang || 'ru')
       script(type='application/ld+json')!= JSON.stringify({"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":_ldItems})
     if googleClientId
       meta(name='google-client-id' content=googleClientId)
+    if photoUser
+      meta(name='photo-user' content=JSON.stringify(photoUser))
     block head
     link(rel='icon' href='/images/photo/ds_georgian.ico')
     link(rel='stylesheet' href='/stylesheets/photo/style.css')

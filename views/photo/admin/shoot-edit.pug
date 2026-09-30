@@ -37,6 +37,20 @@ html(data-theme='dark')
           label.admin-tag-check
             input(type='checkbox' name='showCuratorSelection' checked=shoot.showCuratorSelection)
             span показывать авторский отбор (сначала отмеченные фото, остальные — по кнопке «показать все»)
+          label.admin-tag-check
+            input(type='checkbox' name='offerSelection' checked=shoot.offerSelection !== false)
+            span предлагать выбор фото (чекбоксы на карточках + сохранение своих подборок; выключите для некоммерческих съёмок без заказчика)
+          if shoot.photos.length
+            p.admin-hint ОБЛОЖКА ДЛЯ OG (соцсети/превью-ссылка; по умолчанию — первое фото):
+            select.admin-input(name='ogPhotoId')
+              option(value='') — первое фото по порядку —
+              each p in shoot.photos
+                option(value=p.id selected=shoot.ogPhotoId === p.id)= p.title || p.id
+            p.admin-hint ОБЛОЖКА ДЛЯ ГЛАВНОГО БЛОКА (карточка съёмки в /shoot; по умолчанию — первое фото):
+            select.admin-input(name='heroPhotoId')
+              option(value='') — первое фото по порядку —
+              each p in shoot.photos
+                option(value=p.id selected=shoot.heroPhotoId === p.id)= p.title || p.id
           p.admin-hint ЦЕНТР КАРТЫ (опционально — куда центрируется карта локации при редактировании фото этой съёмки; клик — поставить точку, перетаскивание — сдвинуть):
           #coords-map
           input#coords-lat(type='hidden' name='mapLat' value=(shoot.mapCenter ? shoot.mapCenter.lat : ''))
@@ -178,6 +192,8 @@ html(data-theme='dark')
                 span.admin-collection-name= col.name
                 span.admin-collection-meta
                   = col.photoIds.length + ' фото'
+                  if col.authorName
+                    |  · #{col.authorName}
                   if col.createdAt
                     - var d = col.createdAt.toDate ? col.createdAt.toDate() : new Date(col.createdAt)
                     |  · #{d.toLocaleDateString('ru-RU')} #{d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}

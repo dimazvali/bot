@@ -1924,7 +1924,7 @@ body.sidebar-open { overflow: hidden; }
 .faces-widget { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; align-items: flex-start; }
 .faces-widget-item { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; cursor: pointer; width: 52px; background: none; border: none; padding: 0; }
 .faces-widget-avatar { position: relative; width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--border); border: 1.5px solid var(--border); }
-.faces-widget-avatar img { position: absolute; max-width: none; }
+.faces-widget-avatar img { position: absolute; max-width: none; object-fit: cover; }
 .faces-widget-name { font-size: 0.5625rem; font-family: monospace; color: var(--text-muted); letter-spacing: .5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 52px; }
 .faces-widget[data-active] .faces-widget-item { display: none; }
 .faces-widget[data-active] .faces-widget-item.is-active { display: flex; }

@@ -592,6 +592,7 @@ router.get('/shoot/:slug', async (req, res) => {
       shootLabel: shoot.label,
       photos: galleryPhotos,
       curatorSelectionActive: curatorSelectionActive,
+      offerSelection: rawShoot.offerSelection !== false,
       activeTags: [],
       promo: 'promo' in req.query,
       title: shoot.label + ' — photo.dimazvali.com',
@@ -772,11 +773,17 @@ router.post('/shoot/:slug/auth', express.urlencoded({ extended: false }), (req, 
   });
 });
 
-// POST /shoot/:slug/collections — клиент сохраняет собственную подборку фото
+// POST /shoot/:slug/collections — клиент сохраняет собственную подборку фото.
+// Requires Google sign-in (same photoUser cookie as comments/points) on top of
+// the shoot's own password gate, so a saved collection can always be traced
+// back to who made it, not just "someone with the link".
 router.post('/shoot/:slug/collections', express.json(), async (req, res) => {
   var { slug } = req.params;
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.status(404).json({ error: 'Not found' });
+
+  var user = res.locals.photoUser;
+  if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
   var adminUser = await isAdmin(req);
   var cookieKey = 'shoot_' + slug;
@@ -794,9 +801,11 @@ router.post('/shoot/:slug/collections', express.json(), async (req, res) => {
     .filter(function(id) { return typeof id === 'string' && validIds[id] && !seen[id] && (seen[id] = true); });
   if (!photoIds.length) return res.status(400).json({ error: 'No photos selected' });
 
-  var collection = await shoots.addCollection(slug, name, photoIds);
+  var collection = await shoots.addCollection(slug, name, photoIds, user);
 
-  tgSend('<b>🗂 Новая подборка от клиента</b>\n' + shoot.label + ' — «' + name + '»\n' + photoIds.length + ' фото\n' + BASE + '/admin/shoots/' + slug + '/edit');
+  tgSend('<b>🗂 Новая подборка от клиента</b>\n' + shoot.label + ' — «' + name + '»\n' + photoIds.length + ' фото'
+    + (user.name ? '\nОт: ' + user.name + (user.email ? ' (' + user.email + ')' : '') : '')
+    + '\n' + BASE + '/admin/shoots/' + slug + '/edit');
 
   res.json({ ok: true, id: collection.id });
 });

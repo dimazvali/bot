@@ -107,6 +107,8 @@ block content
         if photo.urls && photo.urls.instagram
           a.action-btn(href=`${LP}/shoot/${shootSlug}/${photo.id}/download-instagram`)= ui.downloadInstagram
         button.action-btn#add-point-btn(type='button' data-slug=shootSlug data-photo-id=photo.id)= ui.addPoint
+        if isAdmin
+          button.action-btn#curator-pick-btn(type='button' data-slug=shootSlug data-photo-id=photo.id data-active=photo.curatorPick ? '1' : '0')= photo.curatorPick ? ui.curatorRemove : ui.curatorAdd
     if !isShoot
       .photo-inquiry
         - var showInquiry = !!inquiryStatus
@@ -634,6 +636,30 @@ block content
 
       loadComments();
     }());
+
+  if isShoot && isAdmin
+    script.
+      (function() {
+        var btn = document.getElementById('curator-pick-btn');
+        if (!btn) return;
+        btn.addEventListener('click', function() {
+          var next = btn.dataset.active !== '1';
+          btn.disabled = true;
+          fetch('/admin/shoots/' + btn.dataset.slug + '/photos/bulk-curator-pick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: [btn.dataset.photoId], value: next }),
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              btn.disabled = false;
+              if (!data.ok) { alert('Ошибка'); return; }
+              btn.dataset.active = next ? '1' : '0';
+              btn.textContent = next ? !{JSON.stringify(ui.curatorRemove)} : !{JSON.stringify(ui.curatorAdd)};
+            })
+            .catch(function() { btn.disabled = false; alert('Ошибка сети'); });
+        });
+      }());
 
   script(src='https://accounts.google.com/gsi/client' async defer)
   if isShoot

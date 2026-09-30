@@ -127,7 +127,7 @@ router.get('/series/:country/:series.jpg', async (req, res) => {
 router.get('/shoot/:slug.jpg', async (req, res) => {
   var shoot = shoots.getShoot(req.params.slug);
   if (!shoot || !shoot.photos.length) return res.status(404).end();
-  var firstPhoto = shoot.photos[0];
+  var firstPhoto = (shoot.ogPhotoId && shoot.photos.find(function(p) { return p.id === shoot.ogPhotoId; })) || shoot.photos[0];
   if (!firstPhoto.urls) return res.status(404).end();
   try {
     var buf = await generate(firstPhoto.urls.preview, shoot.label, 'photo.dimazvali.com/shoot/' + req.params.slug, colorFor(firstPhoto));
