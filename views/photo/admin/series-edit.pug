@@ -18,10 +18,13 @@ html(data-theme='dark')
         a.admin-link(href=`/admin/${countryKey}/${seriesKey}/upload`) + ДОБАВИТЬ ФОТО
 
       .admin-section
-        h2.admin-title ПЕРЕИМЕНОВАТЬ
+        h2.admin-title НАЗВАНИЕ И ОПИСАНИЕ
         form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/edit`)
           input.admin-input(type='text' name='label' value=series.label placeholder='название серии')
           input.admin-input(type='text' name='label_en' value=series.label_en || '' placeholder='name (EN)')
+          p.admin-hint Описание (необязательно) — показывается в шапке страницы серии и идёт в meta description:
+          textarea.admin-input(name='desc' placeholder='описание' rows='4')= series.desc || ''
+          textarea.admin-input(name='desc_en' placeholder='description (EN)' rows='4')= series.desc_en || ''
           p.admin-hint Центр карты (опционально — куда центрируется карта локации при редактировании фото этой серии; клик — поставить точку, перетаскивание — сдвинуть):
           #coords-map
           input#coords-lat(type='hidden' name='mapLat' value=(series.mapCenter ? series.mapCenter.lat : ''))

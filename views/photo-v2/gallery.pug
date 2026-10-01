@@ -98,8 +98,9 @@ block content
       .hero-text
         .kicker #{_country.label} · #{t.seriesWord}
         h1.hero-title= _series.label
-        if _series.intro || _series.desc
-          p.hero-lead= _series.intro || _series.desc
+        //- description filled in /admin/:country/:series/edit — same lead as a shoot hero
+        if _series.desc
+          p.hero-lead= _series.desc
         if activeTags && activeTags.length
           .hero-tags
             each tag in activeTags

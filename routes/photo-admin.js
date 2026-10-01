@@ -1595,12 +1595,14 @@ router.get('/:country/:series/edit', requireAuth, (req, res) => {
 router.post('/:country/:series/edit', requireAuth, (req, res) => {
   var { country, series: seriesKey } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
-  var { label, label_en } = req.body;
+  var { label, label_en, desc, desc_en } = req.body;
   if (!label || !label.trim()) return res.redirect(`/admin/${country}/${seriesKey}/edit`);
   var data = getData();
   if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
   data[country].series[seriesKey].label = label.trim();
   if (label_en && label_en.trim()) { data[country].series[seriesKey].label_en = label_en.trim(); } else { delete data[country].series[seriesKey].label_en; }
+  if (desc && desc.trim()) { data[country].series[seriesKey].desc = desc.trim(); } else { delete data[country].series[seriesKey].desc; }
+  if (desc_en && desc_en.trim()) { data[country].series[seriesKey].desc_en = desc_en.trim(); } else { delete data[country].series[seriesKey].desc_en; }
   var mapLatRaw = parseFloat(req.body.mapLat);
   var mapLngRaw = parseFloat(req.body.mapLng);
   if (!isNaN(mapLatRaw) && !isNaN(mapLngRaw) && Math.abs(mapLatRaw) <= 90 && Math.abs(mapLngRaw) <= 180) {

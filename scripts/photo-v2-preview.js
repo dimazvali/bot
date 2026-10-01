@@ -72,10 +72,11 @@ G.photos.forEach(function(p, i) {
     urls: { thumb: p.thumb, preview: p.preview, full: p.preview.replace(/-800.webp$/, '-2400.webp') }, // the real 2400px file sits next to the 800px one
   });
 });
-// a few extras so annotations / panorama / coordinates / series intro can be eyeballed
+// a few extras so annotations / panorama / coordinates / series description can be eyeballed
 var firstCountry = data[G.countries[0].key];
 var firstSeries = firstCountry.series[firstCountry.seriesOrder[0]];
-firstSeries.intro = 'Город, который не сидит на месте: мосты, склоны, крыши и люди между ними.';
+firstSeries.desc = 'Город, который не сидит на месте: мосты, склоны, крыши и люди между ними.';
+firstSeries.desc_en = 'A city that never sits still: bridges, slopes, rooftops and the people in between.';
 if (firstSeries.photos[0]) {
   firstSeries.photos[0].desc = 'Кадр с коптера над старым городом — тот случай, когда хочется висеть в воздухе часами.';
   firstSeries.photos[0].annotations = [

@@ -935,9 +935,9 @@ router.get('/:country/:series', (req, res) => {
     activeTags,
     promo: 'promo' in req.query,
     title: `${series.label} · ${country.label} — photo.dimazvali.com`,
-    desc: lang === 'en'
+    desc: series.desc || (lang === 'en'
       ? `${series.label}, ${country.label} — ${photos.length} photos. Documentary photography by Dmitry Shestakov.`
-      : `${series.label}, ${country.label} — ${photos.length} фотографий. Документальная фотография, Дмитрий Шестаков.`,
+      : `${series.label}, ${country.label} — ${photos.length} фотографий. Документальная фотография, Дмитрий Шестаков.`),
     keywords: buildPageKeywords(photos, allTagsSeries, [country.label, series.label]),
     ogImage: photos.length ? `${BASE}/og/series/${countryKey}/${seriesKey}.jpg` : null,
     ogUrl: pageUrl(lang, `/${countryKey}/${seriesKey}`),
