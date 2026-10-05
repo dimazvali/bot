@@ -25,8 +25,9 @@ html(data-theme='dark')
         form.admin-form(method='POST' action=`/admin/shoots/${slug}/edit`)
           input.admin-input(type='text' name='label' value=shoot.label placeholder='название' required)
           input.admin-input(type='text' name='label_en' value=shoot.label_en || '' placeholder='name (EN)')
-          input.admin-input(type='text' name='desc' value=shoot.desc placeholder='описание (необязательно)')
-          input.admin-input(type='text' name='desc_en' value=shoot.desc_en || '' placeholder='description (EN)')
+          p.admin-hint Описание (необязательно) — переносы строк сохраняются на странице съёмки:
+          textarea.admin-input(name='desc' placeholder='описание' rows='5')= shoot.desc || ''
+          textarea.admin-input(name='desc_en' placeholder='description (EN)' rows='5')= shoot.desc_en || ''
           input.admin-input(type='text' name='password' value=shoot.password placeholder='пароль (оставьте пустым для открытого доступа)')
           label.admin-tag-check
             input(type='checkbox' name='public' checked=shoot.public)

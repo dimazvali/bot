@@ -10,7 +10,8 @@ html(data-theme='light' lang=lang || 'ru')
     meta(charset='utf-8')
     title= title
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    - var _desc = desc || (lang === 'en' ? 'Photography — Dmitry Shestakov' : 'Фотография — Дмитрий Шестаков')
+    //- descriptions can be multi-line (admin textareas) — meta tags get them as one line
+    - var _desc = desc ? String(desc).replace(/\s+/g, ' ').trim() : (lang === 'en' ? 'Photography — Dmitry Shestakov' : 'Фотография — Дмитрий Шестаков')
     meta(name='description' content=_desc)
     if noindex
       meta(name='robots' content='noindex,nofollow')
