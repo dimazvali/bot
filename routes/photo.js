@@ -606,7 +606,12 @@ router.get('/shoot/:slug', async (req, res) => {
       title: shoot.label + ' — photo.dimazvali.com',
       desc: shoot.desc || null,
       keywords: null,
-      ogImage: shoot.photos.length ? `${BASE}/og/shoot/${slug}.jpg` : null,
+      // ?v= changes whenever the OG frame or the title does, so browsers / messengers don't keep
+      // showing the old card (the image itself is served with max-age, see routes/photo-og.js)
+      ogImage: shoot.photos.length
+        ? `${BASE}/og/shoot/${slug}.jpg?v=` + crypto.createHash('md5').update((rawShoot.ogPhotoId || shoot.photos[0].id) + '\x00' + rawShoot.label).digest('hex').slice(0, 8)
+        : null,
+      heroPhotoId: rawShoot.heroPhotoId || null,
       ogUrl: shoot.public ? pageUrl(lang, `/shoot/${slug}`) : null,
       noindex: !shoot.public,
       breadcrumbs: [

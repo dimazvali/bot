@@ -42,7 +42,8 @@ block content
   - var LP = lang === 'en' ? '/en' : ''
   - var focus = !!(isShoot && shootSlug)
   - var mode = focus ? 'shoot' : ((activeCountry && activeSeries) ? 'series' : (activeCountry ? 'country' : 'home'))
-  - var _photoUserSubscribed = typeof photoUser !== 'undefined' && photoUser && photoUser.subscribed
+  - var _photoUserSignedIn = typeof photoUser !== 'undefined' && !!photoUser
+  - var _photoUserSubscribed = _photoUserSignedIn && photoUser.subscribed
   -
     // what the unified filter can offer for this photo set
     var _typeSet = new Set(), _colorSet = new Set(), _tagSet = new Set()
@@ -60,7 +61,10 @@ block content
     }
     var _country = activeCountry ? data[activeCountry] : null
     var _series = (_country && activeSeries) ? _country.series[activeSeries] : null
-    var _cover = (photos && photos[0]) ? (photos[0].urls ? photos[0].urls.preview : ('/images/photo/' + photos[0].countryKey + '/' + photos[0].seriesKey + '/' + photos[0].file)) : null
+    // a shoot's cover can be picked in the admin (heroPhotoId); otherwise the first frame
+    var _coverPhoto = (focus && heroPhotoId && photos.find(function(p) { return p.id === heroPhotoId })) || photos[0]
+    var _cover = _coverPhoto ? (_coverPhoto.urls ? _coverPhoto.urls.preview : ('/images/photo/' + _coverPhoto.countryKey + '/' + _coverPhoto.seriesKey + '/' + _coverPhoto.file)) : null
+    var _offerSelection = focus && offerSelection
     // feed tiles planted between photos (never inside a client's shoot)
     var _igAt = focus ? -1 : Math.min(4, photos.length)
     var _subAt = (focus || _photoUserSubscribed) ? -1 : Math.min(13, photos.length)
@@ -131,21 +135,24 @@ block content
           .kicker #{photos.length} #{ui.photosSuffix}
           h1.hero-title= shootLabel
           p.hero-lead= desc
-          p.hero-note= t.shootHint
+          if _offerSelection
+            p.hero-note= t.shootHint
         .hero-cover
           if _cover
             img(src=_cover alt=shootLabel onerror="this.style.background='#2a2622';this.removeAttribute('src')")
-      .shoot-collections.shoot-collections--row#shoot-collections(style='display:none')
-        span.fb-label= ui.yourSelections
-        .shoot-collections-list#shoot-collections-list
+      if _offerSelection
+        .shoot-collections.shoot-collections--row#shoot-collections(style='display:none')
+          span.fb-label= ui.yourSelections
+          .shoot-collections-list#shoot-collections-list
     else
       section.focus-title
         .focus-title-main
           h1.focus-name= shootLabel
-          p.focus-sub #{photos.length} #{ui.photosSuffix} · #{t.shootHint}
-        .shoot-collections#shoot-collections(style='display:none')
-          span.fb-label= ui.yourSelections
-          .shoot-collections-list#shoot-collections-list
+          p.focus-sub #{photos.length} #{ui.photosSuffix}#{_offerSelection ? ' · ' + t.shootHint : ''}
+        if _offerSelection
+          .shoot-collections#shoot-collections(style='display:none')
+            span.fb-label= ui.yourSelections
+            .shoot-collections-list#shoot-collections-list
     if peopleGroups && peopleGroups.length
       .faces-widget#faces-widget
         span.fb-label= t.findYourself
@@ -197,7 +204,7 @@ block content
           +instagramCard()
         if _pi === _subAt
           +subscribeCard()
-        +photoCard(photo, focus ? `${LP}/shoot/${shootSlug}/${photo.id}` : `${LP}/${photo.countryKey}/${photo.seriesKey}/${photo.id}`, { select: focus, curatorExtra: photo._curatorExtra, personKeys: (focus && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined })
+        +photoCard(photo, focus ? `${LP}/shoot/${shootSlug}/${photo.id}` : `${LP}/${photo.countryKey}/${photo.seriesKey}/${photo.id}`, { select: _offerSelection, curatorExtra: photo._curatorExtra, personKeys: (focus && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined })
       if _igAt === photos.length
         +instagramCard()
       if _subAt === photos.length
@@ -216,7 +223,7 @@ block content
       span.fb-label= otherShootsAreRelated ? ui.relatedShoots : ui.otherShoots
       .shoot-related
         each other in otherShoots
-          - var cover = other.photos[0]
+          - var cover = (other.heroPhotoId && other.photos.find(function(p) { return p.id === other.heroPhotoId; })) || other.photos[0]
           a.shoot-related-card(href=`${LP}/shoot/${other.key}`)
             if cover
               img(
@@ -232,7 +239,7 @@ block content
               span.photo-title= other.label.toUpperCase()
               span.photo-date= `${other.photos.length} ${ui.photosSuffix}`
 
-  if focus
+  if _offerSelection
     .selection-popup#intro-popup
       .selection-popup-inner
         p.intro-popup-text= ui.introText
@@ -259,6 +266,14 @@ block content
           p.selection-popup-success-text= ui.successText
           .selection-popup-actions
             button.btn.btn--ink#selection-popup-close(type='button')= ui.ok
+
+    //- saving a selection requires Google sign-in (POST /shoot/:slug/collections answers 401 without the photoUser cookie)
+    .selection-popup#selection-signin-popup
+      .selection-popup-inner
+        span.selection-popup-title= ui.selectionSignInTitle
+        div#selection-signin-btn
+        .selection-popup-actions
+          button#selection-signin-cancel(type='button')= ui.cancel
 
     script.
       (function() {
@@ -318,6 +333,62 @@ block content
         var cancelBtn = document.getElementById('selection-popup-cancel');
         var submitBtn = document.getElementById('selection-popup-submit');
         var closeBtn = document.getElementById('selection-popup-close');
+
+        // ── Google sign-in gate (same photoUser cookie as comments/points). Rendered GIS button,
+        // not One Tap: prompt() fails via FedCM in Incognito / with third-party cookies blocked. ──
+        var googleClientId = (document.querySelector('meta[name="google-client-id"]') || {}).content || '';
+        var user = !{JSON.stringify(_photoUserSignedIn ? { name: photoUser.name } : null).replace(/</g, '\\u003c')};
+        var signInPopup = document.getElementById('selection-signin-popup');
+        var signInBtnContainer = document.getElementById('selection-signin-btn');
+        var signInCancelBtn = document.getElementById('selection-signin-cancel');
+        var gsiReady = false;
+
+        function waitForGsi(cb, attemptsLeft) {
+          attemptsLeft = attemptsLeft == null ? 50 : attemptsLeft;
+          if (typeof google !== 'undefined' && google.accounts && google.accounts.id) { cb(); return; }
+          if (attemptsLeft <= 0) return;
+          setTimeout(function() { waitForGsi(cb, attemptsLeft - 1); }, 100);
+        }
+
+        function openSelectionPopup() {
+          nameInput.value = '';
+          msgEl.textContent = '';
+          formView.style.display = '';
+          successView.style.display = 'none';
+          popup.classList.add('is-open');
+          nameInput.focus();
+        }
+
+        function handleCredential(response) {
+          fetch('/photo-comments/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential }),
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (!data.ok) return;
+              user = data.user;
+              window.photoTrack && window.photoTrack('login', { method: 'google', context: 'selection' });
+              signInPopup.classList.remove('is-open');
+              openSelectionPopup();
+            });
+        }
+
+        function openSignIn() {
+          if (!googleClientId || !signInPopup) return;
+          signInPopup.classList.add('is-open');
+          waitForGsi(function() {
+            if (gsiReady) return;
+            gsiReady = true;
+            /* global google */
+            google.accounts.id.initialize({ client_id: googleClientId, callback: handleCredential });
+            google.accounts.id.renderButton(signInBtnContainer, { theme: 'filled_black', size: 'medium', text: 'signin_with' });
+          });
+        }
+
+        if (signInCancelBtn) signInCancelBtn.addEventListener('click', function() { signInPopup.classList.remove('is-open'); });
+        if (signInPopup) signInPopup.addEventListener('click', function(e) { if (e.target === signInPopup) signInPopup.classList.remove('is-open'); });
 
         function closePopup() {
           popup.classList.remove('is-open');
@@ -419,12 +490,8 @@ block content
         if (clearBtn) clearBtn.addEventListener('click', clearSelection);
 
         if (saveBtn) saveBtn.addEventListener('click', function() {
-          nameInput.value = '';
-          msgEl.textContent = '';
-          formView.style.display = '';
-          successView.style.display = 'none';
-          popup.classList.add('is-open');
-          nameInput.focus();
+          if (!user) { openSignIn(); return; }
+          openSelectionPopup();
         });
 
         if (cancelBtn) cancelBtn.addEventListener('click', closePopup);
@@ -444,9 +511,11 @@ block content
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name, photoIds: ids }),
           })
-            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, status: r.status, data: data }; }); })
             .then(function(res) {
               submitBtn.disabled = false;
+              // sign-in cookie gone/expired since the page loaded: sign in again, then the name popup reopens
+              if (res.status === 401 && res.data && res.data.error === 'Not authenticated') { user = null; popup.classList.remove('is-open'); openSignIn(); return; }
               if (!res.ok) { msgEl.textContent = (res.data && res.data.error) || !{JSON.stringify(ui.saveError)}; return; }
               var savedList = loadSavedCollections();
               window.photoTrack && window.photoTrack('shoot_selection_saved', { shoot: !{JSON.stringify(shootSlug)}, count: ids.length });

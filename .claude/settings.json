@@ -480,7 +480,17 @@
       "Bash(node \"C:/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/d8511ec5-db96-4279-9ec0-e8c726c5cf7a/scratchpad/nf-notify-test.js\")",
       "Bash(grep -n \"^  if isShoot$\" views/photo/gallery.pug)",
       "Bash(node -c lib/photo-tg-notifier.js)",
-      "Bash(node --check public/javascripts/photo/comments.js)"
+      "Bash(node --check public/javascripts/photo/comments.js)",
+      "PowerShell(node --check public/javascripts/photo-v2/comments.js)",
+      "Bash(curl -s https://photo.dimazvali.com/en/georgia/tbilisi)",
+      "Bash(PORT=3711 node scripts/photo-v2-preview.js)",
+      "Bash(curl -s -o /dev/null localhost:3711/)",
+      "Bash(node -e \"setTimeout\\(\\(\\)=>{},500\\)\")",
+      "Bash(node -e \"const d=require\\('./scripts/photo-v2-preview.js'\\)\")",
+      "Bash(curl -s localhost:3711/)",
+      "Bash(node -e \"['views/photo-v2/gallery.pug','views/photo-v2/shoots.pug'].forEach\\(f=>require\\('pug'\\).compileFile\\(f,{basedir:'views'}\\)\\)\")",
+      "Bash(PORT=3712 node scripts/photo-v2-preview.js)",
+      "Bash(curl -s localhost:3712/shoot/masha-retouch)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",

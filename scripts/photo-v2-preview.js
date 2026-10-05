@@ -106,6 +106,8 @@ var shoots = {
   },
   'open-city': {
     key: 'open-city', label: 'Городской репортаж', desc: 'Открытая съёмка', public: true, password: '',
+    // non-commercial: no selection UI; cover / OG frame picked in the admin instead of the first one
+    offerSelection: false, heroPhotoId: pool[8].id, ogPhotoId: pool[9].id,
     photos: pool.slice(4, 14), photoOrder: pool.slice(4, 14).map(function(p) { return p.id; }),
   },
   'locked': {

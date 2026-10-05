@@ -13,7 +13,7 @@ block content
     .works
       .masonry
         each shoot in shoots
-          - var cover = shoot.photos[0]
+          - var cover = (shoot.heroPhotoId && shoot.photos.find(function(p) { return p.id === shoot.heroPhotoId; })) || shoot.photos[0]
           a.photo-card(href=`${LP}/shoot/${shoot.key}`)
             if cover
               img(
