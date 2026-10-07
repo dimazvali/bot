@@ -69,7 +69,7 @@ mixin instagramCard()
     button.photo-card-promo-close(type='button' aria-label=ui.cancel) ✕
     a.photo-card-promo-link(href='https://www.instagram.com/dimazvali2' target='_blank' rel='noopener')
       img.photo-card-promo-img(
-        src='https://storage.googleapis.com/photo-dimazvalimisc/images/ks-05065-1780908582473-800.webp'
+        src='https://storage.googleapis.com/photo-dimazvalimisc-eu/images/ks-05065-1780908582473-800.webp'
         alt=ui.igAlt
         loading='lazy'
         onerror="this.style.background='#3a352e';this.removeAttribute('src')"
@@ -152,7 +152,7 @@ mixin promoPopup()
   .selection-popup#promo-popup(data-auto=(typeof promo !== 'undefined' && promo) ? '1' : undefined)
     .promo-card
       .promo-card-photo
-        img(src='https://storage.googleapis.com/photo-dimazvalimisc/images/ks-05065-1780908582473-800.webp' alt='' loading='lazy')
+        img(src='https://storage.googleapis.com/photo-dimazvalimisc-eu/images/ks-05065-1780908582473-800.webp' alt='' loading='lazy')
       .promo-card-body
         button.promo-popup-close#promo-popup-close(type='button' aria-label=ui.cancel) ✕
         span.kicker= t.promoKicker

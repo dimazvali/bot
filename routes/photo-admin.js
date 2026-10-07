@@ -14,6 +14,7 @@ var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
 var copyrightCheck = require('../lib/photo-copyright-check');
 var shoots = require('../lib/photo-shoots');
+var storageCache = require('../lib/storage-cache');
 var photoPeople = require('../lib/photo-people');
 var photoUsers = require('../lib/photo-users');
 var tgNotifier = require('../lib/photo-tg-notifier');
@@ -152,7 +153,7 @@ function uniqueId(base, existingIds) {
 // to keep it a reasonable size while staying pixel-original.
 async function savePanoAsset(fileBuffer, storagePath) {
   var buf = await sharp(fileBuffer).webp({ quality: 90 }).toBuffer();
-  await bucket.file(storagePath).save(buf, { contentType: 'image/webp' });
+  await bucket.file(storagePath).save(buf, storageCache.saveOptions('image/webp'));
   await bucket.file(storagePath).makePublic();
 }
 
@@ -660,13 +661,14 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     var pathPano = `${country}/${series}/${id}-orig.webp`;
 
     await Promise.all([
-      bucket.file(path400).save(buf400, { contentType: 'image/webp' }).then(() => bucket.file(path400).makePublic()),
-      bucket.file(path800).save(buf800, { contentType: 'image/webp' }).then(() => bucket.file(path800).makePublic()),
-      bucket.file(path2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(path2400).makePublic()),
+      bucket.file(path400).save(buf400, storageCache.saveOptions('image/webp')).then(() => bucket.file(path400).makePublic()),
+      bucket.file(path800).save(buf800, storageCache.saveOptions('image/webp')).then(() => bucket.file(path800).makePublic()),
+      bucket.file(path2400).save(buf2400, storageCache.saveOptions('image/webp')).then(() => bucket.file(path2400).makePublic()),
       isPanorama ? savePanoAsset(req.file.buffer, pathPano) : Promise.resolve(),
     ]);
 
     var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
+    var uploadV = Date.now().toString(36);
     var photoEntry = {
       id,
       title: title || baseName,
@@ -676,15 +678,16 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
       createdAt: new Date().toISOString().slice(0, 10),
       width: imgMeta.width,
       height: imgMeta.height,
+      // ?v=: the id can repeat after a delete + re-upload, and the files are cached for a year
       urls: {
-        thumb: `${base}/${path400}`,
-        preview: `${base}/${path800}`,
-        full: `${base}/${path2400}`,
+        thumb: storageCache.versioned(`${base}/${path400}`, uploadV),
+        preview: storageCache.versioned(`${base}/${path800}`, uploadV),
+        full: storageCache.versioned(`${base}/${path2400}`, uploadV),
       },
     };
     if (isPanorama) {
       photoEntry.panorama = true;
-      photoEntry.urls.pano = `${base}/${pathPano}`;
+      photoEntry.urls.pano = storageCache.versioned(`${base}/${pathPano}`, uploadV);
     }
     if (tags.length) photoEntry.tags = tags;
     if (coords) photoEntry.coords = coords;
@@ -922,14 +925,15 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     var pPano = 'shoots/' + slug + '/' + id + '-orig.webp';
 
     await Promise.all([
-      bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(function() { return bucket.file(p400).makePublic(); }),
-      bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(function() { return bucket.file(p800).makePublic(); }),
-      bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(function() { return bucket.file(p2400).makePublic(); }),
-      bucket.file(pInstagram).save(bufInstagram, { contentType: 'image/jpeg' }).then(function() { return bucket.file(pInstagram).makePublic(); }),
+      bucket.file(p400).save(buf400, storageCache.saveOptions('image/webp')).then(function() { return bucket.file(p400).makePublic(); }),
+      bucket.file(p800).save(buf800, storageCache.saveOptions('image/webp')).then(function() { return bucket.file(p800).makePublic(); }),
+      bucket.file(p2400).save(buf2400, storageCache.saveOptions('image/webp')).then(function() { return bucket.file(p2400).makePublic(); }),
+      bucket.file(pInstagram).save(bufInstagram, storageCache.saveOptions('image/jpeg')).then(function() { return bucket.file(pInstagram).makePublic(); }),
       isPanorama ? savePanoAsset(req.file.buffer, pPano) : Promise.resolve(),
     ]);
 
     var base = 'https://storage.googleapis.com/' + process.env.PHOTO_BUCKET;
+    var uploadV = Date.now().toString(36);
     var photoEntry = {
       id,
       title: (title && title.trim()) || baseName,
@@ -939,16 +943,17 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
       createdAt: new Date().toISOString().slice(0, 10),
       width: imgMeta.width,
       height: imgMeta.height,
+      // ?v=: the id can repeat after a delete + re-upload, and the files are cached for a year
       urls: {
-        thumb:     base + '/' + p400,
-        preview:   base + '/' + p800,
-        full:      base + '/' + p2400,
-        instagram: base + '/' + pInstagram,
+        thumb:     storageCache.versioned(base + '/' + p400, uploadV),
+        preview:   storageCache.versioned(base + '/' + p800, uploadV),
+        full:      storageCache.versioned(base + '/' + p2400, uploadV),
+        instagram: storageCache.versioned(base + '/' + pInstagram, uploadV),
       },
     };
     if (isPanorama) {
       photoEntry.panorama = true;
-      photoEntry.urls.pano = base + '/' + pPano;
+      photoEntry.urls.pano = storageCache.versioned(base + '/' + pPano, uploadV);
     }
     if (colorFamilies.length) photoEntry.colorFamilies = colorFamilies;
     if (shootCoords) photoEntry.coords = shootCoords;
@@ -1094,25 +1099,27 @@ router.post('/shoots/:slug/photos/:id/replace-file', requireAuth, upload.single(
     var pPano = 'shoots/' + slug + '/' + id + '-orig.webp';
 
     await Promise.all([
-      bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(function() { return bucket.file(p400).makePublic(); }),
-      bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(function() { return bucket.file(p800).makePublic(); }),
-      bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(function() { return bucket.file(p2400).makePublic(); }),
-      bucket.file(pInstagram).save(bufInstagram, { contentType: 'image/jpeg' }).then(function() { return bucket.file(pInstagram).makePublic(); }),
+      bucket.file(p400).save(buf400, storageCache.saveOptions('image/webp')).then(function() { return bucket.file(p400).makePublic(); }),
+      bucket.file(p800).save(buf800, storageCache.saveOptions('image/webp')).then(function() { return bucket.file(p800).makePublic(); }),
+      bucket.file(p2400).save(buf2400, storageCache.saveOptions('image/webp')).then(function() { return bucket.file(p2400).makePublic(); }),
+      bucket.file(pInstagram).save(bufInstagram, storageCache.saveOptions('image/jpeg')).then(function() { return bucket.file(pInstagram).makePublic(); }),
       photo.panorama ? savePanoAsset(req.file.buffer, pPano) : Promise.resolve(),
     ]);
 
+    // Same paths as before, overwritten: ?v= makes browsers drop their (year-long) cached copy.
     var base = 'https://storage.googleapis.com/' + process.env.PHOTO_BUCKET;
+    var v = Date.now().toString(36);
     var fields = {
       width: imgMeta.width,
       height: imgMeta.height,
       urls: Object.assign({}, photo.urls, {
-        thumb: base + '/' + p400,
-        preview: base + '/' + p800,
-        full: base + '/' + p2400,
-        instagram: base + '/' + pInstagram,
+        thumb: storageCache.versioned(base + '/' + p400, v),
+        preview: storageCache.versioned(base + '/' + p800, v),
+        full: storageCache.versioned(base + '/' + p2400, v),
+        instagram: storageCache.versioned(base + '/' + pInstagram, v),
       }),
     };
-    if (photo.panorama) fields.urls.pano = base + '/' + pPano;
+    if (photo.panorama) fields.urls.pano = storageCache.versioned(base + '/' + pPano, v);
     if (colorFamilies.length) fields.colorFamilies = colorFamilies;
 
     await shoots.updatePhotoAssets(slug, id, fields);
@@ -1376,6 +1383,15 @@ router.post('/shoots/:slug/toggle-curator-selection', requireAuth, async (req, r
   res.redirect('/admin/shoots/' + slug + '/edit');
 });
 
+// Every file the shoot upload route writes for a photo (sizes, Instagram JPG, panorama
+// original). Missing ones (no panorama, older uploads without the IG copy) are ignored.
+var SHOOT_PHOTO_FILE_SUFFIXES = ['-400.webp', '-800.webp', '-2400.webp', '-instagram.jpg', '-orig.webp'];
+function deleteShootPhotoFiles(slug, id) {
+  return Promise.all(SHOOT_PHOTO_FILE_SUFFIXES.map(function(suffix) {
+    return bucket.file('shoots/' + slug + '/' + id + suffix).delete().catch(function() {});
+  }));
+}
+
 router.post('/shoots/:slug/photos/bulk-delete', requireAuth, express.json(), async (req, res) => {
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ ok: false });
@@ -1386,12 +1402,7 @@ router.post('/shoots/:slug/photos/bulk-delete', requireAuth, express.json(), asy
   if (!ids.length) return res.status(400).json({ ok: false });
   try {
     await Promise.all(ids.map(async function(id) {
-      await Promise.all([
-        bucket.file('shoots/' + slug + '/' + id + '-400.webp').delete().catch(function() {}),
-        bucket.file('shoots/' + slug + '/' + id + '-800.webp').delete().catch(function() {}),
-        bucket.file('shoots/' + slug + '/' + id + '-2400.webp').delete().catch(function() {}),
-        bucket.file('shoots/' + slug + '/' + id + '-orig.webp').delete().catch(function() {}),
-      ]);
+      await deleteShootPhotoFiles(slug, id);
       await shoots.removePhoto(slug, id);
     }));
     res.json({ ok: true });
@@ -1424,11 +1435,7 @@ router.post('/shoots/:slug/photos/:id/delete', requireAuth, async (req, res) => 
   if (!/^[a-z0-9-]+$/.test(slug) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/shoots');
   if (!shoots.getShoot(slug)) return res.redirect('/admin/shoots');
   try {
-    await Promise.all([
-      bucket.file('shoots/' + slug + '/' + id + '-400.webp').delete().catch(function() {}),
-      bucket.file('shoots/' + slug + '/' + id + '-800.webp').delete().catch(function() {}),
-      bucket.file('shoots/' + slug + '/' + id + '-2400.webp').delete().catch(function() {}),
-    ]);
+    await deleteShootPhotoFiles(slug, id);
     await shoots.removePhoto(slug, id);
   } catch (e) {
     console.error('[shoots] delete photo error:', e);
@@ -1566,9 +1573,9 @@ router.post('/images/upload', requireAuth, upload.single('image'), async (req, r
     var p2400 = `images/${baseName}-2400.webp`;
 
     await Promise.all([
-      bucket.file(p400).save(buf400,   { contentType: 'image/webp' }).then(() => bucket.file(p400).makePublic()),
-      bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(() => bucket.file(p800).makePublic()),
-      bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(p2400).makePublic()),
+      bucket.file(p400).save(buf400, storageCache.saveOptions('image/webp')).then(() => bucket.file(p400).makePublic()),
+      bucket.file(p800).save(buf800, storageCache.saveOptions('image/webp')).then(() => bucket.file(p800).makePublic()),
+      bucket.file(p2400).save(buf2400, storageCache.saveOptions('image/webp')).then(() => bucket.file(p2400).makePublic()),
     ]);
 
     res.redirect('/admin/images?uploaded=' + encodeURIComponent(baseName));
@@ -1762,14 +1769,20 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
       var path2400 = `${country}/${seriesKey}/${id}-2400.webp`;
       var pathPano = `${country}/${seriesKey}/${id}-orig.webp`;
       await Promise.all([
-        bucket.file(path400).save(buf400, { contentType: 'image/webp' }).then(() => bucket.file(path400).makePublic()),
-        bucket.file(path800).save(buf800, { contentType: 'image/webp' }).then(() => bucket.file(path800).makePublic()),
-        bucket.file(path2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(path2400).makePublic()),
+        bucket.file(path400).save(buf400, storageCache.saveOptions('image/webp')).then(() => bucket.file(path400).makePublic()),
+        bucket.file(path800).save(buf800, storageCache.saveOptions('image/webp')).then(() => bucket.file(path800).makePublic()),
+        bucket.file(path2400).save(buf2400, storageCache.saveOptions('image/webp')).then(() => bucket.file(path2400).makePublic()),
         isPanorama ? savePanoAsset(req.file.buffer, pathPano) : Promise.resolve(),
       ]);
+      // Same paths as before, overwritten: ?v= makes browsers drop their (year-long) cached copy.
       var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
-      photo.urls = { thumb: `${base}/${path400}`, preview: `${base}/${path800}`, full: `${base}/${path2400}` };
-      if (isPanorama) photo.urls.pano = `${base}/${pathPano}`;
+      var v = Date.now().toString(36);
+      photo.urls = {
+        thumb: storageCache.versioned(`${base}/${path400}`, v),
+        preview: storageCache.versioned(`${base}/${path800}`, v),
+        full: storageCache.versioned(`${base}/${path2400}`, v),
+      };
+      if (isPanorama) photo.urls.pano = storageCache.versioned(`${base}/${pathPano}`, v);
       photo.width = imgMeta.width;
       photo.height = imgMeta.height;
       if (colorFamilies.length) photo.colorFamilies = colorFamilies;

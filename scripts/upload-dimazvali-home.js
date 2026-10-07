@@ -3,6 +3,7 @@
 require('dotenv').config();
 var fs = require('fs');
 var path = require('path');
+var storageCache = require('../lib/storage-cache');
 var sharp = require('sharp');
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getStorage } = require('firebase-admin/storage');
@@ -58,8 +59,8 @@ async function uploadImage(name, srcPath) {
   var p2400 = 'dimazvali/home/' + name + '-2400.webp';
 
   await Promise.all([
-    bucket.file(p800).save(buf800,   { contentType: 'image/webp' }).then(() => bucket.file(p800).makePublic()),
-    bucket.file(p2400).save(buf2400, { contentType: 'image/webp' }).then(() => bucket.file(p2400).makePublic()),
+    bucket.file(p800).save(buf800, storageCache.saveOptions('image/webp')).then(() => bucket.file(p800).makePublic()),
+    bucket.file(p2400).save(buf2400, storageCache.saveOptions('image/webp')).then(() => bucket.file(p2400).makePublic()),
   ]);
 
   return { name, url800: BASE + '/' + p800, url2400: BASE + '/' + p2400 };

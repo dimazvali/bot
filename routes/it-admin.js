@@ -6,6 +6,7 @@ var { getApps } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var { getStorage } = require('firebase-admin/storage');
 var itData = require('../lib/it-data');
+var storageCache = require('../lib/storage-cache');
 
 var itApp = getApps().find(function(a) { return a.name === 'it'; });
 if (!itApp) throw new Error('it-admin: Firebase "it" app not initialized — load it.js first');
@@ -126,7 +127,7 @@ router.post('/projects/:id/edit', requireAuth, upload.single('coverImage'), asyn
       var sharp = require('sharp');
       var webp = await sharp(req.file.buffer).resize(1600, null, { withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
       var fileRef = bucket.file(path);
-      await fileRef.save(webp, { metadata: { contentType: 'image/webp' } });
+      await fileRef.save(webp, storageCache.saveOptions('image/webp')); // path has a timestamp — never overwritten
       await fileRef.makePublic();
       var coverUrl = 'https://storage.googleapis.com/' + bucket.name + '/' + path;
       await itData.saveProject(savedId, { cover: coverUrl });

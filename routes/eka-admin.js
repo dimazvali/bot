@@ -6,6 +6,7 @@ var fs = require('fs');
 var crypto = require('crypto');
 var multer = require('multer');
 var sharp = require('sharp');
+var storageCache = require('../lib/storage-cache');
 var QRCode = require('qrcode');
 var sanitizeHtml = require('sanitize-html');
 var { getApps } = require('firebase-admin/app');
@@ -48,14 +49,17 @@ var upload = multer({
 // ── IMAGE UPLOAD HELPER ─────────────────────────────────
 var SIZES = [400, 800, 1400, 2400];
 
+// Files are cached by browsers for a year (lib/storage-cache.js); some paths here are
+// fixed and get overwritten (profile photo, bot msg_<key>), so URLs carry ?v=.
 async function uploadImageSizes(buffer, storagePath) {
   var urls = {};
+  var v = Date.now().toString(36);
   await Promise.all(SIZES.map(async function(w) {
     var webp = await sharp(buffer).resize(w, null, { withoutEnlargement: true }).webp({ quality: 85 }).toBuffer();
     var file = bucket.file(storagePath.replace('{w}', w));
-    await file.save(webp, { metadata: { contentType: 'image/webp' } });
+    await file.save(webp, storageCache.saveOptions('image/webp'));
     await file.makePublic();
-    urls['w' + w] = 'https://storage.googleapis.com/' + bucket.name + '/' + file.name;
+    urls['w' + w] = storageCache.versioned('https://storage.googleapis.com/' + bucket.name + '/' + file.name, v);
   }));
   return urls; // { w400, w800, w1400, w2400 }
 }
@@ -63,9 +67,9 @@ async function uploadImageSizes(buffer, storagePath) {
 async function resizeBotPhoto(buffer, name) {
   var webp = await sharp(buffer).resize(1280, null, { withoutEnlargement: true }).webp({ quality: 88 }).toBuffer();
   var dest = bucket.file('bot/' + name + '.webp');
-  await dest.save(webp, { metadata: { contentType: 'image/webp' }, public: true });
+  await dest.save(webp, storageCache.saveOptions('image/webp', { public: true }));
   await dest.makePublic();
-  return 'https://storage.googleapis.com/' + bucket.name + '/' + dest.name;
+  return storageCache.versioned('https://storage.googleapis.com/' + bucket.name + '/' + dest.name);
 }
 
 // ── AUTH ────────────────────────────────────────────────
