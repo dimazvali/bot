@@ -100,3 +100,47 @@ test('collect(telegram) pages back with before= until it reaches since', async f
 test('collect rejects unknown source types', async function() {
   await assert.rejects(c.collect({ type: 'myspace', value: 'x' }, 0, {}), /unknown source type/);
 });
+
+test('collect(telegram) does not take a post id from a query-string fallback URL', async function() {
+  var calls = 0;
+  var items = await c.collect({ id: 't1', type: 'telegram', value: 'chan' }, 0, {
+    fetchTelegramPage: async function() {
+      calls++;
+      return [{ url: 'https://t.me/s/chan?before=123', text: 'a', publishedAt: '2026-10-06T10:00:00Z' }];
+    },
+  });
+  assert.equal(calls, 1);
+  assert.equal(items.length, 1);
+});
+
+test('collect(reddit) retries on 429 with 10s then 30s backoff', async function() {
+  var sleeps = [];
+  var n = 0;
+  var items = await c.collect({ id: 's1', type: 'reddit', value: 'Batumi' }, Date.parse('2026-10-01T00:00:00Z'), {
+    sleep: async function(ms) { sleeps.push(ms); },
+    get: async function() {
+      if (++n < 3) { var e = new Error('429'); e.response = { status: 429 }; throw e; }
+      return { data: REDDIT_RSS };
+    },
+  });
+  assert.equal(items.length, 1);
+  assert.deepEqual(sleeps, [10000, 30000]);
+});
+
+test('collect(reddit) gives up after 3 attempts and throws other errors immediately', async function() {
+  var sleeps = [];
+  var n = 0;
+  var e429 = new Error('429'); e429.response = { status: 429 };
+  await assert.rejects(c.collect({ type: 'reddit', value: 'x' }, 0, {
+    sleep: async function(ms) { sleeps.push(ms); },
+    get: async function() { n++; throw e429; },
+  }), /429/);
+  assert.equal(n, 3);
+  n = 0; sleeps = [];
+  await assert.rejects(c.collect({ type: 'reddit', value: 'x' }, 0, {
+    sleep: async function(ms) { sleeps.push(ms); },
+    get: async function() { n++; throw new Error('403'); },
+  }), /403/);
+  assert.equal(n, 1);
+  assert.deepEqual(sleeps, []);
+});

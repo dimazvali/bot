@@ -104,3 +104,57 @@ test('overlapping runs are refused', async function() {
   await first;
   assert.equal(pipeline.isRunning(), false);
 });
+
+test('a Firestore error while saving one source does not abort the run or advance its lastRunAt', async function() {
+  var s = await setup();
+  await data.setSourceActive(s.bad, false);
+  var other = await data.addSource({ type: 'telegram', value: 'other' });
+  var orig = data.saveLead;
+  data.saveLead = async function(item) {
+    if (item.sourceId === s.good) throw new Error('firestore down');
+    return orig.apply(data, arguments);
+  };
+  var d = deps();
+  var r;
+  try { r = await pipeline.run({ deps: d }); } finally { data.saveLead = orig; }
+  assert.equal(r.stats.sources, 2);
+  assert.equal(r.stats.errors.length, 1);
+  assert.equal(r.stats.errors[0].source, 'telegram:chan');
+  assert.equal(r.hot, 1);
+  assert.equal(d.sent.length, 1);
+  var srcs = await data.listSources();
+  assert.equal(srcs.find(function(x) { return x.id === s.good; }).lastRunAt || null, null);
+  assert.equal(srcs.find(function(x) { return x.id === other; }).lastRunAt, NOW);
+});
+
+test('markSourceRun throwing while recording a failure does not abort the run', async function() {
+  await setup();
+  var orig = data.markSourceRun;
+  data.markSourceRun = async function(id, r) { if (!r.ok) throw new Error('write failed'); return orig.apply(data, arguments); };
+  var d = deps();
+  var r;
+  try { r = await pipeline.run({ deps: d }); } finally { data.markSourceRun = orig; }
+  assert.equal(r.stats.errors.length, 1);
+  assert.equal(d.sent.length, 1);
+});
+
+test('markClassifyFailed throwing does not stop purge and digest', async function() {
+  await setup();
+  var orig = data.markClassifyFailed;
+  data.markClassifyFailed = async function() { throw new Error('write failed'); };
+  var d = deps({ classify: async function() { throw new Error('overloaded'); } });
+  var r;
+  try { r = await pipeline.run({ deps: d }); } finally { data.markClassifyFailed = orig; }
+  assert.equal(r.stats.failed, 1);
+  assert.equal(d.sent.length, 1);
+  assert.ok(d.sent[0].indexOf('Классификатор не справился: 1') !== -1);
+});
+
+test('prefilter runs before the duplicate check (non-matching items cost no reads)', async function() {
+  await setup();
+  var orig = data.isDuplicate;
+  var calls = 0;
+  data.isDuplicate = async function() { calls++; return orig.apply(data, arguments); };
+  try { await pipeline.run({ deps: deps() }); } finally { data.isDuplicate = orig; }
+  assert.equal(calls, 1);
+});

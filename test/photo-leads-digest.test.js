@@ -58,3 +58,28 @@ test('sendToAdmins sends every chunk to every DIMAZVALIusers admin', async funct
   assert.equal(posts[0][0], 'https://api.telegram.org/botTOKEN/sendMessage');
   assert.deepEqual(posts[0][1], { chat_id: '111', text: 'hello', parse_mode: 'HTML', disable_web_page_preview: true });
 });
+
+test('formatDigest shows this run\'s errors and classifier failures, without duplicating failing sources', function() {
+  var t = dg.formatDigest({ hot: [], maybeCount: 0, date: DATE,
+    stats: Object.assign({}, STATS, { failed: 2, errors: [
+      { source: 'reddit:Batumi', message: '429 <x>' },
+      { source: 'hrge:photographer', message: 'boom' },
+    ] }),
+    failing: [{ type: 'hrge', value: 'photographer', consecutiveFailures: 3, lastError: 'boom' }] });
+  assert.ok(t.indexOf('⚠️ Ошибки в этом прогоне:\nreddit:Batumi — 429 &lt;x&gt;') !== -1);
+  assert.equal(t.split('hrge:photographer').length, 2); // only in the "Падают" block
+  assert.ok(t.indexOf('Классификатор не справился: 2 (повтор завтра)') !== -1);
+  assert.ok(t.indexOf('Падают источники') !== -1);
+});
+
+test('formatDigest truncates long fields before escaping', function() {
+  var long = '<'.repeat(900);
+  var t = dg.formatDigest({ hot: [hot(90, { classification: { score: 90, city: 'Tbilisi', genre: null, summaryRu: long, budget: long } })],
+    maybeCount: 0, stats: Object.assign({}, STATS, { errors: [{ source: 'a:b', message: long }] }), date: DATE,
+    failing: [{ type: 'c', value: 'd', consecutiveFailures: 3, lastError: long }] });
+  assert.equal(t.indexOf('&l&'), -1);
+  assert.ok(t.indexOf('&lt;'.repeat(499) + '…') !== -1);
+  assert.ok(t.indexOf('&lt;'.repeat(199) + '…') !== -1);
+  assert.equal(t.indexOf('&lt;'.repeat(500)), -1);
+  assert.ok(t.split('\n\n').every(function(b) { return b.length < 4096; }));
+});
