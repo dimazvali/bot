@@ -15,6 +15,7 @@ html(data-theme='dark')
       .admin-header
         a.admin-back(href='/admin/shoots') ← назад
         span.admin-logo= shoot.label
+        a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') ОТКРЫТЬ ↗
 
       if error
         .admin-section
