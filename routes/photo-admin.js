@@ -195,6 +195,9 @@ router.get('/', requireAuth, (req, res) => {
   res.render('photo/admin/index', { data: getData(), title: 'photo.dimazvali.com Admin' });
 });
 
+// Photo leads — daily "нужен фотограф" monitoring (see lib/photo-leads-*).
+router.use('/leads', requireAuth, require('./photo-leads-admin')(fb));
+
 // Resolves a comment's opaque photoId ("country_series_id" for gallery photos,
 // "shoot_slug_id" for shoot photos — no part contains "_", validateSlug enforces
 // it) to a human label + public URL.

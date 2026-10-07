@@ -1,0 +1,70 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin') ← назад
+        span.admin-logo ЛИДЫ
+        .admin-nav
+          a.admin-nav-link(href='/admin/leads/sources') источники
+
+      .admin-section
+        if flash === 'started'
+          p.admin-hint Сбор запущен — дайджест придёт в Telegram.
+        else if flash === 'running'
+          p.admin-hint Сбор уже идёт.
+        form(method='GET' action='/admin/leads' style='display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px')
+          select(name='zone')
+            each z in [['', 'hot + maybe'], ['hot', 'hot'], ['maybe', 'maybe'], ['ignore', 'ignore'], ['all', 'все']]
+              option(value=z[0] selected=filters.zone === z[0])= z[1]
+          select(name='status')
+            option(value='') любой статус
+            each s in ['unclassified'].concat(statuses)
+              option(value=s selected=filters.status === s)= s
+          select(name='source')
+            option(value='') все источники
+            each t in sourceTypes
+              option(value=t selected=filters.source === t)= t
+          button.admin-btn.admin-btn--sm(type='submit') фильтр
+        form(method='POST' action='/admin/leads/run')
+          button.admin-btn(type='submit' disabled=running)= running ? 'сбор идёт…' : 'запустить сбор сейчас'
+
+      .admin-section
+        h2.admin-title ЛИДЫ (#{leads.length})
+        if !leads.length
+          p.admin-hint Пока пусто.
+        each l in leads
+          - var c = l.classification || {}
+          .admin-collection(style=l.status === 'dismissed' ? 'opacity:0.55' : '')
+            .admin-collection-head
+              span.admin-collection-name= (c.score != null ? c.score : '—') + ' · ' + (l.zone || 'не классифицирован')
+              span.admin-collection-meta
+                = [c.kind, c.city, c.genre, l.source].filter(Boolean).join(' · ')
+                if l.foundAt
+                  |  · #{new Date(l.foundAt).toLocaleDateString('ru-RU')}
+                if l.feedback === 'not_lead'
+                  |  · НЕ ЛИД
+            if c.summaryRu
+              p.admin-hint(style='color:var(--text);margin-bottom:6px')= c.summaryRu
+            if c.budget
+              p.admin-hint 💰 #{c.budget}
+            details(style='margin-bottom:8px')
+              summary.admin-hint оригинал
+              p.admin-hint(style='white-space:pre-wrap')= l.text
+              if c.reason
+                p.admin-hint= 'LLM: ' + c.reason
+            .admin-series-actions
+              a.admin-link(href=l.url target='_blank' rel='noopener') → оригинал
+              if l.status !== 'unclassified'
+                form.admin-delete-form(method='POST' action=`/admin/leads/${l.id}`)
+                  select(name='status' onchange='this.form.submit()')
+                    each s in statuses
+                      option(value=s selected=l.status === s)= s
+              if l.feedback !== 'not_lead'
+                form.admin-delete-form(method='POST' action=`/admin/leads/${l.id}`)
+                  input(type='hidden' name='notLead' value='1')
+                  button.admin-btn.admin-btn--sm.admin-btn--danger(type='submit') не лид

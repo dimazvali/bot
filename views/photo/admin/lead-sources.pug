@@ -1,0 +1,47 @@
+doctype html
+html(data-theme='dark')
+  head
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    link(rel='stylesheet' href='/stylesheets/photo/style.css')
+  body
+    .admin-wrap
+      .admin-header
+        a.admin-back(href='/admin/leads') ← лиды
+        span.admin-logo ИСТОЧНИКИ ЛИДОВ
+
+      .admin-section
+        h2.admin-title ДОБАВИТЬ
+        if error
+          p.admin-hint(style='color:var(--danger, #e66)')= error
+        form(method='POST' action='/admin/leads/sources' style='display:flex;gap:8px;flex-wrap:wrap')
+          select(name='type')
+            each t in sourceTypes
+              option(value=t)= t
+          input(name='value' placeholder='канал / сабреддит / запрос' required)
+          input(name='city' placeholder='город (необязательно)')
+          button.admin-btn.admin-btn--sm(type='submit') добавить
+        p.admin-hint telegram — username публичного канала без @; reddit — имя сабреддита (страна — Sakartvelo, не Georgia); jobsge / hrge — поисковый запрос.
+
+      .admin-section
+        h2.admin-title ИСТОЧНИКИ (#{sources.length})
+        each s in sources
+          .admin-collection(style=s.active ? '' : 'opacity:0.55')
+            .admin-collection-head
+              span.admin-collection-name= s.type + ': ' + s.value
+              span.admin-collection-meta
+                = s.city || ''
+                if s.lastRunAt
+                  |  · последний сбор #{new Date(s.lastRunAt).toLocaleString('ru-RU')}
+                if !s.active
+                  |  · ВЫКЛ
+            if s.lastError
+              p.admin-hint(style='color:var(--danger, #e66)')= '⚠️ ' + s.consecutiveFailures + ' раз подряд: ' + s.lastError
+            .admin-series-actions
+              form.admin-delete-form(method='POST' action=`/admin/leads/sources/${s.id}/toggle`)
+                input(type='hidden' name='active' value=s.active ? '0' : '1')
+                button.admin-btn.admin-btn--sm(type='submit')= s.active ? 'выключить' : 'включить'
+              form.admin-delete-form(method='POST' action=`/admin/leads/sources/${s.id}/run`)
+                button.admin-btn.admin-btn--sm(type='submit' disabled=running) собрать только его
+              form.admin-delete-form(method='POST' action=`/admin/leads/sources/${s.id}/delete` onsubmit="return confirm('Удалить источник?')")
+                button.admin-btn.admin-btn--sm.admin-btn--danger(type='submit') удалить
