@@ -921,7 +921,7 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
 .lb .deck-card { left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: transparent; }
 .lb .deck-card--under { z-index: auto; }                 /* inserted before .lb-wrap → paints beneath it */
 .lb .deck-card--over { background: #000; z-index: 3; }
-.lb .deck-card img { width: auto; height: auto; max-width: 100vw; max-height: 100vh; object-fit: contain; }
+.lb .deck-card img { width: 100%; height: 100%; object-fit: contain; }
 .lb:not(.lb-pan) { touch-action: pan-y; }
 .photo-page-bg {
   position: absolute;

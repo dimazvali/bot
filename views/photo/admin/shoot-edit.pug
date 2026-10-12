@@ -164,9 +164,10 @@ html(data-theme='dark')
             button.admin-btn.admin-btn--sm#photo-bulk-curator(type='button' disabled) ★ в авторский отбор
             button.admin-btn.admin-btn--sm#photo-bulk-curator-remove(type='button' disabled) ☆ убрать из отбора
             button.admin-btn.admin-btn--sm.admin-btn--danger#photo-bulk-delete(type='button' disabled) удалить выбранные
+            button.admin-btn.admin-btn--sm#photo-sort-alpha(type='button') сортировать по алфавиту
           ul#photo-list.admin-sort-list(data-url=`/admin/shoots/${slug}/photos/reorder` data-bulk-delete-url=`/admin/shoots/${slug}/photos/bulk-delete` data-bulk-curator-url=`/admin/shoots/${slug}/photos/bulk-curator-pick`)
             each photo in shoot.photos
-              li.admin-sort-item(data-id=photo.id)
+              li.admin-sort-item(data-id=photo.id data-title=photo.title || '')
                 span.admin-sort-handle ⠿
                 label.admin-photo-check
                   input.photo-check(type='checkbox' value=photo.id)
@@ -308,21 +309,36 @@ html(data-theme='dark')
       var list = document.getElementById('photo-list');
       if (list) {
         var reorderUrl = list.getAttribute('data-url');
+        var saveOrder = function() {
+          var order = Array.from(list.querySelectorAll('.admin-sort-item')).map(function(el) {
+            return el.getAttribute('data-id');
+          });
+          fetch(reorderUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: order }),
+          }).then(function(r) { return r.json(); }).then(function(data) {
+            if (!data.ok) alert('Ошибка сохранения порядка');
+          }).catch(function() { alert('Ошибка сохранения порядка'); });
+        };
         Sortable.create(list, {
           handle: '.admin-sort-handle',
           animation: 150,
-          onEnd: function() {
-            var order = Array.from(list.querySelectorAll('.admin-sort-item')).map(function(el) {
-              return el.getAttribute('data-id');
-            });
-            fetch(reorderUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ order: order }),
-            }).then(function(r) { return r.json(); }).then(function(data) {
-              if (!data.ok) alert('Ошибка сохранения порядка');
-            }).catch(function() { alert('Ошибка сохранения порядка'); });
-          },
+          onEnd: saveOrder,
+        });
+
+        // numeric-aware so "IMG_2" sorts before "IMG_10"
+        var sortAlphaBtn = document.getElementById('photo-sort-alpha');
+        if (sortAlphaBtn) sortAlphaBtn.addEventListener('click', function() {
+          if (!confirm('Отсортировать фото по названию? Текущий порядок будет потерян.')) return;
+          var items = Array.from(list.querySelectorAll('.admin-sort-item'));
+          items.sort(function(a, b) {
+            var ta = a.getAttribute('data-title') || a.getAttribute('data-id');
+            var tb = b.getAttribute('data-title') || b.getAttribute('data-id');
+            return ta.localeCompare(tb, 'ru', { numeric: true, sensitivity: 'base' });
+          });
+          items.forEach(function(el) { list.appendChild(el); });
+          saveOrder();
         });
       }
 

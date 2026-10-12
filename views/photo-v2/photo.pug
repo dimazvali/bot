@@ -792,6 +792,20 @@ block content
         if (infoTouchY !== null && infoTouchY - e.touches[0].clientY > 12) setLbInfoOpen(true);
       }, { passive: true });
 
+      // Sizes the (non-panorama) lightbox photo to fill the viewport. With a w-descriptor srcset the
+      // img's intrinsic width is its `sizes` value, so reusing the page's sizes (1200px) left it at
+      // ~1200px on big screens — set both the rendered width and sizes to the real fit width instead.
+      function fitLbImg(src) {
+        var ratio = src && src.naturalWidth && src.naturalHeight ? src.naturalWidth / src.naturalHeight : 0;
+        if (!ratio) return;
+        var fitW = Math.floor(Math.min(window.innerWidth, window.innerHeight * ratio));
+        lbImg.style.width = fitW + 'px';
+        if (lbImg.hasAttribute('srcset')) lbImg.sizes = fitW + 'px';
+      }
+      window.addEventListener('resize', function() {
+        if (lb.classList.contains('lb-open') && !panState.active) fitLbImg(lbImg.naturalWidth ? lbImg : null);
+      });
+
       // (re)points the lightbox at whatever photo is currently shown in the main view —
       // called on open, and again after a swipe/soft-nav while the lightbox stays open.
       function refreshLbImage() {
@@ -803,12 +817,14 @@ block content
         panState.scale = 1; panState.tx = 0; panState.ty = 0; panState.maxScale = 1;
         lbImg.style.transition = '';
         applyPanTransform();
+        lbImg.style.width = '';
         if (isPano) {
           lbImg.removeAttribute('srcset'); lbImg.removeAttribute('sizes');
           lbImg.src = pageImg.dataset.panoSrc || pageImg.src;
         } else {
           var pageSrcset = pageImg.getAttribute('srcset');
-          if (pageSrcset) { lbImg.sizes = PAGE_SIZES; lbImg.srcset = pageSrcset; } else { lbImg.removeAttribute('srcset'); lbImg.removeAttribute('sizes'); }
+          if (pageSrcset) lbImg.srcset = pageSrcset; else { lbImg.removeAttribute('srcset'); lbImg.removeAttribute('sizes'); }
+          fitLbImg(pageImg);
           lbImg.src = pageImg.src;
         }
         refreshLbInfo();
