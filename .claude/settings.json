@@ -556,7 +556,8 @@
       "Bash(node -e \"require\\('pug'\\).compileFile\\('views/photo-v2/photo.pug'\\); console.log\\('ok'\\)\")",
       "Bash(curl -s https://photo.dimazvali.com/portraits/outdoors/mg-4470)",
       "Bash(PHOTO_ENV=prod SHOOT=kakhuri-261011 DRY=1 node scripts/backfill-face-matches.js)",
-      "Bash(PHOTO_ENV=prod SHOOT=kakhuri-261011 node scripts/backfill-face-matches.js)"
+      "Bash(PHOTO_ENV=prod SHOOT=kakhuri-261011 node scripts/backfill-face-matches.js)",
+      "Bash(PHOTO_ENV=prod SHOOT=gurjaani-26 node scripts/backfill-face-matches.js)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",
