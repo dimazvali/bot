@@ -85,13 +85,9 @@ block content
     .faces-widget#faces-widget
       each g in peopleGroups
         - var rf = g.faces[0]
-        - var dw = 100 / rf.boundingBox.Width
-        - var dh = 100 / rf.boundingBox.Height
-        - var lp = -(rf.boundingBox.Left / rf.boundingBox.Width) * 100
-        - var tp = -(rf.boundingBox.Top / rf.boundingBox.Height) * 100
         button.faces-widget-item(type='button' data-person-key=g.key)
           .faces-widget-avatar
-            img(src=rf.thumb alt=g.name||'' title=g.name||undefined style=`width:${dw}%;height:${dh}%;left:${lp}%;top:${tp}%;`)
+            img(src=rf.thumb alt=g.name||'' title=g.name||undefined style=rf.avatarStyle)
           if g.name
             span.faces-widget-name= g.name
       button.faces-widget-reset(type='button')= ui.allFaces
