@@ -1515,23 +1515,34 @@ router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json()
 
 var PENDING_PAGE_SIZE = 300;
 
-router.get('/people', requireAuth, function(req, res) {
+// Every face across all shoots: faceId → { slug, photoId, thumb, boundingBox, avatarStyle }, plus the
+// faces not tied to anyone yet.
+function collectAllFaces() {
   var shootsData = shoots.getData();
   var pending = [];
   var facesByFaceId = {};
   Object.keys(shootsData).forEach(function(slug) {
     shootsData[slug].photos.forEach(function(photo) {
       (photo.faces || []).forEach(function(face) {
-        var entry = { slug: slug, photoId: photo.id, thumb: photo.urls && photo.urls.preview, boundingBox: face.boundingBox, faceId: face.faceId };
+        var entry = { slug: slug, photoId: photo.id, thumb: photo.urls && photo.urls.preview, boundingBox: face.boundingBox, faceId: face.faceId, avatarStyle: photoPeople.faceAvatarStyle(photo, face.boundingBox) };
         facesByFaceId[face.faceId] = entry;
         if (!face.personId) pending.push(entry);
       });
     });
   });
+  return { facesByFaceId: facesByFaceId, pending: pending };
+}
+
+router.get('/people', requireAuth, function(req, res) {
+  var all = collectAllFaces();
+  var pending = all.pending;
+  // named people first, then unnamed (made by drag-and-drop grouping); within each — most matches first
   var people = Object.values(photoPeople.getPeopleData()).map(function(p) {
     return Object.assign({}, p, {
-      faces: p.faceIds.map(function(fid) { return facesByFaceId[fid]; }).filter(Boolean),
+      faces: p.faceIds.map(function(fid) { return all.facesByFaceId[fid]; }).filter(Boolean),
     });
+  }).sort(function(a, b) {
+    return (!!b.name - !!a.name) || (b.faces.length - a.faces.length) || (a.name || '').localeCompare(b.name || '', 'ru');
   });
   var pageCount = Math.max(1, Math.ceil(pending.length / PENDING_PAGE_SIZE));
   var page = Math.min(pageCount, Math.max(1, parseInt(req.query.page, 10) || 1));
@@ -1581,20 +1592,67 @@ router.post('/people/link', requireAuth, express.urlencoded({ extended: false })
 router.post('/people/:personId/rename', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
   var { personId } = req.params;
   var name = (req.body.name || '').trim();
-  if (!name) return res.redirect('/admin/people');
+  // the person page posts here too and wants to come back to itself
+  var back = req.body.back === 'person' ? '/admin/people/' + encodeURIComponent(personId) : '/admin/people';
+  if (!name) return res.redirect(back);
   try {
     await photoPeople.renamePerson(personId, name);
   } catch (e) {
     console.error('[people/rename]', e);
   }
-  res.redirect('/admin/people');
+  res.redirect(back);
+});
+
+// Person page: name, linked "person" tag, the shoots they appear in, all their faces.
+router.get('/people/:personId', requireAuth, function(req, res) {
+  var person = photoPeople.getPeopleData()[req.params.personId];
+  if (!person) return res.redirect('/admin/people');
+  var all = collectAllFaces();
+  var faces = person.faceIds.map(function(fid) { return all.facesByFaceId[fid]; }).filter(Boolean);
+  var shootsData = shoots.getData();
+  var bySlug = {};
+  faces.forEach(function(f) {
+    if (!bySlug[f.slug]) bySlug[f.slug] = { slug: f.slug, label: shootsData[f.slug] ? shootsData[f.slug].label : f.slug, photoIds: {}, faces: [] };
+    bySlug[f.slug].photoIds[f.photoId] = true;
+    bySlug[f.slug].faces.push(f);
+  });
+  var personShoots = Object.values(bySlug).map(function(s) {
+    return Object.assign(s, { photoCount: Object.keys(s.photoIds).length });
+  }).sort(function(a, b) { return b.photoCount - a.photoCount; });
+  var tags = getTags();
+  var personTags = Object.keys(tags).filter(function(k) { return tags[k].type === 'person'; })
+    .map(function(k) { return { key: k, label: tags[k].label }; })
+    .sort(function(a, b) { return a.label.localeCompare(b.label, 'ru'); });
+  res.render('photo/admin/person', {
+    title: (person.name || 'Без имени') + ' — Люди — AERO Admin',
+    person: person,
+    faces: faces,
+    personShoots: personShoots,
+    personTags: personTags,
+    linkedTag: person.tagKey && tags[person.tagKey] ? { key: person.tagKey, label: tags[person.tagKey].label } : null,
+  });
+});
+
+router.post('/people/:personId/tag', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { personId } = req.params;
+  var tagKey = req.body.tagKey || null;
+  var tags = getTags();
+  if (tagKey && (!tags[tagKey] || tags[tagKey].type !== 'person')) tagKey = null;
+  try {
+    await photoPeople.setPersonTag(personId, tagKey);
+  } catch (e) {
+    console.error('[people/tag]', e);
+  }
+  res.redirect('/admin/people/' + encodeURIComponent(personId));
 });
 
 router.post('/shoots/:slug/photos/:id/faces/:faceId/unlink', requireAuth, async (req, res) => {
   var { slug, id, faceId } = req.params;
   var shoot = shoots.getShoot(slug);
   var photo = shoot && shoot.photos.find(function(p) { return p.id === id; });
-  if (!photo) return res.redirect('/admin/people');
+  // ?back=<personId>: came from that person's page
+  var back = req.query.back && photoPeople.getPeopleData()[req.query.back] ? '/admin/people/' + encodeURIComponent(req.query.back) : '/admin/people';
+  if (!photo) return res.redirect(back);
   try {
     // manual: the matcher must not re-link it (it would, to the very person it was just removed from)
     await photoPeople.unlinkFace(faceId);
@@ -1603,7 +1661,7 @@ router.post('/shoots/:slug/photos/:id/faces/:faceId/unlink', requireAuth, async 
   } catch (e) {
     console.error('[shoots faces unlink]', e);
   }
-  res.redirect('/admin/people');
+  res.redirect(back);
 });
 
 router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {

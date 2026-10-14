@@ -11,6 +11,27 @@ html(data-theme='dark')
         span.admin-logo ЛЮДИ
 
       .admin-section
+        h2.admin-title ЛЮДИ (#{people.length})
+        if !people.length
+          p.admin-hint Пока никто не назван.
+        else
+          p.admin-hint Сначала люди с именем, по числу фото; потом безымянные группы (созданные перетаскиванием на странице съёмки).
+          .people-list
+            each person in people
+              a.person-row(href=`/admin/people/${person.id}`)
+                .face-crop(style='width:48px;height:48px;border-radius:50%;')
+                  if person.faces.length
+                    img(src=person.faces[0].thumb loading='lazy' style=person.faces[0].avatarStyle)
+                span.person-row-name
+                  if person.name
+                    b= person.name
+                  else
+                    span.admin-hint без имени
+                span.admin-hint #{person.faces.length} фото
+                if person.tagKey
+                  span.admin-hint #{'#' + person.tagKey}
+
+      .admin-section
         h2.admin-title НЕРАЗМЕЧЕННЫЕ ЛИЦА (#{pendingTotal})
         if !pendingTotal
           p.admin-hint Нет неразмеченных лиц.
@@ -19,13 +40,9 @@ html(data-theme='dark')
             p.admin-hint Страница #{page} из #{pageCount}
           .people-grid
             each face in pending
-              - var dispW = 100 / face.boundingBox.Width
-              - var dispH = 100 / face.boundingBox.Height
-              - var leftPct = -(face.boundingBox.Left / face.boundingBox.Width) * 100
-              - var topPct = -(face.boundingBox.Top / face.boundingBox.Height) * 100
               .person-pending
                 .face-crop
-                  img(src=face.thumb loading='lazy' style=`width:${dispW}%;height:${dispH}%;left:${leftPct}%;top:${topPct}%;`)
+                  img(src=face.thumb loading='lazy' style=face.avatarStyle)
                 form.admin-form(method='POST' action='/admin/people/new' style='width:100%;gap:4px;')
                   input(type='hidden' name='slug' value=face.slug)
                   input(type='hidden' name='photoId' value=face.photoId)
@@ -54,33 +71,8 @@ html(data-theme='dark')
               if page < pageCount
                 a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page + 1}`) вперёд →
 
-      .admin-section
-        h2.admin-title ЛЮДИ (#{people.length})
-        if !people.length
-          p.admin-hint Пока никто не назван.
-        else
-          each person in people
-            .person-named
-              .face-crop(style='width:56px;height:56px;')
-                if person.faces.length
-                  - var pf = person.faces[0]
-                  - var dispW = 100 / pf.boundingBox.Width
-                  - var dispH = 100 / pf.boundingBox.Height
-                  - var leftPct = -(pf.boundingBox.Left / pf.boundingBox.Width) * 100
-                  - var topPct = -(pf.boundingBox.Top / pf.boundingBox.Height) * 100
-                  img(src=pf.thumb style=`width:${dispW}%;height:${dispH}%;left:${leftPct}%;top:${topPct}%;`)
-              .person-named-info
-                form(method='POST' action=`/admin/people/${person.id}/rename` style='display:flex;gap:6px;')
-                  input.admin-input(type='text' name='name' value=person.name style='font-size:0.75rem;padding:4px;width:160px;')
-                  button.admin-btn.admin-btn--sm(type='submit') переименовать
-                span.admin-photo-id= person.faces.length + ' фото'
-                .people-grid
-                  each f in person.faces
-                    .face-crop(style='width:48px;height:48px;')
-                      - var dw = 100 / f.boundingBox.Width
-                      - var dh = 100 / f.boundingBox.Height
-                      - var lp = -(f.boundingBox.Left / f.boundingBox.Width) * 100
-                      - var tp = -(f.boundingBox.Top / f.boundingBox.Height) * 100
-                      img(src=f.thumb style=`width:${dw}%;height:${dh}%;left:${lp}%;top:${tp}%;`)
-                      form(method='POST' action=`/admin/shoots/${f.slug}/photos/${f.photoId}/faces/${f.faceId}/unlink` style='position:absolute;top:0;right:0;margin:0;')
-                        button.admin-btn.admin-btn--danger(type='submit' style='padding:0 4px;font-size:0.5625rem;' title='это не он') ✕
+    style.
+      .people-list { display: flex; flex-direction: column; gap: 4px; }
+      .person-row { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; color: inherit; text-decoration: none; }
+      .person-row:hover { border-color: var(--text-dim); }
+      .person-row-name { min-width: 160px; }
