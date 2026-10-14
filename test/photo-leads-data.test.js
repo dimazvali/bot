@@ -21,6 +21,21 @@ test('ensureDefaultSources seeds once', async function() {
   assert.ok((await data.listSources()).some(function(s) { return s.type === 'reddit' && s.value === 'Sakartvelo'; }));
 });
 
+test('ensureDefaultSources adds only new seed groups to an install seeded before groups existed', async function() {
+  var db = makeFakeDb(); data.init(db);
+  await data.addSource({ type: 'reddit', value: 'tbilisi' }); // pre-existing install, no seeds meta doc
+  var added = await data.ensureDefaultSources();
+  var srcs = await data.listSources();
+  assert.equal(srcs.filter(function(s) { return s.type === 'reddit'; }).length, 1);
+  assert.ok(srcs.filter(function(s) { return s.type === 'threads'; }).length >= 3);
+  assert.equal(added, srcs.length - 1);
+  // a deleted default never comes back
+  var th = srcs.find(function(s) { return s.type === 'threads'; });
+  await data.deleteSource(th.id);
+  assert.equal(await data.ensureDefaultSources(), 0);
+  assert.equal((await data.listSources()).length, srcs.length - 1);
+});
+
 test('addSource validates type and value', async function() {
   var db = makeFakeDb(); data.init(db);
   await assert.rejects(data.addSource({ type: 'myspace', value: 'x' }), /type/);

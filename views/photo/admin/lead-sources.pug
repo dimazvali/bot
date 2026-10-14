@@ -21,7 +21,7 @@ html(data-theme='dark')
           input(name='value' placeholder='канал / сабреддит / запрос' required)
           input(name='city' placeholder='город (необязательно)')
           button.admin-btn.admin-btn--sm(type='submit') добавить
-        p.admin-hint telegram — username публичного канала без @; reddit — имя сабреддита (страна — Sakartvelo, не Georgia); jobsge / hrge — поисковый запрос.
+        p.admin-hint telegram — username публичного канала без @; reddit — имя сабреддита (страна — Sakartvelo, не Georgia); jobsge / hrge / threads — поисковый запрос (threads: официальный API при заданном THREADS_ACCESS_TOKEN, иначе Apify).
 
       .admin-section
         h2.admin-title ИСТОЧНИКИ (#{sources.length})

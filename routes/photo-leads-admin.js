@@ -2,6 +2,7 @@
 var express = require('express');
 var cron = require('node-cron');
 var data = require('../lib/photo-leads-data');
+var threadsToken = require('../lib/photo-leads-threads-token');
 var pipeline = require('../lib/photo-leads-pipeline');
 var digest = require('../lib/photo-leads-digest');
 var SOURCE_TYPES = require('../lib/photo-leads-collectors').SOURCE_TYPES;
@@ -10,6 +11,7 @@ var SOURCE_TYPES = require('../lib/photo-leads-collectors').SOURCE_TYPES;
 module.exports = function createLeadsAdmin(fb) {
   var router = express.Router();
   data.init(fb);
+  threadsToken.init(fb);
   data.ensureDefaultSources().catch(function(e) { console.error('[photo-leads] seed', e.message); });
 
   function send(text) { return digest.sendToAdmins(fb, process.env.dimazvaliToken, text); }
