@@ -558,7 +558,14 @@
       "Bash(PHOTO_ENV=prod SHOOT=kakhuri-261011 DRY=1 node scripts/backfill-face-matches.js)",
       "Bash(PHOTO_ENV=prod SHOOT=kakhuri-261011 node scripts/backfill-face-matches.js)",
       "Bash(PHOTO_ENV=prod SHOOT=gurjaani-26 node scripts/backfill-face-matches.js)",
-      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/photo/admin/shoot-edit.pug'\\);console.log\\('ok'\\)\")"
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/photo/admin/shoot-edit.pug'\\);console.log\\('ok'\\)\")",
+      "WebFetch(domain:apify.com)",
+      "WebFetch(domain:developers.facebook.com)",
+      "PowerShell(node -e \"require\\('dotenv'\\).config\\(\\); var axios=require\\('axios'\\); var h={Authorization:'Bearer '+process.env.APIFY_TOKEN}; axios.get\\('https://api.apify.com/v2/acts/getanyapi~threads-search-scraper/runs?desc=1&limit=2',{headers:h}\\).then\\(async function\\(r\\){var run=r.data.data.items[0]; console.log\\(run.status, run.id, run.defaultDatasetId\\); var log=await axios.get\\('https://api.apify.com/v2/actor-runs/'+run.id+'/log',{headers:h}\\); console.log\\(String\\(log.data\\).slice\\(-2500\\)\\)}\\).catch\\(function\\(e\\){console.log\\('ERR',e.response?e.response.status+' '+JSON.stringify\\(e.response.data\\).slice\\(0,300\\):e.message\\)}\\)\")",
+      "PowerShell(node -e \"require\\('dotenv'\\).config\\(\\); var te=require\\('./lib/tbilisi-events-collectors'\\); te.collectApifyDataset\\('getanyapi/threads-search-scraper',{query:'photography',maxItems:5}\\).then\\(function\\(r\\){console.log\\('rows',r.length\\); r.slice\\(0,3\\).forEach\\(function\\(x\\){console.log\\(x.createdUtc,x.username,x.url,\\(x.text||''\\).slice\\(0,60\\)\\)}\\)},function\\(e\\){console.log\\('ERR',e.message\\)}\\)\")",
+      "PowerShell(node -e \"require\\('dotenv'\\).config\\(\\); var te=require\\('./lib/tbilisi-events-collectors'\\); var qs=['�⮣�� ⡨���','photographer tbilisi','photography']; \\(async function\\(\\){for \\(var q of qs\\){try{var r=await te.collectApifyDataset\\('getanyapi/threads-search-scraper',{query:q,maxItems:10}\\); console.log\\(JSON.stringify\\(q\\),'rows',r.length\\)}catch\\(e\\){console.log\\(q,'ERR',e.message\\)}}}\\)\\(\\)\")",
+      "Bash(node -p \"require\\('@anthropic-ai/sdk/package.json'\\).version\")",
+      "Bash(node -e \"require\\('./lib/photo-seo'\\);console.log\\('ok'\\)\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",

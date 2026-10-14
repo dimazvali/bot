@@ -139,7 +139,7 @@ html(data-theme='dark')
       if shoot.photos.length
         .admin-section
           h2.admin-title ОПИСАНИЯ ФОТО
-          p.admin-hint Заново сгенерировать SEO-описания и ключевые слова (RU + EN) для всех фото съёмки — с учётом названия, описания, промпта и координат. Текущие описания будут перезаписаны.
+          p.admin-hint Заново сгенерировать SEO-описания и ключевые слова (RU + EN) для всех фото съёмки — с учётом названия, описания, промпта и координат. Перезаписываются только SEO-поля; ручные описания фото не трогаются.
           button.admin-btn#seo-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ
           .copyright-progress#seo-regen-status(style='display:none;margin-top:12px')
             .copyright-progress-bar
@@ -537,7 +537,7 @@ html(data-theme='dark')
         }
 
         seoBtn.addEventListener('click', function() {
-          if (!confirm('Перегенерировать описания всех фото съёмки? Текущие (в т.ч. отредактированные вручную) будут перезаписаны.')) return;
+          if (!confirm('Перегенерировать SEO-описания всех фото съёмки? Текущие SEO-описания и ключевые слова будут заменены (ручные описания фото не меняются).')) return;
           seoBtn.disabled = true;
           seoBtn.textContent = '⏳ запуск…';
           fetch(seoUrl, { method: 'POST' })
