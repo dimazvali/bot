@@ -107,14 +107,38 @@ html(data-theme='dark')
             span авторский отбор
           button.admin-btn(type='submit') СОХРАНИТЬ
 
-      if photoFaces.length
+      if photo.urls
         .admin-section#faces
           h2.admin-title ЛИЦА НА ФОТО
           p.admin-hint
-            | Правка только для этого фото. «Отдельно» — это не тот, с кем лицо сгруппировалось (останется само по себе, автосопоставление его больше не трогает); «авто» — вернуть автоматическое сопоставление.
+            | Правка только для этого фото. Чтобы отметить пропущенное лицо — обведите его мышью на фото ниже.
+            |  «Отдельно» — это не тот, с кем лицо сгруппировалось (останется само по себе, автосопоставление его больше не трогает); «авто» — вернуть автоматическое сопоставление; «удалить» — ложное срабатывание.
+          .face-canvas#face-canvas
+            img(src=photo.urls.preview alt='' draggable='false')
+            each f, i in photoFaces
+              .face-box(class=f.hidden ? 'is-hidden' : '' style=`left:${f.boundingBox.Left * 100}%;top:${f.boundingBox.Top * 100}%;width:${f.boundingBox.Width * 100}%;height:${f.boundingBox.Height * 100}%;`)
+                span= i + 1
+            .face-box.face-box--new#face-box-new(style='display:none')
+          form.photo-face-form#face-add-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/faces/add` style='display:none;margin-top:8px;')
+            input(type='hidden' name='left')
+            input(type='hidden' name='top')
+            input(type='hidden' name='width')
+            input(type='hidden' name='height')
+            span.admin-hint новое лицо:
+            if people.length
+              select.admin-input(name='personId')
+                option(value='') — человек (необязательно) —
+                each p in people
+                  option(value=p.id)= p.name || '(без имени)'
+            input.admin-input(type='text' name='name' placeholder='или новое имя')
+            button.admin-btn.admin-btn--sm(type='submit') добавить лицо
+            button.admin-btn.admin-btn--sm#face-add-cancel(type='button') отмена
+          if !photoFaces.length
+            p.admin-hint На фото пока нет распознанных лиц.
           ul.photo-faces
-            each f in photoFaces
+            each f, i in photoFaces
               li.photo-face(class=f.hidden ? 'is-hidden' : '')
+                span.photo-face-num= i + 1
                 .faces-widget-avatar
                   img(src=photo.urls && photo.urls.preview alt='' style=f.avatarStyle)
                 .photo-face-info
@@ -130,7 +154,7 @@ html(data-theme='dark')
                     select.admin-input(name='personId')
                       option(value='') — человек —
                       each p in people
-                        option(value=p.id selected=p.id === f.personId)= p.name
+                        option(value=p.id selected=p.id === f.personId)= p.name || '(без имени)'
                     button.admin-btn.admin-btn--sm(type='submit' name='action' value='person') это он(а)
                   input.admin-input(type='text' name='name' placeholder='новое имя')
                   button.admin-btn.admin-btn--sm(type='submit' name='action' value='new') новый человек
@@ -138,6 +162,7 @@ html(data-theme='dark')
                   if f.manual
                     button.admin-btn.admin-btn--sm(type='submit' name='action' value='auto') авто
                   button.admin-btn.admin-btn--sm(type='submit' name='action' value=f.hidden ? 'show' : 'hide')= f.hidden ? '👁 показать' : '🚫 скрыть'
+                  button.admin-btn.admin-btn--sm.admin-btn--danger(type='submit' name='action' value='delete' onclick="return confirm('Удалить это лицо с фото?')") удалить
 
       .admin-section
         h2.admin-title УДАЛИТЬ ФОТО
@@ -149,6 +174,13 @@ html(data-theme='dark')
       #coords-map { width: 100%; height: 260px; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
       #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
       .coords-map-bar { display: flex; flex: 1 1 100%; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
+      .face-canvas { position: relative; display: inline-block; max-width: 100%; margin-top: 8px; cursor: crosshair; user-select: none; line-height: 0; }
+      .face-canvas img { max-width: 100%; max-height: 70vh; display: block; pointer-events: none; }
+      .face-box { position: absolute; border: 2px solid #4caf50; box-sizing: border-box; pointer-events: none; }
+      .face-box.is-hidden { border-style: dashed; opacity: .5; }
+      .face-box span { position: absolute; top: -2px; left: -2px; background: #4caf50; color: #000; font: 600 11px/1 monospace; padding: 2px 4px; }
+      .face-box--new { border-color: #d4a537; }
+      .photo-face-num { font: 600 .75rem monospace; color: #4caf50; min-width: 14px; }
       .photo-faces { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 12px; }
       .photo-face { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
       .photo-face.is-hidden .faces-widget-avatar { opacity: .35; }
@@ -162,6 +194,45 @@ html(data-theme='dark')
       .color-radio-label input:checked + span { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
 
     script.
+      // ── Face marking: drag a box on the photo, then submit it with an optional person ──
+      (function() {
+        var canvas = document.getElementById('face-canvas');
+        var form = document.getElementById('face-add-form');
+        if (!canvas || !form) return;
+        var box = document.getElementById('face-box-new');
+        var start = null, rect = null;
+        function frac(e) {
+          return {
+            x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+            y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+          };
+        }
+        function draw(a, b) {
+          var l = Math.min(a.x, b.x), t = Math.min(a.y, b.y), w = Math.abs(a.x - b.x), h = Math.abs(a.y - b.y);
+          box.style.cssText = 'display:block;left:' + l * 100 + '%;top:' + t * 100 + '%;width:' + w * 100 + '%;height:' + h * 100 + '%;';
+          return { left: l, top: t, width: w, height: h };
+        }
+        canvas.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          rect = canvas.getBoundingClientRect();
+          start = frac(e);
+          draw(start, start);
+        });
+        document.addEventListener('mousemove', function(e) { if (start) draw(start, frac(e)); });
+        document.addEventListener('mouseup', function(e) {
+          if (!start) return;
+          var b = draw(start, frac(e));
+          start = null;
+          if (b.width < 0.01 || b.height < 0.01) { box.style.display = 'none'; form.style.display = 'none'; return; }
+          ['left', 'top', 'width', 'height'].forEach(function(k) { form.elements[k].value = b[k].toFixed(5); });
+          form.style.display = 'flex';
+        });
+        document.getElementById('face-add-cancel').addEventListener('click', function() {
+          box.style.display = 'none';
+          form.style.display = 'none';
+        });
+      }());
+
       // ── Annotation canvas ──
       (function() {
         var canvas = document.getElementById('annot-canvas');

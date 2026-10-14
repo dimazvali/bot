@@ -864,7 +864,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.redirect('/admin/shoots');
-  var { label, desc, label_en, desc_en, seoPrompt, password, public: isPublic, showFaces, showCuratorSelection, offerSelection, relatedShoots } = req.body;
+  var { label, desc, label_en, desc_en, seoPrompt, password, public: isPublic, showFaces, hideUnnamedFaces, showCuratorSelection, offerSelection, relatedShoots } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
   var knownSlugs = Object.keys(shoots.getData());
   var relatedList = Array.isArray(relatedShoots) ? relatedShoots : (relatedShoots ? [relatedShoots] : []);
@@ -887,6 +887,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
       password: (password || '').trim(),
       public: !!isPublic,
       showFaces: !!showFaces,
+      hideUnnamedFaces: !!hideUnnamedFaces,
       showCuratorSelection: !!showCuratorSelection,
       offerSelection: !!offerSelection,
       mapCenter: mapCenter,
@@ -1266,6 +1267,16 @@ router.post('/shoots/:slug/faces/assign', requireAuth, express.urlencoded({ exte
   var personId = req.body.personId || '';
   if (!group || (!name && !personId)) return res.redirect(back);
   try {
+    var groupPersonId = group.key.indexOf('person:') === 0 ? group.key.slice(7) : null;
+    if (groupPersonId && name && !personId) {
+      // an unnamed person (made by drag-and-drop grouping) just gets its name
+      await photoPeople.renamePerson(groupPersonId, name);
+      return res.redirect(back);
+    }
+    if (groupPersonId && personId) {
+      await mergePersonEverywhere(groupPersonId, personId);
+      return res.redirect(back);
+    }
     if (!personId) personId = (await photoPeople.createPerson(name, group.faces[0].faceId)).id;
     for (var f of group.faces) await photoPeople.linkFaceToPerson(personId, f.faceId);
     await updateGroupFaces(slug, shoot, group, { personId: personId, manual: true });
@@ -1295,7 +1306,8 @@ router.post('/shoots/:slug/faces/visibility', requireAuth, express.urlencoded({ 
 
 // Per-photo override for one face (fixing false matches):
 //   person — tie to an existing person; new — to a new person `name`; detach — "nobody from the other
-//   groups" (own group, never auto-linked); auto — back to automatic matching; hide / show — public widget.
+//   groups" (own group, never auto-linked); auto — back to automatic matching; hide / show — public widget;
+//   delete — false detection, removed from the photo, the person and the Rekognition collection.
 router.post('/shoots/:slug/photos/:id/faces/:faceId/set', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
   var { slug, id, faceId } = req.params;
   var back = '/admin/shoots/' + slug + '/photos/' + id + '/edit#faces';
@@ -1328,6 +1340,12 @@ router.post('/shoots/:slug/photos/:id/faces/:faceId/set', requireAuth, express.u
       fields = { personId: refreshed.personId || null, manual: false, matchedFaceId: refreshed.matchedFaceId, matchedFaceIds: refreshed.matchedFaceIds };
     } else if (action === 'hide' || action === 'show') {
       fields = { hidden: action === 'hide' };
+    } else if (action === 'delete') {
+      // false detection (not a face / not worth keeping): gone from the photo, the person and Rekognition
+      await photoPeople.unlinkFace(faceId);
+      await photoPeople.deleteFaceFromCollection(faceId).catch(function(e) { console.error('[faces] delete from collection', e.message); });
+      await shoots.updatePhotoFaces(slug, id, photo.faces.filter(function(f) { return f.faceId !== faceId; }));
+      return res.redirect(back);
     } else {
       return res.redirect(back);
     }
@@ -1337,6 +1355,118 @@ router.post('/shoots/:slug/photos/:id/faces/:faceId/set', requireAuth, express.u
     console.error('[shoot photo face set]', e);
   }
   res.redirect(back);
+});
+
+// Hand-marks a face the detector missed: box drawn on the photo edit page (fractions of the photo),
+// optionally tied to a person (existing `personId` or new `name`). See photoPeople.addManualFace.
+router.post('/shoots/:slug/photos/:id/faces/add', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { slug, id } = req.params;
+  var back = '/admin/shoots/' + slug + '/photos/' + id + '/edit#faces';
+  var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
+  var photo = shoot && shoot.photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.redirect('/admin/shoots');
+  var box = { Left: parseFloat(req.body.left), Top: parseFloat(req.body.top), Width: parseFloat(req.body.width), Height: parseFloat(req.body.height) };
+  var valid = [box.Left, box.Top, box.Width, box.Height].every(function(v) { return !isNaN(v) && v >= 0 && v <= 1; })
+    && box.Width > 0.005 && box.Height > 0.005 && box.Left + box.Width <= 1.001 && box.Top + box.Height <= 1.001;
+  if (!valid) return res.redirect(back);
+  try {
+    var src = photo.urls && (photo.urls.full || photo.urls.preview);
+    var img = await axios.get(src, { responseType: 'arraybuffer', timeout: 30000 });
+    var added = await photoPeople.addManualFace(Buffer.from(img.data), box);
+    var face = { faceId: added.faceId, boundingBox: box };
+
+    var name = (req.body.name || '').trim();
+    var personId = req.body.personId && photoPeople.getPeopleData()[req.body.personId] ? req.body.personId : null;
+    if (name) personId = (await photoPeople.createPerson(name, face.faceId)).id;
+    else if (personId) await photoPeople.linkFaceToPerson(personId, face.faceId);
+
+    if (personId) Object.assign(face, { personId: personId, manual: true });
+    else if (added.detected) face = (await photoPeople.refreshFaceMatches([face]))[0]; // groups/links like any detected face
+    else face.manual = true; // not recognisable as a face → stands on its own
+    await shoots.updatePhotoFaces(slug, id, (photo.faces || []).concat([face]));
+  } catch (e) {
+    console.error('[shoot photo face add]', e);
+    return res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit?error=' + encodeURIComponent(e.message) + '#faces');
+  }
+  res.redirect(back);
+});
+
+// ── Drag-and-drop grouping on the shoot edit page (JSON; the page reloads after each change) ──
+// An anonymous group becomes a person without a name on its first merge, so the grouping sticks
+// (anon groups are only derived from Rekognition matches and would fall apart again).
+
+// Person id for a group, creating an unnamed person for an anonymous group.
+async function groupToPerson(slug, shoot, group) {
+  if (group.key.indexOf('person:') === 0) return group.key.slice(7);
+  var personId = (await photoPeople.createPerson('', group.faces[0].faceId)).id;
+  for (var f of group.faces) await photoPeople.linkFaceToPerson(personId, f.faceId);
+  await updateGroupFaces(slug, shoot, group, { personId: personId, manual: true });
+  return personId;
+}
+
+// Merges two people across ALL shoots (a person's faces can sit in several shoots).
+async function mergePersonEverywhere(fromId, toId) {
+  if (fromId === toId) return;
+  await photoPeople.mergePeople(fromId, toId);
+  var all = shoots.getData();
+  for (var s of Object.keys(all)) {
+    for (var p of all[s].photos) {
+      if (!(p.faces || []).some(function(f) { return f.personId === fromId; })) continue;
+      await shoots.updatePhotoFaces(s, p.id, p.faces.map(function(f) { return f.personId === fromId ? Object.assign({}, f, { personId: toId }) : f; }));
+    }
+  }
+}
+
+// Drop group `from` onto group `to` → one person.
+router.post('/shoots/:slug/faces/merge', requireAuth, express.json(), async (req, res) => {
+  var { slug } = req.params;
+  var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ ok: false, error: 'Not found' });
+  var from = findFaceGroup(slug, shoot, req.body.from), to = findFaceGroup(slug, shoot, req.body.to);
+  if (!from || !to || from.key === to.key) return res.status(400).json({ ok: false, error: 'Группа не найдена — обновите страницу' });
+  try {
+    var toId = await groupToPerson(slug, shoot, to);
+    if (from.key.indexOf('person:') === 0) {
+      await mergePersonEverywhere(from.key.slice(7), toId);
+    } else {
+      for (var f of from.faces) await photoPeople.linkFaceToPerson(toId, f.faceId);
+      await updateGroupFaces(slug, shoot, from, { personId: toId, manual: true });
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[shoots faces merge]', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// Drag one face onto a group (`to` = group key) or onto "new group" (`to` = 'new').
+router.post('/shoots/:slug/faces/move', requireAuth, express.json(), async (req, res) => {
+  var { slug } = req.params;
+  var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ ok: false, error: 'Not found' });
+  var faceId = req.body.faceId;
+  var photo = shoot.photos.find(function(p) { return (p.faces || []).some(function(f) { return f.faceId === faceId; }); });
+  if (!photo) return res.status(400).json({ ok: false, error: 'Лицо не найдено — обновите страницу' });
+  try {
+    var personId;
+    await photoPeople.unlinkFace(faceId);
+    if (req.body.to === 'new') {
+      personId = (await photoPeople.createPerson('', faceId)).id;
+    } else {
+      var to = findFaceGroup(slug, shoot, req.body.to);
+      if (!to) return res.status(400).json({ ok: false, error: 'Группа не найдена — обновите страницу' });
+      personId = await groupToPerson(slug, shoot, to);
+      await photoPeople.linkFaceToPerson(personId, faceId);
+    }
+    var fresh = shoot.photos.find(function(p) { return p.id === photo.id; }); // groupToPerson may have rewritten it
+    await shoots.updatePhotoFaces(slug, photo.id, fresh.faces.map(function(f) {
+      return f.faceId === faceId ? Object.assign({}, f, { personId: personId, manual: true }) : f;
+    }));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[shoots faces move]', e);
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 function findFaceGroup(slug, shoot, key) {

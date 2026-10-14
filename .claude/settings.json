@@ -570,7 +570,12 @@
       "PowerShell(node \"C:\\\\Users\\\\DSHEST~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-dshestakov-node-bot\\\\415e191c-cfdd-4a7a-9cc1-1663d52c2d01\\\\scratchpad\\\\send-threads-task.js\")",
       "Bash(node -e \"require\\('pug'\\).compileFile\\('views/photo-v2/photo.pug'\\);console.log\\('ok'\\)\")",
       "Bash(grep -v \"^\\\\s*//\")",
-      "Bash(awk 'NR<=195 && /router\\\\.\\(post|get\\)/ {l=NR\": \"$0} END{print l}' routes/photo2.js)"
+      "Bash(awk 'NR<=195 && /router\\\\.\\(post|get\\)/ {l=NR\": \"$0} END{print l}' routes/photo2.js)",
+      "Bash(sed -i '14s/curator_show_all$/curator_show_all · curator_show_picks/' public/javascripts/photo-v2/analytics.js)",
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/photo-v2/gallery.pug'\\);console.log\\('ok'\\)\")",
+      "Bash(node -e \"var p=require\\('./lib/photo-people'\\);console.log\\(typeof p.addManualFace, typeof p.deleteFaceFromCollection\\)\")",
+      "Bash(sed -i \"43s/option\\(value=person.id\\)= person.name/option\\(value=person.id\\)= person.name || '\\(без имени\\)'/\" views/photo/admin/people.pug)",
+      "Bash(sed -i \"s/option\\(value=p.id\\)= p.name$/option\\(value=p.id\\)= p.name || '\\(без имени\\)'/; s/option\\(value=p.id selected=p.id === f.personId\\)= p.name$/option\\(value=p.id selected=p.id === f.personId\\)= p.name || '\\(без имени\\)'/\" views/photo/admin/shoot-edit.pug views/photo/admin/shoot-photo-edit.pug)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",

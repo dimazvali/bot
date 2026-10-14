@@ -172,7 +172,14 @@ block content
               +typeIcon(tp)
     if curatorSelectionActive
       - var _pickedN = photos.filter(function(p) { return !p._curatorExtra }).length
-      .curator-bar#curator-bar
+      //- toggles between the author's pick and all photos; the labels of both states live in data-*
+      .curator-bar#curator-bar(
+        data-picks-count=`★ ${t.curatorPick} · ${_pickedN}`
+        data-picks-rest=t.curatorRest(photos.length - _pickedN)
+        data-picks-btn=ui.showAllPhotos
+        data-all-count=`${t.curatorAll} · ${photos.length}`
+        data-all-btn=t.curatorOnlyPicks
+      )
         span.curator-count ★ #{t.curatorPick} · #{_pickedN}
         span.curator-rest #{t.curatorRest(photos.length - _pickedN)}
         button.fb-btn#curator-show-all(type='button')= ui.showAllPhotos
@@ -534,14 +541,22 @@ block content
       (function() {
         var btn = document.getElementById('curator-show-all');
         var bar = document.getElementById('curator-bar');
-        if (!btn) return;
+        if (!btn || !bar) return;
+        var extras = Array.from(document.querySelectorAll('.photo-card[data-curator-hidden]'));
+        var count = bar.querySelector('.curator-count');
+        var rest = bar.querySelector('.curator-rest');
+        var showingAll = false;
         btn.addEventListener('click', function() {
-          window.photoTrack && window.photoTrack('curator_show_all');
-          document.querySelectorAll('.photo-card[data-curator-hidden]').forEach(function(c) { c.removeAttribute('data-curator-hidden'); });
+          showingAll = !showingAll;
+          window.photoTrack && window.photoTrack(showingAll ? 'curator_show_all' : 'curator_show_picks');
+          extras.forEach(function(c) {
+            if (showingAll) c.removeAttribute('data-curator-hidden'); else c.setAttribute('data-curator-hidden', '');
+          });
           if (window.PhotoFilters) window.PhotoFilters.apply();
-          var rest = bar && bar.querySelector('.curator-rest');
-          if (rest) rest.remove();
-          btn.remove();
+          var d = bar.dataset;
+          count.textContent = showingAll ? d.allCount : d.picksCount;
+          if (rest) rest.style.display = showingAll ? 'none' : '';
+          btn.textContent = showingAll ? d.allBtn : d.picksBtn;
         });
       }());
 

@@ -40,7 +40,7 @@ html(data-theme='dark')
                     select.admin-input(name='personId' style='font-size:0.625rem;padding:4px;')
                       option(value='' disabled selected) это уже...
                       each person in people
-                        option(value=person.id)= person.name
+                        option(value=person.id)= person.name || '(без имени)'
                     button.admin-btn.admin-btn--sm(type='submit') привязать
           if pageCount > 1
             .admin-pagination(style='display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;')

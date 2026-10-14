@@ -11,7 +11,7 @@
 //   lightbox_open · instagram_click · contact_click · subscribe_click · subscribe · unsubscribe · generate_lead
 //   submit_review · add_comment · login · add_point · share · shoot_selection_saved · shoot_download
 //   instagram_download · filter_apply · presentation_start · map_open · promo_open · theme_change
-//   language_switch · photo_navigate · instagram_card_dismiss · lightbox_caption_toggle · curator_show_all
+//   language_switch · photo_navigate · instagram_card_dismiss · lightbox_caption_toggle · curator_show_all · curator_show_picks
 (function () {
   var admin = !!window.photoIsAdmin;
   var lang = document.documentElement.lang === 'en' ? 'en' : 'ru';

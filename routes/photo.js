@@ -620,7 +620,9 @@ router.get('/shoot/:slug', async (req, res) => {
       ],
       otherShoots: relatedInfo.shoots.map(function(s) { return i18n.localizeShoot(s, lang); }),
       otherShootsAreRelated: relatedInfo.related,
-      peopleGroups: rawShoot.showFaces ? photoPeople.groupShootFaces(slug, rawShoot) : [],
+      peopleGroups: rawShoot.showFaces
+        ? photoPeople.groupShootFaces(slug, rawShoot).filter(function(g) { return g.name || !rawShoot.hideUnnamedFaces; })
+        : [],
     });
   });
 });
