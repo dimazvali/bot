@@ -20,6 +20,14 @@ html(data-theme='dark')
           a.admin-nav-link(href='/admin/leads') лиды
           a.admin-logout(href='/admin/logout') выйти
 
+      //- TEMPORARY: Telegram preview of generated SEO captions (lib/photo-seo-tg-preview.js)
+      .admin-section
+        p.admin-hint
+          | Telegram-превью сгенерированных SEO-описаний:
+          b(style=`color:${seoTgPreview ? 'var(--accent)' : 'var(--text-dim)'}`)= seoTgPreview ? ' ВКЛЮЧЕНО' : ' ВЫКЛЮЧЕНО'
+          form(method='POST' action='/admin/settings/seo-tg-preview' style='display:inline;margin-left:6px;')
+            button.admin-btn.admin-btn--sm(type='submit')= seoTgPreview ? 'выключить' : 'включить'
+
       .admin-section
         h2.admin-title СТРАНЫ
         each country, countryKey in data

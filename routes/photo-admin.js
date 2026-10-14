@@ -19,6 +19,7 @@ var photoPeople = require('../lib/photo-people');
 var photoUsers = require('../lib/photo-users');
 var tgNotifier = require('../lib/photo-tg-notifier');
 var photoComments = require('../lib/photo-comments');
+var photoSettings = require('../lib/photo-settings');
 
 var axios = require('axios');
 
@@ -71,6 +72,7 @@ mailer.init();
 copyright.init(fb);
 shoots.initFromFirestore(fb).catch(console.error);
 photoPeople.initFromFirestore(fb).catch(console.error);
+photoSettings.initFromFirestore(fb).catch(console.error);
 
 // Daily copyright/usage scan, chunked to stay within Vision Web Detection's
 // 1000-unit/month free tier (see photo-copyright-check.js#runQuotaBatch for
@@ -193,7 +195,13 @@ router.get('/logout', async (req, res) => {
 });
 
 router.get('/', requireAuth, (req, res) => {
-  res.render('photo/admin/index', { data: getData(), title: 'photo.dimazvali.com Admin' });
+  res.render('photo/admin/index', { data: getData(), title: 'photo.dimazvali.com Admin', seoTgPreview: !!photoSettings.get('seoTgPreview') });
+});
+
+// TEMPORARY: on/off for the Telegram preview of generated SEO captions (lib/photo-seo-tg-preview.js)
+router.post('/settings/seo-tg-preview', requireAuth, async (req, res) => {
+  await photoSettings.set('seoTgPreview', !photoSettings.get('seoTgPreview'));
+  res.redirect('/admin');
 });
 
 // Photo leads — daily "нужен фотограф" monitoring (see lib/photo-leads-*).

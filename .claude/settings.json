@@ -565,7 +565,10 @@
       "PowerShell(node -e \"require\\('dotenv'\\).config\\(\\); var te=require\\('./lib/tbilisi-events-collectors'\\); te.collectApifyDataset\\('getanyapi/threads-search-scraper',{query:'photography',maxItems:5}\\).then\\(function\\(r\\){console.log\\('rows',r.length\\); r.slice\\(0,3\\).forEach\\(function\\(x\\){console.log\\(x.createdUtc,x.username,x.url,\\(x.text||''\\).slice\\(0,60\\)\\)}\\)},function\\(e\\){console.log\\('ERR',e.message\\)}\\)\")",
       "PowerShell(node -e \"require\\('dotenv'\\).config\\(\\); var te=require\\('./lib/tbilisi-events-collectors'\\); var qs=['�⮣�� ⡨���','photographer tbilisi','photography']; \\(async function\\(\\){for \\(var q of qs\\){try{var r=await te.collectApifyDataset\\('getanyapi/threads-search-scraper',{query:q,maxItems:10}\\); console.log\\(JSON.stringify\\(q\\),'rows',r.length\\)}catch\\(e\\){console.log\\(q,'ERR',e.message\\)}}}\\)\\(\\)\")",
       "Bash(node -p \"require\\('@anthropic-ai/sdk/package.json'\\).version\")",
-      "Bash(node -e \"require\\('./lib/photo-seo'\\);console.log\\('ok'\\)\")"
+      "Bash(node -e \"require\\('./lib/photo-seo'\\);console.log\\('ok'\\)\")",
+      "Bash(node -e \"require\\('./lib/photo-seo-tg-preview'\\);require\\('./lib/photo-settings'\\);require\\('pug'\\).compileFile\\('views/photo/admin/index.pug'\\);console.log\\('ok'\\)\")",
+      "PowerShell(node \"C:\\\\Users\\\\DSHEST~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-dshestakov-node-bot\\\\415e191c-cfdd-4a7a-9cc1-1663d52c2d01\\\\scratchpad\\\\send-threads-task.js\")",
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/photo-v2/photo.pug'\\);console.log\\('ok'\\)\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",

@@ -21,7 +21,9 @@ block head
         license: 'https://photo.dimazvali.com' + _lp + '/about',
         acquireLicensePage: 'https://photo.dimazvali.com' + _lp + '/' + countryKey + '/' + seriesKey + '/' + photo.id + '?inquiry=license',
       }
-      if (photo.desc) _ld.description = photo.desc
+      // hand-written text first; the generated SEO caption covers frames that have none
+      var _ldText = photo.desc || photo.seo_desc
+      if (_ldText) { _ld.description = _ldText; _ld.caption = _ldText }
       if (photo.coords) _ld.locationCreated = { '@type': 'Place', geo: { '@type': 'GeoCoordinates', latitude: photo.coords.lat, longitude: photo.coords.lng }, name: countryLabel }
       if (photo.altitude) _ld.altitude = photo.altitude
       if (photo.tags && photo.tags.length) _ld.keywords = photo.tags.map(function(t){ return allTags[t] ? allTags[t].label : t }).join(', ')
@@ -106,7 +108,7 @@ block content
           src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
           srcset=_srcsetOf(photo)
           sizes=_srcsetOf(photo) ? PAGE_SIZES : undefined
-          alt=photo.title
+          alt=photo.desc || photo.seo_desc || photo.title
           title=photo.desc||photo.title
           width=photo.width||undefined
           height=photo.height||undefined
