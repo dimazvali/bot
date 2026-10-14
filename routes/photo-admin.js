@@ -1259,7 +1259,8 @@ router.get('/shoots/:slug/faces/regenerate/status', requireAuth, (req, res) => {
 // existing one (`personId`); every face of the group gets linked, so the group stays together.
 router.post('/shoots/:slug/faces/assign', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
   var { slug } = req.params;
-  var back = '/admin/shoots/' + slug + '/edit#faces';
+  // the /admin/people board names groups through here too and wants to come back there
+  var back = req.body.back === 'people' ? '/admin/people' + (/^\d+$/.test(req.body.page || '') ? '?page=' + req.body.page : '') : '/admin/shoots/' + slug + '/edit#faces';
   var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
   if (!shoot) return res.redirect('/admin/shoots');
   var group = findFaceGroup(slug, shoot, req.body.groupKey);
@@ -1417,54 +1418,71 @@ async function mergePersonEverywhere(fromId, toId) {
   }
 }
 
-// Drop group `from` onto group `to` → one person.
-router.post('/shoots/:slug/faces/merge', requireAuth, express.json(), async (req, res) => {
-  var { slug } = req.params;
-  var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
-  if (!shoot) return res.status(404).json({ ok: false, error: 'Not found' });
-  var from = findFaceGroup(slug, shoot, req.body.from), to = findFaceGroup(slug, shoot, req.body.to);
-  if (!from || !to || from.key === to.key) return res.status(400).json({ ok: false, error: 'Группа не найдена — обновите страницу' });
+// A board tile is { key, slug }: 'person:<id>' (global — slug ignored) or an anonymous group key
+// ('anon:<faceId>') that only means something inside shoot `slug`.
+function resolveBoardGroup(ref) {
+  if (!ref || typeof ref.key !== 'string') return null;
+  if (ref.key.indexOf('person:') === 0) {
+    return photoPeople.getPeopleData()[ref.key.slice(7)] ? { personId: ref.key.slice(7) } : null;
+  }
+  var shoot = /^[a-z0-9-]+$/.test(ref.slug || '') && shoots.getShoot(ref.slug);
+  var group = shoot && findFaceGroup(ref.slug, shoot, ref.key);
+  return group ? { slug: ref.slug, shoot: shoot, group: group } : null;
+}
+
+async function boardGroupToPerson(g) {
+  return g.personId || groupToPerson(g.slug, g.shoot, g.group);
+}
+
+// Drop group `from` onto group `to` → one person (shoot page and people page boards).
+router.post('/faces/merge', requireAuth, express.json(), async (req, res) => {
+  var from = resolveBoardGroup(req.body.from), to = resolveBoardGroup(req.body.to);
+  if (!from || !to) return res.status(400).json({ ok: false, error: 'Группа не найдена — обновите страницу' });
+  if (from.personId && from.personId === to.personId) return res.json({ ok: true });
   try {
-    var toId = await groupToPerson(slug, shoot, to);
-    if (from.key.indexOf('person:') === 0) {
-      await mergePersonEverywhere(from.key.slice(7), toId);
+    var toId = await boardGroupToPerson(to);
+    if (from.personId) {
+      await mergePersonEverywhere(from.personId, toId);
     } else {
-      for (var f of from.faces) await photoPeople.linkFaceToPerson(toId, f.faceId);
-      await updateGroupFaces(slug, shoot, from, { personId: toId, manual: true });
+      for (var f of from.group.faces) await photoPeople.linkFaceToPerson(toId, f.faceId);
+      await updateGroupFaces(from.slug, from.shoot, from.group, { personId: toId, manual: true });
     }
     res.json({ ok: true });
   } catch (e) {
-    console.error('[shoots faces merge]', e);
+    console.error('[faces merge]', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
-// Drag one face onto a group (`to` = group key) or onto "new group" (`to` = 'new').
-router.post('/shoots/:slug/faces/move', requireAuth, express.json(), async (req, res) => {
-  var { slug } = req.params;
-  var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
-  if (!shoot) return res.status(404).json({ ok: false, error: 'Not found' });
+// Drag one face onto a group (`to` = { key, slug }) or onto "new group" (`to` = 'new').
+router.post('/faces/move', requireAuth, express.json(), async (req, res) => {
   var faceId = req.body.faceId;
-  var photo = shoot.photos.find(function(p) { return (p.faces || []).some(function(f) { return f.faceId === faceId; }); });
+  var all = shoots.getData(), slug = null, photo = null;
+  Object.keys(all).some(function(s) {
+    photo = all[s].photos.find(function(p) { return (p.faces || []).some(function(f) { return f.faceId === faceId; }); });
+    if (photo) slug = s;
+    return !!photo;
+  });
   if (!photo) return res.status(400).json({ ok: false, error: 'Лицо не найдено — обновите страницу' });
   try {
     var personId;
-    await photoPeople.unlinkFace(faceId);
     if (req.body.to === 'new') {
+      await photoPeople.unlinkFace(faceId);
       personId = (await photoPeople.createPerson('', faceId)).id;
     } else {
-      var to = findFaceGroup(slug, shoot, req.body.to);
+      var to = resolveBoardGroup(req.body.to);
       if (!to) return res.status(400).json({ ok: false, error: 'Группа не найдена — обновите страницу' });
-      personId = await groupToPerson(slug, shoot, to);
+      await photoPeople.unlinkFace(faceId);
+      personId = await boardGroupToPerson(to);
       await photoPeople.linkFaceToPerson(personId, faceId);
     }
-    var fresh = shoot.photos.find(function(p) { return p.id === photo.id; }); // groupToPerson may have rewritten it
+    var fresh = shoots.getShoot(slug).photos.find(function(p) { return p.id === photo.id; }); // may have been rewritten above
     await shoots.updatePhotoFaces(slug, photo.id, fresh.faces.map(function(f) {
       return f.faceId === faceId ? Object.assign({}, f, { personId: personId, manual: true }) : f;
     }));
     res.json({ ok: true });
   } catch (e) {
-    console.error('[shoots faces move]', e);
+    console.error('[faces move]', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -1513,7 +1531,7 @@ router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json()
   }
 });
 
-var PENDING_PAGE_SIZE = 300;
+var ANON_PAGE_SIZE = 200; // unrecognised-face groups per page on /admin/people
 
 // Every face across all shoots: faceId → { slug, photoId, thumb, boundingBox, avatarStyle }, plus the
 // faces not tied to anyone yet.
@@ -1533,27 +1551,54 @@ function collectAllFaces() {
   return { facesByFaceId: facesByFaceId, pending: pending };
 }
 
+function ruPlural(n, one, few, many) {
+  var m10 = n % 10, m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
+
 router.get('/people', requireAuth, function(req, res) {
   var all = collectAllFaces();
-  var pending = all.pending;
-  // named people first, then unnamed (made by drag-and-drop grouping); within each — most matches first
+  var shootsData = shoots.getData();
+  function photoCount(faces) {
+    var ids = {};
+    faces.forEach(function(f) { ids[f.slug + '/' + f.photoId] = true; });
+    return Object.keys(ids).length;
+  }
+  // People tiles: named first, then unnamed (made by drag-and-drop grouping); within each — most photos first
   var people = Object.values(photoPeople.getPeopleData()).map(function(p) {
-    return Object.assign({}, p, {
-      faces: p.faceIds.map(function(fid) { return all.facesByFaceId[fid]; }).filter(Boolean),
-    });
-  }).sort(function(a, b) {
-    return (!!b.name - !!a.name) || (b.faces.length - a.faces.length) || (a.name || '').localeCompare(b.name || '', 'ru');
+    var faces = p.faceIds.map(function(fid) { return all.facesByFaceId[fid]; }).filter(Boolean);
+    var shootSlugs = {};
+    faces.forEach(function(f) { shootSlugs[f.slug] = true; });
+    var n = photoCount(faces), sc = Object.keys(shootSlugs).length;
+    return {
+      id: p.id, key: 'person:' + p.id, name: p.name, tagKey: p.tagKey, faces: faces, photoCount: n,
+      href: '/admin/people/' + p.id,
+      subtitle: n + ' фото · ' + sc + ' ' + ruPlural(sc, 'съёмка', 'съёмки', 'съёмок') + (p.tagKey ? ' · #' + p.tagKey : ''),
+    };
+  }).filter(function(p) { return p.faces.length; }).sort(function(a, b) {
+    return (!!b.name - !!a.name) || (b.photoCount - a.photoCount) || (a.name || '').localeCompare(b.name || '', 'ru');
   });
-  var pageCount = Math.max(1, Math.ceil(pending.length / PENDING_PAGE_SIZE));
+  // Unrecognised: anonymous groups of every shoot (they only exist within a shoot), biggest first
+  var anon = [];
+  Object.keys(shootsData).forEach(function(slug) {
+    photoPeople.groupShootFaces(slug, shootsData[slug], { includeHidden: true }).forEach(function(g) {
+      if (g.key.indexOf('person:') === 0) return;
+      anon.push(Object.assign({}, g, { slug: slug, photoCount: photoCount(g.faces), subtitle: shootsData[slug].label + ' · ' + photoCount(g.faces) + ' фото' }));
+    });
+  });
+  anon.sort(function(a, b) { return b.faces.length - a.faces.length; });
+  var pageCount = Math.max(1, Math.ceil(anon.length / ANON_PAGE_SIZE));
   var page = Math.min(pageCount, Math.max(1, parseInt(req.query.page, 10) || 1));
-  var pendingPage = pending.slice((page - 1) * PENDING_PAGE_SIZE, page * PENDING_PAGE_SIZE);
   res.render('photo/admin/people', {
     title: 'Люди — AERO Admin',
-    pending: pendingPage,
-    pendingTotal: pending.length,
+    people: people,
+    peopleForSelect: people.filter(function(p) { return p.name; }),
+    anon: anon.slice((page - 1) * ANON_PAGE_SIZE, page * ANON_PAGE_SIZE),
+    anonTotal: anon.length,
     page: page,
     pageCount: pageCount,
-    people: people,
   });
 });
 

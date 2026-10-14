@@ -578,7 +578,8 @@
       "Bash(sed -i \"s/option\\(value=p.id\\)= p.name$/option\\(value=p.id\\)= p.name || '\\(без имени\\)'/; s/option\\(value=p.id selected=p.id === f.personId\\)= p.name$/option\\(value=p.id selected=p.id === f.personId\\)= p.name || '\\(без имени\\)'/\" views/photo/admin/shoot-edit.pug views/photo/admin/shoot-photo-edit.pug)",
       "Bash(sed -i \"85s/{ id: doc.id, name: d.name, faceIds: d.faceIds || \\\\[\\\\] }/{ id: doc.id, name: d.name, faceIds: d.faceIds || [], tagKey: d.tagKey || null }/\" lib/photo-people.js)",
       "Bash(sed -i \"100s/{ id: ref.id, name: name, faceIds: \\\\[faceId\\\\] }/{ id: ref.id, name: name, faceIds: [faceId], tagKey: null }/\" lib/photo-people.js)",
-      "Bash(node -e \"console.log\\(typeof require\\('./lib/photo-people'\\).setPersonTag\\)\")"
+      "Bash(node -e \"console.log\\(typeof require\\('./lib/photo-people'\\).setPersonTag\\)\")",
+      "Bash(PHOTO_ENV=prod SHOOT=goodminton node scripts/rerun-unrecognized-faces.js)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",

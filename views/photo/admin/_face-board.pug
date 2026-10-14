@@ -1,0 +1,66 @@
+//- Drag-and-drop face groups board, shared by the shoot edit page and /admin/people.
+//- Behaviour: /javascripts/photo/face-board.js (POSTs to /admin/faces/merge and /admin/faces/move); styles: .fg-* in style.css.
+//- groups: [{ key, slug, name, faces: [{ faceId, photoId, slug, thumb, avatarStyle }], photoCount, hidden?, subtitle?, href? }]
+//-   or { divider: 'TITLE', hint? } — a full-width section heading
+//-   key 'person:<id>' is global; any other key is an anonymous group inside shoot `slug`.
+//- opts: {
+//-   visibilityUrl?: string                     — per-group show/hide form (shoot page only)
+//-   nameForm?: function(g) → { action, fields: { name: value }, people?: [] } | null — for groups without a name
+//- }
+mixin faceBoard(groups, opts)
+  - opts = opts || {}
+  .fg-board#fg-board(data-merge-url='/admin/faces/merge' data-move-url='/admin/faces/move')
+    each g in groups
+      if g.divider
+        //- full-width section heading inside the grid (one board, so tiles can be dragged across sections)
+        .fg-divider
+          h2.admin-title= g.divider
+          if g.hint
+            p.admin-hint= g.hint
+        - continue
+      - var rf = g.faces[0]
+      .fg-tile(class=g.hidden ? 'is-hidden' : '' data-key=g.key data-slug=g.slug || '' data-name=g.name || '')
+        .fg-avatar(draggable='true' title='перетащите на другую группу')
+          if rf
+            img(src=rf.thumb alt=g.name || '' style=rf.avatarStyle draggable='false' loading='lazy')
+        .fg-info
+          if g.href
+            a(href=g.href)
+              if g.name
+                b= g.name
+              else
+                span без имени
+          else if g.name
+            b= g.name
+          else
+            span.admin-hint без имени
+          span.admin-hint #{g.subtitle || (g.photoCount + ' фото')}#{g.hidden ? ' · скрыто' : ''}
+        .fg-actions
+          button.admin-btn.admin-btn--sm.fg-toggle(type='button')= 'лица · ' + g.faces.length
+          if opts.visibilityUrl
+            form(method='POST' action=opts.visibilityUrl style='margin:0')
+              input(type='hidden' name='groupKey' value=g.key)
+              input(type='hidden' name='hidden' value=g.hidden ? '0' : '1')
+              button.admin-btn.admin-btn--sm(type='submit' title='показывать ли в публичном виджете «найти себя»')= g.hidden ? '👁' : '🚫'
+        - var nf = !g.name && opts.nameForm ? opts.nameForm(g) : null
+        if nf
+          form.fg-name(method='POST' action=nf.action)
+            each v, k in (nf.fields || {})
+              input(type='hidden' name=k value=v)
+            if nf.people && nf.people.length
+              select.admin-input(name='personId' onchange='if (this.value) this.form.submit()')
+                option(value='') — кто это? —
+                each p in nf.people
+                  if p.name && g.key !== 'person:' + p.id
+                    option(value=p.id)= p.name
+            input.admin-input(type='text' name='name' placeholder=nf.people && nf.people.length ? 'или новое имя' : 'имя')
+            button.admin-btn.admin-btn--sm(type='submit') ✓
+        .fg-faces
+          each f in g.faces
+            a.fg-face(href=`/admin/shoots/${f.slug}/photos/${f.photoId}/edit#faces` draggable='true' data-face-id=f.faceId title=f.slug + ' / ' + f.photoId)
+              img(src=f.thumb alt='' style=f.avatarStyle draggable='false' loading='lazy')
+    .fg-tile.fg-new(data-key='new')
+      .fg-avatar ＋
+      .fg-info
+        b новая группа
+        span.admin-hint перетащите сюда лицо

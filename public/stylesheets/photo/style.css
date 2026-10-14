@@ -1918,3 +1918,25 @@ body.sidebar-open { overflow: hidden; }
 .faces-widget[data-active] .faces-widget-item.is-active { display: flex; }
 .faces-widget-reset { display: none; font-size: 0.5625rem; font-family: monospace; color: var(--text-dim); border: none; background: none; border-left: 1px solid var(--border); padding-left: 10px; margin-left: 2px; cursor: pointer; align-self: center; white-space: nowrap; }
 .faces-widget[data-active] .faces-widget-reset { display: inline; }
+
+/* ── Admin: wide pages + drag-and-drop face groups board (views/photo/admin/_face-board.pug) ── */
+.admin-wrap--wide { max-width: none; }
+.fg-board { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; margin-top:14px; }
+.fg-tile { border:1px solid var(--border); border-radius:8px; padding:10px; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; transition:border-color .1s, background .1s; }
+.fg-tile.is-over { border-color:var(--accent); background:rgba(255,255,255,.04); }
+.fg-tile.is-dragging { opacity:.4; }
+.fg-tile.is-hidden .fg-avatar { opacity:.35; }
+.fg-avatar { position:relative; width:72px; height:72px; border-radius:50%; overflow:hidden; background:var(--border); cursor:grab; flex-shrink:0; }
+.fg-avatar img { position:absolute; max-width:none; }
+.fg-new { border-style:dashed; }
+.fg-new .fg-avatar { display:flex; align-items:center; justify-content:center; font-size:28px; color:var(--text-dim); cursor:default; }
+.fg-info { display:flex; flex-direction:column; }
+.fg-actions { display:flex; gap:4px; }
+.fg-name { display:flex; flex-wrap:wrap; justify-content:center; gap:4px; margin:0; width:100%; }
+.fg-name select.admin-input { width:100%; margin:0; padding:3px 6px; font-size:.75rem; }
+.fg-name input.admin-input { width:90px; flex:1 1 90px; margin:0; padding:3px 6px; font-size:.75rem; }
+.fg-faces { display:none; flex-wrap:wrap; gap:4px; justify-content:center; }
+.fg-tile.is-open .fg-faces { display:flex; }
+.fg-face { position:relative; width:36px; height:36px; border-radius:50%; overflow:hidden; background:var(--border); cursor:grab; }
+.fg-face img { position:absolute; max-width:none; }
+.fg-divider { grid-column: 1 / -1; margin-top: 12px; }

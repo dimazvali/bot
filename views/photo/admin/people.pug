@@ -1,78 +1,42 @@
+include _face-board.pug
 doctype html
 html(data-theme='dark')
   head
     title= title
     meta(name='viewport' content='width=device-width, initial-scale=1.0')
     link(rel='stylesheet' href='/stylesheets/photo/style.css')
+    script(src='/javascripts/photo/face-board.js' defer)
   body
-    .admin-wrap
+    .admin-wrap.admin-wrap--wide
       .admin-header
         a.admin-back(href='/admin') ← назад
         span.admin-logo ЛЮДИ
 
       .admin-section
-        h2.admin-title ЛЮДИ (#{people.length})
-        if !people.length
-          p.admin-hint Пока никто не назван.
-        else
-          p.admin-hint Сначала люди с именем, по числу фото; потом безымянные группы (созданные перетаскиванием на странице съёмки).
-          .people-list
-            each person in people
-              a.person-row(href=`/admin/people/${person.id}`)
-                .face-crop(style='width:48px;height:48px;border-radius:50%;')
-                  if person.faces.length
-                    img(src=person.faces[0].thumb loading='lazy' style=person.faces[0].avatarStyle)
-                span.person-row-name
-                  if person.name
-                    b= person.name
-                  else
-                    span.admin-hint без имени
-                span.admin-hint #{person.faces.length} фото
-                if person.tagKey
-                  span.admin-hint #{'#' + person.tagKey}
+        p.admin-hint
+          | Перетащите круг одной группы на другую — это один человек (объединится во всех съёмках). «лица» раскрывает группу — отдельное лицо можно перетащить в другую группу или в «＋ новая группа».
+          |  Имя у человека открывает его страницу (тег, съёмки, все лица).
+        -
+          var _fbGroups = [{ divider: 'ЛЮДИ (' + people.length + ')', hint: 'Сначала с именем, по числу фото; потом безымянные.' }]
+            .concat(people)
+            .concat([{ divider: 'НЕРАСПОЗНАННЫЕ (' + anonTotal + ')', hint: pageCount > 1 ? 'Группы лиц без человека по всем съёмкам, крупные первыми. Страница ' + page + ' из ' + pageCount + '.' : 'Группы лиц без человека по всем съёмкам, крупные первыми.' }])
+            .concat(anon)
+          var _fbOpts = {
+            nameForm: function(g) {
+              if (g.key.indexOf('person:') === 0) return { action: '/admin/people/' + g.id + '/rename', fields: {} };
+              return { action: '/admin/shoots/' + g.slug + '/faces/assign', fields: { groupKey: g.key, back: 'people', page: String(page) }, people: peopleForSelect };
+            },
+          }
+        +faceBoard(_fbGroups, _fbOpts)
 
-      .admin-section
-        h2.admin-title НЕРАЗМЕЧЕННЫЕ ЛИЦА (#{pendingTotal})
-        if !pendingTotal
-          p.admin-hint Нет неразмеченных лиц.
-        else
-          if pageCount > 1
-            p.admin-hint Страница #{page} из #{pageCount}
-          .people-grid
-            each face in pending
-              .person-pending
-                .face-crop
-                  img(src=face.thumb loading='lazy' style=face.avatarStyle)
-                form.admin-form(method='POST' action='/admin/people/new' style='width:100%;gap:4px;')
-                  input(type='hidden' name='slug' value=face.slug)
-                  input(type='hidden' name='photoId' value=face.photoId)
-                  input(type='hidden' name='faceId' value=face.faceId)
-                  input.admin-input(type='text' name='name' placeholder='имя' style='font-size:0.625rem;padding:4px;')
-                  button.admin-btn.admin-btn--sm(type='submit') создать
-                if people.length
-                  form.admin-form(method='POST' action='/admin/people/link' style='width:100%;gap:4px;')
-                    input(type='hidden' name='slug' value=face.slug)
-                    input(type='hidden' name='photoId' value=face.photoId)
-                    input(type='hidden' name='faceId' value=face.faceId)
-                    select.admin-input(name='personId' style='font-size:0.625rem;padding:4px;')
-                      option(value='' disabled selected) это уже...
-                      each person in people
-                        option(value=person.id)= person.name || '(без имени)'
-                    button.admin-btn.admin-btn--sm(type='submit') привязать
-          if pageCount > 1
-            .admin-pagination(style='display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap;')
-              if page > 1
-                a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page - 1}`) ← назад
-              each n in Array.from({ length: pageCount }, (_, idx) => idx + 1)
-                if n === page
-                  span.admin-btn.admin-btn--sm(style='opacity:0.6;pointer-events:none;')= n
-                else
-                  a.admin-btn.admin-btn--sm(href=`/admin/people?page=${n}`)= n
-              if page < pageCount
-                a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page + 1}`) вперёд →
-
-    style.
-      .people-list { display: flex; flex-direction: column; gap: 4px; }
-      .person-row { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; color: inherit; text-decoration: none; }
-      .person-row:hover { border-color: var(--text-dim); }
-      .person-row-name { min-width: 160px; }
+        if pageCount > 1
+          .admin-pagination(style='display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap;')
+            if page > 1
+              a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page - 1}`) ← назад
+            each n in Array.from({ length: pageCount }, (_, idx) => idx + 1)
+              if n === page
+                span.admin-btn.admin-btn--sm(style='opacity:0.6;pointer-events:none;')= n
+              else
+                a.admin-btn.admin-btn--sm(href=`/admin/people?page=${n}`)= n
+            if page < pageCount
+              a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page + 1}`) вперёд →
