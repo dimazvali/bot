@@ -147,6 +147,48 @@ html(data-theme='dark')
             span#seo-regen-text.progress-text
 
       if shoot.photos.length
+        .admin-section#faces
+          h2.admin-title ЛИЦА
+          p.admin-hint
+            | Найдено групп: #{faceGroups.length}. «Перегенерировать» индексирует фото без распознанных лиц и заново сопоставляет все лица (имена и ручные правки сохраняются).
+            |  «Скрыть» убирает группу из публичного виджета «найти себя». Ошибки на отдельных фото правятся на странице редактирования фото.
+            |  Все люди — на странице
+            a(href='/admin/people') люди
+            | .
+          button.admin-btn#faces-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ЛИЦА
+          .copyright-progress#faces-regen-status(style='display:none;margin-top:12px')
+            .copyright-progress-bar
+              .copyright-progress-fill#faces-regen-fill
+            span#faces-regen-text.progress-text
+          if faceGroups.length
+            ul.face-groups
+              each g in faceGroups
+                - var rf = g.faces[0]
+                li.face-group(class=g.hidden ? 'is-hidden' : '')
+                  .faces-widget-avatar
+                    img(src=rf.thumb alt=g.name || '' style=rf.avatarStyle)
+                  .face-group-info
+                    if g.name
+                      b= g.name
+                    else
+                      span.admin-hint без имени
+                    span.admin-hint #{g.photoCount} фото#{g.hidden ? ' · скрыто' : ''}
+                  form.face-group-form(method='POST' action=`/admin/shoots/${slug}/faces/visibility`)
+                    input(type='hidden' name='groupKey' value=g.key)
+                    input(type='hidden' name='hidden' value=g.hidden ? '0' : '1')
+                    button.admin-btn.admin-btn--sm(type='submit' title='показывать ли в публичном виджете «найти себя»')= g.hidden ? '👁 показать' : '🚫 скрыть'
+                  if !g.name
+                    form.face-group-form(method='POST' action=`/admin/shoots/${slug}/faces/assign`)
+                      input(type='hidden' name='groupKey' value=g.key)
+                      input.admin-input(type='text' name='name' placeholder='новое имя')
+                      if people.length
+                        select.admin-input(name='personId')
+                          option(value='') — или существующий —
+                          each p in people
+                            option(value=p.id)= p.name
+                      button.admin-btn.admin-btn--sm(type='submit') назвать
+
+      if shoot.photos.length
         .admin-section
           h2.admin-title ПРОВЕРКА ИСПОЛЬЗОВАНИЯ
           p.admin-hint Поиск копий фотографий этой съёмки в интернете (Google Vision). Проверяются только фото из этой съёмки.
@@ -506,52 +548,66 @@ html(data-theme='dark')
         pollStatus();
       }
 
-      // ── Bulk regenerate SEO descriptions ──
-      var seoBtn = document.getElementById('seo-regen-btn');
-      if (seoBtn) {
-        var seoBox  = document.getElementById('seo-regen-status');
-        var seoFill = document.getElementById('seo-regen-fill');
-        var seoTxt  = document.getElementById('seo-regen-text');
-        var seoUrl  = window.location.pathname.replace(/\/edit$/, '') + '/seo/regenerate';
-        var SEO_LABEL = '↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ';
+      // ── Per-shoot background jobs with a progress bar (SEO descriptions, faces) ──
+      // cfg: { btn, prefix (element id prefix: <prefix>-status/-fill/-text), path, label, confirm, doneText(s) }
+      function shootJobButton(cfg) {
+        var btn = document.getElementById(cfg.btn);
+        if (!btn) return;
+        var box  = document.getElementById(cfg.prefix + '-status');
+        var fill = document.getElementById(cfg.prefix + '-fill');
+        var txt  = document.getElementById(cfg.prefix + '-text');
+        var url  = window.location.pathname.replace(/\/edit$/, '') + cfg.path;
 
-        function pollSeo() {
-          fetch(seoUrl + '/status')
+        function poll() {
+          fetch(url + '/status')
             .then(function(r) { return r.json(); })
             .then(function(s) {
               if (!s.running && !s.finishedAt) return;
-              seoBox.style.display = 'block';
-              seoFill.style.width = (s.total ? Math.round(s.done / s.total * 100) : 0) + '%';
+              box.style.display = 'block';
+              fill.style.width = (s.total ? Math.round(s.done / s.total * 100) : 0) + '%';
               if (s.running) {
-                seoBtn.disabled = true;
-                seoBtn.textContent = '⏳ ' + s.done + ' / ' + s.total;
-                seoTxt.textContent = 'Готово: ' + s.done + ' из ' + s.total + (s.errors ? ', ошибок: ' + s.errors : '');
-                setTimeout(pollSeo, 2000);
+                btn.disabled = true;
+                btn.textContent = '⏳ ' + s.done + ' / ' + s.total;
+                txt.textContent = 'Готово: ' + s.done + ' из ' + s.total + (s.errors ? ', ошибок: ' + s.errors : '');
+                setTimeout(poll, 2000);
               } else {
-                seoBtn.disabled = false;
-                seoBtn.textContent = SEO_LABEL;
-                seoTxt.textContent = '✓ Готово — ' + s.done + ' фото' + (s.errors ? ', ошибок: ' + s.errors : '') + '.';
+                btn.disabled = false;
+                btn.textContent = cfg.label;
+                txt.textContent = '✓ ' + cfg.doneText(s) + (s.errors ? ', ошибок: ' + s.errors : '') + '.';
               }
             })
             .catch(function() {});
         }
 
-        seoBtn.addEventListener('click', function() {
-          if (!confirm('Перегенерировать SEO-описания всех фото съёмки? Текущие SEO-описания и ключевые слова будут заменены (ручные описания фото не меняются).')) return;
-          seoBtn.disabled = true;
-          seoBtn.textContent = '⏳ запуск…';
-          fetch(seoUrl, { method: 'POST' })
+        btn.addEventListener('click', function() {
+          if (cfg.confirm && !confirm(cfg.confirm)) return;
+          btn.disabled = true;
+          btn.textContent = '⏳ запуск…';
+          fetch(url, { method: 'POST' })
             .then(function(r) { return r.json(); })
-            .then(function() { pollSeo(); })
+            .then(function() { poll(); })
             .catch(function(e) {
-              seoBtn.disabled = false;
-              seoBtn.textContent = SEO_LABEL;
+              btn.disabled = false;
+              btn.textContent = cfg.label;
               alert('Ошибка: ' + e.message);
             });
         });
 
-        pollSeo();
+        poll();
       }
+
+      shootJobButton({
+        btn: 'seo-regen-btn', prefix: 'seo-regen', path: '/seo/regenerate', label: '↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ',
+        confirm: 'Перегенерировать SEO-описания всех фото съёмки? Текущие SEO-описания и ключевые слова будут заменены (ручные описания фото не меняются).',
+        doneText: function(s) { return 'Готово — ' + s.done + ' фото'; },
+      });
+      shootJobButton({
+        btn: 'faces-regen-btn', prefix: 'faces-regen', path: '/faces/regenerate', label: '↻ ПЕРЕГЕНЕРИРОВАТЬ ЛИЦА',
+        doneText: function(s) {
+          return 'Готово — ' + s.done + ' фото' + (s.indexed ? ', заново проиндексировано: ' + s.indexed : '')
+            + (s.groups != null ? ', групп лиц: ' + s.groups + ' (обновите страницу, чтобы увидеть список)' : '');
+        },
+      });
 
       // ── Shoot map-center picker: click to place, drag to adjust ──
       (function() {
@@ -605,4 +661,10 @@ html(data-theme='dark')
       .copyright-progress { display:flex; flex-direction:column; gap:6px; }
       .copyright-progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
       .copyright-progress-fill { height:100%; background:var(--accent); width:0%; transition:width .4s; }
+      .face-groups { list-style:none; padding:0; margin:14px 0 0; display:flex; flex-direction:column; gap:10px; }
+      .face-group { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+      .face-group.is-hidden .faces-widget-avatar { opacity:.35; }
+      .face-group-info { display:flex; flex-direction:column; min-width:90px; }
+      .face-group-form { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin:0; }
+      .face-group-form .admin-input { width:auto; margin:0; padding:4px 8px; font-size:.75rem; }
       #progress-text, .progress-text { font-size:.6875rem; color:var(--text-muted); font-family:monospace; }

@@ -815,6 +815,12 @@ router.get('/shoots/:slug/edit', requireAuth, async (req, res) => {
     slug,
     shoot,
     photoViews,
+    faceGroups: photoPeople.groupShootFaces(slug, shoot, { includeHidden: true }).map(function(g) {
+      var photoIds = {};
+      g.faces.forEach(function(f) { photoIds[f.photoId] = true; });
+      return Object.assign({}, g, { photoCount: Object.keys(photoIds).length });
+    }).sort(function(a, b) { return b.photoCount - a.photoCount; }),
+    people: Object.values(photoPeople.getPeopleData()).sort(function(a, b) { return (a.name || '').localeCompare(b.name || '', 'ru'); }),
     data: getData(),
     allShoots: shoots.getData(),
     error: req.query.error || null,
@@ -1013,11 +1019,23 @@ router.get('/shoots/:slug/photos/:id/edit', requireAuth, async (req, res) => {
   var photo = shoot.photos.find(function(p) { return p.id === id; });
   if (!photo) return res.redirect('/admin/shoots/' + slug + '/edit');
   var viewStats = await photoStats.getStatsByType('shoot-photo').catch(function() { return {}; });
+  // this photo's faces + which shoot-level group each currently falls into (for the per-face override form)
+  var groupByFaceId = {};
+  photoPeople.groupShootFaces(slug, shoot, { includeHidden: true }).forEach(function(g) {
+    var photoIds = {};
+    g.faces.forEach(function(f) { photoIds[f.photoId] = true; });
+    g.faces.forEach(function(f) { groupByFaceId[f.faceId] = { name: g.name, photoCount: Object.keys(photoIds).length }; });
+  });
+  var photoFaces = (photo.faces || []).map(function(f) {
+    return Object.assign({}, f, { avatarStyle: photoPeople.faceAvatarStyle(photo, f.boundingBox), group: groupByFaceId[f.faceId] || null });
+  });
   res.render('photo/admin/shoot-photo-edit', {
     title: photo.title + ' — AERO Admin',
     slug,
     shootLabel: shoot.label,
     photo,
+    photoFaces,
+    people: Object.values(photoPeople.getPeopleData()).sort(function(a, b) { return (a.name || '').localeCompare(b.name || '', 'ru'); }),
     photoViews: viewStats[slug + '/' + id] || 0,
     colorFamilies: COLOR_FAMILIES,
     photoColors: getPhotoColorFamilies(photo),
@@ -1189,6 +1207,153 @@ router.get('/shoots/:slug/seo/regenerate/status', requireAuth, (req, res) => {
   res.json(seoRegenJobs[req.params.slug] || { running: false, finishedAt: null });
 });
 
+// Bulk "regenerate faces" for a shoot, same background/polling shape as the SEO job above.
+// Photos never indexed (no `faces` field) get detected from the 800px preview, as on upload;
+// already-detected faces are kept (names stay) and only get fresh match lists + person links.
+var faceRegenJobs = {};
+
+router.post('/shoots/:slug/faces/regenerate', requireAuth, (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ started: false });
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ started: false });
+  if (faceRegenJobs[slug] && faceRegenJobs[slug].running) return res.json({ started: false });
+
+  var photos = shoot.photos.slice();
+  var job = faceRegenJobs[slug] = { running: true, done: 0, total: photos.length, errors: 0, indexed: 0, finishedAt: null };
+  res.json({ started: true });
+
+  (async function() {
+    for (var photo of photos) {
+      try {
+        var faces;
+        if (!photo.faces) {
+          var src = photo.urls && (photo.urls.preview || photo.urls.full);
+          if (src) {
+            var img = await axios.get(src, { responseType: 'arraybuffer', timeout: 20000 });
+            faces = await photoPeople.indexAndMatchFaces(Buffer.from(img.data));
+            job.indexed++;
+          }
+        } else if (photo.faces.length) {
+          faces = await photoPeople.refreshFaceMatches(photo.faces);
+        }
+        if (faces) await shoots.updatePhotoFaces(slug, photo.id, faces);
+      } catch (e) {
+        job.errors++;
+        console.error('[shoots faces regenerate] ' + slug + '/' + photo.id + ':', e.message);
+      }
+      job.done++;
+    }
+    job.groups = photoPeople.groupShootFaces(slug, shoot).length;
+    job.running = false;
+    job.finishedAt = new Date().toISOString();
+  }());
+});
+
+router.get('/shoots/:slug/faces/regenerate/status', requireAuth, (req, res) => {
+  res.json(faceRegenJobs[req.params.slug] || { running: false, finishedAt: null });
+});
+
+// Names a whole face group from the shoot's faces widget: either a new person (`name`) or an
+// existing one (`personId`); every face of the group gets linked, so the group stays together.
+router.post('/shoots/:slug/faces/assign', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { slug } = req.params;
+  var back = '/admin/shoots/' + slug + '/edit#faces';
+  var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  var group = findFaceGroup(slug, shoot, req.body.groupKey);
+  var name = (req.body.name || '').trim();
+  var personId = req.body.personId || '';
+  if (!group || (!name && !personId)) return res.redirect(back);
+  try {
+    if (!personId) personId = (await photoPeople.createPerson(name, group.faces[0].faceId)).id;
+    for (var f of group.faces) await photoPeople.linkFaceToPerson(personId, f.faceId);
+    await updateGroupFaces(slug, shoot, group, { personId: personId, manual: true });
+  } catch (e) {
+    console.error('[shoots faces assign]', e);
+    return res.redirect('/admin/shoots/' + slug + '/edit?error=' + encodeURIComponent(e.message));
+  }
+  res.redirect(back);
+});
+
+// Shows/hides a whole face group in the public "find yourself" widget (random passers-by).
+// Stored per face (`hidden`), so it survives regrouping.
+router.post('/shoots/:slug/faces/visibility', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { slug } = req.params;
+  var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
+  if (!shoot) return res.redirect('/admin/shoots');
+  var group = findFaceGroup(slug, shoot, req.body.groupKey);
+  if (group) {
+    try {
+      await updateGroupFaces(slug, shoot, group, { hidden: req.body.hidden === '1' });
+    } catch (e) {
+      console.error('[shoots faces visibility]', e);
+    }
+  }
+  res.redirect('/admin/shoots/' + slug + '/edit#faces');
+});
+
+// Per-photo override for one face (fixing false matches):
+//   person — tie to an existing person; new — to a new person `name`; detach — "nobody from the other
+//   groups" (own group, never auto-linked); auto — back to automatic matching; hide / show — public widget.
+router.post('/shoots/:slug/photos/:id/faces/:faceId/set', requireAuth, express.urlencoded({ extended: false }), async (req, res) => {
+  var { slug, id, faceId } = req.params;
+  var back = '/admin/shoots/' + slug + '/photos/' + id + '/edit#faces';
+  var shoot = /^[a-z0-9-]+$/.test(slug) && shoots.getShoot(slug);
+  var photo = shoot && shoot.photos.find(function(p) { return p.id === id; });
+  var face = photo && (photo.faces || []).find(function(f) { return f.faceId === faceId; });
+  if (!face) return res.redirect('/admin/shoots');
+  var action = req.body.action;
+  try {
+    var fields;
+    if (action === 'person' || action === 'new') {
+      var personId = action === 'person' ? req.body.personId : null;
+      if (action === 'new') {
+        var name = (req.body.name || '').trim();
+        if (!name) return res.redirect(back);
+        await photoPeople.unlinkFace(faceId);
+        personId = (await photoPeople.createPerson(name, faceId)).id;
+      } else {
+        if (!personId || !photoPeople.getPeopleData()[personId]) return res.redirect(back);
+        await photoPeople.unlinkFace(faceId);
+        await photoPeople.linkFaceToPerson(personId, faceId);
+      }
+      fields = { personId: personId, manual: true };
+    } else if (action === 'detach') {
+      await photoPeople.unlinkFace(faceId);
+      fields = { personId: null, manual: true };
+    } else if (action === 'auto') {
+      await photoPeople.unlinkFace(faceId);
+      var refreshed = (await photoPeople.refreshFaceMatches([Object.assign({}, face, { personId: null, manual: false })]))[0];
+      fields = { personId: refreshed.personId || null, manual: false, matchedFaceId: refreshed.matchedFaceId, matchedFaceIds: refreshed.matchedFaceIds };
+    } else if (action === 'hide' || action === 'show') {
+      fields = { hidden: action === 'hide' };
+    } else {
+      return res.redirect(back);
+    }
+    var faces = photo.faces.map(function(f) { return f.faceId === faceId ? Object.assign({}, f, fields) : f; });
+    await shoots.updatePhotoFaces(slug, id, faces);
+  } catch (e) {
+    console.error('[shoot photo face set]', e);
+  }
+  res.redirect(back);
+});
+
+function findFaceGroup(slug, shoot, key) {
+  return photoPeople.groupShootFaces(slug, shoot, { includeHidden: true }).find(function(g) { return g.key === key; });
+}
+
+// Applies the same field changes to every face of a group, one Firestore write per photo.
+async function updateGroupFaces(slug, shoot, group, fields) {
+  var byPhoto = {};
+  group.faces.forEach(function(f) { (byPhoto[f.photoId] = byPhoto[f.photoId] || {})[f.faceId] = true; });
+  for (var photoId of Object.keys(byPhoto)) {
+    var photo = shoot.photos.find(function(p) { return p.id === photoId; });
+    var faces = photo.faces.map(function(fc) { return byPhoto[photoId][fc.faceId] ? Object.assign({}, fc, fields) : fc; });
+    await shoots.updatePhotoFaces(slug, photoId, faces);
+  }
+}
+
 // POST /admin/shoots/:slug/photos/:id/generate-seo — AI SEO generation for a shoot photo
 router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json(), async (req, res) => {
   var { slug, id } = req.params;
@@ -1301,7 +1466,9 @@ router.post('/shoots/:slug/photos/:id/faces/:faceId/unlink', requireAuth, async 
   var photo = shoot && shoot.photos.find(function(p) { return p.id === id; });
   if (!photo) return res.redirect('/admin/people');
   try {
-    var faces = (photo.faces || []).map(function(f) { return f.faceId === faceId ? Object.assign({}, f, { personId: null }) : f; });
+    // manual: the matcher must not re-link it (it would, to the very person it was just removed from)
+    await photoPeople.unlinkFace(faceId);
+    var faces = (photo.faces || []).map(function(f) { return f.faceId === faceId ? Object.assign({}, f, { personId: null, manual: true }) : f; });
     await shoots.updatePhotoFaces(slug, id, faces);
   } catch (e) {
     console.error('[shoots faces unlink]', e);
