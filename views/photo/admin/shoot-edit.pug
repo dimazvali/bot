@@ -29,6 +29,8 @@ html(data-theme='dark')
           p.admin-hint Описание (необязательно) — переносы строк сохраняются на странице съёмки:
           textarea.admin-input(name='desc' placeholder='описание' rows='5')= shoot.desc || ''
           textarea.admin-input(name='desc_en' placeholder='description (EN)' rows='5')= shoot.desc_en || ''
+          p.admin-hint Промпт для автоописаний фото — что за событие, кто в кадре, на чём делать акцент. Используется вместе с названием, описанием и координатами съёмки:
+          textarea.admin-input(name='seoPrompt' placeholder='напр.: свадьба Ани и Гоги в Кахети, акцент на гостях и застолье, не упоминать погоду' rows='3')= shoot.seoPrompt || ''
           input.admin-input(type='text' name='password' value=shoot.password placeholder='пароль (оставьте пустым для открытого доступа)')
           label.admin-tag-check
             input(type='checkbox' name='public' checked=shoot.public)
@@ -133,6 +135,16 @@ html(data-theme='dark')
                 | #{t[1]}
         button#bulk-start.admin-btn(type='button' data-upload-url=`/admin/shoots/${slug}/upload` style='display:none') ЗАГРУЗИТЬ ВСЕ
         p#bulk-status.admin-hint(style='display:none')
+
+      if shoot.photos.length
+        .admin-section
+          h2.admin-title ОПИСАНИЯ ФОТО
+          p.admin-hint Заново сгенерировать SEO-описания и ключевые слова (RU + EN) для всех фото съёмки — с учётом названия, описания, промпта и координат. Текущие описания будут перезаписаны.
+          button.admin-btn#seo-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ
+          .copyright-progress#seo-regen-status(style='display:none;margin-top:12px')
+            .copyright-progress-bar
+              .copyright-progress-fill#seo-regen-fill
+            span#seo-regen-text.progress-text
 
       if shoot.photos.length
         .admin-section
@@ -494,6 +506,53 @@ html(data-theme='dark')
         pollStatus();
       }
 
+      // ── Bulk regenerate SEO descriptions ──
+      var seoBtn = document.getElementById('seo-regen-btn');
+      if (seoBtn) {
+        var seoBox  = document.getElementById('seo-regen-status');
+        var seoFill = document.getElementById('seo-regen-fill');
+        var seoTxt  = document.getElementById('seo-regen-text');
+        var seoUrl  = window.location.pathname.replace(/\/edit$/, '') + '/seo/regenerate';
+        var SEO_LABEL = '↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ';
+
+        function pollSeo() {
+          fetch(seoUrl + '/status')
+            .then(function(r) { return r.json(); })
+            .then(function(s) {
+              if (!s.running && !s.finishedAt) return;
+              seoBox.style.display = 'block';
+              seoFill.style.width = (s.total ? Math.round(s.done / s.total * 100) : 0) + '%';
+              if (s.running) {
+                seoBtn.disabled = true;
+                seoBtn.textContent = '⏳ ' + s.done + ' / ' + s.total;
+                seoTxt.textContent = 'Готово: ' + s.done + ' из ' + s.total + (s.errors ? ', ошибок: ' + s.errors : '');
+                setTimeout(pollSeo, 2000);
+              } else {
+                seoBtn.disabled = false;
+                seoBtn.textContent = SEO_LABEL;
+                seoTxt.textContent = '✓ Готово — ' + s.done + ' фото' + (s.errors ? ', ошибок: ' + s.errors : '') + '.';
+              }
+            })
+            .catch(function() {});
+        }
+
+        seoBtn.addEventListener('click', function() {
+          if (!confirm('Перегенерировать описания всех фото съёмки? Текущие (в т.ч. отредактированные вручную) будут перезаписаны.')) return;
+          seoBtn.disabled = true;
+          seoBtn.textContent = '⏳ запуск…';
+          fetch(seoUrl, { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function() { pollSeo(); })
+            .catch(function(e) {
+              seoBtn.disabled = false;
+              seoBtn.textContent = SEO_LABEL;
+              alert('Ошибка: ' + e.message);
+            });
+        });
+
+        pollSeo();
+      }
+
       // ── Shoot map-center picker: click to place, drag to adjust ──
       (function() {
         var el = document.getElementById('coords-map');
@@ -546,4 +605,4 @@ html(data-theme='dark')
       .copyright-progress { display:flex; flex-direction:column; gap:6px; }
       .copyright-progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
       .copyright-progress-fill { height:100%; background:var(--accent); width:0%; transition:width .4s; }
-      #progress-text { font-size:.6875rem; color:var(--text-muted); font-family:monospace; }
+      #progress-text, .progress-text { font-size:.6875rem; color:var(--text-muted); font-family:monospace; }

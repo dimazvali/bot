@@ -6,7 +6,7 @@ require('dotenv').config();
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var shoots = require('../lib/photo-shoots');
-var { generatePhotoSeo } = require('../lib/photo-seo');
+var { generatePhotoSeo, shootSeoOptions } = require('../lib/photo-seo');
 
 var photoApp = getApps().find(function(a) { return a.name === 'photo'; }) || initializeApp({
   credential: cert({
@@ -64,14 +64,10 @@ async function run() {
     }
 
     try {
-      var result = await generatePhotoSeo(item.photo, {
-        countryLabel: item.shoot.label,
-        seriesLabel: item.shoot.label,
-        allTags: {},
-        shootDesc: item.shoot.desc,
+      var result = await generatePhotoSeo(item.photo, shootSeoOptions(item.shoot, item.photo, {
         previousCaptions: captionsBySlug[item.slug].slice(-CONTEXT_WINDOW),
-      });
-      await shoots.updatePhotoSeo(item.slug, item.photo.id, result.desc, result.keywords);
+      }));
+      await shoots.updatePhotoSeo(item.slug, item.photo.id, result.desc, result.keywords, result.descEn, result.keywordsEn);
       captionsBySlug[item.slug].push(result.desc);
       done++;
       console.log('[' + (done + errors) + '/' + toGenerate.length + '] ' + key + ': ' + result.desc);

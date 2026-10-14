@@ -850,7 +850,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.redirect('/admin/shoots');
-  var { label, desc, label_en, desc_en, password, public: isPublic, showFaces, showCuratorSelection, offerSelection, relatedShoots } = req.body;
+  var { label, desc, label_en, desc_en, seoPrompt, password, public: isPublic, showFaces, showCuratorSelection, offerSelection, relatedShoots } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
   var knownSlugs = Object.keys(shoots.getData());
   var relatedList = Array.isArray(relatedShoots) ? relatedShoots : (relatedShoots ? [relatedShoots] : []);
@@ -869,6 +869,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
       label_en: (label_en || '').trim(),
       desc: (desc || '').trim(),
       desc_en: (desc_en || '').trim(),
+      seoPrompt: (seoPrompt || '').trim(),
       password: (password || '').trim(),
       public: !!isPublic,
       showFaces: !!showFaces,
@@ -974,19 +975,15 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
         await shoots.updatePhotoFaces(slug, photoEntry.id, faces);
         var knownPeople = photoPeople.resolvePhotoPeopleNames({ faces: faces });
 
-        var { generatePhotoSeo } = require('../lib/photo-seo');
+        var { generatePhotoSeo, shootSeoOptions } = require('../lib/photo-seo');
         var previousCaptions = shoot.photos
           .filter(function(p) { return p.seo_desc; })
           .slice(-6)
           .map(function(p) { return p.seo_desc; });
-        var result = await generatePhotoSeo(photoEntry, {
-          countryLabel: shoot.label,
-          seriesLabel: shoot.label,
-          allTags: {},
-          shootDesc: shoot.desc,
+        var result = await generatePhotoSeo(photoEntry, shootSeoOptions(shoot, photoEntry, {
           previousCaptions: previousCaptions,
           knownPeople: knownPeople,
-        });
+        }));
         await shoots.updatePhotoSeo(slug, photoEntry.id, result.desc, result.keywords, result.descEn, result.keywordsEn);
       } catch (e) {
         console.error('[auto-faces+seo]', e.message);
@@ -1141,6 +1138,49 @@ router.post('/shoots/:slug/photos/:id/replace-file', requireAuth, upload.single(
   res.redirect('/admin/shoots/' + slug + '/photos/' + id + '/edit');
 });
 
+// Bulk "regenerate descriptions" for a whole shoot. Runs in the background, one photo at a
+// time in shoot order, so each caption sees the freshly generated ones before it as context.
+// In-memory progress per slug, polled by the edit page (lost on restart — just re-run).
+var seoRegenJobs = {};
+
+router.post('/shoots/:slug/seo/regenerate', requireAuth, (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).json({ started: false });
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).json({ started: false });
+  if (seoRegenJobs[slug] && seoRegenJobs[slug].running) return res.json({ started: false });
+
+  var photos = shoot.photos.slice();
+  var job = seoRegenJobs[slug] = { running: true, done: 0, total: photos.length, errors: 0, finishedAt: null };
+  res.json({ started: true });
+
+  (async function() {
+    var { generatePhotoSeo, shootSeoOptions } = require('../lib/photo-seo');
+    var captions = [];
+    for (var photo of photos) {
+      try {
+        var result = await generatePhotoSeo(photo, shootSeoOptions(shoot, photo, {
+          previousCaptions: captions.slice(-6),
+          knownPeople: photoPeople.resolvePhotoPeopleNames(photo),
+        }));
+        await shoots.updatePhotoSeo(slug, photo.id, result.desc, result.keywords, result.descEn, result.keywordsEn);
+        captions.push(result.desc);
+      } catch (e) {
+        job.errors++;
+        console.error('[shoots seo regenerate] ' + slug + '/' + photo.id + ':', e.message);
+        if (photo.seo_desc) captions.push(photo.seo_desc);
+      }
+      job.done++;
+    }
+    job.running = false;
+    job.finishedAt = new Date().toISOString();
+  }());
+});
+
+router.get('/shoots/:slug/seo/regenerate/status', requireAuth, (req, res) => {
+  res.json(seoRegenJobs[req.params.slug] || { running: false, finishedAt: null });
+});
+
 // POST /admin/shoots/:slug/photos/:id/generate-seo — AI SEO generation for a shoot photo
 router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json(), async (req, res) => {
   var { slug, id } = req.params;
@@ -1151,21 +1191,17 @@ router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json()
   if (!photo) return res.status(404).json({ error: 'Not found' });
 
   try {
-    var { generatePhotoSeo } = require('../lib/photo-seo');
+    var { generatePhotoSeo, shootSeoOptions } = require('../lib/photo-seo');
     var idx = shoot.photos.findIndex(function(p) { return p.id === id; });
     var previousCaptions = shoot.photos
       .slice(0, idx)
       .filter(function(p) { return p.seo_desc; })
       .slice(-6)
       .map(function(p) { return p.seo_desc; });
-    var result = await generatePhotoSeo(photo, {
-      countryLabel: shoot.label,
-      seriesLabel: shoot.label,
-      allTags: {},
-      shootDesc: shoot.desc,
+    var result = await generatePhotoSeo(photo, shootSeoOptions(shoot, photo, {
       previousCaptions: previousCaptions,
       knownPeople: photoPeople.resolvePhotoPeopleNames(photo),
-    });
+    }));
     await shoots.updatePhotoSeo(slug, id, result.desc, result.keywords, result.descEn, result.keywordsEn);
     res.json({ ok: true, desc: result.desc, keywords: result.keywords, descEn: result.descEn, keywordsEn: result.keywordsEn });
   } catch (err) {
@@ -1299,6 +1335,11 @@ router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded(
   if (photo.altitude != null) photoEntry.altitude = photo.altitude;
   if (photo.shotAt) photoEntry.shotAt = photo.shotAt;
   if (photo.colorFamilies && photo.colorFamilies.length) photoEntry.colorFamilies = photo.colorFamilies;
+  if (photo.panorama) photoEntry.panorama = true;
+  // EN texts + SEO meta (description/keywords) — the series photo page renders the same fields
+  ['title_en', 'desc_en', 'seo_desc', 'seo_keywords', 'seo_desc_en', 'seo_keywords_en'].forEach(function(k) {
+    if (photo[k]) photoEntry[k] = photo[k];
+  });
 
   data[country].series[series].photos.push(photoEntry);
   saveData(data);
