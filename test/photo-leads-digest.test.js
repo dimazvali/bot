@@ -1,7 +1,6 @@
 'use strict';
 var test = require('node:test');
 var assert = require('node:assert/strict');
-var makeFakeDb = require('./helpers/fake-firestore.js');
 var dg = require('../lib/photo-leads-digest.js');
 
 var DATE = new Date('2026-10-07T05:00:00Z');
@@ -47,16 +46,13 @@ test('splitMessage keeps chunks under the limit on paragraph boundaries', functi
   assert.ok(dg.splitMessage('x'.repeat(150), 70).every(function(p) { return p.length <= 70; }));
 });
 
-test('sendToAdmins sends every chunk to every DIMAZVALIusers admin', async function() {
-  var db = makeFakeDb();
-  await db.collection('DIMAZVALIusers').doc('111').set({ admin: true });
-  await db.collection('DIMAZVALIusers').doc('222').set({ admin: false });
+test('sendToOwner sends every chunk to Dima only', async function() {
   var posts = [];
-  var n = await dg.sendToAdmins(db, 'TOKEN', 'hello', { post: async function(url, body) { posts.push([url, body]); } });
+  var n = await dg.sendToOwner('TOKEN', 'hello', { post: async function(url, body) { posts.push([url, body]); } });
   assert.equal(n, 1);
   assert.equal(posts.length, 1);
   assert.equal(posts[0][0], 'https://api.telegram.org/botTOKEN/sendMessage');
-  assert.deepEqual(posts[0][1], { chat_id: '111', text: 'hello', parse_mode: 'HTML', disable_web_page_preview: true });
+  assert.deepEqual(posts[0][1], { chat_id: dg.DIMA_CHAT_ID, text: 'hello', parse_mode: 'HTML', disable_web_page_preview: true });
 });
 
 test('formatDigest shows this run\'s errors and classifier failures, without duplicating failing sources', function() {

@@ -14,7 +14,7 @@ module.exports = function createLeadsAdmin(fb) {
   threadsToken.init(fb);
   data.ensureDefaultSources().catch(function(e) { console.error('[photo-leads] seed', e.message); });
 
-  function send(text) { return digest.sendToAdmins(fb, process.env.dimazvaliToken, text); }
+  function send(text) { return digest.sendToOwner(process.env.dimazvaliToken, text); }
 
   function runAndReport(opts) {
     return pipeline.run(Object.assign({ deps: { send: send } }, opts)).then(function(r) {
