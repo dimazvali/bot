@@ -6,7 +6,8 @@ block head
   script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
 block breadcrumbs
   a(href='/admin/series') Серии и страны
-  a(href=`/admin/${countryKey}/${seriesKey}/edit`)= seriesKey
+  a(href=`/admin/country/${countryKey}/edit`)= countryLabel
+  a(href=`/admin/${countryKey}/${seriesKey}/edit`)= seriesLabel
   span= photo.title
 block actions
   span.admin-hint 👁 #{photoViews}

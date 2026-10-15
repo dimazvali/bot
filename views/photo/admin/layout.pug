@@ -19,12 +19,13 @@ html(data-theme='dark' lang='ru')
       aside.adm-side#adm-side
         a.adm-logo(href='/admin') AERO
           small photo.dimazvali.com
-        button.adm-burger(type='button' aria-label='меню' onclick="document.getElementById('adm-side').classList.toggle('is-open')") ☰
-        each g in adminNav(typeof nav === 'undefined' ? null : nav)
-          nav.adm-nav-group
-            span.adm-nav-label= g.label
-            each item in g.items
-              a.adm-nav-link(href=item.href class=item.active ? 'is-active' : undefined)= item.label
+        button.adm-burger(type='button' aria-label='меню' aria-controls='adm-side' aria-expanded='false' onclick="var s=document.getElementById('adm-side');var o=s.classList.toggle('is-open');this.setAttribute('aria-expanded',o)") ☰
+        nav.adm-nav(aria-label='Разделы админки')
+          each g in adminNav(typeof nav === 'undefined' ? null : nav)
+            .adm-nav-group
+              span.adm-nav-label= g.label
+              each item in g.items
+                a.adm-nav-link(href=item.href class=item.active ? 'is-active' : undefined)= item.label
         .adm-side-foot
           a.adm-nav-link(href='/admin/logout') выйти
       main.adm-main

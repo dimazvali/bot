@@ -2181,6 +2181,8 @@ router.get('/:country/:series/:id/edit', requireAuth, async (req, res) => {
     title: `${photo.title} — AERO Admin`,
     countryKey: country,
     seriesKey,
+    countryLabel: data[country].label,
+    seriesLabel: data[country].series[seriesKey].label,
     photo,
     photoViews: viewStats[country + '/' + seriesKey + '/' + id] || 0,
     seriesMapCenter: data[country].series[seriesKey].mapCenter || null,
