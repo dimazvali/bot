@@ -50,6 +50,14 @@ MIGRATED.forEach(function(file) {
     var m = src.match(/- var nav = '([a-z-]+)'/);
     assert.ok(m, 'no nav key');
     assert.ok(nav.NAV_KEYS.indexOf(m[1]) !== -1, 'unknown nav key ' + m[1]);
+    // mixins defined in a later block (e.g. scripts) are still undefined when block content runs —
+    // compiling doesn't catch that, only rendering does
+    var block = null;
+    src.replace(/\r\n/g, '\n').split('\n').forEach(function(line) {
+      var b = line.match(/^block (\w+)/);
+      if (b) block = b[1];
+      if (/^\s+mixin /.test(line)) assert.equal(block, 'vars', 'mixin outside block vars: ' + line.trim());
+    });
     pug.compileFile(full);
   });
 });
