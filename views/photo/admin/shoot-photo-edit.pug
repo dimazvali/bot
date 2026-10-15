@@ -1,431 +1,431 @@
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
-    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
-  body
-    .admin-wrap
-      .admin-header
-        a.admin-back(href=`/admin/shoots/${slug}/edit`) ← назад
-        span.admin-logo= photo.title || photo.id
-        span.admin-hint 👁 #{photoViews}
-        a.admin-link(href=`/shoot/${slug}/${photo.id}` target='_blank' rel='noopener') ОТКРЫТЬ ↗
+extends layout
+block vars
+  - var nav = 'shoots'
+block head
+  link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+  script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+block breadcrumbs
+  a(href='/admin/shoots') Съёмки
+  a(href=`/admin/shoots/${slug}/edit`)= shootLabel
+  span= photo.title 
+  
+   photo.id
+block actions
+  span.admin-hint 👁 #{photoViews}
+  a.admin-btn(href=`/shoot/${slug}/${photo.id}` target='_blank' rel='noopener') открыть ↗
+block content
+  .admin-section
+    h2.admin-title РЕДАКТИРОВАТЬ ФОТО
+    if photo.urls
+      .copyright-preview-row
+        .annot-canvas#annot-canvas
+          img#annot-img(src=photo.urls.preview alt=photo.title style='width:100%;height:auto;display:block;')
+          each a in (photo.annotations || [])
+            .annot-marker(style=`left:${a.x}%;top:${a.y}%;` data-id=a.id title=a.text) i
+      if colorFamilies
+        p.admin-hint ЦВЕТ (определяется автоматически при загрузке, можно несколько; можно скорректировать):
+        .color-radio-group
+          each fam, key in colorFamilies
+            label.color-radio-label(title=fam.label)
+              input(type='checkbox' form='shoot-photo-edit-form' name='colorFamilies' value=key checked=(photoColors.indexOf(key) !== -1))
+              span(style=`background:${fam.hex}`)
+      if photo.annotations && photo.annotations.length
+        .annot-list
+          p.admin-hint АННОТАЦИИ:
+          each a in (photo.annotations || [])
+            .annot-list-item
+              .annot-list-badge i
+              if a.source === 'client'
+                span.annot-list-text(style='color:#d4a537;font-size:.6875rem;letter-spacing:1px;')= 'гость: ' + (a.authorName || '?') + ' · '
+              span.annot-list-text= a.text
+              if a.text_en
+                span.annot-list-text(style='color:var(--text-dim);font-style:italic;')= a.text_en
+              form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/annotation/${a.id}/delete` style='margin:0')
+                button.admin-btn(type='submit' style='padding:1px 8px;font-size:.7rem;') ✕
+      .annot-pending-form#annot-pending-form
+        p.admin-hint ТЕКСТ АННОТАЦИИ:
+        textarea#annot-new-text.admin-input(rows='2' placeholder='Текст аннотации...' style='margin-bottom:6px;')
+        p.admin-hint TEXT (EN, необязательно):
+        textarea#annot-new-text-en.admin-input(rows='2' placeholder='Annotation text (EN)...' style='margin-bottom:6px;')
+        .annot-form-btns(style='display:flex;gap:8px;')
+          button#annot-save-btn.admin-btn(type='button') Сохранить
+          button#annot-cancel-btn.admin-btn(type='button') Отмена
+    form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/replace-file` enctype='multipart/form-data' style='margin-bottom:16px;')
+      p.admin-hint ЗАМЕНИТЬ ФАЙЛ (id, название, описание и SEO сохранятся; лица переиндексируются):
+      input.admin-input(type='file' name='photo' accept='image/*' required)
+      button.admin-btn(type='submit') ЗАМЕНИТЬ ФАЙЛ
 
-      .admin-section
-        h2.admin-title РЕДАКТИРОВАТЬ ФОТО
-        if photo.urls
-          .copyright-preview-row
-            .annot-canvas#annot-canvas
-              img#annot-img(src=photo.urls.preview alt=photo.title style='width:100%;height:auto;display:block;')
-              each a in (photo.annotations || [])
-                .annot-marker(style=`left:${a.x}%;top:${a.y}%;` data-id=a.id title=a.text) i
-          if colorFamilies
-            p.admin-hint ЦВЕТ (определяется автоматически при загрузке, можно несколько; можно скорректировать):
-            .color-radio-group
-              each fam, key in colorFamilies
-                label.color-radio-label(title=fam.label)
-                  input(type='checkbox' form='shoot-photo-edit-form' name='colorFamilies' value=key checked=(photoColors.indexOf(key) !== -1))
-                  span(style=`background:${fam.hex}`)
-          if photo.annotations && photo.annotations.length
-            .annot-list
-              p.admin-hint АННОТАЦИИ:
-              each a in (photo.annotations || [])
-                .annot-list-item
-                  .annot-list-badge i
-                  if a.source === 'client'
-                    span.annot-list-text(style='color:#d4a537;font-size:.6875rem;letter-spacing:1px;')= 'гость: ' + (a.authorName || '?') + ' · '
-                  span.annot-list-text= a.text
-                  if a.text_en
-                    span.annot-list-text(style='color:var(--text-dim);font-style:italic;')= a.text_en
-                  form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/annotation/${a.id}/delete` style='margin:0')
-                    button.admin-btn(type='submit' style='padding:1px 8px;font-size:.7rem;') ✕
-          .annot-pending-form#annot-pending-form
-            p.admin-hint ТЕКСТ АННОТАЦИИ:
-            textarea#annot-new-text.admin-input(rows='2' placeholder='Текст аннотации...' style='margin-bottom:6px;')
-            p.admin-hint TEXT (EN, необязательно):
-            textarea#annot-new-text-en.admin-input(rows='2' placeholder='Annotation text (EN)...' style='margin-bottom:6px;')
-            .annot-form-btns(style='display:flex;gap:8px;')
-              button#annot-save-btn.admin-btn(type='button') Сохранить
-              button#annot-cancel-btn.admin-btn(type='button') Отмена
-        form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/replace-file` enctype='multipart/form-data' style='margin-bottom:16px;')
-          p.admin-hint ЗАМЕНИТЬ ФАЙЛ (id, название, описание и SEO сохранятся; лица переиндексируются):
-          input.admin-input(type='file' name='photo' accept='image/*' required)
-          button.admin-btn(type='submit') ЗАМЕНИТЬ ФАЙЛ
+    form#shoot-photo-edit-form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/edit`)
+      input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
+      input.admin-input(type='text' name='title_en' value=photo.title_en || '' placeholder='title (EN)')
+      input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. июнь 2026)')
+      textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='4')= photo.desc || ''
+      textarea.admin-input(name='desc_en' placeholder='description (EN, необязательно)' rows='4')= photo.desc_en || ''
+      .admin-desc-row
+        input.admin-input#photo-seo-desc(type='text' name='seo_desc' value=photo.seo_desc || '' placeholder='meta-описание (только в метатегах, SEO)')
+        button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать meta-описание и ключевые слова через AI') 🤖
+      input.admin-input#photo-keywords(type='text' name='seo_keywords' value=photo.seo_keywords || '' placeholder='ключевые слова (SEO, необязательно)')
+      p.admin-hint#gen-seo-status(style='display:none')
+      input.admin-input(type='text' name='seo_desc_en' value=photo.seo_desc_en || '' placeholder='meta description (EN, SEO)')
+      input.admin-input(type='text' name='seo_keywords_en' value=photo.seo_keywords_en || '' placeholder='keywords (EN, SEO)')
+      p.admin-hint ЛОКАЦИЯ (клик — поставить точку, перетаскивание — сдвинуть):
+      #coords-map
+      input#coords-lat(type='hidden' name='lat' value=(photo.coords ? photo.coords.lat : ''))
+      input#coords-lng(type='hidden' name='lng' value=(photo.coords ? photo.coords.lng : ''))
+      .coords-map-bar
+        span#coords-label(data-empty='точка не задана')= (photo.coords) ? photo.coords.lat.toFixed(6) + ', ' + photo.coords.lng.toFixed(6) : 'точка не задана'
+        button#coords-clear.admin-btn(type='button') Убрать точку
+      p.admin-hint ТИП СЪЁМКИ:
+      .type-radio-group
+        each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
+          label.type-radio-label
+            input(type='radio' name='type' value=t[0] checked=(photo.type||'camera')===t[0])
+            span
+              svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
+                if t[0]==='camera'
+                  path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
+                  circle(cx='12' cy='13' r='4')
+                else if t[0]==='mobile'
+                  rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
+                  circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
+                else
+                  rect(x='9' y='9' width='6' height='6' rx='1')
+                  line(x1='9' y1='9' x2='4' y2='4')
+                  line(x1='15' y1='9' x2='20' y2='4')
+                  line(x1='9' y1='15' x2='4' y2='20')
+                  line(x1='15' y1='15' x2='20' y2='20')
+                  circle(cx='3' cy='3' r='2')
+                  circle(cx='21' cy='3' r='2')
+                  circle(cx='3' cy='21' r='2')
+                  circle(cx='21' cy='21' r='2')
+              | #{t[1]}
+      label.admin-tag-check
+        input(type='checkbox' name='panorama' checked=!!photo.panorama)
+        span панорама (зум/пан в просмотре; копия в оригинальном размере не перегенерируется — загрузите фото заново с этой галочкой, если её ещё нет)
+      label.admin-tag-check
+        input(type='checkbox' name='curatorPick' checked=!!photo.curatorPick)
+        span авторский отбор
+      button.admin-btn(type='submit') СОХРАНИТЬ
 
-        form#shoot-photo-edit-form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/edit`)
-          input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
-          input.admin-input(type='text' name='title_en' value=photo.title_en || '' placeholder='title (EN)')
-          input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. июнь 2026)')
-          textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='4')= photo.desc || ''
-          textarea.admin-input(name='desc_en' placeholder='description (EN, необязательно)' rows='4')= photo.desc_en || ''
-          .admin-desc-row
-            input.admin-input#photo-seo-desc(type='text' name='seo_desc' value=photo.seo_desc || '' placeholder='meta-описание (только в метатегах, SEO)')
-            button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать meta-описание и ключевые слова через AI') 🤖
-          input.admin-input#photo-keywords(type='text' name='seo_keywords' value=photo.seo_keywords || '' placeholder='ключевые слова (SEO, необязательно)')
-          p.admin-hint#gen-seo-status(style='display:none')
-          input.admin-input(type='text' name='seo_desc_en' value=photo.seo_desc_en || '' placeholder='meta description (EN, SEO)')
-          input.admin-input(type='text' name='seo_keywords_en' value=photo.seo_keywords_en || '' placeholder='keywords (EN, SEO)')
-          p.admin-hint ЛОКАЦИЯ (клик — поставить точку, перетаскивание — сдвинуть):
-          #coords-map
-          input#coords-lat(type='hidden' name='lat' value=(photo.coords ? photo.coords.lat : ''))
-          input#coords-lng(type='hidden' name='lng' value=(photo.coords ? photo.coords.lng : ''))
-          .coords-map-bar
-            span#coords-label(data-empty='точка не задана')= (photo.coords) ? photo.coords.lat.toFixed(6) + ', ' + photo.coords.lng.toFixed(6) : 'точка не задана'
-            button#coords-clear.admin-btn(type='button') Убрать точку
-          p.admin-hint ТИП СЪЁМКИ:
-          .type-radio-group
-            each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
-              label.type-radio-label
-                input(type='radio' name='type' value=t[0] checked=(photo.type||'camera')===t[0])
-                span
-                  svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
-                    if t[0]==='camera'
-                      path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
-                      circle(cx='12' cy='13' r='4')
-                    else if t[0]==='mobile'
-                      rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
-                      circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
-                    else
-                      rect(x='9' y='9' width='6' height='6' rx='1')
-                      line(x1='9' y1='9' x2='4' y2='4')
-                      line(x1='15' y1='9' x2='20' y2='4')
-                      line(x1='9' y1='15' x2='4' y2='20')
-                      line(x1='15' y1='15' x2='20' y2='20')
-                      circle(cx='3' cy='3' r='2')
-                      circle(cx='21' cy='3' r='2')
-                      circle(cx='3' cy='21' r='2')
-                      circle(cx='21' cy='21' r='2')
-                  | #{t[1]}
-          label.admin-tag-check
-            input(type='checkbox' name='panorama' checked=!!photo.panorama)
-            span панорама (зум/пан в просмотре; копия в оригинальном размере не перегенерируется — загрузите фото заново с этой галочкой, если её ещё нет)
-          label.admin-tag-check
-            input(type='checkbox' name='curatorPick' checked=!!photo.curatorPick)
-            span авторский отбор
-          button.admin-btn(type='submit') СОХРАНИТЬ
+  if photo.urls
+    .admin-section#faces
+      h2.admin-title ЛИЦА НА ФОТО
+      p.admin-hint
+        | Правка только для этого фото. Чтобы отметить пропущенное лицо — обведите его мышью на фото ниже.
+        |  «Отдельно» — это не тот, с кем лицо сгруппировалось (останется само по себе, автосопоставление его больше не трогает); «авто» — вернуть автоматическое сопоставление; «удалить» — ложное срабатывание.
+      .face-canvas#face-canvas
+        img(src=photo.urls.preview alt='' draggable='false')
+        each f, i in photoFaces
+          .face-box(class=f.hidden ? 'is-hidden' : '' style=`left:${f.boundingBox.Left * 100}%;top:${f.boundingBox.Top * 100}%;width:${f.boundingBox.Width * 100}%;height:${f.boundingBox.Height * 100}%;`)
+            span= i + 1
+        .face-box.face-box--new#face-box-new(style='display:none')
+      form.photo-face-form#face-add-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/faces/add` style='display:none;margin-top:8px;')
+        input(type='hidden' name='left')
+        input(type='hidden' name='top')
+        input(type='hidden' name='width')
+        input(type='hidden' name='height')
+        span.admin-hint новое лицо:
+        if people.length
+          select.admin-input(name='personId')
+            option(value='') — человек (необязательно) —
+            each p in people
+              option(value=p.id)= p.name || '(без имени)'
+        input.admin-input(type='text' name='name' placeholder='или новое имя')
+        button.admin-btn.admin-btn--sm(type='submit') добавить лицо
+        button.admin-btn.admin-btn--sm#face-add-cancel(type='button') отмена
+      if !photoFaces.length
+        p.admin-hint На фото пока нет распознанных лиц.
+      ul.photo-faces
+        each f, i in photoFaces
+          li.photo-face(class=f.hidden ? 'is-hidden' : '')
+            span.photo-face-num= i + 1
+            .faces-widget-avatar
+              img(src=photo.urls && photo.urls.preview alt='' style=f.avatarStyle)
+            .photo-face-info
+              if f.group && f.group.name
+                b= f.group.name
+              else if f.manual
+                span.admin-hint отдельно (вручную)
+              else
+                span.admin-hint без имени#{f.group ? ' · группа из ' + f.group.photoCount + ' фото' : ''}
+              span.admin-hint #{f.manual ? 'вручную' : 'авто'}#{f.hidden ? ' · скрыто' : ''}
+            form.photo-face-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/faces/${f.faceId}/set`)
+              if people.length
+                select.admin-input(name='personId')
+                  option(value='') — человек —
+                  each p in people
+                    option(value=p.id selected=p.id === f.personId)= p.name || '(без имени)'
+                button.admin-btn.admin-btn--sm(type='submit' name='action' value='person') это он(а)
+              input.admin-input(type='text' name='name' placeholder='новое имя')
+              button.admin-btn.admin-btn--sm(type='submit' name='action' value='new') новый человек
+              button.admin-btn.admin-btn--sm(type='submit' name='action' value='detach') отдельно
+              if f.manual
+                button.admin-btn.admin-btn--sm(type='submit' name='action' value='auto') авто
+              button.admin-btn.admin-btn--sm(type='submit' name='action' value=f.hidden ? 'show' : 'hide')= f.hidden ? '👁 показать' : '🚫 скрыть'
+              button.admin-btn.admin-btn--sm.admin-btn--danger(type='submit' name='action' value='delete' onclick="return confirm('Удалить это лицо с фото?')") удалить
 
-      if photo.urls
-        .admin-section#faces
-          h2.admin-title ЛИЦА НА ФОТО
-          p.admin-hint
-            | Правка только для этого фото. Чтобы отметить пропущенное лицо — обведите его мышью на фото ниже.
-            |  «Отдельно» — это не тот, с кем лицо сгруппировалось (останется само по себе, автосопоставление его больше не трогает); «авто» — вернуть автоматическое сопоставление; «удалить» — ложное срабатывание.
-          .face-canvas#face-canvas
-            img(src=photo.urls.preview alt='' draggable='false')
-            each f, i in photoFaces
-              .face-box(class=f.hidden ? 'is-hidden' : '' style=`left:${f.boundingBox.Left * 100}%;top:${f.boundingBox.Top * 100}%;width:${f.boundingBox.Width * 100}%;height:${f.boundingBox.Height * 100}%;`)
-                span= i + 1
-            .face-box.face-box--new#face-box-new(style='display:none')
-          form.photo-face-form#face-add-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/faces/add` style='display:none;margin-top:8px;')
-            input(type='hidden' name='left')
-            input(type='hidden' name='top')
-            input(type='hidden' name='width')
-            input(type='hidden' name='height')
-            span.admin-hint новое лицо:
-            if people.length
-              select.admin-input(name='personId')
-                option(value='') — человек (необязательно) —
-                each p in people
-                  option(value=p.id)= p.name || '(без имени)'
-            input.admin-input(type='text' name='name' placeholder='или новое имя')
-            button.admin-btn.admin-btn--sm(type='submit') добавить лицо
-            button.admin-btn.admin-btn--sm#face-add-cancel(type='button') отмена
-          if !photoFaces.length
-            p.admin-hint На фото пока нет распознанных лиц.
-          ul.photo-faces
-            each f, i in photoFaces
-              li.photo-face(class=f.hidden ? 'is-hidden' : '')
-                span.photo-face-num= i + 1
-                .faces-widget-avatar
-                  img(src=photo.urls && photo.urls.preview alt='' style=f.avatarStyle)
-                .photo-face-info
-                  if f.group && f.group.name
-                    b= f.group.name
-                  else if f.manual
-                    span.admin-hint отдельно (вручную)
-                  else
-                    span.admin-hint без имени#{f.group ? ' · группа из ' + f.group.photoCount + ' фото' : ''}
-                  span.admin-hint #{f.manual ? 'вручную' : 'авто'}#{f.hidden ? ' · скрыто' : ''}
-                form.photo-face-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/faces/${f.faceId}/set`)
-                  if people.length
-                    select.admin-input(name='personId')
-                      option(value='') — человек —
-                      each p in people
-                        option(value=p.id selected=p.id === f.personId)= p.name || '(без имени)'
-                    button.admin-btn.admin-btn--sm(type='submit' name='action' value='person') это он(а)
-                  input.admin-input(type='text' name='name' placeholder='новое имя')
-                  button.admin-btn.admin-btn--sm(type='submit' name='action' value='new') новый человек
-                  button.admin-btn.admin-btn--sm(type='submit' name='action' value='detach') отдельно
-                  if f.manual
-                    button.admin-btn.admin-btn--sm(type='submit' name='action' value='auto') авто
-                  button.admin-btn.admin-btn--sm(type='submit' name='action' value=f.hidden ? 'show' : 'hide')= f.hidden ? '👁 показать' : '🚫 скрыть'
-                  button.admin-btn.admin-btn--sm.admin-btn--danger(type='submit' name='action' value='delete' onclick="return confirm('Удалить это лицо с фото?')") удалить
+  .admin-section
+    h2.admin-title УДАЛИТЬ ФОТО
+    p.admin-hint Фото и все его копии будут удалены из хранилища без возможности восстановления.
+    form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete` onsubmit="return confirm('Удалить это фото из съёмки? Отменить будет нельзя.')")
+      button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ ФОТО
+block scripts
+  style.
+    #coords-map { width: 100%; height: 260px; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
+    #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
+    .coords-map-bar { display: flex; flex: 1 1 100%; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
+    .face-canvas { position: relative; display: inline-block; max-width: 100%; margin-top: 8px; cursor: crosshair; user-select: none; line-height: 0; }
+    .face-canvas img { max-width: 100%; max-height: 70vh; display: block; pointer-events: none; }
+    .face-box { position: absolute; border: 2px solid #4caf50; box-sizing: border-box; pointer-events: none; }
+    .face-box.is-hidden { border-style: dashed; opacity: .5; }
+    .face-box span { position: absolute; top: -2px; left: -2px; background: #4caf50; color: #000; font: 600 11px/1 monospace; padding: 2px 4px; }
+    .face-box--new { border-color: #d4a537; }
+    .photo-face-num { font: 600 .75rem monospace; color: #4caf50; min-width: 14px; }
+    .photo-faces { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 12px; }
+    .photo-face { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .photo-face.is-hidden .faces-widget-avatar { opacity: .35; }
+    .photo-face-info { display: flex; flex-direction: column; min-width: 110px; }
+    .photo-face-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 0; }
+    .photo-face-form .admin-input { width: auto; margin: 0; padding: 4px 8px; font-size: .75rem; }
+    .color-radio-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 12px; }
+    .color-radio-label { cursor: pointer; }
+    .color-radio-label input { display: none; }
+    .color-radio-label span { display: block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); box-sizing: border-box; }
+    .color-radio-label input:checked + span { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
 
-      .admin-section
-        h2.admin-title УДАЛИТЬ ФОТО
-        p.admin-hint Фото и все его копии будут удалены из хранилища без возможности восстановления.
-        form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete` onsubmit="return confirm('Удалить это фото из съёмки? Отменить будет нельзя.')")
-          button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ ФОТО
+  script.
+    // ── Face marking: drag a box on the photo, then submit it with an optional person ──
+    (function() {
+      var canvas = document.getElementById('face-canvas');
+      var form = document.getElementById('face-add-form');
+      if (!canvas || !form) return;
+      var box = document.getElementById('face-box-new');
+      var start = null, rect = null;
+      function frac(e) {
+        return {
+          x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
+          y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
+        };
+      }
+      function draw(a, b) {
+        var l = Math.min(a.x, b.x), t = Math.min(a.y, b.y), w = Math.abs(a.x - b.x), h = Math.abs(a.y - b.y);
+        box.style.cssText = 'display:block;left:' + l * 100 + '%;top:' + t * 100 + '%;width:' + w * 100 + '%;height:' + h * 100 + '%;';
+        return { left: l, top: t, width: w, height: h };
+      }
+      canvas.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        rect = canvas.getBoundingClientRect();
+        start = frac(e);
+        draw(start, start);
+      });
+      document.addEventListener('mousemove', function(e) { if (start) draw(start, frac(e)); });
+      document.addEventListener('mouseup', function(e) {
+        if (!start) return;
+        var b = draw(start, frac(e));
+        start = null;
+        if (b.width < 0.01 || b.height < 0.01) { box.style.display = 'none'; form.style.display = 'none'; return; }
+        ['left', 'top', 'width', 'height'].forEach(function(k) { form.elements[k].value = b[k].toFixed(5); });
+        form.style.display = 'flex';
+      });
+      document.getElementById('face-add-cancel').addEventListener('click', function() {
+        box.style.display = 'none';
+        form.style.display = 'none';
+      });
+    }());
 
-    style.
-      #coords-map { width: 100%; height: 260px; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
-      #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
-      .coords-map-bar { display: flex; flex: 1 1 100%; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
-      .face-canvas { position: relative; display: inline-block; max-width: 100%; margin-top: 8px; cursor: crosshair; user-select: none; line-height: 0; }
-      .face-canvas img { max-width: 100%; max-height: 70vh; display: block; pointer-events: none; }
-      .face-box { position: absolute; border: 2px solid #4caf50; box-sizing: border-box; pointer-events: none; }
-      .face-box.is-hidden { border-style: dashed; opacity: .5; }
-      .face-box span { position: absolute; top: -2px; left: -2px; background: #4caf50; color: #000; font: 600 11px/1 monospace; padding: 2px 4px; }
-      .face-box--new { border-color: #d4a537; }
-      .photo-face-num { font: 600 .75rem monospace; color: #4caf50; min-width: 14px; }
-      .photo-faces { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-direction: column; gap: 12px; }
-      .photo-face { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-      .photo-face.is-hidden .faces-widget-avatar { opacity: .35; }
-      .photo-face-info { display: flex; flex-direction: column; min-width: 110px; }
-      .photo-face-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin: 0; }
-      .photo-face-form .admin-input { width: auto; margin: 0; padding: 4px 8px; font-size: .75rem; }
-      .color-radio-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 12px; }
-      .color-radio-label { cursor: pointer; }
-      .color-radio-label input { display: none; }
-      .color-radio-label span { display: block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); box-sizing: border-box; }
-      .color-radio-label input:checked + span { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
+    // ── Annotation canvas ──
+    (function() {
+      var canvas = document.getElementById('annot-canvas');
+      if (!canvas) return;
+      var pendingMarker = null;
+      var pendingX = 0, pendingY = 0;
+      var form = document.getElementById('annot-pending-form');
+      var textArea = document.getElementById('annot-new-text');
+      var textAreaEn = document.getElementById('annot-new-text-en');
+      var saveBtn = document.getElementById('annot-save-btn');
+      var cancelBtn = document.getElementById('annot-cancel-btn');
+      var baseUrl = window.location.pathname.replace('/edit', '');
 
-    script.
-      // ── Face marking: drag a box on the photo, then submit it with an optional person ──
-      (function() {
-        var canvas = document.getElementById('face-canvas');
-        var form = document.getElementById('face-add-form');
-        if (!canvas || !form) return;
-        var box = document.getElementById('face-box-new');
-        var start = null, rect = null;
-        function frac(e) {
-          return {
-            x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-            y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height)),
-          };
-        }
-        function draw(a, b) {
-          var l = Math.min(a.x, b.x), t = Math.min(a.y, b.y), w = Math.abs(a.x - b.x), h = Math.abs(a.y - b.y);
-          box.style.cssText = 'display:block;left:' + l * 100 + '%;top:' + t * 100 + '%;width:' + w * 100 + '%;height:' + h * 100 + '%;';
-          return { left: l, top: t, width: w, height: h };
-        }
-        canvas.addEventListener('mousedown', function(e) {
-          e.preventDefault();
-          rect = canvas.getBoundingClientRect();
-          start = frac(e);
-          draw(start, start);
-        });
-        document.addEventListener('mousemove', function(e) { if (start) draw(start, frac(e)); });
-        document.addEventListener('mouseup', function(e) {
-          if (!start) return;
-          var b = draw(start, frac(e));
-          start = null;
-          if (b.width < 0.01 || b.height < 0.01) { box.style.display = 'none'; form.style.display = 'none'; return; }
-          ['left', 'top', 'width', 'height'].forEach(function(k) { form.elements[k].value = b[k].toFixed(5); });
-          form.style.display = 'flex';
-        });
-        document.getElementById('face-add-cancel').addEventListener('click', function() {
-          box.style.display = 'none';
-          form.style.display = 'none';
-        });
-      }());
+      // ── Drag existing markers ──
+      var dragging = null;
 
-      // ── Annotation canvas ──
-      (function() {
-        var canvas = document.getElementById('annot-canvas');
-        if (!canvas) return;
-        var pendingMarker = null;
-        var pendingX = 0, pendingY = 0;
-        var form = document.getElementById('annot-pending-form');
-        var textArea = document.getElementById('annot-new-text');
-        var textAreaEn = document.getElementById('annot-new-text-en');
-        var saveBtn = document.getElementById('annot-save-btn');
-        var cancelBtn = document.getElementById('annot-cancel-btn');
-        var baseUrl = window.location.pathname.replace('/edit', '');
+      canvas.addEventListener('mousedown', function(e) {
+        var marker = e.target.closest('.annot-marker:not(.annot-marker--pending)');
+        if (!marker) return;
+        e.preventDefault();
+        dragging = {
+          marker: marker,
+          annotId: marker.dataset.id,
+          startX: e.clientX,
+          startY: e.clientY,
+          startLeft: parseFloat(marker.style.left),
+          startTop: parseFloat(marker.style.top),
+          moved: false,
+        };
+        document.body.style.cursor = 'grabbing';
+      });
 
-        // ── Drag existing markers ──
-        var dragging = null;
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var rect = canvas.getBoundingClientRect();
+        var dx = e.clientX - dragging.startX;
+        var dy = e.clientY - dragging.startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragging.moved = true;
+        dragging.marker.style.left = Math.max(0, Math.min(100, dragging.startLeft + dx / rect.width * 100)) + '%';
+        dragging.marker.style.top  = Math.max(0, Math.min(100, dragging.startTop  + dy / rect.height * 100)) + '%';
+      });
 
-        canvas.addEventListener('mousedown', function(e) {
-          var marker = e.target.closest('.annot-marker:not(.annot-marker--pending)');
-          if (!marker) return;
-          e.preventDefault();
-          dragging = {
-            marker: marker,
-            annotId: marker.dataset.id,
-            startX: e.clientX,
-            startY: e.clientY,
-            startLeft: parseFloat(marker.style.left),
-            startTop: parseFloat(marker.style.top),
-            moved: false,
-          };
-          document.body.style.cursor = 'grabbing';
-        });
-
-        document.addEventListener('mousemove', function(e) {
-          if (!dragging) return;
-          var rect = canvas.getBoundingClientRect();
-          var dx = e.clientX - dragging.startX;
-          var dy = e.clientY - dragging.startY;
-          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragging.moved = true;
-          dragging.marker.style.left = Math.max(0, Math.min(100, dragging.startLeft + dx / rect.width * 100)) + '%';
-          dragging.marker.style.top  = Math.max(0, Math.min(100, dragging.startTop  + dy / rect.height * 100)) + '%';
-        });
-
-        document.addEventListener('mouseup', async function() {
-          if (!dragging) return;
-          var d = dragging;
-          dragging = null;
-          document.body.style.cursor = '';
-          if (!d.moved) return;
-          var x = parseFloat(d.marker.style.left);
-          var y = parseFloat(d.marker.style.top);
-          try {
-            var resp = await fetch(baseUrl + '/annotation/' + d.annotId + '/move', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ x: x, y: y }),
-            });
-            var result = await resp.json();
-            if (!result.ok) throw new Error(result.error || 'Ошибка');
-          } catch (err) {
-            d.marker.style.left = d.startLeft + '%';
-            d.marker.style.top  = d.startTop  + '%';
-            alert('Ошибка: ' + err.message);
-          }
-        });
-
-        // ── Create new annotation on canvas click ──
-        canvas.addEventListener('click', function(e) {
-          if (e.target.closest('.annot-marker')) return;
-          var rect = canvas.getBoundingClientRect();
-          pendingX = ((e.clientX - rect.left) / rect.width) * 100;
-          pendingY = ((e.clientY - rect.top) / rect.height) * 100;
-
-          if (pendingMarker) pendingMarker.remove();
-          var m = document.createElement('div');
-          m.className = 'annot-marker annot-marker--pending';
-          m.style.left = pendingX + '%';
-          m.style.top = pendingY + '%';
-          m.textContent = 'i';
-          canvas.appendChild(m);
-          pendingMarker = m;
-
-          form.style.display = 'block';
-          textArea.value = '';
-          if (textAreaEn) textAreaEn.value = '';
-          textArea.focus();
-        });
-
-        cancelBtn.addEventListener('click', function() {
-          if (pendingMarker) { pendingMarker.remove(); pendingMarker = null; }
-          form.style.display = 'none';
-          textArea.value = '';
-          if (textAreaEn) textAreaEn.value = '';
-        });
-
-        saveBtn.addEventListener('click', async function() {
-          var text = textArea.value.trim();
-          var textEn = textAreaEn ? textAreaEn.value.trim() : '';
-          if (!text) return;
-          saveBtn.disabled = true;
-          saveBtn.textContent = '…';
-          try {
-            var resp = await fetch(baseUrl + '/annotation/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ x: pendingX, y: pendingY, text: text, text_en: textEn }),
-            });
-            var data = await resp.json();
-            if (!data.ok) throw new Error(data.error || 'Ошибка');
-            window.location.reload();
-          } catch (e) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Сохранить';
-            alert('Ошибка: ' + e.message);
-          }
-        });
-      }());
-
-      document.getElementById('gen-seo-btn').addEventListener('click', async function() {
-        var btn = this;
-        var status = document.getElementById('gen-seo-status');
-        btn.disabled = true;
-        btn.textContent = '⏳';
-        status.style.display = 'block';
-        status.style.color = '#aaa';
-        status.textContent = 'Генерирую…';
+      document.addEventListener('mouseup', async function() {
+        if (!dragging) return;
+        var d = dragging;
+        dragging = null;
+        document.body.style.cursor = '';
+        if (!d.moved) return;
+        var x = parseFloat(d.marker.style.left);
+        var y = parseFloat(d.marker.style.top);
         try {
-          var resp = await fetch(window.location.pathname.replace('/edit', '/generate-seo'), {
+          var resp = await fetch(baseUrl + '/annotation/' + d.annotId + '/move', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}),
+            body: JSON.stringify({ x: x, y: y }),
           });
-          var data = await resp.json();
-          if (!resp.ok || !data.ok) throw new Error(data.error || 'Ошибка');
-          document.getElementById('photo-seo-desc').value = data.desc;
-          document.getElementById('photo-keywords').value = data.keywords;
-          if (data.descEn) document.querySelector('[name="seo_desc_en"]').value = data.descEn;
-          if (data.keywordsEn) document.querySelector('[name="seo_keywords_en"]').value = data.keywordsEn;
-          status.style.color = '#4caf50';
-          status.textContent = '✓ Готово — не забудьте сохранить';
-        } catch (e) {
-          status.style.color = '#f44336';
-          status.textContent = '✗ ' + e.message;
-        } finally {
-          btn.disabled = false;
-          btn.textContent = '🤖';
+          var result = await resp.json();
+          if (!result.ok) throw new Error(result.error || 'Ошибка');
+        } catch (err) {
+          d.marker.style.left = d.startLeft + '%';
+          d.marker.style.top  = d.startTop  + '%';
+          alert('Ошибка: ' + err.message);
         }
       });
 
-      // ── Location map: click to place, drag to adjust ──
-      (function() {
-        var el = document.getElementById('coords-map');
-        if (!el || !window.L) return;
-        var latInput = document.getElementById('coords-lat');
-        var lngInput = document.getElementById('coords-lng');
-        var label = document.getElementById('coords-label');
-        var clearBtn = document.getElementById('coords-clear');
-        var SHOOT_CENTER = !{typeof shootMapCenter !== 'undefined' && shootMapCenter ? JSON.stringify([shootMapCenter.lat, shootMapCenter.lng]) : 'null'};
-        var DEFAULT_CENTER = SHOOT_CENTER || [41.7151, 44.8271];
+      // ── Create new annotation on canvas click ──
+      canvas.addEventListener('click', function(e) {
+        if (e.target.closest('.annot-marker')) return;
+        var rect = canvas.getBoundingClientRect();
+        pendingX = ((e.clientX - rect.left) / rect.width) * 100;
+        pendingY = ((e.clientY - rect.top) / rect.height) * 100;
 
-        function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
-        var lat0 = num(latInput.value);
-        var lng0 = num(lngInput.value);
+        if (pendingMarker) pendingMarker.remove();
+        var m = document.createElement('div');
+        m.className = 'annot-marker annot-marker--pending';
+        m.style.left = pendingX + '%';
+        m.style.top = pendingY + '%';
+        m.textContent = 'i';
+        canvas.appendChild(m);
+        pendingMarker = m;
 
-        var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
-          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, SHOOT_CENTER ? 15 : (lat0 != null ? 13 : 6));
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        form.style.display = 'block';
+        textArea.value = '';
+        if (textAreaEn) textAreaEn.value = '';
+        textArea.focus();
+      });
 
-        var marker = null;
-        function fmt(lat, lng) { return lat.toFixed(6) + ', ' + lng.toFixed(6); }
-        function setPoint(lat, lng) {
-          latInput.value = lat;
-          lngInput.value = lng;
-          label.textContent = fmt(lat, lng);
-          if (marker) {
-            marker.setLatLng([lat, lng]);
-          } else {
-            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-            marker.on('dragend', function() {
-              var pos = marker.getLatLng();
-              setPoint(pos.lat, pos.lng);
-            });
-          }
+      cancelBtn.addEventListener('click', function() {
+        if (pendingMarker) { pendingMarker.remove(); pendingMarker = null; }
+        form.style.display = 'none';
+        textArea.value = '';
+        if (textAreaEn) textAreaEn.value = '';
+      });
+
+      saveBtn.addEventListener('click', async function() {
+        var text = textArea.value.trim();
+        var textEn = textAreaEn ? textAreaEn.value.trim() : '';
+        if (!text) return;
+        saveBtn.disabled = true;
+        saveBtn.textContent = '…';
+        try {
+          var resp = await fetch(baseUrl + '/annotation/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ x: pendingX, y: pendingY, text: text, text_en: textEn }),
+          });
+          var data = await resp.json();
+          if (!data.ok) throw new Error(data.error || 'Ошибка');
+          window.location.reload();
+        } catch (e) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Сохранить';
+          alert('Ошибка: ' + e.message);
         }
-        if (lat0 != null && lng0 != null) setPoint(lat0, lng0);
+      });
+    }());
 
-        map.on('click', function(e) { setPoint(e.latlng.lat, e.latlng.lng); });
-
-        if (clearBtn) clearBtn.addEventListener('click', function() {
-          if (marker) { map.removeLayer(marker); marker = null; }
-          latInput.value = '';
-          lngInput.value = '';
-          label.textContent = label.getAttribute('data-empty') || '—';
+    document.getElementById('gen-seo-btn').addEventListener('click', async function() {
+      var btn = this;
+      var status = document.getElementById('gen-seo-status');
+      btn.disabled = true;
+      btn.textContent = '⏳';
+      status.style.display = 'block';
+      status.style.color = '#aaa';
+      status.textContent = 'Генерирую…';
+      try {
+        var resp = await fetch(window.location.pathname.replace('/edit', '/generate-seo'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
         });
+        var data = await resp.json();
+        if (!resp.ok || !data.ok) throw new Error(data.error || 'Ошибка');
+        document.getElementById('photo-seo-desc').value = data.desc;
+        document.getElementById('photo-keywords').value = data.keywords;
+        if (data.descEn) document.querySelector('[name="seo_desc_en"]').value = data.descEn;
+        if (data.keywordsEn) document.querySelector('[name="seo_keywords_en"]').value = data.keywordsEn;
+        status.style.color = '#4caf50';
+        status.textContent = '✓ Готово — не забудьте сохранить';
+      } catch (e) {
+        status.style.color = '#f44336';
+        status.textContent = '✗ ' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🤖';
+      }
+    });
 
-        setTimeout(function() { map.invalidateSize(); }, 0);
-      }());
+    // ── Location map: click to place, drag to adjust ──
+    (function() {
+      var el = document.getElementById('coords-map');
+      if (!el || !window.L) return;
+      var latInput = document.getElementById('coords-lat');
+      var lngInput = document.getElementById('coords-lng');
+      var label = document.getElementById('coords-label');
+      var clearBtn = document.getElementById('coords-clear');
+      var SHOOT_CENTER = !{typeof shootMapCenter !== 'undefined' && shootMapCenter ? JSON.stringify([shootMapCenter.lat, shootMapCenter.lng]) : 'null'};
+      var DEFAULT_CENTER = SHOOT_CENTER || [41.7151, 44.8271];
+
+      function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+      var lat0 = num(latInput.value);
+      var lng0 = num(lngInput.value);
+
+      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
+        .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, SHOOT_CENTER ? 15 : (lat0 != null ? 13 : 6));
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+      var marker = null;
+      function fmt(lat, lng) { return lat.toFixed(6) + ', ' + lng.toFixed(6); }
+      function setPoint(lat, lng) {
+        latInput.value = lat;
+        lngInput.value = lng;
+        label.textContent = fmt(lat, lng);
+        if (marker) {
+          marker.setLatLng([lat, lng]);
+        } else {
+          marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+          marker.on('dragend', function() {
+            var pos = marker.getLatLng();
+            setPoint(pos.lat, pos.lng);
+          });
+        }
+      }
+      if (lat0 != null && lng0 != null) setPoint(lat0, lng0);
+
+      map.on('click', function(e) { setPoint(e.latlng.lat, e.latlng.lng); });
+
+      if (clearBtn) clearBtn.addEventListener('click', function() {
+        if (marker) { map.removeLayer(marker); marker = null; }
+        latInput.value = '';
+        lngInput.value = '';
+        label.textContent = label.getAttribute('data-empty') || '—';
+      });
+
+      setTimeout(function() { map.invalidateSize(); }, 0);
+    }());

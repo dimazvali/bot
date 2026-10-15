@@ -1,652 +1,648 @@
-include _face-board.pug
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
-    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
-    style.
-      #coords-map { width: 100%; height: 260px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
-      #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
-      .coords-map-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
-  body
-    .admin-wrap
-      .admin-header
-        a.admin-back(href='/admin/shoots') ← назад
-        span.admin-logo= shoot.label
-        a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') ОТКРЫТЬ ↗
+extends layout
+block vars
+  include _face-board.pug
+  - var nav = 'shoots'
+block head
+  link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+  script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+  style.
+    #coords-map { width: 100%; height: 260px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
+    #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
+    .coords-map-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
+block breadcrumbs
+  a(href='/admin/shoots') Съёмки
+  span= shoot.label
+block actions
+  a.admin-btn(href=`/shoot/${slug}` target='_blank' rel='noopener') открыть ↗
+block content
+  if error
+    .admin-notice.admin-notice--error= error
 
-      if error
-        .admin-section
-          p.admin-hint= error
+  .admin-section
+    h2.admin-title МЕТАДАННЫЕ
+    form.admin-form(method='POST' action=`/admin/shoots/${slug}/edit`)
+      input.admin-input(type='text' name='label' value=shoot.label placeholder='название' required)
+      input.admin-input(type='text' name='label_en' value=shoot.label_en || '' placeholder='name (EN)')
+      p.admin-hint Описание (необязательно) — переносы строк сохраняются на странице съёмки:
+      textarea.admin-input(name='desc' placeholder='описание' rows='5')= shoot.desc || ''
+      textarea.admin-input(name='desc_en' placeholder='description (EN)' rows='5')= shoot.desc_en || ''
+      p.admin-hint Промпт для автоописаний фото — что за событие, кто в кадре, на чём делать акцент. Используется вместе с названием, описанием и координатами съёмки:
+      textarea.admin-input(name='seoPrompt' placeholder='напр.: свадьба Ани и Гоги в Кахети, акцент на гостях и застолье, не упоминать погоду' rows='3')= shoot.seoPrompt || ''
+      input.admin-input(type='text' name='password' value=shoot.password placeholder='пароль (оставьте пустым для открытого доступа)')
+      label.admin-tag-check
+        input(type='checkbox' name='public' checked=shoot.public)
+        span показывать в /shoot и в сайтмапе
+      label.admin-tag-check
+        input(type='checkbox' name='showFaces' checked=shoot.showFaces)
+        span показывать лица (виджет «найти себя»)
+      label.admin-tag-check
+        input(type='checkbox' name='hideUnnamedFaces' checked=shoot.hideUnnamedFaces)
+        span не показывать нераспознанные лица (в виджете только люди с именем)
+      label.admin-tag-check
+        input(type='checkbox' name='showCuratorSelection' checked=shoot.showCuratorSelection)
+        span показывать авторский отбор (сначала отмеченные фото, остальные — по кнопке «показать все»)
+      label.admin-tag-check
+        input(type='checkbox' name='offerSelection' checked=shoot.offerSelection !== false)
+        span предлагать выбор фото (чекбоксы на карточках + сохранение своих подборок; выключите для некоммерческих съёмок без заказчика)
+      if shoot.photos.length
+        p.admin-hint ОБЛОЖКА ДЛЯ OG (соцсети/превью-ссылка; по умолчанию — первое фото):
+        select.admin-input(name='ogPhotoId')
+          option(value='') — первое фото по порядку —
+          each p in shoot.photos
+            option(value=p.id selected=shoot.ogPhotoId === p.id)= p.title || p.id
+        p.admin-hint ОБЛОЖКА ДЛЯ ГЛАВНОГО БЛОКА (карточка съёмки в /shoot; по умолчанию — первое фото):
+        select.admin-input(name='heroPhotoId')
+          option(value='') — первое фото по порядку —
+          each p in shoot.photos
+            option(value=p.id selected=shoot.heroPhotoId === p.id)= p.title || p.id
+      p.admin-hint ЦЕНТР КАРТЫ (опционально — куда центрируется карта локации при редактировании фото этой съёмки; клик — поставить точку, перетаскивание — сдвинуть):
+      #coords-map
+      input#coords-lat(type='hidden' name='mapLat' value=(shoot.mapCenter ? shoot.mapCenter.lat : ''))
+      input#coords-lng(type='hidden' name='mapLng' value=(shoot.mapCenter ? shoot.mapCenter.lng : ''))
+      .coords-map-bar
+        span#coords-label(data-empty='не задан')= shoot.mapCenter ? shoot.mapCenter.lat.toFixed(6) + ', ' + shoot.mapCenter.lng.toFixed(6) : 'не задан'
+        button#coords-clear.admin-btn(type='button') Убрать точку
+      label(style='font-size:0.625rem;color:var(--text-dim);letter-spacing:1px;width:100%;') СВЯЗАННЫЕ СЪЁМКИ (напр. другие сессии этого же героя)
+      select.admin-input(name='relatedShoots' multiple size='6')
+        each other, otherSlug in allShoots
+          if otherSlug !== slug
+            option(value=otherSlug selected=(shoot.relatedShoots||[]).includes(otherSlug))= other.label
+      button.admin-btn(type='submit') СОХРАНИТЬ
+    p.admin-hint
+      | Прямая ссылка:&nbsp;
+      a(href=`/shoot/${slug}` target='_blank' rel='noopener') /shoot/#{slug}
+      if shoot.password
+        |  (защищена паролем)
+      else
+        |  (открытый доступ)
+      |  · #{shoot.public ? 'публична' : 'не публична'}
 
-      .admin-section
-        h2.admin-title МЕТАДАННЫЕ
-        form.admin-form(method='POST' action=`/admin/shoots/${slug}/edit`)
-          input.admin-input(type='text' name='label' value=shoot.label placeholder='название' required)
-          input.admin-input(type='text' name='label_en' value=shoot.label_en || '' placeholder='name (EN)')
-          p.admin-hint Описание (необязательно) — переносы строк сохраняются на странице съёмки:
-          textarea.admin-input(name='desc' placeholder='описание' rows='5')= shoot.desc || ''
-          textarea.admin-input(name='desc_en' placeholder='description (EN)' rows='5')= shoot.desc_en || ''
-          p.admin-hint Промпт для автоописаний фото — что за событие, кто в кадре, на чём делать акцент. Используется вместе с названием, описанием и координатами съёмки:
-          textarea.admin-input(name='seoPrompt' placeholder='напр.: свадьба Ани и Гоги в Кахети, акцент на гостях и застолье, не упоминать погоду' rows='3')= shoot.seoPrompt || ''
-          input.admin-input(type='text' name='password' value=shoot.password placeholder='пароль (оставьте пустым для открытого доступа)')
-          label.admin-tag-check
-            input(type='checkbox' name='public' checked=shoot.public)
-            span показывать в /shoot и в сайтмапе
-          label.admin-tag-check
-            input(type='checkbox' name='showFaces' checked=shoot.showFaces)
-            span показывать лица (виджет «найти себя»)
-          label.admin-tag-check
-            input(type='checkbox' name='hideUnnamedFaces' checked=shoot.hideUnnamedFaces)
-            span не показывать нераспознанные лица (в виджете только люди с именем)
-          label.admin-tag-check
-            input(type='checkbox' name='showCuratorSelection' checked=shoot.showCuratorSelection)
-            span показывать авторский отбор (сначала отмеченные фото, остальные — по кнопке «показать все»)
-          label.admin-tag-check
-            input(type='checkbox' name='offerSelection' checked=shoot.offerSelection !== false)
-            span предлагать выбор фото (чекбоксы на карточках + сохранение своих подборок; выключите для некоммерческих съёмок без заказчика)
-          if shoot.photos.length
-            p.admin-hint ОБЛОЖКА ДЛЯ OG (соцсети/превью-ссылка; по умолчанию — первое фото):
-            select.admin-input(name='ogPhotoId')
-              option(value='') — первое фото по порядку —
-              each p in shoot.photos
-                option(value=p.id selected=shoot.ogPhotoId === p.id)= p.title || p.id
-            p.admin-hint ОБЛОЖКА ДЛЯ ГЛАВНОГО БЛОКА (карточка съёмки в /shoot; по умолчанию — первое фото):
-            select.admin-input(name='heroPhotoId')
-              option(value='') — первое фото по порядку —
-              each p in shoot.photos
-                option(value=p.id selected=shoot.heroPhotoId === p.id)= p.title || p.id
-          p.admin-hint ЦЕНТР КАРТЫ (опционально — куда центрируется карта локации при редактировании фото этой съёмки; клик — поставить точку, перетаскивание — сдвинуть):
-          #coords-map
-          input#coords-lat(type='hidden' name='mapLat' value=(shoot.mapCenter ? shoot.mapCenter.lat : ''))
-          input#coords-lng(type='hidden' name='mapLng' value=(shoot.mapCenter ? shoot.mapCenter.lng : ''))
-          .coords-map-bar
-            span#coords-label(data-empty='не задан')= shoot.mapCenter ? shoot.mapCenter.lat.toFixed(6) + ', ' + shoot.mapCenter.lng.toFixed(6) : 'не задан'
-            button#coords-clear.admin-btn(type='button') Убрать точку
-          label(style='font-size:0.625rem;color:var(--text-dim);letter-spacing:1px;width:100%;') СВЯЗАННЫЕ СЪЁМКИ (напр. другие сессии этого же героя)
-          select.admin-input(name='relatedShoots' multiple size='6')
-            each other, otherSlug in allShoots
-              if otherSlug !== slug
-                option(value=otherSlug selected=(shoot.relatedShoots||[]).includes(otherSlug))= other.label
-          button.admin-btn(type='submit') СОХРАНИТЬ
+  .admin-section
+    h2.admin-title ОПОВЕЩЕНИЕ ПОДПИСЧИКОВ
+    p.admin-hint Разошлёт подписчикам (email и телеграм) сообщение о новой съёмке со ссылкой на неё. Не срабатывает автоматически при создании — нажимайте, когда съёмка готова к показу (фото загружены, обложка и доступ настроены).
+    if shoot.notifiedAt
+      - var _notifiedD = new Date(shoot.notifiedAt)
+      p.admin-hint Последнее оповещение: #{_notifiedD.toLocaleDateString('ru-RU')} #{_notifiedD.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
+    if !shoot.public
+      p.admin-hint(style='color:#c44;') Съёмка не публична — включите «показывать в /shoot и в сайтмапе» выше и сохраните.
+    else if !shoot.photos.length
+      p.admin-hint(style='color:#c44;') В съёмке пока нет фото.
+    button#notify-subscribers-btn.admin-btn(type='button' disabled=(!shoot.public || !shoot.photos.length)) 📣 ОПОВЕСТИТЬ ПОДПИСЧИКОВ
+    p#notify-status.admin-hint(style='display:none')
+
+  .admin-section
+    h2.admin-title ЗАГРУЗИТЬ ФОТО
+    form.admin-form(method='POST' action=`/admin/shoots/${slug}/upload` enctype='multipart/form-data')
+      input.admin-input(type='text' name='title' placeholder='название')
+      input.admin-input(type='text' name='date' placeholder='дата (напр. июнь 2026)')
+      input.admin-input(type='text' name='desc' placeholder='описание (необязательно)')
+      input.admin-input(type='file' name='photo' accept='image/*' required)
+      label.admin-tag-check
+        input(type='checkbox' name='panorama')
+        span панорама (доп. копия в оригинальном размере, зум/пан)
+      button.admin-btn(type='submit') ЗАГРУЗИТЬ
+
+  .admin-section
+    h2.admin-title МАССОВАЯ ЗАГРУЗКА
+    p.admin-hint Выберите несколько файлов — загрузятся последовательно. Название = имя файла.
+    input#bulk-files.admin-input(type='file' name='photos' accept='image/*' multiple)
+    input.admin-input(type='text' id='bulk-date' placeholder='дата для всех (необязательно)')
+    label.admin-tag-check
+      input#bulk-panorama(type='checkbox')
+      span все — панорамы (доп. копия в оригинальном размере, зум/пан)
+    .type-radio-group#bulk-type
+      each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
+        label.type-radio-label
+          input(type='radio' name='bulk-type' value=t[0] checked=t[0]==='camera')
+          span
+            svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
+              if t[0]==='camera'
+                path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
+                circle(cx='12' cy='13' r='4')
+              else if t[0]==='mobile'
+                rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
+                circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
+              else
+                rect(x='9' y='9' width='6' height='6' rx='1')
+                line(x1='9' y1='9' x2='4' y2='4')
+                line(x1='15' y1='9' x2='20' y2='4')
+                line(x1='9' y1='15' x2='4' y2='20')
+                line(x1='15' y1='15' x2='20' y2='20')
+                circle(cx='3' cy='3' r='2')
+                circle(cx='21' cy='3' r='2')
+                circle(cx='3' cy='21' r='2')
+                circle(cx='21' cy='21' r='2')
+            | #{t[1]}
+    button#bulk-start.admin-btn(type='button' data-upload-url=`/admin/shoots/${slug}/upload` style='display:none') ЗАГРУЗИТЬ ВСЕ
+    p#bulk-status.admin-hint(style='display:none')
+
+  if shoot.photos.length
+    .admin-section
+      h2.admin-title ОПИСАНИЯ ФОТО
+      p.admin-hint Заново сгенерировать SEO-описания и ключевые слова (RU + EN) для всех фото съёмки — с учётом названия, описания, промпта и координат. Перезаписываются только SEO-поля; ручные описания фото не трогаются.
+      button.admin-btn#seo-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ
+      .copyright-progress#seo-regen-status(style='display:none;margin-top:12px')
+        .copyright-progress-bar
+          .copyright-progress-fill#seo-regen-fill
+        span#seo-regen-text.progress-text
+
+  if shoot.photos.length
+    .admin-section#faces
+      h2.admin-title ЛИЦА
+      p.admin-hint
+        | Найдено групп: #{faceGroups.length}. «Перегенерировать» индексирует фото без распознанных лиц и заново сопоставляет все лица (имена и ручные правки сохраняются).
+        |  «Скрыть» убирает группу из публичного виджета «найти себя». Ошибки на отдельных фото правятся на странице редактирования фото.
+        |  Все люди — на странице
+        a(href='/admin/people') люди
+        | .
+      button.admin-btn#faces-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ЛИЦА
+      .copyright-progress#faces-regen-status(style='display:none;margin-top:12px')
+        .copyright-progress-bar
+          .copyright-progress-fill#faces-regen-fill
+        span#faces-regen-text.progress-text
+      if faceGroups.length
         p.admin-hint
-          | Прямая ссылка:&nbsp;
-          a(href=`/shoot/${slug}` target='_blank' rel='noopener') /shoot/#{slug}
-          if shoot.password
-            |  (защищена паролем)
-          else
-            |  (открытый доступ)
-          |  · #{shoot.public ? 'публична' : 'не публична'}
-
-      .admin-section
-        h2.admin-title ОПОВЕЩЕНИЕ ПОДПИСЧИКОВ
-        p.admin-hint Разошлёт подписчикам (email и телеграм) сообщение о новой съёмке со ссылкой на неё. Не срабатывает автоматически при создании — нажимайте, когда съёмка готова к показу (фото загружены, обложка и доступ настроены).
-        if shoot.notifiedAt
-          - var _notifiedD = new Date(shoot.notifiedAt)
-          p.admin-hint Последнее оповещение: #{_notifiedD.toLocaleDateString('ru-RU')} #{_notifiedD.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
-        if !shoot.public
-          p.admin-hint(style='color:#c44;') Съёмка не публична — включите «показывать в /shoot и в сайтмапе» выше и сохраните.
-        else if !shoot.photos.length
-          p.admin-hint(style='color:#c44;') В съёмке пока нет фото.
-        button#notify-subscribers-btn.admin-btn(type='button' disabled=(!shoot.public || !shoot.photos.length)) 📣 ОПОВЕСТИТЬ ПОДПИСЧИКОВ
-        p#notify-status.admin-hint(style='display:none')
-
-      .admin-section
-        h2.admin-title ЗАГРУЗИТЬ ФОТО
-        form.admin-form(method='POST' action=`/admin/shoots/${slug}/upload` enctype='multipart/form-data')
-          input.admin-input(type='text' name='title' placeholder='название')
-          input.admin-input(type='text' name='date' placeholder='дата (напр. июнь 2026)')
-          input.admin-input(type='text' name='desc' placeholder='описание (необязательно)')
-          input.admin-input(type='file' name='photo' accept='image/*' required)
-          label.admin-tag-check
-            input(type='checkbox' name='panorama')
-            span панорама (доп. копия в оригинальном размере, зум/пан)
-          button.admin-btn(type='submit') ЗАГРУЗИТЬ
-
-      .admin-section
-        h2.admin-title МАССОВАЯ ЗАГРУЗКА
-        p.admin-hint Выберите несколько файлов — загрузятся последовательно. Название = имя файла.
-        input#bulk-files.admin-input(type='file' name='photos' accept='image/*' multiple)
-        input.admin-input(type='text' id='bulk-date' placeholder='дата для всех (необязательно)')
-        label.admin-tag-check
-          input#bulk-panorama(type='checkbox')
-          span все — панорамы (доп. копия в оригинальном размере, зум/пан)
-        .type-radio-group#bulk-type
-          each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
-            label.type-radio-label
-              input(type='radio' name='bulk-type' value=t[0] checked=t[0]==='camera')
-              span
-                svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
-                  if t[0]==='camera'
-                    path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
-                    circle(cx='12' cy='13' r='4')
-                  else if t[0]==='mobile'
-                    rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
-                    circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
-                  else
-                    rect(x='9' y='9' width='6' height='6' rx='1')
-                    line(x1='9' y1='9' x2='4' y2='4')
-                    line(x1='15' y1='9' x2='20' y2='4')
-                    line(x1='9' y1='15' x2='4' y2='20')
-                    line(x1='15' y1='15' x2='20' y2='20')
-                    circle(cx='3' cy='3' r='2')
-                    circle(cx='21' cy='3' r='2')
-                    circle(cx='3' cy='21' r='2')
-                    circle(cx='21' cy='21' r='2')
-                | #{t[1]}
-        button#bulk-start.admin-btn(type='button' data-upload-url=`/admin/shoots/${slug}/upload` style='display:none') ЗАГРУЗИТЬ ВСЕ
-        p#bulk-status.admin-hint(style='display:none')
-
-      if shoot.photos.length
-        .admin-section
-          h2.admin-title ОПИСАНИЯ ФОТО
-          p.admin-hint Заново сгенерировать SEO-описания и ключевые слова (RU + EN) для всех фото съёмки — с учётом названия, описания, промпта и координат. Перезаписываются только SEO-поля; ручные описания фото не трогаются.
-          button.admin-btn#seo-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ
-          .copyright-progress#seo-regen-status(style='display:none;margin-top:12px')
-            .copyright-progress-bar
-              .copyright-progress-fill#seo-regen-fill
-            span#seo-regen-text.progress-text
-
-      if shoot.photos.length
-        .admin-section#faces
-          h2.admin-title ЛИЦА
-          p.admin-hint
-            | Найдено групп: #{faceGroups.length}. «Перегенерировать» индексирует фото без распознанных лиц и заново сопоставляет все лица (имена и ручные правки сохраняются).
-            |  «Скрыть» убирает группу из публичного виджета «найти себя». Ошибки на отдельных фото правятся на странице редактирования фото.
-            |  Все люди — на странице
-            a(href='/admin/people') люди
-            | .
-          button.admin-btn#faces-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ЛИЦА
-          .copyright-progress#faces-regen-status(style='display:none;margin-top:12px')
-            .copyright-progress-bar
-              .copyright-progress-fill#faces-regen-fill
-            span#faces-regen-text.progress-text
-          if faceGroups.length
-            p.admin-hint
-              | Группировка мышью: перетащите круг одной группы на другую — это один человек (объединится и в других съёмках, если это уже люди).
-              |  «лица» раскрывает группу — отдельное лицо можно перетащить в другую группу или в «＋ новая группа».
-            -
-              var _fbGroups = faceGroups.map(function(g) { return Object.assign({}, g, { slug: slug }); })
-              var _fbOpts = {
-                visibilityUrl: '/admin/shoots/' + slug + '/faces/visibility',
-                nameForm: function(g) { return { action: '/admin/shoots/' + slug + '/faces/assign', fields: { groupKey: g.key }, people: people }; },
-              }
-            +faceBoard(_fbGroups, _fbOpts)
-      if shoot.photos.length
-        .admin-section
-          h2.admin-title ПРОВЕРКА ИСПОЛЬЗОВАНИЯ
-          p.admin-hint Поиск копий фотографий этой съёмки в интернете (Google Vision). Проверяются только фото из этой съёмки.
-          button.admin-btn#run-check-btn(type='button') ▶ ПРОВЕРИТЬ ИСПОЛЬЗОВАНИЕ
-          .copyright-progress#run-status(style='display:none;margin-top:12px')
-            .copyright-progress-bar
-              .copyright-progress-fill#progress-fill
-            span#progress-text
-          p.admin-hint
-            a(href='/admin/copyright' target='_blank' rel='noopener') → все найденные использования
-
-      if shoot.photos.length
-        .admin-section
-          h2.admin-title ФОТО (#{shoot.photos.length})
-          p.admin-hint Перетащите для изменения порядка. Чекбоксы — временный выбор для кнопок ниже; ★ у фото — оно уже в авторском отборе.
-          p.admin-hint
-            | Показ авторского отбора на сайте сейчас:
-            b(style=`color:${shoot.showCuratorSelection ? 'var(--accent)' : 'var(--text-dim)'}`)= shoot.showCuratorSelection ? ' ВКЛЮЧЁН' : ' ВЫКЛЮЧЕН'
-            | .
-            form(method='POST' action=`/admin/shoots/${slug}/toggle-curator-selection` style='display:inline;margin-left:6px;')
-              button.admin-btn.admin-btn--sm(type='submit')= shoot.showCuratorSelection ? 'выключить' : 'включить'
-          .admin-bulk-bar#photo-bulk-bar
-            label.admin-tag-check(style='margin:0;')
-              input#photo-select-all(type='checkbox')
-              span выбрать все
-            span#photo-bulk-count.admin-hint 0 выбрано
-            button.admin-btn.admin-btn--sm#photo-bulk-curator(type='button' disabled) ★ в авторский отбор
-            button.admin-btn.admin-btn--sm#photo-bulk-curator-remove(type='button' disabled) ☆ убрать из отбора
-            button.admin-btn.admin-btn--sm.admin-btn--danger#photo-bulk-delete(type='button' disabled) удалить выбранные
-            button.admin-btn.admin-btn--sm#photo-sort-alpha(type='button') сортировать по алфавиту
-          ul#photo-list.admin-sort-list(data-url=`/admin/shoots/${slug}/photos/reorder` data-bulk-delete-url=`/admin/shoots/${slug}/photos/bulk-delete` data-bulk-curator-url=`/admin/shoots/${slug}/photos/bulk-curator-pick`)
-            each photo in shoot.photos
-              li.admin-sort-item(data-id=photo.id data-title=photo.title || '')
-                span.admin-sort-handle ⠿
-                label.admin-photo-check
-                  input.photo-check(type='checkbox' value=photo.id)
-                if photo.urls
-                  img.admin-thumb(src=photo.urls.preview alt=photo.title)
-                .admin-photo-info
-                  span.admin-photo-title
-                    if photo.curatorPick
-                      span(title='авторский отбор') ★
-                    = photo.title
-                  span.admin-photo-id= photo.id
-                  span.admin-photo-id 👁 просмотров: #{(photoViews && photoViews[photo.id]) || 0}
-                  if photo.seo_desc
-                    span.admin-photo-caption= photo.seo_desc
-                .admin-sort-actions
-                  a.admin-btn.admin-btn--sm(href=`/admin/shoots/${slug}/photos/${photo.id}/edit`) ✎
-                  form.admin-publish-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/publish`)
-                    select.admin-input(name='target' required)
-                      option(value='' disabled selected) → в раздел…
-                      each country, countryKey in data
-                        if !country.archived
-                          each series, seriesKey in country.series
-                            if !series.archived
-                              option(value=`${countryKey}/${seriesKey}`)= `${country.label} / ${series.label}`
-                    button.admin-btn.admin-btn--sm(type='submit') →
-                  form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete`)
-                    button.admin-btn.admin-btn--danger(type='submit') удалить
-
-      if shoot.collections && shoot.collections.length
-        .admin-section
-          h2.admin-title ПОДБОРКИ КЛИЕНТА (#{shoot.collections.length})
-          p.admin-hint Выборки фото, собранные клиентом на странице съёмки.
-          - var photosById = {}
-          - shoot.photos.forEach(function(p) { photosById[p.id] = p; })
-          each col in shoot.collections
-            .admin-collection
-              .admin-collection-head
-                span.admin-collection-name= col.name
-                span.admin-collection-meta
-                  = col.photoIds.length + ' фото'
-                  if col.authorName
-                    |  · #{col.authorName}
-                  if col.createdAt
-                    - var d = col.createdAt.toDate ? col.createdAt.toDate() : new Date(col.createdAt)
-                    |  · #{d.toLocaleDateString('ru-RU')} #{d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
-              .admin-collection-thumbs
-                each pid in col.photoIds
-                  - var p = photosById[pid]
-                  if p && p.urls
-                    a(href=`/admin/shoots/${slug}/photos/${pid}/edit` target='_blank')
-                      img.admin-collection-thumb(src=p.urls.preview alt=p.title)
-
-      .admin-section
-        h2.admin-title УДАЛИТЬ СЪЁМКУ
-        p.admin-hint Все фотографии будут удалены из Firebase Storage без возможности восстановления.
-        form.admin-form(method='POST' action=`/admin/shoots/${slug}/delete`)
-          button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ СЪЁМКУ
-
-    script(src='/javascripts/photo/face-board.js' defer)
-    script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
-    script.
-      // ── Bulk upload ──
-      var bulkInput     = document.getElementById('bulk-files');
-      var bulkStart     = document.getElementById('bulk-start');
-      var bulkStatus    = document.getElementById('bulk-status');
-      var bulkDate      = document.getElementById('bulk-date');
-      var bulkTypeGroup = document.getElementById('bulk-type');
-      var bulkUploadUrl = bulkStart.getAttribute('data-upload-url');
-
-      bulkInput.addEventListener('change', function() {
-        if (bulkInput.files.length > 0) {
-          bulkStart.style.display = '';
-          bulkStatus.style.display = 'none';
-        } else {
-          bulkStart.style.display = 'none';
-        }
-      });
-
-      bulkStart.addEventListener('click', function() {
-        var files = Array.from(bulkInput.files);
-        if (!files.length) return;
-        bulkStart.disabled = true;
-        bulkInput.disabled = true;
-        bulkDate.disabled = true;
-        var date = bulkDate.value.trim();
-        var bulkTypeChecked = bulkTypeGroup.querySelector('input[name="bulk-type"]:checked');
-        var type = bulkTypeChecked ? bulkTypeChecked.value : 'camera';
-        var panorama = document.getElementById('bulk-panorama').checked;
-        var total = files.length;
-        var done = 0;
-        var errors = [];
-        var startTime = Date.now();
-        var fileStart = 0;
-
-        function fmtTime(ms) {
-          var s = Math.round(ms / 1000);
-          if (s < 60) return s + ' с';
-          return Math.floor(s / 60) + ' м ' + (s % 60) + ' с';
-        }
-
-        function uploadNext() {
-          if (done >= total) {
-            if (errors.length) {
-              bulkStatus.style.display = '';
-              bulkStatus.textContent = 'Готово с ошибками: ' + errors.join(', ');
-            }
-            window.location.reload();
-            return;
+          | Группировка мышью: перетащите круг одной группы на другую — это один человек (объединится и в других съёмках, если это уже люди).
+          |  «лица» раскрывает группу — отдельное лицо можно перетащить в другую группу или в «＋ новая группа».
+        -
+          var _fbGroups = faceGroups.map(function(g) { return Object.assign({}, g, { slug: slug }); })
+          var _fbOpts = {
+            visibilityUrl: '/admin/shoots/' + slug + '/faces/visibility',
+            nameForm: function(g) { return { action: '/admin/shoots/' + slug + '/faces/assign', fields: { groupKey: g.key }, people: people }; },
           }
-          var file = files[done];
-          fileStart = Date.now();
-          var eta = done > 0
-            ? ' · осталось ~' + fmtTime((Date.now() - startTime) / done * (total - done))
-            : '';
-          bulkStatus.style.display = '';
-          bulkStatus.textContent = 'Загружается ' + (done + 1) + ' / ' + total + ': ' + file.name + eta;
-          var fd = new FormData();
-          fd.append('photo', file);
-          fd.append('title', '');
-          fd.append('date', date);
-          fd.append('type', type);
-          fd.append('desc', '');
-          if (panorama) fd.append('panorama', '1');
-          fetch(bulkUploadUrl, { method: 'POST', body: fd })
-            .then(function(r) {
-              if (!r.ok) errors.push(file.name + ' (' + r.status + ')');
-              done++;
-              uploadNext();
-            })
-            .catch(function() {
-              errors.push(file.name);
-              done++;
-              uploadNext();
-            });
+        +faceBoard(_fbGroups, _fbOpts)
+  if shoot.photos.length
+    .admin-section
+      h2.admin-title ПРОВЕРКА ИСПОЛЬЗОВАНИЯ
+      p.admin-hint Поиск копий фотографий этой съёмки в интернете (Google Vision). Проверяются только фото из этой съёмки.
+      button.admin-btn#run-check-btn(type='button') ▶ ПРОВЕРИТЬ ИСПОЛЬЗОВАНИЕ
+      .copyright-progress#run-status(style='display:none;margin-top:12px')
+        .copyright-progress-bar
+          .copyright-progress-fill#progress-fill
+        span#progress-text
+      p.admin-hint
+        a(href='/admin/copyright' target='_blank' rel='noopener') → все найденные использования
+
+  if shoot.photos.length
+    .admin-section
+      h2.admin-title ФОТО (#{shoot.photos.length})
+      p.admin-hint Перетащите для изменения порядка. Чекбоксы — временный выбор для кнопок ниже; ★ у фото — оно уже в авторском отборе.
+      p.admin-hint
+        | Показ авторского отбора на сайте сейчас:
+        b(style=`color:${shoot.showCuratorSelection ? 'var(--accent)' : 'var(--text-dim)'}`)= shoot.showCuratorSelection ? ' ВКЛЮЧЁН' : ' ВЫКЛЮЧЕН'
+        | .
+        form(method='POST' action=`/admin/shoots/${slug}/toggle-curator-selection` style='display:inline;margin-left:6px;')
+          button.admin-btn.admin-btn--sm(type='submit')= shoot.showCuratorSelection ? 'выключить' : 'включить'
+      .admin-bulk-bar#photo-bulk-bar
+        label.admin-tag-check(style='margin:0;')
+          input#photo-select-all(type='checkbox')
+          span выбрать все
+        span#photo-bulk-count.admin-hint 0 выбрано
+        button.admin-btn.admin-btn--sm#photo-bulk-curator(type='button' disabled) ★ в авторский отбор
+        button.admin-btn.admin-btn--sm#photo-bulk-curator-remove(type='button' disabled) ☆ убрать из отбора
+        button.admin-btn.admin-btn--sm.admin-btn--danger#photo-bulk-delete(type='button' disabled) удалить выбранные
+        button.admin-btn.admin-btn--sm#photo-sort-alpha(type='button') сортировать по алфавиту
+      ul#photo-list.admin-sort-list(data-url=`/admin/shoots/${slug}/photos/reorder` data-bulk-delete-url=`/admin/shoots/${slug}/photos/bulk-delete` data-bulk-curator-url=`/admin/shoots/${slug}/photos/bulk-curator-pick`)
+        each photo in shoot.photos
+          li.admin-sort-item(data-id=photo.id data-title=photo.title || '')
+            span.admin-sort-handle ⠿
+            label.admin-photo-check
+              input.photo-check(type='checkbox' value=photo.id)
+            if photo.urls
+              img.admin-thumb(src=photo.urls.preview alt=photo.title)
+            .admin-photo-info
+              span.admin-photo-title
+                if photo.curatorPick
+                  span(title='авторский отбор') ★
+                = photo.title
+              span.admin-photo-id= photo.id
+              span.admin-photo-id 👁 просмотров: #{(photoViews && photoViews[photo.id]) || 0}
+              if photo.seo_desc
+                span.admin-photo-caption= photo.seo_desc
+            .admin-sort-actions
+              a.admin-btn.admin-btn--sm(href=`/admin/shoots/${slug}/photos/${photo.id}/edit`) ✎
+              form.admin-publish-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/publish`)
+                select.admin-input(name='target' required)
+                  option(value='' disabled selected) → в раздел…
+                  each country, countryKey in data
+                    if !country.archived
+                      each series, seriesKey in country.series
+                        if !series.archived
+                          option(value=`${countryKey}/${seriesKey}`)= `${country.label} / ${series.label}`
+                button.admin-btn.admin-btn--sm(type='submit') →
+              form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete`)
+                button.admin-btn.admin-btn--danger(type='submit') удалить
+
+  if shoot.collections && shoot.collections.length
+    .admin-section
+      h2.admin-title ПОДБОРКИ КЛИЕНТА (#{shoot.collections.length})
+      p.admin-hint Выборки фото, собранные клиентом на странице съёмки.
+      - var photosById = {}
+      - shoot.photos.forEach(function(p) { photosById[p.id] = p; })
+      each col in shoot.collections
+        .admin-collection
+          .admin-collection-head
+            span.admin-collection-name= col.name
+            span.admin-collection-meta
+              = col.photoIds.length + ' фото'
+              if col.authorName
+                |  · #{col.authorName}
+              if col.createdAt
+                - var d = col.createdAt.toDate ? col.createdAt.toDate() : new Date(col.createdAt)
+                |  · #{d.toLocaleDateString('ru-RU')} #{d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
+          .admin-collection-thumbs
+            each pid in col.photoIds
+              - var p = photosById[pid]
+              if p && p.urls
+                a(href=`/admin/shoots/${slug}/photos/${pid}/edit` target='_blank')
+                  img.admin-collection-thumb(src=p.urls.preview alt=p.title)
+
+  .admin-section
+    h2.admin-title УДАЛИТЬ СЪЁМКУ
+    p.admin-hint Все фотографии будут удалены из Firebase Storage без возможности восстановления.
+    form.admin-form(method='POST' action=`/admin/shoots/${slug}/delete`)
+      button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ СЪЁМКУ
+block scripts
+  script(src='/javascripts/photo/face-board.js' defer)
+  script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
+  script.
+    // ── Bulk upload ──
+    var bulkInput     = document.getElementById('bulk-files');
+    var bulkStart     = document.getElementById('bulk-start');
+    var bulkStatus    = document.getElementById('bulk-status');
+    var bulkDate      = document.getElementById('bulk-date');
+    var bulkTypeGroup = document.getElementById('bulk-type');
+    var bulkUploadUrl = bulkStart.getAttribute('data-upload-url');
+
+    bulkInput.addEventListener('change', function() {
+      if (bulkInput.files.length > 0) {
+        bulkStart.style.display = '';
+        bulkStatus.style.display = 'none';
+      } else {
+        bulkStart.style.display = 'none';
+      }
+    });
+
+    bulkStart.addEventListener('click', function() {
+      var files = Array.from(bulkInput.files);
+      if (!files.length) return;
+      bulkStart.disabled = true;
+      bulkInput.disabled = true;
+      bulkDate.disabled = true;
+      var date = bulkDate.value.trim();
+      var bulkTypeChecked = bulkTypeGroup.querySelector('input[name="bulk-type"]:checked');
+      var type = bulkTypeChecked ? bulkTypeChecked.value : 'camera';
+      var panorama = document.getElementById('bulk-panorama').checked;
+      var total = files.length;
+      var done = 0;
+      var errors = [];
+      var startTime = Date.now();
+      var fileStart = 0;
+
+      function fmtTime(ms) {
+        var s = Math.round(ms / 1000);
+        if (s < 60) return s + ' с';
+        return Math.floor(s / 60) + ' м ' + (s % 60) + ' с';
+      }
+
+      function uploadNext() {
+        if (done >= total) {
+          if (errors.length) {
+            bulkStatus.style.display = '';
+            bulkStatus.textContent = 'Готово с ошибками: ' + errors.join(', ');
+          }
+          window.location.reload();
+          return;
         }
-        uploadNext();
+        var file = files[done];
+        fileStart = Date.now();
+        var eta = done > 0
+          ? ' · осталось ~' + fmtTime((Date.now() - startTime) / done * (total - done))
+          : '';
+        bulkStatus.style.display = '';
+        bulkStatus.textContent = 'Загружается ' + (done + 1) + ' / ' + total + ': ' + file.name + eta;
+        var fd = new FormData();
+        fd.append('photo', file);
+        fd.append('title', '');
+        fd.append('date', date);
+        fd.append('type', type);
+        fd.append('desc', '');
+        if (panorama) fd.append('panorama', '1');
+        fetch(bulkUploadUrl, { method: 'POST', body: fd })
+          .then(function(r) {
+            if (!r.ok) errors.push(file.name + ' (' + r.status + ')');
+            done++;
+            uploadNext();
+          })
+          .catch(function() {
+            errors.push(file.name);
+            done++;
+            uploadNext();
+          });
+      }
+      uploadNext();
+    });
+
+    // ── Drag-to-reorder ──
+    var list = document.getElementById('photo-list');
+    if (list) {
+      var reorderUrl = list.getAttribute('data-url');
+      var saveOrder = function() {
+        var order = Array.from(list.querySelectorAll('.admin-sort-item')).map(function(el) {
+          return el.getAttribute('data-id');
+        });
+        fetch(reorderUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: order }),
+        }).then(function(r) { return r.json(); }).then(function(data) {
+          if (!data.ok) alert('Ошибка сохранения порядка');
+        }).catch(function() { alert('Ошибка сохранения порядка'); });
+      };
+      Sortable.create(list, {
+        handle: '.admin-sort-handle',
+        animation: 150,
+        onEnd: saveOrder,
       });
 
-      // ── Drag-to-reorder ──
-      var list = document.getElementById('photo-list');
-      if (list) {
-        var reorderUrl = list.getAttribute('data-url');
-        var saveOrder = function() {
-          var order = Array.from(list.querySelectorAll('.admin-sort-item')).map(function(el) {
-            return el.getAttribute('data-id');
-          });
-          fetch(reorderUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ order: order }),
-          }).then(function(r) { return r.json(); }).then(function(data) {
-            if (!data.ok) alert('Ошибка сохранения порядка');
-          }).catch(function() { alert('Ошибка сохранения порядка'); });
-        };
-        Sortable.create(list, {
-          handle: '.admin-sort-handle',
-          animation: 150,
-          onEnd: saveOrder,
+      // numeric-aware so "IMG_2" sorts before "IMG_10"
+      var sortAlphaBtn = document.getElementById('photo-sort-alpha');
+      if (sortAlphaBtn) sortAlphaBtn.addEventListener('click', function() {
+        if (!confirm('Отсортировать фото по названию? Текущий порядок будет потерян.')) return;
+        var items = Array.from(list.querySelectorAll('.admin-sort-item'));
+        items.sort(function(a, b) {
+          var ta = a.getAttribute('data-title') || a.getAttribute('data-id');
+          var tb = b.getAttribute('data-title') || b.getAttribute('data-id');
+          return ta.localeCompare(tb, 'ru', { numeric: true, sensitivity: 'base' });
         });
+        items.forEach(function(el) { list.appendChild(el); });
+        saveOrder();
+      });
+    }
 
-        // numeric-aware so "IMG_2" sorts before "IMG_10"
-        var sortAlphaBtn = document.getElementById('photo-sort-alpha');
-        if (sortAlphaBtn) sortAlphaBtn.addEventListener('click', function() {
-          if (!confirm('Отсортировать фото по названию? Текущий порядок будет потерян.')) return;
-          var items = Array.from(list.querySelectorAll('.admin-sort-item'));
-          items.sort(function(a, b) {
-            var ta = a.getAttribute('data-title') || a.getAttribute('data-id');
-            var tb = b.getAttribute('data-title') || b.getAttribute('data-id');
-            return ta.localeCompare(tb, 'ru', { numeric: true, sensitivity: 'base' });
-          });
-          items.forEach(function(el) { list.appendChild(el); });
-          saveOrder();
-        });
+    // ── Bulk photo selection (delete / curator pick) ──
+    if (list) {
+      var bulkDeleteUrl  = list.getAttribute('data-bulk-delete-url');
+      var bulkCuratorUrl = list.getAttribute('data-bulk-curator-url');
+      var selectAll     = document.getElementById('photo-select-all');
+      var countEl       = document.getElementById('photo-bulk-count');
+      var curatorBtn    = document.getElementById('photo-bulk-curator');
+      var curatorRemoveBtn = document.getElementById('photo-bulk-curator-remove');
+      var deleteBtn     = document.getElementById('photo-bulk-delete');
+      var checkboxes    = Array.from(list.querySelectorAll('.photo-check'));
+
+      function selectedIds() {
+        return checkboxes.filter(function(cb) { return cb.checked; }).map(function(cb) { return cb.value; });
       }
 
-      // ── Bulk photo selection (delete / curator pick) ──
-      if (list) {
-        var bulkDeleteUrl  = list.getAttribute('data-bulk-delete-url');
-        var bulkCuratorUrl = list.getAttribute('data-bulk-curator-url');
-        var selectAll     = document.getElementById('photo-select-all');
-        var countEl       = document.getElementById('photo-bulk-count');
-        var curatorBtn    = document.getElementById('photo-bulk-curator');
-        var curatorRemoveBtn = document.getElementById('photo-bulk-curator-remove');
-        var deleteBtn     = document.getElementById('photo-bulk-delete');
-        var checkboxes    = Array.from(list.querySelectorAll('.photo-check'));
+      function updateBulkBar() {
+        var ids = selectedIds();
+        countEl.textContent = ids.length + ' выбрано';
+        curatorBtn.disabled = ids.length === 0;
+        curatorRemoveBtn.disabled = ids.length === 0;
+        deleteBtn.disabled = ids.length === 0;
+        selectAll.checked = ids.length > 0 && ids.length === checkboxes.length;
+        selectAll.indeterminate = ids.length > 0 && ids.length < checkboxes.length;
+      }
 
-        function selectedIds() {
-          return checkboxes.filter(function(cb) { return cb.checked; }).map(function(cb) { return cb.value; });
-        }
+      checkboxes.forEach(function(cb) { cb.addEventListener('change', updateBulkBar); });
 
-        function updateBulkBar() {
-          var ids = selectedIds();
-          countEl.textContent = ids.length + ' выбрано';
-          curatorBtn.disabled = ids.length === 0;
-          curatorRemoveBtn.disabled = ids.length === 0;
-          deleteBtn.disabled = ids.length === 0;
-          selectAll.checked = ids.length > 0 && ids.length === checkboxes.length;
-          selectAll.indeterminate = ids.length > 0 && ids.length < checkboxes.length;
-        }
-
-        checkboxes.forEach(function(cb) { cb.addEventListener('change', updateBulkBar); });
-
-        selectAll.addEventListener('change', function() {
-          checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
-          updateBulkBar();
-        });
-
-        function setCuratorPick(value, btn) {
-          var ids = selectedIds();
-          if (!ids.length) return;
-          btn.disabled = true;
-          fetch(bulkCuratorUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids: ids, value: value }),
-          })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-              if (!data.ok) { alert('Ошибка сохранения'); btn.disabled = false; return; }
-              window.location.reload();
-            })
-            .catch(function() { alert('Ошибка сети'); btn.disabled = false; });
-        }
-
-        curatorBtn.addEventListener('click', function() { setCuratorPick(true, curatorBtn); });
-        curatorRemoveBtn.addEventListener('click', function() { setCuratorPick(false, curatorRemoveBtn); });
-
-        deleteBtn.addEventListener('click', function() {
-          var ids = selectedIds();
-          if (!ids.length) return;
-          if (!confirm('Удалить выбранные фото (' + ids.length + ')? Отменить нельзя.')) return;
-          deleteBtn.disabled = true;
-          fetch(bulkDeleteUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ids: ids }),
-          })
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-              if (!data.ok) { alert('Ошибка удаления'); deleteBtn.disabled = false; return; }
-              window.location.reload();
-            })
-            .catch(function() { alert('Ошибка сети'); deleteBtn.disabled = false; });
-        });
-
+      selectAll.addEventListener('change', function() {
+        checkboxes.forEach(function(cb) { cb.checked = selectAll.checked; });
         updateBulkBar();
+      });
+
+      function setCuratorPick(value, btn) {
+        var ids = selectedIds();
+        if (!ids.length) return;
+        btn.disabled = true;
+        fetch(bulkCuratorUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: ids, value: value }),
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (!data.ok) { alert('Ошибка сохранения'); btn.disabled = false; return; }
+            window.location.reload();
+          })
+          .catch(function() { alert('Ошибка сети'); btn.disabled = false; });
       }
 
-      // ── Notify subscribers ──
-      var notifyBtn = document.getElementById('notify-subscribers-btn');
-      if (notifyBtn) {
-        var notifyStatus = document.getElementById('notify-status');
-        notifyBtn.addEventListener('click', function() {
-          if (!confirm('Разослать подписчикам сообщение об этой съёмке?')) return;
-          notifyBtn.disabled = true;
-          notifyStatus.style.display = '';
-          notifyStatus.textContent = 'Отправка…';
-          fetch(window.location.pathname.replace(/\/edit$/, '') + '/notify-subscribers', { method: 'POST' })
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-              if (!d.ok) {
-                notifyStatus.textContent = 'Ошибка: ' + (d.error || '?');
-                notifyBtn.disabled = false;
-                return;
-              }
-              notifyStatus.textContent = '✓ Отправлено — email: ' + d.emailSent + ', телеграм: ' + d.tgSent;
-              setTimeout(function() { location.reload(); }, 1200);
-            })
-            .catch(function() {
-              notifyStatus.textContent = 'Ошибка сети';
+      curatorBtn.addEventListener('click', function() { setCuratorPick(true, curatorBtn); });
+      curatorRemoveBtn.addEventListener('click', function() { setCuratorPick(false, curatorRemoveBtn); });
+
+      deleteBtn.addEventListener('click', function() {
+        var ids = selectedIds();
+        if (!ids.length) return;
+        if (!confirm('Удалить выбранные фото (' + ids.length + ')? Отменить нельзя.')) return;
+        deleteBtn.disabled = true;
+        fetch(bulkDeleteUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: ids }),
+        })
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            if (!data.ok) { alert('Ошибка удаления'); deleteBtn.disabled = false; return; }
+            window.location.reload();
+          })
+          .catch(function() { alert('Ошибка сети'); deleteBtn.disabled = false; });
+      });
+
+      updateBulkBar();
+    }
+
+    // ── Notify subscribers ──
+    var notifyBtn = document.getElementById('notify-subscribers-btn');
+    if (notifyBtn) {
+      var notifyStatus = document.getElementById('notify-status');
+      notifyBtn.addEventListener('click', function() {
+        if (!confirm('Разослать подписчикам сообщение об этой съёмке?')) return;
+        notifyBtn.disabled = true;
+        notifyStatus.style.display = '';
+        notifyStatus.textContent = 'Отправка…';
+        fetch(window.location.pathname.replace(/\/edit$/, '') + '/notify-subscribers', { method: 'POST' })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (!d.ok) {
+              notifyStatus.textContent = 'Ошибка: ' + (d.error || '?');
               notifyBtn.disabled = false;
-            });
-        });
-      }
+              return;
+            }
+            notifyStatus.textContent = '✓ Отправлено — email: ' + d.emailSent + ', телеграм: ' + d.tgSent;
+            setTimeout(function() { location.reload(); }, 1200);
+          })
+          .catch(function() {
+            notifyStatus.textContent = 'Ошибка сети';
+            notifyBtn.disabled = false;
+          });
+      });
+    }
 
-      // ── Usage check (scoped to this shoot) ──
-      var runBtn = document.getElementById('run-check-btn');
-      if (runBtn) {
-        var statusBox = document.getElementById('run-status');
-        var fill = document.getElementById('progress-fill');
-        var txt = document.getElementById('progress-text');
-        var runUrl = window.location.pathname.replace(/\/edit$/, '') + '/copyright/run';
+    // ── Usage check (scoped to this shoot) ──
+    var runBtn = document.getElementById('run-check-btn');
+    if (runBtn) {
+      var statusBox = document.getElementById('run-status');
+      var fill = document.getElementById('progress-fill');
+      var txt = document.getElementById('progress-text');
+      var runUrl = window.location.pathname.replace(/\/edit$/, '') + '/copyright/run';
 
-        function pollStatus() {
-          fetch('/admin/copyright/run/status')
-            .then(function(r) { return r.json(); })
-            .then(function(s) {
-              if (!s.running && !s.finishedAt) return;
-              statusBox.style.display = 'block';
-              var pct = s.total ? Math.round(s.done / s.total * 100) : 0;
-              fill.style.width = pct + '%';
-              if (s.running) {
-                runBtn.disabled = true;
-                runBtn.textContent = '⏳ ' + s.done + ' / ' + s.total;
-                txt.textContent = 'Проверено: ' + s.done + ' из ' + s.total + (s.newHits ? ', новых: ' + s.newHits : '') + (s.errors ? ', ошибок: ' + s.errors : '');
-                setTimeout(pollStatus, 2000);
-              } else {
-                runBtn.disabled = false;
-                runBtn.textContent = '▶ ПРОВЕРИТЬ ИСПОЛЬЗОВАНИЕ';
-                txt.textContent = '✓ Готово — ' + s.done + ' фото, новых совпадений: ' + s.newHits + (s.errors ? ', ошибок: ' + s.errors : '') + '.';
-              }
-            })
-            .catch(function() {});
-        }
-
-        runBtn.addEventListener('click', function() {
-          runBtn.disabled = true;
-          runBtn.textContent = '⏳ запуск…';
-          fetch(runUrl, { method: 'POST' })
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-              if (d.started === false) {
-                statusBox.style.display = 'block';
-                txt.textContent = 'Проверка уже выполняется (возможно, общая). Подождите её завершения.';
-              }
-              pollStatus();
-            })
-            .catch(function(e) {
+      function pollStatus() {
+        fetch('/admin/copyright/run/status')
+          .then(function(r) { return r.json(); })
+          .then(function(s) {
+            if (!s.running && !s.finishedAt) return;
+            statusBox.style.display = 'block';
+            var pct = s.total ? Math.round(s.done / s.total * 100) : 0;
+            fill.style.width = pct + '%';
+            if (s.running) {
+              runBtn.disabled = true;
+              runBtn.textContent = '⏳ ' + s.done + ' / ' + s.total;
+              txt.textContent = 'Проверено: ' + s.done + ' из ' + s.total + (s.newHits ? ', новых: ' + s.newHits : '') + (s.errors ? ', ошибок: ' + s.errors : '');
+              setTimeout(pollStatus, 2000);
+            } else {
               runBtn.disabled = false;
               runBtn.textContent = '▶ ПРОВЕРИТЬ ИСПОЛЬЗОВАНИЕ';
-              alert('Ошибка: ' + e.message);
-            });
-        });
-
-        pollStatus();
+              txt.textContent = '✓ Готово — ' + s.done + ' фото, новых совпадений: ' + s.newHits + (s.errors ? ', ошибок: ' + s.errors : '') + '.';
+            }
+          })
+          .catch(function() {});
       }
 
-      // ── Per-shoot background jobs with a progress bar (SEO descriptions, faces) ──
-      // cfg: { btn, prefix (element id prefix: <prefix>-status/-fill/-text), path, label, confirm, doneText(s) }
-      function shootJobButton(cfg) {
-        var btn = document.getElementById(cfg.btn);
-        if (!btn) return;
-        var box  = document.getElementById(cfg.prefix + '-status');
-        var fill = document.getElementById(cfg.prefix + '-fill');
-        var txt  = document.getElementById(cfg.prefix + '-text');
-        var url  = window.location.pathname.replace(/\/edit$/, '') + cfg.path;
+      runBtn.addEventListener('click', function() {
+        runBtn.disabled = true;
+        runBtn.textContent = '⏳ запуск…';
+        fetch(runUrl, { method: 'POST' })
+          .then(function(r) { return r.json(); })
+          .then(function(d) {
+            if (d.started === false) {
+              statusBox.style.display = 'block';
+              txt.textContent = 'Проверка уже выполняется (возможно, общая). Подождите её завершения.';
+            }
+            pollStatus();
+          })
+          .catch(function(e) {
+            runBtn.disabled = false;
+            runBtn.textContent = '▶ ПРОВЕРИТЬ ИСПОЛЬЗОВАНИЕ';
+            alert('Ошибка: ' + e.message);
+          });
+      });
 
-        function poll() {
-          fetch(url + '/status')
-            .then(function(r) { return r.json(); })
-            .then(function(s) {
-              if (!s.running && !s.finishedAt) return;
-              box.style.display = 'block';
-              fill.style.width = (s.total ? Math.round(s.done / s.total * 100) : 0) + '%';
-              if (s.running) {
-                btn.disabled = true;
-                btn.textContent = '⏳ ' + s.done + ' / ' + s.total;
-                txt.textContent = 'Готово: ' + s.done + ' из ' + s.total + (s.errors ? ', ошибок: ' + s.errors : '');
-                setTimeout(poll, 2000);
-              } else {
-                btn.disabled = false;
-                btn.textContent = cfg.label;
-                txt.textContent = '✓ ' + cfg.doneText(s) + (s.errors ? ', ошибок: ' + s.errors : '') + '.';
-              }
-            })
-            .catch(function() {});
-        }
+      pollStatus();
+    }
 
-        btn.addEventListener('click', function() {
-          if (cfg.confirm && !confirm(cfg.confirm)) return;
-          btn.disabled = true;
-          btn.textContent = '⏳ запуск…';
-          fetch(url, { method: 'POST' })
-            .then(function(r) { return r.json(); })
-            .then(function() { poll(); })
-            .catch(function(e) {
+    // ── Per-shoot background jobs with a progress bar (SEO descriptions, faces) ──
+    // cfg: { btn, prefix (element id prefix: <prefix>-status/-fill/-text), path, label, confirm, doneText(s) }
+    function shootJobButton(cfg) {
+      var btn = document.getElementById(cfg.btn);
+      if (!btn) return;
+      var box  = document.getElementById(cfg.prefix + '-status');
+      var fill = document.getElementById(cfg.prefix + '-fill');
+      var txt  = document.getElementById(cfg.prefix + '-text');
+      var url  = window.location.pathname.replace(/\/edit$/, '') + cfg.path;
+
+      function poll() {
+        fetch(url + '/status')
+          .then(function(r) { return r.json(); })
+          .then(function(s) {
+            if (!s.running && !s.finishedAt) return;
+            box.style.display = 'block';
+            fill.style.width = (s.total ? Math.round(s.done / s.total * 100) : 0) + '%';
+            if (s.running) {
+              btn.disabled = true;
+              btn.textContent = '⏳ ' + s.done + ' / ' + s.total;
+              txt.textContent = 'Готово: ' + s.done + ' из ' + s.total + (s.errors ? ', ошибок: ' + s.errors : '');
+              setTimeout(poll, 2000);
+            } else {
               btn.disabled = false;
               btn.textContent = cfg.label;
-              alert('Ошибка: ' + e.message);
-            });
-        });
-
-        poll();
+              txt.textContent = '✓ ' + cfg.doneText(s) + (s.errors ? ', ошибок: ' + s.errors : '') + '.';
+            }
+          })
+          .catch(function() {});
       }
 
-      shootJobButton({
-        btn: 'seo-regen-btn', prefix: 'seo-regen', path: '/seo/regenerate', label: '↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ',
-        confirm: 'Перегенерировать SEO-описания всех фото съёмки? Текущие SEO-описания и ключевые слова будут заменены (ручные описания фото не меняются).',
-        doneText: function(s) { return 'Готово — ' + s.done + ' фото'; },
+      btn.addEventListener('click', function() {
+        if (cfg.confirm && !confirm(cfg.confirm)) return;
+        btn.disabled = true;
+        btn.textContent = '⏳ запуск…';
+        fetch(url, { method: 'POST' })
+          .then(function(r) { return r.json(); })
+          .then(function() { poll(); })
+          .catch(function(e) {
+            btn.disabled = false;
+            btn.textContent = cfg.label;
+            alert('Ошибка: ' + e.message);
+          });
       });
-      shootJobButton({
-        btn: 'faces-regen-btn', prefix: 'faces-regen', path: '/faces/regenerate', label: '↻ ПЕРЕГЕНЕРИРОВАТЬ ЛИЦА',
-        doneText: function(s) {
-          return 'Готово — ' + s.done + ' фото' + (s.indexed ? ', заново проиндексировано: ' + s.indexed : '')
-            + (s.groups != null ? ', групп лиц: ' + s.groups + ' (обновите страницу, чтобы увидеть список)' : '');
-        },
-      });
 
-      // ── Shoot map-center picker: click to place, drag to adjust ──
-      (function() {
-        var el = document.getElementById('coords-map');
-        if (!el || !window.L) return;
-        var latInput = document.getElementById('coords-lat');
-        var lngInput = document.getElementById('coords-lng');
-        var label = document.getElementById('coords-label');
-        var clearBtn = document.getElementById('coords-clear');
-        var DEFAULT_CENTER = [41.7151, 44.8271];
+      poll();
+    }
 
-        function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
-        var lat0 = num(latInput.value);
-        var lng0 = num(lngInput.value);
+    shootJobButton({
+      btn: 'seo-regen-btn', prefix: 'seo-regen', path: '/seo/regenerate', label: '↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ',
+      confirm: 'Перегенерировать SEO-описания всех фото съёмки? Текущие SEO-описания и ключевые слова будут заменены (ручные описания фото не меняются).',
+      doneText: function(s) { return 'Готово — ' + s.done + ' фото'; },
+    });
+    shootJobButton({
+      btn: 'faces-regen-btn', prefix: 'faces-regen', path: '/faces/regenerate', label: '↻ ПЕРЕГЕНЕРИРОВАТЬ ЛИЦА',
+      doneText: function(s) {
+        return 'Готово — ' + s.done + ' фото' + (s.indexed ? ', заново проиндексировано: ' + s.indexed : '')
+          + (s.groups != null ? ', групп лиц: ' + s.groups + ' (обновите страницу, чтобы увидеть список)' : '');
+      },
+    });
 
-        var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
-          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, lat0 != null ? 11 : 6);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    // ── Shoot map-center picker: click to place, drag to adjust ──
+    (function() {
+      var el = document.getElementById('coords-map');
+      if (!el || !window.L) return;
+      var latInput = document.getElementById('coords-lat');
+      var lngInput = document.getElementById('coords-lng');
+      var label = document.getElementById('coords-label');
+      var clearBtn = document.getElementById('coords-clear');
+      var DEFAULT_CENTER = [41.7151, 44.8271];
 
-        var marker = null;
-        function fmt(lat, lng) { return lat.toFixed(6) + ', ' + lng.toFixed(6); }
-        function setPoint(lat, lng) {
-          latInput.value = lat;
-          lngInput.value = lng;
-          label.textContent = fmt(lat, lng);
-          if (marker) {
-            marker.setLatLng([lat, lng]);
-          } else {
-            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-            marker.on('dragend', function() {
-              var pos = marker.getLatLng();
-              setPoint(pos.lat, pos.lng);
-            });
-          }
+      function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+      var lat0 = num(latInput.value);
+      var lng0 = num(lngInput.value);
+
+      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
+        .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, lat0 != null ? 11 : 6);
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+      var marker = null;
+      function fmt(lat, lng) { return lat.toFixed(6) + ', ' + lng.toFixed(6); }
+      function setPoint(lat, lng) {
+        latInput.value = lat;
+        lngInput.value = lng;
+        label.textContent = fmt(lat, lng);
+        if (marker) {
+          marker.setLatLng([lat, lng]);
+        } else {
+          marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+          marker.on('dragend', function() {
+            var pos = marker.getLatLng();
+            setPoint(pos.lat, pos.lng);
+          });
         }
-        if (lat0 != null && lng0 != null) setPoint(lat0, lng0);
+      }
+      if (lat0 != null && lng0 != null) setPoint(lat0, lng0);
 
-        map.on('click', function(e) { setPoint(e.latlng.lat, e.latlng.lng); });
+      map.on('click', function(e) { setPoint(e.latlng.lat, e.latlng.lng); });
 
-        if (clearBtn) clearBtn.addEventListener('click', function() {
-          if (marker) { map.removeLayer(marker); marker = null; }
-          latInput.value = '';
-          lngInput.value = '';
-          label.textContent = label.getAttribute('data-empty') || '—';
-        });
+      if (clearBtn) clearBtn.addEventListener('click', function() {
+        if (marker) { map.removeLayer(marker); marker = null; }
+        latInput.value = '';
+        lngInput.value = '';
+        label.textContent = label.getAttribute('data-empty') || '—';
+      });
 
-        setTimeout(function() { map.invalidateSize(); }, 0);
-      }());
+      setTimeout(function() { map.invalidateSize(); }, 0);
+    }());
 
-    style.
-      .copyright-progress { display:flex; flex-direction:column; gap:6px; }
-      .copyright-progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
-      .copyright-progress-fill { height:100%; background:var(--accent); width:0%; transition:width .4s; }
-      #progress-text, .progress-text { font-size:.6875rem; color:var(--text-muted); font-family:monospace; }
+  style.
+    .copyright-progress { display:flex; flex-direction:column; gap:6px; }
+    .copyright-progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+    .copyright-progress-fill { height:100%; background:var(--accent); width:0%; transition:width .4s; }
+    #progress-text, .progress-text { font-size:.6875rem; color:var(--text-muted); font-family:monospace; }
