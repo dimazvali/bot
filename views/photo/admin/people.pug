@@ -1,42 +1,37 @@
-include _face-board.pug
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-    script(src='/javascripts/photo/face-board.js' defer)
-  body
-    .admin-wrap.admin-wrap--wide
-      .admin-header
-        a.admin-back(href='/admin') ← назад
-        span.admin-logo ЛЮДИ
+extends layout
+block vars
+  include _face-board.pug
+  - var nav = 'people'
+block head
+  script(src='/javascripts/photo/face-board.js' defer)
+block breadcrumbs
+  span Люди
+block content
+  .admin-section
+    p.admin-hint
+      | Перетащите круг одной группы на другую — это один человек (объединится во всех съёмках). «лица» раскрывает группу — отдельное лицо можно перетащить в другую группу или в «＋ новая группа».
+      |  Имя у человека открывает его страницу (тег, съёмки, все лица).
+    -
+      var _fbGroups = [{ divider: 'ЛЮДИ (' + people.length + ')', hint: 'Сначала с именем, по числу фото; потом безымянные.' }]
+        .concat(people)
+        .concat([{ divider: 'НЕРАСПОЗНАННЫЕ (' + anonTotal + ')', hint: pageCount > 1 ? 'Группы лиц без человека по всем съёмкам, крупные первыми. Страница ' + page + ' из ' + pageCount + '.' : 'Группы лиц без человека по всем съёмкам, крупные первыми.' }])
+        .concat(anon)
+      var _fbOpts = {
+        nameForm: function(g) {
+          if (g.key.indexOf('person:') === 0) return { action: '/admin/people/' + g.id + '/rename', fields: {} };
+          return { action: '/admin/shoots/' + g.slug + '/faces/assign', fields: { groupKey: g.key, back: 'people', page: String(page) }, people: peopleForSelect };
+        },
+      }
+    +faceBoard(_fbGroups, _fbOpts)
 
-      .admin-section
-        p.admin-hint
-          | Перетащите круг одной группы на другую — это один человек (объединится во всех съёмках). «лица» раскрывает группу — отдельное лицо можно перетащить в другую группу или в «＋ новая группа».
-          |  Имя у человека открывает его страницу (тег, съёмки, все лица).
-        -
-          var _fbGroups = [{ divider: 'ЛЮДИ (' + people.length + ')', hint: 'Сначала с именем, по числу фото; потом безымянные.' }]
-            .concat(people)
-            .concat([{ divider: 'НЕРАСПОЗНАННЫЕ (' + anonTotal + ')', hint: pageCount > 1 ? 'Группы лиц без человека по всем съёмкам, крупные первыми. Страница ' + page + ' из ' + pageCount + '.' : 'Группы лиц без человека по всем съёмкам, крупные первыми.' }])
-            .concat(anon)
-          var _fbOpts = {
-            nameForm: function(g) {
-              if (g.key.indexOf('person:') === 0) return { action: '/admin/people/' + g.id + '/rename', fields: {} };
-              return { action: '/admin/shoots/' + g.slug + '/faces/assign', fields: { groupKey: g.key, back: 'people', page: String(page) }, people: peopleForSelect };
-            },
-          }
-        +faceBoard(_fbGroups, _fbOpts)
-
-        if pageCount > 1
-          .admin-pagination(style='display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap;')
-            if page > 1
-              a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page - 1}`) ← назад
-            each n in Array.from({ length: pageCount }, (_, idx) => idx + 1)
-              if n === page
-                span.admin-btn.admin-btn--sm(style='opacity:0.6;pointer-events:none;')= n
-              else
-                a.admin-btn.admin-btn--sm(href=`/admin/people?page=${n}`)= n
-            if page < pageCount
-              a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page + 1}`) вперёд →
+    if pageCount > 1
+      .admin-pagination(style='display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap;')
+        if page > 1
+          a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page - 1}`) ← назад
+        each n in Array.from({ length: pageCount }, (_, idx) => idx + 1)
+          if n === page
+            span.admin-btn.admin-btn--sm(style='opacity:0.6;pointer-events:none;')= n
+          else
+            a.admin-btn.admin-btn--sm(href=`/admin/people?page=${n}`)= n
+        if page < pageCount
+          a.admin-btn.admin-btn--sm(href=`/admin/people?page=${page + 1}`) вперёд →

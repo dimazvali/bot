@@ -1,47 +1,41 @@
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-  body
-    .admin-wrap
-      .admin-header
-        a.admin-back(href='/admin') ← назад
-        span.admin-logo ТЕГИ
+extends layout
+block vars
+  - var nav = 'tags'
+block breadcrumbs
+  span Теги
+block content
+  .admin-section
+    h2.admin-title ДОБАВИТЬ ТЕГ
+    if error === 'inuse'
+      .admin-notice.admin-notice--error Тег используется в фотографиях, сначала удалите его из фото.
+    form.admin-form(method='POST' action='/admin/tags')
+      input.admin-input(type='text' name='slug' placeholder='slug (eng, напр. sunrise)')
+      input.admin-input(type='text' name='label' placeholder='метка (напр. Рассвет)')
+      input.admin-input(type='text' name='label_en' placeholder='label (EN)')
+      select.admin-input(name='type')
+        option(value='person') человек
+        option(value='location') локация
+        option(value='misc' selected) разное
+      input.admin-input(type='text' name='desc' placeholder='описание (необязательно)')
+      input.admin-input(type='text' name='desc_en' placeholder='description (EN, необязательно)')
+      button.admin-btn(type='submit') + тег
 
-      .admin-section
-        h2.admin-title ДОБАВИТЬ ТЕГ
-        if error === 'inuse'
-          p.admin-tags-error Тег используется в фотографиях, сначала удалите его из фото.
-        form.admin-form(method='POST' action='/admin/tags')
-          input.admin-input(type='text' name='slug' placeholder='slug (eng, напр. sunrise)')
-          input.admin-input(type='text' name='label' placeholder='метка (напр. Рассвет)')
-          input.admin-input(type='text' name='label_en' placeholder='label (EN)')
-          select.admin-input(name='type')
-            option(value='person') человек
-            option(value='location') локация
-            option(value='misc' selected) разное
-          input.admin-input(type='text' name='desc' placeholder='описание (необязательно)')
-          input.admin-input(type='text' name='desc_en' placeholder='description (EN, необязательно)')
-          button.admin-btn(type='submit') + тег
-
-      if Object.keys(tags).length
-        .admin-section
-          h2.admin-title ВСЕ ТЕГИ (#{Object.keys(tags).length})
-          .admin-tag-list
-            each tag, slug in tags
-              .admin-tag-row
-                form.admin-tag-edit-form(method='POST' action=`/admin/tags/${slug}/edit`)
-                  span.admin-tag-slug= slug
-                  input.admin-input(type='text' name='label' value=tag.label required)
-                  input.admin-input(type='text' name='label_en' value=tag.label_en || '' placeholder='label (EN)')
-                  select.admin-input(name='type')
-                    option(value='person' selected=tag.type==='person') человек
-                    option(value='location' selected=tag.type==='location') локация
-                    option(value='misc' selected=(tag.type||'misc')==='misc') разное
-                  input.admin-input(type='text' name='desc' value=tag.desc placeholder='описание (необязательно)')
-                  input.admin-input(type='text' name='desc_en' value=tag.desc_en || '' placeholder='description (EN)')
-                  button.admin-btn.admin-btn--sm(type='submit') сохранить
-                form.admin-delete-form(method='POST' action=`/admin/tags/${slug}/delete`)
-                  button.admin-btn.admin-btn--danger(type='submit') удалить
+  if Object.keys(tags).length
+    .admin-section
+      h2.admin-title ВСЕ ТЕГИ (#{Object.keys(tags).length})
+      .admin-tag-list
+        each tag, slug in tags
+          .admin-tag-row
+            form.admin-tag-edit-form(method='POST' action=`/admin/tags/${slug}/edit`)
+              span.admin-tag-slug= slug
+              input.admin-input(type='text' name='label' value=tag.label required)
+              input.admin-input(type='text' name='label_en' value=tag.label_en || '' placeholder='label (EN)')
+              select.admin-input(name='type')
+                option(value='person' selected=tag.type==='person') человек
+                option(value='location' selected=tag.type==='location') локация
+                option(value='misc' selected=(tag.type||'misc')==='misc') разное
+              input.admin-input(type='text' name='desc' value=tag.desc placeholder='описание (необязательно)')
+              input.admin-input(type='text' name='desc_en' value=tag.desc_en || '' placeholder='description (EN)')
+              button.admin-btn.admin-btn--sm(type='submit') сохранить
+            form.admin-delete-form(method='POST' action=`/admin/tags/${slug}/delete`)
+              button.admin-btn.admin-btn--danger(type='submit') удалить

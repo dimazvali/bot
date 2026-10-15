@@ -9,7 +9,9 @@ var nav = require('../lib/photo-admin-nav.js');
 var ADMIN_DIR = path.join(__dirname, '..', 'views', 'photo', 'admin');
 
 // Pages already converted to the layout. Each migration task appends its pages here.
-var MIGRATED = ['dashboard.pug', 'series.pug', 'settings.pug'];
+var MIGRATED = ['dashboard.pug', 'series.pug', 'settings.pug',
+  'shoots.pug', 'tags.pug', 'images.pug', 'subscribers.pug', 'feedback.pug', 'copyright.pug',
+  'stats.pug', 'stats-entity.pug', 'leads.pug', 'lead-sources.pug', 'people.pug', 'person.pug'];
 
 function renderStub(navKey, extra) {
   var src = 'extends layout\nblock vars\n  - var nav = \'' + navKey + '\'\n'

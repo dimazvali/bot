@@ -1,68 +1,63 @@
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-    style.
-      .stats-groups { display: flex; flex-direction: column; gap: 24px; }
-      .stats-group-title { font-size: 11px; letter-spacing: .1em; color: #888; margin: 0 0 8px; }
-      .stats-entity-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #222; }
-      .stats-entity-row:last-child { border-bottom: none; }
-      .stats-entity-label { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .stats-entity-label a { color: inherit; text-decoration: none; }
-      .stats-entity-label a:hover { text-decoration: underline; }
-      .stats-entity-count { font-size: 13px; color: #aaa; min-width: 32px; text-align: right; }
-      .stats-entity-drill { font-size: 11px; color: #666; text-decoration: none; padding: 2px 5px; border: 1px solid #333; border-radius: 3px; white-space: nowrap; }
-      .stats-entity-drill:hover { color: #aaa; border-color: #555; }
-  body
-    .admin-wrap
-      .admin-header
-        a.admin-back(href='/admin') ← назад
-        span.admin-logo СТАТИСТИКА
-        .stats-period
-          a.admin-link(href='?days=7' class=days===7?'active':'') 7Д
-          a.admin-link(href='?days=30' class=days===30?'active':'') 30Д
-          a.admin-link(href='?days=90' class=days===90?'active':'') 90Д
+extends layout
+block vars
+  - var nav = 'stats'
+block head
+  style.
+    .stats-groups { display: flex; flex-direction: column; gap: 24px; }
+    .stats-group-title { font-size: 11px; letter-spacing: .1em; color: #888; margin: 0 0 8px; }
+    .stats-entity-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #222; }
+    .stats-entity-row:last-child { border-bottom: none; }
+    .stats-entity-label { flex: 1; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stats-entity-label a { color: inherit; text-decoration: none; }
+    .stats-entity-label a:hover { text-decoration: underline; }
+    .stats-entity-count { font-size: 13px; color: #aaa; min-width: 32px; text-align: right; }
+    .stats-entity-drill { font-size: 11px; color: #666; text-decoration: none; padding: 2px 5px; border: 1px solid #333; border-radius: 3px; white-space: nowrap; }
+    .stats-entity-drill:hover { color: #aaa; border-color: #555; }
+block breadcrumbs
+  span Статистика
+block actions
+  .stats-period
+    a.admin-link(href='?days=7' class=days===7?'active':'') 7Д
+    a.admin-link(href='?days=30' class=days===30?'active':'') 30Д
+    a.admin-link(href='?days=90' class=days===90?'active':'') 90Д
+block content
+  if error
+    .admin-notice.admin-notice--error= error
 
-      if error
-        .admin-section
-          p.admin-hint= error
+  else
+    .admin-section
+      h2.admin-title ПРОСМОТРЫ · #{days} ДНЕЙ · ИТОГО #{total}
+      if botTotal
+        p.admin-hint исключено ботов и краулеров: #{botTotal}
+      .stats-chart
+        each item in allDays
+          .stats-bar-row
+            span.stats-day= item.day.slice(5)
+            .stats-bar-wrap
+              if item.count
+                .stats-bar(style=`width:${Math.round(item.count/maxCount*100)}%`)
+            span.stats-count= item.count || ''
 
-      else
-        .admin-section
-          h2.admin-title ПРОСМОТРЫ · #{days} ДНЕЙ · ИТОГО #{total}
-          if botTotal
-            p.admin-hint исключено ботов и краулеров: #{botTotal}
-          .stats-chart
-            each item in allDays
-              .stats-bar-row
-                span.stats-day= item.day.slice(5)
-                .stats-bar-wrap
-                  if item.count
-                    .stats-bar(style=`width:${Math.round(item.count/maxCount*100)}%`)
-                span.stats-count= item.count || ''
+    .admin-section
+      h2.admin-title ТОП СТРАНИЦ
+      .stats-groups
+        each group in entityGroups
+          div
+            p.stats-group-title= group.typeLabel
+            each item in group.items
+              .stats-entity-row
+                .stats-entity-label
+                  if item.url
+                    a(href=item.url target='_blank' rel='noopener')= item.label
+                  else
+                    | #{item.label}
+                span.stats-entity-count= item.count
+                a.stats-entity-drill(href=`/admin/stats/entity?type=${item.type}&id=${encodeURIComponent(item.id)}&days=${days}`) график →
 
-        .admin-section
-          h2.admin-title ТОП СТРАНИЦ
-          .stats-groups
-            each group in entityGroups
-              div
-                p.stats-group-title= group.typeLabel
-                each item in group.items
-                  .stats-entity-row
-                    .stats-entity-label
-                      if item.url
-                        a(href=item.url target='_blank' rel='noopener')= item.label
-                      else
-                        | #{item.label}
-                    span.stats-entity-count= item.count
-                    a.stats-entity-drill(href=`/admin/stats/entity?type=${item.type}&id=${encodeURIComponent(item.id)}&days=${days}`) график →
-
-        .admin-section
-          h2.admin-title УСТРОЙСТВА
-          .admin-tag-list
-            each count, type in byDevice
-              .admin-tag-row
-                span.admin-tag-slug= type
-                span.admin-tag-label= count
+    .admin-section
+      h2.admin-title УСТРОЙСТВА
+      .admin-tag-list
+        each count, type in byDevice
+          .admin-tag-row
+            span.admin-tag-slug= type
+            span.admin-tag-label= count

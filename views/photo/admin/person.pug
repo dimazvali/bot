@@ -1,70 +1,65 @@
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-  body
-    .admin-wrap
-      .admin-header
-        a.admin-back(href='/admin/people') ← все люди
-        span.admin-logo= person.name ? person.name.toUpperCase() : 'БЕЗ ИМЕНИ'
+extends layout
+block vars
+  - var nav = 'people'
+block breadcrumbs
+  a(href='/admin/people') Люди
+  span= person.name || 'Без имени'
+block content
+  .admin-section
+    .person-head
+      .face-crop(style='width:96px;height:96px;border-radius:50%;')
+        if faces.length
+          img(src=faces[0].thumb style=faces[0].avatarStyle)
+      .person-head-info
+        form(method='POST' action=`/admin/people/${person.id}/rename` style='display:flex;gap:6px;margin:0;')
+          input(type='hidden' name='back' value='person')
+          input.admin-input(type='text' name='name' value=person.name || '' placeholder='имя' required style='width:220px;margin:0;')
+          button.admin-btn.admin-btn--sm(type='submit') сохранить имя
+        p.admin-hint(style='margin:0;') #{faces.length} фото в #{personShoots.length} съёмк#{personShoots.length === 1 ? 'е' : 'ах'}
 
-      .admin-section
-        .person-head
-          .face-crop(style='width:96px;height:96px;border-radius:50%;')
-            if faces.length
-              img(src=faces[0].thumb style=faces[0].avatarStyle)
-          .person-head-info
-            form(method='POST' action=`/admin/people/${person.id}/rename` style='display:flex;gap:6px;margin:0;')
-              input(type='hidden' name='back' value='person')
-              input.admin-input(type='text' name='name' value=person.name || '' placeholder='имя' required style='width:220px;margin:0;')
-              button.admin-btn.admin-btn--sm(type='submit') сохранить имя
-            p.admin-hint(style='margin:0;') #{faces.length} фото в #{personShoots.length} съёмк#{personShoots.length === 1 ? 'е' : 'ах'}
+  .admin-section
+    h2.admin-title ТЕГ
+    p.admin-hint
+      | Связка с тегом типа «человек» (теги — на странице
+      a(href='/admin/tags') теги
+      | ).
+    if linkedTag
+      p.admin-hint
+        | Сейчас:
+        a(href=`/tag/${linkedTag.key}` target='_blank' rel='noopener')= linkedTag.label
+    if personTags.length
+      form(method='POST' action=`/admin/people/${person.id}/tag` style='display:flex;gap:6px;margin:0;')
+        select.admin-input(name='tagKey' style='width:auto;margin:0;')
+          option(value='') — без тега —
+          each t in personTags
+            option(value=t.key selected=t.key === person.tagKey)= t.label
+        button.admin-btn.admin-btn--sm(type='submit') сохранить
+    else
+      p.admin-hint Тегов типа «человек» пока нет — создайте на странице тегов.
 
-      .admin-section
-        h2.admin-title ТЕГ
-        p.admin-hint
-          | Связка с тегом типа «человек» (теги — на странице
-          a(href='/admin/tags') теги
-          | ).
-        if linkedTag
-          p.admin-hint
-            | Сейчас:
-            a(href=`/tag/${linkedTag.key}` target='_blank' rel='noopener')= linkedTag.label
-        if personTags.length
-          form(method='POST' action=`/admin/people/${person.id}/tag` style='display:flex;gap:6px;margin:0;')
-            select.admin-input(name='tagKey' style='width:auto;margin:0;')
-              option(value='') — без тега —
-              each t in personTags
-                option(value=t.key selected=t.key === person.tagKey)= t.label
-            button.admin-btn.admin-btn--sm(type='submit') сохранить
-        else
-          p.admin-hint Тегов типа «человек» пока нет — создайте на странице тегов.
-
-      .admin-section
-        h2.admin-title СЪЁМКИ (#{personShoots.length})
-        if !personShoots.length
-          p.admin-hint Лица этого человека пока не встречаются ни в одной съёмке.
-        each s in personShoots
-          .person-shoot
-            .person-shoot-head
-              a(href=`/admin/shoots/${s.slug}/edit#faces`)
-                b= s.label
-              span.admin-hint #{s.photoCount} фото
-              a.admin-hint(href=`/shoot/${s.slug}` target='_blank' rel='noopener') на сайте ↗
-            .person-faces
-              each f in s.faces
-                .person-face
-                  a.face-crop(href=`/admin/shoots/${f.slug}/photos/${f.photoId}/edit#faces` title=f.photoId style='width:56px;height:56px;border-radius:50%;display:block;')
-                    img(src=f.thumb loading='lazy' style=f.avatarStyle)
-                  form(method='POST' action=`/admin/shoots/${f.slug}/photos/${f.photoId}/faces/${f.faceId}/unlink?back=${person.id}` style='margin:0;')
-                    button.admin-btn.admin-btn--danger(type='submit' style='padding:0 4px;font-size:0.5625rem;' title='это не он') ✕
-
-    style.
-      .person-head { display: flex; align-items: center; gap: 16px; }
-      .person-head-info { display: flex; flex-direction: column; gap: 8px; }
-      .person-shoot { padding: 10px 0; border-top: 1px solid var(--border); }
-      .person-shoot-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
-      .person-faces { display: flex; flex-wrap: wrap; gap: 10px; }
-      .person-face { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .admin-section
+    h2.admin-title СЪЁМКИ (#{personShoots.length})
+    if !personShoots.length
+      p.admin-hint Лица этого человека пока не встречаются ни в одной съёмке.
+    each s in personShoots
+      .person-shoot
+        .person-shoot-head
+          a(href=`/admin/shoots/${s.slug}/edit#faces`)
+            b= s.label
+          span.admin-hint #{s.photoCount} фото
+          a.admin-hint(href=`/shoot/${s.slug}` target='_blank' rel='noopener') на сайте ↗
+        .person-faces
+          each f in s.faces
+            .person-face
+              a.face-crop(href=`/admin/shoots/${f.slug}/photos/${f.photoId}/edit#faces` title=f.photoId style='width:56px;height:56px;border-radius:50%;display:block;')
+                img(src=f.thumb loading='lazy' style=f.avatarStyle)
+              form(method='POST' action=`/admin/shoots/${f.slug}/photos/${f.photoId}/faces/${f.faceId}/unlink?back=${person.id}` style='margin:0;')
+                button.admin-btn.admin-btn--danger(type='submit' style='padding:0 4px;font-size:0.5625rem;' title='это не он') ✕
+block scripts
+  style.
+    .person-head { display: flex; align-items: center; gap: 16px; }
+    .person-head-info { display: flex; flex-direction: column; gap: 8px; }
+    .person-shoot { padding: 10px 0; border-top: 1px solid var(--border); }
+    .person-shoot-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+    .person-faces { display: flex; flex-wrap: wrap; gap: 10px; }
+    .person-face { display: flex; flex-direction: column; align-items: center; gap: 2px; }
