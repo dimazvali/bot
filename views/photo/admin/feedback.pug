@@ -1,6 +1,12 @@
 extends layout
 block vars
   - var nav = 'feedback'
+  mixin avatar(picture, name)
+    .comment-avatar.comment-avatar-sm
+      if picture
+        img(src=picture alt='' referrerpolicy='no-referrer')
+      else
+        = (name || '?').trim().charAt(0).toUpperCase()
 block breadcrumbs
   span Отзывы и метки
 block content
@@ -55,10 +61,3 @@ block content
             input(type='hidden' name='photoId' value=m.photoId)
             input(type='hidden' name='annotId' value=m.annotId)
             button.admin-btn.admin-btn--sm.admin-btn--danger(type='submit') удалить
-block scripts
-  mixin avatar(picture, name)
-    .comment-avatar.comment-avatar-sm
-      if picture
-        img(src=picture alt='' referrerpolicy='no-referrer')
-      else
-        = (name || '?').trim().charAt(0).toUpperCase()
