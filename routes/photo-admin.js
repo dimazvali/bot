@@ -12,6 +12,7 @@ var { extractColorFamilies, COLOR_FAMILIES, getPhotoColorFamilies } = require('.
 var subscriptions = require('../lib/photo-subscriptions');
 var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
+var adminNav = require('../lib/photo-admin-nav');
 var copyrightCheck = require('../lib/photo-copyright-check');
 var shoots = require('../lib/photo-shoots');
 var storageCache = require('../lib/storage-cache');
@@ -61,6 +62,11 @@ var indexingAuth = new JWT({
 var fb = getFirestore(photoApp);
 var bucket = getStorage(photoApp).bucket();
 var adminTokens = fb.collection('PHOTOadminTokens');
+// Every admin page extends views/photo/admin/layout.pug, which builds the side menu from this.
+router.use(function(req, res, next) {
+  res.locals.adminNav = adminNav.navFor;
+  next();
+});
 
 initFromFirestore(fb).catch(console.error);
 initTagsFromFirestore(fb).catch(console.error);
