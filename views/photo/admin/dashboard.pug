@@ -1,0 +1,33 @@
+extends layout
+block vars
+  - var nav = 'dashboard'
+block breadcrumbs
+  span Дашборд
+block actions
+  a.admin-btn.admin-btn--primary(href='/admin/shoots#create') ＋ новая съёмка
+block content
+  .admin-section
+    .admin-section-head
+      h2.admin-title Требует внимания
+    .admin-grid
+      each a in dashboard.attention
+        a.admin-stat(href=a.href class=a.count ? undefined : 'is-zero')
+          span.admin-stat-count= a.count == null ? '—' : a.count
+          span.admin-stat-label= a.label
+  .admin-section
+    .admin-section-head
+      h2.admin-title Последние съёмки
+      a.admin-link(href='/admin/shoots') все съёмки
+    if !dashboard.recentShoots.length
+      p.admin-hint Съёмок пока нет.
+    .admin-grid
+      each s in dashboard.recentShoots
+        a.admin-card(href=`/admin/shoots/${s.slug}/edit`)
+          .admin-card-cover(style=s.cover ? `background-image:url('${s.cover}')` : undefined)
+          .admin-card-body
+            span.admin-card-title= s.label
+            span.admin-card-meta
+              span #{s.photoCount} фото
+              span.admin-badge(class=s.public ? 'admin-badge--public' : 'admin-badge--closed')= s.public ? 'публичная' : 'закрыта'
+              if s.hasPassword
+                span.admin-badge 🔑

@@ -1,0 +1,15 @@
+extends layout
+block vars
+  - var nav = 'settings'
+block breadcrumbs
+  span Настройки
+block content
+  //- TEMPORARY: Telegram preview of generated SEO captions (lib/photo-seo-tg-preview.js)
+  .admin-section
+    h2.admin-title Telegram-превью SEO-описаний
+    p.admin-hint Каждое сгенерированное SEO-описание фото приходит в Telegram с превью — чтобы проверять качество.
+    form(method='POST' action='/admin/settings/seo-tg-preview')
+      span.admin-badge(class=seoTgPreview ? 'admin-badge--public' : undefined)= seoTgPreview ? 'включено' : 'выключено'
+      |
+      |
+      button.admin-btn.admin-btn--sm(type='submit')= seoTgPreview ? 'выключить' : 'включить'

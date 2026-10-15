@@ -21,6 +21,8 @@ var photoUsers = require('../lib/photo-users');
 var tgNotifier = require('../lib/photo-tg-notifier');
 var photoComments = require('../lib/photo-comments');
 var photoSettings = require('../lib/photo-settings');
+var adminDashboard = require('../lib/photo-admin-dashboard');
+var photoLeadsData = require('../lib/photo-leads-data');
 
 var axios = require('axios');
 
@@ -200,14 +202,36 @@ router.get('/logout', async (req, res) => {
   res.redirect('/admin/login');
 });
 
-router.get('/', requireAuth, (req, res) => {
-  res.render('photo/admin/index', { data: getData(), title: 'photo.dimazvali.com Admin', seoTgPreview: !!photoSettings.get('seoTgPreview') });
+router.get('/', requireAuth, async (req, res) => {
+  var shootsData = shoots.getData();
+  var dashboard = await adminDashboard.buildDashboard({
+    shootsData: shootsData,
+    getCopyrightHits: copyright.getHits,
+    getComments: photoComments.getAllComments,
+    listLeads: photoLeadsData.listLeads,
+    // same count as the "нераспознанные" part of /admin/people
+    countAnonFaceGroups: function() {
+      return Object.keys(shootsData).reduce(function(n, slug) {
+        return n + photoPeople.groupShootFaces(slug, shootsData[slug], { includeHidden: true })
+          .filter(function(g) { return g.key.indexOf('person:') !== 0; }).length;
+      }, 0);
+    },
+  });
+  res.render('photo/admin/dashboard', { title: 'Дашборд — AERO Admin', dashboard: dashboard });
+});
+
+router.get('/series', requireAuth, (req, res) => {
+  res.render('photo/admin/series', { data: getData(), title: 'Серии и страны — AERO Admin' });
+});
+
+router.get('/settings', requireAuth, (req, res) => {
+  res.render('photo/admin/settings', { title: 'Настройки — AERO Admin', seoTgPreview: !!photoSettings.get('seoTgPreview') });
 });
 
 // TEMPORARY: on/off for the Telegram preview of generated SEO captions (lib/photo-seo-tg-preview.js)
 router.post('/settings/seo-tg-preview', requireAuth, async (req, res) => {
   await photoSettings.set('seoTgPreview', !photoSettings.get('seoTgPreview'));
-  res.redirect('/admin');
+  res.redirect('/admin/settings');
 });
 
 // Photo leads — daily "нужен фотограф" monitoring (see lib/photo-leads-*).
@@ -481,22 +505,22 @@ router.get('/stats/entity', requireAuth, async (req, res) => {
 
 router.post('/country', requireAuth, (req, res) => {
   var { key, label } = req.body;
-  if (!key || !label) return res.redirect('/admin');
+  if (!key || !label) return res.redirect('/admin/series');
   var data = getData();
   var k = slugify(key);
   if (!data[k]) {
     data[k] = { label, series: {}, createdAt: new Date().toISOString().slice(0, 10) };
     saveData(data);
   }
-  res.redirect('/admin');
+  res.redirect('/admin/series');
 });
 
 router.get('/country/:key/edit', requireAuth, (req, res) => {
   var { key } = req.params;
-  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin/series');
   var data = getData();
   var country = data[key];
-  if (!country) return res.redirect('/admin');
+  if (!country) return res.redirect('/admin/series');
   var seriesKeys = country.seriesOrder || Object.keys(country.series);
   res.render('photo/admin/country-edit', {
     title: `${country.label} — AERO Admin`,
@@ -510,11 +534,11 @@ router.get('/country/:key/edit', requireAuth, (req, res) => {
 
 router.post('/country/:key/edit', requireAuth, (req, res) => {
   var { key } = req.params;
-  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin/series');
   var { label, label_en } = req.body;
   if (!label || !label.trim()) return res.redirect(`/admin/country/${key}/edit`);
   var data = getData();
-  if (!data[key]) return res.redirect('/admin');
+  if (!data[key]) return res.redirect('/admin/series');
   data[key].label = label.trim();
   if (label_en && label_en.trim()) { data[key].label_en = label_en.trim(); } else { delete data[key].label_en; }
   var defaultPhotoType = req.body.defaultPhotoType;
@@ -529,9 +553,9 @@ router.post('/country/:key/edit', requireAuth, (req, res) => {
 
 router.post('/country/:key/toggle-feed', requireAuth, (req, res) => {
   var { key } = req.params;
-  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[key]) return res.redirect('/admin');
+  if (!data[key]) return res.redirect('/admin/series');
   data[key].hiddenFromFeed = !data[key].hiddenFromFeed;
   saveData(data);
   res.redirect(`/admin/country/${key}/edit`);
@@ -539,9 +563,9 @@ router.post('/country/:key/toggle-feed', requireAuth, (req, res) => {
 
 router.post('/country/:key/archive', requireAuth, (req, res) => {
   var { key } = req.params;
-  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[key]) return res.redirect('/admin');
+  if (!data[key]) return res.redirect('/admin/series');
   data[key].archived = !data[key].archived;
   saveData(data);
   res.redirect(`/admin/country/${key}/edit`);
@@ -549,15 +573,15 @@ router.post('/country/:key/archive', requireAuth, (req, res) => {
 
 router.post('/country/:key/delete', requireAuth, (req, res) => {
   var { key } = req.params;
-  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[key]) return res.redirect('/admin');
+  if (!data[key]) return res.redirect('/admin/series');
   if (Object.keys(data[key].series).length > 0) {
     return res.redirect(`/admin/country/${key}/edit?error=Удалите все серии перед удалением страны`);
   }
   delete data[key];
   saveData(data);
-  res.redirect('/admin');
+  res.redirect('/admin/series');
 });
 
 router.post('/country/:key/reorder-series', requireAuth, express.json(), (req, res) => {
@@ -578,9 +602,9 @@ router.post('/country/:key/reorder-series', requireAuth, express.json(), (req, r
 router.post('/series/:country', requireAuth, (req, res) => {
   var { country } = req.params;
   var { key, label } = req.body;
-  if (!key || !label) return res.redirect('/admin');
+  if (!key || !label) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[country]) return res.redirect('/admin');
+  if (!data[country]) return res.redirect('/admin/series');
   var k = slugify(key);
   if (!data[country].series[k]) {
     data[country].series[k] = { label, photos: [], createdAt: new Date().toISOString().slice(0, 10) };
@@ -589,14 +613,14 @@ router.post('/series/:country', requireAuth, (req, res) => {
     }
     saveData(data);
   }
-  res.redirect('/admin');
+  res.redirect('/admin/series');
 });
 
 router.get('/:country/:series/upload', requireAuth, function(req, res, next) { if (req.params.country === 'shoots') return next('route'); next(); }, async (req, res) => {
   var { country, series } = req.params;
-  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[series]) return res.redirect('/admin/series');
   var sort = req.query.sort === 'views' ? 'views' : 'manual';
   var stats = await photoStats.getStatsByType('photo').catch(function() { return {}; });
   var photos = data[country].series[series].photos.map(function(photo, index) {
@@ -626,7 +650,7 @@ router.get('/:country/:series/upload', requireAuth, function(req, res, next) { i
 
 router.post('/:country/:series/upload', requireAuth, function(req, res, next) { if (req.params.country === 'shoots') return next('route'); next(); }, upload.single('photo'), async (req, res) => {
   var { country, series } = req.params;
-  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series)) return res.redirect('/admin/series');
   var { title, date, desc } = req.body;
   var photoType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'copter';
   var isPanorama = !!req.body.panorama;
@@ -634,7 +658,7 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
   var data = getData();
 
-  if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[series]) return res.redirect('/admin/series');
   if (!req.file) return res.redirect(`/admin/${country}/${series}/upload`);
 
   var knownTags = getTags();
@@ -754,13 +778,13 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
 
 router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
   var { country, series, id } = req.params;
-  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(series) || !/^[a-z0-9-]+$/.test(id)) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[country] || !data[country].series[series]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[series]) return res.redirect('/admin/series');
 
   var photos = data[country].series[series].photos;
   var idx = photos.findIndex(p => p.id === id);
-  if (idx === -1) return res.redirect('/admin');
+  if (idx === -1) return res.redirect('/admin/series');
 
   var photo = photos[idx];
   if (photo.urls) {
@@ -2045,9 +2069,9 @@ router.post('/images/upload', requireAuth, upload.single('image'), async (req, r
 
 router.get('/:country/:series/edit', requireAuth, (req, res) => {
   var { country, series: seriesKey } = req.params;
-  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
   res.render('photo/admin/series-edit', {
     title: `${data[country].series[seriesKey].label} — AERO Admin`,
     countryKey: country,
@@ -2059,11 +2083,11 @@ router.get('/:country/:series/edit', requireAuth, (req, res) => {
 
 router.post('/:country/:series/edit', requireAuth, (req, res) => {
   var { country, series: seriesKey } = req.params;
-  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin/series');
   var { label, label_en, desc, desc_en } = req.body;
   if (!label || !label.trim()) return res.redirect(`/admin/${country}/${seriesKey}/edit`);
   var data = getData();
-  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
   data[country].series[seriesKey].label = label.trim();
   if (label_en && label_en.trim()) { data[country].series[seriesKey].label_en = label_en.trim(); } else { delete data[country].series[seriesKey].label_en; }
   if (desc && desc.trim()) { data[country].series[seriesKey].desc = desc.trim(); } else { delete data[country].series[seriesKey].desc; }
@@ -2081,9 +2105,9 @@ router.post('/:country/:series/edit', requireAuth, (req, res) => {
 
 router.post('/:country/:series/archive', requireAuth, (req, res) => {
   var { country, series: seriesKey } = req.params;
-  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
   data[country].series[seriesKey].archived = !data[country].series[seriesKey].archived;
   saveData(data);
   res.redirect(`/admin/${country}/${seriesKey}/edit`);
@@ -2091,9 +2115,9 @@ router.post('/:country/:series/archive', requireAuth, (req, res) => {
 
 router.post('/:country/:series/delete', requireAuth, async (req, res) => {
   var { country, series: seriesKey } = req.params;
-  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin');
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin/series');
   var data = getData();
-  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
   try {
     var photos = data[country].series[seriesKey].photos;
     await Promise.all(photos.map(function(p) {
@@ -2108,7 +2132,7 @@ router.post('/:country/:series/delete', requireAuth, async (req, res) => {
     }
     delete data[country].series[seriesKey];
     saveData(data);
-    res.redirect('/admin');
+    res.redirect('/admin/series');
   } catch (err) {
     console.error('Series delete error:', err);
     res.status(500).send('Ошибка при удалении серии: ' + err.message);
@@ -2146,12 +2170,12 @@ router.post('/:country/:series/reorder-photos', requireAuth, express.json(), (re
 router.get('/:country/:series/:id/edit', requireAuth, async (req, res) => {
   var { country, series: seriesKey, id } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
-    return res.redirect('/admin');
+    return res.redirect('/admin/series');
   }
   var data = getData();
-  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
   var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
-  if (!photo) return res.redirect('/admin');
+  if (!photo) return res.redirect('/admin/series');
   var viewStats = await photoStats.getStatsByType('photo').catch(function() { return {}; });
   res.render('photo/admin/photo-edit', {
     title: `${photo.title} — AERO Admin`,
@@ -2169,7 +2193,7 @@ router.get('/:country/:series/:id/edit', requireAuth, async (req, res) => {
 router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), async (req, res) => {
   var { country, series: seriesKey, id } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
-    return res.redirect('/admin');
+    return res.redirect('/admin/series');
   }
   var { title, date, desc, title_en, desc_en } = req.body;
   var seoDesc = (req.body.seo_desc || '').trim();
@@ -2182,10 +2206,10 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   var instagramUrl = req.body.instagram ? req.body.instagram.trim() : '';
   if (instagramUrl && !instagramUrl.startsWith('https://')) instagramUrl = '';
   var data = getData();
-  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
   var photos = data[country].series[seriesKey].photos;
   var idx = photos.findIndex(function(p) { return p.id === id; });
-  if (idx === -1) return res.redirect('/admin');
+  if (idx === -1) return res.redirect('/admin/series');
   var photo = photos[idx];
   var knownTags = getTags();
   var rawTags = req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags]) : [];
@@ -2406,10 +2430,10 @@ router.post('/:country/:series/:id/annotation/:annotId/move', requireAuth, expre
 router.post('/:country/:series/:id/annotation/:annotId/delete', requireAuth, (req, res) => {
   var { country, series: seriesKey, id, annotId } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
-    return res.redirect('/admin');
+    return res.redirect('/admin/series');
   }
   var data = getData();
-  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin');
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
   var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
   if (photo && photo.annotations) {
     photo.annotations = photo.annotations.filter(function(a) { return a.id !== annotId; });
