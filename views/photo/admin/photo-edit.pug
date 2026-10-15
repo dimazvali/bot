@@ -1,322 +1,320 @@
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-    link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
-    script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
-  body
-    .admin-wrap
-      .admin-header
-        a.admin-back(href=`/admin/${countryKey}/${seriesKey}/edit`) ← назад
-        span.admin-logo= photo.title
-        span.admin-hint 👁 #{photoViews}
+extends layout
+block vars
+  - var nav = 'series'
+block head
+  link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
+  script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
+block breadcrumbs
+  a(href='/admin/series') Серии и страны
+  a(href=`/admin/${countryKey}/${seriesKey}/edit`)= seriesKey
+  span= photo.title
+block actions
+  span.admin-hint 👁 #{photoViews}
+block content
+  .admin-section
+    h2.admin-title РЕДАКТИРОВАТЬ ФОТО
+    if photo.urls
+      .copyright-preview-row
+        .annot-canvas#annot-canvas
+          img#annot-img(src=photo.urls.preview alt=photo.title style='width:100%;height:auto;display:block;')
+          each a in (photo.annotations || [])
+            .annot-marker(style=`left:${a.x}%;top:${a.y}%;` data-id=a.id title=a.text) i
+        a.admin-link(href=`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(photo.urls.full || photo.urls.preview)}` target='_blank' rel='noopener' style='display:inline-block;margin-top:6px;font-size:.6875rem') 🔍 Проверить в Google Lens
+      if colorFamilies
+        p.admin-hint ЦВЕТ (определяется автоматически при загрузке, можно несколько; можно скорректировать):
+        .color-radio-group
+          each fam, key in colorFamilies
+            label.color-radio-label(title=fam.label)
+              input(type='checkbox' form='photo-edit-form' name='colorFamilies' value=key checked=(photoColors.indexOf(key) !== -1))
+              span(style=`background:${fam.hex}`)
+      if photo.annotations && photo.annotations.length
+        .annot-list
+          p.admin-hint АННОТАЦИИ:
+          each a in (photo.annotations || [])
+            .annot-list-item
+              .annot-list-badge i
+              span.annot-list-text= a.text
+              if a.text_en
+                span.annot-list-text(style='color:var(--text-dim);font-style:italic;')= a.text_en
+              form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/annotation/${a.id}/delete` style='margin:0')
+                button.admin-btn(type='submit' style='padding:1px 8px;font-size:.7rem;') ✕
+      .annot-pending-form#annot-pending-form
+        p.admin-hint ТЕКСТ АННОТАЦИИ:
+        textarea#annot-new-text.admin-input(rows='2' placeholder='Текст аннотации...' style='margin-bottom:6px;')
+        p.admin-hint TEXT (EN, необязательно):
+        textarea#annot-new-text-en.admin-input(rows='2' placeholder='Annotation text (EN)...' style='margin-bottom:6px;')
+        .annot-form-btns(style='display:flex;gap:8px;')
+          button#annot-save-btn.admin-btn(type='button') Сохранить
+          button#annot-cancel-btn.admin-btn(type='button') Отмена
+    form#photo-edit-form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit` enctype='multipart/form-data')
+      input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
+      input.admin-input(type='text' name='title_en' value=photo.title_en || '' placeholder='title (EN)')
+      p.admin-hint ЗАМЕНИТЬ ФАЙЛ (необязательно):
+      input.admin-input(type='file' name='photo' accept='image/*')
+      input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. Май 2024)')
+      textarea.admin-input#photo-desc(name='desc' placeholder='описание для сайта (необязательно)' rows='3')= photo.desc || ''
+      textarea.admin-input(name='desc_en' placeholder='description (EN, необязательно)' rows='3')= photo.desc_en || ''
+      .admin-desc-row
+        input.admin-input#photo-seo-desc(type='text' name='seo_desc' value=photo.seo_desc || '' placeholder='meta-описание (только в метатегах, SEO)')
+        button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать meta-описание и ключевые слова через AI') 🤖
+      input.admin-input#photo-keywords(type='text' name='seo_keywords' value=photo.seo_keywords || '' placeholder='ключевые слова (SEO, необязательно)')
+      p.admin-hint#gen-seo-status(style='display:none')
+      input.admin-input(type='text' name='seo_desc_en' value=photo.seo_desc_en || '' placeholder='meta description (EN, SEO)')
+      input.admin-input(type='text' name='seo_keywords_en' value=photo.seo_keywords_en || '' placeholder='keywords (EN, SEO)')
+      input.admin-input(type='url' name='instagram' value=photo.instagram || '' placeholder='ссылка на публикацию в instagram (необязательно)')
+      p.admin-hint ЛОКАЦИЯ (клик — поставить точку, перетаскивание — сдвинуть):
+      #coords-map
+      input#coords-lat(type='hidden' name='lat' value=(photo.coords ? photo.coords.lat : ''))
+      input#coords-lng(type='hidden' name='lng' value=(photo.coords ? photo.coords.lng : ''))
+      .coords-map-bar
+        span#coords-label(data-empty='точка не задана')= (photo.coords) ? photo.coords.lat.toFixed(6) + ', ' + photo.coords.lng.toFixed(6) : 'точка не задана'
+        button#coords-clear.admin-btn(type='button') Убрать точку
+      input.admin-input(type='number' name='altitude' value=(photo.altitude != null ? photo.altitude : '') placeholder='высота над уровнем моря (м)')
+      p.admin-hint ТИП СЪЁМКИ:
+      .type-radio-group
+        each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
+          label.type-radio-label
+            input(type='radio' name='type' value=t[0] checked=(photo.type||'copter')===t[0])
+            span
+              svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
+                if t[0]==='camera'
+                  path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
+                  circle(cx='12' cy='13' r='4')
+                else if t[0]==='mobile'
+                  rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
+                  circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
+                else
+                  rect(x='9' y='9' width='6' height='6' rx='1')
+                  line(x1='9' y1='9' x2='4' y2='4')
+                  line(x1='15' y1='9' x2='20' y2='4')
+                  line(x1='9' y1='15' x2='4' y2='20')
+                  line(x1='15' y1='15' x2='20' y2='20')
+                  circle(cx='3' cy='3' r='2')
+                  circle(cx='21' cy='3' r='2')
+                  circle(cx='3' cy='21' r='2')
+                  circle(cx='21' cy='21' r='2')
+              | #{t[1]}
+      label.admin-tag-check
+        input(type='checkbox' name='panorama' checked=!!photo.panorama)
+        span панорама (доп. копия в оригинальном размере, зум/пан — генерируется при загрузке нового файла)
+      if tags && Object.keys(tags).length
+        .admin-tags-select
+          p.admin-hint ТЕГИ:
+          each tag, slug in tags
+            label.admin-tag-check
+              input(type='checkbox' name='tags' value=slug checked=(photo.tags && photo.tags.includes(slug)))
+              span= tag.label
+      button.admin-btn(type='submit') СОХРАНИТЬ
+block scripts
+  style.
+    .admin-desc-row textarea { padding-right: 3rem; }
+    .admin-btn-ai { position: absolute; top: 6px; right: 6px; background: #1a1a2e; border: 1px solid #444; color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 1rem; cursor: pointer; line-height: 1; }
+    .admin-btn-ai:hover { background: #2a2a4e; }
+    .admin-btn-ai:disabled { opacity: .4; cursor: wait; }
+    #gen-seo-status { font-size: .75rem; margin: 2px 0 0; }
+    #coords-map { width: 100%; height: 260px; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
+    #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
+    .coords-map-bar { display: flex; flex: 1 1 100%; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
+    .color-radio-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 12px; }
+    .color-radio-label { cursor: pointer; }
+    .color-radio-label input { display: none; }
+    .color-radio-label span { display: block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); box-sizing: border-box; }
+    .color-radio-label input:checked + span { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
 
-      .admin-section
-        h2.admin-title РЕДАКТИРОВАТЬ ФОТО
-        if photo.urls
-          .copyright-preview-row
-            .annot-canvas#annot-canvas
-              img#annot-img(src=photo.urls.preview alt=photo.title style='width:100%;height:auto;display:block;')
-              each a in (photo.annotations || [])
-                .annot-marker(style=`left:${a.x}%;top:${a.y}%;` data-id=a.id title=a.text) i
-            a.admin-link(href=`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(photo.urls.full || photo.urls.preview)}` target='_blank' rel='noopener' style='display:inline-block;margin-top:6px;font-size:.6875rem') 🔍 Проверить в Google Lens
-          if colorFamilies
-            p.admin-hint ЦВЕТ (определяется автоматически при загрузке, можно несколько; можно скорректировать):
-            .color-radio-group
-              each fam, key in colorFamilies
-                label.color-radio-label(title=fam.label)
-                  input(type='checkbox' form='photo-edit-form' name='colorFamilies' value=key checked=(photoColors.indexOf(key) !== -1))
-                  span(style=`background:${fam.hex}`)
-          if photo.annotations && photo.annotations.length
-            .annot-list
-              p.admin-hint АННОТАЦИИ:
-              each a in (photo.annotations || [])
-                .annot-list-item
-                  .annot-list-badge i
-                  span.annot-list-text= a.text
-                  if a.text_en
-                    span.annot-list-text(style='color:var(--text-dim);font-style:italic;')= a.text_en
-                  form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/annotation/${a.id}/delete` style='margin:0')
-                    button.admin-btn(type='submit' style='padding:1px 8px;font-size:.7rem;') ✕
-          .annot-pending-form#annot-pending-form
-            p.admin-hint ТЕКСТ АННОТАЦИИ:
-            textarea#annot-new-text.admin-input(rows='2' placeholder='Текст аннотации...' style='margin-bottom:6px;')
-            p.admin-hint TEXT (EN, необязательно):
-            textarea#annot-new-text-en.admin-input(rows='2' placeholder='Annotation text (EN)...' style='margin-bottom:6px;')
-            .annot-form-btns(style='display:flex;gap:8px;')
-              button#annot-save-btn.admin-btn(type='button') Сохранить
-              button#annot-cancel-btn.admin-btn(type='button') Отмена
-        form#photo-edit-form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/edit` enctype='multipart/form-data')
-          input.admin-input(type='text' name='title' value=photo.title placeholder='название снимка' required)
-          input.admin-input(type='text' name='title_en' value=photo.title_en || '' placeholder='title (EN)')
-          p.admin-hint ЗАМЕНИТЬ ФАЙЛ (необязательно):
-          input.admin-input(type='file' name='photo' accept='image/*')
-          input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. Май 2024)')
-          textarea.admin-input#photo-desc(name='desc' placeholder='описание для сайта (необязательно)' rows='3')= photo.desc || ''
-          textarea.admin-input(name='desc_en' placeholder='description (EN, необязательно)' rows='3')= photo.desc_en || ''
-          .admin-desc-row
-            input.admin-input#photo-seo-desc(type='text' name='seo_desc' value=photo.seo_desc || '' placeholder='meta-описание (только в метатегах, SEO)')
-            button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать meta-описание и ключевые слова через AI') 🤖
-          input.admin-input#photo-keywords(type='text' name='seo_keywords' value=photo.seo_keywords || '' placeholder='ключевые слова (SEO, необязательно)')
-          p.admin-hint#gen-seo-status(style='display:none')
-          input.admin-input(type='text' name='seo_desc_en' value=photo.seo_desc_en || '' placeholder='meta description (EN, SEO)')
-          input.admin-input(type='text' name='seo_keywords_en' value=photo.seo_keywords_en || '' placeholder='keywords (EN, SEO)')
-          input.admin-input(type='url' name='instagram' value=photo.instagram || '' placeholder='ссылка на публикацию в instagram (необязательно)')
-          p.admin-hint ЛОКАЦИЯ (клик — поставить точку, перетаскивание — сдвинуть):
-          #coords-map
-          input#coords-lat(type='hidden' name='lat' value=(photo.coords ? photo.coords.lat : ''))
-          input#coords-lng(type='hidden' name='lng' value=(photo.coords ? photo.coords.lng : ''))
-          .coords-map-bar
-            span#coords-label(data-empty='точка не задана')= (photo.coords) ? photo.coords.lat.toFixed(6) + ', ' + photo.coords.lng.toFixed(6) : 'точка не задана'
-            button#coords-clear.admin-btn(type='button') Убрать точку
-          input.admin-input(type='number' name='altitude' value=(photo.altitude != null ? photo.altitude : '') placeholder='высота над уровнем моря (м)')
-          p.admin-hint ТИП СЪЁМКИ:
-          .type-radio-group
-            each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
-              label.type-radio-label
-                input(type='radio' name='type' value=t[0] checked=(photo.type||'copter')===t[0])
-                span
-                  svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
-                    if t[0]==='camera'
-                      path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
-                      circle(cx='12' cy='13' r='4')
-                    else if t[0]==='mobile'
-                      rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
-                      circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
-                    else
-                      rect(x='9' y='9' width='6' height='6' rx='1')
-                      line(x1='9' y1='9' x2='4' y2='4')
-                      line(x1='15' y1='9' x2='20' y2='4')
-                      line(x1='9' y1='15' x2='4' y2='20')
-                      line(x1='15' y1='15' x2='20' y2='20')
-                      circle(cx='3' cy='3' r='2')
-                      circle(cx='21' cy='3' r='2')
-                      circle(cx='3' cy='21' r='2')
-                      circle(cx='21' cy='21' r='2')
-                  | #{t[1]}
-          label.admin-tag-check
-            input(type='checkbox' name='panorama' checked=!!photo.panorama)
-            span панорама (доп. копия в оригинальном размере, зум/пан — генерируется при загрузке нового файла)
-          if tags && Object.keys(tags).length
-            .admin-tags-select
-              p.admin-hint ТЕГИ:
-              each tag, slug in tags
-                label.admin-tag-check
-                  input(type='checkbox' name='tags' value=slug checked=(photo.tags && photo.tags.includes(slug)))
-                  span= tag.label
-          button.admin-btn(type='submit') СОХРАНИТЬ
+  script.
+    // ── Annotation canvas ──
+    (function() {
+      var canvas = document.getElementById('annot-canvas');
+      if (!canvas) return;
+      var pendingMarker = null;
+      var pendingX = 0, pendingY = 0;
+      var form = document.getElementById('annot-pending-form');
+      var textArea = document.getElementById('annot-new-text');
+      var textAreaEn = document.getElementById('annot-new-text-en');
+      var saveBtn = document.getElementById('annot-save-btn');
+      var cancelBtn = document.getElementById('annot-cancel-btn');
+      var baseUrl = window.location.pathname.replace('/edit', '');
 
-    style.
-      .admin-desc-row textarea { padding-right: 3rem; }
-      .admin-btn-ai { position: absolute; top: 6px; right: 6px; background: #1a1a2e; border: 1px solid #444; color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 1rem; cursor: pointer; line-height: 1; }
-      .admin-btn-ai:hover { background: #2a2a4e; }
-      .admin-btn-ai:disabled { opacity: .4; cursor: wait; }
-      #gen-seo-status { font-size: .75rem; margin: 2px 0 0; }
-      #coords-map { width: 100%; height: 260px; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }
-      #coords-map .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9); }
-      .coords-map-bar { display: flex; flex: 1 1 100%; align-items: center; gap: 10px; margin-bottom: 10px; font-size: .75rem; color: var(--text-dim); }
-      .color-radio-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0 12px; }
-      .color-radio-label { cursor: pointer; }
-      .color-radio-label input { display: none; }
-      .color-radio-label span { display: block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); box-sizing: border-box; }
-      .color-radio-label input:checked + span { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
+      // ── Drag existing markers ──
+      var dragging = null;
 
-    script.
-      // ── Annotation canvas ──
-      (function() {
-        var canvas = document.getElementById('annot-canvas');
-        if (!canvas) return;
-        var pendingMarker = null;
-        var pendingX = 0, pendingY = 0;
-        var form = document.getElementById('annot-pending-form');
-        var textArea = document.getElementById('annot-new-text');
-        var textAreaEn = document.getElementById('annot-new-text-en');
-        var saveBtn = document.getElementById('annot-save-btn');
-        var cancelBtn = document.getElementById('annot-cancel-btn');
-        var baseUrl = window.location.pathname.replace('/edit', '');
+      canvas.addEventListener('mousedown', function(e) {
+        var marker = e.target.closest('.annot-marker:not(.annot-marker--pending)');
+        if (!marker) return;
+        e.preventDefault();
+        dragging = {
+          marker: marker,
+          annotId: marker.dataset.id,
+          startX: e.clientX,
+          startY: e.clientY,
+          startLeft: parseFloat(marker.style.left),
+          startTop: parseFloat(marker.style.top),
+          moved: false,
+        };
+        document.body.style.cursor = 'grabbing';
+      });
 
-        // ── Drag existing markers ──
-        var dragging = null;
+      document.addEventListener('mousemove', function(e) {
+        if (!dragging) return;
+        var rect = canvas.getBoundingClientRect();
+        var dx = e.clientX - dragging.startX;
+        var dy = e.clientY - dragging.startY;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragging.moved = true;
+        dragging.marker.style.left = Math.max(0, Math.min(100, dragging.startLeft + dx / rect.width * 100)) + '%';
+        dragging.marker.style.top  = Math.max(0, Math.min(100, dragging.startTop  + dy / rect.height * 100)) + '%';
+      });
 
-        canvas.addEventListener('mousedown', function(e) {
-          var marker = e.target.closest('.annot-marker:not(.annot-marker--pending)');
-          if (!marker) return;
-          e.preventDefault();
-          dragging = {
-            marker: marker,
-            annotId: marker.dataset.id,
-            startX: e.clientX,
-            startY: e.clientY,
-            startLeft: parseFloat(marker.style.left),
-            startTop: parseFloat(marker.style.top),
-            moved: false,
-          };
-          document.body.style.cursor = 'grabbing';
-        });
-
-        document.addEventListener('mousemove', function(e) {
-          if (!dragging) return;
-          var rect = canvas.getBoundingClientRect();
-          var dx = e.clientX - dragging.startX;
-          var dy = e.clientY - dragging.startY;
-          if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragging.moved = true;
-          dragging.marker.style.left = Math.max(0, Math.min(100, dragging.startLeft + dx / rect.width * 100)) + '%';
-          dragging.marker.style.top  = Math.max(0, Math.min(100, dragging.startTop  + dy / rect.height * 100)) + '%';
-        });
-
-        document.addEventListener('mouseup', async function() {
-          if (!dragging) return;
-          var d = dragging;
-          dragging = null;
-          document.body.style.cursor = '';
-          if (!d.moved) return;
-          var x = parseFloat(d.marker.style.left);
-          var y = parseFloat(d.marker.style.top);
-          try {
-            var resp = await fetch(baseUrl + '/annotation/' + d.annotId + '/move', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ x: x, y: y }),
-            });
-            var result = await resp.json();
-            if (!result.ok) throw new Error(result.error || 'Ошибка');
-          } catch (err) {
-            d.marker.style.left = d.startLeft + '%';
-            d.marker.style.top  = d.startTop  + '%';
-            alert('Ошибка: ' + err.message);
-          }
-        });
-
-        // ── Create new annotation on canvas click ──
-        canvas.addEventListener('click', function(e) {
-          if (e.target.closest('.annot-marker')) return;
-          var rect = canvas.getBoundingClientRect();
-          pendingX = ((e.clientX - rect.left) / rect.width) * 100;
-          pendingY = ((e.clientY - rect.top) / rect.height) * 100;
-
-          if (pendingMarker) pendingMarker.remove();
-          var m = document.createElement('div');
-          m.className = 'annot-marker annot-marker--pending';
-          m.style.left = pendingX + '%';
-          m.style.top = pendingY + '%';
-          m.textContent = 'i';
-          canvas.appendChild(m);
-          pendingMarker = m;
-
-          form.style.display = 'block';
-          textArea.value = '';
-          if (textAreaEn) textAreaEn.value = '';
-          textArea.focus();
-        });
-
-        cancelBtn.addEventListener('click', function() {
-          if (pendingMarker) { pendingMarker.remove(); pendingMarker = null; }
-          form.style.display = 'none';
-          textArea.value = '';
-          if (textAreaEn) textAreaEn.value = '';
-        });
-
-        saveBtn.addEventListener('click', async function() {
-          var text = textArea.value.trim();
-          var textEn = textAreaEn ? textAreaEn.value.trim() : '';
-          if (!text) return;
-          saveBtn.disabled = true;
-          saveBtn.textContent = '…';
-          try {
-            var resp = await fetch(baseUrl + '/annotation/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ x: pendingX, y: pendingY, text: text, text_en: textEn }),
-            });
-            var data = await resp.json();
-            if (!data.ok) throw new Error(data.error || 'Ошибка');
-            window.location.reload();
-          } catch (e) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = 'Сохранить';
-            alert('Ошибка: ' + e.message);
-          }
-        });
-      }());
-
-      document.getElementById('gen-seo-btn').addEventListener('click', async function() {
-        var btn = this;
-        var status = document.getElementById('gen-seo-status');
-        btn.disabled = true;
-        btn.textContent = '⏳';
-        status.style.display = 'block';
-        status.style.color = '#aaa';
-        status.textContent = 'Генерирую…';
+      document.addEventListener('mouseup', async function() {
+        if (!dragging) return;
+        var d = dragging;
+        dragging = null;
+        document.body.style.cursor = '';
+        if (!d.moved) return;
+        var x = parseFloat(d.marker.style.left);
+        var y = parseFloat(d.marker.style.top);
         try {
-          var resp = await fetch(window.location.pathname.replace('/edit', '/generate-seo'), {
+          var resp = await fetch(baseUrl + '/annotation/' + d.annotId + '/move', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}),
+            body: JSON.stringify({ x: x, y: y }),
           });
-          var data = await resp.json();
-          if (!resp.ok || !data.ok) throw new Error(data.error || 'Ошибка');
-          document.getElementById('photo-seo-desc').value = data.desc;
-          document.getElementById('photo-keywords').value = data.keywords;
-          if (data.descEn) document.querySelector('[name="seo_desc_en"]').value = data.descEn;
-          if (data.keywordsEn) document.querySelector('[name="seo_keywords_en"]').value = data.keywordsEn;
-          status.style.color = '#4caf50';
-          status.textContent = '✓ Готово — не забудьте сохранить';
-        } catch (e) {
-          status.style.color = '#f44336';
-          status.textContent = '✗ ' + e.message;
-        } finally {
-          btn.disabled = false;
-          btn.textContent = '🤖';
+          var result = await resp.json();
+          if (!result.ok) throw new Error(result.error || 'Ошибка');
+        } catch (err) {
+          d.marker.style.left = d.startLeft + '%';
+          d.marker.style.top  = d.startTop  + '%';
+          alert('Ошибка: ' + err.message);
         }
       });
 
-      // ── Location map: click to place, drag to adjust ──
-      (function() {
-        var el = document.getElementById('coords-map');
-        if (!el || !window.L) return;
-        var latInput = document.getElementById('coords-lat');
-        var lngInput = document.getElementById('coords-lng');
-        var label = document.getElementById('coords-label');
-        var clearBtn = document.getElementById('coords-clear');
-        var SERIES_CENTER = !{typeof seriesMapCenter !== 'undefined' && seriesMapCenter ? JSON.stringify([seriesMapCenter.lat, seriesMapCenter.lng]) : 'null'};
-        var DEFAULT_CENTER = SERIES_CENTER || [41.7151, 44.8271];
+      // ── Create new annotation on canvas click ──
+      canvas.addEventListener('click', function(e) {
+        if (e.target.closest('.annot-marker')) return;
+        var rect = canvas.getBoundingClientRect();
+        pendingX = ((e.clientX - rect.left) / rect.width) * 100;
+        pendingY = ((e.clientY - rect.top) / rect.height) * 100;
 
-        function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
-        var lat0 = num(latInput.value);
-        var lng0 = num(lngInput.value);
+        if (pendingMarker) pendingMarker.remove();
+        var m = document.createElement('div');
+        m.className = 'annot-marker annot-marker--pending';
+        m.style.left = pendingX + '%';
+        m.style.top = pendingY + '%';
+        m.textContent = 'i';
+        canvas.appendChild(m);
+        pendingMarker = m;
 
-        var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
-          .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, SERIES_CENTER ? 15 : (lat0 != null ? 13 : 6));
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+        form.style.display = 'block';
+        textArea.value = '';
+        if (textAreaEn) textAreaEn.value = '';
+        textArea.focus();
+      });
 
-        var marker = null;
-        function fmt(lat, lng) { return lat.toFixed(6) + ', ' + lng.toFixed(6); }
-        function setPoint(lat, lng) {
-          latInput.value = lat;
-          lngInput.value = lng;
-          label.textContent = fmt(lat, lng);
-          if (marker) {
-            marker.setLatLng([lat, lng]);
-          } else {
-            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-            marker.on('dragend', function() {
-              var pos = marker.getLatLng();
-              setPoint(pos.lat, pos.lng);
-            });
-          }
+      cancelBtn.addEventListener('click', function() {
+        if (pendingMarker) { pendingMarker.remove(); pendingMarker = null; }
+        form.style.display = 'none';
+        textArea.value = '';
+        if (textAreaEn) textAreaEn.value = '';
+      });
+
+      saveBtn.addEventListener('click', async function() {
+        var text = textArea.value.trim();
+        var textEn = textAreaEn ? textAreaEn.value.trim() : '';
+        if (!text) return;
+        saveBtn.disabled = true;
+        saveBtn.textContent = '…';
+        try {
+          var resp = await fetch(baseUrl + '/annotation/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ x: pendingX, y: pendingY, text: text, text_en: textEn }),
+          });
+          var data = await resp.json();
+          if (!data.ok) throw new Error(data.error || 'Ошибка');
+          window.location.reload();
+        } catch (e) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Сохранить';
+          alert('Ошибка: ' + e.message);
         }
-        if (lat0 != null && lng0 != null) setPoint(lat0, lng0);
+      });
+    }());
 
-        map.on('click', function(e) { setPoint(e.latlng.lat, e.latlng.lng); });
-
-        if (clearBtn) clearBtn.addEventListener('click', function() {
-          if (marker) { map.removeLayer(marker); marker = null; }
-          latInput.value = '';
-          lngInput.value = '';
-          label.textContent = label.getAttribute('data-empty') || '—';
+    document.getElementById('gen-seo-btn').addEventListener('click', async function() {
+      var btn = this;
+      var status = document.getElementById('gen-seo-status');
+      btn.disabled = true;
+      btn.textContent = '⏳';
+      status.style.display = 'block';
+      status.style.color = '#aaa';
+      status.textContent = 'Генерирую…';
+      try {
+        var resp = await fetch(window.location.pathname.replace('/edit', '/generate-seo'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
         });
+        var data = await resp.json();
+        if (!resp.ok || !data.ok) throw new Error(data.error || 'Ошибка');
+        document.getElementById('photo-seo-desc').value = data.desc;
+        document.getElementById('photo-keywords').value = data.keywords;
+        if (data.descEn) document.querySelector('[name="seo_desc_en"]').value = data.descEn;
+        if (data.keywordsEn) document.querySelector('[name="seo_keywords_en"]').value = data.keywordsEn;
+        status.style.color = '#4caf50';
+        status.textContent = '✓ Готово — не забудьте сохранить';
+      } catch (e) {
+        status.style.color = '#f44336';
+        status.textContent = '✗ ' + e.message;
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🤖';
+      }
+    });
 
-        setTimeout(function() { map.invalidateSize(); }, 0);
-      }());
+    // ── Location map: click to place, drag to adjust ──
+    (function() {
+      var el = document.getElementById('coords-map');
+      if (!el || !window.L) return;
+      var latInput = document.getElementById('coords-lat');
+      var lngInput = document.getElementById('coords-lng');
+      var label = document.getElementById('coords-label');
+      var clearBtn = document.getElementById('coords-clear');
+      var SERIES_CENTER = !{typeof seriesMapCenter !== 'undefined' && seriesMapCenter ? JSON.stringify([seriesMapCenter.lat, seriesMapCenter.lng]) : 'null'};
+      var DEFAULT_CENTER = SERIES_CENTER || [41.7151, 44.8271];
+
+      function num(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+      var lat0 = num(latInput.value);
+      var lng0 = num(lngInput.value);
+
+      var map = L.map(el, { scrollWheelZoom: true, attributionControl: false })
+        .setView(lat0 != null && lng0 != null ? [lat0, lng0] : DEFAULT_CENTER, SERIES_CENTER ? 15 : (lat0 != null ? 13 : 6));
+      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+      var marker = null;
+      function fmt(lat, lng) { return lat.toFixed(6) + ', ' + lng.toFixed(6); }
+      function setPoint(lat, lng) {
+        latInput.value = lat;
+        lngInput.value = lng;
+        label.textContent = fmt(lat, lng);
+        if (marker) {
+          marker.setLatLng([lat, lng]);
+        } else {
+          marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+          marker.on('dragend', function() {
+            var pos = marker.getLatLng();
+            setPoint(pos.lat, pos.lng);
+          });
+        }
+      }
+      if (lat0 != null && lng0 != null) setPoint(lat0, lng0);
+
+      map.on('click', function(e) { setPoint(e.latlng.lat, e.latlng.lng); });
+
+      if (clearBtn) clearBtn.addEventListener('click', function() {
+        if (marker) { map.removeLayer(marker); marker = null; }
+        latInput.value = '';
+        lngInput.value = '';
+        label.textContent = label.getAttribute('data-empty') || '—';
+      });
+
+      setTimeout(function() { map.invalidateSize(); }, 0);
+    }());

@@ -1,174 +1,169 @@
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-  body
-    .admin-wrap
-      .admin-header
-        a.admin-back(href='/admin') ← назад
-        span.admin-logo #{countryLabel} · #{seriesLabel}
+extends layout
+block vars
+  - var nav = 'series'
+block breadcrumbs
+  a(href='/admin/series') Серии и страны
+  span #{countryLabel} · #{seriesLabel}
+block content
+  .admin-section
+    h2.admin-title ЗАГРУЗИТЬ ФОТО
+    p.admin-hint Файл будет конвертирован в WebP и загружен в Firebase Storage в двух размерах (800px и 2400px).
+    form.admin-form(method='POST' action=`/admin/${country}/${series}/upload` enctype='multipart/form-data')
+      input#photo-file(type='file' name='photo' accept='image/*' required style='display:none')
+      .drop-zone#drop-zone
+        img#drop-preview(alt='preview')
+        .drop-zone-hint#drop-hint
+          .drop-zone-icon ↑
+          span ПЕРЕТАЩИТЕ ФОТО ИЛИ НАЖМИТЕ
+      span.admin-hint#exif-status
+      input.admin-input#photo-title(type='text' name='title' placeholder='название снимка')
+      input.admin-input#photo-date(type='text' name='date' placeholder='дата (напр. Май 2024)')
+      textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='3')
+      input.admin-input(type='url' name='instagram' placeholder='ссылка на публикацию в instagram (необязательно)')
+      .admin-coords
+        input.admin-input#photo-lat(type='text' name='lat' placeholder='широта (напр. 41.693)')
+        input.admin-input#photo-lng(type='text' name='lng' placeholder='долгота (напр. 44.801)')
+      input.admin-input#photo-altitude(type='number' name='altitude' placeholder='высота над уровнем моря (м)')
+      p.admin-hint ТИП СЪЁМКИ:
+      .type-radio-group
+        each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
+          label.type-radio-label
+            input(type='radio' name='type' value=t[0] checked=t[0]===(defaultPhotoType||'copter'))
+            span
+              svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
+                if t[0]==='camera'
+                  path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
+                  circle(cx='12' cy='13' r='4')
+                else if t[0]==='mobile'
+                  rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
+                  circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
+                else
+                  rect(x='9' y='9' width='6' height='6' rx='1')
+                  line(x1='9' y1='9' x2='4' y2='4')
+                  line(x1='15' y1='9' x2='20' y2='4')
+                  line(x1='9' y1='15' x2='4' y2='20')
+                  line(x1='15' y1='15' x2='20' y2='20')
+                  circle(cx='3' cy='3' r='2')
+                  circle(cx='21' cy='3' r='2')
+                  circle(cx='3' cy='21' r='2')
+                  circle(cx='21' cy='21' r='2')
+              | #{t[1]}
+      label.admin-tag-check
+        input(type='checkbox' name='panorama')
+        span панорама (доп. копия в оригинальном размере, зум/пан)
+      if tags && Object.keys(tags).length
+        .admin-tags-select
+          p.admin-hint ТЕГИ:
+          each tag, slug in tags
+            label.admin-tag-check
+              input(type='checkbox' name='tags' value=slug)
+              span= tag.label
+      button.admin-btn(type='submit') ЗАГРУЗИТЬ
 
-      .admin-section
-        h2.admin-title ЗАГРУЗИТЬ ФОТО
-        p.admin-hint Файл будет конвертирован в WebP и загружен в Firebase Storage в двух размерах (800px и 2400px).
-        form.admin-form(method='POST' action=`/admin/${country}/${series}/upload` enctype='multipart/form-data')
-          input#photo-file(type='file' name='photo' accept='image/*' required style='display:none')
-          .drop-zone#drop-zone
-            img#drop-preview(alt='preview')
-            .drop-zone-hint#drop-hint
-              .drop-zone-icon ↑
-              span ПЕРЕТАЩИТЕ ФОТО ИЛИ НАЖМИТЕ
-          span.admin-hint#exif-status
-          input.admin-input#photo-title(type='text' name='title' placeholder='название снимка')
-          input.admin-input#photo-date(type='text' name='date' placeholder='дата (напр. Май 2024)')
-          textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='3')
-          input.admin-input(type='url' name='instagram' placeholder='ссылка на публикацию в instagram (необязательно)')
-          .admin-coords
-            input.admin-input#photo-lat(type='text' name='lat' placeholder='широта (напр. 41.693)')
-            input.admin-input#photo-lng(type='text' name='lng' placeholder='долгота (напр. 44.801)')
-          input.admin-input#photo-altitude(type='number' name='altitude' placeholder='высота над уровнем моря (м)')
-          p.admin-hint ТИП СЪЁМКИ:
-          .type-radio-group
-            each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
-              label.type-radio-label
-                input(type='radio' name='type' value=t[0] checked=t[0]===(defaultPhotoType||'copter'))
-                span
-                  svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
-                    if t[0]==='camera'
-                      path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
-                      circle(cx='12' cy='13' r='4')
-                    else if t[0]==='mobile'
-                      rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
-                      circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
-                    else
-                      rect(x='9' y='9' width='6' height='6' rx='1')
-                      line(x1='9' y1='9' x2='4' y2='4')
-                      line(x1='15' y1='9' x2='20' y2='4')
-                      line(x1='9' y1='15' x2='4' y2='20')
-                      line(x1='15' y1='15' x2='20' y2='20')
-                      circle(cx='3' cy='3' r='2')
-                      circle(cx='21' cy='3' r='2')
-                      circle(cx='3' cy='21' r='2')
-                      circle(cx='21' cy='21' r='2')
-                  | #{t[1]}
-          label.admin-tag-check
-            input(type='checkbox' name='panorama')
-            span панорама (доп. копия в оригинальном размере, зум/пан)
-          if tags && Object.keys(tags).length
-            .admin-tags-select
-              p.admin-hint ТЕГИ:
-              each tag, slug in tags
-                label.admin-tag-check
-                  input(type='checkbox' name='tags' value=slug)
-                  span= tag.label
-          button.admin-btn(type='submit') ЗАГРУЗИТЬ
+  if photos && photos.length
+    .admin-section
+      h2.admin-title ФОТО В СЕРИИ (#{photos.length})
+      p.admin-hint
+        | СОРТИРОВКА:
+        | 
+        if sort === 'views'
+          a.admin-link(href=`/admin/${country}/${series}/upload`) по порядку
+          |  · 
+          span по просмотрам
+        else
+          span по порядку
+          |  · 
+          a.admin-link(href=`/admin/${country}/${series}/upload?sort=views`) по просмотрам
+      .admin-photo-list
+        each photo in photos
+          .admin-photo-row
+            if photo.urls
+              img.admin-thumb(src=photo.urls.preview alt=photo.title)
+            .admin-photo-info
+              span.admin-photo-title= photo.title
+              span.admin-photo-id= photo.id
+              span.admin-photo-id просмотров: #{photo.views || 0}
+              if photo.tags && photo.tags.length
+                span.admin-photo-tags= photo.tags.join(', ')
+            form.admin-delete-form(method='POST' action=`/admin/${country}/${series}/${photo.id}/delete`)
+              button.admin-btn.admin-btn--danger(type='submit') удалить
+block scripts
+  script(src='https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.cjs')
+  script.
+    var MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 
-      if photos && photos.length
-        .admin-section
-          h2.admin-title ФОТО В СЕРИИ (#{photos.length})
-          p.admin-hint
-            | СОРТИРОВКА:
-            | 
-            if sort === 'views'
-              a.admin-link(href=`/admin/${country}/${series}/upload`) по порядку
-              |  · 
-              span по просмотрам
-            else
-              span по порядку
-              |  · 
-              a.admin-link(href=`/admin/${country}/${series}/upload?sort=views`) по просмотрам
-          .admin-photo-list
-            each photo in photos
-              .admin-photo-row
-                if photo.urls
-                  img.admin-thumb(src=photo.urls.preview alt=photo.title)
-                .admin-photo-info
-                  span.admin-photo-title= photo.title
-                  span.admin-photo-id= photo.id
-                  span.admin-photo-id просмотров: #{photo.views || 0}
-                  if photo.tags && photo.tags.length
-                    span.admin-photo-tags= photo.tags.join(', ')
-                form.admin-delete-form(method='POST' action=`/admin/${country}/${series}/${photo.id}/delete`)
-                  button.admin-btn.admin-btn--danger(type='submit') удалить
+    var fileInput = document.getElementById('photo-file');
+    var dropZone  = document.getElementById('drop-zone');
+    var preview   = document.getElementById('drop-preview');
+    var hint      = document.getElementById('drop-hint');
+    var status    = document.getElementById('exif-status');
 
-    script(src='https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.cjs')
-    script.
-      var MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    function showPreview(file) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        hint.style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
 
-      var fileInput = document.getElementById('photo-file');
-      var dropZone  = document.getElementById('drop-zone');
-      var preview   = document.getElementById('drop-preview');
-      var hint      = document.getElementById('drop-hint');
-      var status    = document.getElementById('exif-status');
+    async function readExif(file) {
+      status.textContent = '';
+      try {
+        var exif = await exifr.parse(file, { gps: true, pick: ['DateTimeOriginal', 'GPSAltitude'] });
+        if (!exif) return;
+        var filled = [];
+        if (exif.DateTimeOriginal) {
+          var d = new Date(exif.DateTimeOriginal);
+          document.getElementById('photo-date').value = MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+          filled.push('дата');
+        }
+        if (exif.latitude != null) {
+          document.getElementById('photo-lat').value = exif.latitude.toFixed(6);
+          document.getElementById('photo-lng').value = exif.longitude.toFixed(6);
+          filled.push('координаты');
+        }
+        if (exif.GPSAltitude != null) {
+          document.getElementById('photo-altitude').value = Math.round(exif.GPSAltitude);
+          filled.push('высота');
+        }
+        if (filled.length) status.textContent = '✓ из EXIF: ' + filled.join(', ');
+      } catch (err) {}
+    }
 
-      function showPreview(file) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          preview.src = e.target.result;
-          preview.style.display = 'block';
-          hint.style.display = 'none';
-        };
-        reader.readAsDataURL(file);
-      }
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      showPreview(file);
+      readExif(file);
+    }
 
-      async function readExif(file) {
-        status.textContent = '';
-        try {
-          var exif = await exifr.parse(file, { gps: true, pick: ['DateTimeOriginal', 'GPSAltitude'] });
-          if (!exif) return;
-          var filled = [];
-          if (exif.DateTimeOriginal) {
-            var d = new Date(exif.DateTimeOriginal);
-            document.getElementById('photo-date').value = MONTHS[d.getMonth()] + ' ' + d.getFullYear();
-            filled.push('дата');
-          }
-          if (exif.latitude != null) {
-            document.getElementById('photo-lat').value = exif.latitude.toFixed(6);
-            document.getElementById('photo-lng').value = exif.longitude.toFixed(6);
-            filled.push('координаты');
-          }
-          if (exif.GPSAltitude != null) {
-            document.getElementById('photo-altitude').value = Math.round(exif.GPSAltitude);
-            filled.push('высота');
-          }
-          if (filled.length) status.textContent = '✓ из EXIF: ' + filled.join(', ');
-        } catch (err) {}
-      }
+    // Click zone → open file dialog
+    dropZone.addEventListener('click', function() { fileInput.click(); });
 
-      function handleFile(file) {
-        if (!file || !file.type.startsWith('image/')) return;
-        showPreview(file);
-        readExif(file);
-      }
+    // Native input change (click or keyboard)
+    fileInput.addEventListener('change', function() {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
 
-      // Click zone → open file dialog
-      dropZone.addEventListener('click', function() { fileInput.click(); });
-
-      // Native input change (click or keyboard)
-      fileInput.addEventListener('change', function() {
-        if (fileInput.files[0]) handleFile(fileInput.files[0]);
-      });
-
-      // Drag events
-      dropZone.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        dropZone.classList.add('drag-over');
-      });
-      dropZone.addEventListener('dragleave', function(e) {
-        if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
-      });
-      dropZone.addEventListener('drop', function(e) {
-        e.preventDefault();
-        dropZone.classList.remove('drag-over');
-        var file = e.dataTransfer.files[0];
-        if (!file) return;
-        // Assign to the hidden input so the form sends it
-        try {
-          var dt = new DataTransfer();
-          dt.items.add(file);
-          fileInput.files = dt.files;
-        } catch(err) {}
-        handleFile(file);
-      });
+    // Drag events
+    dropZone.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', function(e) {
+      if (!dropZone.contains(e.relatedTarget)) dropZone.classList.remove('drag-over');
+    });
+    dropZone.addEventListener('drop', function(e) {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      var file = e.dataTransfer.files[0];
+      if (!file) return;
+      // Assign to the hidden input so the form sends it
+      try {
+        var dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+      } catch(err) {}
+      handleFile(file);
+    });

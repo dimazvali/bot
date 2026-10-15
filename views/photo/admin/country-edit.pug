@@ -1,99 +1,94 @@
-doctype html
-html(data-theme='dark')
-  head
-    title= title
-    meta(name='viewport' content='width=device-width, initial-scale=1.0')
-    link(rel='stylesheet' href='/stylesheets/photo/style.css')
-  body
-    .admin-wrap
-      .admin-header
-        a.admin-back(href='/admin') ← назад
-        span.admin-logo= country.label
-        if error
-          span.admin-error= error
+extends layout
+block vars
+  - var nav = 'series'
+block breadcrumbs
+  a(href='/admin/series') Серии и страны
+  span= country.label
+block content
+  if error
+    .admin-notice.admin-notice--error= error
+  .admin-section
+    h2.admin-title ПЕРЕИМЕНОВАТЬ
+    form.admin-form(method='POST' action=`/admin/country/${countryKey}/edit`)
+      input.admin-input(type='text' name='label' value=country.label placeholder='название страны')
+      input.admin-input(type='text' name='label_en' value=country.label_en || '' placeholder='name (EN)')
+      p.admin-hint ТИП СЪЁМКИ ПО УМОЛЧАНИЮ:
+      .type-radio-group
+        each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
+          label.type-radio-label
+            input(type='radio' name='defaultPhotoType' value=t[0] checked=(country.defaultPhotoType||'copter')===t[0])
+            span
+              svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
+                if t[0]==='camera'
+                  path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
+                  circle(cx='12' cy='13' r='4')
+                else if t[0]==='mobile'
+                  rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
+                  circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
+                else
+                  rect(x='9' y='9' width='6' height='6' rx='1')
+                  line(x1='9' y1='9' x2='4' y2='4')
+                  line(x1='15' y1='9' x2='20' y2='4')
+                  line(x1='9' y1='15' x2='4' y2='20')
+                  line(x1='15' y1='15' x2='20' y2='20')
+                  circle(cx='3' cy='3' r='2')
+                  circle(cx='21' cy='3' r='2')
+                  circle(cx='3' cy='21' r='2')
+                  circle(cx='21' cy='21' r='2')
+              | #{t[1]}
+      button.admin-btn(type='submit') СОХРАНИТЬ
 
-      .admin-section
-        h2.admin-title ПЕРЕИМЕНОВАТЬ
-        form.admin-form(method='POST' action=`/admin/country/${countryKey}/edit`)
-          input.admin-input(type='text' name='label' value=country.label placeholder='название страны')
-          input.admin-input(type='text' name='label_en' value=country.label_en || '' placeholder='name (EN)')
-          p.admin-hint ТИП СЪЁМКИ ПО УМОЛЧАНИЮ:
-          .type-radio-group
-            each t in [['copter','Коптер'],['camera','Камера'],['mobile','Телефон']]
-              label.type-radio-label
-                input(type='radio' name='defaultPhotoType' value=t[0] checked=(country.defaultPhotoType||'copter')===t[0])
-                span
-                  svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' style='width:12px;height:12px')
-                    if t[0]==='camera'
-                      path(d='M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z')
-                      circle(cx='12' cy='13' r='4')
-                    else if t[0]==='mobile'
-                      rect(x='5' y='2' width='14' height='20' rx='2' ry='2')
-                      circle(cx='12' cy='17' r='1' fill='currentColor' stroke='none')
-                    else
-                      rect(x='9' y='9' width='6' height='6' rx='1')
-                      line(x1='9' y1='9' x2='4' y2='4')
-                      line(x1='15' y1='9' x2='20' y2='4')
-                      line(x1='9' y1='15' x2='4' y2='20')
-                      line(x1='15' y1='15' x2='20' y2='20')
-                      circle(cx='3' cy='3' r='2')
-                      circle(cx='21' cy='3' r='2')
-                      circle(cx='3' cy='21' r='2')
-                      circle(cx='21' cy='21' r='2')
-                  | #{t[1]}
-          button.admin-btn(type='submit') СОХРАНИТЬ
+  .admin-section
+    h2.admin-title ВИДИМОСТЬ
+    form.admin-form(method='POST' action=`/admin/country/${countryKey}/archive`)
+      button.admin-btn(type='submit')= country.archived ? 'РАЗАРХИВИРОВАТЬ' : 'АРХИВИРОВАТЬ'
+    p.admin-hint Архивированная страна скрыта на публичном сайте, но доступна в админке.
+    form.admin-form(method='POST' action=`/admin/country/${countryKey}/toggle-feed`)
+      button.admin-btn(type='submit')= country.hiddenFromFeed ? 'ПОКАЗАТЬ В ОБЩЕЙ ВЫДАЧЕ' : 'СКРЫТЬ ИЗ ОБЩЕЙ ВЫДАЧИ'
+    p.admin-hint Страна остаётся доступной по прямой ссылке, но не появляется на главной, в тегах и цветовых фильтрах.
 
-      .admin-section
-        h2.admin-title ВИДИМОСТЬ
-        form.admin-form(method='POST' action=`/admin/country/${countryKey}/archive`)
-          button.admin-btn(type='submit')= country.archived ? 'РАЗАРХИВИРОВАТЬ' : 'АРХИВИРОВАТЬ'
-        p.admin-hint Архивированная страна скрыта на публичном сайте, но доступна в админке.
-        form.admin-form(method='POST' action=`/admin/country/${countryKey}/toggle-feed`)
-          button.admin-btn(type='submit')= country.hiddenFromFeed ? 'ПОКАЗАТЬ В ОБЩЕЙ ВЫДАЧЕ' : 'СКРЫТЬ ИЗ ОБЩЕЙ ВЫДАЧИ'
-        p.admin-hint Страна остаётся доступной по прямой ссылке, но не появляется на главной, в тегах и цветовых фильтрах.
+  if seriesKeys.length
+    .admin-section
+      h2.admin-title ПОРЯДОК СЕРИЙ
+      p.admin-hint Перетащите серии для изменения порядка отображения.
+      ul#series-list.admin-sort-list(data-url=`/admin/country/${countryKey}/reorder-series`)
+        each seriesKey in seriesKeys
+          - var s = country.series[seriesKey]
+          li.admin-sort-item(data-id=seriesKey)
+            span.admin-sort-handle ⠿
+            span= `${s.label} (${seriesKey})`
+            if s.archived
+              span.admin-archived [архив]
+            a.admin-link(href=`/admin/${countryKey}/${seriesKey}/edit`) →
 
-      if seriesKeys.length
-        .admin-section
-          h2.admin-title ПОРЯДОК СЕРИЙ
-          p.admin-hint Перетащите серии для изменения порядка отображения.
-          ul#series-list.admin-sort-list(data-url=`/admin/country/${countryKey}/reorder-series`)
-            each seriesKey in seriesKeys
-              - var s = country.series[seriesKey]
-              li.admin-sort-item(data-id=seriesKey)
-                span.admin-sort-handle ⠿
-                span= `${s.label} (${seriesKey})`
-                if s.archived
-                  span.admin-archived [архив]
-                a.admin-link(href=`/admin/${countryKey}/${seriesKey}/edit`) →
-
-      if canDelete
-        .admin-section
-          h2.admin-title УДАЛИТЬ СТРАНУ
-          form.admin-form(method='POST' action=`/admin/country/${countryKey}/delete`)
-            button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ
-      else
-        .admin-section
-          p.admin-hint Страну можно удалить только если у неё нет серий. Сначала удалите все серии.
-
-    script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
-    script.
-      var list = document.getElementById('series-list');
-      if (list) {
-        var reorderUrl = list.getAttribute('data-url');
-        Sortable.create(list, {
-          handle: '.admin-sort-handle',
-          animation: 150,
-          onEnd: function() {
-            var order = Array.from(list.querySelectorAll('.admin-sort-item')).map(function(el) {
-              return el.getAttribute('data-id');
-            });
-            fetch(reorderUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ order: order }),
-            }).then(function(r) { return r.json(); }).then(function(data) {
-              if (!data.ok) alert('Ошибка сохранения порядка');
-            }).catch(function() { alert('Ошибка сохранения порядка'); });
-          },
-        });
-      }
+  if canDelete
+    .admin-section
+      h2.admin-title УДАЛИТЬ СТРАНУ
+      form.admin-form(method='POST' action=`/admin/country/${countryKey}/delete`)
+        button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ
+  else
+    .admin-section
+      p.admin-hint Страну можно удалить только если у неё нет серий. Сначала удалите все серии.
+block scripts
+  script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
+  script.
+    var list = document.getElementById('series-list');
+    if (list) {
+      var reorderUrl = list.getAttribute('data-url');
+      Sortable.create(list, {
+        handle: '.admin-sort-handle',
+        animation: 150,
+        onEnd: function() {
+          var order = Array.from(list.querySelectorAll('.admin-sort-item')).map(function(el) {
+            return el.getAttribute('data-id');
+          });
+          fetch(reorderUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order: order }),
+          }).then(function(r) { return r.json(); }).then(function(data) {
+            if (!data.ok) alert('Ошибка сохранения порядка');
+          }).catch(function() { alert('Ошибка сохранения порядка'); });
+        },
+      });
+    }
