@@ -53,3 +53,11 @@ MIGRATED.forEach(function(file) {
     pug.compileFile(full);
   });
 });
+
+test('every admin page is migrated (except the layout itself, login and partials)', function() {
+  var pages = fs.readdirSync(ADMIN_DIR).filter(function(f) {
+    return f.endsWith('.pug') && f !== 'layout.pug' && f !== 'login.pug' && f.charAt(0) !== '_';
+  });
+  var missing = pages.filter(function(f) { return MIGRATED.indexOf(f) === -1; });
+  assert.deepEqual(missing, []);
+});
