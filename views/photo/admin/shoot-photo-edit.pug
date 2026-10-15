@@ -7,9 +7,7 @@ block head
 block breadcrumbs
   a(href='/admin/shoots') Съёмки
   a(href=`/admin/shoots/${slug}/edit`)= shootLabel
-  span= photo.title 
-  
-   photo.id
+  span= photo.title || photo.id
 block actions
   span.admin-hint 👁 #{photoViews}
   a.admin-btn(href=`/shoot/${slug}/${photo.id}` target='_blank' rel='noopener') открыть ↗
