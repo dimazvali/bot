@@ -153,6 +153,7 @@ router.get('/admin/site-texts', requireAdmin, function(req, res) {
   res.render('photo-v2/admin-site-texts', {
     title: 'Тексты главной — photo.dimazvali.com Admin',
     saved: !!req.query.saved,
+    adminNav: require('../lib/photo-admin-nav').navFor,
     values: { ru: siteTexts.get('ru'), en: siteTexts.get('en') },
     defaults: { ru: V2_UI.ru, en: V2_UI.en },
     max: siteTexts.MAX_LEN,

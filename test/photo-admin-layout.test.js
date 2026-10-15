@@ -13,7 +13,7 @@ var MIGRATED = ['dashboard.pug', 'series.pug', 'settings.pug',
   'shoots.pug', 'tags.pug', 'images.pug', 'subscribers.pug', 'feedback.pug', 'copyright.pug',
   'stats.pug', 'stats-entity.pug', 'leads.pug', 'lead-sources.pug', 'people.pug', 'person.pug',
   'country-edit.pug', 'series-edit.pug', 'upload.pug', 'photo-edit.pug',
-  'shoot-edit.pug', 'shoot-photo-edit.pug'];
+  'shoot-edit.pug', 'shoot-photo-edit.pug', 'photo-v2/admin-site-texts.pug'];
 
 function renderStub(navKey, extra) {
   var src = 'extends layout\nblock vars\n  - var nav = \'' + navKey + '\'\n'
