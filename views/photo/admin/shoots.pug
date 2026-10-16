@@ -73,28 +73,4 @@ block scripts
   style.
     .shoots-cover { display: block; width: 64px; height: 44px; object-fit: cover; border-radius: 4px; background: var(--surface-2); }
     .shoots-meta { display: flex; gap: 6px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
-  script.
-    // cellIndex, not the header's position among sortable headers: the cover column isn't sortable
-    document.querySelectorAll('#shoots-table .admin-table-sortable').forEach(function(th) {
-      th.addEventListener('click', function() {
-        var col = th.cellIndex;
-        var table = document.getElementById('shoots-table');
-        var tbody = table.querySelector('tbody');
-        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
-        var type = th.dataset.type;
-        var asc = th.dataset.dir !== 'asc';
-        table.querySelectorAll('.admin-table-sortable').forEach(function(h) { delete h.dataset.dir; });
-        th.dataset.dir = asc ? 'asc' : 'desc';
-        rows.sort(function(a, b) {
-          var av = a.children[col].dataset.value || '';
-          var bv = b.children[col].dataset.value || '';
-          if (type === 'number') return asc ? (parseFloat(av) || 0) - (parseFloat(bv) || 0) : (parseFloat(bv) || 0) - (parseFloat(av) || 0);
-          av = av.toLowerCase();
-          bv = bv.toLowerCase();
-          if (av < bv) return asc ? -1 : 1;
-          if (av > bv) return asc ? 1 : -1;
-          return 0;
-        });
-        rows.forEach(function(r) { tbody.appendChild(r); });
-      });
-    });
+  script(src='/javascripts/photo/admin-table-sort.js')

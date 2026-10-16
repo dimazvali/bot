@@ -1,0 +1,84 @@
+extends layout
+block vars
+  - var nav = 'tags'
+block breadcrumbs
+  a(href='/admin/tags') Теги
+  span= tag.label
+block actions
+  a.admin-btn(href=`/tag/${slug}` target='_blank' rel='noopener') страница RU ↗
+  a.admin-btn(href=`/en/tag/${slug}` target='_blank' rel='noopener') EN ↗
+block content
+  if saved
+    .admin-notice.admin-notice--ok ✓ Сохранено
+  if error === 'inuse'
+    .admin-notice.admin-notice--error Тег используется (#{photoCount} фото, #{tagShoots.length} съёмок) — сначала снимите его с фото и съёмок.
+
+  .admin-section
+    h2.admin-title ТЕГ
+    p.admin-hint
+      | slug:
+      span.admin-photo-id= slug
+      if tag.createdAt
+        |  · создан #{tag.createdAt}
+    form.admin-form(method='POST' action=`/admin/tags/${slug}/edit`)
+      label(style='width:100%')
+        span.admin-hint Метка
+        input.admin-input(type='text' name='label' value=tag.label required)
+      label(style='width:100%')
+        span.admin-hint Label (EN)
+        input.admin-input(type='text' name='label_en' value=tag.label_en || '')
+      label(style='width:100%')
+        span.admin-hint Тип
+        select.admin-input(name='type')
+          each label, key in typeLabels
+            option(value=key selected=(tag.type || 'misc') === key)= label
+      label(style='width:100%')
+        span.admin-hint Описание (показывается на странице тега)
+        textarea.admin-input(name='desc' rows='3')= tag.desc || ''
+      label(style='width:100%')
+        span.admin-hint Description (EN)
+        textarea.admin-input(name='desc_en' rows='3')= tag.desc_en || ''
+      button.admin-btn.admin-btn--primary(type='submit') сохранить
+
+  .admin-section
+    h2.admin-title ГДЕ ИСПОЛЬЗУЕТСЯ
+    p.admin-hint
+      | Фото в сериях: #{photoCount}
+      if photoCount
+        |  ·
+        a(href=`/tag/${slug}` target='_blank' rel='noopener') смотреть на странице тега ↗
+    if tagShoots.length
+      table.admin-table
+        thead
+          tr
+            th Съёмка
+            th Фото
+            th Доступ
+            th
+        tbody
+          each s in tagShoots
+            tr
+              td
+                a(href=`/admin/shoots/${s.slug}/edit`)
+                  b= s.label
+              td= s.photoCount
+              td
+                span.admin-badge(class=s.public ? 'admin-badge--public' : 'admin-badge--closed')= s.public ? 'публичная' : 'закрыта'
+              td
+                a.admin-link(href=`/shoot/${s.slug}` target='_blank' rel='noopener') открыть ↗
+      p.admin-hint На странице тега показываются только публичные съёмки.
+    else
+      p.admin-hint Съёмок с этим тегом нет. Тег ставится в настройках съёмки.
+    if linkedPeople.length
+      p.admin-hint
+        | Связан с людьми:
+        each p, i in linkedPeople
+          if i
+            | ,
+          a(href=`/admin/people/${p.id}`)= p.name || 'без имени'
+
+  .admin-section
+    h2.admin-title УДАЛИТЬ ТЕГ
+    p.admin-hint Удалить можно только неиспользуемый тег.
+    form(method='POST' action=`/admin/tags/${slug}/delete` onsubmit="return confirm('Удалить тег?')")
+      button.admin-btn.admin-btn--danger(type='submit' disabled=(photoCount || tagShoots.length) ? true : undefined) удалить

@@ -1997,9 +1997,49 @@ router.post('/shoots/:slug/delete', requireAuth, async (req, res) => {
   res.redirect('/admin/shoots');
 });
 
+// Where each tag is used: { slug: { photos: <series photos with it>, shoots: [<shoot slugs>] } }
+function tagUsage() {
+  var usage = {};
+  function slot(t) { return usage[t] || (usage[t] = { photos: 0, shoots: [] }); }
+  Object.values(getData()).forEach(function(country) {
+    Object.values(country.series).forEach(function(series) {
+      series.photos.forEach(function(p) { (p.tags || []).forEach(function(t) { slot(t).photos++; }); });
+    });
+  });
+  var sd = shoots.getData();
+  Object.keys(sd).forEach(function(s) { (sd[s].tags || []).forEach(function(t) { slot(t).shoots.push(s); }); });
+  return usage;
+}
+
+var TAG_TYPE_LABELS = { person: 'человек', location: 'локация', misc: 'разное' };
+
 router.get('/tags', requireAuth, (req, res) => {
-  var error = req.query.error || null;
-  res.render('photo/admin/tags', { tags: getTags(), title: 'Теги — photo.dimazvali.com Admin', error });
+  var tags = getTags();
+  var usage = tagUsage();
+  var rows = Object.keys(tags).map(function(slug) {
+    var u = usage[slug] || { photos: 0, shoots: [] };
+    return { slug: slug, label: tags[slug].label, label_en: tags[slug].label_en, type: tags[slug].type || 'misc', desc: tags[slug].desc, photos: u.photos, shoots: u.shoots.length };
+  }).sort(function(a, b) { return a.label.localeCompare(b.label, 'ru'); });
+  res.render('photo/admin/tags', { rows: rows, typeLabels: TAG_TYPE_LABELS, title: 'Теги — AERO Admin' });
+});
+
+router.get('/tags/:slug', requireAuth, (req, res) => {
+  var tags = getTags();
+  var slug = req.params.slug;
+  if (!tags[slug]) return res.redirect('/admin/tags');
+  var u = tagUsage()[slug] || { photos: 0, shoots: [] };
+  var sd = shoots.getData();
+  res.render('photo/admin/tag-edit', {
+    title: tags[slug].label + ' — Теги — AERO Admin',
+    slug: slug,
+    tag: tags[slug],
+    typeLabels: TAG_TYPE_LABELS,
+    photoCount: u.photos,
+    tagShoots: u.shoots.map(function(s) { return { slug: s, label: sd[s].label, public: !!sd[s].public, photoCount: sd[s].photos.length }; }),
+    linkedPeople: Object.values(photoPeople.getPeopleData()).filter(function(p) { return p.tagKey === slug; }),
+    saved: !!req.query.saved,
+    error: req.query.error || null,
+  });
 });
 
 var TAG_TYPES = ['person', 'location', 'misc'];
@@ -2015,7 +2055,7 @@ router.post('/tags', requireAuth, (req, res) => {
     tags[clean] = { label, label_en: (label_en || '').trim(), type, desc: (desc || '').trim(), desc_en: (desc_en || '').trim(), createdAt: new Date().toISOString().slice(0, 10) };
     saveTags(tags);
   }
-  res.redirect('/admin/tags');
+  res.redirect('/admin/tags/' + clean);
 });
 
 router.post('/tags/:slug/edit', requireAuth, (req, res) => {
@@ -2024,7 +2064,7 @@ router.post('/tags/:slug/edit', requireAuth, (req, res) => {
   if (!tags[slug]) return res.redirect('/admin/tags');
   var { label, desc, label_en, desc_en } = req.body;
   var type = TAG_TYPES.includes(req.body.type) ? req.body.type : 'misc';
-  if (!label || !label.trim()) return res.redirect('/admin/tags');
+  if (!label || !label.trim()) return res.redirect('/admin/tags/' + slug);
   tags[slug] = Object.assign({}, tags[slug], {
     label: label.trim(),
     label_en: (label_en || '').trim(),
@@ -2033,18 +2073,13 @@ router.post('/tags/:slug/edit', requireAuth, (req, res) => {
     desc_en: (desc_en || '').trim(),
   });
   saveTags(tags);
-  res.redirect('/admin/tags');
+  res.redirect('/admin/tags/' + slug + '?saved=1');
 });
 
 router.post('/tags/:slug/delete', requireAuth, (req, res) => {
   var { slug } = req.params;
-  var data = getData();
-  var inUse = Object.values(data).some(country =>
-    Object.values(country.series).some(series =>
-      series.photos.some(p => p.tags && p.tags.includes(slug))
-    )
-  );
-  if (inUse) return res.redirect('/admin/tags?error=inuse');
+  var u = tagUsage()[slug];
+  if (u && (u.photos || u.shoots.length)) return res.redirect('/admin/tags/' + slug + '?error=inuse');
   var tags = getTags();
   delete tags[slug];
   saveTags(tags);
