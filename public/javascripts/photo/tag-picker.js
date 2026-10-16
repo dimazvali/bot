@@ -36,8 +36,19 @@
       .map(function(x) { return x.o; });
   }
 
+  // the query isn't the name (ru/en) or slug of an existing tag — offer to create it
+  function canCreate(options, query) {
+    var q = norm(query).replace(/\s+/g, ' ');
+    if (!q) return false;
+    return !options.some(function(o) {
+      return norm(o.label) === q || norm(o.label_en) === q || norm(o.slug) === q;
+    });
+  }
+
   function init(el) {
     var name = el.getAttribute('data-name') || 'tags';
+    var createUrl = el.getAttribute('data-create-url');
+    var creating = false;
     var box = el.querySelector('.tag-picker-box');
     var input = el.querySelector('.tag-picker-input');
     var list = el.querySelector('.tag-picker-list');
@@ -55,7 +66,8 @@
       return Array.prototype.map.call(box.querySelectorAll('.tag-chip'), function(c) { return c.getAttribute('data-slug'); });
     }
 
-    function addChip(o) {
+    // isNew: just created from here — link to its page to fill in the type, EN name, description
+    function addChip(o, isNew) {
       var chip = document.createElement('span');
       chip.className = 'tag-chip';
       chip.setAttribute('data-slug', o.slug);
@@ -68,6 +80,16 @@
         ty.className = 'tag-chip-type';
         ty.textContent = TYPE_LABELS[o.type];
         chip.appendChild(ty);
+      }
+      if (isNew) {
+        chip.classList.add('tag-chip--new');
+        var edit = document.createElement('a');
+        edit.className = 'tag-chip-edit';
+        edit.href = '/admin/tags/' + encodeURIComponent(o.slug);
+        edit.target = '_blank'; // a new tab: this form may hold unsaved changes
+        edit.rel = 'noopener';
+        edit.textContent = 'дооформить ↗';
+        chip.appendChild(edit);
       }
       var x = document.createElement('button');
       x.type = 'button';
@@ -91,7 +113,7 @@
     }
 
     function setActive(i) {
-      var items = list.querySelectorAll('li');
+      var items = list.querySelectorAll('li[data-slug], li[data-create]');
       if (!items.length) return;
       active = (i + items.length) % items.length;
       items.forEach(function(li, ix) { li.classList.toggle('is-active', ix === active); li.setAttribute('aria-selected', ix === active ? 'true' : 'false'); });
@@ -101,12 +123,13 @@
 
     function render() {
       shown = filterTags(options, input.value, selected(), 10);
+      var offerCreate = !!createUrl && canCreate(options, input.value);
       list.textContent = '';
-      if (!shown.length) {
+      if (!shown.length && !offerCreate) {
         if (!input.value.trim()) { close(); return; }
         var empty = document.createElement('li');
         empty.className = 'tag-picker-empty';
-        empty.textContent = 'нет такого тега — создайте его в разделе «Теги»';
+        empty.textContent = 'тег уже выбран';
         list.appendChild(empty);
       }
       shown.forEach(function(o, i) {
@@ -128,10 +151,51 @@
         li.appendChild(m);
         list.appendChild(li);
       });
+      if (offerCreate) {
+        var cr = document.createElement('li');
+        cr.id = listId + '-create';
+        cr.className = 'tag-picker-create';
+        cr.setAttribute('role', 'option');
+        cr.setAttribute('data-create', '1');
+        cr.textContent = '+ создать тег «' + input.value.trim().replace(/\s+/g, ' ') + '»';
+        list.appendChild(cr);
+      }
       list.hidden = false;
       input.setAttribute('aria-expanded', 'true');
       active = -1;
-      if (shown.length && input.value.trim()) setActive(0);
+      if ((shown.length || offerCreate) && input.value.trim()) setActive(0);
+    }
+
+    function create() {
+      var label = input.value.trim().replace(/\s+/g, ' ');
+      if (!label || creating) return;
+      creating = true;
+      input.disabled = true;
+      fetch(createUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ label: label }),
+      })
+        .then(function(r) { return r.json().catch(function() { return {}; }).then(function(d) { if (!r.ok || !d.ok) throw new Error(d.error || 'не удалось создать тег'); return d; }); })
+        .then(function(d) {
+          var o = d.tag;
+          if (!bySlug[o.slug]) { options.push(o); bySlug[o.slug] = o; }
+          if (selected().indexOf(o.slug) === -1) addChip(bySlug[o.slug], d.created);
+          input.value = '';
+        })
+        .catch(function(err) { alert(err.message); })
+        .then(function() {
+          creating = false;
+          input.disabled = false;
+          input.focus();
+          render();
+        });
+    }
+
+    function choose(li) {
+      if (li.hasAttribute('data-create')) create();
+      else pick(li.getAttribute('data-slug'));
     }
 
     function pick(slug) {
@@ -152,7 +216,8 @@
       else if (e.key === 'Enter') {
         // never submit the whole form from here
         if (input.value.trim() || !list.hidden) e.preventDefault();
-        if (active >= 0 && shown[active]) pick(shown[active].slug);
+        var items = list.querySelectorAll('li[data-slug], li[data-create]');
+        if (!list.hidden && active >= 0 && items[active]) choose(items[active]);
       }
       else if (e.key === 'Escape') { if (!list.hidden) { e.preventDefault(); close(); } }
       else if (e.key === 'Backspace' && !input.value) {
@@ -162,10 +227,10 @@
     });
     // mousedown, not click: fires before the input's blur closes the list
     list.addEventListener('mousedown', function(e) {
-      var li = e.target.closest('li[data-slug]');
+      var li = e.target.closest('li[data-slug], li[data-create]');
       if (!li) return;
       e.preventDefault();
-      pick(li.getAttribute('data-slug'));
+      choose(li);
     });
     box.addEventListener('click', function(e) {
       var x = e.target.closest('.tag-chip-x');
@@ -175,7 +240,7 @@
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { filterTags: filterTags };
+    module.exports = { filterTags: filterTags, canCreate: canCreate };
   } else {
     root.document.querySelectorAll('[data-tag-picker]').forEach(init);
   }

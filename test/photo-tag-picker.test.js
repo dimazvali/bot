@@ -38,6 +38,18 @@ test('already selected tags are not suggested again', function() {
   assert.deepEqual(slugs(picker.filterTags(OPTIONS, 'тби', ['tbilisi'], 10)), ['old-tbilisi']);
 });
 
+test('canCreate offers a new tag only when nothing is named exactly like the query', function() {
+  assert.equal(picker.canCreate(OPTIONS, ''), false);
+  assert.equal(picker.canCreate(OPTIONS, '   '), false);
+  assert.equal(picker.canCreate(OPTIONS, 'Тбилиси'), false);   // label
+  assert.equal(picker.canCreate(OPTIONS, ' тбилиси '), false); // case / spaces
+  assert.equal(picker.canCreate(OPTIONS, 'елка'), false);      // ё = е
+  assert.equal(picker.canCreate(OPTIONS, 'old tbilisi'), false); // label_en
+  assert.equal(picker.canCreate(OPTIONS, 'old-tbilisi'), false); // slug
+  assert.equal(picker.canCreate(OPTIONS, 'Тби'), true);        // a prefix is not the same tag
+  assert.equal(picker.canCreate(OPTIONS, 'Мост Мира'), true);
+});
+
 test('the mixin renders selected tags as hidden inputs (form works without JS) and the options as JSON', function() {
   var src = 'include _tag-picker.pug\n+tagPicker(tags, selected, usage)\n';
   var html = pug.render(src, {

@@ -2051,6 +2051,26 @@ router.get('/tags/:slug', requireAuth, (req, res) => {
 
 var TAG_TYPES = ['person', 'location', 'misc'];
 
+// Create a tag on the fly from the tag picker (views/photo/admin/_tag-picker.pug): label only, type misc;
+// the rest is filled in on /admin/tags/:slug. A tag already named like that is returned instead of a twin.
+router.post('/tags/quick', requireAuth, express.json(), (req, res) => {
+  var label = String((req.body && req.body.label) || '').trim().replace(/\s+/g, ' ');
+  if (!label || label.length > 80) return res.status(400).json({ ok: false, error: 'пустое или слишком длинное название' });
+  var tags = getTags();
+  function norm(s) { return String(s || '').toLowerCase().replace(/ё/g, 'е').trim(); }
+  var same = Object.keys(tags).find(function(s) { return norm(tags[s].label) === norm(label) || norm(tags[s].label_en) === norm(label); });
+  function out(slug, created) {
+    var t = tags[slug];
+    var u = tagUsage()[slug] || { photos: 0, shoots: [] };
+    res.json({ ok: true, created: created, tag: { slug: slug, label: t.label, label_en: t.label_en || '', type: t.type || 'misc', uses: u.photos + u.shoots.length } });
+  }
+  if (same) return out(same, false);
+  var slug = uniqueId(slugify(label) || 'tag-' + Date.now().toString(36), Object.keys(tags));
+  tags[slug] = { label, label_en: '', type: 'misc', desc: '', desc_en: '', createdAt: new Date().toISOString().slice(0, 10) };
+  saveTags(tags);
+  out(slug, true);
+});
+
 router.post('/tags', requireAuth, (req, res) => {
   var { slug, label, desc, label_en, desc_en } = req.body;
   var type = TAG_TYPES.includes(req.body.type) ? req.body.type : 'misc';

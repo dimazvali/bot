@@ -1,7 +1,8 @@
 //- Tag picker: chips + a text input with suggestions (public/javascripts/photo/tag-picker.js).
 //- Selected tags are plain hidden inputs name=<name>, so the form posts the same `tags` field the
 //- checkboxes used to, and keeps working without JS. Include it in `block vars`; load the script in
-//- `block scripts`. usage: { slug: { photos, shoots: [] } } — popular tags are suggested first.
+//- `block scripts`. A query that names no existing tag can create one (POST /admin/tags/quick); its chip
+//- links to the tag's page for the rest (type, EN name, description). usage: { slug: { photos, shoots: [] } } — popular tags are suggested first.
 mixin tagPicker(tags, selected, usage, name)
   - var _name = name || 'tags'
   - var _sel = (selected || []).filter(function(s) { return tags[s]; })
@@ -11,7 +12,7 @@ mixin tagPicker(tags, selected, usage, name)
       var u = (usage && usage[slug]) || { photos: 0, shoots: [] };
       return { slug: slug, label: tags[slug].label, label_en: tags[slug].label_en || '', type: tags[slug].type || 'misc', uses: (u.photos || 0) + ((u.shoots || []).length) };
     })
-  .tag-picker(data-tag-picker data-name=_name)
+  .tag-picker(data-tag-picker data-name=_name data-create-url='/admin/tags/quick')
     .tag-picker-box
       each slug in _sel
         span.tag-chip(data-slug=slug)

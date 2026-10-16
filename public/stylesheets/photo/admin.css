@@ -125,6 +125,10 @@ body.admin {
 :where(body.admin) .tag-picker-list li.is-active, :where(body.admin) .tag-picker-list li[data-slug]:hover { background: var(--border); }
 :where(body.admin) .tag-opt-meta { color: var(--text-dim); font-size: 12px; white-space: nowrap; }
 :where(body.admin) .tag-picker-list .tag-picker-empty { color: var(--text-dim); cursor: default; }
+:where(body.admin) .tag-picker-list .tag-picker-create { color: var(--primary); }
+:where(body.admin) .tag-chip--new { border-color: var(--primary); }
+:where(body.admin) .tag-chip-edit { font-size: 11px; color: var(--primary); text-decoration: none; }
+:where(body.admin) .tag-chip-edit:hover { text-decoration: underline; }
 
 /* ── Notices & badges ──────────────────────────────────────── */
 .admin-notice { border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px; font-size: 13px; border: 1px solid; }
