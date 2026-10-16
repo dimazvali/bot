@@ -1,5 +1,6 @@
 extends layout
 block vars
+  include _tag-picker.pug
   - var nav = 'series'
 block head
   link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
@@ -99,14 +100,34 @@ block content
         input(type='checkbox' name='panorama' checked=!!photo.panorama)
         span панорама (доп. копия в оригинальном размере, зум/пан — генерируется при загрузке нового файла)
       if tags && Object.keys(tags).length
-        .admin-tags-select
-          p.admin-hint ТЕГИ:
-          each tag, slug in tags
-            label.admin-tag-check
-              input(type='checkbox' name='tags' value=slug checked=(photo.tags && photo.tags.includes(slug)))
-              span= tag.label
+        p.admin-hint ТЕГИ:
+        +tagPicker(tags, photo.tags, tagUsage)
+      if photo.variants && photo.variants.length
+        p.admin-hint ПОДПИСЬ ОСНОВНОЙ ВЕРСИИ В ПЕРЕКЛЮЧАТЕЛЕ (пусто — «оригинал»):
+        input.admin-input(type='text' name='variantLabel' value=photo.variantLabel || '' placeholder='напр. Цвет')
+        input.admin-input(type='text' name='variantLabel_en' value=photo.variantLabel_en || '' placeholder='e.g. Colour (EN)')
       button.admin-btn(type='submit') СОХРАНИТЬ
+  .admin-section
+    h2.admin-title КОПИИ КАДРА
+    p.admin-hint Другие версии этого же снимка (напр. чёрно-белая). На странице кадра появится переключатель.
+    if photo.variants && photo.variants.length
+      .variant-list
+        each v in photo.variants
+          .variant-item
+            a(href=v.urls.full target='_blank' rel='noopener')
+              img.admin-thumb(src=v.urls.thumb || v.urls.preview alt=v.label)
+            span.variant-label= v.label
+            if v.label_en
+              span.variant-label(style='color:var(--text-dim);font-style:italic;')= v.label_en
+            form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/variant/${v.id}/delete` style='margin:0' onsubmit="return confirm('Удалить копию?')")
+              button.admin-btn(type='submit' style='padding:1px 8px;font-size:.7rem;') ✕
+    form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/variant/add` enctype='multipart/form-data')
+      input.admin-input(type='file' name='photo' accept='image/*' required)
+      input.admin-input(type='text' name='label' placeholder='подпись копии (напр. Ч/Б)' required)
+      input.admin-input(type='text' name='label_en' placeholder='label (EN, напр. B&W)')
+      button.admin-btn(type='submit') ДОБАВИТЬ КОПИЮ
 block scripts
+  script(src='/javascripts/photo/tag-picker.js')
   style.
     .admin-desc-row textarea { padding-right: 3rem; }
     .admin-btn-ai { position: absolute; top: 6px; right: 6px; background: #1a1a2e; border: 1px solid #444; color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 1rem; cursor: pointer; line-height: 1; }
@@ -120,6 +141,10 @@ block scripts
     .color-radio-label { cursor: pointer; }
     .color-radio-label input { display: none; }
     .color-radio-label span { display: block; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border); box-sizing: border-box; }
+    .variant-list { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 12px; }
+    .variant-item { display: flex; align-items: center; gap: 10px; }
+    .variant-item .admin-thumb { width: 96px; height: auto; display: block; }
+    .variant-label { font-size: .8125rem; }
     .color-radio-label input:checked + span { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text); }
 
   script.

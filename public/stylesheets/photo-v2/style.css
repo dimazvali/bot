@@ -943,6 +943,22 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
   color: #f4f1ea;
 }
 .photo-type-badge svg, .photo-panorama-badge svg { width: 16px; height: 16px; }
+.photo-variants { position: absolute; right: 12px; top: 12px; z-index: 2; display: flex; background: rgba(12, 11, 10, .72); }
+.photo-variant {
+  font-family: var(--f-display);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: rgba(244, 241, 234, .6);
+  cursor: pointer;
+}
+.photo-variant:hover { color: #f4f1ea; }
+.photo-variant.is-active { background: #f4f1ea; color: #0c0b0a; }
+.photo-variant:focus-visible { outline: 2px solid #f4f1ea; outline-offset: -2px; }
 
 .photo-annot {
   position: absolute;

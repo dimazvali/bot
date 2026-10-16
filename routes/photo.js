@@ -15,6 +15,7 @@ var archiver = require('archiver');
 var shoots = require('../lib/photo-shoots');
 var photoPeople = require('../lib/photo-people');
 var i18n = require('../lib/photo-i18n');
+var photoVariants = require('../lib/photo-variants');
 
 function shootCookieToken(password, slug) {
   var secret = process.env.papersToken;
@@ -1030,6 +1031,7 @@ router.get('/:country/:series/:id', async (req, res) => {
     related,
     sourceShootUrl,
     sourceShootLabel,
+    variantItems: photoVariants.switcherItems(photo, lang),
     seriesUrl: i18n.langPrefix(lang) + `/${countryKey}/${seriesKey}`,
     title: `${photo.title} — photo.dimazvali.com`,
     desc: photo.seo_desc || photo.desc || (photo.type === 'copter'

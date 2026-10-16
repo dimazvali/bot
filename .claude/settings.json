@@ -596,7 +596,15 @@
       "Bash(grep -n \"label_en: \\(label_en\\\\|var { label, desc\" routes/photo-admin.js)",
       "Bash(sed -i \"/^  if limit$/,+1d\" views/photo-v2/mixins.pug)",
       "Bash(sed -i \"s/^\\\\\\(    findYourself: 'НАЙТИ СЕБЯ', curatorPick: 'ВЫБОР АВТОРА',\\\\\\)$/\\\\1 tagShoots: 'СЪЁМКИ',/; s/^\\\\\\(    findYourself: 'FIND YOURSELF', curatorPick: \\\\\"AUTHOR'S PICK\\\\\",\\\\\\)$/\\\\1 tagShoots: 'SHOOTS',/\" lib/photo-v2-strings.js)",
-      "Bash(sed -i \"s/^\\\\.shoot-related-card { display: block; position: relative; overflow: hidden; background: var\\(--ph\\); }$/&\\\\n.shoot-related-card[hidden] { display: none; }/\" public/stylesheets/photo-v2/style.css)"
+      "Bash(sed -i \"s/^\\\\.shoot-related-card { display: block; position: relative; overflow: hidden; background: var\\(--ph\\); }$/&\\\\n.shoot-related-card[hidden] { display: none; }/\" public/stylesheets/photo-v2/style.css)",
+      "Bash(sed -i \"s/^module.exports = { getData, saveData, initFromFirestore };$/module.exports = { getData, saveData, initFromFirestore, toDocuments, fromDocuments };/\" lib/photo-data.js)",
+      "Bash(node --test test/photo-data.test.js)",
+      "PowerShell(git diff --stat; \\(Get-Content routes/photo-admin.js | Measure-Object -Line\\).Lines; \\(Get-Content routes/photo-v2.js | Measure-Object -Line\\).Lines; \\(Get-Content lib/photo-data.js | Measure-Object -Line\\).Lines)",
+      "PowerShell(node --test test/photo-variants.test.js 2>&1)",
+      "PowerShell(node --test 2>&1)",
+      "PowerShell(node -e \"var pug=require\\('pug'\\);pug.compileFile\\('views/photo-v2/photo.pug'\\);pug.compileFile\\('views/photo/admin/photo-edit.pug'\\);console.log\\('pug ok'\\)\")",
+      "PowerShell(node --check routes/photo.js)",
+      "PowerShell(node --check routes/photo-admin.js)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",

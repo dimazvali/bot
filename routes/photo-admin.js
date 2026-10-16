@@ -24,6 +24,7 @@ var photoComments = require('../lib/photo-comments');
 var photoSettings = require('../lib/photo-settings');
 var adminDashboard = require('../lib/photo-admin-dashboard');
 var photoLeadsData = require('../lib/photo-leads-data');
+var photoVariants = require('../lib/photo-variants');
 
 var axios = require('axios');
 
@@ -684,6 +685,7 @@ router.get('/:country/:series/upload', requireAuth, function(req, res, next) { i
     photos,
     sort,
     tags: getTags(),
+    tagUsage: tagUsage(),
     defaultPhotoType: data[country].defaultPhotoType || 'copter',
   });
 });
@@ -836,6 +838,10 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
       ]);
     } catch (e) {}
   }
+  await Promise.all((photo.variants || []).map(function(v) {
+    var vp = photoVariants.storagePaths(country, series, id, v.id);
+    return Promise.all([vp.p400, vp.p800, vp.p2400].map(function(p) { return bucket.file(p).delete().catch(() => {}); }));
+  }));
 
   data[country].series[series].photos.splice(idx, 1);
   saveData(data);
@@ -891,6 +897,7 @@ router.get('/shoots/:slug/edit', requireAuth, async (req, res) => {
     slug,
     shoot,
     tags: getTags(),
+    tagUsage: tagUsage(),
     photoViews,
     faceGroups: photoPeople.groupShootFaces(slug, shoot, { includeHidden: true }).map(function(g) {
       var photoIds = {};
@@ -2272,6 +2279,7 @@ router.get('/:country/:series/:id/edit', requireAuth, async (req, res) => {
     photoViews: viewStats[country + '/' + seriesKey + '/' + id] || 0,
     seriesMapCenter: data[country].series[seriesKey].mapCenter || null,
     tags: getTags(),
+    tagUsage: tagUsage(),
     colorFamilies: COLOR_FAMILIES,
     photoColors: getPhotoColorFamilies(photo),
   });
@@ -2324,6 +2332,10 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
   if (seoKeywordsEn) { photo.seo_keywords_en = seoKeywordsEn; } else { delete photo.seo_keywords_en; }
   photo.type = photoType;
   if (isPanorama) { photo.panorama = true; } else { delete photo.panorama; }
+  var variantLabel = (req.body.variantLabel || '').trim();
+  var variantLabelEn = (req.body.variantLabel_en || '').trim();
+  if (variantLabel) { photo.variantLabel = variantLabel; } else { delete photo.variantLabel; }
+  if (variantLabelEn) { photo.variantLabel_en = variantLabelEn; } else { delete photo.variantLabel_en; }
   try {
     if (req.file) {
       var [buf400, buf800, buf2400, colorFamilies, imgMeta] = await Promise.all([
@@ -2469,6 +2481,78 @@ router.post('/copyright/:id/undismiss', requireAuth, async (req, res) => {
 router.post('/copyright/:id/delete', requireAuth, async (req, res) => {
   try { await copyright.deleteHit(req.params.id); } catch (e) { console.error(e.message); }
   res.redirect(req.headers.referer || '/admin/copyright');
+});
+
+// ── Variants (copies of a frame: colour / b&w, …) ───────────────────────────
+
+router.post('/:country/:series/:id/variant/add', requireAuth, upload.single('photo'), async (req, res) => {
+  var { country, series: seriesKey, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id)) {
+    return res.redirect('/admin/series');
+  }
+  var editUrl = `/admin/${country}/${seriesKey}/${id}/edit`;
+  var label = (req.body.label || '').trim();
+  var labelEn = (req.body.label_en || '').trim();
+  if (!req.file || !label) return res.redirect(editUrl);
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
+  var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
+  if (!photo) return res.redirect('/admin/series');
+  try {
+    var [buf400, buf800, buf2400, imgMeta] = await Promise.all([
+      sharp(req.file.buffer).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 82 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 800, withoutEnlargement: true }).webp({ quality: 85 }).toBuffer(),
+      sharp(req.file.buffer).resize({ width: 2400, withoutEnlargement: true }).webp({ quality: 90 }).toBuffer(),
+      sharp(req.file.buffer).metadata(),
+    ]);
+    var vid = Date.now().toString(36);
+    var vp = photoVariants.storagePaths(country, seriesKey, id, vid);
+    await Promise.all([[vp.p400, buf400], [vp.p800, buf800], [vp.p2400, buf2400]].map(function(pair) {
+      return bucket.file(pair[0]).save(pair[1], storageCache.saveOptions('image/webp')).then(() => bucket.file(pair[0]).makePublic());
+    }));
+    var base = `https://storage.googleapis.com/${process.env.PHOTO_BUCKET}`;
+    var variant = {
+      id: vid,
+      label,
+      urls: {
+        thumb: storageCache.versioned(`${base}/${vp.p400}`, vid),
+        preview: storageCache.versioned(`${base}/${vp.p800}`, vid),
+        full: storageCache.versioned(`${base}/${vp.p2400}`, vid),
+      },
+      width: imgMeta.width,
+      height: imgMeta.height,
+    };
+    if (labelEn) variant.label_en = labelEn;
+    // re-read: the upload took a while, keep any edit made meanwhile
+    var d2 = getData();
+    var p2 = d2[country] && d2[country].series[seriesKey] && d2[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
+    if (!p2) return res.redirect('/admin/series');
+    if (!p2.variants) p2.variants = [];
+    p2.variants.push(variant);
+    saveData(d2);
+    res.redirect(editUrl);
+  } catch (err) {
+    console.error('Variant upload error:', err);
+    res.status(500).send('Ошибка при загрузке копии: ' + err.message);
+  }
+});
+
+router.post('/:country/:series/:id/variant/:vid/delete', requireAuth, async (req, res) => {
+  var { country, series: seriesKey, id, vid } = req.params;
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey) || !/^[a-z0-9-]+$/.test(id) || !/^[a-z0-9]+$/.test(vid)) {
+    return res.redirect('/admin/series');
+  }
+  var data = getData();
+  if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
+  var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
+  if (photo && photo.variants && photo.variants.some(function(v) { return v.id === vid; })) {
+    photo.variants = photo.variants.filter(function(v) { return v.id !== vid; });
+    if (!photo.variants.length) delete photo.variants;
+    saveData(data);
+    var vp = photoVariants.storagePaths(country, seriesKey, id, vid);
+    await Promise.all([vp.p400, vp.p800, vp.p2400].map(function(p) { return bucket.file(p).delete().catch(() => {}); }));
+  }
+  res.redirect(`/admin/${country}/${seriesKey}/${id}/edit`);
 });
 
 // ── Annotations ──────────────────────────────────────────────────────────────

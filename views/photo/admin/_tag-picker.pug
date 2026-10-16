@@ -1,0 +1,25 @@
+//- Tag picker: chips + a text input with suggestions (public/javascripts/photo/tag-picker.js).
+//- Selected tags are plain hidden inputs name=<name>, so the form posts the same `tags` field the
+//- checkboxes used to, and keeps working without JS. Include it in `block vars`; load the script in
+//- `block scripts`. usage: { slug: { photos, shoots: [] } } — popular tags are suggested first.
+mixin tagPicker(tags, selected, usage, name)
+  - var _name = name || 'tags'
+  - var _sel = (selected || []).filter(function(s) { return tags[s]; })
+  - var _typeLabels = { person: 'человек', location: 'локация' }
+  -
+    var _opts = Object.keys(tags).map(function(slug) {
+      var u = (usage && usage[slug]) || { photos: 0, shoots: [] };
+      return { slug: slug, label: tags[slug].label, label_en: tags[slug].label_en || '', type: tags[slug].type || 'misc', uses: (u.photos || 0) + ((u.shoots || []).length) };
+    })
+  .tag-picker(data-tag-picker data-name=_name)
+    .tag-picker-box
+      each slug in _sel
+        span.tag-chip(data-slug=slug)
+          span.tag-chip-label= tags[slug].label
+          if _typeLabels[tags[slug].type]
+            span.tag-chip-type= _typeLabels[tags[slug].type]
+          button.tag-chip-x(type='button' aria-label='убрать тег ' + tags[slug].label) ×
+          input(type='hidden' name=_name value=slug)
+      input.tag-picker-input(type='text' placeholder='добавить тег…' autocomplete='off' role='combobox' aria-autocomplete='list' aria-expanded='false')
+    ul.tag-picker-list(role='listbox' hidden)
+    script(type='application/json' data-tag-options)!= JSON.stringify(_opts).replace(/</g, '\\u003c')

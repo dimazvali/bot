@@ -1,5 +1,6 @@
 extends layout
 block vars
+  include _tag-picker.pug
   - var nav = 'series'
 block breadcrumbs
   a(href='/admin/series') Серии и страны
@@ -52,12 +53,8 @@ block content
         input(type='checkbox' name='panorama')
         span панорама (доп. копия в оригинальном размере, зум/пан)
       if tags && Object.keys(tags).length
-        .admin-tags-select
-          p.admin-hint ТЕГИ:
-          each tag, slug in tags
-            label.admin-tag-check
-              input(type='checkbox' name='tags' value=slug)
-              span= tag.label
+        p.admin-hint ТЕГИ:
+        +tagPicker(tags, [], tagUsage)
       button.admin-btn(type='submit') ЗАГРУЗИТЬ
 
   if photos && photos.length
@@ -88,6 +85,7 @@ block content
             form.admin-delete-form(method='POST' action=`/admin/${country}/${series}/${photo.id}/delete`)
               button.admin-btn.admin-btn--danger(type='submit') удалить
 block scripts
+  script(src='/javascripts/photo/tag-picker.js')
   script(src='https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.cjs')
   script.
     var MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];

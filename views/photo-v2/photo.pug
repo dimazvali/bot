@@ -104,6 +104,21 @@ block content
               svg(viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round')
                 rect(x='2' y='6' width='20' height='12' rx='1')
                 path(d='M2 15l5-5 4 4 4-6 7 7')
+        if !isShoot && variantItems && variantItems.length
+          //- copies of this frame (colour / b&w, …): swaps the image in place, see the click handler below
+          .photo-variants(role='group')
+            each v, vi in variantItems
+              button.photo-variant(
+                type='button'
+                class=vi === 0 ? 'is-active' : ''
+                aria-pressed=vi === 0 ? 'true' : 'false'
+                data-variant=v.id
+                data-src=v.src
+                data-srcset=v.srcset || undefined
+                data-w=v.width || undefined
+                data-h=v.height || undefined
+                data-pano-src=(vi === 0 && photo.panorama) ? (photo.urls && (photo.urls.pano || photo.urls.full)) : undefined
+              )= v.label
         if photo.annotations && photo.annotations.length
           each a, idx in photo.annotations
             button.photo-annot(class=a.source==='client' ? 'photo-annot--client' : '' type='button' data-x=a.x data-y=a.y data-text=a.text data-author=a.authorName||undefined)= idx + 1
@@ -920,6 +935,28 @@ block content
         if (link && main.contains(link)) {
           e.preventDefault();
           navigate(link.getAttribute('href'));
+          return;
+        }
+
+        // copies of the frame: swap the page image in place (the lightbox reads it from the page on open)
+        var variantBtn = e.target.closest && e.target.closest('.photo-variant');
+        if (variantBtn) {
+          var vImg = document.querySelector('.photo-page-image .photo-image-wrap img');
+          if (!vImg || variantBtn.classList.contains('is-active')) return;
+          document.querySelectorAll('.photo-variant').forEach(function(b) {
+            var on = b === variantBtn;
+            b.classList.toggle('is-active', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+          });
+          if (variantBtn.dataset.w) vImg.setAttribute('width', variantBtn.dataset.w);
+          if (variantBtn.dataset.h) vImg.setAttribute('height', variantBtn.dataset.h);
+          if (variantBtn.dataset.srcset) { vImg.sizes = PAGE_SIZES; vImg.srcset = variantBtn.dataset.srcset; }
+          else { vImg.removeAttribute('srcset'); vImg.removeAttribute('sizes'); }
+          vImg.src = variantBtn.dataset.src;
+          // panorama zoom/pan only exists for the main version
+          if (variantBtn.dataset.panoSrc) { vImg.dataset.panorama = '1'; vImg.dataset.panoSrc = variantBtn.dataset.panoSrc; }
+          else { delete vImg.dataset.panorama; }
+          window.photoTrack && window.photoTrack('photo_variant', Object.assign({ variant: variantBtn.dataset.variant || 'main' }, window.photoTrack.photo()));
           return;
         }
 

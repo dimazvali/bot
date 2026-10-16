@@ -1,6 +1,7 @@
 extends layout
 block vars
   include _face-board.pug
+  include _tag-picker.pug
   - var nav = 'shoots'
 block head
   link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
@@ -46,11 +47,7 @@ block content
         span предлагать выбор фото (чекбоксы на карточках + сохранение своих подборок; выключите для некоммерческих съёмок без заказчика)
       if tags && Object.keys(tags).length
         p.admin-hint ТЕГИ (публичная съёмка с тегом показывается блоком на странице тега):
-        .admin-tags-select
-          each tag, tagSlug in tags
-            label.admin-tag-check
-              input(type='checkbox' name='tags' value=tagSlug checked=(shoot.tags || []).indexOf(tagSlug) !== -1)
-              span= tag.label
+        +tagPicker(tags, shoot.tags, tagUsage)
       if shoot.photos.length
         p.admin-hint ОБЛОЖКА ДЛЯ OG (соцсети/превью-ссылка; по умолчанию — первое фото):
         select.admin-input(name='ogPhotoId')
@@ -270,6 +267,7 @@ block content
     form.admin-form(method='POST' action=`/admin/shoots/${slug}/delete`)
       button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ СЪЁМКУ
 block scripts
+  script(src='/javascripts/photo/tag-picker.js')
   script(src='/javascripts/photo/face-board.js' defer)
   script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
   script.
