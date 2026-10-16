@@ -45,6 +45,17 @@ router.get(['/robots.txt', '/en/robots.txt'], function(req, res, next) {
 });
 
 var _viewExists = {};
+// Open (public, non-empty) shoots matching `keep`, most viewed first (ties: more photos first).
+function rankedOpenShoots(keep, viewStats, lang) {
+  var views = viewStats || {};
+  var all = shoots.getData();
+  return Object.keys(all)
+    .map(function(k) { return all[k]; })
+    .filter(function(s) { return s.public && s.photos && s.photos.length && keep(s); })
+    .sort(function(a, b) { return (views[b.key] || 0) - (views[a.key] || 0) || b.photos.length - a.photos.length; })
+    .map(function(s) { return i18n.localizeShoot(s, lang); });
+}
+
 function v2ViewFor(view) {
   // only the public 'photo/<page>' views have v2 twins; 'photo/admin/*' stays as is
   if (!/^photo\/(?!admin\/)/.test(view)) return view;
@@ -113,15 +124,17 @@ router.use(function(req, res, next) {
       opts.nearList = sh ? sh.photos.map(function(p) { return { id: p.id, urls: p.urls }; }) : [];
     }
     // "Other shoots" under a shoot gallery: routes/photo.js hands over only the 3 biggest. When no curated
-    // "related shoots" are set (that list wins and stays as is), show more of the open ones.
+    // "related shoots" are set (that list wins and stays as is), show the open ones, most viewed first.
+    // All candidates are rendered; the page shows OTHER_SHOOTS_LIMIT of them and
+    // /javascripts/photo-v2/shoot-rank.js moves shoots this visitor hasn't opened yet to the front.
     if (view === 'photo/gallery' && options && options.isShoot && options.shootSlug && !options.otherShootsAreRelated) {
-      var allShoots = shoots.getData();
-      opts.otherShoots = Object.keys(allShoots)
-        .map(function(k) { return allShoots[k]; })
-        .filter(function(s) { return s.key !== options.shootSlug && s.public && s.photos && s.photos.length; })
-        .sort(function(a, b) { return b.photos.length - a.photos.length; })
-        .slice(0, OTHER_SHOOTS_LIMIT)
-        .map(function(s) { return i18n.localizeShoot(s, lang); });
+      opts.otherShoots = rankedOpenShoots(function(s) { return s.key !== options.shootSlug; }, options.shootViewStats, lang);
+      opts.shootCardsLimit = OTHER_SHOOTS_LIMIT;
+    }
+    // Tag page: public shoots tagged with it, same ranking/limit as "other shoots"
+    if (view === 'photo/tag-gallery' && options && options.tagSlug) {
+      opts.tagShoots = rankedOpenShoots(function(s) { return (s.tags || []).indexOf(options.tagSlug) !== -1; }, options.shootViewStats, lang);
+      opts.shootCardsLimit = OTHER_SHOOTS_LIMIT;
     }
     // shoot pages, admin only: download counters (zip / selection / Instagram JPG)
     if (options && options.isShoot && options.shootSlug && res.locals.isAdmin && (view === 'photo/gallery' || view === 'photo/photo')) {

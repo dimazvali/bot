@@ -224,23 +224,11 @@ block content
   if focus && otherShoots && otherShoots.length
     .related-shoots
       span.fb-label= otherShootsAreRelated ? ui.relatedShoots : ui.otherShoots
-      .shoot-related
-        each other in otherShoots
-          - var cover = (other.heroPhotoId && other.photos.find(function(p) { return p.id === other.heroPhotoId; })) || other.photos[0]
-          a.shoot-related-card(href=`${LP}/shoot/${other.key}`)
-            if cover
-              img(
-                src=cover.urls ? cover.urls.preview : undefined
-                srcset=cover.urls ? `${cover.urls.thumb || cover.urls.preview} 400w, ${cover.urls.preview} 800w` : undefined
-                sizes='(max-width: 640px) calc(50vw - 12px), 240px'
-                alt=other.label
-                title=other.label
-                loading='lazy'
-                onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
-              )
-            .photo-overlay
-              span.photo-title= other.label.toUpperCase()
-              span.photo-date= `${other.photos.length} ${ui.photosSuffix}`
+      //- curated related shoots keep their order (no limit, no reordering)
+      +shootCards(otherShoots, otherShootsAreRelated ? null : shootCardsLimit)
+  if focus
+    //- marks this shoot as seen + reorders the "other shoots" block (unseen first)
+    script(src='/javascripts/photo-v2/shoot-rank.js' data-current-shoot=shootSlug defer)
 
   if _offerSelection
     .selection-popup#intro-popup

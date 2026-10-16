@@ -205,11 +205,13 @@ router.post('/review', express.urlencoded({ extended: false }), (req, res) => {
 });
 
 // GET /tag/:slug — gallery filtered by tag
-router.get('/tag/:slug', (req, res) => {
+router.get('/tag/:slug', async (req, res) => {
   var lang = req.lang;
   var { slug } = req.params;
   var tags = i18n.localizeTags(getTags(), lang);
   if (!tags[slug]) return res.status(404).render('error', { message: 'Not found', error: {} });
+  // ranks the tagged shoots block (routes/photo-v2.js)
+  var shootViewStats = await getStatsByType('shoot').catch(function() { return {}; });
   var data = i18n.localizeDataTree(getData(), lang);
   var photos = getAllPhotos(data).filter(p => p.tags && p.tags.includes(slug));
   res.render('photo/tag-gallery', {
@@ -219,6 +221,7 @@ router.get('/tag/:slug', (req, res) => {
     tagLabel: tags[slug].label,
     tagDesc: tags[slug].desc || null,
     tagSlug: slug,
+    shootViewStats: shootViewStats,
     photos,
     title: `${tags[slug].label} — photo.dimazvali.com`,
     desc: tags[slug].desc || (lang === 'en'
@@ -560,11 +563,9 @@ router.get('/shoot/:slug', async (req, res) => {
   if (!rawShoot) return res.status(404).render('error', { message: 'Not found', error: {} });
   var adminUser = await isAdmin(req);
 
-  var shootViews = null;
-  if (adminUser) {
-    var shootViewStats = await getStatsByType('shoot').catch(function() { return {}; });
-    shootViews = shootViewStats[slug] || 0;
-  }
+  // per-shoot views (cached in lib/photo-stats): the admin counter + ranking of the "other shoots" block
+  var shootViewStats = await getStatsByType('shoot').catch(function() { return {}; });
+  var shootViews = adminUser ? (shootViewStats[slug] || 0) : null;
 
   requireShootAuth(rawShoot, slug, req, res, adminUser, function() {
     var shoot = i18n.localizeShoot(rawShoot, lang);
@@ -600,6 +601,7 @@ router.get('/shoot/:slug', async (req, res) => {
       curatorSelectionActive: curatorSelectionActive,
       offerSelection: rawShoot.offerSelection !== false,
       shootViews: shootViews,
+      shootViewStats: shootViewStats,
       collectionsCount: (rawShoot.collections || []).length,
       activeTags: [],
       promo: 'promo' in req.query,

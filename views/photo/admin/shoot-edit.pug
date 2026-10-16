@@ -44,6 +44,13 @@ block content
       label.admin-tag-check
         input(type='checkbox' name='offerSelection' checked=shoot.offerSelection !== false)
         span предлагать выбор фото (чекбоксы на карточках + сохранение своих подборок; выключите для некоммерческих съёмок без заказчика)
+      if tags && Object.keys(tags).length
+        p.admin-hint ТЕГИ (публичная съёмка с тегом показывается блоком на странице тега):
+        .admin-tags-select
+          each tag, tagSlug in tags
+            label.admin-tag-check
+              input(type='checkbox' name='tags' value=tagSlug checked=(shoot.tags || []).indexOf(tagSlug) !== -1)
+              span= tag.label
       if shoot.photos.length
         p.admin-hint ОБЛОЖКА ДЛЯ OG (соцсети/превью-ссылка; по умолчанию — первое фото):
         select.admin-input(name='ogPhotoId')

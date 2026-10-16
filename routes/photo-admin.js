@@ -13,6 +13,7 @@ var subscriptions = require('../lib/photo-subscriptions');
 var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
 var adminNav = require('../lib/photo-admin-nav');
+var photoDownloads = require('../lib/photo-downloads'); // initialised by routes/photo-v2.js (same process)
 var copyrightCheck = require('../lib/photo-copyright-check');
 var shoots = require('../lib/photo-shoots');
 var storageCache = require('../lib/storage-cache');
@@ -202,6 +203,44 @@ router.get('/logout', async (req, res) => {
   res.redirect('/admin/login');
 });
 
+// Dashboard views: two weeks of photo_views is ~10k docs (mostly bots) and ~6s to read, so the raw
+// events are kept in memory and refreshed in the background at most every 10 minutes; only the very
+// first dashboard load after a restart waits for the query. The periods are recomputed from the
+// cached events on every load, so they are at most 10 minutes stale.
+var VIEWS_CACHE_MS = 10 * 60 * 1000;
+var viewsCache = { events: null, sinceMs: 0, loadedAt: 0, loading: null };
+
+function loadRecentViews(sinceMs) {
+  if (!viewsCache.loading) {
+    // same query shape as /admin/stats (env + timestamp desc → existing index); only the fields we need
+    viewsCache.loading = fb.collection('photo_views')
+      .where('env', '==', process.env.PHOTO_ENV || 'dev')
+      .where('timestamp', '>=', new Date(sinceMs))
+      .orderBy('timestamp', 'desc')
+      .select('timestamp', 'bot')
+      .get()
+      .then(function(snap) {
+        viewsCache.events = snap.docs.map(function(d) {
+          var ts = d.get('timestamp');
+          return { ms: ts ? ts.toMillis() : 0, bot: !!d.get('bot') };
+        });
+        viewsCache.sinceMs = sinceMs;
+        viewsCache.loadedAt = Date.now();
+        return viewsCache.events;
+      })
+      .finally(function() { viewsCache.loading = null; });
+  }
+  return viewsCache.loading;
+}
+
+async function getRecentViewsCached(sinceMs) {
+  if (!viewsCache.events) return loadRecentViews(sinceMs);
+  if (Date.now() - viewsCache.loadedAt > VIEWS_CACHE_MS) {
+    loadRecentViews(sinceMs).catch(function(e) { console.error('[dashboard views]', e.message); });
+  }
+  return viewsCache.events;
+}
+
 router.get('/', requireAuth, async (req, res) => {
   var shootsData = shoots.getData();
   var dashboard = await adminDashboard.buildDashboard({
@@ -209,6 +248,7 @@ router.get('/', requireAuth, async (req, res) => {
     getCopyrightHits: copyright.getHits,
     getComments: photoComments.getAllComments,
     listLeads: photoLeadsData.listLeads,
+    getRecentViews: getRecentViewsCached,
     // same count as the "нераспознанные" part of /admin/people
     countAnonFaceGroups: function() {
       return Object.keys(shootsData).reduce(function(n, slug) {
@@ -806,11 +846,17 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
 
 router.get('/shoots', requireAuth, async (req, res) => {
   var stats = await photoStats.getStatsByType('shoot').catch(function() { return {}; });
-  var shootEntries = Object.entries(shoots.getData()).reverse();
+  // newest publication first (createdAt is set on create, or falls back to the Firestore doc time)
+  var shootEntries = Object.entries(shoots.getData()).sort(function(a, b) {
+    return (Date.parse(b[1].createdAt) || 0) - (Date.parse(a[1].createdAt) || 0);
+  });
+  var downloadStats = {};
+  shootEntries.forEach(function(e) { downloadStats[e[0]] = photoDownloads.stats(e[0]); });
   res.render('photo/admin/shoots', {
     title: 'Съёмки — AERO Admin',
     shootEntries,
     stats,
+    downloadStats,
     error: req.query.error || null,
   });
 });
@@ -844,6 +890,7 @@ router.get('/shoots/:slug/edit', requireAuth, async (req, res) => {
     title: shoot.label + ' — AERO Admin',
     slug,
     shoot,
+    tags: getTags(),
     photoViews,
     faceGroups: photoPeople.groupShootFaces(slug, shoot, { includeHidden: true }).map(function(g) {
       var photoIds = {};
@@ -907,8 +954,11 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   var knownPhotoIds = shoot.photos.map(function(p) { return p.id; });
   var ogPhotoId = (req.body.ogPhotoId && knownPhotoIds.indexOf(req.body.ogPhotoId) !== -1) ? req.body.ogPhotoId : null;
   var heroPhotoId = (req.body.heroPhotoId && knownPhotoIds.indexOf(req.body.heroPhotoId) !== -1) ? req.body.heroPhotoId : null;
+  var knownTags = getTags();
+  var rawTags = req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags]) : [];
   try {
     await shoots.saveShoot(slug, {
+      tags: rawTags.filter(function(t) { return knownTags[t]; }),
       label: label.trim(),
       label_en: (label_en || '').trim(),
       desc: (desc || '').trim(),
@@ -2364,6 +2414,11 @@ router.post('/copyright/clear-photo', requireAuth, express.urlencoded({ extended
     try { await copyright.clearPhoto(photoId, countryKey, seriesKey); } catch (e) { console.error(e.message); }
   }
   res.redirect(req.headers.referer || '/admin/copyright');
+});
+
+router.post('/copyright/clear-all', requireAuth, async (req, res) => {
+  try { await copyright.clearAll(); } catch (e) { console.error('[copyright clear-all]', e.message); }
+  res.redirect('/admin/copyright');
 });
 
 router.post('/copyright/:id/dismiss', requireAuth, async (req, res) => {

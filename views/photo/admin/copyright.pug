@@ -8,6 +8,8 @@ block actions
     a.admin-link(href='?filter=new' class=onlyNew?'active':'') только новые
     a.admin-link(href='?filter=all' class=!onlyNew?'active':'') все
   button.admin-btn#run-check-btn(type='button') ▶ ПРОВЕРИТЬ
+  form(method='POST' action='/admin/copyright/clear-all' style='margin:0' onsubmit="return confirm('Удалить ВСЕ найденные совпадения (и новые, и отклонённые)? Отменить нельзя.')")
+    button.admin-btn.admin-btn--danger(type='submit') ✕ очистить все
 block content
   .admin-section#run-status(style='display:none')
     .copyright-progress

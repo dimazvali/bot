@@ -6,39 +6,6 @@ block breadcrumbs
 block content
   if error
     .admin-notice.admin-notice--error= error
-  .admin-section
-    h2.admin-title СЪЁМКИ
-    if !shootEntries.length
-      p.admin-hint Нет съёмок.
-    else
-      table.admin-table#shoots-table
-        thead
-          tr
-            th.admin-table-sortable(data-type='text') Название
-            th.admin-table-sortable(data-type='number') Фото
-            th.admin-table-sortable(data-type='number') Просмотры
-            th.admin-table-sortable(data-type='text') Доступ
-            th.admin-table-sortable(data-type='number') Дата публикации
-            th
-        tbody
-          each entry in shootEntries
-            - var slug = entry[0]
-            - var shoot = entry[1]
-            - var viewsCount = stats[slug] || 0
-            - var createdAt = shoot.createdAt ? new Date(shoot.createdAt) : null
-            tr
-              td(data-value=shoot.label)= `${shoot.label} (${slug})`
-              td(data-value=shoot.photos.length)= shoot.photos.length
-              td(data-value=viewsCount)= `👁 ${viewsCount}`
-              td(data-value=shoot.public ? 1 : 0)
-                = shoot.public ? '🌐 публично' : '🚫 не публично'
-                if shoot.password
-                  |  🔑
-              td(data-value=createdAt ? createdAt.getTime() : 0)= createdAt ? createdAt.toLocaleDateString('ru-RU') : '—'
-              td
-                .admin-table-actions
-                  a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') открыть
-                  a.admin-link(href=`/admin/shoots/${slug}/edit`) редактировать
   .admin-section#create
     h2.admin-title СОЗДАТЬ СЪЁМКУ
     form.admin-form(method='POST' action='/admin/shoots')
@@ -48,11 +15,69 @@ block content
       label.admin-tag-check
         input(type='checkbox' name='public')
         span показывать в /shoot и в сайтмапе
-      button.admin-btn(type='submit') + СЪЁМКА
+      button.admin-btn.admin-btn--primary(type='submit') + СЪЁМКА
+  .admin-section
+    h2.admin-title СЪЁМКИ (#{shootEntries.length})
+    if !shootEntries.length
+      p.admin-hint Нет съёмок.
+    else
+      table.admin-table#shoots-table
+        thead
+          tr
+            th
+            th.admin-table-sortable(data-type='text') Название
+            th.admin-table-sortable(data-type='number') Фото
+            th.admin-table-sortable(data-type='number') Просмотры
+            th.admin-table-sortable(data-type='number' title='архив всех кадров · подборки клиентов · кадры для Instagram') Скачивания
+            th.admin-table-sortable(data-type='text') Доступ
+            //- the route sorts by publication date, newest first
+            th.admin-table-sortable(data-type='number' data-dir='desc') Дата публикации
+            th
+        tbody
+          each entry in shootEntries
+            - var slug = entry[0]
+            - var shoot = entry[1]
+            - var viewsCount = stats[slug] || 0
+            - var dl = downloadStats[slug] || { zip: 0, sel: 0, ig: 0 }
+            - var createdAt = shoot.createdAt ? new Date(shoot.createdAt) : null
+            - var cover = (shoot.heroPhotoId && shoot.photos.find(function(p) { return p.id === shoot.heroPhotoId; })) || shoot.photos[0]
+            - var hasDesc = !!(shoot.desc && shoot.desc.trim())
+            tr
+              td
+                if cover && cover.urls
+                  img.shoots-cover(src=cover.urls.thumb || cover.urls.preview alt='' loading='lazy')
+                else
+                  .shoots-cover
+              td(data-value=shoot.label)
+                a(href=`/admin/shoots/${slug}/edit`)
+                  b= shoot.label
+                .shoots-meta
+                  span.admin-photo-id= slug
+                  if hasDesc
+                    span.admin-badge.admin-badge--public(title=shoot.desc.slice(0, 200)) описание
+                  else
+                    span.admin-badge.admin-badge--hidden без описания
+              td(data-value=shoot.photos.length)= shoot.photos.length
+              td(data-value=viewsCount)= `👁 ${viewsCount}`
+              td(data-value=dl.zip + dl.sel + dl.ig title='архив · подборки · Instagram')= `⬇ ${dl.zip} · ${dl.sel} · ${dl.ig}`
+              td(data-value=shoot.public ? 1 : 0)
+                = shoot.public ? '🌐 публично' : '🚫 не публично'
+                if shoot.password
+                  |  🔑
+              td(data-value=createdAt ? createdAt.getTime() : 0)= createdAt ? createdAt.toLocaleDateString('ru-RU') : '—'
+              td
+                .admin-table-actions
+                  a.admin-link(href=`/shoot/${slug}` target='_blank' rel='noopener') открыть
+                  a.admin-link(href=`/admin/shoots/${slug}/edit`) редактировать
 block scripts
+  style.
+    .shoots-cover { display: block; width: 64px; height: 44px; object-fit: cover; border-radius: 4px; background: var(--surface-2); }
+    .shoots-meta { display: flex; gap: 6px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
   script.
-    document.querySelectorAll('#shoots-table .admin-table-sortable').forEach(function(th, colIndex) {
+    // cellIndex, not the header's position among sortable headers: the cover column isn't sortable
+    document.querySelectorAll('#shoots-table .admin-table-sortable').forEach(function(th) {
       th.addEventListener('click', function() {
+        var col = th.cellIndex;
         var table = document.getElementById('shoots-table');
         var tbody = table.querySelector('tbody');
         var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
@@ -61,8 +86,8 @@ block scripts
         table.querySelectorAll('.admin-table-sortable').forEach(function(h) { delete h.dataset.dir; });
         th.dataset.dir = asc ? 'asc' : 'desc';
         rows.sort(function(a, b) {
-          var av = a.children[colIndex].dataset.value || '';
-          var bv = b.children[colIndex].dataset.value || '';
+          var av = a.children[col].dataset.value || '';
+          var bv = b.children[col].dataset.value || '';
           if (type === 'number') return asc ? (parseFloat(av) || 0) - (parseFloat(bv) || 0) : (parseFloat(bv) || 0) - (parseFloat(av) || 0);
           av = av.toLowerCase();
           bv = bv.toLowerCase();

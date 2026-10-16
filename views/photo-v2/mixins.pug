@@ -208,3 +208,26 @@ mixin feedMasonry(list)
       p= t.noMatches
       button.fb-btn(type='button' id='filter-reset')= t.resetFilters
   script(src='/javascripts/photo-v2/filters.js' defer)
+
+//- Shoot cards block ("other shoots" under a shoot, shoots on a tag page). `list` comes ranked from the
+//- server (most viewed first); with `limit`, cards past it are hidden and /javascripts/photo-v2/shoot-rank.js
+//- reorders the block so shoots this visitor hasn't opened yet come first (no gaps: seen ones fill the rest).
+mixin shootCards(list, limit)
+  - var _sl = lang === 'en' ? '/en' : ''
+  .shoot-related(data-limit=limit || undefined)
+    each other, _si in list
+      - var cover = (other.heroPhotoId && other.photos.find(function(p) { return p.id === other.heroPhotoId; })) || other.photos[0]
+      a.shoot-related-card(href=`${_sl}/shoot/${other.key}` data-slug=other.key hidden=(limit && _si >= limit) ? true : undefined)
+        if cover
+          img(
+            src=cover.urls ? cover.urls.preview : undefined
+            srcset=cover.urls ? `${cover.urls.thumb || cover.urls.preview} 400w, ${cover.urls.preview} 800w` : undefined
+            sizes='(max-width: 640px) calc(50vw - 12px), 240px'
+            alt=other.label
+            title=other.label
+            loading='lazy'
+            onerror="this.style.background='#1e1e1e';this.removeAttribute('src')"
+          )
+        .photo-overlay
+          span.photo-title= other.label.toUpperCase()
+          span.photo-date= `${other.photos.length} ${ui.photosSuffix}`

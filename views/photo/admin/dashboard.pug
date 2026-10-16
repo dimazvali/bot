@@ -1,11 +1,31 @@
 extends layout
 block vars
   - var nav = 'dashboard'
+  mixin viewsStat(p, label, prevLabel)
+    a.admin-stat(href='/admin/stats?days=7')
+      span.admin-stat-count= p.count
+      span.admin-stat-label= label
+      if p.deltaPct == null
+        span.admin-delta нет данных за #{prevLabel}
+      else
+        span.admin-delta(class=p.deltaPct > 0 ? 'admin-delta--up' : p.deltaPct < 0 ? 'admin-delta--down' : undefined)
+          = (p.deltaPct > 0 ? '▲ +' : p.deltaPct < 0 ? '▼ ' : '') + p.deltaPct + '%'
+          span.admin-delta-base  · #{prevLabel}: #{p.prev}
 block breadcrumbs
   span Дашборд
 block actions
   a.admin-btn.admin-btn--primary(href='/admin/shoots#create') ＋ новая съёмка
 block content
+  .admin-section
+    .admin-section-head
+      h2.admin-title Просмотры
+      a.admin-link(href='/admin/stats') статистика
+    if dashboard.views
+      .admin-grid
+        +viewsStat(dashboard.views.today, 'сегодня', 'вчера к этому времени')
+        +viewsStat(dashboard.views.week, 'за 7 дней', 'предыдущие 7 дней')
+    else
+      p.admin-hint Не удалось загрузить просмотры.
   .admin-section
     .admin-section-head
       h2.admin-title Требует внимания

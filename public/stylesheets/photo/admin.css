@@ -142,6 +142,10 @@ body.admin {
 .admin-stat-count { font: 700 28px/1 var(--font); color: var(--accent); }
 .admin-stat-label { font-size: 13px; color: var(--text-muted); }
 .admin-stat.is-zero .admin-stat-count { color: var(--text-dim); }
+.admin-delta { font-size: 12px; color: var(--text-dim); }
+.admin-delta--up { color: var(--success); }
+.admin-delta--down { color: var(--danger); }
+.admin-delta-base { color: var(--text-dim); }
 .admin-card { display: flex; flex-direction: column; border-radius: var(--radius); overflow: hidden; background: var(--surface); border: 1px solid var(--border); }
 .admin-card:hover { border-color: var(--text-muted); }
 .admin-card-cover { aspect-ratio: 3 / 2; background: var(--surface-2) center / cover no-repeat; }

@@ -786,6 +786,7 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
 .related-shoots { padding: 8px 40px 64px; display: flex; flex-direction: column; gap: 14px; }
 .shoot-related { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .shoot-related-card { display: block; position: relative; overflow: hidden; background: var(--ph); }
+.shoot-related-card[hidden] { display: none; }
 .shoot-related-card img { aspect-ratio: 1 / 1; object-fit: cover; transition: transform .3s ease; }
 .shoot-related-card:hover img { transform: scale(1.03); }
 

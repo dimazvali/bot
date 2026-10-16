@@ -54,6 +54,9 @@ block content
     var _ni = _nl.findIndex(function(p) { return p.id === photo.id })
     if (_ni !== -1) [-1, 1, -2, 2].forEach(function(d) { var p = _nl[_ni + d]; if (p) _near.push({ d: Math.abs(d), src: _srcOf(p), srcset: _srcsetOf(p) }) })
   script#photo-near(type='application/json')!= JSON.stringify(_near).replace(/</g, '\\u003c')
+  if isShoot
+    //- a shoot photo counts as opening the shoot for the "other shoots" ranking
+    script(src='/javascripts/photo-v2/shoot-rank.js' data-current-shoot=shootSlug defer)
   .photo-page
     .pp-top
       a.pp-back(href=_backHref) ← #{_backLabel.toUpperCase()}
