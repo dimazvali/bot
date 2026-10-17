@@ -612,7 +612,7 @@ router.get('/shoot/:slug', async (req, res) => {
       // ?v= changes whenever the OG frame or the title does, so browsers / messengers don't keep
       // showing the old card (the image itself is served with max-age, see routes/photo-og.js)
       ogImage: shoot.photos.length
-        ? `${BASE}/og/shoot/${slug}.jpg?v=` + crypto.createHash('md5').update((rawShoot.ogPhotoId || shoot.photos[0].id) + '\x00' + rawShoot.label).digest('hex').slice(0, 8)
+        ? `${BASE}/og/shoot/${slug}.jpg?v=` + crypto.createHash('md5').update((rawShoot.ogPhotoId || shoot.photos[0].id) + '\x00' + shoot.label).digest('hex').slice(0, 8) + (lang === 'en' ? '&lang=en' : '')
         : null,
       heroPhotoId: rawShoot.heroPhotoId || null,
       ogUrl: shoot.public ? pageUrl(lang, `/shoot/${slug}`) : null,
@@ -913,7 +913,7 @@ router.get('/:country', (req, res) => {
       ? `${country.label} — ${photos.length} photos in ${seriesLabels.length} series. Documentary photography by Dmitry Shestakov.`
       : `${country.label} — ${photos.length} фотографий в ${seriesLabels.length} сери${seriesLabels.length === 1 ? 'и' : 'ях'}. Документальная фотография, Дмитрий Шестаков.`,
     keywords: buildPageKeywords(photos, allTags, [country.label, ...seriesLabels]),
-    ogImage: photos.length ? `${BASE}/og/country/${countryKey}.jpg` : null,
+    ogImage: photos.length ? `${BASE}/og/country/${countryKey}.jpg` + (lang === 'en' ? '?lang=en' : '') : null,
     ogUrl: pageUrl(lang, `/${countryKey}`),
     breadcrumbs: [{ name: country.label, url: pageUrl(lang, `/${countryKey}`) }],
   });
@@ -949,7 +949,7 @@ router.get('/:country/:series', (req, res) => {
       ? `${series.label}, ${country.label} — ${photos.length} photos. Documentary photography by Dmitry Shestakov.`
       : `${series.label}, ${country.label} — ${photos.length} фотографий. Документальная фотография, Дмитрий Шестаков.`),
     keywords: buildPageKeywords(photos, allTagsSeries, [country.label, series.label]),
-    ogImage: photos.length ? `${BASE}/og/series/${countryKey}/${seriesKey}.jpg` : null,
+    ogImage: photos.length ? `${BASE}/og/series/${countryKey}/${seriesKey}.jpg` + (lang === 'en' ? '?lang=en' : '') : null,
     ogUrl: pageUrl(lang, `/${countryKey}/${seriesKey}`),
     breadcrumbs: [
       { name: country.label, url: pageUrl(lang, `/${countryKey}`) },

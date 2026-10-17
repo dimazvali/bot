@@ -5,6 +5,7 @@ var sharp = require('sharp');
 var { getData } = require('../lib/photo-data');
 var { COLOR_FAMILIES, getPhotoColorFamilies } = require('../lib/color-utils');
 var shoots = require('../lib/photo-shoots');
+var i18n = require('../lib/photo-i18n');
 
 var OG_W = 1200;
 var OG_H = 630;
@@ -80,6 +81,12 @@ function colorFor(photo) {
   return cf ? cf.hex : null;
 }
 
+// ?lang=en → EN title and /en/ URL on the card (this router is mounted before the
+// /en-stripping middleware in routes/photo.js, so the language comes as a query param).
+function langOf(req) {
+  return i18n.normalizeLang(req.query.lang);
+}
+
 function send(res, buf) {
   res.set('Content-Type', 'image/jpeg');
   res.set('Cache-Control', 'public, max-age=3600');
@@ -98,7 +105,8 @@ router.get('/country/:country.jpg', async (req, res) => {
   }
   if (!firstPhoto || !firstPhoto.urls) return res.status(404).end();
   try {
-    var buf = await generate(firstPhoto.urls.preview, country.label, 'photo.dimazvali.com/' + req.params.country, colorFor(firstPhoto));
+    var lang = langOf(req);
+    var buf = await generate(firstPhoto.urls.preview, i18n.pickField(country, 'label', lang), 'photo.dimazvali.com' + i18n.langPrefix(lang) + '/' + req.params.country, colorFor(firstPhoto));
     send(res, buf);
   } catch (e) {
     console.error('[og] country:', e.message);
@@ -115,7 +123,8 @@ router.get('/series/:country/:series.jpg', async (req, res) => {
   var firstPhoto = series.photos[0];
   if (!firstPhoto.urls) return res.status(404).end();
   try {
-    var buf = await generate(firstPhoto.urls.preview, series.label, 'photo.dimazvali.com/' + req.params.country + '/' + req.params.series, colorFor(firstPhoto));
+    var lang = langOf(req);
+    var buf = await generate(firstPhoto.urls.preview, i18n.pickField(series, 'label', lang), 'photo.dimazvali.com' + i18n.langPrefix(lang) + '/' + req.params.country + '/' + req.params.series, colorFor(firstPhoto));
     send(res, buf);
   } catch (e) {
     console.error('[og] series:', e.message);
@@ -130,7 +139,8 @@ router.get('/shoot/:slug.jpg', async (req, res) => {
   var firstPhoto = (shoot.ogPhotoId && shoot.photos.find(function(p) { return p.id === shoot.ogPhotoId; })) || shoot.photos[0];
   if (!firstPhoto.urls) return res.status(404).end();
   try {
-    var buf = await generate(firstPhoto.urls.preview, shoot.label, 'photo.dimazvali.com/shoot/' + req.params.slug, colorFor(firstPhoto));
+    var lang = langOf(req);
+    var buf = await generate(firstPhoto.urls.preview, i18n.pickField(shoot, 'label', lang), 'photo.dimazvali.com' + i18n.langPrefix(lang) + '/shoot/' + req.params.slug, colorFor(firstPhoto));
     send(res, buf);
   } catch (e) {
     console.error('[og] shoot:', e.message);
