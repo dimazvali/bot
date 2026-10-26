@@ -9,6 +9,7 @@ var { getData, saveData, initFromFirestore } = require('../lib/photo-data');
 var { getTags, saveTags, initTagsFromFirestore } = require('../lib/photo-tags');
 var photoStats = require('../lib/photo-stats');
 var shootStats = require('../lib/photo-shoot-stats');
+var shootHeat = require('../lib/photo-shoot-heat');
 var { extractColorFamilies, COLOR_FAMILIES, getPhotoColorFamilies } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var mailer = require('../lib/photo-mailer');
@@ -205,42 +206,70 @@ router.get('/logout', async (req, res) => {
   res.redirect('/admin/login');
 });
 
-// Dashboard views: two weeks of photo_views is ~10k docs (mostly bots) and ~6s to read, so the raw
-// events are kept in memory and refreshed in the background at most every 10 minutes; only the very
-// first dashboard load after a restart waits for the query. The periods are recomputed from the
-// cached events on every load, so they are at most 10 minutes stale.
-var VIEWS_CACHE_MS = 10 * 60 * 1000;
-var viewsCache = { events: null, sinceMs: 0, loadedAt: 0, loading: null };
+// Recent activity for the dashboard views counters and the shoot "heat" (lib/photo-shoot-heat.js):
+// four weeks of photo_views is ~20k docs (mostly bots) and takes seconds to read, so the raw events
+// (+ the download log) are kept in memory and refreshed in the background at most every 10 minutes.
+// The cache is warmed up shortly after start, so admin pages rarely wait for the query. Everything
+// is recomputed from the cached events on each load — at most 10 minutes stale.
+var ACTIVITY_CACHE_MS = 10 * 60 * 1000;
+var activityCache = { views: null, downloads: null, loadedAt: 0, loading: null, heat: null, heatAt: 0 };
 
-function loadRecentViews(sinceMs) {
-  if (!viewsCache.loading) {
-    // same query shape as /admin/stats (env + timestamp desc → existing index); only the fields we need
-    viewsCache.loading = fb.collection('photo_views')
-      .where('env', '==', process.env.PHOTO_ENV || 'dev')
-      .where('timestamp', '>=', new Date(sinceMs))
-      .orderBy('timestamp', 'desc')
-      .select('timestamp', 'bot')
-      .get()
-      .then(function(snap) {
-        viewsCache.events = snap.docs.map(function(d) {
+function loadActivity() {
+  if (!activityCache.loading) {
+    var sinceMs = Date.now() - shootHeat.WINDOW;
+    activityCache.loading = Promise.all([
+      // same query shape as /admin/stats (env + timestamp desc → existing index); only the fields we need
+      fb.collection('photo_views')
+        .where('env', '==', process.env.PHOTO_ENV || 'dev')
+        .where('timestamp', '>=', new Date(sinceMs))
+        .orderBy('timestamp', 'desc')
+        .select('timestamp', 'bot', 'entityType', 'entityId', 'ip')
+        .get(),
+      photoDownloads.recent(sinceMs).catch(function(e) { console.error('[activity downloads]', e.message); return []; }),
+    ])
+      .then(function(r) {
+        activityCache.views = r[0].docs.map(function(d) {
           var ts = d.get('timestamp');
-          return { ms: ts ? ts.toMillis() : 0, bot: !!d.get('bot') };
+          var v = { ms: ts ? ts.toMillis() : 0, bot: !!d.get('bot') };
+          var type = d.get('entityType');
+          // only shoot events need the rest (heat); keeps 20k cached rows small
+          if (!v.bot && (type === 'shoot' || type === 'shoot-photo')) {
+            v.entityType = type; v.entityId = d.get('entityId'); v.ip = d.get('ip') || null;
+          }
+          return v;
         });
-        viewsCache.sinceMs = sinceMs;
-        viewsCache.loadedAt = Date.now();
-        return viewsCache.events;
+        activityCache.downloads = r[1];
+        activityCache.loadedAt = Date.now();
+        return activityCache;
       })
-      .finally(function() { viewsCache.loading = null; });
+      .finally(function() { activityCache.loading = null; });
   }
-  return viewsCache.loading;
+  return activityCache.loading;
 }
 
-async function getRecentViewsCached(sinceMs) {
-  if (!viewsCache.events) return loadRecentViews(sinceMs);
-  if (Date.now() - viewsCache.loadedAt > VIEWS_CACHE_MS) {
-    loadRecentViews(sinceMs).catch(function(e) { console.error('[dashboard views]', e.message); });
+async function getActivityCached() {
+  if (!activityCache.views) return loadActivity();
+  if (Date.now() - activityCache.loadedAt > ACTIVITY_CACHE_MS) {
+    loadActivity().catch(function(e) { console.error('[activity]', e.message); });
   }
-  return viewsCache.events;
+  return activityCache;
+}
+
+setTimeout(function() { loadActivity().catch(function(e) { console.error('[activity warm-up]', e.message); }); }, 15 * 1000).unref();
+
+// sinceMs is ignored: the cache always holds the whole heat window, dashboard periods filter by time
+async function getRecentViewsCached() {
+  return (await getActivityCached()).views;
+}
+
+// { slug: heat } for all shoots — recomputed once per cache refresh
+async function getShootHeatCached() {
+  var a = await getActivityCached();
+  if (activityCache.heat && activityCache.heatAt === a.loadedAt) return activityCache.heat;
+  var events = a.views.map(shootHeat.fromView).concat(a.downloads.map(shootHeat.fromDownload)).filter(Boolean);
+  activityCache.heat = shootHeat.compute(events);
+  activityCache.heatAt = a.loadedAt;
+  return activityCache.heat;
 }
 
 router.get('/', requireAuth, async (req, res) => {
@@ -251,6 +280,7 @@ router.get('/', requireAuth, async (req, res) => {
     getComments: photoComments.getAllComments,
     listLeads: photoLeadsData.listLeads,
     getRecentViews: getRecentViewsCached,
+    getShootHeat: getShootHeatCached,
     // same count as the "нераспознанные" part of /admin/people
     countAnonFaceGroups: function() {
       return Object.keys(shootsData).reduce(function(n, slug) {
@@ -852,9 +882,18 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
 // ── Shoots ──────────────────────────────────────────────────────────────────
 
 router.get('/shoots', requireAuth, async (req, res) => {
-  var stats = await photoStats.getStatsByType('shoot').catch(function() { return {}; });
-  // newest publication first (createdAt is set on create, or falls back to the Firestore doc time)
+  var [stats, heat] = await Promise.all([
+    photoStats.getStatsByType('shoot').catch(function() { return {}; }),
+    getShootHeatCached().catch(function(e) { console.error('[shoots] heat:', e.message); return {}; }),
+  ]);
+  // newest publication first (createdAt is set on create, or falls back to the Firestore doc time);
+  // ?sort=heat (link from the dashboard) — hottest first
+  var sortByHeat = req.query.sort === 'heat';
   var shootEntries = Object.entries(shoots.getData()).sort(function(a, b) {
+    if (sortByHeat) {
+      var d = shootHeat.of(heat, b[0]).score - shootHeat.of(heat, a[0]).score;
+      if (d) return d;
+    }
     return (Date.parse(b[1].createdAt) || 0) - (Date.parse(a[1].createdAt) || 0);
   });
   var downloadStats = {};
@@ -863,6 +902,8 @@ router.get('/shoots', requireAuth, async (req, res) => {
     title: 'Съёмки — AERO Admin',
     shootEntries,
     stats,
+    heat,
+    sortByHeat,
     downloadStats,
     error: req.query.error || null,
   });
@@ -922,17 +963,24 @@ router.get('/shoots/:slug/stats', requireAuth, async (req, res) => {
   var days = [7, 30, 90].indexOf(parseInt(req.query.days)) !== -1 ? parseInt(req.query.days) : 30;
   var photos = shoot.photos || [];
   try {
-    var [events, shootCounters, photoCounters, comments] = await Promise.all([
+    var [events, shootCounters, photoCounters, comments, heatAll] = await Promise.all([
       shootStats.loadEvents(fb, process.env.PHOTO_ENV || 'dev', slug, photos.map(function(p) { return p.id; }), days),
       photoStats.getStatsByType('shoot').catch(function() { return {}; }),
       photoStats.getStatsByType('shoot-photo').catch(function() { return {}; }),
       photoComments.getAllComments(500).catch(function() { return []; }),
+      getShootHeatCached().catch(function(e) { console.error('[shoots] heat:', e.message); return null; }),
     ]);
+    var heat = heatAll ? Object.assign({}, shootHeat.of(heatAll, slug)) : null; // copy: rank must not leak into the cache
+    if (heat) {
+      // place among shoots with any activity (1 = hottest)
+      heat.rank = heat.score ? Object.keys(heatAll).filter(function(k) { return heatAll[k].score > heat.score; }).length + 1 : null;
+      heat.rankOf = Object.keys(heatAll).filter(function(k) { return heatAll[k].score > 0; }).length;
+    }
     var photosById = {};
     photos.forEach(function(p) { photosById[p.id] = p; });
     var commentPrefix = 'shoot_' + slug + '_';
     res.render('photo/admin/_shoot-stats', {
-      slug, days,
+      slug, days, heat,
       s: shootStats.summarize(events, { days: days, slug: slug }),
       photosById,
       allTime: {

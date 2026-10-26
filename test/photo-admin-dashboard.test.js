@@ -105,3 +105,23 @@ test('views: no previous views → deltaPct null; failing source → views null'
   var failed = await dash.buildDashboard(deps({ getRecentViews: async function() { throw new Error('x'); } }));
   assert.equal(failed.views, null);
 });
+
+test('hot shoots: only shoots with a level, hottest first, existing shoots only', async function() {
+  var d = await dash.buildDashboard(deps({
+    getShootHeat: async function() {
+      return {
+        old: { score: 3, level: 1, trend: 'flat' },
+        fresh: { score: 30, level: 3, trend: 'up' },
+        gone: { score: 99, level: 3, trend: 'up' },
+        cold: { score: 0.4, level: 0, trend: 'flat' },
+      };
+    },
+  }));
+  assert.deepEqual(d.hotShoots.map(function(s) { return [s.slug, s.label, s.level]; }), [['fresh', 'Fresh', 3], ['old', 'Old', 1]]);
+  assert.equal(d.hotShoots[0].cover, 'Fresh-b.webp');
+});
+
+test('hot shoots: no heat source → empty list', async function() {
+  var d = await dash.buildDashboard(deps());
+  assert.deepEqual(d.hotShoots, []);
+});

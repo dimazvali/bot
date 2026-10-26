@@ -1,5 +1,6 @@
 extends layout
 block vars
+  include _heat.pug
   - var nav = 'dashboard'
   mixin viewsStat(p, label, prevLabel)
     a.admin-stat(href='/admin/stats?days=7')
@@ -26,6 +27,22 @@ block content
         +viewsStat(dashboard.views.week, 'за 7 дней', 'предыдущие 7 дней')
     else
       p.admin-hint Не удалось загрузить просмотры.
+  .admin-section
+    .admin-section-head
+      h2.admin-title Горячие сейчас
+      a.admin-link(href='/admin/shoots?sort=heat') все по горячести
+    if dashboard.hotShoots == null
+      p.admin-hint Не удалось посчитать горячесть.
+    else if !dashboard.hotShoots.length
+      p.admin-hint За последние недели активности по съёмкам нет.
+    else
+      .admin-grid
+        each s in dashboard.hotShoots
+          a.admin-card(href=`/admin/shoots/${s.slug}/edit#stats`)
+            .admin-card-cover(style=s.cover ? `background-image:url('${s.cover}')` : undefined)
+            .admin-card-body
+              span.admin-card-title= s.label
+              +heatBadge(s)
   .admin-section
     .admin-section-head
       h2.admin-title Требует внимания

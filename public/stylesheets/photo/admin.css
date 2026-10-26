@@ -173,3 +173,12 @@ body.admin {
 .admin-card-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--text-dim); }
 .admin-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .admin-section-head .admin-title { margin: 0; }
+
+/* ── Shoot heat badge (views/photo/admin/_heat.pug) ───────── */
+.heat { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; font-size: 13px; }
+.heat-flames { letter-spacing: -2px; }
+.heat-score { font: 600 13px/1 var(--mono); color: var(--text); }
+.heat-trend { font-weight: 700; color: var(--text-dim); }
+.heat-trend--up { color: var(--success); }
+.heat-trend--down { color: var(--danger); }
+.heat-cold { color: var(--text-dim); }

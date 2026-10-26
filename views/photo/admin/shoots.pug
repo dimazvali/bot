@@ -1,5 +1,6 @@
 extends layout
 block vars
+  include _heat.pug
   - var nav = 'shoots'
 block breadcrumbs
   span Съёмки
@@ -27,11 +28,12 @@ block content
             th
             th.admin-table-sortable(data-type='text') Название
             th.admin-table-sortable(data-type='number') Фото
+            th.admin-table-sortable(data-type='number' data-dir=sortByHeat ? 'desc' : undefined title='горячесть: просмотры страницы и кадров, скачивания; свежие действия весят больше (вдвое меньше каждые 7 дней), стрелка — эта неделя против прошлой') Горячесть
             th.admin-table-sortable(data-type='number') Просмотры
             th.admin-table-sortable(data-type='number' title='архив всех кадров · подборки клиентов · кадры для Instagram') Скачивания
             th.admin-table-sortable(data-type='text') Доступ
             //- the route sorts by publication date, newest first
-            th.admin-table-sortable(data-type='number' data-dir='desc') Дата публикации
+            th.admin-table-sortable(data-type='number' data-dir=sortByHeat ? undefined : 'desc') Дата публикации
             th
         tbody
           each entry in shootEntries
@@ -58,6 +60,9 @@ block content
                   else
                     span.admin-badge.admin-badge--hidden без описания
               td(data-value=shoot.photos.length)= shoot.photos.length
+              - var h = heat[slug] || { score: 0, level: 0, trend: 'flat', week: 0, prevWeek: 0 }
+              td(data-value=h.score)
+                +heatBadge(h)
               td(data-value=viewsCount)= `👁 ${viewsCount}`
               td(data-value=dl.zip + dl.sel + dl.ig title='архив · подборки · Instagram')= `⬇ ${dl.zip} · ${dl.sel} · ${dl.ig}`
               td(data-value=shoot.public ? 1 : 0)

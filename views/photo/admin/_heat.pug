@@ -1,0 +1,10 @@
+//- Shoot "heat" badge (lib/photo-shoot-heat.js): flames by level, score, trend vs the previous week.
+mixin heatBadge(h)
+  - var _trend = { up: ['↑', 'растёт'], down: ['↓', 'падает'], flat: ['→', 'без изменений'] }[h.trend] || ['→', '']
+  span.heat(class='heat--l' + h.level title=`горячесть ${h.score} · за 7 дн. ${h.week} очк., неделей раньше ${h.prevWeek} · ${_trend[1]}`)
+    if h.level
+      span.heat-flames= '🔥'.repeat(h.level)
+      span.heat-score= h.score
+      span.heat-trend(class='heat-trend--' + h.trend)= _trend[0]
+    else
+      span.heat-cold —

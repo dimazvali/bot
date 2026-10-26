@@ -606,7 +606,13 @@
       "PowerShell(node --check routes/photo.js)",
       "PowerShell(node --check routes/photo-admin.js)",
       "Bash(node --test test/photo-shoot-stats.test.js)",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -H \"Host: photo.localhost\" http://localhost:3502/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" -H \"Host: photo.localhost\" http://localhost:3502/)",
+      "Bash(node --test test/photo-shoot-heat.test.js)",
+      "Bash(node -c lib/photo-downloads.js)",
+      "Bash(node -e \"var p=require\\('pug'\\);['shoot-edit','_shoot-stats','shoots','dashboard'].forEach\\(function\\(f\\){p.compileFile\\('views/photo/admin/'+f+'.pug'\\)}\\);console.log\\('pug ok'\\)\")",
+      "Bash(node \"C:/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/e133ecc9-30f8-4037-9a88-17fc2d6f0241/scratchpad/heat-prod.js\")",
+      "Bash(sed -i \"s#^var ROOT = .*#var ROOT = 'C:/Users/dshestakov/node/bot'; var rq = require\\('module'\\).createRequire\\(ROOT + '/package.json'\\);#; s#require\\(ROOT + '/node_modules/\\\\\\([^']*\\\\\\)'\\)#rq\\('\\\\1'\\)#g\" heat-prod.js)",
+      "Bash(node heat-prod.js)"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",
