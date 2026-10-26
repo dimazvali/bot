@@ -8,6 +8,7 @@ var exifr = require('exifr');
 var { getData, saveData, initFromFirestore } = require('../lib/photo-data');
 var { getTags, saveTags, initTagsFromFirestore } = require('../lib/photo-tags');
 var photoStats = require('../lib/photo-stats');
+var shootStats = require('../lib/photo-shoot-stats');
 var { extractColorFamilies, COLOR_FAMILIES, getPhotoColorFamilies } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
 var mailer = require('../lib/photo-mailer');
@@ -911,6 +912,46 @@ router.get('/shoots/:slug/edit', requireAuth, async (req, res) => {
   });
 });
 
+// "Статистика" tab of the shoot edit page — an HTML fragment loaded on first open of the tab
+// (photo_views queries take a moment, the rest of the page shouldn't wait for them).
+router.get('/shoots/:slug/stats', requireAuth, async (req, res) => {
+  var { slug } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).end();
+  var shoot = shoots.getShoot(slug);
+  if (!shoot) return res.status(404).end();
+  var days = [7, 30, 90].indexOf(parseInt(req.query.days)) !== -1 ? parseInt(req.query.days) : 30;
+  var photos = shoot.photos || [];
+  try {
+    var [events, shootCounters, photoCounters, comments] = await Promise.all([
+      shootStats.loadEvents(fb, process.env.PHOTO_ENV || 'dev', slug, photos.map(function(p) { return p.id; }), days),
+      photoStats.getStatsByType('shoot').catch(function() { return {}; }),
+      photoStats.getStatsByType('shoot-photo').catch(function() { return {}; }),
+      photoComments.getAllComments(500).catch(function() { return []; }),
+    ]);
+    var photosById = {};
+    photos.forEach(function(p) { photosById[p.id] = p; });
+    var commentPrefix = 'shoot_' + slug + '_';
+    res.render('photo/admin/_shoot-stats', {
+      slug, days,
+      s: shootStats.summarize(events, { days: days, slug: slug }),
+      photosById,
+      allTime: {
+        page: shootCounters[slug] || 0,
+        photos: photos.reduce(function(n, p) { return n + (photoCounters[slug + '/' + p.id] || 0); }, 0),
+      },
+      downloads: photoDownloads.stats(slug),
+      engagement: {
+        collections: (shoot.collections || []).length,
+        marks: photos.reduce(function(n, p) { return n + (p.annotations || []).filter(function(a) { return a.source === 'client'; }).length; }, 0),
+        comments: comments.filter(function(c) { return !c.hidden && String(c.photoId).indexOf(commentPrefix) === 0; }).length,
+      },
+    });
+  } catch (e) {
+    console.error('[shoots] stats error:', e.message);
+    res.status(500).send('<p class="admin-notice admin-notice--error">Ошибка загрузки статистики: ' + String(e.message).replace(/</g, '&lt;') + '</p>');
+  }
+});
+
 // Manual "announce this shoot to subscribers" button — deliberately not automatic
 // on shoot creation, since at that point there's usually no photos/cover/password
 // decided yet. Admin clicks it once the shoot is actually ready to show.
@@ -994,7 +1035,7 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.redirect('/admin/shoots');
-  if (!req.file) return res.redirect('/admin/shoots/' + slug + '/edit');
+  if (!req.file) return res.redirect('/admin/shoots/' + slug + '/edit#photos');
 
   var { title, date, desc } = req.body;
   var shootType = ['copter', 'camera', 'mobile'].includes(req.body.type) ? req.body.type : 'camera';
@@ -1092,7 +1133,7 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
       }
     }());
 
-    res.redirect('/admin/shoots/' + slug + '/edit');
+    res.redirect('/admin/shoots/' + slug + '/edit#photos');
   } catch (err) {
     console.error('[shoots] upload error:', err);
     res.status(500).send('Ошибка при загрузке: ' + err.message);
@@ -1183,7 +1224,7 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
   } catch (e) {
     console.error('[shoots] update photo error:', e);
   }
-  res.redirect('/admin/shoots/' + slug + '/edit');
+  res.redirect('/admin/shoots/' + slug + '/edit#photos');
 });
 
 // POST /admin/shoots/:slug/photos/:id/replace-file — swap the source image, keep id/title/desc/SEO/annotations
@@ -1842,7 +1883,7 @@ router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded(
   indexNowSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + newId);
   googleIndexingSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + newId);
 
-  res.redirect('/admin/shoots/' + slug + '/edit');
+  res.redirect('/admin/shoots/' + slug + '/edit#photos');
 });
 
 router.post('/shoots/:slug/photos/:id/annotation/add', requireAuth, express.json(), async (req, res) => {
@@ -1919,7 +1960,7 @@ router.post('/shoots/:slug/toggle-curator-selection', requireAuth, async (req, r
   } catch (e) {
     console.error('[shoots] toggle-curator-selection error:', e);
   }
-  res.redirect('/admin/shoots/' + slug + '/edit');
+  res.redirect('/admin/shoots/' + slug + '/edit#photos');
 });
 
 // Every file the shoot upload route writes for a photo (sizes, Instagram JPG, panorama
@@ -1979,7 +2020,7 @@ router.post('/shoots/:slug/photos/:id/delete', requireAuth, async (req, res) => 
   } catch (e) {
     console.error('[shoots] delete photo error:', e);
   }
-  res.redirect('/admin/shoots/' + slug + '/edit');
+  res.redirect('/admin/shoots/' + slug + '/edit#photos');
 });
 
 router.post('/shoots/:slug/delete', requireAuth, async (req, res) => {

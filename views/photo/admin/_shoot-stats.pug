@@ -1,0 +1,117 @@
+//- Fragment for the "Статистика" tab of shoot-edit.pug (GET /admin/shoots/:slug/stats)
+- var periodTotal = s.total.page + s.total.photos
+- function pct(n, of) { return of ? Math.round(n / of * 100) : 0; }
+.admin-section
+  .admin-section-head
+    h2.admin-title ПРОСМОТРЫ
+    .stats-period
+      each d in [7, 30, 90]
+        a.admin-link(href='#stats' data-stats-days=d class=days === d ? 'active' : '') #{d}Д
+  .admin-grid
+    .admin-stat
+      span.admin-stat-count= s.total.page
+      span.admin-stat-label страница съёмки · #{days} дн.
+    .admin-stat
+      span.admin-stat-count= s.total.photos
+      span.admin-stat-label кадры · #{days} дн.
+    .admin-stat
+      span.admin-stat-count= s.visitors
+      span.admin-stat-label уникальных посетителей (по IP)
+    .admin-stat
+      span.admin-stat-count= allTime.page + allTime.photos
+      span.admin-stat-label за всё время (страница #{allTime.page} + кадры #{allTime.photos})
+  if s.bots
+    p.admin-hint(style='margin-top:12px') Боты и превью-ботов мессенджеров не учитываются: #{s.bots} за период.
+
+  h3.admin-subtitle ПО ДНЯМ
+  if !periodTotal
+    p.admin-hint За #{days} дн. просмотров нет.
+  else
+    p.admin-hint.shoot-stats-legend
+      span
+        span.shoot-stats-key.shoot-stats-key--page
+        |  страница
+      span
+        span.shoot-stats-key.shoot-stats-key--photos
+        |  кадры
+    //- one column per day (stacked: frames under the page), max = s.maxDay; hover shows the numbers
+    .shoot-stats-cols-chart
+      span.shoot-stats-max= s.maxDay
+      each item in s.allDays
+        .shoot-stats-col(title=`${item.day}: страница ${item.page}, кадры ${item.photos}`)
+          if item.page
+            .shoot-stats-seg.shoot-stats-key--page(style=`height:${item.page / s.maxDay * 100}%`)
+          if item.photos
+            .shoot-stats-seg.shoot-stats-key--photos(style=`height:${item.photos / s.maxDay * 100}%`)
+    .shoot-stats-axis
+      span= s.allDays[0].day.slice(5)
+      span= s.allDays[s.allDays.length - 1].day.slice(5)
+
+.admin-section
+  h2.admin-title ОТКУДА И С ЧЕГО
+  .shoot-stats-cols
+    div
+      h3.admin-subtitle ИСТОЧНИКИ
+      if s.referers.length
+        each r in s.referers
+          .stats-entity-row
+            span.stats-entity-label= r.key
+            span.stats-entity-count= r.count
+      else
+        p.admin-hint Нет данных.
+    div
+      h3.admin-subtitle УСТРОЙСТВА
+      each count, type in s.devices
+        if count
+          .stats-entity-row
+            span.stats-entity-label= {desktop: 'компьютер', mobile: 'телефон', tablet: 'планшет', unknown: 'неизвестно'}[type]
+            span.stats-entity-count #{count} · #{pct(count, periodTotal)}%
+      h3.admin-subtitle ЯЗЫК ВЕРСИИ
+      .stats-entity-row
+        span.stats-entity-label RU
+        span.stats-entity-count #{s.lang.ru} · #{pct(s.lang.ru, periodTotal)}%
+      .stats-entity-row
+        span.stats-entity-label EN
+        span.stats-entity-count #{s.lang.en} · #{pct(s.lang.en, periodTotal)}%
+
+.admin-section
+  h2.admin-title ПОПУЛЯРНЫЕ КАДРЫ · #{days} ДН.
+  if s.topPhotos.length
+    each t in s.topPhotos
+      - var p = photosById[t.id]
+      .stats-entity-row
+        if p && p.urls
+          img.shoot-stats-thumb(src=p.urls.thumb || p.urls.preview alt='' loading='lazy')
+        span.stats-entity-label
+          a(href=`/admin/shoots/${slug}/photos/${t.id}/edit`)= (p && p.title) || t.id
+        span.stats-entity-count= t.count
+        a.stats-entity-drill(href=`/admin/stats/entity?type=shoot-photo&id=${encodeURIComponent(slug + '/' + t.id)}&days=${days}`) график →
+  else
+    p.admin-hint Кадры за период не открывали.
+
+.admin-section
+  h2.admin-title ДЕЙСТВИЯ ПОСЕТИТЕЛЕЙ
+  p.admin-hint Скачивания и подборки — за всё время.
+  .admin-grid
+    .admin-stat(class=downloads.zip ? '' : 'is-zero')
+      span.admin-stat-count= downloads.zip
+      span.admin-stat-label скачали архив целиком
+    .admin-stat(class=downloads.sel ? '' : 'is-zero')
+      span.admin-stat-count= downloads.sel
+      span.admin-stat-label скачали архив подборки
+    .admin-stat(class=downloads.ig ? '' : 'is-zero')
+      span.admin-stat-count= downloads.ig
+      span.admin-stat-label скачали JPG «для Instagram»
+    .admin-stat(class=engagement.collections ? '' : 'is-zero')
+      span.admin-stat-count= engagement.collections
+      span.admin-stat-label подборок клиента
+    .admin-stat(class=engagement.marks ? '' : 'is-zero')
+      span.admin-stat-count= engagement.marks
+      span.admin-stat-label отметок на фото
+    .admin-stat(class=engagement.comments ? '' : 'is-zero')
+      span.admin-stat-count= engagement.comments
+      span.admin-stat-label комментариев
+  p.admin-hint(style='margin-top:12px')
+    a(href=`/admin/stats/entity?type=shoot&id=${encodeURIComponent(slug)}&days=${days}`) → график страницы съёмки
+    | &nbsp;·&nbsp;
+    a(href='/admin/feedback') → все комментарии и отметки

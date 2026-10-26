@@ -19,9 +19,26 @@ block content
   if error
     .admin-notice.admin-notice--error= error
 
-  .admin-section
+  //- Tabs: every top-level block below carries data-tab; the script at the bottom shows one group.
+  //- The URL hash picks the tab (#photos, #faces, #stats, #tools; redirects rely on it).
+  -
+    var _tabs = [
+      ['main', 'Основное', null],
+      ['photos', 'Фото', shoot.photos.length],
+      ['faces', 'Лица', shoot.photos.length ? faceGroups.length : null],
+      ['stats', 'Статистика', null],
+      ['tools', 'Сервис', null],
+    ]
+  nav.shoot-tabs(role='tablist' aria-label='Разделы съёмки')
+    each t in _tabs
+      button.shoot-tab(type='button' role='tab' data-tab-btn=t[0] aria-selected=t[0] === 'main' ? 'true' : 'false')
+        = t[1]
+        if t[2] != null
+          span.shoot-tab-count= t[2]
+
+  .admin-section(data-tab='main')
     h2.admin-title МЕТАДАННЫЕ
-    form.admin-form(method='POST' action=`/admin/shoots/${slug}/edit`)
+    form#meta-form.admin-form(method='POST' action=`/admin/shoots/${slug}/edit`)
       input.admin-input(type='text' name='label' value=shoot.label placeholder='название' required)
       input.admin-input(type='text' name='label_en' value=shoot.label_en || '' placeholder='name (EN)')
       p.admin-hint Описание (необязательно) — переносы строк сохраняются на странице съёмки:
@@ -33,12 +50,6 @@ block content
       label.admin-tag-check
         input(type='checkbox' name='public' checked=shoot.public)
         span показывать в /shoot и в сайтмапе
-      label.admin-tag-check
-        input(type='checkbox' name='showFaces' checked=shoot.showFaces)
-        span показывать лица (виджет «найти себя»)
-      label.admin-tag-check
-        input(type='checkbox' name='hideUnnamedFaces' checked=shoot.hideUnnamedFaces)
-        span не показывать нераспознанные лица (в виджете только люди с именем)
       label.admin-tag-check
         input(type='checkbox' name='showCuratorSelection' checked=shoot.showCuratorSelection)
         span показывать авторский отбор (сначала отмеченные фото, остальные — по кнопке «показать все»)
@@ -81,7 +92,7 @@ block content
         |  (открытый доступ)
       |  · #{shoot.public ? 'публична' : 'не публична'}
 
-  .admin-section
+  .admin-section(data-tab='main')
     h2.admin-title ОПОВЕЩЕНИЕ ПОДПИСЧИКОВ
     p.admin-hint Разошлёт подписчикам (email и телеграм) сообщение о новой съёмке со ссылкой на неё. Не срабатывает автоматически при создании — нажимайте, когда съёмка готова к показу (фото загружены, обложка и доступ настроены).
     if shoot.notifiedAt
@@ -94,7 +105,7 @@ block content
     button#notify-subscribers-btn.admin-btn(type='button' disabled=(!shoot.public || !shoot.photos.length)) 📣 ОПОВЕСТИТЬ ПОДПИСЧИКОВ
     p#notify-status.admin-hint(style='display:none')
 
-  .admin-section
+  .admin-section(data-tab='photos')
     h2.admin-title ЗАГРУЗИТЬ ФОТО
     form.admin-form(method='POST' action=`/admin/shoots/${slug}/upload` enctype='multipart/form-data')
       input.admin-input(type='text' name='title' placeholder='название')
@@ -106,7 +117,7 @@ block content
         span панорама (доп. копия в оригинальном размере, зум/пан)
       button.admin-btn(type='submit') ЗАГРУЗИТЬ
 
-  .admin-section
+  .admin-section(data-tab='photos')
     h2.admin-title МАССОВАЯ ЗАГРУЗКА
     p.admin-hint Выберите несколько файлов — загрузятся последовательно. Название = имя файла.
     input#bulk-files.admin-input(type='file' name='photos' accept='image/*' multiple)
@@ -141,7 +152,7 @@ block content
     p#bulk-status.admin-hint(style='display:none')
 
   if shoot.photos.length
-    .admin-section
+    .admin-section(data-tab='tools')
       h2.admin-title ОПИСАНИЯ ФОТО
       p.admin-hint Заново сгенерировать SEO-описания и ключевые слова (RU + EN) для всех фото съёмки — с учётом названия, описания, промпта и координат. Перезаписываются только SEO-поля; ручные описания фото не трогаются.
       button.admin-btn#seo-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ОПИСАНИЯ
@@ -150,22 +161,33 @@ block content
           .copyright-progress-fill#seo-regen-fill
         span#seo-regen-text.progress-text
 
+  .admin-section(data-tab='faces')
+    h2.admin-title ВИДЖЕТ «НАЙТИ СЕБЯ»
+    //- these inputs belong to the metadata form (form attribute), so saving here saves the whole form
+    label.admin-tag-check
+      input(type='checkbox' name='showFaces' checked=shoot.showFaces form='meta-form')
+      span показывать лица на странице съёмки
+    label.admin-tag-check
+      input(type='checkbox' name='hideUnnamedFaces' checked=shoot.hideUnnamedFaces form='meta-form')
+      span не показывать нераспознанные лица (в виджете только люди с именем)
+    button.admin-btn(type='submit' form='meta-form') СОХРАНИТЬ
+  if !shoot.photos.length
+    .admin-section(data-tab='faces')
+      p.admin-hint В съёмке пока нет фото — лица появятся после загрузки и индексации.
   if shoot.photos.length
-    .admin-section#faces
+    .admin-section#faces-groups(data-tab='faces')
       h2.admin-title ЛИЦА
       p.admin-hint
         | Найдено групп: #{faceGroups.length}. «Перегенерировать» индексирует фото без распознанных лиц и заново сопоставляет все лица (имена и ручные правки сохраняются).
         |  «Скрыть» убирает группу из публичного виджета «найти себя». Ошибки на отдельных фото правятся на странице редактирования фото.
-        |  Все люди — на странице
-        a(href='/admin/people') люди
-        | .
+        |  Все люди — на странице #[a(href='/admin/people') люди].
       button.admin-btn#faces-regen-btn(type='button') ↻ ПЕРЕГЕНЕРИРОВАТЬ ЛИЦА
       .copyright-progress#faces-regen-status(style='display:none;margin-top:12px')
         .copyright-progress-bar
           .copyright-progress-fill#faces-regen-fill
         span#faces-regen-text.progress-text
       if faceGroups.length
-        p.admin-hint
+        p.admin-hint(style='margin-top:14px')
           | Группировка мышью: перетащите круг одной группы на другую — это один человек (объединится и в других съёмках, если это уже люди).
           |  «лица» раскрывает группу — отдельное лицо можно перетащить в другую группу или в «＋ новая группа».
         -
@@ -176,7 +198,7 @@ block content
           }
         +faceBoard(_fbGroups, _fbOpts)
   if shoot.photos.length
-    .admin-section
+    .admin-section(data-tab='tools')
       h2.admin-title ПРОВЕРКА ИСПОЛЬЗОВАНИЯ
       p.admin-hint Поиск копий фотографий этой съёмки в интернете (Google Vision). Проверяются только фото из этой съёмки.
       button.admin-btn#run-check-btn(type='button') ▶ ПРОВЕРИТЬ ИСПОЛЬЗОВАНИЕ
@@ -188,7 +210,7 @@ block content
         a(href='/admin/copyright' target='_blank' rel='noopener') → все найденные использования
 
   if shoot.photos.length
-    .admin-section
+    .admin-section(data-tab='photos')
       h2.admin-title ФОТО (#{shoot.photos.length})
       p.admin-hint Перетащите для изменения порядка. Чекбоксы — временный выбор для кнопок ниже; ★ у фото — оно уже в авторском отборе.
       p.admin-hint
@@ -238,7 +260,7 @@ block content
                 button.admin-btn.admin-btn--danger(type='submit') удалить
 
   if shoot.collections && shoot.collections.length
-    .admin-section
+    .admin-section(data-tab='photos')
       h2.admin-title ПОДБОРКИ КЛИЕНТА (#{shoot.collections.length})
       p.admin-hint Выборки фото, собранные клиентом на странице съёмки.
       - var photosById = {}
@@ -261,7 +283,11 @@ block content
                 a(href=`/admin/shoots/${slug}/photos/${pid}/edit` target='_blank')
                   img.admin-collection-thumb(src=p.urls.preview alt=p.title)
 
-  .admin-section
+  #shoot-stats(data-tab='stats' data-url=`/admin/shoots/${slug}/stats`)
+    .admin-section
+      p.admin-hint Загрузка статистики…
+
+  .admin-section(data-tab='tools')
     h2.admin-title УДАЛИТЬ СЪЁМКУ
     p.admin-hint Все фотографии будут удалены из Firebase Storage без возможности восстановления.
     form.admin-form(method='POST' action=`/admin/shoots/${slug}/delete`)
@@ -271,6 +297,60 @@ block scripts
   script(src='/javascripts/photo/face-board.js' defer)
   script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
   script.
+    // ── Tabs (hash-driven; the stats tab is fetched on first open) ──
+    (function() {
+      var TABS = ['main', 'photos', 'faces', 'stats', 'tools'];
+      var buttons = Array.from(document.querySelectorAll('[data-tab-btn]'));
+      var blocks = Array.from(document.querySelectorAll('[data-tab]'));
+      var statsBox = document.getElementById('shoot-stats');
+      var statsDays = null;
+
+      function loadStats(days) {
+        if (statsDays === days) return;
+        statsDays = days;
+        statsBox.style.opacity = '.5';
+        fetch(statsBox.getAttribute('data-url') + '?days=' + days)
+          .then(function(r) { return r.text(); })
+          .then(function(html) { statsBox.innerHTML = html; })
+          .catch(function() { statsBox.innerHTML = '<p class="admin-notice admin-notice--error">Ошибка сети</p>'; statsDays = null; })
+          .finally(function() { statsBox.style.opacity = ''; });
+      }
+      statsBox.addEventListener('click', function(e) {
+        var a = e.target.closest('[data-stats-days]');
+        if (!a) return;
+        e.preventDefault();
+        loadStats(parseInt(a.getAttribute('data-stats-days'), 10));
+      });
+
+      function show(tab, scrollTo) {
+        if (TABS.indexOf(tab) === -1) tab = 'main';
+        buttons.forEach(function(b) { b.setAttribute('aria-selected', b.getAttribute('data-tab-btn') === tab ? 'true' : 'false'); });
+        blocks.forEach(function(el) { el.hidden = el.getAttribute('data-tab') !== tab; });
+        if (tab === 'stats') loadStats(statsDays || 30);
+        document.dispatchEvent(new CustomEvent('shoot-tab:shown', { detail: tab }));
+        if (scrollTo) scrollTo.scrollIntoView();
+      }
+
+      // #photos / #faces → that tab; any other #id → the tab that contains it
+      function fromHash() {
+        var h = decodeURIComponent(location.hash.slice(1));
+        if (TABS.indexOf(h) !== -1) return show(h);
+        var el = h && document.getElementById(h);
+        var block = el && el.closest('[data-tab]');
+        show(block ? block.getAttribute('data-tab') : 'main', el);
+      }
+
+      buttons.forEach(function(b) {
+        b.addEventListener('click', function() {
+          var tab = b.getAttribute('data-tab-btn');
+          history.replaceState(null, '', tab === 'main' ? location.pathname + location.search : '#' + tab);
+          show(tab);
+        });
+      });
+      window.addEventListener('hashchange', fromHash);
+      fromHash();
+    }());
+
     // ── Bulk upload ──
     var bulkInput     = document.getElementById('bulk-files');
     var bulkStart     = document.getElementById('bulk-start');
@@ -644,6 +724,8 @@ block scripts
       });
 
       setTimeout(function() { map.invalidateSize(); }, 0);
+      // the map may have been created inside a hidden tab
+      document.addEventListener('shoot-tab:shown', function(e) { if (e.detail === 'main') map.invalidateSize(); });
     }());
 
   style.
@@ -651,3 +733,30 @@ block scripts
     .copyright-progress-bar { height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
     .copyright-progress-fill { height:100%; background:var(--accent); width:0%; transition:width .4s; }
     #progress-text, .progress-text { font-size:.6875rem; color:var(--text-muted); font-family:monospace; }
+    .shoot-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px; border-bottom:1px solid var(--border); }
+    .shoot-tab { background:none; border:0; border-bottom:2px solid transparent; margin-bottom:-1px; padding:10px 14px; font:600 13px/1 var(--font); color:var(--text-dim); cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+    .shoot-tab:hover { color:var(--text); }
+    .shoot-tab[aria-selected='true'] { color:var(--accent); border-bottom-color:var(--accent); }
+    .shoot-tab-count { font:500 11px/1 var(--mono); padding:2px 6px; border-radius:999px; background:var(--surface-2); color:var(--text-muted); }
+    [data-tab][hidden] { display:none !important; }
+    #shoot-stats { transition:opacity .2s; }
+    .shoot-stats-cols { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px; }
+    .shoot-stats-key--page { background:var(--accent); }
+    .shoot-stats-legend { display:flex; gap:16px; }
+    .shoot-stats-key { display:inline-block; width:10px; height:10px; vertical-align:middle; }
+    .shoot-stats-key--photos { background:var(--text-muted); }
+    .shoot-stats-cols-chart { position:relative; display:flex; align-items:flex-end; gap:2px; height:120px; padding-top:14px; border-bottom:1px solid var(--border); }
+    .shoot-stats-col { flex:1; height:100%; display:flex; flex-direction:column-reverse; min-width:0; }
+    .shoot-stats-col:hover { background:var(--surface-2); }
+    .shoot-stats-seg { width:100%; min-height:2px; }
+    .shoot-stats-max { position:absolute; top:0; left:0; font:10px/1 var(--mono); color:var(--text-dim); }
+    .shoot-stats-axis { display:flex; justify-content:space-between; font:10px/1 var(--mono); color:var(--text-dim); margin-top:4px; }
+    .shoot-stats-thumb { width:40px; height:40px; object-fit:cover; border-radius:4px; flex-shrink:0; }
+    .stats-entity-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--border); }
+    .stats-entity-row:last-child { border-bottom:none; }
+    .stats-entity-label { flex:1; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .stats-entity-label a { color:inherit; text-decoration:none; }
+    .stats-entity-label a:hover { text-decoration:underline; }
+    .stats-entity-count { font-size:13px; color:var(--text-muted); text-align:right; white-space:nowrap; }
+    .stats-entity-drill { font-size:11px; color:var(--text-dim); text-decoration:none; padding:2px 5px; border:1px solid var(--border); border-radius:3px; white-space:nowrap; }
+    .stats-entity-drill:hover { color:var(--text); }

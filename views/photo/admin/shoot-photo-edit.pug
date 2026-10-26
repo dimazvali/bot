@@ -6,7 +6,7 @@ block head
   script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
 block breadcrumbs
   a(href='/admin/shoots') Съёмки
-  a(href=`/admin/shoots/${slug}/edit`)= shootLabel
+  a(href=`/admin/shoots/${slug}/edit#photos`)= shootLabel
   span= photo.title || photo.id
 block actions
   span.admin-hint 👁 #{photoViews}
