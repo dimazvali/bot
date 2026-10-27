@@ -106,22 +106,31 @@ test('views: no previous views → deltaPct null; failing source → views null'
   assert.equal(failed.views, null);
 });
 
-test('hot shoots: only shoots with a level, hottest first, existing shoots only', async function() {
+test('hot content: only units with a level, hottest first, existing content only', async function() {
+  var lvl = function(score, level) { return { score: score, level: level, trend: 'flat' }; };
   var d = await dash.buildDashboard(deps({
-    getShootHeat: async function() {
+    photoData: {
+      ge: { label: 'Грузия', series: { tb: { label: 'Тбилиси', photos: [{ id: 'x', title: 'Мост', urls: { thumb: 'x.webp' } }] } } },
+    },
+    getHeat: async function() {
       return {
-        old: { score: 3, level: 1, trend: 'flat' },
-        fresh: { score: 30, level: 3, trend: 'up' },
-        gone: { score: 99, level: 3, trend: 'up' },
-        cold: { score: 0.4, level: 0, trend: 'flat' },
+        shoots: { old: lvl(3, 1), fresh: lvl(30, 3), gone: lvl(99, 3), cold: lvl(0.4, 0) },
+        series: { 'ge/tb': lvl(12, 2), 'ge/nope': lvl(50, 3) },
+        photos: { 'ge/tb/x': lvl(9, 2), 'shoot:fresh/b': lvl(20, 3), 'shoot:fresh/zz': lvl(40, 3) },
       };
     },
   }));
-  assert.deepEqual(d.hotShoots.map(function(s) { return [s.slug, s.label, s.level]; }), [['fresh', 'Fresh', 3], ['old', 'Old', 1]]);
-  assert.equal(d.hotShoots[0].cover, 'Fresh-b.webp');
+  assert.deepEqual(d.hot.shoots.map(function(s) { return [s.slug, s.label, s.level]; }), [['fresh', 'Fresh', 3], ['old', 'Old', 1]]);
+  assert.equal(d.hot.shoots[0].cover, 'Fresh-b.webp');
+  assert.deepEqual(d.hot.series.map(function(s) { return [s.key, s.label, s.sub, s.cover, s.href]; }),
+    [['ge/tb', 'Тбилиси', 'Грузия', 'x.webp', '/admin/ge/tb/edit#stats']]);
+  assert.deepEqual(d.hot.frames.map(function(f) { return [f.key, f.label, f.sub, f.href]; }), [
+    ['shoot:fresh/b', 'b', 'Fresh', '/admin/shoots/fresh/photos/b/edit#frame-stats'],
+    ['ge/tb/x', 'Мост', 'Тбилиси', '/admin/ge/tb/x/edit#frame-stats'],
+  ]);
 });
 
-test('hot shoots: no heat source → empty list', async function() {
+test('hot content: no heat source → empty lists', async function() {
   var d = await dash.buildDashboard(deps());
-  assert.deepEqual(d.hotShoots, []);
+  assert.deepEqual(d.hot, { shoots: [], series: [], frames: [] });
 });

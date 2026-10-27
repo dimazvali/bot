@@ -282,6 +282,9 @@ router.post('/:country/:series/:id/inquiry', express.urlencoded({ extended: fals
     return res.redirect(i18n.langPrefix(lang) + `/${countryKey}/${seriesKey}/${id}?inquiry=err`);
   }
 
+  // logged next to page views (no personal data) → admin stats + "heat" of the series (lib/photo-shoot-heat.js)
+  trackView('inquiry', countryKey + '/' + seriesKey + '/' + id, req.path, req);
+
   try {
     var { sendMessage2 } = require('./methods');
     var typeLabel = { print: 'Отпечаток', license: 'Лицензия', other: 'Вопрос' }[type] || type;
@@ -314,6 +317,7 @@ router.post('/:country/:series/:id/review', express.urlencoded({ extended: false
   var name = (req.body.name || '').trim().slice(0, 100);
   var text = (req.body.text || '').trim().slice(0, 2000);
   if (text) {
+    trackView('review', countryKey + '/' + seriesKey + '/' + id, req.path, req);
     try {
       var { sendMessage2 } = require('./methods');
       var photoUrl = BASE + '/' + countryKey + '/' + seriesKey + '/' + id;

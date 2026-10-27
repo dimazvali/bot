@@ -30,19 +30,27 @@ block content
   .admin-section
     .admin-section-head
       h2.admin-title Горячие сейчас
-      a.admin-link(href='/admin/shoots?sort=heat') все по горячести
-    if dashboard.hotShoots == null
+      span
+        a.admin-link(href='/admin/shoots?sort=heat') съёмки по горячести
+        | &nbsp;
+        a.admin-link(href='/admin/series') серии и страны
+    if dashboard.hot == null
       p.admin-hint Не удалось посчитать горячесть.
-    else if !dashboard.hotShoots.length
-      p.admin-hint За последние недели активности по съёмкам нет.
+    else if !dashboard.hot.shoots.length && !dashboard.hot.series.length && !dashboard.hot.frames.length
+      p.admin-hint За последние недели активности нет.
     else
-      .admin-grid
-        each s in dashboard.hotShoots
-          a.admin-card(href=`/admin/shoots/${s.slug}/edit#stats`)
-            .admin-card-cover(style=s.cover ? `background-image:url('${s.cover}')` : undefined)
-            .admin-card-body
-              span.admin-card-title= s.label
-              +heatBadge(s)
+      each group in [['Съёмки', dashboard.hot.shoots], ['Серии галереи', dashboard.hot.series], ['Кадры', dashboard.hot.frames]]
+        if group[1].length
+          h3.admin-subtitle= group[0]
+          .admin-grid(class=group[0] === 'Кадры' ? 'admin-grid--frames' : undefined)
+            each s in group[1]
+              a.admin-card(href=s.href)
+                .admin-card-cover(style=s.cover ? `background-image:url('${s.cover}')` : undefined)
+                .admin-card-body
+                  span.admin-card-title= s.label
+                  if s.sub
+                    span.admin-card-meta= s.sub
+                  +heatBadge(s)
   .admin-section
     .admin-section-head
       h2.admin-title Требует внимания

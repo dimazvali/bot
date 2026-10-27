@@ -182,3 +182,41 @@ body.admin {
 .heat-trend--up { color: var(--success); }
 .heat-trend--down { color: var(--danger); }
 .heat-cold { color: var(--text-dim); }
+
+/* ── Tabs + "Статистика" tab of the edit pages (public/javascripts/photo/admin-tabs.js, _content-stats.pug) ── */
+.shoot-tabs { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px; border-bottom:1px solid var(--border); }
+.shoot-tab { background:none; border:0; border-bottom:2px solid transparent; margin-bottom:-1px; padding:10px 14px; font:600 13px/1 var(--font); color:var(--text-dim); cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+.shoot-tab:hover { color:var(--text); }
+.shoot-tab[aria-selected='true'] { color:var(--accent); border-bottom-color:var(--accent); }
+.shoot-tab-count { font:500 11px/1 var(--mono); padding:2px 6px; border-radius:999px; background:var(--surface-2); color:var(--text-muted); }
+[data-tab][hidden] { display:none !important; }
+[data-stats-url] { transition:opacity .2s; }
+.shoot-stats-cols { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:24px; }
+.shoot-stats-key--page { background:var(--accent); }
+.shoot-stats-legend { display:flex; gap:16px; }
+.shoot-stats-key { display:inline-block; width:10px; height:10px; vertical-align:middle; }
+.shoot-stats-key--photos { background:var(--text-muted); }
+.shoot-stats-cols-chart { position:relative; display:flex; align-items:flex-end; gap:2px; height:120px; padding-top:14px; border-bottom:1px solid var(--border); }
+.shoot-stats-col { flex:1; height:100%; display:flex; flex-direction:column-reverse; min-width:0; }
+.shoot-stats-col:hover { background:var(--surface-2); }
+.shoot-stats-seg { width:100%; min-height:2px; }
+.shoot-stats-max { position:absolute; top:0; left:0; font:10px/1 var(--mono); color:var(--text-dim); }
+.shoot-stats-axis { display:flex; justify-content:space-between; font:10px/1 var(--mono); color:var(--text-dim); margin-top:4px; }
+.shoot-stats-thumb { width:40px; height:40px; object-fit:cover; border-radius:4px; flex-shrink:0; }
+.stats-entity-row { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid var(--border); }
+.stats-entity-row:last-child { border-bottom:none; }
+.stats-entity-label { flex:1; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stats-entity-label a { color:inherit; text-decoration:none; }
+.stats-entity-label a:hover { text-decoration:underline; }
+.stats-entity-count { font-size:13px; color:var(--text-muted); text-align:right; white-space:nowrap; }
+.stats-entity-drill { font-size:11px; color:var(--text-dim); text-decoration:none; padding:2px 5px; border:1px solid var(--border); border-radius:3px; white-space:nowrap; }
+.stats-entity-drill:hover { color:var(--text); }
+
+/* heat + views in the series & countries list (views/photo/admin/series.pug) */
+.admin-country-name { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.admin-country-name .heat { font-size: 13px; }
+.admin-series-row { gap: 12px; }
+.admin-series-name { flex: 1; min-width: 0; }
+.admin-series-row .heat { min-width: 110px; }
+.admin-grid--frames { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.admin-grid--frames .admin-card-cover { aspect-ratio: 1; }

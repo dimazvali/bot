@@ -1,7 +1,10 @@
-//- Fragment for the "Статистика" tab of shoot-edit.pug (GET /admin/shoots/:slug/stats)
+//- Fragment for the "Статистика" tabs: shoot-edit.pug (GET /admin/shoots/:slug/stats) and series-edit.pug
+//- (GET /admin/:country/:series/stats). What differs between the two comes in `v` (see renderContentStats
+//- in routes/photo-admin.js): labels, links to frames, the visitor-actions tiles.
 include _heat.pug
 - var periodTotal = s.total.page + s.total.photos
 - function pct(n, of) { return of ? Math.round(n / of * 100) : 0; }
+- var HEAT_PARTS = [['page', v.pageLabel], ['frames', 'просмотры кадров'], ['actions', 'Instagram, комментарии, заявки'], ['downloads', 'скачивания']]
 if heat
   .admin-section
     .admin-section-head
@@ -9,18 +12,20 @@ if heat
       +heatBadge(heat)
     if heat.score
       p.admin-hint
-        | #{heat.rank}-е место из #{heat.rankOf} съёмок с активностью.
+        | #{heat.rank}-е место из #{heat.rankOf} #{v.kindPlural} с активностью.
         |  За 7 дней — #{heat.week} очк., неделей раньше — #{heat.prevWeek}.
       .admin-grid
-        each part in [['page', 'страница съёмки'], ['frames', 'просмотры кадров'], ['downloads', 'скачивания']]
-          .admin-stat(class=heat.parts[part[0]] ? '' : 'is-zero')
-            span.admin-stat-count= heat.parts[part[0]]
-            span.admin-stat-label #{part[1]} · #{pct(heat.parts[part[0]], heat.score)}%
+        each part in HEAT_PARTS
+          if heat.parts[part[0]] || part[0] !== 'downloads' || v.kind === 'shoot'
+            .admin-stat(class=heat.parts[part[0]] ? '' : 'is-zero')
+              span.admin-stat-count= heat.parts[part[0]]
+              span.admin-stat-label #{part[1]} · #{pct(heat.parts[part[0]], heat.score)}%
     else
       p.admin-hint За последние 4 недели активности нет.
     p.admin-hint(style='margin-top:12px')
-      | Очки: страница 1, кадр 2, кадр «для Instagram» 5, архив подборки 8, весь архив 10. Одно действие одного посетителя — раз в сутки,
-      |  не больше 20 очков от человека в день; каждые 7 дней вес действия падает вдвое. 🔥🔥🔥 — верхние 10% съёмок, 🔥🔥 — следующие 20%.
+      | Очки: страница 1, кадр 2, переход в Instagram 4, комментарий или отзыв 5, кадр «для Instagram» 5, архив подборки 8, весь архив или заявка на печать/лицензию 10.
+      |  Одно действие одного посетителя — раз в сутки, не больше 20 очков от человека в день; каждые 7 дней вес действия падает вдвое.
+      |  🔥🔥🔥 — верхние 10% #{v.kindPlural}, 🔥🔥 — следующие 20%.
 .admin-section
   .admin-section-head
     h2.admin-title ПРОСМОТРЫ
@@ -30,7 +35,7 @@ if heat
   .admin-grid
     .admin-stat
       span.admin-stat-count= s.total.page
-      span.admin-stat-label страница съёмки · #{days} дн.
+      span.admin-stat-label #{v.pageLabel} · #{days} дн.
     .admin-stat
       span.admin-stat-count= s.total.photos
       span.admin-stat-label кадры · #{days} дн.
@@ -103,35 +108,22 @@ if heat
         if p && p.urls
           img.shoot-stats-thumb(src=p.urls.thumb || p.urls.preview alt='' loading='lazy')
         span.stats-entity-label
-          a(href=`/admin/shoots/${slug}/photos/${t.id}/edit`)= (p && p.title) || t.id
+          a(href=v.frameEditBase + t.id + '/edit')= (p && p.title) || t.id
         span.stats-entity-count= t.count
-        a.stats-entity-drill(href=`/admin/stats/entity?type=shoot-photo&id=${encodeURIComponent(slug + '/' + t.id)}&days=${days}`) график →
+        a.stats-entity-drill(href=`/admin/stats/entity?type=${v.frameType}&id=${encodeURIComponent(v.framePrefix + t.id)}&days=${days}`) график →
   else
     p.admin-hint Кадры за период не открывали.
 
 .admin-section
   h2.admin-title ДЕЙСТВИЯ ПОСЕТИТЕЛЕЙ
-  p.admin-hint Скачивания и подборки — за всё время.
+  if v.actionsHint
+    p.admin-hint= v.actionsHint
   .admin-grid
-    .admin-stat(class=downloads.zip ? '' : 'is-zero')
-      span.admin-stat-count= downloads.zip
-      span.admin-stat-label скачали архив целиком
-    .admin-stat(class=downloads.sel ? '' : 'is-zero')
-      span.admin-stat-count= downloads.sel
-      span.admin-stat-label скачали архив подборки
-    .admin-stat(class=downloads.ig ? '' : 'is-zero')
-      span.admin-stat-count= downloads.ig
-      span.admin-stat-label скачали JPG «для Instagram»
-    .admin-stat(class=engagement.collections ? '' : 'is-zero')
-      span.admin-stat-count= engagement.collections
-      span.admin-stat-label подборок клиента
-    .admin-stat(class=engagement.marks ? '' : 'is-zero')
-      span.admin-stat-count= engagement.marks
-      span.admin-stat-label отметок на фото
-    .admin-stat(class=engagement.comments ? '' : 'is-zero')
-      span.admin-stat-count= engagement.comments
-      span.admin-stat-label комментариев
+    each a in v.actions
+      .admin-stat(class=a.count ? '' : 'is-zero')
+        span.admin-stat-count= a.count
+        span.admin-stat-label= a.label
   p.admin-hint(style='margin-top:12px')
-    a(href=`/admin/stats/entity?type=shoot&id=${encodeURIComponent(slug)}&days=${days}`) → график страницы съёмки
+    a(href=`/admin/stats/entity?type=${v.pageType}&id=${encodeURIComponent(v.pageId)}&days=${days}`) → график страницы
     | &nbsp;·&nbsp;
     a(href='/admin/feedback') → все комментарии и отметки

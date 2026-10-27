@@ -1,5 +1,7 @@
 extends layout
 block vars
+  include _heat.pug
+  include _frame-stats.pug
   - var nav = 'shoots'
 block head
   link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
@@ -10,6 +12,8 @@ block breadcrumbs
   span= photo.title || photo.id
 block actions
   span.admin-hint 👁 #{photoViews}
+  a(href='#frame-stats' title='горячесть кадра' style='text-decoration:none')
+    +heatBadge(frameStats.heat)
   a.admin-btn(href=`/shoot/${slug}/${photo.id}` target='_blank' rel='noopener') открыть ↗
 block content
   .admin-section
@@ -167,6 +171,7 @@ block content
     p.admin-hint Фото и все его копии будут удалены из хранилища без возможности восстановления.
     form.admin-form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete` onsubmit="return confirm('Удалить это фото из съёмки? Отменить будет нельзя.')")
       button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ ФОТО
+  +frameStats(frameStats, statsUrl, { gallery: false })
 block scripts
   style.
     #coords-map { width: 100%; height: 260px; flex: 1 1 100%; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 8px; cursor: crosshair; }

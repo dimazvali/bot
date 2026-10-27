@@ -1,15 +1,19 @@
 extends layout
 block vars
+  include _heat.pug
   - var nav = 'series'
 block breadcrumbs
   span Серии и страны
 block content
+  p.admin-hint 🔥 — горячесть за последние недели: просмотры страниц и кадров, переходы в Instagram, комментарии, заявки на печать и лицензию; свежие действия весят больше. Страна — её страница плюс все её серии.
   .admin-section
     h2.admin-title СТРАНЫ
     each country, countryKey in data
       .admin-country
         .admin-country-name
           span= `${country.label} (${countryKey})`
+          span.admin-photo-id(title='просмотры страницы страны за всё время') 👁 #{countryViews[countryKey] || 0}
+          +heatBadge(heat.countries[countryKey] || { score: 0, level: 0, trend: 'flat', week: 0, prevWeek: 0 })
           if country.archived
             span.admin-archived [архив]
           a.admin-link(href=`/admin/country/${countryKey}/edit` style='margin-left:auto') редактировать
@@ -20,6 +24,10 @@ block content
                 = `${series.label} (${seriesKey}) — ${series.photos.length} фото`
                 if series.archived
                   span.admin-archived [архив]
+              - var _sk = countryKey + '/' + seriesKey
+              span.admin-photo-id(title='просмотры страницы серии за всё время') 👁 #{seriesViews[_sk] || 0}
+              a(href=`/admin/${countryKey}/${seriesKey}/edit#stats` style='text-decoration:none')
+                +heatBadge(heat.series[_sk] || { score: 0, level: 0, trend: 'flat', week: 0, prevWeek: 0 })
               .admin-series-actions
                 a.admin-link(href=`/admin/${countryKey}/${seriesKey}/upload`) загрузить
                 a.admin-link(href=`/admin/${countryKey}/${seriesKey}/edit`) редактировать

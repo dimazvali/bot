@@ -1,5 +1,6 @@
 extends layout
 block vars
+  include _heat.pug
   - var nav = 'series'
 block head
   link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
@@ -15,7 +16,17 @@ block breadcrumbs
 block actions
   a.admin-btn.admin-btn--primary(href=`/admin/${countryKey}/${seriesKey}/upload`) + добавить фото
 block content
-  .admin-section
+  //- Tabs (public/javascripts/photo/admin-tabs.js): blocks carry data-tab, the URL hash picks the tab
+  nav.shoot-tabs(role='tablist' aria-label='Разделы серии')
+    each t in [['main', 'Основное', null], ['photos', 'Фото', series.photos.length], ['stats', 'Статистика', null], ['tools', 'Сервис', null]]
+      button.shoot-tab(type='button' role='tab' data-tab-btn=t[0] aria-selected=t[0] === 'main' ? 'true' : 'false')
+        = t[1]
+        if t[2] != null
+          span.shoot-tab-count= t[2]
+        if t[0] === 'stats' && heat && heat.level
+          span.heat-flames= '🔥'.repeat(heat.level)
+
+  .admin-section(data-tab='main')
     h2.admin-title НАЗВАНИЕ И ОПИСАНИЕ
     form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/edit`)
       input.admin-input(type='text' name='label' value=series.label placeholder='название серии')
@@ -32,14 +43,17 @@ block content
         button#coords-clear.admin-btn(type='button') Убрать точку
       button.admin-btn(type='submit') СОХРАНИТЬ
 
-  .admin-section
+  .admin-section(data-tab='main')
     h2.admin-title ВИДИМОСТЬ
     form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/archive`)
       button.admin-btn(type='submit')= series.archived ? 'РАЗАРХИВИРОВАТЬ' : 'АРХИВИРОВАТЬ'
     p.admin-hint Архивированная серия скрыта на публичном сайте, но доступна в админке.
 
+  if !series.photos.length
+    .admin-section(data-tab='photos')
+      p.admin-hint В серии пока нет фото.
   if series.photos.length
-    .admin-section
+    .admin-section(data-tab='photos')
       h2.admin-title ФОТО (#{series.photos.length})
       p.admin-hint Перетащите для изменения порядка.
       ul#photo-list.admin-sort-list(data-url=`/admin/${countryKey}/${seriesKey}/reorder-photos`)
@@ -51,6 +65,7 @@ block content
             .admin-photo-info
               span.admin-photo-title= photo.title
               span.admin-photo-id= photo.id
+              span.admin-photo-id 👁 просмотров: #{(photoViews && photoViews[photo.id]) || 0}
               if photo.seo_desc
                 span.admin-photo-caption= photo.seo_desc
             .admin-sort-actions
@@ -58,12 +73,17 @@ block content
               form(method='POST' action=`/admin/${countryKey}/${seriesKey}/${photo.id}/delete`)
                 button.admin-btn.admin-btn--danger(type='submit') удалить
 
-  .admin-section
+  #series-stats(data-tab='stats' data-stats-url=`/admin/${countryKey}/${seriesKey}/stats`)
+    .admin-section
+      p.admin-hint Загрузка статистики…
+
+  .admin-section(data-tab='tools')
     h2.admin-title УДАЛИТЬ СЕРИЮ
     p.admin-hint Все фотографии будут удалены из Firebase Storage без возможности восстановления.
     form.admin-form(method='POST' action=`/admin/${countryKey}/${seriesKey}/delete`)
       button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ СЕРИЮ
 block scripts
+  script(src='/javascripts/photo/admin-tabs.js')
   script(src='https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js')
   script.
     var list = document.getElementById('photo-list');
@@ -133,4 +153,6 @@ block scripts
       });
 
       setTimeout(function() { map.invalidateSize(); }, 0);
+      // the map may have been created inside a hidden tab
+      document.addEventListener('admin-tab:shown', function(e) { if (e.detail === 'main') map.invalidateSize(); });
     }());

@@ -69,3 +69,33 @@ test('loadEvents: chunks frame ids by 30 and maps docs', async function() {
   assert.equal(events.length, 3);
   assert.equal(events[0].ms, NOW);
 });
+
+test('summarize: a gallery series — page, frames, actions apart', function() {
+  var s = ss.summarize([
+    ev({ entityType: 'series', entityId: 'ge/tb', path: '/ge/tb' }),
+    ev({ entityType: 'photo', entityId: 'ge/tb/x', path: '/ge/tb/x' }),
+    ev({ entityType: 'photo', entityId: 'ge/tb/x', path: '/ge/tb/x', ip: '9' }),
+    ev({ entityType: 'inquiry', entityId: 'ge/tb/x' }),
+    ev({ entityType: 'review', entityId: 'ge/tb/x' }),
+  ], { days: 3, prefix: 'ge/tb/', pageType: 'series', now: NOW });
+  assert.deepEqual(s.total, { page: 1, photos: 2 });
+  assert.deepEqual(s.topPhotos, [{ id: 'x', count: 2 }]);
+  assert.deepEqual(s.actions, { inquiry: 1, review: 1 });
+});
+
+test('loadSpecEvents: series spec queries page, frames and frame actions', async function() {
+  var calls = [];
+  function query() {
+    var w = [];
+    var api = {
+      where: function(f, op, v) { w.push([f, op, v]); return api; },
+      orderBy: function() { return api; }, limit: function() { return api; }, select: function() { return api; },
+      get: async function() { calls.push(w); return { docs: [] }; },
+    };
+    return api;
+  }
+  await ss.loadSpecEvents({ collection: query }, 'prod', ss.seriesSpec('ge', 'tb', ['a', 'b']), 30, NOW);
+  assert.deepEqual(calls.map(function(w) { return w[1][2] + ' ' + JSON.stringify(w[2][2]); }), [
+    'series "ge/tb"', 'photo ["ge/tb/a","ge/tb/b"]', 'inquiry ["ge/tb/a","ge/tb/b"]', 'review ["ge/tb/a","ge/tb/b"]',
+  ]);
+});

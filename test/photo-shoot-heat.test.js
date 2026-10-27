@@ -6,8 +6,8 @@ var heat = require('../lib/photo-shoot-heat.js');
 var NOW = Date.parse('2026-10-26T12:00:00Z');
 var DAY = 24 * 60 * 60 * 1000;
 
-function e(kind, slug, visitor, ageMs, target) {
-  return { kind: kind, slug: slug, target: target || (kind === 'shoot' ? slug : slug + '/a'), visitor: visitor, ms: NOW - (ageMs || 0) };
+function e(kind, unit, visitor, ageMs, target) {
+  return { kind: kind, unit: unit, target: target || (kind === 'shoot' ? unit : unit + '/a'), visitor: visitor, ms: NOW - (ageMs || 0) };
 }
 
 test('weights by intent, fresh events count in full', function() {
@@ -18,7 +18,7 @@ test('weights by intent, fresh events count in full', function() {
     e('sel', 'w', 'v1', 0, 'sel:w'),
   ], { now: NOW });
   assert.equal(h.w.score, 1 + 2 + 5 + 8);
-  assert.deepEqual(h.w.parts, { page: 1, frames: 2, downloads: 13 });
+  assert.deepEqual(h.w.parts, { page: 1, frames: 2, downloads: 13, actions: 0 });
 });
 
 test('same action of the same visitor counts once a day', function() {
@@ -31,7 +31,7 @@ test('events without a visitor are not deduped', function() {
   assert.equal(h.w.score, 20);
 });
 
-test('one visitor gives a shoot at most DAILY_CAP points a day', function() {
+test('one visitor gives a unit at most DAILY_CAP points a day', function() {
   var evs = [];
   for (var i = 0; i < 50; i++) evs.push(e('shoot-photo', 'w', 'v1', 0, 'w/p' + i));
   var h = heat.compute(evs, { now: NOW });
@@ -60,7 +60,7 @@ test('trend compares last 7 days with the 7 before', function() {
 
 test('levels: relative rank with absolute floors', function() {
   var evs = [];
-  // 10 shoots: s0 gets 30 visitors' zips (huge), s1 gets 2 zips, the rest a few page views each
+  // 10 units: s0 gets 30 visitors' zips (huge), s1 gets 2 zips, the rest a few page views each
   for (var i = 0; i < 30; i++) evs.push(e('zip', 's0', 'v' + i, 0, 'zip:s0'));
   evs.push(e('zip', 's1', 'a', 0, 'zip:s1'), e('zip', 's1', 'b', 0, 'zip:s1'));
   for (var k = 2; k < 9; k++) evs.push(e('shoot', 's' + k, 'v1'), e('shoot', 's' + k, 'v2'), e('shoot', 's' + k, 'v3'));
@@ -74,12 +74,55 @@ test('levels: relative rank with absolute floors', function() {
   assert.equal(heat.of(h, 'nothing').level, 0);
 });
 
-test('fromView / fromDownload map raw rows', function() {
+test('fromView: shoots, gallery pages, inquiries, Instagram clicks', function() {
   assert.deepEqual(heat.fromView({ entityType: 'shoot-photo', entityId: 'w/a', ip: '1', ms: 5 }),
-    { kind: 'shoot-photo', slug: 'w', target: 'w/a', visitor: '1', ms: 5 });
-  assert.equal(heat.fromView({ entityType: 'photo', entityId: 'ge/tb/a', ms: 5 }), null);
+    { kind: 'shoot-photo', unit: 'shoot:w', photo: 'shoot:w/a', target: 'w/a', visitor: '1', ms: 5 });
+  assert.deepEqual(heat.fromView({ entityType: 'photo', entityId: 'ge/tb/a', ms: 5 }),
+    { kind: 'photo', unit: 'series:ge/tb', photo: 'ge/tb/a', target: 'ge/tb/a', visitor: null, ms: 5 });
+  assert.equal(heat.fromView({ entityType: 'inquiry', entityId: 'ge/tb/a', ms: 5 }).kind, 'inquiry');
+  assert.deepEqual(heat.fromView({ entityType: 'series', entityId: 'ge/tb', ms: 5 }).unit, 'series:ge/tb');
+  assert.deepEqual(heat.fromView({ entityType: 'country', entityId: 'ge', ms: 5 }).unit, 'country:ge');
+  var ig = heat.fromView({ entityType: 'instagram', entityId: '/en/ge/tb/a', ms: 5 });
+  assert.deepEqual([ig.kind, ig.unit, ig.photo], ['igclick', 'series:ge/tb', 'ge/tb/a']);
+  assert.equal(heat.fromView({ entityType: 'instagram', entityId: '/about', ms: 5 }), null);
   assert.equal(heat.fromView({ entityType: 'shoot', entityId: 'w', ms: 5, bot: true }), null);
+});
+
+test('unitOfPath', function() {
+  assert.deepEqual(heat.unitOfPath('/shoot/wed/a?x=1'), { unit: 'shoot:wed', photo: 'shoot:wed/a' });
+  assert.deepEqual(heat.unitOfPath('/ge/tb'), { unit: 'series:ge/tb', photo: null });
+  assert.equal(heat.unitOfPath('/tag/sea/x'), null);
+  assert.equal(heat.unitOfPath('/ge'), null);
+});
+
+test('fromDownload / fromComment', function() {
   assert.deepEqual(heat.fromDownload({ kind: 'ig', slug: 'w', photoId: 'a', ms: 5 }),
-    { kind: 'ig', slug: 'w', target: 'ig:a', visitor: null, ms: 5 });
+    { kind: 'ig', unit: 'shoot:w', photo: 'shoot:w/a', target: 'ig:a', visitor: null, ms: 5 });
   assert.equal(heat.fromDownload({ kind: 'other', slug: 'w', ms: 5 }), null);
+  assert.deepEqual(heat.fromComment({ photoId: 'ge_tb_a', userId: 'u1', ms: 5 }),
+    { kind: 'comment', unit: 'series:ge/tb', photo: 'ge/tb/a', target: 'ge_tb_a', visitor: 'g:u1', ms: 5 });
+  assert.equal(heat.fromComment({ photoId: 'shoot_w_a', userId: 'u1', ms: 5 }).unit, 'shoot:w');
+  assert.equal(heat.fromComment({ photoId: 'ge_tb_a', ms: 5, hidden: true }), null);
+});
+
+test('computeAll: kinds ranked apart, country = own page + its series, hot frames', function() {
+  var v = function(type, id, ip) { return heat.fromView({ entityType: type, entityId: id, ip: ip, ms: NOW }); };
+  var evs = [
+    v('shoot', 'wed', '1'), v('shoot-photo', 'wed/a', '1'),
+    v('country', 'ge', '1'),
+    v('series', 'ge/tb', '1'), v('photo', 'ge/tb/x', '1'), v('photo', 'ge/tb/x', '2'), v('inquiry', 'ge/tb/x', '2'),
+    v('series', 'ge/kh', '3'),
+  ].filter(Boolean);
+  var all = heat.computeAll(evs, { now: NOW });
+  assert.deepEqual(Object.keys(all.shoots), ['wed']);
+  assert.equal(all.series['ge/tb'].score, 1 + 2 + 2 + 10);
+  assert.equal(all.series['ge/tb'].parts.actions, 10);
+  assert.equal(all.countries.ge.score, 1 + 15 + 1);
+  assert.equal(all.countries.ge.parts.page, 3);
+  assert.equal(all.photos['ge/tb/x'].score, 14);
+  assert.equal(all.photos['shoot:wed/a'].score, 2);
+  assert.equal(all.series['ge/tb'].level, 2); // top of its kind, but 15 < the 🔥🔥🔥 floor
+  assert.equal(all.series['ge/kh'].level, 0);
+  assert.deepEqual(heat.rankOf(all.series, 'ge/tb'), { rank: 1, of: 2 });
+  assert.deepEqual(heat.rankOf(all.series, 'nope'), { rank: null, of: 2 });
 });

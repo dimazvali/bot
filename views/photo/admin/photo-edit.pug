@@ -1,5 +1,7 @@
 extends layout
 block vars
+  include _heat.pug
+  include _frame-stats.pug
   include _tag-picker.pug
   - var nav = 'series'
 block head
@@ -8,10 +10,12 @@ block head
 block breadcrumbs
   a(href='/admin/series') Серии и страны
   a(href=`/admin/country/${countryKey}/edit`)= countryLabel
-  a(href=`/admin/${countryKey}/${seriesKey}/edit`)= seriesLabel
+  a(href=`/admin/${countryKey}/${seriesKey}/edit#photos`)= seriesLabel
   span= photo.title
 block actions
   span.admin-hint 👁 #{photoViews}
+  a(href='#frame-stats' title='горячесть кадра' style='text-decoration:none')
+    +heatBadge(frameStats.heat)
 block content
   .admin-section
     h2.admin-title РЕДАКТИРОВАТЬ ФОТО
@@ -126,6 +130,7 @@ block content
       input.admin-input(type='text' name='label' placeholder='подпись копии (напр. Ч/Б)' required)
       input.admin-input(type='text' name='label_en' placeholder='label (EN, напр. B&W)')
       button.admin-btn(type='submit') ДОБАВИТЬ КОПИЮ
+  +frameStats(frameStats, statsUrl, { gallery: true })
 block scripts
   script(src='/javascripts/photo/tag-picker.js')
   style.

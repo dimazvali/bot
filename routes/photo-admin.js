@@ -206,13 +206,14 @@ router.get('/logout', async (req, res) => {
   res.redirect('/admin/login');
 });
 
-// Recent activity for the dashboard views counters and the shoot "heat" (lib/photo-shoot-heat.js):
+// Recent activity for the dashboard views counters and the content "heat" (lib/photo-shoot-heat.js):
 // four weeks of photo_views is ~20k docs (mostly bots) and takes seconds to read, so the raw events
-// (+ the download log) are kept in memory and refreshed in the background at most every 10 minutes.
-// The cache is warmed up shortly after start, so admin pages rarely wait for the query. Everything
-// is recomputed from the cached events on each load — at most 10 minutes stale.
+// (+ the download log and comments) are kept in memory and refreshed in the background at most every
+// 10 minutes. The cache is warmed up shortly after start, so admin pages rarely wait for the query.
+// Everything is recomputed from the cached events on each load — at most 10 minutes stale.
 var ACTIVITY_CACHE_MS = 10 * 60 * 1000;
-var activityCache = { views: null, downloads: null, loadedAt: 0, loading: null, heat: null, heatAt: 0 };
+var HEAT_VIEW_TYPES = { shoot: 1, 'shoot-photo': 1, country: 1, series: 1, photo: 1, instagram: 1, inquiry: 1, review: 1 };
+var activityCache = { views: null, downloads: null, comments: null, loadedAt: 0, loading: null, heat: null, heatAt: 0 };
 
 function loadActivity() {
   if (!activityCache.loading) {
@@ -226,19 +227,23 @@ function loadActivity() {
         .select('timestamp', 'bot', 'entityType', 'entityId', 'ip')
         .get(),
       photoDownloads.recent(sinceMs).catch(function(e) { console.error('[activity downloads]', e.message); return []; }),
+      photoComments.getAllComments(500).catch(function(e) { console.error('[activity comments]', e.message); return []; }),
     ])
       .then(function(r) {
         activityCache.views = r[0].docs.map(function(d) {
           var ts = d.get('timestamp');
           var v = { ms: ts ? ts.toMillis() : 0, bot: !!d.get('bot') };
           var type = d.get('entityType');
-          // only shoot events need the rest (heat); keeps 20k cached rows small
-          if (!v.bot && (type === 'shoot' || type === 'shoot-photo')) {
+          // only scored, human events need the rest (heat); keeps 20k cached rows small
+          if (!v.bot && HEAT_VIEW_TYPES[type]) {
             v.entityType = type; v.entityId = d.get('entityId'); v.ip = d.get('ip') || null;
           }
           return v;
         });
         activityCache.downloads = r[1];
+        activityCache.comments = r[2].map(function(c) {
+          return { photoId: c.photoId, userId: c.userId, hidden: c.hidden, ms: Date.parse(c.createdAt) || 0 };
+        });
         activityCache.loadedAt = Date.now();
         return activityCache;
       })
@@ -262,14 +267,47 @@ async function getRecentViewsCached() {
   return (await getActivityCached()).views;
 }
 
-// { slug: heat } for all shoots — recomputed once per cache refresh
-async function getShootHeatCached() {
+// { shoots, series, countries, photos } → { key: heat } — recomputed once per cache refresh
+async function getHeatCached() {
   var a = await getActivityCached();
   if (activityCache.heat && activityCache.heatAt === a.loadedAt) return activityCache.heat;
-  var events = a.views.map(shootHeat.fromView).concat(a.downloads.map(shootHeat.fromDownload)).filter(Boolean);
-  activityCache.heat = shootHeat.compute(events);
+  var events = a.views.map(shootHeat.fromView)
+    .concat(a.downloads.map(shootHeat.fromDownload))
+    .concat(a.comments.map(shootHeat.fromComment))
+    .filter(Boolean);
+  activityCache.heat = shootHeat.computeAll(events);
   activityCache.heatAt = a.loadedAt;
   return activityCache.heat;
+}
+
+async function getShootHeatCached() {
+  return (await getHeatCached()).shoots;
+}
+
+// One frame's numbers for views/photo/admin/_frame-stats.pug, from the cached 4 weeks of activity.
+//   viewType/viewId: its photo_views entity ('photo' 'c/s/id' | 'shoot-photo' 'slug/id');
+//   heatKey: its key in heat.photos ('c/s/id' | 'shoot:slug/id'); commentId: photoComments.photoId
+async function frameStats(viewType, viewId, heatKey, commentId, allTime) {
+  var out = { allTime: allTime || 0, views: 0, inquiries: 0, reviews: 0, igClicks: 0, comments: 0, heat: shootHeat.of(null) };
+  try {
+    var [a, heatAll] = await Promise.all([getActivityCached(), getHeatCached()]);
+    a.views.forEach(function(v) {
+      if (!v.entityType) return;
+      if (v.entityType === viewType && v.entityId === viewId) out.views++;
+      else if (v.entityType === 'inquiry' && v.entityId === viewId) out.inquiries++;
+      else if (v.entityType === 'review' && v.entityId === viewId) out.reviews++;
+      else if (v.entityType === 'instagram') {
+        var u = shootHeat.unitOfPath(v.entityId);
+        if (u && u.photo === heatKey) out.igClicks++;
+      }
+    });
+    out.comments = a.comments.filter(function(c) { return !c.hidden && c.photoId === commentId; }).length;
+    var place = shootHeat.rankOf(heatAll.photos, heatKey);
+    out.heat = Object.assign({}, shootHeat.of(heatAll.photos, heatKey), { rank: place.rank, rankOf: place.of });
+  } catch (e) {
+    console.error('[frame stats]', e.message);
+  }
+  return out;
 }
 
 router.get('/', requireAuth, async (req, res) => {
@@ -280,7 +318,8 @@ router.get('/', requireAuth, async (req, res) => {
     getComments: photoComments.getAllComments,
     listLeads: photoLeadsData.listLeads,
     getRecentViews: getRecentViewsCached,
-    getShootHeat: getShootHeatCached,
+    getHeat: getHeatCached,
+    photoData: getData(),
     // same count as the "нераспознанные" part of /admin/people
     countAnonFaceGroups: function() {
       return Object.keys(shootsData).reduce(function(n, slug) {
@@ -292,8 +331,16 @@ router.get('/', requireAuth, async (req, res) => {
   res.render('photo/admin/dashboard', { title: 'Дашборд — AERO Admin', dashboard: dashboard });
 });
 
-router.get('/series', requireAuth, (req, res) => {
-  res.render('photo/admin/series', { data: getData(), title: 'Серии и страны — AERO Admin' });
+router.get('/series', requireAuth, async (req, res) => {
+  var [heatAll, seriesViews, countryViews] = await Promise.all([
+    getHeatCached().catch(function(e) { console.error('[series] heat:', e.message); return null; }),
+    photoStats.getStatsByType('series').catch(function() { return {}; }),
+    photoStats.getStatsByType('country').catch(function() { return {}; }),
+  ]);
+  res.render('photo/admin/series', {
+    data: getData(), title: 'Серии и страны — AERO Admin',
+    heat: heatAll || { series: {}, countries: {} }, seriesViews, countryViews,
+  });
 });
 
 router.get('/settings', requireAuth, (req, res) => {
@@ -427,8 +474,8 @@ router.post('/subscribers/google/:id/toggle', requireAuth, async (req, res) => {
   res.redirect('/admin/subscribers');
 });
 
-var ENTITY_TYPE_ORDER = ['country', 'series', 'photo', 'shoot', 'shoot-photo', 'instagram'];
-var ENTITY_TYPE_LABELS = { country: 'СТРАНЫ', series: 'СЕРИИ', photo: 'ФОТО', shoot: 'СЪЁМКИ', 'shoot-photo': 'КАДРЫ СЪЁМОК', instagram: 'ПЕРЕХОДЫ В INSTAGRAM' };
+var ENTITY_TYPE_ORDER = ['country', 'series', 'photo', 'shoot', 'shoot-photo', 'instagram', 'inquiry', 'review'];
+var ENTITY_TYPE_LABELS = { country: 'СТРАНЫ', series: 'СЕРИИ', photo: 'ФОТО', shoot: 'СЪЁМКИ', 'shoot-photo': 'КАДРЫ СЪЁМОК', instagram: 'ПЕРЕХОДЫ В INSTAGRAM', inquiry: 'ЗАЯВКИ (ПЕЧАТЬ / ЛИЦЕНЗИЯ)', review: 'ОТЗЫВЫ' };
 
 function resolveEntityInfo(typeStr, idStr, photoData, shootsData) {
   var label = idStr;
@@ -441,7 +488,7 @@ function resolveEntityInfo(typeStr, idStr, photoData, shootsData) {
     url = '/' + idStr;
     var c = photoData[p[0]];
     if (c && c.series && c.series[p[1]]) label = c.label + ' · ' + c.series[p[1]].label;
-  } else if (typeStr === 'photo') {
+  } else if (typeStr === 'photo' || typeStr === 'inquiry' || typeStr === 'review') {
     var p = idStr.split('/');
     url = '/' + idStr;
     var c = photoData[p[0]];
@@ -587,18 +634,39 @@ router.post('/country', requireAuth, (req, res) => {
   res.redirect('/admin/series');
 });
 
-router.get('/country/:key/edit', requireAuth, (req, res) => {
+router.get('/country/:key/edit', requireAuth, async (req, res) => {
   var { key } = req.params;
   if (!/^[a-z0-9-]+$/.test(key)) return res.redirect('/admin/series');
   var data = getData();
   var country = data[key];
   if (!country) return res.redirect('/admin/series');
   var seriesKeys = country.seriesOrder || Object.keys(country.series);
+  var [heatAll, seriesViews, countryViews, photoViews] = await Promise.all([
+    getHeatCached().catch(function(e) { console.error('[country] heat:', e.message); return null; }),
+    photoStats.getStatsByType('series').catch(function() { return {}; }),
+    photoStats.getStatsByType('country').catch(function() { return {}; }),
+    photoStats.getStatsByType('photo').catch(function() { return {}; }),
+  ]);
+  heatAll = heatAll || { series: {}, countries: {} };
+  var countryRank = shootHeat.rankOf(heatAll.countries, key);
+  // its series, hottest first: heat + all-time views of the series page and of its frames
+  var seriesStats = seriesKeys.filter(function(sk) { return country.series[sk]; }).map(function(sk) {
+    var s = country.series[sk];
+    return {
+      key: sk, label: s.label, archived: !!s.archived, photoCount: (s.photos || []).length,
+      heat: shootHeat.of(heatAll.series, key + '/' + sk),
+      pageViews: seriesViews[key + '/' + sk] || 0,
+      frameViews: (s.photos || []).reduce(function(n, p) { return n + (photoViews[key + '/' + sk + '/' + p.id] || 0); }, 0),
+    };
+  }).sort(function(a, b) { return b.heat.score - a.heat.score || b.frameViews - a.frameViews; });
   res.render('photo/admin/country-edit', {
     title: `${country.label} — AERO Admin`,
     countryKey: key,
     country,
     seriesKeys,
+    countryHeat: Object.assign({}, shootHeat.of(heatAll.countries, key), { rank: countryRank.rank, rankOf: countryRank.of }),
+    countryViews: countryViews[key] || 0,
+    seriesStats,
     canDelete: Object.keys(country.series).length === 0,
     error: req.query.error || null,
   });
@@ -876,7 +944,7 @@ router.post('/:country/:series/:id/delete', requireAuth, async (req, res) => {
 
   data[country].series[series].photos.splice(idx, 1);
   saveData(data);
-  res.redirect(`/admin/${country}/${series}/edit`);
+  res.redirect(`/admin/${country}/${series}/edit#photos`);
 });
 
 // ── Shoots ──────────────────────────────────────────────────────────────────
@@ -953,51 +1021,113 @@ router.get('/shoots/:slug/edit', requireAuth, async (req, res) => {
   });
 });
 
-// "Статистика" tab of the shoot edit page — an HTML fragment loaded on first open of the tab
-// (photo_views queries take a moment, the rest of the page shouldn't wait for them).
+// "Статистика" tabs of the shoot and series edit pages — an HTML fragment loaded on first open of the tab
+// (photo_views queries take a moment, the rest of the page shouldn't wait for them). The shared template is
+// views/photo/admin/_content-stats.pug; cfg says what differs:
+//   { kind: 'shoot'|'series', spec (lib/photo-shoot-stats), photos, heatGroup, heatKey, pageCounter:[type,id],
+//     frameCounterType, unit (heat unit for Instagram clicks), v (template labels/links), actions(ctx) → tiles }
+function statsDays(req) {
+  var d = parseInt(req.query.days);
+  return [7, 30, 90].indexOf(d) !== -1 ? d : 30;
+}
+
+async function renderContentStats(req, res, cfg) {
+  var days = statsDays(req);
+  try {
+    var [events, pageCounters, frameCounters, comments, heatAll, activity] = await Promise.all([
+      shootStats.loadSpecEvents(fb, process.env.PHOTO_ENV || 'dev', cfg.spec, days),
+      photoStats.getStatsByType(cfg.pageCounter[0]).catch(function() { return {}; }),
+      photoStats.getStatsByType(cfg.frameCounterType).catch(function() { return {}; }),
+      photoComments.getAllComments(500).catch(function() { return []; }),
+      getHeatCached().catch(function(e) { console.error('[stats] heat:', e.message); return null; }),
+      getActivityCached().catch(function() { return null; }),
+    ]);
+    var group = heatAll ? heatAll[cfg.heatGroup] : null;
+    var heat = null;
+    if (group) {
+      var place = shootHeat.rankOf(group, cfg.heatKey);
+      heat = Object.assign({}, shootHeat.of(group, cfg.heatKey), { rank: place.rank, rankOf: place.of }); // copy: keep the cache clean
+    }
+    var photosById = {};
+    cfg.photos.forEach(function(p) { photosById[p.id] = p; });
+    // Instagram clicks from this page or its frames — only the cached 4 weeks of activity hold them
+    var igClicks = activity ? activity.views.filter(function(v) {
+      if (v.entityType !== 'instagram') return false;
+      var u = shootHeat.unitOfPath(v.entityId);
+      return u && u.unit === cfg.unit;
+    }).length : 0;
+    var ctx = {
+      s: shootStats.summarize(events, { days: days, prefix: cfg.spec.prefix, pageType: cfg.spec.pageType }),
+      comments: comments.filter(function(c) { return !c.hidden && String(c.photoId).indexOf(cfg.commentPrefix) === 0; }).length,
+      igClicks: igClicks,
+    };
+    res.render('photo/admin/_content-stats', {
+      days: days, heat: heat, s: ctx.s, photosById: photosById,
+      allTime: {
+        page: pageCounters[cfg.pageCounter[1]] || 0,
+        photos: cfg.photos.reduce(function(n, p) { return n + (frameCounters[cfg.spec.prefix + p.id] || 0); }, 0),
+      },
+      v: Object.assign({ kind: cfg.kind, pageType: cfg.spec.pageType, pageId: cfg.spec.pageId, frameType: cfg.spec.frameType, framePrefix: cfg.spec.prefix }, cfg.v, { actions: cfg.actions(ctx) }),
+    });
+  } catch (e) {
+    console.error('[' + cfg.kind + '] stats error:', e.message);
+    res.status(500).send('<p class="admin-notice admin-notice--error">Ошибка загрузки статистики: ' + String(e.message).replace(/</g, '&lt;') + '</p>');
+  }
+}
+
 router.get('/shoots/:slug/stats', requireAuth, async (req, res) => {
   var { slug } = req.params;
   if (!/^[a-z0-9-]+$/.test(slug)) return res.status(400).end();
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.status(404).end();
-  var days = [7, 30, 90].indexOf(parseInt(req.query.days)) !== -1 ? parseInt(req.query.days) : 30;
   var photos = shoot.photos || [];
-  try {
-    var [events, shootCounters, photoCounters, comments, heatAll] = await Promise.all([
-      shootStats.loadEvents(fb, process.env.PHOTO_ENV || 'dev', slug, photos.map(function(p) { return p.id; }), days),
-      photoStats.getStatsByType('shoot').catch(function() { return {}; }),
-      photoStats.getStatsByType('shoot-photo').catch(function() { return {}; }),
-      photoComments.getAllComments(500).catch(function() { return []; }),
-      getShootHeatCached().catch(function(e) { console.error('[shoots] heat:', e.message); return null; }),
-    ]);
-    var heat = heatAll ? Object.assign({}, shootHeat.of(heatAll, slug)) : null; // copy: rank must not leak into the cache
-    if (heat) {
-      // place among shoots with any activity (1 = hottest)
-      heat.rank = heat.score ? Object.keys(heatAll).filter(function(k) { return heatAll[k].score > heat.score; }).length + 1 : null;
-      heat.rankOf = Object.keys(heatAll).filter(function(k) { return heatAll[k].score > 0; }).length;
-    }
-    var photosById = {};
-    photos.forEach(function(p) { photosById[p.id] = p; });
-    var commentPrefix = 'shoot_' + slug + '_';
-    res.render('photo/admin/_shoot-stats', {
-      slug, days, heat,
-      s: shootStats.summarize(events, { days: days, slug: slug }),
-      photosById,
-      allTime: {
-        page: shootCounters[slug] || 0,
-        photos: photos.reduce(function(n, p) { return n + (photoCounters[slug + '/' + p.id] || 0); }, 0),
-      },
-      downloads: photoDownloads.stats(slug),
-      engagement: {
-        collections: (shoot.collections || []).length,
-        marks: photos.reduce(function(n, p) { return n + (p.annotations || []).filter(function(a) { return a.source === 'client'; }).length; }, 0),
-        comments: comments.filter(function(c) { return !c.hidden && String(c.photoId).indexOf(commentPrefix) === 0; }).length,
-      },
-    });
-  } catch (e) {
-    console.error('[shoots] stats error:', e.message);
-    res.status(500).send('<p class="admin-notice admin-notice--error">Ошибка загрузки статистики: ' + String(e.message).replace(/</g, '&lt;') + '</p>');
-  }
+  var downloads = photoDownloads.stats(slug);
+  await renderContentStats(req, res, {
+    kind: 'shoot',
+    spec: shootStats.shootSpec(slug, photos.map(function(p) { return p.id; })),
+    photos: photos, heatGroup: 'shoots', heatKey: slug, unit: 'shoot:' + slug,
+    pageCounter: ['shoot', slug], frameCounterType: 'shoot-photo', commentPrefix: 'shoot_' + slug + '_',
+    v: { kindPlural: 'съёмок', pageLabel: 'страница съёмки', frameEditBase: '/admin/shoots/' + slug + '/photos/',
+         actionsHint: 'Скачивания, подборки, отметки и комментарии — за всё время; переходы в Instagram — за 4 недели.' },
+    actions: function(ctx) {
+      return [
+        { count: downloads.zip, label: 'скачали архив целиком' },
+        { count: downloads.sel, label: 'скачали архив подборки' },
+        { count: downloads.ig, label: 'скачали JPG «для Instagram»' },
+        { count: (shoot.collections || []).length, label: 'подборок клиента' },
+        { count: photos.reduce(function(n, p) { return n + (p.annotations || []).filter(function(a) { return a.source === 'client'; }).length; }, 0), label: 'отметок на фото' },
+        { count: ctx.comments, label: 'комментариев' },
+        { count: ctx.igClicks, label: 'переходов в Instagram' },
+      ];
+    },
+  });
+});
+
+router.get('/:country/:series/stats', requireAuth, async (req, res, next) => {
+  var { country, series: seriesKey } = req.params;
+  if (country === 'shoots') return next('route');
+  if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.status(400).end();
+  var data = getData();
+  var series = data[country] && data[country].series[seriesKey];
+  if (!series) return res.status(404).end();
+  var photos = series.photos || [];
+  var key = country + '/' + seriesKey;
+  await renderContentStats(req, res, {
+    kind: 'series',
+    spec: shootStats.seriesSpec(country, seriesKey, photos.map(function(p) { return p.id; })),
+    photos: photos, heatGroup: 'series', heatKey: key, unit: 'series:' + key,
+    pageCounter: ['series', key], frameCounterType: 'photo', commentPrefix: country + '_' + seriesKey + '_',
+    v: { kindPlural: 'серий', pageLabel: 'страница серии', frameEditBase: '/admin/' + key + '/',
+         actionsHint: 'Заявки и отзывы — за выбранный период; комментарии — за всё время; переходы в Instagram — за 4 недели.' },
+    actions: function(ctx) {
+      return [
+        { count: ctx.s.actions.inquiry, label: 'заявок на печать / лицензию' },
+        { count: ctx.s.actions.review, label: 'отзывов' },
+        { count: ctx.comments, label: 'комментариев' },
+        { count: ctx.igClicks, label: 'переходов в Instagram' },
+      ];
+    },
+  });
 });
 
 // Manual "announce this shoot to subscribers" button — deliberately not automatic
@@ -1206,7 +1336,11 @@ router.get('/shoots/:slug/photos/:id/edit', requireAuth, async (req, res) => {
   var photoFaces = (photo.faces || []).map(function(f) {
     return Object.assign({}, f, { avatarStyle: photoPeople.faceAvatarStyle(photo, f.boundingBox), group: groupByFaceId[f.faceId] || null });
   });
+  var viewId = slug + '/' + id;
+  var fstats = await frameStats('shoot-photo', viewId, 'shoot:' + viewId, 'shoot_' + slug + '_' + id, viewStats[viewId]);
   res.render('photo/admin/shoot-photo-edit', {
+    frameStats: fstats,
+    statsUrl: '/admin/stats/entity?type=shoot-photo&id=' + encodeURIComponent(viewId),
     title: photo.title + ' — AERO Admin',
     slug,
     shootLabel: shoot.label,
@@ -2268,17 +2402,26 @@ router.post('/images/upload', requireAuth, upload.single('image'), async (req, r
   }
 });
 
-router.get('/:country/:series/edit', requireAuth, (req, res) => {
+router.get('/:country/:series/edit', requireAuth, async (req, res) => {
   var { country, series: seriesKey } = req.params;
   if (!/^[a-z0-9-]+$/.test(country) || !/^[a-z0-9-]+$/.test(seriesKey)) return res.redirect('/admin/series');
   var data = getData();
   if (!data[country] || !data[country].series[seriesKey]) return res.redirect('/admin/series');
+  var series = data[country].series[seriesKey];
+  var [viewStats, heatAll] = await Promise.all([
+    photoStats.getStatsByType('photo').catch(function() { return {}; }),
+    getHeatCached().catch(function() { return null; }),
+  ]);
+  var photoViews = {};
+  (series.photos || []).forEach(function(p) { photoViews[p.id] = viewStats[country + '/' + seriesKey + '/' + p.id] || 0; });
   res.render('photo/admin/series-edit', {
-    title: `${data[country].series[seriesKey].label} — AERO Admin`,
+    title: `${series.label} — AERO Admin`,
     countryKey: country,
     countryLabel: data[country].label,
     seriesKey,
-    series: data[country].series[seriesKey],
+    series,
+    photoViews,
+    heat: heatAll ? shootHeat.of(heatAll.series, country + '/' + seriesKey) : null,
   });
 });
 
@@ -2378,7 +2521,11 @@ router.get('/:country/:series/:id/edit', requireAuth, async (req, res) => {
   var photo = data[country].series[seriesKey].photos.find(function(p) { return p.id === id; });
   if (!photo) return res.redirect('/admin/series');
   var viewStats = await photoStats.getStatsByType('photo').catch(function() { return {}; });
+  var viewId = country + '/' + seriesKey + '/' + id;
+  var fstats = await frameStats('photo', viewId, viewId, country + '_' + seriesKey + '_' + id, viewStats[viewId]);
   res.render('photo/admin/photo-edit', {
+    frameStats: fstats,
+    statsUrl: '/admin/stats/entity?type=photo&id=' + encodeURIComponent(viewId),
     title: `${photo.title} — AERO Admin`,
     countryKey: country,
     seriesKey,
@@ -2495,7 +2642,7 @@ router.post('/:country/:series/:id/edit', requireAuth, upload.single('photo'), a
       }
     }
     saveData(data);
-    res.redirect(`/admin/${country}/${seriesKey}/edit`);
+    res.redirect(`/admin/${country}/${seriesKey}/edit#photos`);
   } catch (err) {
     console.error('Photo edit error:', err);
     res.status(500).send('Ошибка при замене фото: ' + err.message);

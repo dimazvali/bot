@@ -1,5 +1,6 @@
 extends layout
 block vars
+  include _heat.pug
   - var nav = 'series'
 block breadcrumbs
   a(href='/admin/series') Серии и страны
@@ -7,6 +8,39 @@ block breadcrumbs
 block content
   if error
     .admin-notice.admin-notice--error= error
+  .admin-section#stats
+    .admin-section-head
+      h2.admin-title СТАТИСТИКА
+      +heatBadge(countryHeat)
+    p.admin-hint
+      | Страница страны: 👁 #{countryViews} за всё время.
+      if countryHeat.score
+        |  Горячесть — #{countryHeat.rank}-е место из #{countryHeat.rankOf} стран (своя страница + все серии), за 7 дней #{countryHeat.week} очк., неделей раньше #{countryHeat.prevWeek}.
+      else
+        |  За последние 4 недели активности нет.
+    if seriesStats.length
+      table.admin-table
+        thead
+          tr
+            th Серия
+            th Горячесть
+            th(title='за всё время') Страница
+            th(title='за всё время, сумма по кадрам') Кадры
+            th
+        tbody
+          each st in seriesStats
+            tr
+              td
+                a(href=`/admin/${countryKey}/${st.key}/edit`)= st.label
+                span.admin-photo-id  · #{st.photoCount} фото
+                if st.archived
+                  span.admin-archived  [архив]
+              td
+                +heatBadge(st.heat)
+              td 👁 #{st.pageViews}
+              td 👁 #{st.frameViews}
+              td
+                a.admin-link(href=`/admin/${countryKey}/${st.key}/edit#stats`) статистика →
   .admin-section
     h2.admin-title ПЕРЕИМЕНОВАТЬ
     form.admin-form(method='POST' action=`/admin/country/${countryKey}/edit`)
