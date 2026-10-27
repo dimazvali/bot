@@ -612,7 +612,11 @@
       "Bash(node -e \"var p=require\\('pug'\\);['shoot-edit','_shoot-stats','shoots','dashboard'].forEach\\(function\\(f\\){p.compileFile\\('views/photo/admin/'+f+'.pug'\\)}\\);console.log\\('pug ok'\\)\")",
       "Bash(node \"C:/Users/DSHEST~1/AppData/Local/Temp/claude/c--Users-dshestakov-node-bot/e133ecc9-30f8-4037-9a88-17fc2d6f0241/scratchpad/heat-prod.js\")",
       "Bash(sed -i \"s#^var ROOT = .*#var ROOT = 'C:/Users/dshestakov/node/bot'; var rq = require\\('module'\\).createRequire\\(ROOT + '/package.json'\\);#; s#require\\(ROOT + '/node_modules/\\\\\\([^']*\\\\\\)'\\)#rq\\('\\\\1'\\)#g\" heat-prod.js)",
-      "Bash(node heat-prod.js)"
+      "Bash(node heat-prod.js)",
+      "Bash(node --test test/photo-tg-login.test.js)",
+      "Bash(grep -v \"TG_\\\\|downloader\\\\|photoTgLogin\\\\|IDENTITY_MAX\\\\|download/tg\\\\|res.cookie\\(TG\\\\|res.json\\\\|router.post\\('/shoot/:slug/download/tg'\\\\|catch \\(e\\)\\\\|console.error\\('\\\\[download tg\\\\]\\\\|^+$\\\\|^+ *}\\\\|^+ *}\\);\\\\|^+ *//\")",
+      "Bash(grep -n \"res.json\\({ ok: true, user: user }\\)\" routes/photo-comments.js)",
+      "Bash(node -e \"require\\('pug'\\).compileFile\\('views/photo-v2/download-login.pug'\\);console.log\\('pug ok'\\)\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\DSHEST~1\\AppData\\Local\\Temp\\claude\\c--Users-dshestakov-node-bot\\13556ea9-5118-4a2e-b5ef-af603157f322\\scratchpad",

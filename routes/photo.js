@@ -16,6 +16,7 @@ var shoots = require('../lib/photo-shoots');
 var photoPeople = require('../lib/photo-people');
 var i18n = require('../lib/photo-i18n');
 var photoVariants = require('../lib/photo-variants');
+var photoTgLogin = require('../lib/photo-tg-login');
 
 function shootCookieToken(password, slug) {
   var secret = process.env.papersToken;
@@ -630,8 +631,58 @@ router.get('/shoot/:slug', async (req, res) => {
   });
 });
 
+// ── Who is downloading: the full archive needs a signed-in visitor — Google (the photoUser cookie of
+// comments/selections) or Telegram (photoTgUser, via the @dimazvalibot deep link, lib/photo-tg-login.js).
+// The Telegram identity lives in its own cookie: comments/points/selections keep requiring Google.
+var TG_PENDING_COOKIE = 'photoTgPending';
+var TG_USER_COOKIE = 'photoTgUser';
+var IDENTITY_MAX_AGE = 180 * 24 * 60 * 60 * 1000;
+
+function downloaderOf(req, res) {
+  var g = res.locals.photoUser;
+  if (g && g.googleId) return { via: 'google', id: g.googleId, name: g.name || '', email: g.email || null };
+  try {
+    var raw = req.signedCookies && req.signedCookies[TG_USER_COOKIE];
+    var t = raw ? JSON.parse(raw) : null;
+    if (t && t.tgId) return { via: 'telegram', id: t.tgId, name: t.name || '', username: t.username || null };
+  } catch (e) {}
+  return null;
+}
+
+// POST /shoot/:slug/download/tg — new Telegram sign-in token; the browser keeps it in a signed cookie
+router.post('/shoot/:slug/download/tg', async (req, res) => {
+  var { slug } = req.params;
+  if (!shoots.getShoot(slug)) return res.status(404).json({ ok: false });
+  try {
+    var r = await photoTgLogin.create(photoAdmin.fb, { slug: slug, env: process.env.PHOTO_ENV || 'dev' });
+    res.cookie(TG_PENDING_COOKIE, r.token, { signed: true, httpOnly: true, sameSite: 'lax', maxAge: photoTgLogin.TTL_MS });
+    res.json({ ok: true, link: r.link });
+  } catch (e) {
+    console.error('[download tg] create:', e.message);
+    res.status(500).json({ ok: false });
+  }
+});
+
+// GET /shoot/:slug/download/tg-status — polled by the login page until the bot confirms
+router.get('/shoot/:slug/download/tg-status', async (req, res) => {
+  var token = req.signedCookies && req.signedCookies[TG_PENDING_COOKIE];
+  if (!token) return res.json({ status: 'expired' });
+  try {
+    var r = await photoTgLogin.claim(photoAdmin.fb, token);
+    if (r.status === 'ok') {
+      res.clearCookie(TG_PENDING_COOKIE);
+      res.cookie(TG_USER_COOKIE, JSON.stringify(r.user), { signed: true, httpOnly: true, sameSite: 'lax', maxAge: IDENTITY_MAX_AGE });
+    }
+    res.json({ status: r.status });
+  } catch (e) {
+    console.error('[download tg] claim:', e.message);
+    res.status(500).json({ status: 'error' });
+  }
+});
+
 // GET /shoot/:slug/download — скачать архив всех фото, либо только выбранных (?ids=a,b,c)
 // (маршрут должен идти до /:id, чтобы не перехватило)
+// Весь архив — только после входа (Google или Telegram); выбранные кадры — как раньше.
 router.get('/shoot/:slug/download', async (req, res) => {
   var { slug } = req.params;
   var shoot = shoots.getShoot(slug);
@@ -640,6 +691,19 @@ router.get('/shoot/:slug/download', async (req, res) => {
 
   requireShootAuth(shoot, slug, req, res, adminUser, function() {
     var idsParam = req.query.ids;
+    var downloader = downloaderOf(req, res);
+    if (!idsParam && !adminUser && !downloader) {
+      res.set('Cache-Control', 'no-store');
+      return res.render('photo/download-login', {
+        title: i18n.pickField(shoot, 'label', req.lang) + ' — photo.dimazvali.com',
+        slug: slug,
+        label: i18n.pickField(shoot, 'label', req.lang),
+        backUrl: i18n.langPrefix(req.lang) + '/shoot/' + slug,
+        downloadUrl: i18n.langPrefix(req.lang) + '/shoot/' + slug + '/download',
+        noindex: true,
+      });
+    }
+    res.locals.downloader = downloader; // → download log + Telegram alert (lib/photo-downloads.js)
     var photos;
     if (idsParam) {
       var wanted = new Set(String(idsParam).split(',').map(function(s) { return s.trim(); }).filter(Boolean));

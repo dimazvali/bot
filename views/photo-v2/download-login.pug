@@ -1,0 +1,107 @@
+//- Sign-in gate for the full shoot archive (GET /shoot/:slug/download without a signed-in visitor, routes/photo.js).
+//- Google: same GIS button + /photo-comments/auth/google as selections. Telegram: deep link to @dimazvalibot,
+//- then this page polls /download/tg-status until the bot confirms (lib/photo-tg-login.js).
+doctype html
+html(data-theme='dark' lang=lang || 'ru')
+  head
+    meta(charset='utf-8')
+    title= title
+    meta(name='viewport' content='width=device-width, initial-scale=1.0')
+    meta(name='robots' content='noindex,nofollow')
+    meta(name='google-client-id' content=googleClientId)
+    link(rel='icon' href='/images/photo/ds_georgian.ico')
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;1,400;1,500;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap')
+    link(rel='stylesheet' href='/stylesheets/photo-v2/style.css')
+    script(src='https://accounts.google.com/gsi/client' async defer)
+    script.
+      (function () {
+        try { document.documentElement.setAttribute('data-focus-theme', localStorage.getItem('photo-focus-theme') === 'light' ? 'light' : 'dark'); } catch (e) {}
+      }());
+  body.is-focus
+    .shoot-password-wrap
+      .shoot-password-box.dl-login(data-download-url=downloadUrl)
+        span.kicker dimazvali · #{t.dlLoginKicker}
+        h1.shoot-password-title= label
+        p.dl-login-text= t.dlLoginText
+        .dl-login-actions
+          #dl-login-google.dl-login-google
+          span.dl-login-or= t.dlLoginOr
+          button#dl-login-tg.dl-login-tg(type='button')
+            svg(viewBox='0 0 24 24' width='16' height='16' aria-hidden='true')
+              path(fill='currentColor' d='M9.04 15.47 8.87 19.9c.4 0 .58-.17.79-.38l1.9-1.82 3.94 2.89c.72.4 1.24.19 1.43-.67l2.6-12.2c.25-1.08-.4-1.5-1.1-1.24L3.1 11.31c-1.04.4-1.03.98-.18 1.24l3.9 1.22 9.05-5.7c.43-.27.82-.12.5.17')
+            span= t.dlLoginTg
+        p#dl-login-status.dl-login-status(role='status' aria-live='polite')
+        a.dl-login-back(href=backUrl)= t.dlLoginBack
+    script.
+      (function() {
+        var box = document.querySelector('.dl-login');
+        var downloadUrl = box.getAttribute('data-download-url');
+        var statusEl = document.getElementById('dl-login-status');
+        var tgBtn = document.getElementById('dl-login-tg');
+        var TEXT = !{JSON.stringify({ waiting: t.dlLoginTgWaiting, expired: t.dlLoginTgExpired, starting: t.dlLoginStarting, error: t.dlLoginError }).replace(/</g, '\\u003c')};
+
+        function say(text) { statusEl.textContent = text || ''; }
+        function startDownload(method) {
+          window.photoTrack && window.photoTrack('login', { method: method, context: 'archive' });
+          say(TEXT.starting);
+          window.location.href = downloadUrl;
+        }
+
+        // ── Google ──
+        var googleClientId = (document.querySelector('meta[name="google-client-id"]') || {}).content || '';
+        function handleCredential(response) {
+          fetch('/photo-comments/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential }),
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(d) { if (d.ok) startDownload('google'); else say(TEXT.error); })
+            .catch(function() { say(TEXT.error); });
+        }
+        (function waitForGsi(left) {
+          if (!googleClientId) return;
+          if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+            /* global google */
+            google.accounts.id.initialize({ client_id: googleClientId, callback: handleCredential });
+            google.accounts.id.renderButton(document.getElementById('dl-login-google'), { theme: 'filled_black', size: 'large', text: 'signin_with', width: 280 });
+            return;
+          }
+          if (left > 0) setTimeout(function() { waitForGsi(left - 1); }, 100);
+        }(100));
+
+        // ── Telegram: new token → open the bot → poll until confirmed ──
+        var pollTimer = null;
+        function poll() {
+          fetch(downloadUrl + '/tg-status', { cache: 'no-store' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (d.status === 'ok') return startDownload('telegram');
+              if (d.status === 'pending') { pollTimer = setTimeout(poll, 2000); return; }
+              tgBtn.disabled = false;
+              say(d.status === 'expired' ? TEXT.expired : TEXT.error);
+            })
+            .catch(function() { pollTimer = setTimeout(poll, 4000); });
+        }
+        tgBtn.addEventListener('click', function() {
+          clearTimeout(pollTimer);
+          tgBtn.disabled = true;
+          // open the tab synchronously (inside the click), otherwise popup blockers eat it after the fetch
+          var win = window.open('', '_blank');
+          fetch(downloadUrl + '/tg', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (!d.ok) throw new Error('tg');
+              if (win) win.location.href = d.link; else window.location.href = d.link;
+              say(TEXT.waiting);
+              pollTimer = setTimeout(poll, 2000);
+            })
+            .catch(function() {
+              if (win) win.close();
+              tgBtn.disabled = false;
+              say(TEXT.error);
+            });
+        });
+      }());

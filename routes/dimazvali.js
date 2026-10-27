@@ -90,6 +90,7 @@ let fb = getFirestore(gcp);
 let s = getStorage(gcp)
 
 var photoTgNotifier = require('../lib/photo-tg-notifier');
+var photoTgLogin = require('../lib/photo-tg-login');
 photoTgNotifier.init(fb, token);
 
 function picUrl(pic) {
@@ -576,9 +577,20 @@ router.post(`/hook`, (req, res) => {
 
         if (msg.text && uid) {
             let text = msg.text.trim();
+            let photoLoginToken = photoTgLogin.tokenFromStart(text);
             if (text === `/start photo_sub`) {
                 udb.doc(uid.toString()).set({ photoSubscribed: true }, { merge: true });
                 sendMessage2({ chat_id: uid, text: `✓ Вы подписаны на новые фото` }, false, token, messages);
+            } else if (photoLoginToken) {
+                // sign-in for the shoot archive download on photo.dimazvali.com (lib/photo-tg-login.js)
+                photoTgLogin.confirm(fb, photoLoginToken, msg.from).then(function(meta) {
+                    sendMessage2({
+                        chat_id: uid,
+                        text: meta
+                            ? `✓ Вход подтверждён. Вернитесь на страницу съёмки — скачивание архива начнётся само.`
+                            : `Ссылка для входа устарела. Нажмите «Войти через Telegram» на странице съёмки ещё раз.`,
+                    }, false, token, messages);
+                }).catch(function(e) { console.error('[photo tg login]', e.message); });
             } else if (text === `/start` || text === `/tours`) {
                 sendTours(uid);
             } else {

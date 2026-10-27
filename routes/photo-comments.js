@@ -50,7 +50,8 @@ router.post('/auth/google', express.json(), async function (req, res) {
       audience: process.env.GOOGLE_CLIENT_ID,
     });
     var payload = ticket.getPayload();
-    var user = { googleId: payload.sub, name: payload.name, picture: payload.picture };
+    // email: shown to the owner in archive-download / selection alerts (routes/photo.js, lib/photo-downloads.js)
+    var user = { googleId: payload.sub, name: payload.name, picture: payload.picture, email: payload.email || null };
     res.cookie('photoUser', JSON.stringify(user), {
       signed: true,
       httpOnly: true,

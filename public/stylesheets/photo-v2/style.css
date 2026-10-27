@@ -1215,6 +1215,18 @@ body.has-selection .photo-card[data-photo-id]:not(.is-selected) img.loaded { opa
 .shoot-password-input::placeholder { letter-spacing: .1em; color: var(--dim); }
 .shoot-password-btn { width: 50px; border: none; background: var(--inv-bg); color: var(--inv-fg); font-size: 16px; }
 .shoot-password-error { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #e07a6c; }
+/* archive download sign-in (views/photo-v2/download-login.pug) */
+.dl-login { width: 400px; }
+.dl-login-text { font-family: var(--f-serif, serif); font-size: 15px; line-height: 1.5; color: var(--ink-2); }
+.dl-login-actions { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 8px; }
+.dl-login-google { min-height: 44px; display: flex; justify-content: center; }
+.dl-login-or { font-family: var(--f-mono); font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); }
+.dl-login-tg { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 280px; height: 44px; border: none; border-radius: 4px; background: #2aabee; color: #fff; font-family: var(--f-mono); font-size: 12px; font-weight: 600; letter-spacing: .08em; cursor: pointer; }
+.dl-login-tg:hover { background: #229ed9; }
+.dl-login-tg:disabled { opacity: .6; cursor: default; }
+.dl-login-status { min-height: 1.5em; font-family: var(--f-mono); font-size: 11px; letter-spacing: .06em; color: var(--ink-2); }
+.dl-login-back { font-family: var(--f-mono); font-size: 11px; letter-spacing: .1em; color: var(--ink-3); text-decoration: none; }
+.dl-login-back:hover { color: var(--ink); }
 
 /* ─── RESPONSIVE ─────────────────────────────────────────────── */
 @media (max-width: 1200px) {

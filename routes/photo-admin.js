@@ -2773,3 +2773,4 @@ module.exports = router;
 module.exports.checkAdminToken = checkAdminToken;
 module.exports.indexNowSubmit = indexNowSubmit;
 module.exports.bucket = bucket;
+module.exports.fb = fb;
