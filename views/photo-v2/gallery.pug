@@ -65,8 +65,8 @@ block content
     var _coverPhoto = (focus && heroPhotoId && photos.find(function(p) { return p.id === heroPhotoId })) || photos[0]
     var _cover = _coverPhoto ? (_coverPhoto.urls ? _coverPhoto.urls.preview : ('/images/photo/' + _coverPhoto.countryKey + '/' + _coverPhoto.seriesKey + '/' + _coverPhoto.file)) : null
     var _offerSelection = focus && offerSelection
-    // feed tiles planted between photos (never inside a client's shoot)
-    var _igAt = focus ? -1 : Math.min(4, photos.length)
+    // feed tiles planted between photos; inside a shoot only the IG tile, and only if the shoot allows it
+    var _igAt = (focus && !showInstagramCard) ? -1 : Math.min(4, photos.length)
     var _subAt = (focus || _photoUserSubscribed) ? -1 : Math.min(13, photos.length)
 
   //- ───────────────────────── HOME ─────────────────────────

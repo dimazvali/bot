@@ -606,6 +606,7 @@ router.get('/shoot/:slug', async (req, res) => {
       photos: galleryPhotos,
       curatorSelectionActive: curatorSelectionActive,
       offerSelection: rawShoot.offerSelection !== false,
+      showInstagramCard: rawShoot.showInstagramCard !== false,
       shootViews: shootViews,
       shootViewStats: shootViewStats,
       collectionsCount: (rawShoot.collections || []).length,

@@ -56,6 +56,9 @@ block content
       label.admin-tag-check
         input(type='checkbox' name='offerSelection' checked=shoot.offerSelection !== false)
         span предлагать выбор фото (чекбоксы на карточках + сохранение своих подборок; выключите для некоммерческих съёмок без заказчика)
+      label.admin-tag-check
+        input(type='checkbox' name='showInstagramCard' checked=shoot.showInstagramCard !== false)
+        span показывать плитку «до встречи в инстаграм» среди фото
       if tags && Object.keys(tags).length
         p.admin-hint ТЕГИ (публичная съёмка с тегом показывается блоком на странице тега):
         +tagPicker(tags, shoot.tags, tagUsage)

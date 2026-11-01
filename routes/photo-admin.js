@@ -1167,7 +1167,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   if (!/^[a-z0-9-]+$/.test(slug)) return res.redirect('/admin/shoots');
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.redirect('/admin/shoots');
-  var { label, desc, label_en, desc_en, seoPrompt, password, public: isPublic, showFaces, hideUnnamedFaces, showCuratorSelection, offerSelection, relatedShoots } = req.body;
+  var { label, desc, label_en, desc_en, seoPrompt, password, public: isPublic, showFaces, hideUnnamedFaces, showCuratorSelection, offerSelection, showInstagramCard, relatedShoots } = req.body;
   if (!label || !label.trim()) return res.redirect('/admin/shoots/' + slug + '/edit');
   var knownSlugs = Object.keys(shoots.getData());
   var relatedList = Array.isArray(relatedShoots) ? relatedShoots : (relatedShoots ? [relatedShoots] : []);
@@ -1196,6 +1196,7 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
       hideUnnamedFaces: !!hideUnnamedFaces,
       showCuratorSelection: !!showCuratorSelection,
       offerSelection: !!offerSelection,
+      showInstagramCard: !!showInstagramCard,
       mapCenter: mapCenter,
       ogPhotoId: ogPhotoId,
       heroPhotoId: heroPhotoId,
