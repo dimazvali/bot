@@ -125,7 +125,8 @@ block content
         button.fb-btn(type='button' onclick='startPresentation()')= ui.present
         if _mapPoints.length
           button.fb-btn.gallery-map-trigger(type='button')= t.map
-        a.fb-btn.fb-btn--solid(href=`${LP}/shoot/${shootSlug}/download`)= t.downloadAll
+        //- without sign-in this link leads to the login page, so the reminder fires there (download-login.pug)
+        a.fb-btn.fb-btn--solid(href=`${LP}/shoot/${shootSlug}/download` data-tag-author=canDownloadAll ? '' : undefined)= t.downloadAll
         button.fb-btn.fb-btn--icon(type='button' onclick='toggleFocusTheme()' title=ui.theme aria-label=ui.theme) ◐
         a.fb-lang(href=(lang === 'en' ? '' : '/en') + (currentPath || '')) #{ui.langSwitch}
     if desc
@@ -476,6 +477,7 @@ block content
           if (!ids.length) return;
           window.photoTrack && window.photoTrack('shoot_download', { scope: 'selection', count: ids.length, shoot: !{JSON.stringify(shootSlug)} });
           window.location.href = saveUrl.replace(/\/collections$/, '/download') + '?ids=' + encodeURIComponent(ids.join(','));
+          window.photoTagAuthor && window.photoTagAuthor();
         });
 
         if (clearBtn) clearBtn.addEventListener('click', clearSelection);

@@ -166,7 +166,7 @@ block content
             button.action-btn.action-btn--ink.only-mobile(type='button' data-goto-tab='inquiry')= t.buyPrint
           if isShoot
             if photo.urls && photo.urls.instagram
-              a.action-btn(href=`${LP}/shoot/${shootSlug}/${photo.id}/download-instagram`)= ui.downloadInstagram
+              a.action-btn(href=`${LP}/shoot/${shootSlug}/${photo.id}/download-instagram` data-tag-author)= ui.downloadInstagram
             button.action-btn#add-point-btn(type='button' data-slug=shootSlug data-photo-id=photo.id)= ui.addPoint
             if isAdmin
               button.action-btn.action-btn--pick(type='button' data-curator-toggle data-slug=shootSlug data-photo-id=photo.id data-picked=photo.curatorPick ? '1' : '0' data-label-add=t.curatorAdd data-label-remove=t.curatorRemove data-error=ui.saveError class=photo.curatorPick ? 'is-picked' : '')= photo.curatorPick ? t.curatorRemove : t.curatorAdd

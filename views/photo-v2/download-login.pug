@@ -1,6 +1,7 @@
 //- Sign-in gate for the full shoot archive (GET /shoot/:slug/download without a signed-in visitor, routes/photo.js).
 //- Google: same GIS button + /photo-comments/auth/google as selections. Telegram: deep link to @dimazvalibot,
 //- then this page polls /download/tg-status until the bot confirms (lib/photo-tg-login.js).
+include mixins
 doctype html
 html(data-theme='dark' lang=lang || 'ru')
   head
@@ -34,6 +35,7 @@ html(data-theme='dark' lang=lang || 'ru')
             span= t.dlLoginTg
         p#dl-login-status.dl-login-status(role='status' aria-live='polite')
         a.dl-login-back(href=backUrl)= t.dlLoginBack
+    +tagAuthorPopup()
     script.
       (function() {
         var box = document.querySelector('.dl-login');
@@ -47,6 +49,7 @@ html(data-theme='dark' lang=lang || 'ru')
           window.photoTrack && window.photoTrack('login', { method: method, context: 'archive' });
           say(TEXT.starting);
           window.location.href = downloadUrl;
+          window.photoTagAuthor && window.photoTagAuthor();
         }
 
         // ── Google ──

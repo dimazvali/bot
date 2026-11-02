@@ -77,6 +77,16 @@ mixin instagramCard()
       span.photo-card-promo-text= ui.igOverlay
       span.photo-card-promo-cta @dimazvali2 →
 
+//- "Don't forget to tag the author" — opened by /javascripts/photo-v2/tag-author.js after a download, max once a day
+mixin tagAuthorPopup()
+  .selection-popup#tag-author-popup(role='dialog' aria-modal='true')
+    .selection-popup-inner
+      p.intro-popup-text #{t.tagAuthorText} #[a(href='https://www.instagram.com/dimazvali2' target='_blank' rel='noopener') @dimazvali2]
+      .selection-popup-actions
+        button#tag-author-ok(type='button')= t.tagAuthorOk
+        a.btn.btn--ink#tag-author-profile(href='https://www.instagram.com/dimazvali2' target='_blank' rel='noopener')= t.tagAuthorProfile
+  script(src='/javascripts/photo-v2/tag-author.js' defer)
+
 //- "Subscribe" tile planted in the feed; hidden for already-subscribed visitors
 mixin subscribeCard()
   .photo-card.action-card

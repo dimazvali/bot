@@ -606,6 +606,7 @@ router.get('/shoot/:slug', async (req, res) => {
       photos: galleryPhotos,
       curatorSelectionActive: curatorSelectionActive,
       offerSelection: rawShoot.offerSelection !== false,
+      canDownloadAll: !!(adminUser || downloaderOf(req, res)), // else the archive link opens the sign-in page
       showInstagramCard: rawShoot.showInstagramCard !== false,
       shootViews: shootViews,
       shootViewStats: shootViewStats,

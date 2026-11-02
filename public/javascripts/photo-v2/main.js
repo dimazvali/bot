@@ -8,6 +8,7 @@
     if (el.closest('.photo-card--promo')) return 'feed_card';
     if (el.closest('.sidebar')) return 'sidebar';
     if (el.closest('.promo-card')) return 'promo_popup';
+    if (el.closest('#tag-author-popup')) return 'tag_author_popup';
     if (el.closest('.photo-actions')) return 'photo_page';
     if (el.closest('.about-page')) return 'about';
     return 'other';
