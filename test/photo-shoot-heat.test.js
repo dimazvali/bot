@@ -74,6 +74,43 @@ test('levels: relative rank with absolute floors', function() {
   assert.equal(heat.of(h, 'nothing').level, 0);
 });
 
+test('sizeFactors: √(median of the same kind / N), clamped, kinds apart', function() {
+  var f = heat.sizeFactors({ 'shoot:a': 10, 'shoot:b': 40, 'shoot:c': 160, 'shoot:tiny': 1, 'shoot:huge': 5000, 'shoot:empty': 0, 'series:x/y': 7 });
+  // shoots median: sorted [1, 10, 40, 160, 5000] → 40
+  assert.equal(f['shoot:b'], 1);
+  assert.equal(f['shoot:a'], 2);              // √(40/10)
+  assert.equal(f['shoot:c'], 0.5);            // √(40/160)
+  assert.equal(f['shoot:tiny'], heat.SIZE_MAX);
+  assert.equal(f['shoot:huge'], heat.SIZE_MIN);
+  assert.equal(f['shoot:empty'], undefined);
+  assert.equal(f['series:x/y'], 1);           // its own median
+  assert.deepEqual(heat.sizeFactors(null), {});
+});
+
+test('size correction: frame views and per-frame downloads only, cap still applies', function() {
+  var sizes = { 'shoot:big': 160, 'shoot:mid': 40, 'shoot:small': 10 }; // median 40
+  function visit(slug, v) {
+    var unit = 'shoot:' + slug;
+    return [e('shoot', unit, v), e('shoot-photo', unit, v, 0, slug + '/p1'), e('ig', unit, v, 0, 'ig:' + slug + '/p1'), e('zip', unit, v, 0, 'zip:' + slug)];
+  }
+  var units = heat.compute(visit('big', 'v1').concat(visit('mid', 'v1'), visit('small', 'v1')), { now: NOW, sizes: sizes });
+  var h = { big: units['shoot:big'], mid: units['shoot:mid'], small: units['shoot:small'] };
+  // page 1 + archive 10 as is; frame 2 and IG frame 5 × factor
+  assert.equal(h.mid.score, 1 + 2 + 5 + 10);
+  assert.equal(h.big.score, 1 + 1 + 2.5 + 10);
+  assert.equal(h.small.score, heat.DAILY_CAP); // 1 + 4 + 10 + 10 = 25, one visitor's day is capped
+  assert.deepEqual(h.big.parts, { page: 1, frames: 1, downloads: 12.5, actions: 0 });
+  assert.deepEqual([h.big.size, h.big.sizeFactor], [160, 0.5]);
+  assert.equal(h.big.week, 14.5);
+});
+
+test('computeAll: sizes correct the units, not the hot frames', function() {
+  var evs = [e('shoot-photo', 'shoot:big', 'v1', 0, 'big/a')].map(function(x) { x.photo = 'shoot:big/a'; return x; });
+  var all = heat.computeAll(evs, { now: NOW, sizes: { 'shoot:big': 160, 'shoot:mid': 40, 'shoot:small': 10 } }); // median 40 → × 0.5
+  assert.equal(all.shoots.big.score, 1);
+  assert.equal(all.photos['shoot:big/a'].score, 2);
+});
+
 test('fromView: shoots, gallery pages, inquiries, Instagram clicks', function() {
   assert.deepEqual(heat.fromView({ entityType: 'shoot-photo', entityId: 'w/a', ip: '1', ms: 5 }),
     { kind: 'shoot-photo', unit: 'shoot:w', photo: 'shoot:w/a', target: 'w/a', visitor: '1', ms: 5 });

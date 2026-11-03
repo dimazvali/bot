@@ -14,6 +14,8 @@ if heat
       p.admin-hint
         | #{heat.rank}-е место из #{heat.rankOf} #{v.kindPlural} с активностью.
         |  За 7 дней — #{heat.week} очк., неделей раньше — #{heat.prevWeek}.
+        if heat.sizeFactor && heat.sizeFactor !== 1
+          |  Поправка на размер: #{heat.size} кадр. → просмотры и скачивания кадров × #{String(heat.sizeFactor).replace('.', ',')}.
       .admin-grid
         each part in HEAT_PARTS
           if heat.parts[part[0]] || part[0] !== 'downloads' || v.kind === 'shoot'
@@ -25,6 +27,7 @@ if heat
     p.admin-hint(style='margin-top:12px')
       | Очки: страница 1, кадр 2, переход в Instagram 4, комментарий или отзыв 5, кадр «для Instagram» 5, архив подборки 8, весь архив или заявка на печать/лицензию 10.
       |  Одно действие одного посетителя — раз в сутки, не больше 20 очков от человека в день; каждые 7 дней вес действия падает вдвое.
+      |  Просмотры кадров и кадры «для Instagram» умножаются на √(медианный размер #{v.kindPlural} / число кадров): в большой съёмке кликать есть по чему, и это не значит, что она интереснее (множитель от 0,3 до 2).
       |  🔥🔥🔥 — верхние 10% #{v.kindPlural}, 🔥🔥 — следующие 20%.
 .admin-section
   .admin-section-head

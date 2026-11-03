@@ -276,9 +276,23 @@ async function getHeatCached() {
     .concat(a.downloads.map(shootHeat.fromDownload))
     .concat(a.comments.map(shootHeat.fromComment))
     .filter(Boolean);
-  activityCache.heat = shootHeat.computeAll(events);
+  activityCache.heat = shootHeat.computeAll(events, { sizes: heatSizes() });
   activityCache.heatAt = a.loadedAt;
   return activityCache.heat;
+}
+
+// frames per shoot / gallery series → the size correction of the heat (lib/photo-shoot-heat.js). Read at
+// compute time: a shoot that grew since the last refresh is corrected on the next one (≤ 10 minutes).
+function heatSizes() {
+  var sizes = {};
+  var allShoots = shoots.getData() || {};
+  Object.keys(allShoots).forEach(function(slug) { sizes['shoot:' + slug] = (allShoots[slug].photos || []).length; });
+  var tree = getData() || {};
+  Object.keys(tree).forEach(function(ck) {
+    var series = (tree[ck] && tree[ck].series) || {};
+    Object.keys(series).forEach(function(sk) { sizes['series:' + ck + '/' + sk] = (series[sk].photos || []).length; });
+  });
+  return sizes;
 }
 
 async function getShootHeatCached() {
