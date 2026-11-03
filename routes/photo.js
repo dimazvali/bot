@@ -17,6 +17,9 @@ var photoPeople = require('../lib/photo-people');
 var i18n = require('../lib/photo-i18n');
 var photoVariants = require('../lib/photo-variants');
 var photoTgLogin = require('../lib/photo-tg-login');
+var { userLabel } = require('../lib/photo-downloads');
+
+function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function shootCookieToken(password, slug) {
   var secret = process.env.papersToken;
@@ -607,6 +610,8 @@ router.get('/shoot/:slug', async (req, res) => {
       curatorSelectionActive: curatorSelectionActive,
       offerSelection: rawShoot.offerSelection !== false,
       canDownloadAll: !!(adminUser || downloaderOf(req, res)), // else the archive link opens the sign-in page
+      // signed in with Google or Telegram → "save selection" skips the sign-in popup
+      selectionUser: downloaderOf(req, res) ? { name: downloaderOf(req, res).name } : null,
       showInstagramCard: rawShoot.showInstagramCard !== false,
       shootViews: shootViews,
       shootViewStats: shootViewStats,
@@ -637,30 +642,39 @@ router.get('/shoot/:slug', async (req, res) => {
   });
 });
 
-// ── Who is downloading: the full archive needs a signed-in visitor — Google (the photoUser cookie of
-// comments/selections) or Telegram (photoTgUser, via the @dimazvalibot deep link, lib/photo-tg-login.js).
-// The Telegram identity lives in its own cookie: comments/points/selections keep requiring Google.
+// ── Who is signed in: the full archive and saved selections need a visitor — Google (the photoUser cookie of
+// comments) or Telegram (photoTgUser, via the @dimazvalibot deep link, lib/photo-tg-login.js).
+// The Telegram identity lives in its own cookie: comments/points keep requiring Google.
 var TG_PENDING_COOKIE = 'photoTgPending';
 var TG_USER_COOKIE = 'photoTgUser';
 var IDENTITY_MAX_AGE = 180 * 24 * 60 * 60 * 1000;
 
-function downloaderOf(req, res) {
+// every account this browser is signed in with, Google first → [{ via, id, name, email|username }]
+function visitorsOf(req, res) {
+  var out = [];
   var g = res.locals.photoUser;
-  if (g && g.googleId) return { via: 'google', id: g.googleId, name: g.name || '', email: g.email || null };
+  if (g && g.googleId) out.push({ via: 'google', id: g.googleId, name: g.name || '', email: g.email || null });
   try {
     var raw = req.signedCookies && req.signedCookies[TG_USER_COOKIE];
     var t = raw ? JSON.parse(raw) : null;
-    if (t && t.tgId) return { via: 'telegram', id: t.tgId, name: t.name || '', username: t.username || null };
+    if (t && t.tgId) out.push({ via: 'telegram', id: t.tgId, name: t.name || '', username: t.username || null });
   } catch (e) {}
-  return null;
+  return out;
 }
 
-// POST /shoot/:slug/download/tg — new Telegram sign-in token; the browser keeps it in a signed cookie
+function downloaderOf(req, res) {
+  return visitorsOf(req, res)[0] || null;
+}
+
+// POST /shoot/:slug/download/tg[?for=selection|collection] — new Telegram sign-in token; the browser keeps it in
+// a signed cookie. Shared by the archive download, saving a selection and the collection page; `for` only
+// changes what the bot answers (routes/dimazvali.js).
 router.post('/shoot/:slug/download/tg', async (req, res) => {
   var { slug } = req.params;
   if (!shoots.getShoot(slug)) return res.status(404).json({ ok: false });
+  var purpose = ['selection', 'collection'].indexOf(req.query.for) !== -1 ? req.query.for : 'download';
   try {
-    var r = await photoTgLogin.create(photoAdmin.fb, { slug: slug, env: process.env.PHOTO_ENV || 'dev' });
+    var r = await photoTgLogin.create(photoAdmin.fb, { slug: slug, purpose: purpose, env: process.env.PHOTO_ENV || 'dev' });
     res.cookie(TG_PENDING_COOKIE, r.token, { signed: true, httpOnly: true, sameSite: 'lax', maxAge: photoTgLogin.TTL_MS });
     res.json({ ok: true, link: r.link });
   } catch (e) {
@@ -862,15 +876,14 @@ router.post('/shoot/:slug/auth', express.urlencoded({ extended: false }), (req, 
 });
 
 // POST /shoot/:slug/collections — клиент сохраняет собственную подборку фото.
-// Requires Google sign-in (same photoUser cookie as comments/points) on top of
-// the shoot's own password gate, so a saved collection can always be traced
-// back to who made it, not just "someone with the link".
+// Requires a sign-in — Google or Telegram (downloaderOf) — on top of the shoot's own password gate, so a saved
+// collection can always be traced back to who made it, not just "someone with the link".
 router.post('/shoot/:slug/collections', express.json(), async (req, res) => {
   var { slug } = req.params;
   var shoot = shoots.getShoot(slug);
   if (!shoot) return res.status(404).json({ error: 'Not found' });
 
-  var user = res.locals.photoUser;
+  var user = downloaderOf(req, res);
   if (!user) return res.status(401).json({ error: 'Not authenticated' });
 
   var adminUser = await isAdmin(req);
@@ -891,11 +904,55 @@ router.post('/shoot/:slug/collections', express.json(), async (req, res) => {
 
   var collection = await shoots.addCollection(slug, name, photoIds, user);
 
-  tgSend('<b>🗂 Новая подборка от клиента</b>\n' + shoot.label + ' — «' + name + '»\n' + photoIds.length + ' фото'
-    + (user.name ? '\nОт: ' + user.name + (user.email ? ' (' + user.email + ')' : '') : '')
-    + '\n' + BASE + '/admin/shoots/' + slug + '/edit');
+  tgSend('<b>🗂 Новая подборка от клиента</b>\n' + escHtml(shoot.label) + ' — «' + escHtml(name) + '»\n' + photoIds.length + ' фото'
+    + '\nОт: ' + escHtml(userLabel(user))
+    + '\n' + BASE + '/admin/shoots/' + slug + '/collections/' + collection.id);
 
-  res.json({ ok: true, id: collection.id });
+  res.json({ ok: true, id: collection.id, url: i18n.langPrefix(req.lang) + '/shoot/' + slug + '/collections/' + collection.id });
+});
+
+// GET /shoot/:slug/collections/:id — the client's own saved collection. Only its author (the Google or Telegram
+// account that saved it, lib/photo-shoots.js isCollectionAuthor) and the admin see it; never indexed. Anyone else
+// gets the sign-in prompt (Google or Telegram, the page reloads after it) and nothing of the collection itself.
+router.get('/shoot/:slug/collections/:id', async (req, res) => {
+  var lang = req.lang;
+  var { slug, id } = req.params;
+  var rawShoot = shoots.getShoot(slug);
+  var collection = rawShoot && shoots.getCollection(slug, id);
+  if (!collection) return res.status(404).render('error', { message: 'Not found', error: {} });
+  var adminUser = await isAdmin(req);
+  var isAuthor = visitorsOf(req, res).some(function(v) { return shoots.isCollectionAuthor(collection, v); });
+
+  requireShootAuth(rawShoot, slug, req, res, adminUser, function() {
+    var shoot = i18n.localizeShoot(rawShoot, lang);
+    // not the author (or not signed in): nothing of the collection itself (name, frames)
+    var signInRequired = !adminUser && !isAuthor;
+    var byId = {};
+    shoot.photos.forEach(function(p) { byId[p.id] = p; });
+    var photos = signInRequired ? [] : (collection.photoIds || []).map(function(pid) { return byId[pid]; }).filter(Boolean);
+    var created = collection.createdAt && collection.createdAt.toDate ? collection.createdAt.toDate() : (collection.createdAt ? new Date(collection.createdAt) : null);
+    res.set('Cache-Control', 'no-store');
+    res.render('photo/collection', {
+      data: i18n.localizeDataTree(getData(), lang),
+      activeCountry: null,
+      activeSeries: null,
+      isShoot: true,
+      shootSlug: slug,
+      shootLabel: shoot.label,
+      collection: signInRequired ? null : { id: collection.id, name: collection.name, authorName: collection.authorName || null, createdAt: created },
+      photos: photos,
+      signInRequired: signInRequired,
+      downloadUrl: photos.length ? i18n.langPrefix(lang) + '/shoot/' + slug + '/download?ids=' + encodeURIComponent(photos.map(function(p) { return p.id; }).join(',')) : null,
+      adminUrl: adminUser ? '/admin/shoots/' + slug + '/collections/' + collection.id : null,
+      title: (signInRequired ? shoot.label : collection.name + ' — ' + shoot.label) + ' — photo.dimazvali.com',
+      desc: null,
+      keywords: null,
+      ogImage: null,
+      ogUrl: null,
+      noindex: true,
+      breadcrumbs: null,
+    });
+  });
 });
 
 // POST /shoot/:slug/:id/point — visitor drops a marker/point on a shoot photo.

@@ -17,6 +17,11 @@ mixin typeIcon(type)
       rect(x='10' y='10' width='4' height='4')
 
 //- One masonry tile. opts: { select: bool (shoot checkboxes), personKeys: 'a,b', curatorExtra: bool }
+//- paper plane on the "sign in with Telegram" buttons (download-login, gallery selection popup, collection page)
+mixin tgIcon()
+  svg(viewBox='0 0 24 24' width='16' height='16' aria-hidden='true')
+    path(fill='currentColor' d='M9.04 15.47 8.87 19.9c.4 0 .58-.17.79-.38l1.9-1.82 3.94 2.89c.72.4 1.24.19 1.43-.67l2.6-12.2c.25-1.08-.4-1.5-1.1-1.24L3.1 11.31c-1.04.4-1.03.98-.18 1.24l3.9 1.22 9.05-5.7c.43-.27.82-.12.5.17')
+
 mixin photoCard(photo, href, opts)
   - opts = opts || {}
   - var _pc = photoColors ? photoColors(photo) : []

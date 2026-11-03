@@ -20,11 +20,12 @@ block content
     .admin-notice.admin-notice--error= error
 
   //- Tabs: every top-level block below carries data-tab; the script at the bottom shows one group.
-  //- The URL hash picks the tab (#photos, #faces, #stats, #tools; redirects rely on it).
+  //- The URL hash picks the tab (#photos, #collections, #faces, #stats, #tools; redirects rely on it).
   -
     var _tabs = [
       ['main', 'Основное', null],
       ['photos', 'Фото', shoot.photos.length],
+      ['collections', 'Подборки', (shoot.collections || []).length],
       ['faces', 'Лица', shoot.photos.length ? faceGroups.length : null],
       ['stats', 'Статистика', null],
       ['tools', 'Сервис', null],
@@ -262,29 +263,36 @@ block content
               form(method='POST' action=`/admin/shoots/${slug}/photos/${photo.id}/delete`)
                 button.admin-btn.admin-btn--danger(type='submit') удалить
 
-  if shoot.collections && shoot.collections.length
-    .admin-section(data-tab='photos')
-      h2.admin-title ПОДБОРКИ КЛИЕНТА (#{shoot.collections.length})
-      p.admin-hint Выборки фото, собранные клиентом на странице съёмки.
-      - var photosById = {}
-      - shoot.photos.forEach(function(p) { photosById[p.id] = p; })
-      each col in shoot.collections
-        .admin-collection
-          .admin-collection-head
-            span.admin-collection-name= col.name
-            span.admin-collection-meta
-              = col.photoIds.length + ' фото'
-              if col.authorName
-                |  · #{col.authorName}
-              if col.createdAt
-                - var d = col.createdAt.toDate ? col.createdAt.toDate() : new Date(col.createdAt)
-                |  · #{d.toLocaleDateString('ru-RU')} #{d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
-          .admin-collection-thumbs
-            each pid in col.photoIds
-              - var p = photosById[pid]
-              if p && p.urls
-                a(href=`/admin/shoots/${slug}/photos/${pid}/edit` target='_blank')
-                  img.admin-collection-thumb(src=p.urls.preview alt=p.title)
+  .admin-section(data-tab='collections')
+    h2.admin-title ПОДБОРКИ КЛИЕНТОВ (#{(shoot.collections || []).length})
+    p.admin-hint Выборки фото, сохранённые клиентами на странице съёмки. Страницу каждой видит только её автор — тот Google- или Telegram-аккаунт, с которого её сохранили.
+    if shoot.offerSelection === false
+      p.admin-hint Сейчас сохранение подборок в этой съёмке выключено (вкладка «Основное»).
+    if !(shoot.collections && shoot.collections.length)
+      p.admin-hint Пока никто не сохранил подборку.
+    - var photosById = {}
+    - shoot.photos.forEach(function(p) { photosById[p.id] = p; })
+    each col in shoot.collections || []
+      .admin-collection
+        .admin-collection-head
+          a.admin-collection-name(href=`/admin/shoots/${slug}/collections/${col.id}`)= col.name
+          span.admin-collection-meta
+            = col.photoIds.length + ' фото'
+            if col.authorName
+              |  · #{col.authorName}
+            if col.authorEmail
+              |  · #{col.authorEmail}
+            if col.authorTgId
+              |  · Telegram #{col.authorTgUsername ? '@' + col.authorTgUsername : 'id ' + col.authorTgId}
+            if col.createdAt
+              - var d = col.createdAt.toDate ? col.createdAt.toDate() : new Date(col.createdAt)
+              |  · #{d.toLocaleDateString('ru-RU')} #{d.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
+        .admin-collection-thumbs
+          each pid in col.photoIds
+            - var p = photosById[pid]
+            if p && p.urls
+              a(href=`/admin/shoots/${slug}/collections/${col.id}`)
+                img.admin-collection-thumb(src=p.urls.preview alt=p.title)
 
   #shoot-stats(data-tab='stats' data-stats-url=`/admin/shoots/${slug}/stats`)
     .admin-section

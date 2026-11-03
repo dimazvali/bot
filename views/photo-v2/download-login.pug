@@ -30,12 +30,12 @@ html(data-theme='dark' lang=lang || 'ru')
           #dl-login-google.dl-login-google
           span.dl-login-or= t.dlLoginOr
           button#dl-login-tg.dl-login-tg(type='button')
-            svg(viewBox='0 0 24 24' width='16' height='16' aria-hidden='true')
-              path(fill='currentColor' d='M9.04 15.47 8.87 19.9c.4 0 .58-.17.79-.38l1.9-1.82 3.94 2.89c.72.4 1.24.19 1.43-.67l2.6-12.2c.25-1.08-.4-1.5-1.1-1.24L3.1 11.31c-1.04.4-1.03.98-.18 1.24l3.9 1.22 9.05-5.7c.43-.27.82-.12.5.17')
+            +tgIcon()
             span= t.dlLoginTg
         p#dl-login-status.dl-login-status(role='status' aria-live='polite')
         a.dl-login-back(href=backUrl)= t.dlLoginBack
     +tagAuthorPopup()
+    script(src='/javascripts/photo-v2/tg-login.js')
     script.
       (function() {
         var box = document.querySelector('.dl-login');
@@ -75,36 +75,12 @@ html(data-theme='dark' lang=lang || 'ru')
           if (left > 0) setTimeout(function() { waitForGsi(left - 1); }, 100);
         }(100));
 
-        // ── Telegram: new token → open the bot → poll until confirmed ──
-        var pollTimer = null;
-        function poll() {
-          fetch(downloadUrl + '/tg-status', { cache: 'no-store' })
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-              if (d.status === 'ok') return startDownload('telegram');
-              if (d.status === 'pending') { pollTimer = setTimeout(poll, 2000); return; }
-              tgBtn.disabled = false;
-              say(d.status === 'expired' ? TEXT.expired : TEXT.error);
-            })
-            .catch(function() { pollTimer = setTimeout(poll, 4000); });
-        }
-        tgBtn.addEventListener('click', function() {
-          clearTimeout(pollTimer);
-          tgBtn.disabled = true;
-          // open the tab synchronously (inside the click), otherwise popup blockers eat it after the fetch
-          var win = window.open('', '_blank');
-          fetch(downloadUrl + '/tg', { method: 'POST' })
-            .then(function(r) { return r.json(); })
-            .then(function(d) {
-              if (!d.ok) throw new Error('tg');
-              if (win) win.location.href = d.link; else window.location.href = d.link;
-              say(TEXT.waiting);
-              pollTimer = setTimeout(poll, 2000);
-            })
-            .catch(function() {
-              if (win) win.close();
-              tgBtn.disabled = false;
-              say(TEXT.error);
-            });
+        // ── Telegram: /javascripts/photo-v2/tg-login.js ──
+        window.photoTgSignIn(tgBtn, {
+          shootUrl: downloadUrl.replace(/\/download$/, ''),
+          purpose: 'download',
+          text: TEXT,
+          say: say,
+          onSignedIn: function() { startDownload('telegram'); },
         });
       }());

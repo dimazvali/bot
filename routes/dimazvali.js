@@ -582,13 +582,15 @@ router.post(`/hook`, (req, res) => {
                 udb.doc(uid.toString()).set({ photoSubscribed: true }, { merge: true });
                 sendMessage2({ chat_id: uid, text: `✓ Вы подписаны на новые фото` }, false, token, messages);
             } else if (photoLoginToken) {
-                // sign-in for the shoot archive download on photo.dimazvali.com (lib/photo-tg-login.js)
+                // sign-in on photo.dimazvali.com: archive download, saving a selection, a collection page (lib/photo-tg-login.js)
                 photoTgLogin.confirm(fb, photoLoginToken, msg.from).then(function(meta) {
+                    var done = !meta ? null
+                        : meta.purpose === 'selection' ? `✓ Вход подтверждён. Вернитесь на страницу съёмки — там можно назвать и сохранить подборку.`
+                        : meta.purpose === 'collection' ? `✓ Вход подтверждён. Вернитесь на страницу — подборка откроется сама.`
+                        : `✓ Вход подтверждён. Вернитесь на страницу съёмки — скачивание архива начнётся само.`;
                     sendMessage2({
                         chat_id: uid,
-                        text: meta
-                            ? `✓ Вход подтверждён. Вернитесь на страницу съёмки — скачивание архива начнётся само.`
-                            : `Ссылка для входа устарела. Нажмите «Войти через Telegram» на странице съёмки ещё раз.`,
+                        text: done || `Ссылка для входа устарела. Нажмите «Войти через Telegram» на странице ещё раз.`,
                     }, false, token, messages);
                 }).catch(function(e) { console.error('[photo tg login]', e.message); });
             } else if (text === `/start` || text === `/tours`) {

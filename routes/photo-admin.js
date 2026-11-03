@@ -1025,6 +1025,42 @@ router.get('/shoots/:slug/edit', requireAuth, async (req, res) => {
   });
 });
 
+// A client's collection (POST /shoot/:slug/collections in routes/photo.js): frames, author, file names to
+// copy, the zip of these frames, and the client's own page (/shoot/:slug/collections/:id).
+router.get('/shoots/:slug/collections/:id', requireAuth, function(req, res) {
+  var { slug, id } = req.params;
+  var shoot = /^[a-z0-9-]+$/.test(slug) ? shoots.getShoot(slug) : null;
+  if (!shoot) return res.redirect('/admin/shoots');
+  var collection = shoots.getCollection(slug, id);
+  if (!collection) return res.redirect('/admin/shoots/' + slug + '/edit#collections');
+  var byId = {};
+  shoot.photos.forEach(function(p) { byId[p.id] = p; });
+  var photos = (collection.photoIds || []).map(function(pid) { return byId[pid]; }).filter(Boolean);
+  res.render('photo/admin/collection', {
+    title: collection.name + ' — ' + shoot.label + ' — AERO Admin',
+    slug: slug,
+    shoot: shoot,
+    collection: collection,
+    createdAt: collection.createdAt && collection.createdAt.toDate ? collection.createdAt.toDate() : (collection.createdAt ? new Date(collection.createdAt) : null),
+    photos: photos,
+    missing: (collection.photoIds || []).length - photos.length,
+    publicUrl: '/shoot/' + slug + '/collections/' + collection.id,
+    downloadUrl: photos.length ? '/shoot/' + slug + '/download?ids=' + encodeURIComponent(photos.map(function(p) { return p.id; }).join(',')) : null,
+  });
+});
+
+router.post('/shoots/:slug/collections/:id/delete', requireAuth, async (req, res) => {
+  var { slug, id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(slug) || !shoots.getCollection(slug, id)) return res.redirect('/admin/shoots');
+  try {
+    await shoots.deleteCollection(slug, id);
+    res.redirect('/admin/shoots/' + slug + '/edit#collections');
+  } catch (e) {
+    console.error('[collections] delete error:', e.message);
+    res.redirect('/admin/shoots/' + slug + '/edit?error=' + encodeURIComponent('Не удалось удалить подборку: ' + e.message) + '#collections');
+  }
+});
+
 // "Статистика" tabs of the shoot and series edit pages — an HTML fragment loaded on first open of the tab
 // (photo_views queries take a moment, the rest of the page shouldn't wait for them). The shared template is
 // views/photo/admin/_content-stats.pug; cfg says what differs:

@@ -1,0 +1,59 @@
+extends layout
+block vars
+  - var nav = 'shoots'
+block breadcrumbs
+  a(href='/admin/shoots') Съёмки
+  a(href=`/admin/shoots/${slug}/edit#collections`)= shoot.label
+  span= collection.name
+block actions
+  a.admin-btn(href=publicUrl target='_blank' rel='noopener') страница клиента ↗
+  if downloadUrl
+    a.admin-btn(href=downloadUrl) скачать zip
+block content
+  .admin-section
+    h2.admin-title= collection.name
+    p.admin-hint
+      = photos.length + ' фото'
+      if missing
+        |  (ещё #{missing} уже удалены из съёмки)
+      if collection.authorName
+        |  · #{collection.authorName}
+      if collection.authorEmail
+        |  · #[a.admin-link(href=`mailto:${collection.authorEmail}`)= collection.authorEmail]
+      if collection.authorTgId
+        if collection.authorTgUsername
+          |  · Telegram #[a.admin-link(href=`https://t.me/${collection.authorTgUsername}` target='_blank' rel='noopener')= '@' + collection.authorTgUsername]
+        else
+          |  · Telegram id #{collection.authorTgId}
+      if createdAt
+        |  · #{createdAt.toLocaleDateString('ru-RU')} #{createdAt.toLocaleTimeString('ru-RU', {hour:'2-digit',minute:'2-digit'})}
+    p.admin-hint
+      | Страницу клиента видит только автор подборки (вход тем же Google- или Telegram-аккаунтом) и вы. Она закрыта от поисковиков.
+      if !collection.authorGoogleId && !collection.authorEmail && !collection.authorTgId
+        |  У этой подборки нет автора — открыть её можете только вы.
+
+  if photos.length
+    .admin-section
+      .admin-collection-grid
+        each p in photos
+          .admin-collection-cell
+            a(href=`/admin/shoots/${slug}/photos/${p.id}/edit` title='редактировать кадр')
+              img(src=p.urls ? p.urls.preview : '' alt=p.title loading='lazy')
+            span.admin-collection-cell-title= p.title || p.id
+
+    .admin-section
+      h2.admin-title НАЗВАНИЯ КАДРОВ
+      p.admin-hint По умолчанию это имена исходных файлов — удобно искать их в архиве.
+      textarea.admin-input.admin-collection-names(readonly rows=Math.min(photos.length, 12) onclick='this.select()')= photos.map(function(p) { return p.title || p.id; }).join('\n')
+
+  .admin-section
+    h2.admin-title УДАЛИТЬ ПОДБОРКУ
+    form.admin-form(method='POST' action=`/admin/shoots/${slug}/collections/${collection.id}/delete` onsubmit='return confirm("Удалить подборку? Клиент потеряет её страницу.")')
+      button.admin-btn.admin-btn--danger(type='submit') УДАЛИТЬ
+block scripts
+  style.
+    .admin-collection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+    .admin-collection-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .admin-collection-cell img { width: 100%; aspect-ratio: 3 / 2; object-fit: cover; border-radius: 4px; background: var(--border); display: block; }
+    .admin-collection-cell-title { font-size: .72rem; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .admin-collection-names { width: 100%; font-family: monospace; font-size: .8rem; }

@@ -259,13 +259,20 @@ block content
           .selection-popup-actions
             button.btn.btn--ink#selection-popup-close(type='button')= ui.ok
 
-    //- saving a selection requires Google sign-in (POST /shoot/:slug/collections answers 401 without the photoUser cookie)
+    //- saving a selection requires a sign-in, Google or Telegram (POST /shoot/:slug/collections answers 401 without one)
     .selection-popup#selection-signin-popup
       .selection-popup-inner
         span.selection-popup-title= ui.selectionSignInTitle
-        div#selection-signin-btn
+        .dl-login-actions
+          div#selection-signin-btn.dl-login-google
+          span.dl-login-or= t.dlLoginOr
+          button#selection-signin-tg.dl-login-tg(type='button')
+            +tgIcon()
+            span= t.dlLoginTg
+        p#selection-signin-status.dl-login-status(role='status' aria-live='polite')
         .selection-popup-actions
           button#selection-signin-cancel(type='button')= ui.cancel
+    script(src='/javascripts/photo-v2/tg-login.js')
 
     script.
       (function() {
@@ -329,7 +336,7 @@ block content
         // ── Google sign-in gate (same photoUser cookie as comments/points). Rendered GIS button,
         // not One Tap: prompt() fails via FedCM in Incognito / with third-party cookies blocked. ──
         var googleClientId = (document.querySelector('meta[name="google-client-id"]') || {}).content || '';
-        var user = !{JSON.stringify(_photoUserSignedIn ? { name: photoUser.name } : null).replace(/</g, '\\u003c')};
+        var user = !{JSON.stringify(typeof selectionUser !== 'undefined' ? selectionUser : null).replace(/</g, '\\u003c')};
         var signInPopup = document.getElementById('selection-signin-popup');
         var signInBtnContainer = document.getElementById('selection-signin-btn');
         var signInCancelBtn = document.getElementById('selection-signin-cancel');
@@ -368,16 +375,32 @@ block content
         }
 
         function openSignIn() {
-          if (!googleClientId || !signInPopup) return;
+          if (!signInPopup) return;
+          if (signInStatus) signInStatus.textContent = '';
           signInPopup.classList.add('is-open');
-          waitForGsi(function() {
+          if (googleClientId) waitForGsi(function() {
             if (gsiReady) return;
             gsiReady = true;
             /* global google */
             google.accounts.id.initialize({ client_id: googleClientId, callback: handleCredential });
-            google.accounts.id.renderButton(signInBtnContainer, { theme: 'filled_black', size: 'medium', text: 'signin_with' });
+            google.accounts.id.renderButton(signInBtnContainer, { theme: 'filled_black', size: 'large', text: 'signin_with', width: 280 });
           });
         }
+
+        // ── or Telegram (/javascripts/photo-v2/tg-login.js): the bot confirms, then the name popup opens ──
+        var signInStatus = document.getElementById('selection-signin-status');
+        window.photoTgSignIn && window.photoTgSignIn(document.getElementById('selection-signin-tg'), {
+          shootUrl: !{JSON.stringify(LP)} + '/shoot/' + !{JSON.stringify(shootSlug)},
+          purpose: 'selection',
+          text: !{JSON.stringify({ waiting: t.dlLoginTgWaiting, expired: t.dlLoginTgExpired, error: t.dlLoginError }).replace(/</g, '\\u003c')},
+          say: function(text) { if (signInStatus) signInStatus.textContent = text; },
+          onSignedIn: function() {
+            user = { name: '' };
+            window.photoTrack && window.photoTrack('login', { method: 'telegram', context: 'selection' });
+            signInPopup.classList.remove('is-open');
+            openSelectionPopup();
+          },
+        });
 
         if (signInCancelBtn) signInCancelBtn.addEventListener('click', function() { signInPopup.classList.remove('is-open'); });
         if (signInPopup) signInPopup.addEventListener('click', function(e) { if (e.target === signInPopup) signInPopup.classList.remove('is-open'); });
@@ -437,6 +460,15 @@ block content
             chip.textContent = c.name + ' · ' + c.count + ' ' + !{JSON.stringify(ui.photosSuffix)};
             chip.addEventListener('click', function() { applySelection(c.photoIds || []); });
             collectionsList.appendChild(chip);
+            // the collection's own page (only its author / the admin can open it)
+            if (c.id) {
+              var open = document.createElement('a');
+              open.className = 'shoot-collection-open';
+              open.href = !{JSON.stringify(LP)} + '/shoot/' + !{JSON.stringify(shootSlug)} + '/collections/' + encodeURIComponent(c.id);
+              open.textContent = '↗';
+              open.title = c.name;
+              collectionsList.appendChild(open);
+            }
           });
           collectionsWrap.style.display = '';
         }

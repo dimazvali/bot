@@ -1,0 +1,87 @@
+//- A client's own saved collection: GET /shoot/:slug/collections/:id (routes/photo.js) — only its author and
+//- the admin get here with the frames; a signed-out visitor sees just the Google sign-in, the page then reloads.
+extends layout
+include mixins
+
+block content
+  - var LP = lang === 'en' ? '/en' : ''
+  header.focus-bar
+    a.focus-back(href=`${LP}/shoot/${shootSlug}`) ← #{shootLabel}
+    span.focus-brand dimazvali · #{t.collectionKicker}
+    .focus-actions
+      if adminUrl
+        a.fb-btn(href=adminUrl) админка
+      if downloadUrl
+        a.fb-btn.fb-btn--solid(href=downloadUrl data-tag-author='')= t.collectionDownload
+      button.fb-btn.fb-btn--icon(type='button' onclick='toggleFocusTheme()' title=ui.theme aria-label=ui.theme) ◐
+
+  if signInRequired
+    .shoot-password-wrap
+      .shoot-password-box.dl-login
+        span.kicker dimazvali · #{t.collectionKicker}
+        h1.shoot-password-title= shootLabel
+        p.dl-login-text= t.collectionSignInText
+        .dl-login-actions
+          #collection-signin.dl-login-google
+          span.dl-login-or= t.dlLoginOr
+          button#collection-signin-tg.dl-login-tg(type='button')
+            +tgIcon()
+            span= t.dlLoginTg
+        p#collection-signin-status.dl-login-status(role='status' aria-live='polite')
+        a.dl-login-back(href=`${LP}/shoot/${shootSlug}`)= t.dlLoginBack
+    script(src='/javascripts/photo-v2/tg-login.js')
+    script.
+      (function() {
+        var clientId = (document.querySelector('meta[name="google-client-id"]') || {}).content || '';
+        var statusEl = document.getElementById('collection-signin-status');
+        var ERROR = !{JSON.stringify(t.dlLoginError)};
+        window.photoTgSignIn(document.getElementById('collection-signin-tg'), {
+          shootUrl: !{JSON.stringify(LP + '/shoot/' + shootSlug)},
+          purpose: 'collection',
+          text: !{JSON.stringify({ waiting: t.dlLoginTgWaiting, expired: t.dlLoginTgExpired, error: t.dlLoginError }).replace(/</g, '\\u003c')},
+          say: function(text) { statusEl.textContent = text; },
+          onSignedIn: function() {
+            window.photoTrack && window.photoTrack('login', { method: 'telegram', context: 'collection' });
+            window.location.reload();
+          },
+        });
+        function handleCredential(response) {
+          fetch('/photo-comments/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential: response.credential }),
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              if (!d.ok) { statusEl.textContent = ERROR; return; }
+              window.photoTrack && window.photoTrack('login', { method: 'google', context: 'collection' });
+              window.location.reload();
+            })
+            .catch(function() { statusEl.textContent = ERROR; });
+        }
+        (function waitForGsi(left) {
+          if (!clientId) return;
+          if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+            /* global google */
+            google.accounts.id.initialize({ client_id: clientId, callback: handleCredential });
+            google.accounts.id.renderButton(document.getElementById('collection-signin'), { theme: 'filled_black', size: 'large', text: 'signin_with', width: 280 });
+            return;
+          }
+          if (left > 0) setTimeout(function() { waitForGsi(left - 1); }, 100);
+        }(100));
+      }());
+  else
+    section.focus-title
+      .focus-title-main
+        h1.focus-name= collection.name
+        p.focus-sub
+          | #{photos.length} #{ui.photosSuffix} · #{shootLabel}
+          if collection.createdAt
+            |  · #{collection.createdAt.toLocaleDateString(lang === 'en' ? 'en-GB' : 'ru-RU')}
+    if photos.length
+      .works#works
+        .masonry
+          each photo in photos
+            +photoCard(photo, `${LP}/shoot/${shootSlug}/${photo.id}`)
+    else
+      p.focus-sub= t.collectionEmpty
