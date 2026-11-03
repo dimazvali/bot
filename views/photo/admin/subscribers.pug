@@ -7,6 +7,41 @@ block content
   if error
     .admin-notice.admin-notice--error= error
 
+  - var fmtDate = function(ms) { return ms ? new Date(ms).toLocaleDateString('ru-RU') : '—'; }
+  .admin-section
+    h2.admin-title АВТОРИЗОВАННЫЕ (#{authorized.length})
+    if !authorized.length
+      p.admin-hint Пока никто не входил на сайте.
+    else
+      table.admin-table
+        thead
+          tr
+            th Профиль
+            th Вход через
+            th Контакт
+            th Первый вход
+            th Последняя активность
+            th Скачиваний
+        tbody
+          each u in authorized
+            tr
+              td
+                .admin-user-cell
+                  if u.picture
+                    img.admin-avatar(src=u.picture alt='' referrerpolicy='no-referrer')
+                  span= u.name || '—'
+              td= u.via === 'telegram' ? 'Telegram' : 'Google'
+              td
+                if u.via === 'telegram' && u.contact
+                  a(href=`https://t.me/${u.contact.slice(1)}` target='_blank' rel='noopener')= u.contact
+                else if u.via === 'telegram'
+                  | id #{u.id}
+                else
+                  = u.contact || '—'
+              td= fmtDate(u.firstMs)
+              td= fmtDate(u.lastMs)
+              td= u.downloads || '—'
+
   .admin-section
     h2.admin-title ПОЛЬЗОВАТЕЛИ (GOOGLE) (#{googleUsers.length})
     if !googleUsers.length

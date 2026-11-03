@@ -21,6 +21,7 @@ var shoots = require('../lib/photo-shoots');
 var storageCache = require('../lib/storage-cache');
 var photoPeople = require('../lib/photo-people');
 var photoUsers = require('../lib/photo-users');
+var photoTgLogin = require('../lib/photo-tg-login');
 var tgNotifier = require('../lib/photo-tg-notifier');
 var photoComments = require('../lib/photo-comments');
 var photoSettings = require('../lib/photo-settings');
@@ -453,14 +454,17 @@ router.post('/feedback/mark-delete', requireAuth, express.urlencoded({ extended:
 
 router.get('/subscribers', requireAuth, async (req, res) => {
   try {
-    var [emailSubs, googleUsers] = await Promise.all([
+    var [emailSubs, googleUsers, tgUsers, downloadsByUser] = await Promise.all([
       subscriptions.listAll(),
       photoUsers.listAll(),
+      photoTgLogin.listUsers(fb).catch(function(e) { console.error('[subscribers] tg users:', e.message); return []; }),
+      photoDownloads.byUser().catch(function(e) { console.error('[subscribers] downloads by user:', e.message); return {}; }),
     ]);
-    res.render('photo/admin/subscribers', { title: 'Подписчики — AERO Admin', emailSubs, googleUsers, error: null });
+    var authorized = photoUsers.mergeAuthorized(googleUsers, tgUsers, downloadsByUser);
+    res.render('photo/admin/subscribers', { title: 'Подписчики — AERO Admin', emailSubs, googleUsers, authorized, error: null });
   } catch (err) {
     console.error('[subscribers] list error:', err.message);
-    res.render('photo/admin/subscribers', { title: 'Подписчики — AERO Admin', emailSubs: [], googleUsers: [], error: err.message });
+    res.render('photo/admin/subscribers', { title: 'Подписчики — AERO Admin', emailSubs: [], googleUsers: [], authorized: [], error: err.message });
   }
 });
 
