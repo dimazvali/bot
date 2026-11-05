@@ -1,0 +1,22 @@
+//- Fields shared by "new broadcast" and "edit draft". f — current values, counts — recipients per segment
+mixin broadcastFields(f, counts)
+  - f = f || {}
+  label(for='b-text') Текст
+  textarea#b-text(name='text' rows='8' required placeholder='<b>жирный</b>, <i>курсив</i>, <a href="https://…">ссылка</a>')= f.text || ''
+  p.hint HTML Телеграма: b, i, u, s, a, code, pre, blockquote. Проверка — «Отправить себе».
+  .row
+    div
+      label(for='b-segment') Кому
+      select#b-segment(name='segment' required)
+        each label, key in segments
+          option(value=key selected=(f.segment || 'all') === key)= label + (counts && counts[key] != null ? ' — ' + counts[key] : '')
+    div
+      label(for='b-photo') Картинка (ссылка)
+      input#b-photo(type='url' name='photoUrl' value=f.photoUrl || '' placeholder='https://…')
+  .row
+    div
+      label(for='b-btext') Кнопка: надпись
+      input#b-btext(type='text' name='buttonText' value=f.buttonText || '' maxlength='64')
+    div
+      label(for='b-burl') Кнопка: ссылка
+      input#b-burl(type='url' name='buttonUrl' value=f.buttonUrl || '' placeholder='https://…')

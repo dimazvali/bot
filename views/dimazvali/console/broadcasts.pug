@@ -1,0 +1,46 @@
+include _console.pug
+include _broadcast-form.pug
+
+- var STATUS = { draft: 'черновик', running: 'идёт', paused: 'пауза', done: 'готово', cancelled: 'отменена' }
+
++consolePage({ title: 'Рассылки' })
+  .pagehead
+    h1 Рассылки
+    span.count
+      b= list.length
+
+  .block
+    .block-t Новая рассылка
+    if formError
+      p.error= formError
+    form(method='POST' action=base + '/broadcasts')
+      +broadcastFields(form, counts)
+      .toolbar
+        button.btn.solid(type='submit') Сохранить черновик
+      p.hint Дальше: «Отправить себе» → «Запустить». Заблокированные и заблокировавшие бота не получат.
+
+  if list.length
+    .sec-lbl История
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Создана
+            th Текст
+            th Кому
+            th Статус
+            th Отправлено
+        tbody
+          each b in list
+            tr
+              td.mono= fmtDate(b.createdAt)
+              td
+                a.link(href=base + '/broadcasts/' + b.id)= b.text.length > 90 ? b.text.slice(0, 90) + '…' : b.text
+              td= segments[b.segment] || b.segment
+              td
+                span.pill(class=b.status === 'running' ? 'dark' : b.status === 'draft' ? '' : 'on')= STATUS[b.status] || b.status
+              td.mono
+                if b.stats
+                  | #{b.stats.sent} / #{(b.recipients || []).length}
+                else
+                  | —

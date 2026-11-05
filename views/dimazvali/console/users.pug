@@ -1,0 +1,63 @@
+include _console.pug
++consolePage({ title: 'Пользователи' })
+  .pagehead
+    h1 Пользователи
+    span.count
+      b= total
+      |  из #{counts.all}
+
+  .tabs
+    each def, key in filters
+      a(href=base + '/users?f=' + key + (q ? '&q=' + encodeURIComponent(q) : '') class=(f === key ? 'on' : ''))
+        = def.label
+        span.n= counts[key]
+
+  form.filters(method='GET' action=base + '/users')
+    input(type='hidden' name='f' value=f)
+    label Поиск
+      input(type='text' name='q' value=q placeholder='имя, @username или id')
+    button.btn.sm(type='submit') Найти
+    if q
+      a.btn.sm(href=base + '/users?f=' + f) Сбросить
+
+  if !users.length
+    p.notice Никого не нашлось.
+  else
+    .tbl-scroll
+      table.tbl
+        thead
+          tr
+            th Кто
+            th Username
+            th id
+            th С нами с
+            th Флаги
+        tbody
+          each u in users
+            tr(class=(u.blocked || u.botBlocked ? 'is-off' : ''))
+              td
+                a.t-title.link(href=base + '/users/' + u.id)= displayName(u)
+              td.mono= u.username ? '@' + u.username : '—'
+              td.mono= u.id
+              td.mono= fmtDate(u.createdAt)
+              td
+                .acts
+                  if u.admin
+                    span.pill.dark админ
+                  if u.photoSubscribed
+                    span.pill.on фото
+                  if u.botBlocked
+                    span.pill.acc заблокировал бота
+                  if u.blocked
+                    span.pill.acc заблокирован
+
+    if pages > 1
+      .pager
+        - var href = function(p) { return base + '/users?f=' + f + (q ? '&q=' + encodeURIComponent(q) : '') + '&page=' + p }
+        - for (var p = 1; p <= pages; p++)
+          if p === page
+            span.btn.sm.is-cur= p
+          else if p === 1 || p === pages || Math.abs(p - page) <= 2
+            a.btn.sm(href=href(p))= p
+          else if Math.abs(p - page) === 3
+            span.pager-gap …

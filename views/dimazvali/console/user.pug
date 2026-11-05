@@ -1,0 +1,138 @@
+include _console.pug
+
+- var KIND = { photo: 'фото', voice: 'голосовое', audio: 'аудио', video: 'видео', video_note: 'кружок', animation: 'gif', sticker: 'стикер', document: 'файл', location: 'геопозиция', contact: 'контакт' }
+- var BY = { user: '', bot: 'бот', admin: 'админ' }
+
+mixin msg(m)
+  .msg(class=[m.dir, m.by])
+    if m.kind !== 'text'
+      span.kind= (KIND[m.kind] || m.kind) + (m.fileName ? ' · ' + m.fileName : '')
+    if (m.kind === 'photo' || m.kind === 'sticker') && m.fileId
+      a(href=base + '/file/' + m.fileId target='_blank' rel='noopener')
+        img(src=base + '/file/' + m.fileId loading='lazy' alt='')
+    else if m.kind === 'photo' && m.photoUrl
+      a(href=m.photoUrl target='_blank' rel='noopener')
+        img(src=m.photoUrl loading='lazy' alt='')
+    else if m.fileId
+      a.link(href=base + '/file/' + m.fileId target='_blank' rel='noopener') открыть
+      br
+    if m.text
+      = m.text
+    span.meta
+      = fmtDate(m.at)
+      if m.dir === 'out'
+        |  · #{m.adminName || BY[m.by] || m.by}
+      if m.broadcast
+        |  ·
+        a(href=base + '/broadcasts/' + m.broadcast) рассылка
+
++consolePage({ title: displayName(user) })
+  a.crumb(href=base + '/users') ← все пользователи
+  .pagehead
+    h1= displayName(user)
+    span.count
+      if user.username
+        a.link(href='https://t.me/' + user.username target='_blank' rel='noopener') @#{user.username}
+      else
+        | id #{user.id}
+
+  .ucard
+    aside.uside
+      dl
+        dt id
+        dd
+          code= user.id
+        dt username
+        dd= user.username ? '@' + user.username : '—'
+        dt язык
+        dd= user.language_code || '—'
+        dt с нами с
+        dd= fmtDate(user.createdAt)
+        if user.botBlocked
+          dt статус
+          dd
+            span.pill.acc заблокировал бота
+            if user.botBlockedAt
+              |  #{fmtDate(user.botBlockedAt)}
+        if user.currentTour
+          dt экскурсия
+          dd
+            code= user.currentTour
+
+      .sec-lbl Флаги
+      each def in [['admin', 'Админ'], ['photoSubscribed', 'Подписан на фото'], ['blocked', 'Заблокирован (не получает рассылки)']]
+        - var on = !!user[def[0]]
+        form(method='POST' action=base + '/users/' + user.id + '/flag')
+          input(type='hidden' name='flag' value=def[0])
+          input(type='hidden' name='value' value=on ? '0' : '1')
+          button.btn.sm(type='submit' class=on ? 'solid' : '' disabled=(def[0] === 'admin' && Number(user.id) === admin.id))
+            = (on ? '✓ ' : '○ ') + def[1]
+
+    section.chat
+      .chat-log#log
+        if history.more && history.items.length
+          .chat-more
+            a.link(href=base + '/users/' + user.id + '?before=' + encodeURIComponent(history.items[0].at)) ← раньше
+        if !history.items.length
+          .chat-empty#empty Переписки пока нет
+        each m in history.items
+          +msg(m)
+        #bottom
+      form.chat-form(method='POST' action=base + '/users/' + user.id + '/send' enctype='multipart/form-data')
+        textarea(name='text' placeholder='Сообщение — уйдёт от имени бота, без разметки' rows='3')
+        .row2
+          input(type='file' name='file')
+          button.btn.solid(type='submit') Отправить
+        p.hint Ctrl+Enter — отправить. Новые сообщения появляются сами.
+
+  script.
+    (function() {
+      var log = document.getElementById('log');
+      var bottom = document.getElementById('bottom');
+      var base = !{JSON.stringify(base)};
+      var KIND = !{JSON.stringify(KIND)};
+      var BY = !{JSON.stringify(BY)};
+      var paged = location.search.indexOf('before=') > -1;
+      log.scrollTop = log.scrollHeight;
+
+      function el(tag, cls, text) {
+        var e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+      }
+      function fmt(iso) {
+        return new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '');
+      }
+      function render(m) {
+        var box = el('div', 'msg ' + m.dir + ' ' + m.by);
+        if (m.kind !== 'text') box.appendChild(el('span', 'kind', (KIND[m.kind] || m.kind) + (m.fileName ? ' · ' + m.fileName : '')));
+        if ((m.kind === 'photo' || m.kind === 'sticker') && m.fileId) {
+          var a = el('a'); a.href = base + '/file/' + encodeURIComponent(m.fileId); a.target = '_blank';
+          var img = el('img'); img.src = a.href; a.appendChild(img); box.appendChild(a);
+        } else if (m.fileId) {
+          var f = el('a', 'link', 'открыть'); f.href = base + '/file/' + encodeURIComponent(m.fileId); f.target = '_blank';
+          box.appendChild(f); box.appendChild(el('br'));
+        }
+        if (m.text) box.appendChild(document.createTextNode(m.text));
+        box.appendChild(el('span', 'meta', fmt(m.at) + (m.dir === 'out' ? ' · ' + (m.adminName || BY[m.by] || m.by) : '')));
+        return box;
+      }
+
+      if (!paged && window.EventSource) {
+        var es = new EventSource(base + '/users/' + !{JSON.stringify(String(user.id))} + '/stream');
+        es.onmessage = function(e) {
+          var m = JSON.parse(e.data);
+          var empty = document.getElementById('empty');
+          if (empty) empty.remove();
+          var stick = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+          log.insertBefore(render(m), bottom);
+          if (stick) log.scrollTop = log.scrollHeight;
+        };
+      }
+
+      var form = document.querySelector('.chat-form');
+      form.querySelector('textarea').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.submit(); }
+      });
+    })();

@@ -1,0 +1,107 @@
+include _console.pug
+
++consolePage({ title: 'Бот и команды' })
+  .pagehead
+    h1 Бот и команды
+
+  .sec-lbl Бот
+  .block
+    if status.error
+      p.error Телеграм не ответил: #{status.error}
+    dl.kv
+      dt бот
+      dd
+        if status.me
+          a.link(href='https://t.me/' + status.me.username target='_blank' rel='noopener') @#{status.me.username}
+          |  · #{status.me.first_name} · id #{status.me.id}
+        else
+          | —
+      dt токен
+      dd
+        code= status.tokenMasked
+      dt окружение
+      dd= develop ? 'TEST (develop)' : 'PROD'
+      if status.webhook
+        dt вебхук
+        dd
+          if status.webhook.url
+            code= status.webhook.url
+          else
+            span.pill.acc не установлен
+        dt в очереди
+        dd= status.webhook.pending_update_count || 0
+        if status.webhook.last_error_message
+          dt последняя ошибка
+          dd
+            span.mk= status.webhook.last_error_message
+            if status.webhook.last_error_date
+              |  · #{fmtDate(new Date(status.webhook.last_error_date * 1000))}
+    form.toolbar(method='POST' action=base + '/bot/webhook')
+      input(type='url' name='url' value=(status.webhook && status.webhook.url) || status.hookUrl style='max-width:420px')
+      button.btn.sm(type='submit') Поставить вебхук
+    p.hint Бот и сам ставит вебхук #{status.hookUrl} при каждом запуске сервера.
+
+  .sec-lbl Команды
+  form(method='POST' action=base + '/bot/commands')
+    .tbl-scroll
+      table.tbl.cmd-tbl
+        thead
+          tr
+            th Команда
+            th В меню
+            th Описание в меню
+            th Порядок
+            th Ответ
+            th
+        tbody
+          each it, i in items
+            tr
+              td.cmd
+                input(type='hidden' name='cmd_' + i value=it.command)
+                | /#{it.command}
+              td
+                input(type='checkbox' name='on_' + i value='1' checked=it.inMenu)
+              td
+                input(type='text' name='desc_' + i value=it.description maxlength='256')
+              td(style='width:80px')
+                input(type='number' name='order_' + i value=it.order step='any')
+              td
+                if it.builtin
+                  span.dim встроенная — отвечает код бота
+                else
+                  textarea(name='reply_' + i rows='2')= it.reply
+              td
+                if !it.builtin
+                  .acts
+                    label.dim(style='margin:0;text-transform:none;letter-spacing:0;font-family:var(--sans)')
+                      input(type='checkbox' name='del_' + i value='1')
+                      |  удалить
+                    button.btn.sm(type='submit' formaction=base + '/bot/commands/' + it.command + '/test' formnovalidate) себе
+          tr
+            td
+              input(type='text' name='cmd_new' placeholder='новая' pattern='/?[a-z0-9_]{1,32}' title='латиница в нижнем регистре, цифры и _')
+            td
+              input(type='checkbox' name='on_new' value='1' checked)
+            td
+              input(type='text' name='desc_new' maxlength='256' placeholder='Описание в меню')
+            td
+              input(type='number' name='order_new' step='any')
+            td
+              textarea(name='reply_new' rows='2' placeholder='Что ответит бот (HTML Телеграма)')
+            td
+    .toolbar
+      button.btn.solid(type='submit') Сохранить и применить
+    p.hint
+      | «Сохранить и применить» отправляет меню в Telegram (setMyCommands). Если Телеграм его не примет, ничего не сохранится.
+      br
+      | Ответы своих команд — HTML Телеграма; если разметка сломана, бот пришлёт текст без форматирования. «себе» отсылает сохранённый ответ вам.
+
+  if status.liveMenu
+    .sec-lbl Меню сейчас в Telegram
+    if status.liveMenu.length
+      dl.kv
+        each c in status.liveMenu
+          dt /#{c.command}
+          dd= c.description
+    else
+      p.hint Меню пустое — Telegram показывает только /start.

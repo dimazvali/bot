@@ -1,0 +1,44 @@
+//- Shell for every bot console page.
+//- Usage: include _console.pug
+//-        +consolePage({ title: '…' }) …
+//- `nav` (users | broadcasts | bot) and `base` (mount path) come from res.locals / render vars.
+
+mixin consolePage(opts)
+  - opts = opts || {}
+  doctype html
+  html(lang='ru')
+    head
+      meta(charset='utf-8')
+      meta(name='viewport' content='width=device-width,initial-scale=1')
+      meta(name='robots' content='noindex')
+      title= (opts.title ? opts.title + ' · ' : '') + 'Бот · консоль'
+      if opts.refresh
+        meta(http-equiv='refresh' content=opts.refresh)
+      link(rel='icon' type='image/x-icon' href='/images/dimazvali/favicon.ico')
+      link(rel='preconnect' href='https://fonts.googleapis.com')
+      link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+      link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@500;600&display=swap')
+      style
+        include _console.css
+    body
+      if !opts.bare
+        header.abar
+          a.abrand(href=base + '/') @dimazvali
+            span.acc bot
+          if typeof admin !== 'undefined' && admin
+            span.atag= admin.name
+          nav.anav
+            a(href=base + '/users' class=(nav === 'users' ? 'on' : '')) Пользователи
+            a(href=base + '/broadcasts' class=(nav === 'broadcasts' ? 'on' : '')) Рассылки
+            a(href=base + '/bot' class=(nav === 'bot' ? 'on' : '')) Бот и команды
+            a(href=base.replace(/\/console$/, '') + '/web') Контент ↗
+          a.aout(href=base + '/logout') Выйти
+        main.awrap
+          if flash && flash.error
+            .error-bar= flash.error
+          if flash && flash.ok
+            .notice= flash.ok
+          block
+      else
+        main.awrap.bare
+          block

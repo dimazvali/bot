@@ -166,6 +166,14 @@ let shows = fb.collection(`NEVAshows`);
 
 let tgStat= fb.collection(`tgStats`);
 
+// Bot console: users, conversations, broadcasts, commands (routes/dimazvali-console.js)
+const botConsole = require('./dimazvali-console')({
+    fb, udb, messages, adminTokens, token,
+    develop: process.env.develop == `true`,
+    log: o => log(o),
+})
+router.use(`/console`, botConsole.router)
+
 let savedLandmarks = {};
 let savedSteps = {};
 let savedUsers = {};
@@ -570,12 +578,28 @@ router.post(`/hook`, (req, res) => {
     if (req.body.message) {
         let msg = req.body.message;
         let uid = msg.from && msg.from.id;
+        let isPrivate = msg.chat && msg.chat.type === `private`;
+
+        // Conversation history for the console: everything a user writes in private
+        botConsole.onMessage(msg);
 
         if (msg.location) {
             handleLocation(uid, msg.location);
         }
 
-        if (msg.text && uid) {
+        // Media from a user (photos, files, voice…) — tell admins, the console shows it
+        if (!msg.text && uid && isPrivate && (msg.photo || msg.document || msg.voice || msg.audio || msg.video || msg.video_note || msg.sticker || msg.animation)) {
+            alertAdmins({
+                text: `📎 ${uname(msg.from, uid)} прислал(а) ${msg.photo ? `фото` : msg.voice ? `голосовое` : msg.sticker ? `стикер` : `файл`}${msg.caption ? `:\n${msg.caption}` : ``}\n${consoleLink(uid)}`,
+                user_id: uid
+            })
+        }
+
+        let customCommand = msg.text && uid ? botConsole.commandFor(msg.text) : null;
+
+        if (customCommand) {
+            botConsole.replyCommand(uid, customCommand);
+        } else if (msg.text && uid) {
             let text = msg.text.trim();
             let photoLoginToken = photoTgLogin.tokenFromStart(text);
             if (text === `/start photo_sub`) {
@@ -595,15 +619,10 @@ router.post(`/hook`, (req, res) => {
                 }).catch(function(e) { console.error('[photo tg login]', e.message); });
             } else if (text === `/start` || text === `/tours`) {
                 sendTours(uid);
-            } else {
-                messages.add({
-                    createdAt: new Date(),
-                    user: +uid,
-                    text: text,
-                    isReply: false
-                })
+            } else if (isPrivate) {
+                // Saved to the history by botConsole.onMessage above
                 alertAdmins({
-                    text: `💬 Новое сообщение от ${uname(msg.from, uid)}:\n${text}`,
+                    text: `💬 Новое сообщение от ${uname(msg.from, uid)}:\n${text}\n${consoleLink(uid)}`,
                     user_id: uid
                 })
             }
@@ -611,6 +630,10 @@ router.post(`/hook`, (req, res) => {
     }
 
 })
+
+function consoleLink(uid) {
+    return `https://bot.dimazvali.com/console/users/${uid}`
+}
 
 function sendTour(user, tour, res) {
     let m = {

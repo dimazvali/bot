@@ -1,0 +1,94 @@
+include _console.pug
+include _broadcast-form.pug
+
+- var STATUS = { draft: 'черновик', running: 'идёт', paused: 'пауза', done: 'готово', cancelled: 'отменена' }
+- var tested = doc.testedAt && doc.testedAt >= doc.updatedAt
+- var total = (doc.recipients || []).length
+- var pct = total ? Math.round((doc.cursor || 0) / total * 100) : 0
+
++consolePage({ title: 'Рассылка', refresh: doc.status === 'running' ? 5 : null })
+  a.crumb(href=base + '/broadcasts') ← все рассылки
+  .pagehead
+    h1 Рассылка
+    span.pill(class=doc.status === 'running' ? 'dark' : '')= STATUS[doc.status] || doc.status
+    span.count создана #{fmtDate(doc.createdAt)}
+
+  .sec-lbl Как увидят
+  .bprev
+    if doc.photoUrl
+      img(src=doc.photoUrl alt='')
+    //- Preview shows the raw HTML source; the real rendering is in "Отправить себе"
+    = doc.text
+    if doc.buttonUrl
+      span.bbtn= doc.buttonText + ' ↗'
+  p.hint Здесь текст с тегами как есть. Как он выглядит в Telegram — проверьте через «Отправить себе».
+
+  if doc.status === 'draft'
+    .sec-lbl Запуск
+    .block
+      p
+        | Получателей сейчас:
+        b= count
+        |  (#{segments[doc.segment] || doc.segment})
+      .toolbar
+        form(method='POST' action=base + '/broadcasts/' + doc.id + '/test')
+          button.btn(type='submit') Отправить себе
+        form(method='POST' action=base + '/broadcasts/' + doc.id + '/start' onsubmit="return confirm('Отправить " + count + " получателям? Отменить уже отправленное нельзя.')")
+          button.btn.solid(type='submit' disabled=!tested || !count) Запустить
+      if !tested
+        p.hint Запуск откроется после «Отправить себе» — так видно, что Телеграм принял разметку.
+      else
+        p.hint Проверено #{fmtDate(doc.testedAt)}.
+
+    .sec-lbl Правка
+    .block
+      form(method='POST' action=base + '/broadcasts/' + doc.id + '/update')
+        +broadcastFields(doc, null)
+        .toolbar
+          button.btn(type='submit') Сохранить
+  else
+    .sec-lbl Прогресс
+    .block
+      .bar
+        i(style='width:' + pct + '%')
+      .stats
+        div
+          b= (doc.stats && doc.stats.sent) || 0
+          | отправлено
+        div
+          b= (doc.stats && doc.stats.blocked) || 0
+          | заблокировали бота
+        div
+          b= (doc.stats && doc.stats.failed) || 0
+          | не дошло
+        div
+          b= (doc.cursor || 0) + ' / ' + total
+          | пройдено
+      if doc.errors && doc.errors.length
+        p.hint Последние ошибки:
+        ul.hint
+          each e in doc.errors
+            li
+              a.link(href=base + '/users/' + e.userId)= e.userId
+              |  — #{e.error}
+      .toolbar
+        if doc.status === 'running'
+          form(method='POST' action=base + '/broadcasts/' + doc.id + '/pause')
+            button.btn(type='submit') Пауза
+        if doc.status === 'paused'
+          form(method='POST' action=base + '/broadcasts/' + doc.id + '/resume')
+            button.btn.solid(type='submit') Продолжить
+        if doc.status === 'running' || doc.status === 'paused'
+          form(method='POST' action=base + '/broadcasts/' + doc.id + '/cancel' onsubmit="return confirm('Отменить рассылку? Оставшиеся не получат.')")
+            button.btn.danger(type='submit') Отменить
+      dl.kv
+        dt запущена
+        dd= fmtDate(doc.startedAt)
+        if doc.finishedAt
+          dt закончена
+          dd= fmtDate(doc.finishedAt)
+        if doc.cancelledAt
+          dt отменена
+          dd= fmtDate(doc.cancelledAt)
+      if doc.status === 'running'
+        p.hint Страница обновляется каждые 5 секунд.
