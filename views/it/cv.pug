@@ -1,0 +1,296 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title Дмитрий Шестаков — резюме-квест · it.dimazvali.com
+    meta(name='description' content='Интерактивное резюме Дмитрия Шестакова: выберите, что вам важно — продукт, delivery, разработка, медиа, ивенты или фото — и получите бриф за три шага.')
+    meta(property='og:title' content='Дмитрий Шестаков — резюме за три вопроса')
+    meta(property='og:description' content='Выберите, кто вам нужен, — и получите короткий бриф под вашу задачу.')
+    link(rel='icon' type='image/x-icon' href='/images/dimazvali/favicon.ico')
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Lora:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap' rel='stylesheet')
+    link(rel='stylesheet' href='/stylesheets/it/style.css')
+    style.
+      .cvq { max-width: 860px; margin: 0 auto; padding: clamp(20px, 4vw, 56px) 28px 80px; }
+      .cvq-eyebrow { font-size: 12px; letter-spacing: .34em; text-transform: uppercase; color: #9a948b; }
+      .cvq-title { margin: 14px 0 0; font-family: Oswald, sans-serif; font-weight: 700; font-size: clamp(40px, 8vw, 88px); line-height: .92; text-transform: uppercase; letter-spacing: -.01em; }
+      .cvq-lead { margin: 22px 0 0; font-family: Lora, serif; font-size: clamp(17px, 2vw, 21px); line-height: 1.55; color: #3f3a33; }
+      .cvq-hint { margin-top: 12px; font-size: 12px; letter-spacing: .08em; color: #9a948b; }
+
+      .cvq-progress { display: flex; align-items: center; gap: 14px; margin: 40px 0 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #56514a; }
+      .cvq-bars { display: flex; gap: 6px; flex: 1; max-width: 220px; }
+      .cvq-bar { flex: 1; height: 4px; background: #ddd8cd; transition: background .3s; }
+      .cvq-bar.on { background: #15120f; }
+
+      .cvq-log { margin-top: 28px; }
+      .cvq-entry { border-top: 1px solid #c8c3b8; padding: 22px 0 6px; animation: cvqIn .35s ease both; }
+      .cvq-choice { display: inline-flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: .06em; color: #56514a; }
+      .cvq-choice b { font-weight: 500; color: #f4f1ea; background: #15120f; padding: 4px 9px; }
+      .cvq-entry h2 { margin: 14px 0 0; font-family: Oswald, sans-serif; font-weight: 500; font-size: clamp(24px, 3.4vw, 34px); text-transform: uppercase; letter-spacing: .01em; }
+      .cvq-brief { margin: 10px 0 0; padding: 0; list-style: none; }
+      .cvq-brief li { position: relative; padding-left: 22px; margin: 10px 0; font-family: Lora, serif; font-size: 18px; line-height: 1.55; color: #2b2721; }
+      .cvq-brief li::before { content: '◆'; position: absolute; left: 0; top: 2px; font-size: 10px; color: #9a948b; }
+      .cvq-stat { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 18px 0 8px; padding: 14px 18px; background: #ebe6da; }
+      .cvq-stat-value { font-family: Oswald, sans-serif; font-weight: 700; font-size: clamp(28px, 4vw, 40px); line-height: 1; }
+      .cvq-stat-label { font-size: 12px; color: #56514a; letter-spacing: .04em; }
+      .cvq-extlink { display: inline-block; margin: 6px 0 8px 22px; font-size: 13px; border-bottom: 1px solid #15120f; }
+
+      .cvq-ask { border-top: 2px solid #15120f; margin-top: 18px; padding-top: 24px; animation: cvqIn .35s ease both; }
+      .cvq-q { font-family: Oswald, sans-serif; font-weight: 500; font-size: clamp(26px, 4vw, 40px); line-height: 1.05; text-transform: uppercase; }
+      .cvq-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-top: 20px; }
+      .cvq-opt { display: flex; align-items: center; gap: 14px; text-align: left; padding: 18px 18px; border: 1px solid #15120f; background: transparent; color: #15120f; font: 500 15px/1.35 "JetBrains Mono", monospace; cursor: pointer; transition: background .15s, color .15s, transform .15s; }
+      .cvq-opt:hover, .cvq-opt:focus-visible { background: #15120f; color: #f4f1ea; outline: none; transform: translateY(-2px); }
+      .cvq-key { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid currentColor; font-size: 12px; }
+      .cvq-nav { display: flex; gap: 20px; margin-top: 22px; font-size: 12px; letter-spacing: .08em; }
+      .cvq-nav button { background: none; border: 0; padding: 0 0 2px; border-bottom: 1px solid #c8c3b8; color: #56514a; font: inherit; cursor: pointer; }
+      .cvq-nav button:hover { color: #15120f; border-color: #15120f; }
+
+      .cvq-final { margin-top: 18px; padding: clamp(22px, 4vw, 40px); background: #15120f; color: #f4f1ea; animation: cvqIn .45s ease both; }
+      .cvq-final .cvq-eyebrow { color: #9a948b; }
+      .cvq-final h2 { margin: 12px 0 0; font-family: Oswald, sans-serif; font-weight: 700; font-size: clamp(30px, 5vw, 52px); line-height: 1; text-transform: uppercase; }
+      .cvq-path { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+      .cvq-path span { font-size: 12px; padding: 5px 10px; border: 1px solid #56514a; color: #ddd8cd; }
+      .cvq-final p { font-family: Lora, serif; font-size: 18px; line-height: 1.55; color: #ddd8cd; margin: 18px 0 0; }
+      .cvq-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+      .cvq-cta a { padding: 14px 18px; border: 1px solid #f4f1ea; font-size: 13px; letter-spacing: .04em; transition: background .15s, color .15s; }
+      .cvq-cta a.primary, .cvq-cta a:hover { background: #f4f1ea; color: #15120f; }
+      .cvq-final .cvq-nav button { color: #9a948b; border-color: #56514a; }
+      .cvq-final .cvq-nav button:hover { color: #f4f1ea; border-color: #f4f1ea; }
+
+      @keyframes cvqIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) { .cvq-entry, .cvq-ask, .cvq-final { animation: none; } }
+      noscript { display: block; margin-top: 30px; font-family: Lora, serif; font-size: 18px; }
+    script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
+    script.
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-LDMN4XFB42');
+
+  body
+    header.site-header
+      a.site-logo(href='/') it.dimazvali.com
+      a.site-back(href='https://dimazvali.com') ← dimazvali.com
+
+    main.cvq
+      div.cvq-eyebrow= quest.intro.eyebrow
+      h1.cvq-title= quest.intro.title
+      p.cvq-lead= quest.intro.lead
+      div.cvq-hint= quest.intro.hint
+
+      div.cvq-progress(aria-live='polite')
+        span#cvq-step шаг 1 / #{quest.STEPS}
+        div.cvq-bars
+          - for (var i = 0; i < quest.STEPS; i++)
+            div.cvq-bar
+
+      div#cvq-log.cvq-log
+      div#cvq-stage
+
+      noscript
+        | Без JavaScript квест не работает — вот
+        |
+        a(href=quest.contacts.pdf style='border-bottom:1px solid #15120f') резюме в PDF
+        | .
+
+    footer
+      div.footer-inner
+        div
+          div.footer-cta-label Связаться
+          div.footer-cta-title Обсудить работу
+        div.footer-contacts
+          a.footer-contact-row(href='mailto:' + quest.contacts.email)
+            span.footer-contact-type email
+            span= quest.contacts.email
+          a.footer-contact-row(href=quest.contacts.telegram)
+            span.footer-contact-type telegram
+            span @dimazvali
+          a.footer-contact-row(href=quest.contacts.pdf)
+            span.footer-contact-type pdf
+            span резюме целиком
+      div.footer-bottom
+        div.footer-bottom-inner
+          span © it.dimazvali.com
+          span გამარჯობა!
+
+    script.
+      window.CV_QUEST = !{questJson};
+    script.
+      (function() {
+        var Q = window.CV_QUEST;
+        var N = Q.nodes;
+        var logEl = document.getElementById('cvq-log');
+        var stageEl = document.getElementById('cvq-stage');
+        var stepEl = document.getElementById('cvq-step');
+        var bars = Array.prototype.slice.call(document.querySelectorAll('.cvq-bar'));
+        var path = [];
+
+        function track(name, params) { try { gtag('event', name, params || {}); } catch (e) {} }
+
+        function el(tag, cls, text) {
+          var e = document.createElement(tag);
+          if (cls) e.className = cls;
+          if (text != null) e.textContent = text;
+          return e;
+        }
+
+        // The question to ask after the given path (intro when path is empty).
+        function askerFor(p) {
+          if (!p.length) return Q.intro;
+          var last = N[p[p.length - 1]];
+          return last.next ? N[last.next] : last;
+        }
+
+        function labelFor(p, i) {
+          var opts = askerFor(p.slice(0, i)).options;
+          for (var k = 0; k < opts.length; k++) if (opts[k].id === p[i]) return opts[k].label;
+          return '';
+        }
+
+        function briefList(lines) {
+          var ul = el('ul', 'cvq-brief');
+          lines.forEach(function(t) { ul.appendChild(el('li', null, t)); });
+          return ul;
+        }
+
+        function renderEntry(id, i, animate) {
+          var n = N[id];
+          var box = el('section', 'cvq-entry');
+          if (!animate) box.style.animation = 'none';
+          var c = el('div', 'cvq-choice');
+          c.appendChild(el('span', null, 'вы выбрали'));
+          c.appendChild(el('b', null, labelFor(path, i)));
+          box.appendChild(c);
+          box.appendChild(el('h2', null, n.title));
+          box.appendChild(briefList(n.brief));
+          if (n.stat) {
+            var s = el('div', 'cvq-stat');
+            s.appendChild(el('span', 'cvq-stat-value', n.stat.value));
+            s.appendChild(el('span', 'cvq-stat-label', n.stat.label));
+            box.appendChild(s);
+          }
+          if (n.link) {
+            var a = el('a', 'cvq-extlink', n.link.label + ' ↗');
+            a.href = n.link.href; a.target = '_blank'; a.rel = 'noopener';
+            box.appendChild(a);
+          }
+          return box;
+        }
+
+        function navRow() {
+          var nav = el('div', 'cvq-nav');
+          if (path.length) {
+            var back = el('button', null, '← назад');
+            back.type = 'button';
+            back.onclick = function() { path.pop(); render(false); track('cv_quest_back', { step: path.length + 1 }); };
+            nav.appendChild(back);
+            var again = el('button', null, '↺ начать заново');
+            again.type = 'button';
+            again.onclick = function() { path = []; render(false); window.scrollTo({ top: 0, behavior: 'smooth' }); track('cv_quest_restart'); };
+            nav.appendChild(again);
+          }
+          return nav;
+        }
+
+        function renderAsk(asker) {
+          var box = el('section', 'cvq-ask');
+          box.appendChild(el('div', 'cvq-q', asker.question));
+          var grid = el('div', 'cvq-opts');
+          asker.options.forEach(function(o, k) {
+            var b = el('button', 'cvq-opt');
+            b.type = 'button';
+            b.dataset.id = o.id;
+            b.appendChild(el('span', 'cvq-key', String(k + 1)));
+            b.appendChild(el('span', null, o.label));
+            b.onclick = function() { choose(o.id); };
+            grid.appendChild(b);
+          });
+          box.appendChild(grid);
+          box.appendChild(navRow());
+          return box;
+        }
+
+        function renderFinal() {
+          var root = N[path[0]];
+          var fin = N[path[path.length - 1]];
+          var box = el('section', 'cvq-final');
+          box.appendChild(el('div', 'cvq-eyebrow', 'Ваш бриф готов'));
+          box.appendChild(el('h2', null, root.title + ' · ' + fin.title));
+          var chips = el('div', 'cvq-path');
+          path.forEach(function(id) { chips.appendChild(el('span', null, '#' + N[id].tag)); });
+          box.appendChild(chips);
+          fin.brief.forEach(function(t) { box.appendChild(el('p', null, t)); });
+          box.appendChild(el('p', null, 'Если откликается — давайте поговорим. Полная версия резюме — в PDF.'));
+
+          var cta = el('div', 'cvq-cta');
+          function link(href, text, cls, ev) {
+            var a = el('a', cls, text);
+            a.href = href;
+            if (/^https?:/.test(href)) { a.target = '_blank'; a.rel = 'noopener'; }
+            a.onclick = function() { track(ev, { path: path.join('/') }); };
+            cta.appendChild(a);
+          }
+          link(Q.contacts.telegram, 'Написать в Telegram ↗', 'primary', 'cv_quest_telegram');
+          var subj = encodeURIComponent('По резюме: ' + root.title);
+          link('mailto:' + Q.contacts.email + '?subject=' + subj, 'Email', '', 'cv_quest_email');
+          link(root.pdf || Q.contacts.pdf, 'Резюме PDF ↓', '', 'cv_quest_pdf');
+          link('/', 'Все проекты →', '', 'cv_quest_projects');
+          box.appendChild(cta);
+          box.appendChild(navRow());
+          return box;
+        }
+
+        function render(animateLast) {
+          logEl.innerHTML = '';
+          path.forEach(function(id, i) {
+            if (N[id].final) return;
+            logEl.appendChild(renderEntry(id, i, animateLast && i === path.length - 1));
+          });
+          stageEl.innerHTML = '';
+          var done = path.length && N[path[path.length - 1]].final;
+          stageEl.appendChild(done ? renderFinal() : renderAsk(askerFor(path)));
+
+          var shown = done ? Q.STEPS : path.length + 1;
+          stepEl.textContent = done ? 'готово' : 'шаг ' + shown + ' / ' + Q.STEPS;
+          bars.forEach(function(b, i) { b.classList.toggle('on', i < (done ? Q.STEPS : path.length)); });
+
+          var hash = path.length ? '#' + path.join('/') : '';
+          if (location.hash !== hash) history.replaceState(null, '', location.pathname + location.search + hash);
+        }
+
+        function choose(id) {
+          path.push(id);
+          render(true);
+          track(N[id].final ? 'cv_quest_finish' : 'cv_quest_choose', { step: path.length, choice: id, path: path.join('/') });
+          var target = N[id].final ? stageEl : logEl.lastElementChild;
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // Keyboard: 1–4 picks an option, Backspace goes back.
+        document.addEventListener('keydown', function(e) {
+          if (e.metaKey || e.ctrlKey || e.altKey) return;
+          var t = e.target && e.target.tagName;
+          if (t === 'INPUT' || t === 'TEXTAREA') return;
+          var n = parseInt(e.key, 10);
+          var btns = stageEl.querySelectorAll('.cvq-opt');
+          if (n >= 1 && n <= btns.length) { btns[n - 1].click(); e.preventDefault(); }
+          else if (e.key === 'Backspace' && path.length) { path.pop(); render(false); e.preventDefault(); }
+        });
+
+        // Restore a shared/bookmarked path from the hash, dropping invalid steps.
+        (function restore() {
+          var ids = decodeURIComponent(location.hash.slice(1)).split('/').filter(Boolean);
+          for (var i = 0; i < ids.length; i++) {
+            var opts = askerFor(path).options || [];
+            var ok = opts.some(function(o) { return o.id === ids[i]; });
+            if (!ok) break;
+            path.push(ids[i]);
+            if (N[ids[i]].final) break;
+          }
+        })();
+
+        render(false);
+        track('cv_quest_view', { restored: path.length });
+      })();

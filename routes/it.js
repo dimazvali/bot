@@ -5,6 +5,7 @@ var path = require('path');
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var itData = require('../lib/it-data');
+var cvQuest = require('../lib/it-cv-quest');
 
 var itApp = getApps().find(function(a) { return a.name === 'it'; }) || initializeApp({
   credential: cert({
@@ -35,13 +36,19 @@ router.get('/', async function(req, res, next) {
   } catch (e) { next(e); }
 });
 
+router.get('/cv', function(req, res) {
+  var questJson = JSON.stringify(cvQuest).replace(/</g, '\\u003c');
+  res.render('it/cv', { quest: cvQuest, questJson: questJson });
+});
+
 router.get('/sitemap.xml', async function(req, res) {
   var base = 'https://it.dimazvali.com';
   try {
     var projects = await itData.getProjects({ publishedOnly: true });
     var xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
       + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-      + '  <url><loc>' + base + '/</loc></url>\n';
+      + '  <url><loc>' + base + '/</loc></url>\n'
+      + '  <url><loc>' + base + '/cv</loc></url>\n';
     for (var p of projects) {
       if (p.slug && p.full) {
         xml += '  <url><loc>' + base + '/' + p.slug + '</loc></url>\n';
