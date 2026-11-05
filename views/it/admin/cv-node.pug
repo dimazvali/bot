@@ -1,0 +1,101 @@
+include _cv-head.pug
+
+- var sharedTargets = Object.keys(quest.nodes).filter(function(k) { var n = quest.nodes[k]; return k !== id && n.question && !n.title; })
+- var isAsker = !node.title && node.question
+
++cvShell('Узел ' + id)
+  .top
+    a.link(href='/admin/cv') ← квест
+    h2= node.title || node.question || id
+    span.mono-dim= id
+    if node.final
+      span.pill финал
+  if refs.length
+    p.hint(style='margin-bottom:16px') Сюда ведут: #{refs.join(', ')}
+  else
+    p.hint(style='margin-bottom:16px') Ни один вариант сюда не ведёт.
+
+  if errors.length
+    .card(style='margin-bottom:20px')
+      ul.issues
+        each e in errors
+          li.e= e
+
+  form.card(method='POST' action='/admin/cv/nodes/' + id style='max-width:760px')
+    if !isAsker
+      h3(style='margin-top:0') Что показываем после выбора
+      .row
+        .field
+          label(for='title') Заголовок *
+          input#title(type='text' name='title' value=node.title || '')
+        .field
+          label(for='tag') Тег (#…) *
+          input#tag(type='text' name='tag' value=node.tag || '')
+      .field
+        label(for='brief') Бриф *
+        textarea#brief(name='brief' rows='6')= (node.brief || []).join('\n')
+        span.hint Каждая строка — отдельный пункт. В финальных узлах это текст финальной карточки.
+      .row
+        .field
+          label(for='statValue') Цифра
+          input#statValue(type='text' name='statValue' value=(node.stat && node.stat.value) || '' placeholder='100 → 10 000')
+        .field
+          label(for='statLabel') Подпись к цифре
+          input#statLabel(type='text' name='statLabel' value=(node.stat && node.stat.label) || '')
+      .row
+        .field
+          label(for='linkHref') Ссылка
+          input#linkHref(type='url' name='linkHref' value=(node.link && node.link.href) || '' placeholder='https://…')
+        .field
+          label(for='linkLabel') Текст ссылки
+          input#linkLabel(type='text' name='linkLabel' value=(node.link && node.link.label) || '')
+      .field
+        label(for='pdf') PDF для этой ветки
+        input#pdf(type='url' name='pdf' value=node.pdf || '' placeholder='пусто — общий PDF из контактов')
+        span.hint Действует на узлах первого шага: в финале кнопка «Резюме PDF» ведёт сюда.
+
+    h3(style=isAsker ? 'margin-top:0' : '') Что дальше
+    .field
+      label
+        input(type='radio' name='mode' value='question' checked=mode === 'question' onchange='syncMode()')
+        |  свой вопрос
+      label
+        input(type='radio' name='mode' value='next' checked=mode === 'next' onchange='syncMode()' disabled=!sharedTargets.length && mode !== 'next')
+        |  общий шаг
+      if !isAsker
+        label
+          input(type='radio' name='mode' value='final' checked=mode === 'final' onchange='syncMode()')
+          |  финал — здесь квест заканчивается
+    #mode-question
+      .field
+        label(for='question') Вопрос
+        input#question(type='text' name='question' value=node.question || '')
+      .field
+        label(for='options') Варианты
+        textarea#options(name='options' rows='5')= optionsText
+        span.hint По строке: id | надпись. Новый id — создастся узел-заготовка такого же типа, как соседние.
+    #mode-next
+      .field
+        label(for='next') Общий шаг
+        select#next(name='next')
+          each k in sharedTargets
+            option(value=k selected=node.next === k)= k + ' — ' + quest.nodes[k].question
+          if node.next && sharedTargets.indexOf(node.next) === -1
+            option(value=node.next selected)= node.next
+
+    div(style='display:flex;gap:16px;align-items:center;margin-top:20px;padding-top:18px;border-top:1px solid #d8d4cb')
+      button.btn(type='submit') Сохранить в черновик
+      a.link(href='/cv?draft=1' target='_blank') предпросмотр ↗
+
+  form(method='POST' action='/admin/cv/nodes/' + id + '/delete' style='margin-top:16px' onsubmit='return confirm("Удалить узел?")')
+    button.btn-delete(type='submit' disabled=refs.length > 0) Удалить узел
+    if refs.length
+      span.hint(style='margin-left:10px') Удалить можно, когда на узел никто не ссылается.
+
+  script.
+    function syncMode() {
+      var m = (document.querySelector('input[name=mode]:checked') || {}).value;
+      document.getElementById('mode-question').style.display = m === 'question' ? '' : 'none';
+      document.getElementById('mode-next').style.display = m === 'next' ? '' : 'none';
+    }
+    syncMode();

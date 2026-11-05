@@ -24,15 +24,19 @@ var upload = multer({
 });
 
 // ── AUTH ────────────────────────────────────────────────
-async function requireAuth(req, res, next) {
+async function isAdmin(req) {
   var tokenId = req.signedCookies && req.signedCookies.itAdminToken;
-  if (!tokenId) return res.redirect('/admin/login');
+  if (!tokenId) return false;
   try {
-    var doc = await adminTokens.doc(tokenId).get();
-    if (!doc.exists) return res.redirect('/admin/login');
-    next();
-  } catch (e) { res.redirect('/admin/login'); }
+    return (await adminTokens.doc(tokenId).get()).exists;
+  } catch (e) { return false; }
 }
+
+async function requireAuth(req, res, next) {
+  if (await isAdmin(req)) return next();
+  res.redirect('/admin/login');
+}
+router.isAdmin = isAdmin; // routes/it.js: draft preview of /cv
 
 router.get('/login', function(req, res) {
   res.render('it/admin/login', { error: null });
@@ -197,6 +201,99 @@ router.post('/companies/:id/delete', requireAuth, express.urlencoded({ extended:
   try {
     await itData.deleteCompany(req.params.id);
     res.redirect('/admin/companies');
+  } catch (e) { next(e); }
+});
+
+// ── CV QUEST (it.dimazvali.com/cv) ───────────────────────
+var cvEditor = require('../lib/it-cv-editor');
+var cvStore = function() { return require('../lib/it-cv-store').store(); };
+var form = express.urlencoded({ extended: false });
+
+function back(res, path, kind, text) {
+  res.redirect('/admin/cv' + path + (kind ? (path.indexOf('?') > -1 ? '&' : '?') + kind + '=' + encodeURIComponent(text) : ''));
+}
+
+router.get('/cv', requireAuth, async function(req, res, next) {
+  try {
+    var d = await cvStore().getDraft();
+    res.render('it/admin/cv', {
+      quest: d.quest, meta: d.meta, check: cvEditor.validate(d.quest), tree: cvEditor.tree(d.quest),
+      optionsText: cvEditor.optionsToText(d.quest.intro.options),
+      flash: { ok: req.query.ok || null, error: req.query.error || null },
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/cv/intro', requireAuth, form, async function(req, res, next) {
+  try {
+    var d = await cvStore().getDraft();
+    var r = cvEditor.applyIntro(d.quest, req.body);
+    if (r.error) return back(res, '', 'error', r.error);
+    await cvStore().saveDraft(r.quest);
+    back(res, '', 'ok', 'Черновик сохранён' + (r.created.length ? '. Новые узлы: ' + r.created.join(', ') + ' — заполните их' : ''));
+  } catch (e) { next(e); }
+});
+
+router.post('/cv/nodes', requireAuth, form, async function(req, res, next) {
+  try {
+    var d = await cvStore().getDraft();
+    var r = cvEditor.addNode(d.quest, req.body.id, req.body.kind);
+    if (r.error) return back(res, '', 'error', r.error);
+    await cvStore().saveDraft(r.quest);
+    back(res, '/nodes/' + req.body.id.trim().toLowerCase(), 'ok', 'Узел создан');
+  } catch (e) { next(e); }
+});
+
+router.get('/cv/nodes/:id', requireAuth, async function(req, res, next) {
+  try {
+    var d = await cvStore().getDraft();
+    var node = d.quest.nodes[req.params.id];
+    if (!node) return back(res, '', 'error', 'Нет узла «' + req.params.id + '»');
+    var mode = node.final ? 'final' : node.next ? 'next' : 'question';
+    var check = cvEditor.validate(d.quest);
+    var mine = new RegExp('«' + req.params.id.replace(/[-]/g, '\\-') + '»');
+    res.render('it/admin/cv-node', {
+      id: req.params.id, node: node, mode: mode, quest: d.quest,
+      refs: cvEditor.referencesTo(d.quest, req.params.id),
+      optionsText: cvEditor.optionsToText(node.options),
+      errors: check.errors.filter(function(e) { return mine.test(e); }),
+      flash: { ok: req.query.ok || null, error: req.query.error || null },
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/cv/nodes/:id', requireAuth, form, async function(req, res, next) {
+  try {
+    var d = await cvStore().getDraft();
+    var r = cvEditor.applyNode(d.quest, req.params.id, req.body);
+    if (r.error) return back(res, '/nodes/' + req.params.id, 'error', r.error);
+    await cvStore().saveDraft(r.quest);
+    back(res, '/nodes/' + req.params.id, 'ok', 'Сохранено' + (r.created.length ? '. Новые узлы: ' + r.created.join(', ') : ''));
+  } catch (e) { next(e); }
+});
+
+router.post('/cv/nodes/:id/delete', requireAuth, form, async function(req, res, next) {
+  try {
+    var d = await cvStore().getDraft();
+    var r = cvEditor.deleteNode(d.quest, req.params.id);
+    if (r.error) return back(res, '/nodes/' + req.params.id, 'error', r.error);
+    await cvStore().saveDraft(r.quest);
+    back(res, '', 'ok', 'Узел «' + req.params.id + '» удалён');
+  } catch (e) { next(e); }
+});
+
+router.post('/cv/publish', requireAuth, form, async function(req, res, next) {
+  try {
+    var r = await cvStore().publish();
+    if (r.errors) return back(res, '', 'error', 'Не опубликовано — в черновике ошибки (список ниже)');
+    back(res, '', 'ok', 'Опубликовано: ' + r.steps + ' шага');
+  } catch (e) { next(e); }
+});
+
+router.post('/cv/discard', requireAuth, form, async function(req, res, next) {
+  try {
+    await cvStore().discardDraft();
+    back(res, '', 'ok', 'Черновик сброшен к опубликованной версии');
   } catch (e) { next(e); }
 });
 

@@ -1,0 +1,127 @@
+include _cv-head.pug
+
+mixin branch(items)
+  ul
+    each it in items
+      - var n = it.node
+      li
+        span.lbl= it.label + ' → '
+        if !n
+          span.bad= it.id + ' (нет узла)'
+        else
+          a.link(href='/admin/cv/nodes/' + it.id)= n.title || it.id
+          |
+          span.mono-dim= it.id
+          if n.final
+            |
+            span.pill финал
+          if it.via
+            |
+            span.mono-dim → дальше: #{it.via}
+          if !n.brief || !n.brief.length
+            |
+            span.pill.red нет брифа
+        if it.children && it.children.length
+          +branch(it.children)
+
++cvShell('Квест CV')
+  .top
+    h2 Квест CV
+    if meta.fromSeed
+      span.pill исходный текст из кода
+    else if meta.dirty
+      span.pill.red есть неопубликованные правки
+    else
+      span.pill.dark опубликовано
+    a.btn.ghost(href='/cv?draft=1' target='_blank') Предпросмотр черновика ↗
+    form(method='POST' action='/admin/cv/publish')
+      button.btn(type='submit' disabled=check.errors.length > 0) Опубликовать
+    if meta.dirty
+      form(method='POST' action='/admin/cv/discard' onsubmit='return confirm("Выбросить все неопубликованные правки?")')
+        button.btn-delete(type='submit') Сбросить черновик
+
+  if check.errors.length || check.warnings.length
+    .card(style='margin-bottom:24px')
+      label Проверка перед публикацией
+      ul.issues
+        each e in check.errors
+          li.e= e
+        each w in check.warnings
+          li.w= w
+  else
+    p.hint(style='margin-bottom:20px') Проверка пройдена: #{check.paths.length} путей по #{check.steps} шага. Опубликованная версия видна на it.dimazvali.com/cv.
+
+  .grid
+    .card
+      form(method='POST' action='/admin/cv/intro')
+        h3(style='margin-top:0') Вступление
+        .field
+          label(for='eyebrow') Надзаголовок
+          input#eyebrow(type='text' name='eyebrow' value=quest.intro.eyebrow)
+        .field
+          label(for='title') Заголовок *
+          input#title(type='text' name='title' value=quest.intro.title required)
+        .field
+          label(for='lead') Вводный текст
+          textarea#lead(name='lead' rows='5')= quest.intro.lead
+        .field
+          label(for='hint') Подсказка под текстом
+          input#hint(type='text' name='hint' value=quest.intro.hint)
+        .field
+          label(for='question') Первый вопрос *
+          input#question(type='text' name='question' value=quest.intro.question required)
+        .field
+          label(for='options') Варианты первого шага
+          textarea#options(name='options' rows='7')= optionsText
+          span.hint
+            | По строке:
+            b id | надпись
+            | . Новый id — создастся пустой узел, его надо заполнить. Порядок строк = порядок кнопок.
+
+        h3 Контакты в финале
+        .field
+          label(for='pdf') PDF резюме (по умолчанию)
+          input#pdf(type='url' name='pdf' value=quest.contacts.pdf)
+        .row
+          .field
+            label(for='email') Email
+            input#email(type='email' name='email' value=quest.contacts.email)
+          .field
+            label(for='telegram') Telegram
+            input#telegram(type='url' name='telegram' value=quest.contacts.telegram)
+        button.btn(type='submit') Сохранить черновик
+
+    div
+      .card
+        h3(style='margin-top:0') Дерево
+        ul.tree
+          li
+            b Вступление:
+            | #{quest.intro.question}
+            +branch(tree.root)
+        each s in tree.shared
+          ul.tree(style='margin-top:16px')
+            li
+              b Общий шаг:
+              a.link(href='/admin/cv/nodes/' + s.id)= s.node.question || s.id
+              |
+              span.mono-dim= s.id
+              +branch(s.children)
+        if tree.orphans.length
+          p.hint(style='margin-top:16px')
+            | Ни на что не подвешены:
+            each o, i in tree.orphans
+              a.link(href='/admin/cv/nodes/' + o)= o
+              if i < tree.orphans.length - 1
+                | ,
+
+      .card(style='margin-top:20px')
+        h3(style='margin-top:0') Новый общий шаг
+        p.hint(style='margin-bottom:12px') Вопрос, который задаётся после нескольких веток сразу (как «format»). Ветки подключаются к нему полем «Дальше».
+        form.row(method='POST' action='/admin/cv/nodes')
+          input(type='hidden' name='kind' value='question')
+          .field
+            label(for='new-id') id
+            input#new-id(type='text' name='id' placeholder='format-2' pattern='[a-z0-9][a-z0-9-]*' required)
+          .field(style='justify-content:flex-end')
+            button.btn.ghost(type='submit') Создать

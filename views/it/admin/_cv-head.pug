@@ -1,0 +1,77 @@
+//- Shared head + header for the CV quest editor pages (same look as the rest of /admin)
+mixin cvShell(title)
+  doctype html
+  html(lang='ru')
+    head
+      meta(charset='UTF-8')
+      meta(name='viewport' content='width=device-width, initial-scale=1')
+      title= title + ' — IT Admin'
+      link(rel='preconnect' href='https://fonts.googleapis.com')
+      link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap')
+      style.
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #f4f1ea; color: #15120f; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+        header { background: #15120f; color: #f4f1ea; padding: 0 32px; display: flex; align-items: center; gap: 24px; height: 52px; }
+        header h1 { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+        header nav { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+        header a { color: #c8c0b0; text-decoration: none; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+        header a:hover, header a.on { color: #f4f1ea; }
+        main { padding: 32px; max-width: 1100px; }
+        h2 { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+        h3 { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin: 32px 0 12px; }
+        .top { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .grid { display: grid; gap: 28px; }
+        @media (min-width: 980px) { .grid { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; } }
+        .card { background: #fff; border: 1px solid #d8d4cb; padding: 20px; }
+        .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+        .row { display: flex; gap: 12px; flex-wrap: wrap; }
+        .row > .field { flex: 1; min-width: 160px; }
+        label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6b6459; }
+        input[type=text], input[type=url], input[type=email], textarea, select {
+          background: #fff; border: 1px solid #d8d4cb; color: #15120f;
+          font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 8px 10px; width: 100%; outline: none;
+        }
+        input:focus, textarea:focus, select:focus { border-color: #15120f; }
+        textarea { resize: vertical; line-height: 1.5; }
+        .hint { font-size: 11px; color: #6b6459; margin-top: 3px; line-height: 1.5; }
+        .btn { background: #15120f; color: #f4f1ea; border: 1px solid #15120f; font-family: 'Oswald', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 9px 20px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #2a241c; }
+        .btn.ghost { background: transparent; color: #15120f; }
+        .btn.ghost:hover { background: #15120f; color: #f4f1ea; }
+        .btn:disabled { opacity: .4; cursor: default; }
+        .btn-delete { background: none; border: 1px solid #c0392b; color: #c0392b; font-family: inherit; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; }
+        .btn-delete:hover { background: #c0392b; color: #fff; }
+        .link { color: #15120f; border-bottom: 1px solid #b9b2a5; text-decoration: none; }
+        .link:hover { border-color: #15120f; }
+        .ok { background: #15120f; color: #f4f1ea; padding: 10px 14px; margin-bottom: 18px; }
+        .err { background: #c0392b; color: #fff; padding: 10px 14px; margin-bottom: 18px; }
+        .issues { list-style: none; margin: 8px 0 0; }
+        .issues li { padding: 6px 0; border-bottom: 1px solid #ece9e2; line-height: 1.45; }
+        .issues li.e::before { content: '✕ '; color: #c0392b; font-weight: 700; }
+        .issues li.w::before { content: '! '; color: #b07d14; font-weight: 700; }
+        .pill { display: inline-block; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border: 1px solid #d8d4cb; color: #6b6459; }
+        .pill.dark { background: #15120f; color: #f4f1ea; border-color: #15120f; }
+        .pill.red { border-color: #c0392b; color: #c0392b; }
+        .tree, .tree ul { list-style: none; }
+        .tree ul { margin-left: 18px; border-left: 1px solid #d8d4cb; padding-left: 12px; }
+        .tree li { padding: 5px 0; }
+        .tree .lbl { color: #6b6459; }
+        .tree .bad { color: #c0392b; }
+        .tree a { font-weight: 500; }
+        .mono-dim { color: #9a948b; font-size: 11px; }
+        .tree .mono-dim, .tree .pill { margin-left: 8px; }
+    body
+      header
+        h1 IT Admin
+        nav
+          a(href='/admin/') Истории
+          a(href='/admin/companies') Справочник
+          a.on(href='/admin/cv') Квест CV
+          a(href='/cv?draft=1' target='_blank') Предпросмотр ↗
+          a(href='/admin/logout') Выйти
+      main
+        if flash && flash.error
+          .err= flash.error
+        if flash && flash.ok
+          .ok= flash.ok
+        block

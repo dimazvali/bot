@@ -5,7 +5,6 @@ var path = require('path');
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var itData = require('../lib/it-data');
-var cvQuest = require('../lib/it-cv-quest');
 
 var itApp = getApps().find(function(a) { return a.name === 'it'; }) || initializeApp({
   credential: cert({
@@ -25,9 +24,12 @@ var itApp = getApps().find(function(a) { return a.name === 'it'; }) || initializ
 
 var fb = getFirestore(itApp);
 itData.init(fb);
+var cvStore = require('../lib/it-cv-store').init(fb);
+var cvEditor = require('../lib/it-cv-editor');
 
 router.use(express.static(path.join(__dirname, '../public')));
-router.use('/admin', require('./it-admin'));
+var itAdmin = require('./it-admin');
+router.use('/admin', itAdmin);
 
 router.get('/', async function(req, res, next) {
   try {
@@ -36,9 +38,22 @@ router.get('/', async function(req, res, next) {
   } catch (e) { next(e); }
 });
 
-router.get('/cv', function(req, res) {
-  var questJson = JSON.stringify(cvQuest).replace(/</g, '\\u003c');
-  res.render('it/cv', { quest: cvQuest, questJson: questJson });
+// Content is edited in /admin/cv; ?draft=1 previews the unpublished draft (admins only)
+router.get('/cv', async function(req, res, next) {
+  try {
+    var quest;
+    var draft = false;
+    if (req.query.draft && await itAdmin.isAdmin(req)) {
+      quest = (await cvStore.getDraft()).quest;
+      quest.STEPS = cvEditor.validate(quest).steps || quest.STEPS || 3;
+      draft = true;
+    } else {
+      quest = await cvStore.getPublished();
+    }
+    var questJson = JSON.stringify(quest).replace(/</g, '\\u003c');
+    res.set('Cache-Control', draft ? 'no-store' : 'public, max-age=60');
+    res.render('it/cv', { quest: quest, questJson: questJson, draft: draft });
+  } catch (e) { next(e); }
 });
 
 router.get('/sitemap.xml', async function(req, res) {

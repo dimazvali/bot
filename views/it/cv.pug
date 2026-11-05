@@ -70,6 +70,10 @@ html(lang='ru')
       gtag('config', 'G-LDMN4XFB42');
 
   body
+    if draft
+      div(style='position:sticky;top:0;z-index:10;background:#c0392b;color:#fff;font-size:12px;letter-spacing:.08em;padding:8px 28px;display:flex;gap:16px;justify-content:space-between')
+        span ЧЕРНОВИК — посетители видят опубликованную версию
+        a(href='/admin/cv' style='border-bottom:1px solid #fff') ← в редактор
     header.site-header
       a.site-logo(href='/') it.dimazvali.com
       a.site-back(href='https://dimazvali.com') ← dimazvali.com
