@@ -32,6 +32,12 @@ app.use(cookieParser(process.env.papersToken));
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
+// Express only caches compiled views when NODE_ENV=production, which isn't set here — without it every
+// res.render re-reads and re-compiles the templates. Locally (develop=true in .env) keep live template edits.
+if (process.env.develop !== 'true') app.enable('view cache');
+
+// Server-Timing: app (until res.render) / render (pug) — see DevTools → Network → Timing
+app.use(require('./lib/server-timing'));
 
 app.use(logger('dev'));
 
@@ -124,6 +130,7 @@ var eventsHost = express();
 // (including the shared error page) resolves the same pug views.
 eventsHost.set('views', app.get('views'));
 eventsHost.set('view engine', app.get('view engine'));
+eventsHost.set('view cache', app.get('view cache'));
 eventsHost.use(tbilisiEventsBase(''));
 eventsHost.use('/admin', tbilisiEventsAdminRouter);
 eventsHost.use('/', tbilisiEventsRouter);
@@ -139,6 +146,7 @@ var memoriesAdminRouter = require('./routes/memories-admin');
 var memoriesHost = express();
 memoriesHost.set('views', app.get('views'));
 memoriesHost.set('view engine', app.get('view engine'));
+memoriesHost.set('view cache', app.get('view cache'));
 memoriesHost.use('/admin', memoriesAdminRouter);
 memoriesHost.use('/', memoriesRouter);
 app.use(vhost('memories.dimazvali.com', memoriesHost));
