@@ -33,7 +33,15 @@ block head
           var pageUrl = isShoot
             ? _base + _lp + '/shoot/' + shootSlug + '/' + p.id
             : _base + _lp + '/' + p.countryKey + '/' + p.seriesKey + '/' + p.id
-          return { '@type': 'ImageObject', contentUrl: src, name: p.title, url: pageUrl }
+          // Google Image Metadata: contentUrl + at least one of creator / creditText / copyrightNotice / license
+          return {
+            '@type': 'ImageObject', contentUrl: src, name: p.title, url: pageUrl,
+            creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: _base + _lp + '/about' },
+            creditText: 'Dmitry Shestakov / photo.dimazvali.com',
+            copyrightNotice: '© Dmitry Shestakov. All rights reserved.',
+            license: _base + _lp + '/about',
+            acquireLicensePage: pageUrl + '?inquiry=license',
+          }
         }).filter(Boolean),
       }
     script#ld-gallery(type='application/ld+json')!= JSON.stringify(_galleryLd)

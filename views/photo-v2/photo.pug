@@ -512,16 +512,21 @@ block content
             }
           }
         }
-        function cleanup() {
-          if (!st) return;
-          if (cfg.onEnd) cfg.onEnd(st);
-          st.wrap.style.transition = st.wrap.style.transform = st.wrap.style.filter = '';
-          if (st.under) st.under.remove();
-          if (st.over) st.over.remove();
-          st = null;
+        // A released gesture moves from `st` to `settling` until its animation (and, on commit, the navigation)
+        // is over. New touches are ignored meanwhile: they used to overwrite `st`, so the `st === s` checks
+        // below never fired and the cards + the off-screen transform stayed stuck in the (persistent) lightbox.
+        var settling = null;
+        function cleanup(s) {
+          if (!s || settling !== s) return;
+          settling = null;
+          if (cfg.onEnd) cfg.onEnd(s);
+          s.wrap.style.transition = s.wrap.style.transform = s.wrap.style.filter = '';
+          if (s.under) s.under.remove();
+          if (s.over) s.over.remove();
         }
 
         cfg.root.addEventListener('touchstart', function(e) {
+          if (settling) return;
           if (navigating || e.touches.length !== 1) { st = null; return; }
           var ctx = cfg.start(e);
           if (!ctx) { st = null; return; }
@@ -551,6 +556,7 @@ block content
         function finish(cancelled) {
           if (!st || st.mode !== 'drag') { st = null; return; }
           var s = st, dx = s.dx, W = s.W, dt = Math.max(1, Date.now() - s.t0);
+          st = null; settling = s;
           var dir = dx < 0 ? 'next' : 'prev';
           var target = dir === 'next' ? s.next : s.prev;
           var commit = !cancelled && target && (Math.abs(dx) / W > COMMIT_RATIO || (Math.abs(dx) / dt > COMMIT_SPEED && Math.abs(dx) > 30));
@@ -568,16 +574,16 @@ block content
             }
             setTimeout(function() {
               // the cards now show the destination frame full-size; move the page on underneath them
-              cfg.commit(target, s, function done() { if (st === s) cleanup(); });
+              cfg.commit(target, s, function done() { cleanup(s); });
               // safety net: never leave cards lying around if the navigation stalls
-              setTimeout(function() { if (st === s) cleanup(); }, 5000);
+              setTimeout(function() { cleanup(s); }, 5000);
             }, reduceMotion ? 0 : 230);
           } else {
             s.wrap.style.transform = '';
             s.wrap.style.filter = '';
             if (s.under) { s.under.style.opacity = '0'; s.under.style.transform = 'scale(.94)'; }
             if (s.over) s.over.style.transform = 'translateX(-105%)';
-            setTimeout(function() { if (st === s) cleanup(); }, 240);
+            setTimeout(function() { cleanup(s); }, 240);
           }
         }
         cfg.root.addEventListener('touchend', function() { finish(false); }, { passive: true });
@@ -604,7 +610,8 @@ block content
         insertOver: function(st, c) { st.holder.appendChild(c); },
         onDrag: function(st) { st.holder.classList.add('is-dragging'); },
         onEnd: function(st) { st.holder.classList.remove('is-dragging'); },
-        commit: function(target) { navigate(target.url, false, 'swipe'); },
+        // the swap replaces the scene (cards included); release the deck right after it
+        commit: function(target, st, done) { afterSwap.push(done); navigate(target.url, false, 'swipe'); },
       });
 
       // ── zoom lightbox: single #lb element created once, reused across soft-nav swaps ──
