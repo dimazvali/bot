@@ -17,9 +17,10 @@ block head
     link(rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' integrity='sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H' crossorigin='anonymous')
     script(src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js' integrity='sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH' crossorigin='anonymous')
   if ogUrl && photos && photos.length
+    include _ld-rights
     -
       var _lp = lang === 'en' ? '/en' : ''
-      var _base = 'https://photo.dimazvali.com'
+      var _base = PHOTO_BASE
       var _galleryLd = {
         '@context': 'https://schema.org',
         '@type': 'ImageGallery',
@@ -33,15 +34,9 @@ block head
           var pageUrl = isShoot
             ? _base + _lp + '/shoot/' + shootSlug + '/' + p.id
             : _base + _lp + '/' + p.countryKey + '/' + p.seriesKey + '/' + p.id
-          // Google Image Metadata: contentUrl + at least one of creator / creditText / copyrightNotice / license
-          return {
-            '@type': 'ImageObject', contentUrl: src, name: p.title, url: pageUrl,
-            creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: _base + _lp + '/about' },
-            creditText: 'Dmitry Shestakov / photo.dimazvali.com',
-            copyrightNotice: '© Dmitry Shestakov. All rights reserved.',
-            license: _base + _lp + '/about',
-            acquireLicensePage: pageUrl + '?inquiry=license',
-          }
+          var item = { '@type': 'ImageObject', contentUrl: src, name: p.title, url: pageUrl }
+          // client shoots: no rights/licensing claims (their photo pages have neither the LD nor an inquiry form)
+          return isShoot ? item : Object.assign(item, imageRightsLd(pageUrl, _lp))
         }).filter(Boolean),
       }
     script#ld-gallery(type='application/ld+json')!= JSON.stringify(_galleryLd)

@@ -1,0 +1,15 @@
+//- Rights fields for schema.org ImageObject, shared by the photo page and gallery JSON-LD.
+//- Google Image Metadata needs contentUrl + at least one of creator / creditText / copyrightNotice / license.
+//- Only for the public portfolio: client shoots (isShoot) carry no rights/licensing claims and no inquiry form.
+-
+  var PHOTO_BASE = 'https://photo.dimazvali.com'
+  function imageRightsLd(pageUrl, lp) {
+    return {
+      creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: PHOTO_BASE + lp + '/about' },
+      copyrightHolder: { '@type': 'Person', name: 'Dmitry Shestakov' },
+      copyrightNotice: '© Dmitry Shestakov. All rights reserved.',
+      creditText: 'Dmitry Shestakov / photo.dimazvali.com',
+      license: PHOTO_BASE + lp + '/about',
+      acquireLicensePage: pageUrl + '?inquiry=license',
+    }
+  }

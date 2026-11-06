@@ -3,24 +3,20 @@ include mixins
 
 block head
   if !isShoot
+    include _ld-rights
     -
       var _lp = lang === 'en' ? '/en' : ''
       var _imgUrl = photo.urls ? (photo.urls.full || photo.urls.preview) : null
-      var _ld = {
+      var _pageUrl = PHOTO_BASE + _lp + '/' + countryKey + '/' + seriesKey + '/' + photo.id
+      var _ld = Object.assign({
         '@context': 'https://schema.org',
         '@type': 'ImageObject',
         name: photo.title,
         contentUrl: _imgUrl,
         thumbnailUrl: photo.urls ? photo.urls.preview : null,
-        url: 'https://photo.dimazvali.com' + _lp + '/' + countryKey + '/' + seriesKey + '/' + photo.id,
-        creator: { '@type': 'Person', name: 'Dmitry Shestakov', url: 'https://photo.dimazvali.com' + _lp + '/about' },
-        copyrightHolder: { '@type': 'Person', name: 'Dmitry Shestakov' },
+        url: _pageUrl,
         copyrightYear: photo.date ? photo.date.match(/\d{4}/) && photo.date.match(/\d{4}/)[0] : null,
-        copyrightNotice: '© Dmitry Shestakov. All rights reserved.',
-        creditText: 'Dmitry Shestakov / photo.dimazvali.com',
-        license: 'https://photo.dimazvali.com' + _lp + '/about',
-        acquireLicensePage: 'https://photo.dimazvali.com' + _lp + '/' + countryKey + '/' + seriesKey + '/' + photo.id + '?inquiry=license',
-      }
+      }, imageRightsLd(_pageUrl, _lp))
       // hand-written text first; the generated SEO caption covers frames that have none
       var _ldText = photo.desc || photo.seo_desc
       if (_ldText) { _ld.description = _ldText; _ld.caption = _ldText }
@@ -403,8 +399,9 @@ block content
 
       var navigating = false;
       var afterSwap = []; // one-shot callbacks, run right after the next successful soft-nav swap
+      // returns false when another navigation is already in flight (nothing happens then)
       function navigate(url, isPop, method) {
-        if (navigating) return;
+        if (navigating) return false;
         navigating = true;
         fetch(url)
           .then(function(r) { if (!r.ok) throw new Error('nav failed'); return r.text(); })
@@ -420,6 +417,7 @@ block content
             navigating = false;
             location.href = url;
           });
+        return true;
       }
 
       // ── swipe navigation (mobile): swipe left = next photo, swipe right = prev ──
@@ -512,9 +510,12 @@ block content
             }
           }
         }
-        // A released gesture moves from `st` to `settling` until its animation (and, on commit, the navigation)
-        // is over. New touches are ignored meanwhile: they used to overwrite `st`, so the `st === s` checks
-        // below never fired and the cards + the off-screen transform stayed stuck in the (persistent) lightbox.
+        // A released gesture moves from `st` to `settling` until its animation is over and its cards are gone.
+        // (It used to stay in `st`, so a new touch overwrote it, the `st === s` checks never fired, and the cards
+        // + the off-screen transform stayed stuck in the persistent lightbox.)
+        // While a commit is `locked` (fly-out animation + soft-nav fetch/swap) new touches are ignored; otherwise
+        // (spring-back, or a commit whose swap is already done and is only waiting for the lightbox image)
+        // a new touch finishes the old gesture on the spot and starts its own.
         var settling = null;
         function cleanup(s) {
           if (!s || settling !== s) return;
@@ -526,7 +527,10 @@ block content
         }
 
         cfg.root.addEventListener('touchstart', function(e) {
-          if (settling) return;
+          if (settling) {
+            if (settling.locked) return;
+            cleanup(settling);
+          }
           if (navigating || e.touches.length !== 1) { st = null; return; }
           var ctx = cfg.start(e);
           if (!ctx) { st = null; return; }
@@ -564,6 +568,7 @@ block content
           if (s.under) { s.under.style.transition = 'transform .22s ease-out, opacity .22s'; s.under.firstChild.style.transition = 'filter .22s ease-out'; }
           if (s.over) s.over.style.transition = 'transform .22s ease-out';
           if (commit) {
+            s.locked = true;
             if (dir === 'next') {
               s.wrap.style.transform = 'translateX(' + (-W * 1.15) + 'px)' + (reduceMotion ? '' : ' rotate(-6deg)');
               if (s.under) { s.under.style.transform = 'scale(1)'; s.under.firstChild.style.filter = 'brightness(1)'; }
@@ -574,7 +579,8 @@ block content
             }
             setTimeout(function() {
               // the cards now show the destination frame full-size; move the page on underneath them
-              cfg.commit(target, s, function done() { cleanup(s); });
+              // done(): drop the cards; release(): the page has moved on, a new touch may take over
+              cfg.commit(target, s, function done() { cleanup(s); }, function release() { s.locked = false; });
               // safety net: never leave cards lying around if the navigation stalls
               setTimeout(function() { cleanup(s); }, 5000);
             }, reduceMotion ? 0 : 230);
@@ -611,7 +617,11 @@ block content
         onDrag: function(st) { st.holder.classList.add('is-dragging'); },
         onEnd: function(st) { st.holder.classList.remove('is-dragging'); },
         // the swap replaces the scene (cards included); release the deck right after it
-        commit: function(target, st, done) { afterSwap.push(done); navigate(target.url, false, 'swipe'); },
+        commit: function(target, st, done) {
+          // another navigation (arrow key, nav button) got there first: drop the cards, the deck stays put
+          if (!navigate(target.url, false, 'swipe')) { done(); return; }
+          afterSwap.push(done);
+        },
       });
 
       // ── zoom lightbox: single #lb element created once, reused across soft-nav swaps ──
@@ -897,14 +907,21 @@ block content
         insertOver: function(st, c) { lb.appendChild(c); },
         onDrag: function() { lbInfo.style.transition = 'opacity .12s'; lbInfo.style.opacity = '0'; },
         onEnd: function() { lbInfo.style.opacity = ''; lbInfo.style.transition = ''; },
-        commit: function(target, st, done) {
-          // the swap re-points #lb at the new frame (refreshLbImage); once that image is showing, drop the cards
+        commit: function(target, st, done, release) {
+          if (!navigate(target.url, false, 'swipe')) { done(); return; }
+          // the swap re-points #lb at the new frame (refreshLbImage); once that image is showing, drop the cards.
+          // The next swipe doesn't have to wait for that image: a new touch clears these cards right away.
           afterSwap.push(function() {
-            var settle = function() { setTimeout(done, 60); };
-            if (lbImg.complete && lbImg.naturalWidth) settle();
-            else { lbImg.addEventListener('load', settle, { once: true }); lbImg.addEventListener('error', settle, { once: true }); }
+            release();
+            if (lbImg.complete && lbImg.naturalWidth) { setTimeout(done, 60); return; }
+            var settle = function() {
+              lbImg.removeEventListener('load', settle);
+              lbImg.removeEventListener('error', settle);
+              setTimeout(done, 60);
+            };
+            lbImg.addEventListener('load', settle);
+            lbImg.addEventListener('error', settle);
           });
-          navigate(target.url, false, 'swipe');
         },
       });
       lb.addEventListener('click', function(e) {
