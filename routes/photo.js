@@ -437,8 +437,9 @@ router.get('/robots.txt', (req, res) => {
   res.send('User-agent: *\nAllow: /\nSitemap: https://photo.dimazvali.com/sitemap.xml\n');
 });
 
-// GET /{indexnow-key}.txt — IndexNow key verification
-var INDEX_NOW_KEY = process.env.INDEX_NOW_KEY || '3d8e3d1e2ccb44dab475e7949fc9fcc8';
+// GET /{indexnow-key}.txt — IndexNow key verification. Normally public/<key>.txt answers first (express.static);
+// this covers a key overridden via env INDEX_NOW_KEY.
+var INDEX_NOW_KEY = require('../lib/indexnow').KEY;
 router.get('/' + INDEX_NOW_KEY + '.txt', (req, res) => {
   res.set('Content-Type', 'text/plain');
   res.send(INDEX_NOW_KEY);

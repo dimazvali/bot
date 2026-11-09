@@ -1,4 +1,4 @@
-﻿var express = require('express');
+var express = require('express');
 var router = express.Router();
 var path = require('path');
 var cron = require('node-cron');
@@ -108,22 +108,10 @@ var upload = multer({
   },
 });
 
-var SITEMAP_URL = 'https://photo.dimazvali.com/sitemap.xml';
-var INDEX_NOW_KEY = process.env.INDEX_NOW_KEY || '3d8e3d1e2ccb44dab475e7949fc9fcc8';
-
-function pingSitemaps() {
-  axios.get('https://www.bing.com/ping?sitemap=' + encodeURIComponent(SITEMAP_URL), { timeout: 8000 })
-    .catch(function(e) { console.error('[sitemap-ping]', e.message); });
-}
-
-function indexNowSubmit(urls) {
-  axios.post('https://api.indexnow.org/indexnow', {
-    host: 'photo.dimazvali.com',
-    key: INDEX_NOW_KEY,
-    keyLocation: 'https://photo.dimazvali.com/' + INDEX_NOW_KEY + '.txt',
-    urlList: Array.isArray(urls) ? urls : [urls],
-  }, { timeout: 8000 }).catch(function(e) { console.error('[indexnow]', e.message); });
-}
+// IndexNow (Bing/Yandex/…): submits the URL and its /en/ twin. Replaces the old bing.com/ping sitemap ping,
+// which Bing shut down in 2023.
+var indexnow = require('../lib/indexnow');
+function indexNowSubmit(urls) { indexnow.submit(urls); }
 
 function googleIndexingSubmit(urls) {
   (Array.isArray(urls) ? urls : [urls]).forEach(function(url) {
@@ -897,7 +885,6 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
     if (colorFamilies.length) photoEntry.colorFamilies = colorFamilies;
     data[country].series[series].photos.push(photoEntry);
     saveData(data);
-    pingSitemaps();
     indexNowSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + id);
     googleIndexingSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + id);
 
@@ -1340,7 +1327,6 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
     if (shootShotAt) photoEntry.shotAt = shootShotAt;
 
     await shoots.addPhoto(slug, photoEntry);
-    pingSitemaps();
     indexNowSubmit('https://photo.dimazvali.com/shoot/' + slug);
     googleIndexingSubmit('https://photo.dimazvali.com/shoot/' + slug);
 
@@ -2116,7 +2102,6 @@ router.post('/shoots/:slug/photos/:id/publish', requireAuth, express.urlencoded(
 
   data[country].series[series].photos.push(photoEntry);
   saveData(data);
-  pingSitemaps();
   indexNowSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + newId);
   googleIndexingSubmit('https://photo.dimazvali.com/' + country + '/' + series + '/' + newId);
 
