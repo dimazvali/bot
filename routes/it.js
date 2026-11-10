@@ -41,13 +41,12 @@ router.get('/', async function(req, res, next) {
 // English CV quest: static file with the same node ids as the RU tree (not editable in /admin/cv yet)
 var cvQuestEn = require('../lib/it-cv-quest-en.json');
 
-// ?lang=ru|en wins; otherwise Accept-Language — ru (and uk/be/kk) → RU, anything else → EN.
-// No header (most crawlers) → RU, the canonical version.
+// ?lang=ru|en wins; otherwise RU has priority: Russian anywhere in Accept-Language
+// (any position, any q>0) → RU; no Russian at all → EN. No header (most crawlers) → RU.
 function cvLang(req) {
   if (req.query.lang === 'en' || req.query.lang === 'ru') return req.query.lang;
   if (!req.get('accept-language')) return 'ru';
-  var best = req.acceptsLanguages('ru', 'uk', 'be', 'kk', 'en');
-  return best && best !== 'en' ? 'ru' : 'en';
+  return req.acceptsLanguages('ru') ? 'ru' : 'en';
 }
 
 // Interface strings around the quest content (page chrome + client-side renderer)
