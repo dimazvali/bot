@@ -164,7 +164,9 @@ mixin filterbar(cfg)
 
 //- "Want a shoot?" modal (+ floating bar when ?promo). Available on every page; auto-opens only with ?promo.
 mixin promoPopup()
-  .selection-popup#promo-popup(data-auto=(typeof promo !== 'undefined' && promo) ? '1' : undefined)
+  //- noindex = Yandex, data-nosnippet = Google: keep the boilerplate promo out of every page's indexed text/snippets
+  <!--noindex-->
+  .selection-popup#promo-popup(data-nosnippet data-auto=(typeof promo !== 'undefined' && promo) ? '1' : undefined)
     .promo-card
       .promo-card-photo
         img(src='https://storage.googleapis.com/photo-dimazvalimisc-eu/images/ks-05065-1780908582473-800.webp' alt='' loading='lazy')
@@ -187,6 +189,7 @@ mixin promoPopup()
             a(href='https://telegram.me/dimazvali' target='_blank' rel='noopener') Telegram
             a(href='https://instagram.com/dimazvali2' target='_blank' rel='noopener') Instagram
             a(href='https://wa.me/995555542110' target='_blank' rel='noopener') WhatsApp
+  <!--/noindex-->
   if typeof promo !== 'undefined' && promo
     .promo-footer-wrap
       button.promo-footer-bar#promo-footer-bar(type='button')

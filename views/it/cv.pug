@@ -1,12 +1,16 @@
 doctype html
-html(lang='ru')
+html(lang=ui.htmlLang)
   head
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width, initial-scale=1')
-    title Дмитрий Шестаков — резюме-квест · it.dimazvali.com
-    meta(name='description' content='Интерактивное резюме Дмитрия Шестакова: выберите, что вам важно — продукт, delivery, разработка, медиа, ивенты или фото — и получите бриф за три шага.')
-    meta(property='og:title' content='Дмитрий Шестаков — резюме за три вопроса')
-    meta(property='og:description' content='Выберите, кто вам нужен, — и получите короткий бриф под вашу задачу.')
+    title= ui.title
+    meta(name='description' content=ui.description)
+    meta(property='og:title' content=ui.ogTitle)
+    meta(property='og:description' content=ui.ogDescription)
+    link(rel='canonical' href='https://it.dimazvali.com/cv?lang=' + lang)
+    link(rel='alternate' hreflang='ru' href='https://it.dimazvali.com/cv?lang=ru')
+    link(rel='alternate' hreflang='en' href='https://it.dimazvali.com/cv?lang=en')
+    link(rel='alternate' hreflang='x-default' href='https://it.dimazvali.com/cv')
     link(rel='icon' type='image/x-icon' href='/images/dimazvali/favicon.ico')
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
@@ -76,7 +80,9 @@ html(lang='ru')
         a(href='/admin/cv' style='border-bottom:1px solid #fff') ← в редактор
     header.site-header
       a.site-logo(href='/') it.dimazvali.com
-      a.site-back(href='https://dimazvali.com') ← dimazvali.com
+      span(style='display:flex;gap:20px;align-items:center')
+        a(href=ui.switchHref hreflang=ui.switchLabel.toLowerCase() lang=ui.switchLabel.toLowerCase() style='border-bottom:1px solid currentColor;letter-spacing:.08em')= ui.switchLabel
+        a.site-back(href='https://dimazvali.com') ← dimazvali.com
 
     main.cvq
       div.cvq-eyebrow= quest.intro.eyebrow
@@ -85,7 +91,7 @@ html(lang='ru')
       div.cvq-hint= quest.intro.hint
 
       div.cvq-progress(aria-live='polite')
-        span#cvq-step шаг 1 / #{quest.STEPS}
+        span#cvq-step #{ui.step} 1 / #{quest.STEPS}
         div.cvq-bars
           - for (var i = 0; i < quest.STEPS; i++)
             div.cvq-bar
@@ -94,16 +100,16 @@ html(lang='ru')
       div#cvq-stage
 
       noscript
-        | Без JavaScript квест не работает — вот
+        = ui.noscript
         |
-        a(href=quest.contacts.pdf style='border-bottom:1px solid #15120f') резюме в PDF
+        a(href=quest.contacts.pdf style='border-bottom:1px solid #15120f')= ui.noscriptLink
         | .
 
     footer
       div.footer-inner
         div
-          div.footer-cta-label Связаться
-          div.footer-cta-title Обсудить работу
+          div.footer-cta-label= ui.contactLabel
+          div.footer-cta-title= ui.contactTitle
         div.footer-contacts
           a.footer-contact-row(href='mailto:' + quest.contacts.email)
             span.footer-contact-type email
@@ -113,7 +119,7 @@ html(lang='ru')
             span @dimazvali
           a.footer-contact-row(href=quest.contacts.pdf)
             span.footer-contact-type pdf
-            span резюме целиком
+            span= ui.fullPdf
       div.footer-bottom
         div.footer-bottom-inner
           span © it.dimazvali.com
@@ -121,9 +127,11 @@ html(lang='ru')
 
     script.
       window.CV_QUEST = !{questJson};
+      window.CV_UI = !{JSON.stringify(ui.js).replace(/</g, '\\u003c')};
     script.
       (function() {
         var Q = window.CV_QUEST;
+        var T = window.CV_UI;
         var N = Q.nodes;
         var logEl = document.getElementById('cvq-log');
         var stageEl = document.getElementById('cvq-stage');
@@ -164,7 +172,7 @@ html(lang='ru')
           var box = el('section', 'cvq-entry');
           if (!animate) box.style.animation = 'none';
           var c = el('div', 'cvq-choice');
-          c.appendChild(el('span', null, 'вы выбрали'));
+          c.appendChild(el('span', null, T.youChose));
           c.appendChild(el('b', null, labelFor(path, i)));
           box.appendChild(c);
           box.appendChild(el('h2', null, n.title));
@@ -186,11 +194,11 @@ html(lang='ru')
         function navRow() {
           var nav = el('div', 'cvq-nav');
           if (path.length) {
-            var back = el('button', null, '← назад');
+            var back = el('button', null, T.back);
             back.type = 'button';
             back.onclick = function() { path.pop(); render(false); track('cv_quest_back', { step: path.length + 1 }); };
             nav.appendChild(back);
-            var again = el('button', null, '↺ начать заново');
+            var again = el('button', null, T.restart);
             again.type = 'button';
             again.onclick = function() { path = []; render(false); window.scrollTo({ top: 0, behavior: 'smooth' }); track('cv_quest_restart'); };
             nav.appendChild(again);
@@ -220,13 +228,13 @@ html(lang='ru')
           var root = N[path[0]];
           var fin = N[path[path.length - 1]];
           var box = el('section', 'cvq-final');
-          box.appendChild(el('div', 'cvq-eyebrow', 'Ваш бриф готов'));
+          box.appendChild(el('div', 'cvq-eyebrow', T.briefReady));
           box.appendChild(el('h2', null, root.title + ' · ' + fin.title));
           var chips = el('div', 'cvq-path');
           path.forEach(function(id) { chips.appendChild(el('span', null, '#' + N[id].tag)); });
           box.appendChild(chips);
           fin.brief.forEach(function(t) { box.appendChild(el('p', null, t)); });
-          box.appendChild(el('p', null, 'Если откликается — давайте поговорим. Полная версия резюме — в PDF.'));
+          box.appendChild(el('p', null, T.outro));
 
           var cta = el('div', 'cvq-cta');
           function link(href, text, cls, ev) {
@@ -236,11 +244,11 @@ html(lang='ru')
             a.onclick = function() { track(ev, { path: path.join('/') }); };
             cta.appendChild(a);
           }
-          link(Q.contacts.telegram, 'Написать в Telegram ↗', 'primary', 'cv_quest_telegram');
-          var subj = encodeURIComponent('По резюме: ' + root.title);
-          link('mailto:' + Q.contacts.email + '?subject=' + subj, 'Email', '', 'cv_quest_email');
-          link(root.pdf || Q.contacts.pdf, 'Резюме PDF ↓', '', 'cv_quest_pdf');
-          link('/', 'Все проекты →', '', 'cv_quest_projects');
+          link(Q.contacts.telegram, T.telegram, 'primary', 'cv_quest_telegram');
+          var subj = encodeURIComponent(T.subject + root.title);
+          link('mailto:' + Q.contacts.email + '?subject=' + subj, T.email, '', 'cv_quest_email');
+          link(root.pdf || Q.contacts.pdf, T.pdf, '', 'cv_quest_pdf');
+          link('/', T.projects, '', 'cv_quest_projects');
           box.appendChild(cta);
           box.appendChild(navRow());
           return box;
@@ -257,7 +265,7 @@ html(lang='ru')
           stageEl.appendChild(done ? renderFinal() : renderAsk(askerFor(path)));
 
           var shown = done ? Q.STEPS : path.length + 1;
-          stepEl.textContent = done ? 'готово' : 'шаг ' + shown + ' / ' + Q.STEPS;
+          stepEl.textContent = done ? T.done : T.step + ' ' + shown + ' / ' + Q.STEPS;
           bars.forEach(function(b, i) { b.classList.toggle('on', i < (done ? Q.STEPS : path.length)); });
 
           var hash = path.length ? '#' + path.join('/') : '';

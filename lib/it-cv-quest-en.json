@@ -1,0 +1,308 @@
+{
+  "intro": {
+    "eyebrow": "CV · interactive version",
+    "title": "Dmitry Shestakov",
+    "lead": "Over 10 years building products, mostly B2B and internal systems. I write code myself, and I started out as an editor and photographer. That doesn't fit on one page, so let's flip it: you pick what matters to you, and I'll tell you only about that.",
+    "hint": "Three questions, ~1 minute.",
+    "question": "Who are you looking for?",
+    "options": [
+      { "id": "product", "label": "Product Manager / Product Owner" },
+      { "id": "delivery", "label": "Project / delivery manager" },
+      { "id": "tech", "label": "Developer with a product mindset" },
+      { "id": "media", "label": "Someone from media and content" },
+      { "id": "events", "label": "Special projects and events producer" },
+      { "id": "photo", "label": "Photographer or photo editor" }
+    ]
+  },
+  "nodes": {
+    "product": {
+      "tag": "product",
+      "title": "Product / PO",
+      "brief": [
+        "Over 10 years in product, mostly B2B and internal systems: CRM, partner tools, integrations, reporting.",
+        "I run the full cycle: gather stakeholder requests, write requirements, manage the backlog and take it to release."
+      ],
+      "stat": { "value": "100 → 10,000", "label": "orders a day at restorating.ru, with the same headcount" },
+      "question": "What matters most to you?",
+      "options": [
+        { "id": "product-internal", "label": "Internal systems and stakeholders" },
+        { "id": "product-b2b", "label": "Customer-facing B2B product" },
+        { "id": "product-discovery", "label": "Discovery and testing hypotheses" }
+      ]
+    },
+    "delivery": {
+      "tag": "delivery",
+      "title": "Project / delivery",
+      "brief": [
+        "For 10 years I owned the roadmap and backlog of a restaurant platform with a distributed development team.",
+        "Scrum and Kanban: dailies, grooming, planning; timeline planning and risk management."
+      ],
+      "stat": { "value": "4 regions", "label": "the restorating.ru platform expanded to" },
+      "question": "What is the team facing?",
+      "options": [
+        { "id": "delivery-migration", "label": "A major system overhaul" },
+        { "id": "delivery-fast", "label": "A fast launch from scratch" },
+        { "id": "delivery-bridge", "label": "Connecting business and engineering" }
+      ]
+    },
+    "tech": {
+      "tag": "code",
+      "title": "Developer",
+      "brief": [
+        "I write Node.js, JavaScript and SQL; Git, Redmine.",
+        "Since 2024 I have built end-to-end systems for businesses myself: from client interviews to development and launch."
+      ],
+      "stat": { "value": "tens of thousands", "label": "of users on the libolibo.me PWA" },
+      "question": "What kind of work?",
+      "options": [
+        { "id": "tech-bots", "label": "CRM, Telegram bots, integrations" },
+        { "id": "tech-llm", "label": "LLM and AI pipelines" },
+        { "id": "tech-scale", "label": "Growing a product beyond MVP" }
+      ]
+    },
+    "media": {
+      "tag": "media",
+      "title": "Media and content",
+      "brief": [
+        "I started in media: editor at Time Out Petersburg (2006–2011), then program director at podfm.ru (2012–2013).",
+        "St. Petersburg State University, Faculty of Journalism (Public Relations)."
+      ],
+      "stat": { "value": "1M → 6M", "label": "monthly listens on podfm.ru" },
+      "question": "What does your media need?",
+      "options": [
+        { "id": "media-growth", "label": "Audience growth" },
+        { "id": "media-tools", "label": "Product and tools for the newsroom" },
+        { "id": "media-text", "label": "Writing and communication" }
+      ]
+    },
+    "events": {
+      "tag": "events",
+      "title": "Special projects and events",
+      "brief": [
+        "Beyond the product, at restorating.ru we ran special projects and events: festivals, awards, contests, parties, brand partnerships.",
+        "Plus interactive special projects, from the board game “Time for the Bars!” to BeerGuide and “Bar Compass”."
+      ],
+      "stat": { "value": "2016–2022", "label": "restorating.ru editorial special projects in St. Petersburg and Moscow" },
+      "question": "What kind of project?",
+      "options": [
+        { "id": "events-fest", "label": "Festival or party" },
+        { "id": "events-award", "label": "Award or contest" },
+        { "id": "events-brand", "label": "Brand special project" }
+      ]
+    },
+    "photo": {
+      "tag": "photo",
+      "title": "Photography",
+      "brief": [
+        "At Sobaka publishing house (Time Out magazine) I went from photographer to photo editor and head of the photo department.",
+        "Shot covers and won internal awards. Now I shoot in Tbilisi."
+      ],
+      "stat": { "value": "3 roles", "label": "photographer → photo editor → head of photo" },
+      "question": "What do you need?",
+      "options": [
+        { "id": "photo-shoot", "label": "A photo shoot" },
+        { "id": "photo-team", "label": "Photo department and photo editing" },
+        { "id": "photo-project", "label": "Photo project for media or a brand" }
+      ]
+    },
+    "product-internal": {
+      "tag": "internal systems",
+      "title": "Internal systems",
+      "brief": [
+        "I was the single point of contact for sales, the call center, editorial and partners: collecting and prioritizing their requests.",
+        "We built and launched a CRM for outbound sales in one week. I integrated Slack with telephony (Asterisk), Redmine and email, and designed the interfaces and logic of internal reporting."
+      ],
+      "next": "format"
+    },
+    "product-b2b": {
+      "tag": "B2B",
+      "title": "B2B product",
+      "brief": [
+        "Tools for restaurateurs at restorating.ru: a self-service system where restaurants keep their own listings current — 25,000 venues.",
+        "A bot platform for listings, reservations and messaging with guests, a banquet marketplace, and a contactless menu service with 100,000 dishes."
+      ],
+      "next": "format"
+    },
+    "product-discovery": {
+      "tag": "discovery",
+      "title": "Discovery",
+      "brief": [
+        "From client interviews and a prototype to release and beyond.",
+        "AI prototyping: I quickly build a working prototype myself to test a hypothesis before taking up the team's time."
+      ],
+      "next": "format"
+    },
+    "delivery-migration": {
+      "tag": "migration",
+      "title": "System overhaul",
+      "brief": [
+        "Rebuilt the restorating.ru business logic and moved the platform from a monolith to microservices.",
+        "In parallel we launched a new website and an iOS app."
+      ],
+      "next": "format"
+    },
+    "delivery-fast": {
+      "tag": "fast launch",
+      "title": "Fast launch",
+      "brief": [
+        "A CRM for outbound sales — from request to launch in one week.",
+        "As a freelancer I build end-to-end systems: interviews, requirements, prototype, development and launch. For example, Papers — a coworking and lecture management system."
+      ],
+      "next": "format"
+    },
+    "delivery-bridge": {
+      "tag": "business ↔ engineering",
+      "title": "Bridge between teams",
+      "brief": [
+        "I write code myself, so I quickly turn business needs into technical solutions and discuss trade-offs with engineers in their language.",
+        "Russian native, English C2."
+      ],
+      "next": "format"
+    },
+    "tech-bots": {
+      "tag": "bots and CRM",
+      "title": "CRM and Telegram bots",
+      "brief": [
+        "CRMs connected to Telegram bots, payment and third-party integrations, websites.",
+        "Papers — a coworking and lecture management system."
+      ],
+      "next": "format"
+    },
+    "tech-llm": {
+      "tag": "LLM",
+      "title": "LLM and AI",
+      "brief": [
+        "Built an LLM pipeline that collects and structures data from Telegram channels (Telethon, Anthropic API) — in production at libolibo.me.",
+        "I use AI tools all the time for prototypes and testing hypotheses."
+      ],
+      "next": "format"
+    },
+    "tech-scale": {
+      "tag": "MVP to PWA",
+      "title": "Product growth",
+      "brief": [
+        "libolibo.me: grew the project from a Telegram mini app, through a CMS with its own API, into a standalone PWA with tens of thousands of users.",
+        "I handle both product and development."
+      ],
+      "next": "format"
+    },
+    "media-growth": {
+      "tag": "audience",
+      "title": "Audience growth",
+      "brief": [
+        "podfm.ru, program director: grew monthly listens from 1M to 6M in 15 months and launched new features."
+      ],
+      "next": "format"
+    },
+    "media-tools": {
+      "tag": "newsroom tools",
+      "title": "Product for the newsroom",
+      "brief": [
+        "At restorating.ru the editorial team was one of my internal stakeholders, alongside sales, the call center and partners.",
+        "I know how a newsroom works from the inside (Time Out) and can turn its requests into requirements and a backlog."
+      ],
+      "next": "format"
+    },
+    "media-text": {
+      "tag": "writing",
+      "title": "Writing and communication",
+      "brief": [
+        "Five years as an editor at Time Out Petersburg; St. Petersburg State University, Faculty of Journalism, Public Relations.",
+        "English C2."
+      ],
+      "next": "format"
+    },
+    "events-fest": {
+      "tag": "festival",
+      "title": "Festival",
+      "brief": [
+        "The smelt festival in St. Petersburg. For example, BBQ Koryushka Day (2021) at Branch Garage: five chefs cooked smelt on grills, barbecues and woks.",
+        "Private parties for readers and partner events, such as “What a Summer!” with Merula."
+      ],
+      "next": "format"
+    },
+    "events-award": {
+      "tag": "award",
+      "title": "Award and contest",
+      "brief": [
+        "The “Best Openings of the Season” award with open public voting.",
+        "“Yes, Chef!” — a contest and photo project: we chose the most handsome chef in St. Petersburg (2019), then a Women edition and the most influential chef in Moscow (2022)."
+      ],
+      "next": "format"
+    },
+    "events-brand": {
+      "tag": "brands",
+      "title": "Brand special project",
+      "brief": [
+        "Tapas Here with Casademont: nine top chefs from St. Petersburg and Moscow created tapas, with the recipes published in a special project.",
+        "I can come up with a format that works for both the brand and the audience — and then build its interactive part myself."
+      ],
+      "next": "format"
+    },
+    "photo-shoot": {
+      "tag": "shoot",
+      "title": "Photo shoot",
+      "brief": [
+        "Portfolio and bookings — photo.dimazvali.com.",
+        "I wrote the website and the service clients use to receive their photos myself."
+      ],
+      "link": { "href": "https://photo.dimazvali.com", "label": "photo.dimazvali.com" },
+      "next": "format"
+    },
+    "photo-team": {
+      "tag": "photo department",
+      "title": "Photo department",
+      "brief": [
+        "Headed the photo department at Sobaka publishing house: shoots, selection, covers.",
+        "Plus 10 years of managing products and teams — I know how to build the process, not just the picture."
+      ],
+      "next": "format"
+    },
+    "photo-project": {
+      "tag": "photo project",
+      "title": "Photo project",
+      "brief": [
+        "At restorating.ru we ran photo projects: “Yes, Chef!” — portraits of chefs in St. Petersburg and Moscow (2019–2022), “The Secret of Form” — the most striking staff uniforms in St. Petersburg, “What a Summer” — a dozen summer terraces in a single sunny day."
+      ],
+      "next": "format"
+    },
+    "format": {
+      "question": "Last question: what format?",
+      "options": [
+        { "id": "final-fulltime", "label": "A role on the team" },
+        { "id": "final-project", "label": "A project or consulting" },
+        { "id": "final-hello", "label": "Just getting acquainted for now" }
+      ]
+    },
+    "final-fulltime": {
+      "final": true,
+      "tag": "team role",
+      "title": "Team role",
+      "brief": [
+        "Based in Tbilisi: open to office or hybrid here, remote, or relocation."
+      ]
+    },
+    "final-project": {
+      "final": true,
+      "tag": "project",
+      "title": "Project",
+      "brief": [
+        "Since February 2024 I have worked as a product and technology consultant: from interviews and requirements to prototype, development and launch."
+      ]
+    },
+    "final-hello": {
+      "final": true,
+      "tag": "hello",
+      "title": "Hello",
+      "brief": [
+        "Great — drop me a couple of lines about yourself or your task on Telegram, I reply fast."
+      ]
+    }
+  },
+  "contacts": {
+    "pdf": "https://dimazvali.com/cv/CV_Dmitry_Shestakov_en.pdf",
+    "email": "dimazvali@gmail.com",
+    "telegram": "https://t.me/dimazvali"
+  },
+  "STEPS": 3
+}
