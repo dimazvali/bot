@@ -18,6 +18,7 @@ var i18n = require('../lib/photo-i18n');
 var photoVariants = require('../lib/photo-variants');
 var photoTgLogin = require('../lib/photo-tg-login');
 var { userLabel } = require('../lib/photo-downloads');
+var ipInfo = require('../lib/ip-info');
 
 function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -584,7 +585,8 @@ router.get('/shoot/:slug', async (req, res) => {
       var now = Date.now();
       if (!shootNotifLastSent[slug] || now - shootNotifLastSent[slug] > 60 * 60 * 1000) {
         shootNotifLastSent[slug] = now;
-        tgSend('<b>👁 Съёмка открыта</b>\n' + rawShoot.label + '\n/shoot/' + slug);
+        var openedText = '<b>👁 Съёмка открыта</b>\n' + escHtml(rawShoot.label) + '\n/shoot/' + slug;
+        ipInfo.htmlLine(ipInfo.fromReq(req)).then(function(ipLine) { tgSend(openedText + ipLine); });
       }
     }
     var relatedInfo = getRelatedShoots(rawShoot, slug);
