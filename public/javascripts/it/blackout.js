@@ -250,6 +250,45 @@
     bubbleTimer = setTimeout(function () { b.hidden = true; b.classList.remove('out'); }, 260);
   }
 
+  // ── end-of-shift scene: 2 s after game over the screen fades to black, the boiler gets lit,
+  // and the lights flicker back on. A click skips it; a new shift cancels it. ──
+  var endTimers = [];
+  function later(ms, fn) { endTimers.push(setTimeout(fn, ms)); }
+  function clearEnding() {
+    endTimers.forEach(clearTimeout);
+    endTimers = [];
+    $('dark').className = 'dark';
+    $('darkBubble').hidden = true;
+    $('darkBubble').classList.remove('out');
+  }
+  function scheduleEnding() {
+    clearEnding();
+    later(2000, darken);
+  }
+  function darken() {
+    // don't black out someone typing their nickname — try again a bit later
+    if (document.activeElement === $('nickInput')) { later(2000, darken); return; }
+    var dark = $('dark');
+    dark.classList.add('on');
+    later(1600, function () {
+      var b = $('darkBubble');
+      var p = phraseFor('gas'); // ქვაბი დაინთო! — the boiler is lit
+      b.querySelector('.ka').textContent = p.ka;
+      b.querySelector('.pron').textContent = p.pron;
+      b.querySelector('.tr').textContent = p.tr;
+      b.hidden = false;
+      later(2800, function () {
+        b.classList.add('out');
+        later(260, function () {
+          b.hidden = true;
+          dark.classList.add('relight');
+          later(1350, clearEnding);
+        });
+      });
+    });
+  }
+  $('dark').addEventListener('click', clearEnding);
+
   var bannerTimer = 0;
   function banner(text) {
     var b = $('banner');
@@ -389,6 +428,7 @@
   function start() {
     clearBoard();
     hideBubble(true);
+    clearEnding();
     state = newState();
     // a server-signed shift token: without it the score can't go to the table
     var shift = state;
@@ -423,6 +463,7 @@
     $('overText').textContent = fill(UI.stats, { verdict: verdict, level: state.level, fixes: state.fixes })
       + (record ? UI.newRecord : fill(UI.best, { n: best }));
     hideBubble(true);
+    scheduleEnding();
     $('nickForm').hidden = true;
     $('over').hidden = false;
     offerNick({ score: s, level: state.level, fixes: state.fixes, token: state.token });

@@ -143,6 +143,16 @@ html(lang=ui.htmlLang)
       .bubble.out { animation: bubble-out .25s forwards; }
       @keyframes bubble-in { from { transform: scale(.3); opacity: 0; } }
       @keyframes bubble-out { to { transform: scale(.6); opacity: 0; } }
+      .dark { position: fixed; inset: 0; z-index: 20; background: #000; opacity: 0; pointer-events: none; display: flex;
+        align-items: center; justify-content: center; padding: 16px; transition: opacity 1.4s ease-in; }
+      .dark.on { opacity: 1; pointer-events: auto; cursor: pointer; }
+      .dark .bubble { position: relative; max-width: min(360px, 100%); }
+      .dark .bubble .ka { font-size: 26px; }
+      .dark .bubble .tr { font-size: 15px; }
+      /* lights come back like fluorescent tubes: a couple of flickers, then on */
+      .dark.on.relight { animation: relight 1.3s forwards; }
+      @keyframes relight { 0% { opacity: 1; } 12% { opacity: .25; } 20% { opacity: .95; } 34% { opacity: .1; } 42% { opacity: .8; } 100% { opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) { .dark.on.relight { animation: none; opacity: 0; transition: opacity .6s; } }
       .card p.translation { font-family: Lora, Georgia, serif; font-style: italic; font-size: 18px; color: var(--muted); margin-top: 10px; }
       .big { font-family: Oswald, sans-serif; font-size: 64px; font-weight: 700; color: var(--ink); line-height: 1; margin-top: 16px; }
       .banner { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; font-size: 13px;
@@ -323,6 +333,13 @@ html(lang=ui.htmlLang)
       rect(x='29' y='22' width='7' height='40' rx='2' transform='rotate(-35 32 40)' fill='#8a5a2b')
       rect(x='12' y='6' width='34' height='16' rx='2' transform='rotate(-35 32 40)' fill='#15120f')
 
+    //- end-of-shift scene: the screen goes dark, the boiler gets lit, the lights come back
+    div.dark#dark
+      div.bubble#darkBubble(hidden aria-live='polite')
+        div.ka(lang='ka')
+        div.pron
+        div.tr
+
     script.
       window.BLACKOUT_UI = !{uiJson};
-    script(src='/javascripts/it/blackout.js?v=6')
+    script(src='/javascripts/it/blackout.js?v=7')
