@@ -1,12 +1,13 @@
-// "Тбилиси без света" — whack-a-mole on the Tbilisi district map.
+// "Тбилиси без света" / "Tbilisi in the Dark" — whack-a-mole on the Tbilisi district map.
 (function () {
   'use strict';
 
-  var TYPES = {
-    light: { without: 'без света', key: '1' },
-    water: { without: 'без воды', key: '2' },
-    gas: { without: 'без газа', key: '3' },
-  };
+  // all interface strings come from the server in the page language (lib/it-blackout-i18n.js)
+  var UI = window.BLACKOUT_UI;
+  function fill(tpl, vars) { return tpl.replace(/\{(\w+)\}/g, function (m, k) { return vars[k]; }); }
+  function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+
+  var TYPES = { light: { key: '1' }, water: { key: '2' }, gas: { key: '3' } };
   var LIVES = 5;
   var FIXES_PER_LEVEL = 10;
   var RING_R = 24;
@@ -25,12 +26,12 @@
       maxActive: Math.min(9, 1 + level),
     };
   }
-  var LEVEL_NEWS = {
-    2: 'Уровень 2 — отключают чаще',
-    3: 'Новое: отключили воду! Нужен сантехник — кнопка 2',
-    4: 'Уровень 4 — аварии идут пачками',
-    5: 'Новое: газ! Газовщик — кнопка 3',
-  };
+  // Georgian outage phrases for bubbles and the game-over headline. Phrases are tagged by type;
+  // there are no water ones yet, so water falls back to the whole pool.
+  function phraseFor(type) {
+    var own = UI.phrases.filter(function (p) { return p.type === type; });
+    return pick(own.length ? own : UI.phrases);
+  }
 
   var $ = function (id) { return document.getElementById(id); };
   var districtEls = {};
@@ -71,8 +72,8 @@
       var ol = box.querySelector('ol');
       var empty = box.querySelector('.empty');
       ol.innerHTML = '';
-      if (!list) { empty.textContent = 'таблица не загрузилась'; empty.hidden = false; return; }
-      empty.textContent = 'пока пусто — будь первым';
+      if (!list) { empty.textContent = UI.scoresFailed; empty.hidden = false; return; }
+      empty.textContent = UI.scoresEmpty;
       empty.hidden = list.length > 0;
       list.forEach(function (r) {
         var li = document.createElement('li');
@@ -118,16 +119,16 @@
         fetch('/blackout/scores', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ deviceId: deviceId, nick: nick, score: result.score, level: result.level, fixes: result.fixes }),
+          body: JSON.stringify({ deviceId: deviceId, nick: nick, score: result.score, level: result.level, fixes: result.fixes, token: result.token }),
         }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
           .then(function (res) {
-            if (!res.ok) throw new Error(res.j && res.j.error === 'rate' ? 'Слишком часто, попробуй позже' : 'Не получилось сохранить');
+            if (!res.ok) throw new Error(res.j && res.j.error === 'rate' ? UI.errRate : UI.errSave);
             lsSet('blackout-nick', nick);
             form.hidden = true;
             renderScores(res.j.top);
           })
           .catch(function (err) {
-            $('nickErr').textContent = err.message || 'Нет связи';
+            $('nickErr').textContent = err.message || UI.errNet;
             $('nickBtn').disabled = false;
           });
       };
@@ -139,6 +140,7 @@
     return {
       running: true, time: 0, nextSpawn: 600, score: 0, level: 1, fixes: 0, lives: LIVES,
       combo: 0, tool: 'light', unlocked: { light: true }, active: {}, // key "district:type" -> outage
+      lastBubbleAt: -1e9, lastMiss: null,
     };
   }
 
@@ -152,7 +154,7 @@
       for (var i = 0; i < LIVES; i++) lives.appendChild(document.createElement('i'));
     }
     for (var j = 0; j < LIVES; j++) lives.children[j].classList.toggle('off', j >= state.lives);
-    $('combo').textContent = state.combo >= 5 ? '×' + comboMult() + ' комбо' : '';
+    $('combo').textContent = state.combo >= 5 ? fill(UI.combo, { n: comboMult() }) : '';
   }
 
   function comboMult() { return Math.min(4, 1 + Math.floor(state.combo / 5)); }
@@ -215,6 +217,39 @@
     setTimeout(function () { el.classList.remove(cls); }, 650);
   }
 
+  // ── speech bubble over a district (HTML, positioned from SVG coordinates) ──
+  var bubbleTimer = 0;
+  function showBubble(id, type) {
+    var b = $('bubble');
+    var p = phraseFor(type);
+    b.querySelector('.ka').textContent = p.ka;
+    b.querySelector('.pron').textContent = p.pron;
+    b.querySelector('.tr').textContent = p.tr;
+    b.classList.remove('out');
+    b.hidden = false;
+    var svg = $('map');
+    var pt = svg.createSVGPoint();
+    pt.x = centers[id].x; pt.y = centers[id].y - 28;
+    var sp = pt.matrixTransform(svg.getScreenCTM());
+    var box = b.parentNode.getBoundingClientRect();
+    var w = b.offsetWidth, h = b.offsetHeight;
+    var x = sp.x - box.left, y = sp.y - box.top;
+    var left = Math.max(12, Math.min(box.width - w - 12, x - w / 2));
+    b.style.left = left + 'px';
+    b.style.top = Math.max(4, y - h - 14) + 'px';
+    b.style.setProperty('--tail', Math.max(18, Math.min(w - 18, x - left)) + 'px');
+    b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; // replay the pop-in
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(hideBubble, 2600);
+  }
+  function hideBubble(now) {
+    var b = $('bubble');
+    clearTimeout(bubbleTimer);
+    if (now === true || b.hidden) { b.hidden = true; b.classList.remove('out'); return; }
+    b.classList.add('out');
+    bubbleTimer = setTimeout(function () { b.hidden = true; b.classList.remove('out'); }, 260);
+  }
+
   var bannerTimer = 0;
   function banner(text) {
     var b = $('banner');
@@ -265,6 +300,11 @@
     var life = cfg.lifetime * (0.85 + Math.random() * 0.3);
     state.active[pick[0] + ':' + pick[1]] = { id: pick[0], type: pick[1], start: state.time, life: life, el: badge.el, ring: badge.ring };
     renderDistrict(pick[0]);
+    // the first outage always gets a bubble, later ones now and then
+    if (state.time - state.lastBubbleAt > 4000 && (state.lastBubbleAt < 0 || Math.random() < 0.35)) {
+      state.lastBubbleAt = state.time;
+      showBubble(pick[0], pick[1]);
+    }
   }
 
   function removeOutage(key) {
@@ -291,7 +331,7 @@
       if (state.fixes % FIXES_PER_LEVEL === 0) levelUp();
     } else if (outagesIn(id).length) {
       state.combo = 0;
-      floatText(id, 'не тот мастер', 'var(--bad)');
+      floatText(id, UI.wrongCrew, 'var(--bad)');
     } else {
       state.combo = 0;
     }
@@ -301,15 +341,16 @@
   function levelUp() {
     state.level++;
     unlockTypes();
-    banner(LEVEL_NEWS[state.level] || ('Уровень ' + state.level + ' — держись'));
+    banner(UI.levelNews[state.level] || fill(UI.levelDefault, { n: state.level }));
   }
 
   function expire(key) {
     var o = removeOutage(key);
+    state.lastMiss = o.type;
     state.lives--;
     state.combo = 0;
     flash(o.id, 'missed');
-    floatText(o.id, TYPES[o.type].without, 'var(--bad)');
+    floatText(o.id, UI.without[o.type], 'var(--bad)');
     renderHud();
     if (state.lives <= 0) gameOver();
   }
@@ -347,13 +388,20 @@
 
   function start() {
     clearBoard();
+    hideBubble(true);
     state = newState();
+    // a server-signed shift token: without it the score can't go to the table
+    var shift = state;
+    fetch('/blackout/session', { method: 'POST' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) { if (j && j.token) shift.token = j.token; })
+      .catch(function () { /* offline: the game still works, the score just won't be saved */ });
     resetTools();
     renderHud();
     $('start').hidden = true;
     $('over').hidden = true;
     document.body.classList.add('playing');
-    banner('Отключают свет. Успевай!');
+    banner(UI.startBanner);
     lastTs = 0;
     if (!rafId) rafId = requestAnimationFrame(tick);
   }
@@ -365,13 +413,19 @@
     var record = state.score > best;
     if (record) writeBest(state.score);
     var s = state.score;
-    $('overTitle').textContent = s < 400 ? 'Город встал' : s < 1500 ? 'Ну, бывало и хуже' : s < 4000 ? 'Почти как в Европе' : 'Тбилиси светится';
+    // headline: a Georgian phrase matching the outage that cost the last bit of patience
+    var outro = phraseFor(state.lastMiss);
+    $('overTitle').textContent = outro.ka;
+    $('overPron').textContent = outro.pron;
+    $('overSub').textContent = outro.tr;
     $('finalScore').textContent = s;
-    $('overText').textContent = 'Уровень ' + state.level + ', починено аварий: ' + state.fixes + '. '
-      + (record ? 'Новый рекорд!' : 'Рекорд: ' + best + '.');
+    var verdict = UI.verdicts[s < 400 ? 0 : s < 1500 ? 1 : s < 4000 ? 2 : 3];
+    $('overText').textContent = fill(UI.stats, { verdict: verdict, level: state.level, fixes: state.fixes })
+      + (record ? UI.newRecord : fill(UI.best, { n: best }));
+    hideBubble(true);
     $('nickForm').hidden = true;
     $('over').hidden = false;
-    offerNick({ score: s, level: state.level, fixes: state.fixes });
+    offerNick({ score: s, level: state.level, fixes: state.fixes, token: state.token });
     if (window.gtag) window.gtag('event', 'blackout_over', { score: s, level: state.level });
   }
 

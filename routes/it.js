@@ -112,12 +112,24 @@ router.get('/cv', async function(req, res, next) {
 
 // Mini-game: whack-a-mole on the Tbilisi district map (district outlines from OSM)
 var tbilisiMap = require('../lib/it-tbilisi-districts.json');
+var blackoutUi = require('../lib/it-blackout-i18n');
 router.get('/blackout', function(req, res) {
+  var lang = cvLang(req); // same language rules as the CV page
+  var ui = blackoutUi(lang);
   res.set('Cache-Control', 'public, max-age=300');
-  res.render('it/blackout', { map: tbilisiMap });
+  res.vary('Accept-Language');
+  res.render('it/blackout', {
+    map: tbilisiMap, lang: lang, ui: ui,
+    uiJson: JSON.stringify(ui.js).replace(/</g, '\\u003c'),
+  });
 });
 
-var blackoutScores = require('../lib/it-blackout-scores').init(fb);
+// shift tokens are HMAC-signed; the secret is derived from the service-account key unless set explicitly
+// (with neither, a per-process random secret: tokens just stop working after a restart)
+var blackoutSecret = process.env.BLACKOUT_SECRET
+  || (process.env.sssGCPKey && require('crypto').createHash('sha256').update('blackout:' + process.env.sssGCPKey).digest('hex'))
+  || require('crypto').randomBytes(32).toString('hex');
+var blackoutScores = require('../lib/it-blackout-scores').init(fb, blackoutSecret);
 router.get('/blackout/scores', async function(req, res, next) {
   try {
     res.set('Cache-Control', 'no-store');
@@ -137,6 +149,19 @@ function scoreRateOk(ip) {
   return true;
 }
 
+// a token per shift, requested when the game starts
+var sessionHits = new Map();
+router.post('/blackout/session', function(req, res) {
+  var now = Date.now();
+  var hits = (sessionHits.get(req.ip) || []).filter(function(t) { return now - t < 60 * 1000; });
+  if (hits.length >= 30) return res.status(429).json({ error: 'rate' });
+  hits.push(now);
+  sessionHits.set(req.ip, hits);
+  if (sessionHits.size > 5000) sessionHits.clear();
+  res.set('Cache-Control', 'no-store');
+  res.json(blackoutScores.newSession());
+});
+
 router.post('/blackout/scores', express.json({ limit: '2kb' }), async function(req, res, next) {
   try {
     if (!scoreRateOk(req.ip)) return res.status(429).json({ error: 'rate' });
@@ -155,7 +180,8 @@ router.get('/sitemap.xml', async function(req, res) {
       + '  <url><loc>' + base + '/</loc></url>\n'
       + '  <url><loc>' + base + '/cv</loc></url>\n'
       + '  <url><loc>' + base + '/cv?lang=en</loc></url>\n'
-      + '  <url><loc>' + base + '/blackout</loc></url>\n';
+      + '  <url><loc>' + base + '/blackout</loc></url>\n'
+      + '  <url><loc>' + base + '/blackout?lang=en</loc></url>\n';
     for (var p of projects) {
       if (p.slug && p.full) {
         xml += '  <url><loc>' + base + '/' + p.slug + '</loc></url>\n';

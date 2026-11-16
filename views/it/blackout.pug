@@ -1,16 +1,20 @@
 doctype html
-html(lang='ru')
+html(lang=ui.htmlLang)
   head
     meta(charset='utf-8')
     meta(name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1')
-    title Тбилиси без света — it.dimazvali.com
-    meta(name='description' content='Мини-игра: по районам Тбилиси отключают свет, воду и газ. Успей прислать нужного мастера, пока терпение горожан не кончилось.')
-    meta(property='og:title' content='Тбилиси без света')
-    meta(property='og:description' content='Свет, вода, газ — успей починить, пока город не взорвался.')
+    title= ui.title
+    meta(name='description' content=ui.description)
+    meta(property='og:title' content=ui.ogTitle)
+    meta(property='og:description' content=ui.ogDescription)
+    link(rel='canonical' href='https://it.dimazvali.com/blackout?lang=' + lang)
+    link(rel='alternate' hreflang='ru' href='https://it.dimazvali.com/blackout?lang=ru')
+    link(rel='alternate' hreflang='en' href='https://it.dimazvali.com/blackout?lang=en')
+    link(rel='alternate' hreflang='x-default' href='https://it.dimazvali.com/blackout')
     link(rel='icon' type='image/x-icon' href='/images/dimazvali/favicon.ico')
     link(rel='preconnect' href='https://fonts.googleapis.com')
     link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
-    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Lora:ital,wght@1,500;1,600&family=JetBrains+Mono:wght@400;700&display=swap' rel='stylesheet')
+    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Noto+Sans+Georgian:wght@800&family=Lora:ital,wght@1,500;1,600&family=JetBrains+Mono:wght@400;700&display=swap' rel='stylesheet')
     script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
     script.
       window.dataLayer = window.dataLayer || [];
@@ -52,7 +56,7 @@ html(lang='ru')
       @keyframes fixed { 0% { fill: #fff; } }
       .label { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; fill: var(--ink); text-anchor: middle; pointer-events: none;
         letter-spacing: .14em; text-transform: uppercase; paint-order: stroke; stroke: var(--land); stroke-width: 4px; stroke-linejoin: round; transition: fill .25s, stroke .25s; }
-      .label.on { fill: var(--paper); stroke: transparent; }
+      .label.on { fill: var(--paper); stroke: var(--ink); }
       /* topography: old-map style, never intercepts taps */
       .topo, .topo-labels, .furniture { pointer-events: none; }
       .lake { fill: var(--lake); stroke: var(--river-ink); stroke-width: 1.5; }
@@ -122,6 +126,24 @@ html(lang='ru')
       .legend .l::before { background: var(--light); } .legend .w::before { background: var(--water); } .legend .g::before { background: var(--gas); }
       .btn { margin-top: 26px; border: 0; background: var(--ink); color: var(--paper); font: inherit; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; padding: 16px 30px; cursor: pointer; }
       .btn:hover { background: #2c2722; }
+      .card h1.ka { font-family: 'Noto Sans Georgian', Oswald, sans-serif; text-transform: none; font-size: clamp(24px, 5.6vw, 44px); line-height: 1.15; letter-spacing: 0; overflow-wrap: anywhere; }
+      .nav { display: flex; gap: 18px; align-items: baseline; }
+      .switch { font-size: 12px; letter-spacing: .08em; border-bottom: 1px solid currentColor; }
+      .card p.pron { font-size: 13px; letter-spacing: .04em; color: var(--faint); margin-top: 10px; }
+      .card p.pron + p.translation { margin-top: 4px; }
+      .bubble { position: absolute; z-index: 3; pointer-events: none; max-width: min(300px, calc(100% - 24px)); background: #fff; color: var(--ink);
+        border: 2px solid var(--ink); border-radius: 14px; padding: 9px 13px 10px; box-shadow: 4px 4px 0 var(--ink); transform-origin: 50% 100%;
+        animation: bubble-in .22s cubic-bezier(.3, 1.6, .5, 1); }
+      .bubble[hidden] { display: none; }
+      .bubble::after { content: ''; position: absolute; left: var(--tail, 50%); bottom: -11px; width: 16px; height: 16px; background: #fff;
+        border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
+      .bubble .ka { font-family: 'Noto Sans Georgian', sans-serif; font-weight: 800; font-size: 18px; line-height: 1.2; }
+      .bubble .pron { font-size: 11px; color: var(--faint); margin-top: 3px; }
+      .bubble .tr { font-family: Lora, Georgia, serif; font-style: italic; font-size: 13px; color: var(--muted); }
+      .bubble.out { animation: bubble-out .25s forwards; }
+      @keyframes bubble-in { from { transform: scale(.3); opacity: 0; } }
+      @keyframes bubble-out { to { transform: scale(.6); opacity: 0; } }
+      .card p.translation { font-family: Lora, Georgia, serif; font-style: italic; font-size: 18px; color: var(--muted); margin-top: 10px; }
       .big { font-family: Oswald, sans-serif; font-size: 64px; font-weight: 700; color: var(--ink); line-height: 1; margin-top: 16px; }
       .banner { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; font-size: 13px;
         letter-spacing: .04em; max-width: calc(100% - 32px); text-align: center; z-index: 4; transition: opacity .3s; pointer-events: none; }
@@ -145,14 +167,16 @@ html(lang='ru')
   body
     header
       a.logo(href='/') it.dimazvali.com
-      a.back(href='/') ← проекты
+      span.nav
+        a.switch(href=ui.switchHref hreflang=ui.switchLabel.toLowerCase() lang=ui.switchLabel.toLowerCase())= ui.switchLabel
+        a.back(href='/')= ui.back
 
     div.hud
-      span Счёт
+      span= ui.score
         b#score 0
-      span Уровень
+      span= ui.level
         b#level 1
-      span Терпение
+      span= ui.patience
         span.lives#lives
           i
           i
@@ -215,16 +239,16 @@ html(lang='ru')
             if l.id === 'sea'
               //- the reservoir is long and thin: name it beside its east shore, in two lines
               text.water-label.big(x=l.box[2] + 4 y=(l.box[1] + l.box[3]) / 2 text-anchor='start')
-                tspan Тбилисское
-                tspan(x=l.box[2] + 4 dy='1.2em') море
+                tspan= ui.sea[0]
+                tspan(x=l.box[2] + 4 dy='1.2em')= ui.sea[1]
             else
-              text.water-label(x=(l.box[0] + l.box[2]) / 2 y=l.box[3] + 15)= l.name
+              text.water-label(x=(l.box[0] + l.box[2]) / 2 y=l.box[3] + 15)= ui.place(l.name)
           each r in t.riverLabels
-            text.water-label.river-label(transform='translate(' + r.x + ' ' + r.y + ') rotate(' + r.rot + ')' y='-9')= r.text
+            text.water-label.river-label(transform='translate(' + r.x + ' ' + r.y + ') rotate(' + r.rot + ')' y='-9')= ui.place(r.text)
           each p in t.peaks
             if p.label
-              text.relief-label(x=p.x - 14 y=p.y + 4 text-anchor='end')= p.label
-          text.relief-label(x=t.castle.x + 14 y=t.castle.y + 2 text-anchor='start')= t.castle.label
+              text.relief-label(x=p.x - 14 y=p.y + 4 text-anchor='end')= ui.place(p.label)
+          text.relief-label(x=t.castle.x + 14 y=t.castle.y + 2 text-anchor='start')= ui.place(t.castle.label)
         //- map furniture: double frame and a compass rose in the empty north-west corner
         g.furniture(aria-hidden='true')
           rect.frame(x=-F y=-F width=map.w + 2 * F height=map.h + 2 * F)
@@ -234,13 +258,13 @@ html(lang='ru')
             circle(r='22')
             path.star(d='M0-40 5-5 40 0 5 5 0 40-5 5-40 0-5-5Z')
             path.star-dark(d='M0-40 5-5 0 0ZM40 0 5 5 0 0ZM0 40-5 5 0 0ZM-40 0-5-5 0 0Z')
-            text(y='-46') С
+            text(y='-46')= ui.north
         g#labels
           //- Didube is a thin strip next to Nadzaladevi: nudge both names apart
           - var nudge = { didube: [-6, -30], nadzaladevi: [18, 0] }
           each d in map.districts
             - var n = nudge[d.id] || [0, 0]
-            text.label(id='l-' + d.id x=d.cx + n[0] y=d.cy + 46 + n[1] data-cx=d.cx data-cy=d.cy)= d.name
+            text.label(id='l-' + d.id x=d.cx + n[0] y=d.cy + 46 + n[1] data-cx=d.cx data-cy=d.cy)= ui.place(d.name)
         g#badges
         g#fx
 
@@ -248,54 +272,57 @@ html(lang='ru')
 
       div.overlay#start
         div.card
-          h1 Тбилиси
+          h1= ui.startTitle[0]
             br
-            | без света
-          p По районам отключают свет. Тапай по району, чтобы прислать мастера, — пока кольцо не догорело. Пропустишь — горожане теряют терпение.
-          p Дальше — чаще. А потом добавятся вода и газ, и мастера придётся выбирать.
+            = ui.startTitle[1]
+          p= ui.startP1
+          p= ui.startP2
           div.legend
-            span.l свет
-            span.w вода
-            span.g газ
-          button.btn#startBtn Начать смену
+            span.l= ui.legend.light
+            span.w= ui.legend.water
+            span.g= ui.legend.gas
+          button.btn#startBtn= ui.startBtn
           div.scores
-            h2 Лучшие смены
+            h2= ui.scoresTitle
             ol.scoreList
-            div.empty загружаем…
+            div.empty= ui.loading
 
       div.overlay#over(hidden)
         div.card
-          h1#overTitle Город встал
+          h1.ka#overTitle(lang='ka')
+          p.pron#overPron
+          p.translation#overSub
           div.big#finalScore 0
           p#overText
           form.nickform#nickForm(hidden autocomplete='off')
-            label(for='nickInput') Ты в топ-10! Как тебя записать?
+            label(for='nickInput')= ui.nickLabel
             div.row
-              input#nickInput(maxlength='20' placeholder='ник' required enterkeyhint='done')
-              button#nickBtn(type='submit') В таблицу
+              input#nickInput(maxlength='20' placeholder=ui.nickPlaceholder required enterkeyhint='done')
+              button#nickBtn(type='submit')= ui.nickBtn
             div.err#nickErr
-          button.btn#againBtn Ещё смена
+          button.btn#againBtn= ui.againBtn
           div.scores
-            h2 Лучшие смены
+            h2= ui.scoresTitle
             ol.scoreList
-            div.empty загружаем…
+            div.empty= ui.loading
+
+      //- speech bubble with a Georgian outage phrase, placed over a district by the script
+      div.bubble#bubble(hidden aria-live='polite')
+        div.ka(lang='ka')
+        div.pron
+        div.tr
 
     div.tools#tools
-      button.tool.active(data-type='light')
-        svg: use(href='#i-light')
-        span.name электрик
-        kbd 1
-      button.tool(data-type='water' hidden)
-        svg: use(href='#i-water')
-        span.name сантехник
-        kbd 2
-      button.tool(data-type='gas' hidden)
-        svg: use(href='#i-gas')
-        span.name газовщик
-        kbd 3
+      each type, i in ['light', 'water', 'gas']
+        button.tool(data-type=type hidden=i > 0 class=i === 0 ? 'active' : '')
+          svg: use(href='#i-' + type)
+          span.name= ui.tools[type]
+          kbd= i + 1
 
     svg.hammer#hammer(viewBox='0 0 64 64' aria-hidden='true')
       rect(x='29' y='22' width='7' height='40' rx='2' transform='rotate(-35 32 40)' fill='#8a5a2b')
       rect(x='12' y='6' width='34' height='16' rx='2' transform='rotate(-35 32 40)' fill='#15120f')
 
-    script(src='/javascripts/it/blackout.js?v=3')
+    script.
+      window.BLACKOUT_UI = !{uiJson};
+    script(src='/javascripts/it/blackout.js?v=6')
