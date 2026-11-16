@@ -410,7 +410,7 @@
     rafId = requestAnimationFrame(tick);
     var dt = Math.min(100, ts - (lastTs || ts));
     lastTs = ts;
-    if (!state || !state.running) return;
+    if (!state || !state.running || portraitPhone.matches) return; // paused while the "turn your phone" screen is up
     state.time += dt;
 
     if (state.time >= state.nextSpawn) {
@@ -437,7 +437,23 @@
     });
   }
 
+  // ── orientation: phones play in landscape. Where the browser allows it (Android Chrome),
+  // go fullscreen and lock landscape; elsewhere (iPhone) the CSS "turn your phone" screen
+  // covers the game, and the game clock stops while it's up. Same query as the CSS. ──
+  var portraitPhone = window.matchMedia('(pointer: coarse) and (orientation: portrait) and (max-width: 600px)');
+  var touchDevice = window.matchMedia('(pointer: coarse)');
+  var canFullscreen = !!(document.documentElement.requestFullscreen && window.screen && screen.orientation && screen.orientation.lock);
+  function lockLandscape() {
+    if (!canFullscreen || !touchDevice.matches) return;
+    var go = document.fullscreenElement ? Promise.resolve() : document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    go.then(function () { return screen.orientation.lock('landscape'); })
+      .catch(function () { /* not allowed here: the rotate screen still asks the player */ });
+  }
+  $('rotateBtn').hidden = !canFullscreen;
+  $('rotateBtn').addEventListener('click', lockLandscape);
+
   function start() {
+    lockLandscape(); // runs inside the tap on "start", which fullscreen requires
     clearBoard();
     hideBubble(true);
     clearEnding();
