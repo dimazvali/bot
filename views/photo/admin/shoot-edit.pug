@@ -60,6 +60,18 @@ block content
       label.admin-tag-check
         input(type='checkbox' name='showInstagramCard' checked=shoot.showInstagramCard !== false)
         span показывать плитку «до встречи в инстаграм» среди фото
+      p.admin-hint УВЕДОМЛЕНИЯ О СКАЧИВАНИЯХ В TELEGRAM — ники через запятую или пробел (вам они приходят всегда). Человек должен хотя бы раз нажать Start в @dimazvalibot, иначе бот не может ему писать:
+      - var watchers = shoot.downloadWatchers || []
+      input.admin-input(type='text' name='downloadWatchers' value=watchers.map(function(w) { return '@' + w.username; }).join(', ') placeholder='@nick1, @nick2')
+      if watchers.length
+        p.admin-hint
+          each w, i in watchers
+            if i
+              | ,&nbsp;
+            if w.tgId
+              span(style='color:var(--accent, #6c6)') ✓ @#{w.username}#{w.name ? ' (' + w.name + ')' : ''}
+            else
+              span(style='color:#e66' title='не найден среди пользователей бота — пусть нажмёт Start в @dimazvalibot, потом сохраните съёмку ещё раз') ✗ @#{w.username} — не запускал бота
       if tags && Object.keys(tags).length
         p.admin-hint ТЕГИ (публичная съёмка с тегом показывается блоком на странице тега):
         +tagPicker(tags, shoot.tags, tagUsage)

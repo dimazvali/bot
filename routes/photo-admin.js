@@ -16,6 +16,7 @@ var mailer = require('../lib/photo-mailer');
 var copyright = require('../lib/photo-copyright');
 var adminNav = require('../lib/photo-admin-nav');
 var photoDownloads = require('../lib/photo-downloads'); // initialised by routes/photo-v2.js (same process)
+var downloadWatchersLib = require('../lib/photo-download-watchers');
 var copyrightCheck = require('../lib/photo-copyright-check');
 var shoots = require('../lib/photo-shoots');
 var storageCache = require('../lib/storage-cache');
@@ -1224,7 +1225,9 @@ router.post('/shoots/:slug/edit', requireAuth, express.urlencoded({ extended: fa
   var knownTags = getTags();
   var rawTags = req.body.tags ? (Array.isArray(req.body.tags) ? req.body.tags : [req.body.tags]) : [];
   try {
+    var downloadWatchers = await downloadWatchersLib.resolve(fb, downloadWatchersLib.parseNicks(req.body.downloadWatchers), shoot.downloadWatchers);
     await shoots.saveShoot(slug, {
+      downloadWatchers: downloadWatchers,
       tags: rawTags.filter(function(t) { return knownTags[t]; }),
       label: label.trim(),
       label_en: (label_en || '').trim(),
