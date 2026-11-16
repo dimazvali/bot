@@ -21,7 +21,7 @@ html(lang='ru')
       :root {
         --paper: #f4f1ea; --ink: #15120f; --muted: #56514a; --faint: #9a948b; --line: #c8c3b8;
         --land: #e6e1d6; --land-hover: #dcd5c6;
-        --light: #15120f; --light-glow: #f2c230;
+        --light: #15120f; --light-glow: #f2c230; --light-ico: #e3a300;
         --water: #3f7fd6; --gas: #e2632b; --bad: #c9302c;
       }
       *, *::before, *::after { box-sizing: border-box; }
@@ -56,6 +56,9 @@ html(lang='ru')
       .badge .ring { fill: none; stroke-width: 5; stroke-linecap: round; transform: rotate(-90deg); }
       .badge.light .ring { stroke: var(--light-glow); } .badge.water .ring { stroke: var(--water); } .badge.gas .ring { stroke: var(--gas); }
       .badge .ico { fill: var(--ink); }
+      .badge.light .ico, .tool[data-type='light'] svg { fill: var(--light-ico); }
+      .badge.water .ico, .tool[data-type='water'] svg { fill: var(--water); }
+      .badge.gas .ico, .tool[data-type='gas'] svg { fill: var(--gas); }
       .badge .pop { animation: pop .25s ease-out; transform-box: fill-box; transform-origin: center; }
       @keyframes pop { from { transform: scale(0); } }
       .float { font-family: Oswald, sans-serif; font-size: 26px; font-weight: 700; text-anchor: middle; pointer-events: none; animation: float .8s ease-out forwards; }
@@ -70,9 +73,27 @@ html(lang='ru')
       .tool[hidden] { display: none; }
       .tool.new { animation: blink .5s 4; }
       @keyframes blink { 50% { background: var(--light-glow); color: var(--ink); } }
-      .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(244, 241, 234, .9); padding: 16px; z-index: 5; }
+      .overlay { position: absolute; inset: 0; display: flex; justify-content: center; background: rgba(244, 241, 234, .92); padding: 16px; z-index: 5; overflow-y: auto; }
       .overlay[hidden] { display: none; }
-      .card { max-width: 520px; text-align: center; }
+      .card { max-width: 520px; width: 100%; text-align: center; margin: auto; }
+      .scores { margin: 28px auto 0; max-width: 360px; text-align: left; }
+      .scores h2 { font-family: Oswald, sans-serif; font-weight: 500; font-size: 14px; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); margin: 0 0 8px; text-align: center; }
+      .scores ol { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+      .scores li { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 8px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+      .scores li .n { color: var(--faint); }
+      .scores li .nick { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .scores li .s { font-weight: 700; font-variant-numeric: tabular-nums; }
+      .scores li.me { background: var(--ink); color: var(--paper); }
+      .scores li.me .n { color: var(--line); }
+      .scores .empty { font-size: 12px; color: var(--faint); text-align: center; padding: 8px 0; }
+      .nickform { margin: 22px auto 0; max-width: 360px; }
+      .nickform[hidden] { display: none; }
+      .nickform label { display: block; font-size: 13px; color: var(--ink); margin-bottom: 10px; }
+      .nickform .row { display: flex; }
+      .nickform input { flex: 1; min-width: 0; border: 2px solid var(--ink); background: #fff; font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 0; color: var(--ink); -webkit-user-select: text; user-select: text; }
+      .nickform button { border: 0; background: var(--gas); color: #fff; font: inherit; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; padding: 0 16px; cursor: pointer; }
+      .nickform button:disabled { opacity: .5; cursor: default; }
+      .nickform .err { font-size: 12px; color: var(--bad); margin-top: 6px; min-height: 1em; }
       .card h1 { font-family: Oswald, sans-serif; font-weight: 700; text-transform: uppercase; font-size: clamp(40px, 9vw, 76px); line-height: .92; margin: 0; }
       .card p { font-size: 14px; line-height: 1.6; color: var(--muted); margin: 18px 0 0; }
       .legend { display: flex; justify-content: center; gap: 16px; margin-top: 18px; font-size: 12px; color: var(--muted); }
@@ -148,13 +169,27 @@ html(lang='ru')
             span.w вода
             span.g газ
           button.btn#startBtn Начать смену
+          div.scores
+            h2 Лучшие смены
+            ol.scoreList
+            div.empty загружаем…
 
       div.overlay#over(hidden)
         div.card
           h1#overTitle Город встал
           div.big#finalScore 0
           p#overText
+          form.nickform#nickForm(hidden autocomplete='off')
+            label(for='nickInput') Ты в топ-10! Как тебя записать?
+            div.row
+              input#nickInput(maxlength='20' placeholder='ник' required enterkeyhint='done')
+              button#nickBtn(type='submit') В таблицу
+            div.err#nickErr
           button.btn#againBtn Ещё смена
+          div.scores
+            h2 Лучшие смены
+            ol.scoreList
+            div.empty загружаем…
 
     div.tools#tools
       button.tool.active(data-type='light')
@@ -174,4 +209,4 @@ html(lang='ru')
       rect(x='29' y='22' width='7' height='40' rx='2' transform='rotate(-35 32 40)' fill='#8a5a2b')
       rect(x='12' y='6' width='34' height='16' rx='2' transform='rotate(-35 32 40)' fill='#15120f')
 
-    script(src='/javascripts/it/blackout.js?v=1')
+    script(src='/javascripts/it/blackout.js?v=2')

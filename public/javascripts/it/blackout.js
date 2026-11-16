@@ -51,8 +51,89 @@
   var rafId = 0;
   var lastTs = 0;
 
-  function readBest() { try { return +localStorage.getItem('blackout-best') || 0; } catch (e) { return 0; } }
-  function writeBest(v) { try { localStorage.setItem('blackout-best', String(v)); } catch (e) { /* private mode */ } }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+  function readBest() { return +lsGet('blackout-best') || 0; }
+  function writeBest(v) { lsSet('blackout-best', String(v)); }
+
+  // ── high scores (server-side top-10, one row per device) ──
+  var deviceId = lsGet('blackout-device');
+  if (!deviceId || !/^[A-Za-z0-9-]{16,64}$/.test(deviceId)) {
+    deviceId = window.crypto && crypto.randomUUID ? crypto.randomUUID()
+      : 'd-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+    lsSet('blackout-device', deviceId);
+  }
+  var topList = null; // last fetched top-10
+
+  function renderScores(list) {
+    topList = list;
+    document.querySelectorAll('.scores').forEach(function (box) {
+      var ol = box.querySelector('ol');
+      var empty = box.querySelector('.empty');
+      ol.innerHTML = '';
+      if (!list) { empty.textContent = 'таблица не загрузилась'; empty.hidden = false; return; }
+      empty.textContent = 'пока пусто — будь первым';
+      empty.hidden = list.length > 0;
+      list.forEach(function (r) {
+        var li = document.createElement('li');
+        if (r.me) li.className = 'me';
+        [['n', r.rank], ['nick', r.nick], ['s', r.score]].forEach(function (c) {
+          var span = document.createElement('span');
+          span.className = c[0];
+          span.textContent = c[1];
+          li.appendChild(span);
+        });
+        ol.appendChild(li);
+      });
+    });
+  }
+
+  function fetchScores() {
+    return fetch('/blackout/scores?d=' + encodeURIComponent(deviceId), { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) { renderScores(j.top); return j.top; })
+      .catch(function () { renderScores(null); return null; });
+  }
+
+  function qualifies(list, score) {
+    if (!list || score <= 0) return false;
+    var mine = list.filter(function (r) { return r.me; })[0];
+    if (mine && mine.score >= score) return false; // this device already has a better row
+    return list.length < 10 || score > list[list.length - 1].score;
+  }
+
+  function offerNick(result) {
+    fetchScores().then(function (list) {
+      if (!qualifies(list, result.score)) return;
+      var form = $('nickForm');
+      $('nickInput').value = lsGet('blackout-nick') || '';
+      $('nickErr').textContent = '';
+      $('nickBtn').disabled = false;
+      form.hidden = false;
+      form.onsubmit = function (e) {
+        e.preventDefault();
+        var nick = $('nickInput').value.trim();
+        if (!nick) return;
+        $('nickBtn').disabled = true;
+        fetch('/blackout/scores', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId: deviceId, nick: nick, score: result.score, level: result.level, fixes: result.fixes }),
+        }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (res) {
+            if (!res.ok) throw new Error(res.j && res.j.error === 'rate' ? 'Слишком часто, попробуй позже' : 'Не получилось сохранить');
+            lsSet('blackout-nick', nick);
+            form.hidden = true;
+            renderScores(res.j.top);
+          })
+          .catch(function (err) {
+            $('nickErr').textContent = err.message || 'Нет связи';
+            $('nickBtn').disabled = false;
+          });
+      };
+      if (window.matchMedia('(hover: hover)').matches) $('nickInput').focus();
+    });
+  }
 
   function newState() {
     return {
@@ -288,7 +369,9 @@
     $('finalScore').textContent = s;
     $('overText').textContent = 'Уровень ' + state.level + ', починено аварий: ' + state.fixes + '. '
       + (record ? 'Новый рекорд!' : 'Рекорд: ' + best + '.');
+    $('nickForm').hidden = true;
     $('over').hidden = false;
+    offerNick({ score: s, level: state.level, fixes: state.fixes });
     if (window.gtag) window.gtag('event', 'blackout_over', { score: s, level: state.level });
   }
 
@@ -301,6 +384,7 @@
     b.addEventListener('click', function () { setTool(b.getAttribute('data-type')); });
   });
   document.addEventListener('keydown', function (e) {
+    if (e.target && e.target.tagName === 'INPUT') return; // typing a nick
     for (var t in TYPES) if (e.key === TYPES[t].key) setTool(t);
     if ((e.key === 'Enter' || e.key === ' ') && (!state || !state.running)) { e.preventDefault(); start(); }
   });
@@ -327,5 +411,6 @@
 
   $('startBtn').addEventListener('click', start);
   $('againBtn').addEventListener('click', start);
+  fetchScores();
   rafId = requestAnimationFrame(tick);
 })();

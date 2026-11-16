@@ -117,6 +117,35 @@ router.get('/blackout', function(req, res) {
   res.render('it/blackout', { map: tbilisiMap });
 });
 
+var blackoutScores = require('../lib/it-blackout-scores').init(fb);
+router.get('/blackout/scores', async function(req, res, next) {
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json({ top: await blackoutScores.top(String(req.query.d || '')) });
+  } catch (e) { next(e); }
+});
+
+// naive per-IP limiter: plenty for honest play, stops a script from flooding the table
+var scoreHits = new Map();
+function scoreRateOk(ip) {
+  var now = Date.now();
+  var hits = (scoreHits.get(ip) || []).filter(function(t) { return now - t < 10 * 60 * 1000; });
+  if (hits.length >= 20) return false;
+  hits.push(now);
+  scoreHits.set(ip, hits);
+  if (scoreHits.size > 5000) scoreHits.clear();
+  return true;
+}
+
+router.post('/blackout/scores', express.json({ limit: '2kb' }), async function(req, res, next) {
+  try {
+    if (!scoreRateOk(req.ip)) return res.status(429).json({ error: 'rate' });
+    var result = await blackoutScores.submit(req.body);
+    if (result.error) return res.status(400).json(result);
+    res.json({ ok: true, improved: result.improved, top: await blackoutScores.top(req.body.deviceId) });
+  } catch (e) { next(e); }
+});
+
 router.get('/sitemap.xml', async function(req, res) {
   var base = 'https://it.dimazvali.com';
   try {
