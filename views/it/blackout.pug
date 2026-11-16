@@ -127,6 +127,14 @@ html(lang=ui.htmlLang)
       .btn { margin-top: 26px; border: 0; background: var(--ink); color: var(--paper); font: inherit; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; padding: 16px 30px; cursor: pointer; }
       .btn:hover { background: #2c2722; }
       .card h1.ka { font-family: 'Noto Sans Georgian', Oswald, sans-serif; text-transform: none; font-size: clamp(24px, 5.6vw, 44px); line-height: 1.15; letter-spacing: 0; overflow-wrap: anywhere; }
+      .cv-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 360px; margin: 22px auto 0;
+        padding: 14px 18px; border: 2px solid var(--ink); text-align: left; transition: background .15s, color .15s; }
+      .cv-link:hover { background: var(--ink); color: var(--paper); }
+      .cv-link-text { display: flex; flex-direction: column; gap: 4px; }
+      .cv-link-eyebrow { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--faint); }
+      .cv-link-title { font-family: Oswald, sans-serif; font-weight: 500; font-size: 19px; line-height: 1.15; }
+      .cv-link-arrow { font-family: Oswald, sans-serif; font-size: 30px; line-height: 1; transition: transform .15s; }
+      .cv-link:hover .cv-link-arrow { transform: translateX(4px); }
       .nav { display: flex; gap: 18px; align-items: baseline; }
       .switch { font-size: 12px; letter-spacing: .08em; border-bottom: 1px solid currentColor; }
       .card p.pron { font-size: 13px; letter-spacing: .04em; color: var(--faint); margin-top: 10px; }
@@ -311,6 +319,12 @@ html(lang=ui.htmlLang)
               button#nickBtn(type='submit')= ui.nickBtn
             div.err#nickErr
           button.btn#againBtn= ui.againBtn
+          //- game traffic → CV, in the language the game is shown in
+          a.cv-link(href=ui.cvHref onclick="if (window.gtag) gtag('event', 'cv_banner_click', { from: 'blackout_over', lang: '" + lang + "' });")
+            span.cv-link-text
+              span.cv-link-eyebrow= ui.cvEyebrow
+              span.cv-link-title= ui.cvTitle
+            span.cv-link-arrow →
           div.scores
             h2= ui.scoresTitle
             ol.scoreList
