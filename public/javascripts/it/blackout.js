@@ -430,6 +430,7 @@
     hideBubble(true);
     clearEnding();
     state = newState();
+    if (window.gtag) window.gtag('event', 'blackout_start', { lang: document.documentElement.lang });
     // a server-signed shift token: without it the score can't go to the table
     var shift = state;
     fetch('/blackout/session', { method: 'POST' })

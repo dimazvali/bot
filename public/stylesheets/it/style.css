@@ -71,6 +71,59 @@ body {
 }
 
 /* ── FILTER ── */
+/* ── CV BANNER ── */
+.cv-banner-section {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 28px clamp(28px, 4vw, 48px);
+}
+
+.cv-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: clamp(20px, 3vw, 32px) clamp(20px, 3vw, 36px);
+  background: #15120f;
+  color: #f4f1ea;
+  transition: background .2s;
+}
+
+.cv-banner:hover { background: #2c2722; }
+
+.cv-banner-text { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.cv-banner-eyebrow {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: #9a948b;
+}
+
+.cv-banner-title {
+  font-family: "Oswald", sans-serif;
+  font-weight: 600;
+  font-size: clamp(22px, 3.4vw, 38px);
+  line-height: 1.1;
+}
+
+.cv-banner-desc {
+  font-family: "Lora", serif;
+  font-size: clamp(15px, 1.5vw, 18px);
+  color: #c8c3b8;
+}
+
+.cv-banner-arrow {
+  flex: none;
+  font-family: "Oswald", sans-serif;
+  font-size: clamp(36px, 5vw, 60px);
+  line-height: 1;
+  transition: transform .2s;
+}
+
+.cv-banner:hover .cv-banner-arrow { transform: translateX(6px); }
+
 .filter-section {
   max-width: 1320px;
   margin: 0 auto;

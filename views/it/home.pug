@@ -30,6 +30,15 @@ html(lang='ru')
         | и&nbsp;продукты
       p.hero-desc То, что я&nbsp;собираю днём: продукты, команды и&nbsp;запуски. Здесь — короткие карточки проектов; некоторые со&nbsp;временем дорастут до&nbsp;полных историй.
 
+    //- the page gets traffic from the side projects (e.g. /blackout): point it at the CV quest
+    section.cv-banner-section
+      a.cv-banner(href='/cv' onclick="if (window.gtag) gtag('event', 'cv_banner_click', { from: 'it_home' });")
+        span.cv-banner-text
+          span.cv-banner-eyebrow Резюме-квест
+          span.cv-banner-title Кто вам нужен? Бриф обо мне за&nbsp;три вопроса
+          span.cv-banner-desc Продукт, delivery, разработка, медиа, ивенты или фото — выберите своё.
+        span.cv-banner-arrow →
+
     section.filter-section
       - var allTags = ['все', 'разработка', 'менеджмент', 'продюсирование', 'фан', 'медиа']
       div.filter-bar
