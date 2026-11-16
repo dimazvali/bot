@@ -39,7 +39,7 @@
     var id = el.getAttribute('data-id');
     districtEls[id] = el;
     var label = $('l-' + id);
-    centers[id] = { x: +label.getAttribute('x'), y: +label.getAttribute('y') - 46, label: label };
+    centers[id] = { x: +label.getAttribute('data-cx'), y: +label.getAttribute('data-cy'), label: label };
   });
   var districtIds = Object.keys(districtEls);
 
