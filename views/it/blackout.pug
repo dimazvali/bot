@@ -1,0 +1,177 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1')
+    title Тбилиси без света — it.dimazvali.com
+    meta(name='description' content='Мини-игра: по районам Тбилиси отключают свет, воду и газ. Успей прислать нужного мастера, пока терпение горожан не кончилось.')
+    meta(property='og:title' content='Тбилиси без света')
+    meta(property='og:description' content='Свет, вода, газ — успей починить, пока город не взорвался.')
+    link(rel='icon' type='image/x-icon' href='/images/dimazvali/favicon.ico')
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+    link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap' rel='stylesheet')
+    script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
+    script.
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-LDMN4XFB42');
+    style.
+      :root {
+        --paper: #f4f1ea; --ink: #15120f; --muted: #56514a; --faint: #9a948b; --line: #c8c3b8;
+        --land: #e6e1d6; --land-hover: #dcd5c6;
+        --light: #15120f; --light-glow: #f2c230;
+        --water: #3f7fd6; --gas: #e2632b; --bad: #c9302c;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body { background: var(--paper); color: var(--ink); font-family: 'JetBrains Mono', monospace; overflow: hidden;
+        display: flex; flex-direction: column; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+      a { color: inherit; text-decoration: none; }
+      header { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 16px 0; }
+      .logo { font-family: Oswald, sans-serif; font-weight: 700; font-size: 17px; }
+      .back { font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+      .hud { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 22px; padding: 10px 16px; font-size: 12px; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+      .hud b { font-family: Oswald, sans-serif; font-size: 26px; color: var(--ink); letter-spacing: 0; margin-left: 6px; vertical-align: -3px; font-variant-numeric: tabular-nums; }
+      .lives { display: inline-flex; gap: 4px; margin-left: 6px; vertical-align: -2px; }
+      .lives i { width: 12px; height: 12px; border-radius: 50%; background: var(--ink); transition: background .2s, transform .2s; }
+      .lives i.off { background: var(--line); transform: scale(.7); }
+      .combo { color: var(--gas); font-weight: 700; min-width: 4ch; }
+      main { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 8px; }
+      svg.map { width: 100%; height: 100%; max-width: 1100px; display: block; overflow: visible; }
+      .district { fill: var(--land); stroke: var(--paper); stroke-width: 3; stroke-linejoin: round; cursor: pointer; transition: fill .25s; }
+      .district:hover { fill: var(--land-hover); }
+      .district.light { fill: var(--light); }
+      .district.water { fill: var(--water); }
+      .district.gas { fill: var(--gas); }
+      .district.missed { animation: missed .6s; }
+      @keyframes missed { 0%, 100% { filter: none; } 30% { fill: var(--bad); } }
+      .district.fixed { animation: fixed .45s; }
+      @keyframes fixed { 0% { fill: #fff; } }
+      .label { font-family: 'JetBrains Mono', monospace; font-size: 15px; fill: var(--muted); text-anchor: middle; pointer-events: none; letter-spacing: .04em; transition: fill .25s; }
+      .label.on { fill: var(--paper); }
+      .badge { pointer-events: none; }
+      .badge .bg { fill: var(--paper); }
+      .badge .ring { fill: none; stroke-width: 5; stroke-linecap: round; transform: rotate(-90deg); }
+      .badge.light .ring { stroke: var(--light-glow); } .badge.water .ring { stroke: var(--water); } .badge.gas .ring { stroke: var(--gas); }
+      .badge .ico { fill: var(--ink); }
+      .badge .pop { animation: pop .25s ease-out; transform-box: fill-box; transform-origin: center; }
+      @keyframes pop { from { transform: scale(0); } }
+      .float { font-family: Oswald, sans-serif; font-size: 26px; font-weight: 700; text-anchor: middle; pointer-events: none; animation: float .8s ease-out forwards; }
+      @keyframes float { to { transform: translateY(-40px); opacity: 0; } }
+      .tools { display: flex; justify-content: center; gap: 8px; padding: 10px 16px calc(14px + env(safe-area-inset-bottom)); }
+      .tool { display: flex; align-items: center; gap: 8px; border: 2px solid var(--ink); background: transparent; color: var(--ink); font: inherit; font-size: 13px;
+        padding: 10px 14px; cursor: pointer; border-radius: 0; transition: background .15s, color .15s, opacity .2s; }
+      .tool svg { width: 20px; height: 20px; fill: currentColor; }
+      .tool kbd { font: inherit; font-size: 11px; color: var(--faint); }
+      .tool.active { background: var(--ink); color: var(--paper); }
+      .tool.active kbd { color: var(--line); }
+      .tool[hidden] { display: none; }
+      .tool.new { animation: blink .5s 4; }
+      @keyframes blink { 50% { background: var(--light-glow); color: var(--ink); } }
+      .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(244, 241, 234, .9); padding: 16px; z-index: 5; }
+      .overlay[hidden] { display: none; }
+      .card { max-width: 520px; text-align: center; }
+      .card h1 { font-family: Oswald, sans-serif; font-weight: 700; text-transform: uppercase; font-size: clamp(40px, 9vw, 76px); line-height: .92; margin: 0; }
+      .card p { font-size: 14px; line-height: 1.6; color: var(--muted); margin: 18px 0 0; }
+      .legend { display: flex; justify-content: center; gap: 16px; margin-top: 18px; font-size: 12px; color: var(--muted); }
+      .legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; }
+      .legend .l::before { background: var(--light); } .legend .w::before { background: var(--water); } .legend .g::before { background: var(--gas); }
+      .btn { margin-top: 26px; border: 0; background: var(--ink); color: var(--paper); font: inherit; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; padding: 16px 30px; cursor: pointer; }
+      .btn:hover { background: #2c2722; }
+      .big { font-family: Oswald, sans-serif; font-size: 64px; font-weight: 700; color: var(--ink); line-height: 1; margin-top: 16px; }
+      .banner { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; font-size: 13px;
+        letter-spacing: .04em; max-width: calc(100% - 32px); text-align: center; z-index: 4; transition: opacity .3s; pointer-events: none; }
+      .banner[hidden] { display: block; opacity: 0; }
+      .hammer { position: fixed; left: 0; top: 0; width: 56px; height: 56px; pointer-events: none; z-index: 10; transform-origin: 80% 80%; display: none; }
+      .hammer.hit { animation: hit .15s; }
+      @keyframes hit { 50% { rotate: -40deg; } }
+      @media (hover: hover) and (pointer: fine) {
+        body.playing main, body.playing .district { cursor: none; }
+        body.playing .hammer { display: block; }
+      }
+      @media (max-width: 560px) {
+        .tool { padding: 10px; } .tool .name, .tool kbd { display: none; }
+        .label { font-size: 28px; }
+        .hud { gap: 4px 14px; } .hud b { font-size: 22px; }
+      }
+
+  body
+    header
+      a.logo(href='/') it.dimazvali.com
+      a.back(href='/') ← проекты
+
+    div.hud
+      span Счёт
+        b#score 0
+      span Уровень
+        b#level 1
+      span Терпение
+        span.lives#lives
+          i
+          i
+          i
+          i
+          i
+      span.combo#combo
+
+    main
+      svg.map#map(viewBox='-10 -10 ' + (map.w + 20) + ' ' + (map.h + 20) preserveAspectRatio='xMidYMid meet')
+        defs
+          symbol#i-light(viewBox='0 0 24 24')
+            path(d='M13 2 4 14h6l-1 8 9-12h-6z')
+          symbol#i-water(viewBox='0 0 24 24')
+            path(d='M12 2.5c-3.6 4.7-6.5 8.6-6.5 12a6.5 6.5 0 0 0 13 0c0-3.4-2.9-7.3-6.5-12z')
+          symbol#i-gas(viewBox='0 0 24 24')
+            path(d='M12 2c.6 3.5 4.2 5.4 4.8 9.2.3 1.7-.2 3.3-1.1 4.4.2-1.7-.6-3.2-1.9-4.1.2 2.4-1.5 3.4-2.5 4.9-.8-1.2-1.1-2.6-.8-4C8.6 13.6 7 15.6 7.3 18c-1.4-1.3-2.2-3.1-2.1-5C5.4 8.3 11.4 6.7 12 2z')
+        g#districts
+          each d in map.districts
+            path.district(id='d-' + d.id d=d.d data-id=d.id)
+        g#labels
+          each d in map.districts
+            text.label(id='l-' + d.id x=d.cx y=d.cy + 46)= d.name
+        g#badges
+        g#fx
+
+      div.banner#banner(hidden)
+
+      div.overlay#start
+        div.card
+          h1 Тбилиси
+            br
+            | без света
+          p По районам отключают свет. Тапай по району, чтобы прислать мастера, — пока кольцо не догорело. Пропустишь — горожане теряют терпение.
+          p Дальше — чаще. А потом добавятся вода и газ, и мастера придётся выбирать.
+          div.legend
+            span.l свет
+            span.w вода
+            span.g газ
+          button.btn#startBtn Начать смену
+
+      div.overlay#over(hidden)
+        div.card
+          h1#overTitle Город встал
+          div.big#finalScore 0
+          p#overText
+          button.btn#againBtn Ещё смена
+
+    div.tools#tools
+      button.tool.active(data-type='light')
+        svg: use(href='#i-light')
+        span.name электрик
+        kbd 1
+      button.tool(data-type='water' hidden)
+        svg: use(href='#i-water')
+        span.name сантехник
+        kbd 2
+      button.tool(data-type='gas' hidden)
+        svg: use(href='#i-gas')
+        span.name газовщик
+        kbd 3
+
+    svg.hammer#hammer(viewBox='0 0 64 64' aria-hidden='true')
+      rect(x='29' y='22' width='7' height='40' rx='2' transform='rotate(-35 32 40)' fill='#8a5a2b')
+      rect(x='12' y='6' width='34' height='16' rx='2' transform='rotate(-35 32 40)' fill='#15120f')
+
+    script(src='/javascripts/it/blackout.js?v=1')

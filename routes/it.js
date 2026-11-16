@@ -110,6 +110,13 @@ router.get('/cv', async function(req, res, next) {
   } catch (e) { next(e); }
 });
 
+// Mini-game: whack-a-mole on the Tbilisi district map (district outlines from OSM)
+var tbilisiMap = require('../lib/it-tbilisi-districts.json');
+router.get('/blackout', function(req, res) {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.render('it/blackout', { map: tbilisiMap });
+});
+
 router.get('/sitemap.xml', async function(req, res) {
   var base = 'https://it.dimazvali.com';
   try {
@@ -118,7 +125,8 @@ router.get('/sitemap.xml', async function(req, res) {
       + '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
       + '  <url><loc>' + base + '/</loc></url>\n'
       + '  <url><loc>' + base + '/cv</loc></url>\n'
-      + '  <url><loc>' + base + '/cv?lang=en</loc></url>\n';
+      + '  <url><loc>' + base + '/cv?lang=en</loc></url>\n'
+      + '  <url><loc>' + base + '/blackout</loc></url>\n';
     for (var p of projects) {
       if (p.slug && p.full) {
         xml += '  <url><loc>' + base + '/' + p.slug + '</loc></url>\n';
