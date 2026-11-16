@@ -111,3 +111,11 @@ test('record: stale cached file_id is retried with the URL; total failure falls 
   assert.deepEqual(calls, [url, 'FILE_OLD', url, 'FILE_NEW', url]);
   assert.equal(texts.length, 1);
 });
+
+test('chatIds: resolved watchers only, owner and duplicates dropped', function() {
+  var shoot = { downloadWatchers: [
+    { username: 'asya', tgId: '111' }, { username: 'kate', tgId: null }, { username: 'me', tgId: 144489840 }, { username: 'Asya2', tgId: 111 },
+  ] };
+  assert.deepEqual(watchers.chatIds(shoot, 144489840), ['111']);
+  assert.deepEqual(watchers.chatIds(null, 1), []);
+});

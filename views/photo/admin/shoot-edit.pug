@@ -60,7 +60,7 @@ block content
       label.admin-tag-check
         input(type='checkbox' name='showInstagramCard' checked=shoot.showInstagramCard !== false)
         span показывать плитку «до встречи в инстаграм» среди фото
-      p.admin-hint УВЕДОМЛЕНИЯ О СКАЧИВАНИЯХ В TELEGRAM — ники через запятую или пробел (вам они приходят всегда). Человек должен хотя бы раз нажать Start в @dimazvalibot, иначе бот не может ему писать:
+      p.admin-hint УВЕДОМЛЕНИЯ ОБ ОТКРЫТИИ И СКАЧИВАНИЯХ В TELEGRAM — ники через запятую или пробел (вам они приходят всегда). Человек должен хотя бы раз нажать Start в @dimazvalibot, иначе бот не может ему писать:
       - var watchers = shoot.downloadWatchers || []
       input.admin-input(type='text' name='downloadWatchers' value=watchers.map(function(w) { return '@' + w.username; }).join(', ') placeholder='@nick1, @nick2')
       if watchers.length

@@ -19,6 +19,8 @@ var photoVariants = require('../lib/photo-variants');
 var photoTgLogin = require('../lib/photo-tg-login');
 var { userLabel } = require('../lib/photo-downloads');
 var ipInfo = require('../lib/ip-info');
+var downloadWatchers = require('../lib/photo-download-watchers');
+var tgAlerts = require('../lib/photo-404'); // sendTelegramTo: same bot, any chat
 
 function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
@@ -37,6 +39,7 @@ function tgSend(text) {
     chat_id: DIMA_CHAT_ID,
     text: text,
     parse_mode: 'HTML',
+    disable_web_page_preview: true,
   }).catch(function(e) { console.error('tg:', e.message); });
 }
 
@@ -585,8 +588,13 @@ router.get('/shoot/:slug', async (req, res) => {
       var now = Date.now();
       if (!shootNotifLastSent[slug] || now - shootNotifLastSent[slug] > 60 * 60 * 1000) {
         shootNotifLastSent[slug] = now;
-        var openedText = '<b>👁 Съёмка открыта</b>\n' + escHtml(rawShoot.label) + '\n/shoot/' + slug;
-        ipInfo.htmlLine(ipInfo.fromReq(req)).then(function(ipLine) { tgSend(openedText + ipLine); });
+        var openedText = '<b>👁 Съёмка открыта</b>\n<a href="https://photo.dimazvali.com/shoot/' + encodeURIComponent(slug) + '">' + escHtml(rawShoot.label || slug) + '</a>';
+        ipInfo.htmlLine(ipInfo.fromReq(req)).then(function(ipLine) {
+          tgSend(openedText + ipLine);
+          // the shoot's subscribers only hear about the real site, never photo.localhost / previews
+          if (!/^photo\.(?!localhost)/i.test(req.hostname || '')) return;
+          downloadWatchers.chatIds(rawShoot, DIMA_CHAT_ID).forEach(function(id) { tgAlerts.sendTelegramTo(id, openedText + ipLine); });
+        });
       }
     }
     var relatedInfo = getRelatedShoots(rawShoot, slug);
