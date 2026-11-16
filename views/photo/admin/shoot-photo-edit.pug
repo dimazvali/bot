@@ -63,6 +63,9 @@ block content
       input.admin-input(type='text' name='date' value=photo.date placeholder='дата (напр. июнь 2026)')
       textarea.admin-input(name='desc' placeholder='описание (необязательно)' rows='4')= photo.desc || ''
       textarea.admin-input(name='desc_en' placeholder='description (EN, необязательно)' rows='4')= photo.desc_en || ''
+      p.admin-hint SEO-ЗАГОЛОВОК — для страницы и поиска, пока название выше — имя файла (_MG_…, IMG_…); генерируется вместе с meta-описанием 🤖. Имя файла остаётся для подборок и архива:
+      input.admin-input(type='text' name='seo_title' value=photo.seo_title || '' placeholder='SEO-заголовок (RU)')
+      input.admin-input(type='text' name='seo_title_en' value=photo.seo_title_en || '' placeholder='SEO title (EN)')
       .admin-desc-row
         input.admin-input#photo-seo-desc(type='text' name='seo_desc' value=photo.seo_desc || '' placeholder='meta-описание (только в метатегах, SEO)')
         button.admin-btn-ai#gen-seo-btn(type='button' title='Сгенерировать meta-описание и ключевые слова через AI') 🤖
@@ -373,6 +376,8 @@ block scripts
         document.getElementById('photo-keywords').value = data.keywords;
         if (data.descEn) document.querySelector('[name="seo_desc_en"]').value = data.descEn;
         if (data.keywordsEn) document.querySelector('[name="seo_keywords_en"]').value = data.keywordsEn;
+        if (data.title) document.querySelector('[name="seo_title"]').value = data.title;
+        if (data.titleEn) document.querySelector('[name="seo_title_en"]').value = data.titleEn;
         status.style.color = '#4caf50';
         status.textContent = '✓ Готово — не забудьте сохранить';
       } catch (e) {

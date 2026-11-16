@@ -11,7 +11,7 @@ block head
       var _ld = Object.assign({
         '@context': 'https://schema.org',
         '@type': 'ImageObject',
-        name: photo.title,
+        name: typeof photoTitle === 'function' ? photoTitle(photo) : photo.title,
         contentUrl: _imgUrl,
         thumbnailUrl: photo.urls ? photo.urls.preview : null,
         url: _pageUrl,
@@ -122,7 +122,7 @@ block content
           src=photo.urls ? photo.urls.full : `/images/photo/${countryKey}/${seriesKey}/${photo.file}`
           srcset=_srcsetOf(photo)
           sizes=_srcsetOf(photo) ? PAGE_SIZES : undefined
-          alt=photo.desc || photo.seo_desc || photo.title
+          alt=photo.desc || photo.seo_desc || (typeof photoTitle === 'function' ? photoTitle(photo) : photo.title)
           title=photo.desc||photo.title
           width=photo.width||undefined
           height=photo.height||undefined
@@ -137,7 +137,11 @@ block content
             | #{(backLabel || '').toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
           else
             | #{countryLabel.toUpperCase()} · #{seriesLabel.toUpperCase()}#{photo.date ? ' · ' + photo.date : ''}
-        h1.photo-page-title= photo.title
+        - var _shownTitle = typeof photoTitle === 'function' ? photoTitle(photo) : photo.title
+        h1.photo-page-title= _shownTitle
+        if isShoot && photo.title && _shownTitle !== photo.title
+          //- clients pick frames by file name (selections, archive) — keep it findable under the search title
+          p.photo-page-file(style='margin:-0.25rem 0 0.5rem;font-size:0.75rem;opacity:0.55;letter-spacing:0.5px;')= photo.title
         if photo.desc
           p.photo-page-desc= photo.desc
         if !isShoot && photo.tags && photo.tags.length

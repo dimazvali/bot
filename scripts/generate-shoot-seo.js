@@ -1,12 +1,14 @@
 'use strict';
 // Backfills seo_desc/seo_keywords for previously uploaded shoot photos that don't have them yet.
 // Run: PHOTO_ENV=prod node scripts/generate-shoot-seo.js
+// Page titles only (frames named by file, caption already there): PHOTO_ENV=prod TITLES=1 [DRY_RUN=1] [LIMIT=n] node scripts/generate-shoot-seo.js
 require('dotenv').config();
 
 var { initializeApp, getApps, cert } = require('firebase-admin/app');
 var { getFirestore } = require('firebase-admin/firestore');
 var shoots = require('../lib/photo-shoots');
-var { generatePhotoSeo, shootSeoOptions } = require('../lib/photo-seo');
+var { generatePhotoSeo, generateTitleFromCaption, shootSeoOptions } = require('../lib/photo-seo');
+var { isPlaceholder } = require('../lib/photo-title');
 
 var photoApp = getApps().find(function(a) { return a.name === 'photo'; }) || initializeApp({
   credential: cert({
@@ -44,6 +46,41 @@ async function run() {
   });
 
   var limit = parseInt(process.env.LIMIT, 10);
+
+  // TITLES=1: only the page titles of frames still named by file (_MG_…, IMG_…) that already have a caption
+  // — text-only, cheap model, captions untouched. DRY_RUN=1 prints instead of saving.
+  if (process.env.TITLES === '1') {
+    var dry = process.env.DRY_RUN === '1';
+    var need = todos.filter(function(t) {
+      // only frames that go to search: public shoot, and with author's pick on — the picked ones
+      return shoots.isPhotoIndexable(t.shoot, t.photo)
+        && isPlaceholder(t.photo.title) && !t.photo.seo_title && (t.photo.desc || t.photo.seo_desc);
+    });
+    if (!isNaN(limit)) need = need.slice(0, limit);
+    console.log('Generating titles for ' + need.length + ' shoot photos' + (dry ? ' (dry run)' : '') + '...');
+    var ok = 0, bad = 0;
+    var titlesBySlug = {}; // recent titles per shoot → the model avoids repeating them
+    todos.forEach(function(x) { if (x.photo.seo_title) (titlesBySlug[x.slug] = titlesBySlug[x.slug] || []).push(x.photo.seo_title); });
+    for (var j = 0; j < need.length; j++) {
+      var t = need[j];
+      var prevTitles = titlesBySlug[t.slug] || (titlesBySlug[t.slug] = []);
+      try {
+        // names recognised on the frame are already in its caption (generatePhotoSeo got knownPeople)
+        var tt = await generateTitleFromCaption(t.photo, { shootLabel: t.shoot.label, shootDesc: t.shoot.desc, previousTitles: prevTitles.slice(-12) });
+        prevTitles.push(tt.title);
+        if (!dry) await shoots.updatePhotoSeoTitle(t.slug, t.photo.id, tt.title, tt.titleEn);
+        ok++;
+        console.log('[' + (ok + bad) + '/' + need.length + '] ' + t.slug + '/' + t.photo.title + ' → ' + tt.title + ' | ' + tt.titleEn);
+      } catch (e) {
+        bad++;
+        console.error('[' + (ok + bad) + '/' + need.length + '] ERROR ' + t.slug + '/' + t.photo.id + ': ' + e.message);
+      }
+      await new Promise(function(r) { setTimeout(r, 150); });
+    }
+    console.log('Done: ' + ok + ', errors: ' + bad);
+    return;
+  }
+
   var toGenerate = todos.filter(function(t) { return !t.photo.seo_desc; });
   if (!isNaN(limit)) toGenerate = toGenerate.slice(0, limit);
   var generateIds = new Set(toGenerate.map(function(t) { return t.slug + '/' + t.photo.id; }));
@@ -67,7 +104,7 @@ async function run() {
       var result = await generatePhotoSeo(item.photo, shootSeoOptions(item.shoot, item.photo, {
         previousCaptions: captionsBySlug[item.slug].slice(-CONTEXT_WINDOW),
       }));
-      await shoots.updatePhotoSeo(item.slug, item.photo.id, result.desc, result.keywords, result.descEn, result.keywordsEn);
+      await shoots.updatePhotoSeo(item.slug, item.photo.id, result.desc, result.keywords, result.descEn, result.keywordsEn, result.title, result.titleEn);
       captionsBySlug[item.slug].push(result.desc);
       done++;
       console.log('[' + (done + errors) + '/' + toGenerate.length + '] ' + key + ': ' + result.desc);

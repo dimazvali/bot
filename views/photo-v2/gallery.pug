@@ -27,14 +27,15 @@ block head
         name: title,
         description: desc,
         url: ogUrl,
-        numberOfItems: photos.length,
-        image: photos.slice(0, 60).map(function(p) {
+        numberOfItems: photos.filter(function(p) { return !p._curatorExtra }).length,
+        //- author's pick active → only the picked frames (the rest are noindex and out of the sitemap)
+        image: photos.filter(function(p) { return !p._curatorExtra }).slice(0, 60).map(function(p) {
           var src = p.urls ? (p.urls.full || p.urls.preview) : null
           if (!src) return null
           var pageUrl = isShoot
             ? _base + _lp + '/shoot/' + shootSlug + '/' + p.id
             : _base + _lp + '/' + p.countryKey + '/' + p.seriesKey + '/' + p.id
-          var item = { '@type': 'ImageObject', contentUrl: src, name: p.title, url: pageUrl }
+          var item = { '@type': 'ImageObject', contentUrl: src, name: typeof photoTitle === 'function' ? photoTitle(p) : p.title, url: pageUrl }
           // client shoots: no rights/licensing claims (their photo pages have neither the LD nor an inquiry form)
           return isShoot ? item : Object.assign(item, imageRightsLd(pageUrl, _lp))
         }).filter(Boolean),

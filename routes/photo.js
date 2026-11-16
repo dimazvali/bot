@@ -18,6 +18,7 @@ var i18n = require('../lib/photo-i18n');
 var photoVariants = require('../lib/photo-variants');
 var photoTgLogin = require('../lib/photo-tg-login');
 var { userLabel } = require('../lib/photo-downloads');
+var photoTitle = require('../lib/photo-title');
 var ipInfo = require('../lib/ip-info');
 var downloadWatchers = require('../lib/photo-download-watchers');
 var tgAlerts = require('../lib/photo-404'); // sendTelegramTo: same bot, any chat
@@ -92,6 +93,7 @@ router.use(function(req, res, next) {
   res.locals.currentPath = req.path;
   res.locals.colorFamilies = i18n.localizeColorFamilies(COLOR_FAMILIES, req.lang);
   res.locals.activeColorFamily = null;
+  res.locals.photoTitle = photoTitle.display; // file-name titles → generated seo_title (lib/photo-title.js)
   res.locals.isAdmin = !!(req.signedCookies && req.signedCookies.photoAdminToken);
   res.locals.subStatus = req.query.sub || null;
   try {
@@ -385,7 +387,7 @@ router.get('/sitemap.xml', (req, res) => {
       addPair('/' + countryKey + '/' + seriesKey, seriesLastmod);
       for (var photo of series.photos) {
         var img = (photo.urls && (photo.urls.full || photo.urls.preview))
-          ? { loc: photo.urls.full || photo.urls.preview, title: photo.title }
+          ? { loc: photo.urls.full || photo.urls.preview, title: photoTitle.display(photo) }
           : null;
         addPair('/' + countryKey + '/' + seriesKey + '/' + photo.id, photo.createdAt || null, img);
       }
@@ -401,7 +403,8 @@ router.get('/sitemap.xml', (req, res) => {
     var shootLastmod = shootDates.length ? shootDates[shootDates.length - 1] : null;
     addPair('/shoot/' + shootSlug, shootLastmod);
     for (var sp of shoot.photos) {
-      var spImg = (sp.urls && sp.urls.full) ? { loc: sp.urls.full, title: sp.title } : null;
+      if (!shoots.isPhotoIndexable(shoot, sp)) continue; // author's pick on → only the picked frames
+      var spImg = (sp.urls && sp.urls.full) ? { loc: sp.urls.full, title: photoTitle.display(sp) } : null;
       addPair('/shoot/' + shootSlug + '/' + sp.id, sp.createdAt || null, spImg);
     }
   }
@@ -603,7 +606,7 @@ router.get('/shoot/:slug', async (req, res) => {
     // flagged, show the picked photos first and stash the rest behind a "show all"
     // button (see the .photo-card[data-curator-hidden] rule in gallery.pug).
     var galleryPhotos = shoot.photos;
-    var curatorSelectionActive = !!rawShoot.showCuratorSelection && galleryPhotos.some(function(p) { return p.curatorPick; });
+    var curatorSelectionActive = shoots.curatorSelectionActive(rawShoot);
     if (curatorSelectionActive) {
       var picked = galleryPhotos.filter(function(p) { return p.curatorPick; });
       var rest = galleryPhotos.filter(function(p) { return !p.curatorPick; }).map(function(p) { return Object.assign({}, p, { _curatorExtra: true }); });
@@ -837,16 +840,17 @@ router.get('/shoot/:slug/:id', async (req, res) => {
       seriesUrl: i18n.langPrefix(lang) + '/shoot/' + slug,
       inquiryStatus: null,
       reviewStatus: null,
-      title: photo.title + ' — ' + shoot.label,
+      title: photoTitle.display(photo) + ' — ' + shoot.label,
       desc: photo.seo_desc || photo.desc || null,
       keywords: photo.seo_keywords || null,
       ogImage: photo.urls ? photo.urls.full : null,
       ogUrl: shoot.public ? pageUrl(lang, `/shoot/${slug}/${id}`) : null,
-      noindex: !shoot.public,
+      // private shoot, or a frame left out of an active author's pick
+      noindex: !shoots.isPhotoIndexable(rawShoot, rawShoot.photos.find(function(p) { return p.id === id; })),
       breadcrumbs: [
         { name: lang === 'en' ? 'Shoots' : 'Съёмки', url: pageUrl(lang, '/shoot') },
         { name: shoot.label, url: pageUrl(lang, `/shoot/${slug}`) },
-        { name: photo.title, url: pageUrl(lang, `/shoot/${slug}/${id}`) },
+        { name: photoTitle.display(photo), url: pageUrl(lang, `/shoot/${slug}/${id}`) },
       ],
     });
   });
@@ -1171,7 +1175,7 @@ router.get('/:country/:series/:id', async (req, res) => {
     sourceShootLabel,
     variantItems: photoVariants.switcherItems(photo, lang),
     seriesUrl: i18n.langPrefix(lang) + `/${countryKey}/${seriesKey}`,
-    title: `${photo.title} — photo.dimazvali.com`,
+    title: `${photoTitle.display(photo)} — photo.dimazvali.com`,
     desc: photo.seo_desc || photo.desc || (photo.type === 'copter'
       ? (lang === 'en'
         ? `${photo.title} · ${series.label} · ${country.label} — an aerial photo by Dmitry Shestakov`
@@ -1185,7 +1189,7 @@ router.get('/:country/:series/:id', async (req, res) => {
     breadcrumbs: [
       { name: country.label, url: pageUrl(lang, `/${countryKey}`) },
       { name: series.label, url: pageUrl(lang, `/${countryKey}/${seriesKey}`) },
-      { name: photo.title, url: pageUrl(lang, `/${countryKey}/${seriesKey}/${photo.id}`) },
+      { name: photoTitle.display(photo), url: pageUrl(lang, `/${countryKey}/${seriesKey}/${photo.id}`) },
     ],
   });
 });

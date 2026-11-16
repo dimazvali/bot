@@ -42,7 +42,7 @@ mixin photoCard(photo, href, opts)
       src=photo.urls ? photo.urls.preview : `/images/photo/${photo.countryKey}/${photo.seriesKey}/${photo.file}`
       srcset=photo.urls ? `${photo.urls.thumb || photo.urls.preview} 400w, ${photo.urls.preview} 800w` : undefined
       sizes=photo.urls ? '(max-width: 480px) 100vw, (max-width: 900px) 50vw, 400px' : undefined
-      alt=photo.title
+      alt=photo.desc || photo.seo_desc || (typeof photoTitle === 'function' ? photoTitle(photo) : photo.title)
       title=photo.desc || photo.title
       width=photo.width || undefined
       height=photo.height || undefined

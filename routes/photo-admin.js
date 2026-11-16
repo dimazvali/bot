@@ -902,6 +902,7 @@ router.post('/:country/:series/upload', requireAuth, function(req, res, next) { 
         if (p) {
           p.seo_desc = result.desc;
           p.seo_keywords = result.keywords;
+          if (result.title !== undefined) { p.seo_title = result.title; p.seo_title_en = result.titleEn; }
           saveData(d2);
         }
       }).catch(function(e) { console.error('[auto-seo]', e.message); });
@@ -1349,7 +1350,7 @@ router.post('/shoots/:slug/upload', requireAuth, upload.single('photo'), async (
           previousCaptions: previousCaptions,
           knownPeople: knownPeople,
         }));
-        await shoots.updatePhotoSeo(slug, photoEntry.id, result.desc, result.keywords, result.descEn, result.keywordsEn);
+        await shoots.updatePhotoSeo(slug, photoEntry.id, result.desc, result.keywords, result.descEn, result.keywordsEn, result.title, result.titleEn);
       } catch (e) {
         console.error('[auto-faces+seo]', e.message);
       }
@@ -1446,7 +1447,8 @@ router.post('/shoots/:slug/photos/:id/edit', requireAuth, express.urlencoded({ e
       coords: coords,
       colorFamilies: colorFamilies,
     });
-    await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords, seoDescEn, seoKeywordsEn);
+    await shoots.updatePhotoSeo(slug, id, seoDesc, seoKeywords, seoDescEn, seoKeywordsEn,
+      (req.body.seo_title || '').trim(), (req.body.seo_title_en || '').trim());
   } catch (e) {
     console.error('[shoots] update photo error:', e);
   }
@@ -1544,7 +1546,7 @@ router.post('/shoots/:slug/seo/regenerate', requireAuth, (req, res) => {
           previousCaptions: captions.slice(-6),
           knownPeople: photoPeople.resolvePhotoPeopleNames(photo),
         }));
-        await shoots.updatePhotoSeo(slug, photo.id, result.desc, result.keywords, result.descEn, result.keywordsEn);
+        await shoots.updatePhotoSeo(slug, photo.id, result.desc, result.keywords, result.descEn, result.keywordsEn, result.title, result.titleEn);
         captions.push(result.desc);
       } catch (e) {
         job.errors++;
@@ -1877,8 +1879,8 @@ router.post('/shoots/:slug/photos/:id/generate-seo', requireAuth, express.json()
       previousCaptions: previousCaptions,
       knownPeople: photoPeople.resolvePhotoPeopleNames(photo),
     }));
-    await shoots.updatePhotoSeo(slug, id, result.desc, result.keywords, result.descEn, result.keywordsEn);
-    res.json({ ok: true, desc: result.desc, keywords: result.keywords, descEn: result.descEn, keywordsEn: result.keywordsEn });
+    await shoots.updatePhotoSeo(slug, id, result.desc, result.keywords, result.descEn, result.keywordsEn, result.title, result.titleEn);
+    res.json({ ok: true, desc: result.desc, keywords: result.keywords, descEn: result.descEn, keywordsEn: result.keywordsEn, title: result.title, titleEn: result.titleEn });
   } catch (err) {
     console.error('[shoots generate-seo]', err.message);
     res.status(500).json({ error: err.message });
@@ -2940,8 +2942,9 @@ router.post('/:country/:series/:id/generate-seo', requireAuth, express.json(), a
     photo.seo_keywords = result.keywords;
     photo.seo_desc_en = result.descEn;
     photo.seo_keywords_en = result.keywordsEn;
+    if (result.title !== undefined) { photo.seo_title = result.title; photo.seo_title_en = result.titleEn; }
     saveData(data);
-    res.json({ ok: true, desc: photo.seo_desc, keywords: photo.seo_keywords, descEn: photo.seo_desc_en, keywordsEn: photo.seo_keywords_en });
+    res.json({ ok: true, desc: photo.seo_desc, keywords: photo.seo_keywords, descEn: photo.seo_desc_en, keywordsEn: photo.seo_keywords_en, title: photo.seo_title, titleEn: photo.seo_title_en });
   } catch (err) {
     console.error('[generate-seo]', err.message);
     res.status(500).json({ error: err.message });
