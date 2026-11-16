@@ -227,6 +227,21 @@
     b.querySelector('.tr').textContent = p.tr;
     b.classList.remove('out');
     b.hidden = false;
+    // on touch screens a bubble over the map gets in the way of taps: dock it at the bottom
+    // and name the district instead of pointing at it
+    var docked = window.matchMedia('(pointer: coarse), (max-width: 560px)').matches;
+    b.classList.toggle('docked', docked);
+    b.querySelector('.where').textContent = centers[id].label.textContent;
+    if (docked) {
+      b.style.left = ''; b.style.top = '';
+    } else {
+      placeBubble(b, id);
+    }
+    b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; // replay the pop-in
+    clearTimeout(bubbleTimer);
+    bubbleTimer = setTimeout(hideBubble, 2600);
+  }
+  function placeBubble(b, id) {
     var svg = $('map');
     var pt = svg.createSVGPoint();
     pt.x = centers[id].x; pt.y = centers[id].y - 28;
@@ -238,9 +253,6 @@
     b.style.left = left + 'px';
     b.style.top = Math.max(4, y - h - 14) + 'px';
     b.style.setProperty('--tail', Math.max(18, Math.min(w - 18, x - left)) + 'px');
-    b.style.animation = 'none'; void b.offsetWidth; b.style.animation = ''; // replay the pop-in
-    clearTimeout(bubbleTimer);
-    bubbleTimer = setTimeout(hideBubble, 2600);
   }
   function hideBubble(now) {
     var b = $('bubble');

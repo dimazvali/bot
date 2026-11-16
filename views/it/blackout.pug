@@ -7,6 +7,14 @@ html(lang=ui.htmlLang)
     meta(name='description' content=ui.description)
     meta(property='og:title' content=ui.ogTitle)
     meta(property='og:description' content=ui.ogDescription)
+    meta(property='og:type' content='website')
+    meta(property='og:url' content='https://it.dimazvali.com/blackout?lang=' + lang)
+    meta(property='og:image' content='https://it.dimazvali.com/images/it/blackout-og.png')
+    meta(property='og:image:width' content='1200')
+    meta(property='og:image:height' content='630')
+    meta(property='og:image:alt' content=ui.ogTitle)
+    meta(name='twitter:card' content='summary_large_image')
+    meta(name='twitter:image' content='https://it.dimazvali.com/images/it/blackout-og.png')
     link(rel='canonical' href='https://it.dimazvali.com/blackout?lang=' + lang)
     link(rel='alternate' hreflang='ru' href='https://it.dimazvali.com/blackout?lang=ru')
     link(rel='alternate' hreflang='en' href='https://it.dimazvali.com/blackout?lang=en')
@@ -145,6 +153,11 @@ html(lang=ui.htmlLang)
       .bubble[hidden] { display: none; }
       .bubble::after { content: ''; position: absolute; left: var(--tail, 50%); bottom: -11px; width: 16px; height: 16px; background: #fff;
         border-right: 2px solid var(--ink); border-bottom: 2px solid var(--ink); transform: translateX(-50%) rotate(45deg); }
+      /* touch screens: the bubble docks at the bottom of the play area instead of covering districts */
+      .bubble.docked { left: 12px; right: 12px; top: auto; bottom: 8px; max-width: none; box-shadow: 3px 3px 0 var(--ink); }
+      .bubble.docked::after { display: none; }
+      .bubble .where { display: none; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-bottom: 3px; }
+      .bubble.docked .where { display: block; }
       .bubble .ka { font-family: 'Noto Sans Georgian', sans-serif; font-weight: 800; font-size: 18px; line-height: 1.2; }
       .bubble .pron { font-size: 11px; color: var(--faint); margin-top: 3px; }
       .bubble .tr { font-family: Lora, Georgia, serif; font-style: italic; font-size: 13px; color: var(--muted); }
@@ -332,6 +345,7 @@ html(lang=ui.htmlLang)
 
       //- speech bubble with a Georgian outage phrase, placed over a district by the script
       div.bubble#bubble(hidden aria-live='polite')
+        div.where
         div.ka(lang='ka')
         div.pron
         div.tr
@@ -356,4 +370,4 @@ html(lang=ui.htmlLang)
 
     script.
       window.BLACKOUT_UI = !{uiJson};
-    script(src='/javascripts/it/blackout.js?v=8')
+    script(src='/javascripts/it/blackout.js?v=9')
