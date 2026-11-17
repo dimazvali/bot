@@ -297,4 +297,27 @@ router.post('/cv/discard', requireAuth, form, async function(req, res, next) {
   } catch (e) { next(e); }
 });
 
+// ── BLACKOUT GAME STATS (it.dimazvali.com/blackout) ──────
+// the modules are initialized by routes/it.js (it requires this file first, but requests come later)
+var blackoutStats = require('../lib/it-blackout-stats');
+var blackoutScores = require('../lib/it-blackout-scores');
+
+router.get('/blackout', requireAuth, async function(req, res, next) {
+  try {
+    var results = await Promise.all([blackoutStats.loadLaunches(), blackoutScores.adminTop()]);
+    res.render('it/admin/blackout', {
+      stats: blackoutStats.aggregate(results[0], new Date(), 14),
+      top: results[1],
+      flash: { ok: req.query.ok || null },
+    });
+  } catch (e) { next(e); }
+});
+
+router.post('/blackout/scores/:id/delete', requireAuth, form, async function(req, res, next) {
+  try {
+    await blackoutScores.remove(req.params.id);
+    res.redirect('/admin/blackout?ok=' + encodeURIComponent('Строка удалена из топ-10'));
+  } catch (e) { next(e); }
+});
+
 module.exports = router;

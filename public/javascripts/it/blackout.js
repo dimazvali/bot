@@ -504,6 +504,14 @@
     $('nickForm').hidden = true;
     $('over').hidden = false;
     offerNick({ score: s, level: state.level, fixes: state.fixes, token: state.token });
+    // shift stats for the admin (completes the record the server opened when it issued the token)
+    if (state.token) {
+      fetch('/blackout/finish', {
+        method: 'POST', keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: state.token, score: s, level: state.level, fixes: state.fixes }),
+      }).catch(function () { /* stats only */ });
+    }
     if (window.gtag) window.gtag('event', 'blackout_over', { score: s, level: state.level });
   }
 

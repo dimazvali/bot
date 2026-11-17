@@ -1,0 +1,153 @@
+doctype html
+html(lang='ru')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title Игра — IT Admin
+    link(rel='preconnect' href='https://fonts.googleapis.com')
+    link(rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Oswald:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap')
+    style.
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #f4f1ea; color: #15120f; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+      header { background: #15120f; color: #f4f1ea; padding: 0 32px; display: flex; align-items: center; gap: 24px; height: 52px; }
+      header h1 { font-family: 'Oswald', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+      header nav { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+      header a { color: #c8c0b0; text-decoration: none; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+      header a:hover, header a.on { color: #f4f1ea; }
+      main { padding: 32px; max-width: 1100px; }
+      h2 { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+      h3 { font-family: 'Oswald', sans-serif; font-size: 15px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin: 32px 0 12px; }
+      .note { color: #6b6459; font-size: 12px; line-height: 1.5; margin-bottom: 24px; }
+      .note a { color: inherit; }
+      .flash { background: #e8f5e9; border: 1px solid #a5d6a7; padding: 10px 14px; margin-bottom: 20px; }
+      .periods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .period { background: #fff; border: 1px solid #d8d4cb; padding: 18px 20px; }
+      .period-name { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #6b6459; }
+      .period-big { font-family: 'Oswald', sans-serif; font-size: 40px; font-weight: 600; line-height: 1.1; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+      .period-big small { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 400; color: #6b6459; margin-left: 6px; }
+      .period dl { display: grid; grid-template-columns: 1fr auto; gap: 5px 12px; margin-top: 12px; font-size: 12px; }
+      .period dt { color: #6b6459; }
+      .period dd { text-align: right; font-variant-numeric: tabular-nums; }
+      table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #d8d4cb; }
+      thead th { background: #f4f1ea; border-bottom: 1px solid #d8d4cb; padding: 9px 12px; text-align: left; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6b6459; font-weight: 500; }
+      tbody td { padding: 9px 12px; border-bottom: 1px solid #ece9e2; font-variant-numeric: tabular-nums; }
+      tbody tr:last-child td { border-bottom: none; }
+      td.num, th.num { text-align: right; }
+      tr.zero td { color: #b5afa4; }
+      .bar { display: inline-block; height: 8px; background: #15120f; vertical-align: middle; margin-left: 8px; }
+      .levels { display: flex; align-items: flex-end; gap: 6px; height: 120px; background: #fff; border: 1px solid #d8d4cb; padding: 12px 14px 0; }
+      .lv { flex: 1; max-width: 48px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; font-size: 10px; color: #6b6459; }
+      .lv i { display: block; width: 100%; background: #15120f; min-height: 2px; }
+      .lv span { padding: 4px 0; }
+      .del { background: none; border: none; cursor: pointer; color: #c0392b; font-family: inherit; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; border-bottom: 1px solid currentColor; padding: 0; }
+      .empty { padding: 24px; text-align: center; color: #6b6459; background: #fff; border: 1px solid #d8d4cb; }
+      @media (max-width: 800px) { .periods { grid-template-columns: 1fr; } main { padding: 20px; } }
+  body
+    header
+      h1 IT Admin
+      nav
+        a(href='/admin/') Истории
+        a(href='/admin/companies') Справочник
+        a(href='/admin/cv') Квест CV
+        a.on(href='/admin/blackout') Игра
+        a(href='/blackout' target='_blank') Открыть игру ↗
+        a(href='/admin/logout') Выйти
+    main
+      if flash.ok
+        .flash= flash.ok
+      h2 Тбилиси без света
+      - var fmtDay = function(d) { return d ? new Date(d.getTime() + 4 * 3600000).toISOString().slice(0, 10) : '—'; }
+      p.note
+        | Смены пишутся на сервере с #{fmtDay(stats.since)} (время — Тбилиси). Ваши смены, когда вы залогинены здесь, не считаются.
+        br
+        | «Доиграно» — смены, дошедшие до экрана конца (закрытая вкладка посреди смены не доиграна). Что было до начала записи — в GA, события blackout_start / blackout_over.
+
+      - var pct = function(n, of) { return of ? Math.round(n / of * 100) + '%' : '—'; }
+      - var dash = function(v) { return v === null || v === undefined ? '—' : v; }
+      .periods
+        each p in [['Сегодня', stats.today], ['7 дней', stats.week], ['Всё время', stats.all]]
+          .period
+            .period-name= p[0]
+            .period-big= p[1].shifts
+              small смен
+            dl
+              dt Устройств
+              dd= p[1].devices
+              dt Новых игроков
+              dd= p[1].newDevices
+              dt Доиграно
+              dd #{p[1].finished} · #{pct(p[1].finished, p[1].shifts)}
+              dt Телефон / компьютер
+              dd #{pct(p[1].mobile, p[1].shifts)} / #{pct(p[1].shifts - p[1].mobile, p[1].shifts)}
+              dt RU / EN
+              dd #{pct(p[1].shifts - p[1].en, p[1].shifts)} / #{pct(p[1].en, p[1].shifts)}
+              dt Счёт: медиана · средний
+              dd #{dash(p[1].medianScore)} · #{dash(p[1].avgScore)}
+              dt Лучший счёт
+              dd= dash(p[1].bestScore)
+
+      h3 По дням
+      - var maxDay = Math.max.apply(null, stats.daily.map(function(d) { return d.shifts; }).concat([1]))
+      table
+        thead
+          tr
+            th День
+            th.num Смен
+            th.num Устройств
+            th.num Новых
+            th.num Доиграно
+            th.num Медиана счёта
+            th.num Лучший
+        tbody
+          each d in stats.daily
+            tr(class=d.shifts ? '' : 'zero')
+              td= d.day
+              td.num
+                = d.shifts
+                span.bar(style='width:' + Math.round(d.shifts / maxDay * 120) + 'px')
+              td.num= d.devices
+              td.num= d.newDevices
+              td.num= d.finished
+              td.num= dash(d.medianScore)
+              td.num= dash(d.bestScore)
+
+      h3 До какого уровня доходят (доигранные смены)
+      if stats.levels.length
+        - var maxLv = Math.max.apply(null, stats.levels.map(function(l) { return l.count; }))
+        .levels
+          each l in stats.levels
+            .lv(title='уровень ' + l.level + ': ' + l.count)
+              span= l.count
+              i(style='height:' + Math.max(2, Math.round(l.count / maxLv * 80)) + 'px')
+              span ур. #{l.level}
+      else
+        .empty Пока нет доигранных смен
+
+      h3 Топ-10
+      if top.length
+        table
+          thead
+            tr
+              th #
+              th Ник
+              th.num Счёт
+              th.num Уровень
+              th.num Починок
+              th.num Смена
+              th Обновлено
+              th
+          tbody
+            each r in top
+              tr
+                td= r.rank
+                td= r.nick
+                td.num= r.score
+                td.num= r.level
+                td.num= dash(r.fixes)
+                td.num= r.durationMs ? Math.floor(r.durationMs / 60000) + ':' + String(Math.round(r.durationMs / 1000) % 60).padStart(2, '0') : '—'
+                td= r.updatedAt ? fmtDay(r.updatedAt) : '—'
+                td
+                  form(method='post' action='/admin/blackout/scores/' + encodeURIComponent(r.id) + '/delete' onsubmit="return confirm('Удалить «" + String(r.nick).replace(/["'\\]/g, '') + "» из топ-10? Устройство сможет попасть в таблицу снова.')")
+                    button.del(type='submit') Удалить
+      else
+        .empty Таблица пуста

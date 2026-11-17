@@ -130,6 +130,7 @@ var blackoutSecret = process.env.BLACKOUT_SECRET
   || (process.env.sssGCPKey && require('crypto').createHash('sha256').update('blackout:' + process.env.sssGCPKey).digest('hex'))
   || require('crypto').randomBytes(32).toString('hex');
 var blackoutScores = require('../lib/it-blackout-scores').init(fb, blackoutSecret);
+var blackoutStats = require('../lib/it-blackout-stats').init(fb); // the admin's /admin/blackout reads it too
 router.get('/blackout/scores', async function(req, res, next) {
   try {
     res.set('Cache-Control', 'no-store');
@@ -160,8 +161,25 @@ router.post('/blackout/session', express.json({ limit: '1kb' }), function(req, r
   sessionHits.set(req.ip, hits);
   if (sessionHits.size > 5000) sessionHits.clear();
   res.set('Cache-Control', 'no-store');
-  res.json(blackoutScores.newSession());
-  blackoutNotify.launch(req, req.body); // Telegram: a shift started (deduped per device)
+  var session = blackoutScores.newSession();
+  res.json(session);
+  // the it admin's own shifts are neither logged nor announced
+  itAdmin.isAdmin(req).then(function(admin) {
+    if (admin) return;
+    var body = req.body || {};
+    blackoutNotify.launch(req, body); // Telegram: a shift started (deduped per device)
+    return blackoutStats.logLaunch(blackoutScores.readToken(session.token).sid, {
+      deviceId: body.deviceId, lang: body.lang, plays: body.plays, ua: req.get('user-agent'),
+    });
+  }).catch(function(e) { console.error('[blackout] launch log:', e.message); });
+});
+
+// end of a shift (sent by the game at game over): completes the shift's stats record
+router.post('/blackout/finish', express.json({ limit: '1kb' }), function(req, res) {
+  var session = blackoutScores.readToken(req.body && req.body.token);
+  if (!session) return res.status(400).json({ error: 'token' });
+  res.status(204).end();
+  blackoutStats.logFinish(session.sid, req.body).catch(function(e) { console.error('[blackout] finish log:', e.message); });
 });
 
 router.post('/blackout/scores', express.json({ limit: '2kb' }), async function(req, res, next) {
