@@ -72,6 +72,14 @@ block content
     // feed tiles planted between photos; inside a shoot only the IG tile, and only if the shoot allows it
     var _igAt = (focus && !showInstagramCard) ? -1 : Math.min(4, photos.length)
     var _subAt = (focus || _photoUserSubscribed) ? -1 : Math.min(13, photos.length)
+    // the blackout game tile: Georgia country/series lists only, somewhere among the first dozen cards
+    // (a random slot down a 300-photo list would never be seen), not next to the Instagram tile
+    var _gameAt = -1
+    if (!focus && activeCountry === 'georgia' && photos.length) {
+      var _slots = []
+      for (var _gi = 1; _gi <= Math.min(12, photos.length); _gi++) if (Math.abs(_gi - _igAt) > 1 && Math.abs(_gi - _subAt) > 1) _slots.push(_gi)
+      _gameAt = _slots.length ? _slots[Math.floor(Math.random() * _slots.length)] : photos.length
+    }
 
   //- ───────────────────────── HOME ─────────────────────────
   if mode === 'home'
@@ -212,11 +220,15 @@ block content
           +instagramCard()
         if _pi === _subAt
           +subscribeCard()
+        if _pi === _gameAt
+          +blackoutCard(lang)
         +photoCard(photo, focus ? `${LP}/shoot/${shootSlug}/${photo.id}` : `${LP}/${photo.countryKey}/${photo.seriesKey}/${photo.id}`, { select: _offerSelection, curatorExtra: photo._curatorExtra, personKeys: (focus && photo.faces && photo.faces.length) ? Array.from(new Set(photo.faces.map(function(f) { return _faceKeyByFaceId[f.faceId]; }).filter(Boolean))).join(',') : undefined })
       if _igAt === photos.length
         +instagramCard()
       if _subAt === photos.length
         +subscribeCard()
+      if _gameAt === photos.length
+        +blackoutCard(lang)
     .filter-empty#filter-empty(style='display:none')
       p= t.noMatches
       button.fb-btn(type='button' id='filter-reset')= t.resetFilters

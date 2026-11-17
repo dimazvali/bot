@@ -579,6 +579,14 @@ a.cdot:hover, .cdot.is-active, button.cdot:hover { box-shadow: 0 0 0 2px var(--b
 .filter-empty { text-align: center; padding: 64px 0; display: flex; flex-direction: column; align-items: center; gap: 16px; color: var(--meta); }
 .empty-note { padding: 40px; color: var(--meta); }
 
+/* "Kaladze Simulator" game tile (Georgia galleries): the yellow card is the image, the link line sits under it */
+.photo-card.photo-card--game { background: none; animation: none; text-decoration: none; color: inherit; }
+.photo-card--game:hover img { transform: none; }
+.photo-card-game-caption { display: flex; flex-direction: column; gap: 3px; padding: 9px 2px 4px; }
+.photo-card-game-kicker { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--meta); }
+.photo-card-game-url { font-family: var(--f-display); font-weight: 600; font-size: 14px; letter-spacing: .02em; }
+.photo-card--game:hover .photo-card-game-url { text-decoration: underline; }
+
 /* Instagram promo tile */
 /* two classes + declared after `.photo-card.loaded` (which resets the shimmer background) so the tile keeps its fill */
 .photo-card.photo-card--promo {

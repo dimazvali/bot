@@ -30,7 +30,7 @@
     if (countEl) countEl.textContent = visible;
     if (emptyEl) emptyEl.style.display = visible === 0 ? '' : 'none';
     // promo / subscribe tiles are pointless inside a filtered view
-    document.querySelectorAll('.photo-card--promo, .action-card').forEach(function (el) {
+    document.querySelectorAll('.photo-card--promo, .photo-card--game, .action-card').forEach(function (el) {
       var filtered = !!(state.type || state.color || state.tag || state.person);
       el.style.display = filtered ? 'none' : '';
     });

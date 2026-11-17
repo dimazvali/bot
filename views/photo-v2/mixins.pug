@@ -82,6 +82,19 @@ mixin instagramCard()
       span.photo-card-promo-text= ui.igOverlay
       span.photo-card-promo-cta @dimazvali2 →
 
+//- "Kaladze Simulator" (it.dimazvali.com/blackout) tile for the Georgia galleries. Its own class on purpose:
+//- the Instagram tile's dismiss cookie removes every .photo-card--promo. Image: scripts/build-blackout-tile.js
+mixin blackoutCard(lang)
+  - var _l = lang === 'en' ? 'en' : 'ru'
+  a.photo-card.photo-card--game(
+    href=`https://it.dimazvali.com/blackout?lang=${_l}&utm_source=photo&utm_medium=banner&utm_campaign=blackout`
+    onclick="window.photoTrack && window.photoTrack('blackout_banner_click');"
+  )
+    img(src=`/images/blackout/tile-${_l}.webp` alt=ui.gameAlt width='800' height='600' loading='lazy' style='aspect-ratio:800/600')
+    span.photo-card-game-caption
+      span.photo-card-game-kicker= ui.gameKicker
+      span.photo-card-game-url it.dimazvali.com/blackout →
+
 //- "Don't forget to tag the author" — opened by /javascripts/photo-v2/tag-author.js after a download, max once a day
 mixin tagAuthorPopup()
   .selection-popup#tag-author-popup(role='dialog' aria-modal='true')
