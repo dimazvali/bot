@@ -134,6 +134,11 @@ html(lang=ui.htmlLang)
       .legend .l::before { background: var(--light); } .legend .w::before { background: var(--water); } .legend .g::before { background: var(--gas); }
       .btn { margin-top: 26px; border: 0; background: var(--ink); color: var(--paper); font: inherit; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; padding: 16px 30px; cursor: pointer; }
       .btn:hover { background: #2c2722; }
+      .over-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 26px; }
+      .over-actions .btn { margin-top: 0; }
+      .btn-share { background: #f2cf3b; color: var(--ink); }
+      .btn-share:hover { background: #ffe066; }
+      .btn-share[hidden] { display: none; }
       .card h1.ka { font-family: 'Noto Sans Georgian', Oswald, sans-serif; text-transform: none; font-size: clamp(24px, 5.6vw, 44px); line-height: 1.15; letter-spacing: 0; overflow-wrap: anywhere; }
       .cv-link { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 360px; margin: 22px auto 0;
         padding: 14px 18px; border: 2px solid var(--ink); text-align: left; transition: background .15s, color .15s; }
@@ -372,7 +377,10 @@ html(lang=ui.htmlLang)
               input#nickInput(maxlength='20' placeholder=ui.nickPlaceholder required enterkeyhint='done')
               button#nickBtn(type='submit')= ui.nickBtn
             div.err#nickErr
-          button.btn#againBtn= ui.againBtn
+          div.over-actions
+            button.btn#againBtn= ui.againBtn
+            //- shown once the server has made the share card for this shift
+            button.btn.btn-share#shareBtn(type='button' hidden)= ui.shareBtn
           //- game traffic → CV, in the language the game is shown in
           a.cv-link(href=ui.cvHref onclick="if (window.gtag) gtag('event', 'cv_banner_click', { from: 'blackout_over', lang: '" + lang + "' });")
             span.cv-link-text
@@ -423,4 +431,4 @@ html(lang=ui.htmlLang)
 
     script.
       window.BLACKOUT_UI = !{uiJson};
-    script(src='/javascripts/it/blackout.js?v=12')
+    script(src='/javascripts/it/blackout.js?v=13')

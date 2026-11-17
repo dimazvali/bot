@@ -398,6 +398,7 @@
   function expire(key) {
     var o = removeOutage(key);
     state.lastMiss = o.type;
+    state.lastMissId = o.id; // "went dark: <district>" on the share card
     state.lives--;
     state.combo = 0;
     flash(o.id, 'missed');
@@ -504,13 +505,26 @@
     $('nickForm').hidden = true;
     $('over').hidden = false;
     offerNick({ score: s, level: state.level, fixes: state.fixes, token: state.token });
-    // shift stats for the admin (completes the record the server opened when it issued the token)
+    // shift stats for the admin (completes the record the server opened when it issued the token);
+    // the reply carries the share-card link when the server believes the result
+    $('shareBtn').hidden = true;
     if (state.token) {
+      var shift = state;
       fetch('/blackout/finish', {
         method: 'POST', keepalive: true,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: state.token, score: s, level: state.level, fixes: state.fixes }),
-      }).catch(function () { /* stats only */ });
+        body: JSON.stringify({
+          token: state.token, score: s, level: state.level, fixes: state.fixes,
+          durationMs: Math.round(state.time), district: state.lastMissId, cause: state.lastMiss,
+          lang: document.documentElement.lang,
+        }),
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) {
+          if (!j || !j.share || state !== shift) return;
+          shift.share = { url: j.share, time: clock(shift.time) };
+          $('shareBtn').hidden = false;
+        })
+        .catch(function () { /* stats only */ });
     }
     if (window.gtag) window.gtag('event', 'blackout_over', { score: s, level: state.level });
   }
@@ -551,6 +565,36 @@
 
   $('startBtn').addEventListener('click', start);
   $('againBtn').addEventListener('click', start);
+
+  // ── sharing the result: the system share sheet where there is one (phones), else copy the link ──
+  function clock(ms) {
+    var sec = Math.max(0, Math.round(ms / 1000));
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  }
+  $('shareBtn').addEventListener('click', function () {
+    var sh = state && state.share;
+    if (!sh) return;
+    var text = fill(UI.shareText, { time: sh.time });
+    var track = function (method) { if (window.gtag) window.gtag('event', 'blackout_share', { method: method }); };
+    if (navigator.share) {
+      navigator.share({ title: 'Kaladze Simulator', text: text, url: sh.url })
+        .then(function () { track('native'); })
+        .catch(function () { /* the user closed the sheet */ });
+      return;
+    }
+    var btn = $('shareBtn');
+    var done = function () {
+      track('copy');
+      btn.textContent = UI.shareCopied;
+      setTimeout(function () { btn.textContent = btn.getAttribute('data-label'); }, 2000);
+    };
+    if (!btn.getAttribute('data-label')) btn.setAttribute('data-label', btn.textContent);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text + ' ' + sh.url).then(done).catch(function () { window.prompt('', sh.url); });
+    } else {
+      window.prompt('', sh.url);
+    }
+  });
   fetchScores();
   rafId = requestAnimationFrame(tick);
 })();

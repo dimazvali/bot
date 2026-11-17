@@ -1,0 +1,42 @@
+doctype html
+html(lang='en')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    - var title = 'I kept Tbilisi running for ' + t.time
+    - var desc = 'Fixed ' + t.fixed + '. Went dark: ' + t.lost + '. Kaladze Simulator — beat my time.'
+    - var card = 'https://it.dimazvali.com/blackout/s/' + id + '.png'
+    title= title + ' — Kaladze Simulator'
+    meta(name='description' content=desc)
+    meta(name='robots' content='noindex')
+    meta(property='og:type' content='website')
+    meta(property='og:site_name' content='it.dimazvali.com')
+    meta(property='og:title' content=title)
+    meta(property='og:description' content=desc)
+    meta(property='og:url' content='https://it.dimazvali.com/blackout/s/' + id)
+    meta(property='og:image' content=card)
+    meta(property='og:image:width' content='1200')
+    meta(property='og:image:height' content='630')
+    meta(property='og:image:alt' content=title)
+    meta(name='twitter:card' content='summary_large_image')
+    meta(name='twitter:image' content=card)
+    link(rel='icon' type='image/x-icon' href='/images/dimazvali/favicon.ico')
+    script(async src='https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42')
+    script.
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-LDMN4XFB42');
+    style.
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body { background: #1a1b1e; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+        min-height: 100vh; padding: 16px; font-family: system-ui, sans-serif; }
+      img { display: block; width: 100%; max-width: 1200px; height: auto; border-radius: 8px; }
+      a.play { display: inline-block; background: #f2cf3b; color: #0c0d10; text-decoration: none; font-weight: 800; font-size: 20px;
+        padding: 16px 32px; border-radius: 999px; }
+      a.play:hover { background: #ffe066; }
+  body
+    a(href='/blackout' onclick="if (window.gtag) gtag('event', 'share_open_game', { share: '" + id + "' });")
+      img(src=card alt=title width='1200' height='630')
+    a.play(href='/blackout' onclick="if (window.gtag) gtag('event', 'share_open_game', { share: '" + id + "' });") Beat my time →

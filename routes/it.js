@@ -175,11 +175,51 @@ router.post('/blackout/session', express.json({ limit: '1kb' }), function(req, r
 });
 
 // end of a shift (sent by the game at game over): completes the shift's stats record
-router.post('/blackout/finish', express.json({ limit: '1kb' }), function(req, res) {
+// and prepares the share card link when the result is believable
+var blackoutShare = require('../lib/it-blackout-share').init(fb);
+var SHARE_RULES = { maxScore: blackoutScores.maxScore, minDurationMs: blackoutScores.minDurationMs, fixesPerLevel: 10 };
+router.post('/blackout/finish', express.json({ limit: '1kb' }), async function(req, res) {
   var session = blackoutScores.readToken(req.body && req.body.token);
   if (!session) return res.status(400).json({ error: 'token' });
-  res.status(204).end();
   blackoutStats.logFinish(session.sid, req.body).catch(function(e) { console.error('[blackout] finish log:', e.message); });
+  var result = blackoutShare.plausible(req.body, session.startedAt, Date.now(), SHARE_RULES);
+  if (!result) return res.json({ share: null });
+  try {
+    result.lang = req.body.lang;
+    var id = await blackoutShare.createShare(session.sid, result);
+    res.json({ share: 'https://it.dimazvali.com/blackout/s/' + id });
+  } catch (e) {
+    console.error('[blackout] share:', e.message);
+    res.json({ share: null });
+  }
+});
+
+// a shared result: an og-card page for messengers, a link into the game for people
+router.get('/blackout/s/:id', async function(req, res, next) {
+  if (/\.png$/.test(req.params.id)) return next(); // the card image route below
+  try {
+    var share = await blackoutShare.getShare(req.params.id);
+    if (!share) return res.redirect(302, '/blackout');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.render('it/blackout-share', { id: req.params.id, t: blackoutShare.cardText(share) });
+  } catch (e) { next(e); }
+});
+
+var shareCards = new Map(); // id -> PNG; a result never changes, so cards are cached for good (bounded)
+router.get('/blackout/s/:id.png', async function(req, res, next) {
+  try {
+    var png = shareCards.get(req.params.id);
+    if (!png) {
+      var share = await blackoutShare.getShare(req.params.id);
+      if (!share) return res.status(404).end();
+      png = await blackoutShare.renderCard(share);
+      if (shareCards.size >= 300) shareCards.delete(shareCards.keys().next().value);
+      shareCards.set(req.params.id, png);
+    }
+    res.set('Content-Type', 'image/png');
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(png);
+  } catch (e) { next(e); }
 });
 
 router.post('/blackout/scores', express.json({ limit: '2kb' }), async function(req, res, next) {
