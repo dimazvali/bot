@@ -55,7 +55,7 @@ test('an honest-looking score is stored and shows up in the top', async function
   var db = setup();
   var now = 1e12;
   var r = await scores.submit({ deviceId: DEVICE, nick: ' Гиви ', score: 400, level: 2, fixes: 12, token: tokenStartedAgo(120000, now) }, now);
-  assert.deepStrictEqual(r, { ok: true, improved: true });
+  assert.strictEqual(r.ok, true); assert.strictEqual(r.improved, true); assert.ok(r.durationMs >= 120000);
   var top = await scores.top(DEVICE);
   assert.strictEqual(top[0].nick, 'Гиви');
   assert.strictEqual(top[0].me, true);

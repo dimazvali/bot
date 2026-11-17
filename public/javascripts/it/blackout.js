@@ -454,6 +454,7 @@
 
   function start() {
     lockLandscape(); // runs inside the tap on "start", which fullscreen requires
+    $('rotatePaused').hidden = false;
     clearBoard();
     hideBubble(true);
     clearEnding();
@@ -461,7 +462,13 @@
     if (window.gtag) window.gtag('event', 'blackout_start', { lang: document.documentElement.lang });
     // a server-signed shift token: without it the score can't go to the table
     var shift = state;
-    fetch('/blackout/session', { method: 'POST' })
+    var plays = (+lsGet('blackout-plays') || 0) + 1; // shifts on this device, for the "new shift" alert
+    lsSet('blackout-plays', String(plays));
+    fetch('/blackout/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId: deviceId, lang: document.documentElement.lang, plays: plays }),
+    })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) { if (j && j.token) shift.token = j.token; })
       .catch(function () { /* offline: the game still works, the score just won't be saved */ });
@@ -477,6 +484,7 @@
 
   function gameOver() {
     state.running = false;
+    $('rotatePaused').hidden = true;
     document.body.classList.remove('playing');
     var best = readBest();
     var record = state.score > best;

@@ -408,7 +408,10 @@ html(lang=ui.htmlLang)
         rect(x='15' y='5' width='18' height='38' rx='3')
         path(d='M21 38h6')
       h2= ui.rotateTitle
-      p= ui.rotateText
+      p
+        = ui.rotateText
+        //- only mid-shift: before the start or after game over there's nothing to pause
+        span#rotatePaused(hidden)= ' ' + ui.rotatePaused
       button#rotateBtn(type='button' hidden)= ui.rotateBtn
 
     //- end-of-shift scene: the screen goes dark, the boiler gets lit, the lights come back
@@ -420,4 +423,4 @@ html(lang=ui.htmlLang)
 
     script.
       window.BLACKOUT_UI = !{uiJson};
-    script(src='/javascripts/it/blackout.js?v=10')
+    script(src='/javascripts/it/blackout.js?v=11')

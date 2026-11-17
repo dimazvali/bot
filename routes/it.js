@@ -151,7 +151,8 @@ function scoreRateOk(ip) {
 
 // a token per shift, requested when the game starts
 var sessionHits = new Map();
-router.post('/blackout/session', function(req, res) {
+var blackoutNotify = require('../lib/it-blackout-notify').create();
+router.post('/blackout/session', express.json({ limit: '1kb' }), function(req, res) {
   var now = Date.now();
   var hits = (sessionHits.get(req.ip) || []).filter(function(t) { return now - t < 60 * 1000; });
   if (hits.length >= 30) return res.status(429).json({ error: 'rate' });
@@ -160,6 +161,7 @@ router.post('/blackout/session', function(req, res) {
   if (sessionHits.size > 5000) sessionHits.clear();
   res.set('Cache-Control', 'no-store');
   res.json(blackoutScores.newSession());
+  blackoutNotify.launch(req, req.body); // Telegram: a shift started (deduped per device)
 });
 
 router.post('/blackout/scores', express.json({ limit: '2kb' }), async function(req, res, next) {
@@ -167,7 +169,16 @@ router.post('/blackout/scores', express.json({ limit: '2kb' }), async function(r
     if (!scoreRateOk(req.ip)) return res.status(429).json({ error: 'rate' });
     var result = await blackoutScores.submit(req.body);
     if (result.error) return res.status(400).json(result);
-    res.json({ ok: true, improved: result.improved, top: await blackoutScores.top(req.body.deviceId) });
+    var top = await blackoutScores.top(req.body.deviceId);
+    res.json({ ok: true, improved: result.improved, top: top });
+    if (result.improved) { // Telegram: a new best for this device, with its place in the table
+      var mine = top.filter(function(r) { return r.me; })[0];
+      blackoutNotify.record(req, {
+        nick: mine ? mine.nick : blackoutScores.cleanNick(req.body.nick),
+        score: Number(req.body.score), level: Number(req.body.level), fixes: Number(req.body.fixes),
+        durationMs: result.durationMs, rank: mine ? mine.rank : null,
+      });
+    }
   } catch (e) { next(e); }
 });
 
