@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Подземный Тбилиси</title>
+<meta name="description" content="3D-модель подземного Тбилиси: метро с глубинами станций, реки в коллекторах, переходы, тоннели и трубопроводы на рельефе города.">
+<meta property="og:title" content="Подземный Тбилиси">
+<meta property="og:description" content="Метро, реки в коллекторах, переходы и тоннели под городом — в 3D. Можно вывернуть: чем глубже, тем выше.">
+<meta property="og:type" content="website">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-LDMN4XFB42');
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: full-bleed 3D scene; a strata-coloured control sheet floats on the left (bottom sheet on phones). Single dark look by choice — we are underground. */
+:root{
+  --bg:#15120f; --panel:rgba(28,24,20,.86); --line:#3a322a; --fg:#ece4d8; --muted:#a39684; --accent:#d9a55b;
+  --m1:#e5483f; --m2:#3fba6a; --water:#4fa3e0; --walk:#e8cf6a; --road:#e08a3c; --rail:#b7b0a6; --pipe:#b07ad8; --cable:#e46fa8; --park:#7f8fa3;
+  --f-display:"Unbounded","Manrope",system-ui,sans-serif; --f-body:"Manrope",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;overflow:hidden}
+[hidden]{display:none!important}
+#scene{position:fixed;inset:0}
+#scene canvas{display:block}
+.panel{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));width:340px;max-width:calc(100vw - 24px);
+  background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;z-index:5}
+.panel header{padding:18px 18px 12px;border-bottom:1px solid var(--line)}
+h1{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.01em;margin:0 0 6px;text-wrap:balance}
+.lede{margin:0;color:var(--muted);font-size:12.5px;line-height:1.5}
+.scroll{overflow-y:auto;padding:4px 18px 18px;display:flex;flex-direction:column;gap:18px}
+h2{font-family:var(--f-mono);font-weight:600;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:14px 0 8px}
+.mode{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;padding:3px;gap:3px;margin-top:12px}
+.mode button{border:0;background:none;color:var(--muted);font-family:var(--f-body);font-size:12.5px;font-weight:600;padding:7px 6px;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.mode button[aria-pressed="true"]{background:var(--accent);color:#1d160d}
+.mode button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mode svg{width:14px;height:14px}
+.layers{display:grid;gap:4px}
+.layer{display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:8px;font-size:13px;padding:5px 6px;border-radius:6px;cursor:pointer;position:relative}
+.layer:hover{background:rgba(255,255,255,.04)}
+.layer input{position:absolute;opacity:0;pointer-events:none}
+.sw{width:14px;height:14px;border-radius:3px;border:2px solid var(--c);background:var(--c);transition:background .15s}
+.layer input:not(:checked)+.sw{background:transparent}
+.layer input:focus-visible+.sw{outline:2px solid var(--accent);outline-offset:2px}
+.layer .n{font-family:var(--f-mono);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.layer small{display:block;color:var(--muted);font-size:11px}
+.ctl{display:grid;gap:4px;font-size:12.5px}
+.ctl label{display:flex;justify-content:space-between}
+.ctl output{font-family:var(--f-mono);color:var(--accent);font-size:11.5px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.stations{display:grid;gap:2px}
+.st{display:grid;grid-template-columns:1fr 116px 44px;align-items:center;gap:8px;font-size:12px;padding:3px 6px;border-radius:5px;cursor:pointer;border:0;background:none;color:inherit;text-align:left;font-family:inherit}
+.st:hover,.st.on{background:rgba(255,255,255,.06)}
+.st:focus-visible{outline:2px solid var(--accent)}
+.bar{height:8px;background:rgba(255,255,255,.05);border-radius:2px;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--c)}
+.bar i.est{background:repeating-linear-gradient(135deg,var(--c) 0 3px,transparent 3px 6px);border:1px solid var(--c)}
+.st .d{font-family:var(--f-mono);font-size:11px;text-align:right;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:11.5px;line-height:1.55;margin:0}
+.note a{color:var(--accent)}
+.card{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));width:280px;background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:10px;padding:14px 16px;z-index:6;font-size:12.5px;line-height:1.5}
+.card h3{font-family:var(--f-display);font-weight:500;font-size:15px;margin:0 0 2px}
+.card .ka{color:var(--muted);font-size:12px;margin-bottom:10px}
+.card dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0}
+.card dt{color:var(--muted)} .card dd{margin:0;font-family:var(--f-mono);font-size:11.5px}
+.card .x{position:absolute;right:8px;top:6px;border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer}
+.lbl{font-family:var(--f-mono);font-size:10.5px;color:var(--fg);background:rgba(21,18,15,.72);padding:1px 5px;border-radius:3px;border-left:2px solid var(--c);white-space:nowrap;pointer-events:none;transform:translateY(-14px)}
+.lbl b{font-weight:600;color:var(--accent);margin-left:4px}
+.hint{position:fixed;right:calc(14px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));font-family:var(--f-mono);font-size:10.5px;color:var(--muted);z-index:4;text-align:right}
+.loading{position:fixed;inset:0;display:grid;place-items:center;font-family:var(--f-mono);font-size:12px;color:var(--muted);z-index:3}
+.toggle{display:none}
+@media (max-width:720px){
+  .panel{top:auto;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));width:auto;max-width:none;height:50vh;bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+  .panel.min{height:auto}
+  .panel.min .scroll{display:none}
+  .panel header{padding:12px 14px 10px}
+  .panel header .row{display:flex;align-items:flex-start;gap:10px}
+  .panel header .row>div{flex:1;min-width:0}
+  .lede{display:none}
+  .toggle{display:block;border:1px solid var(--line);background:none;color:var(--fg);border-radius:6px;padding:4px 10px;font-family:var(--f-mono);font-size:11px;cursor:pointer}
+  .card{left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));width:auto}
+  .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div class="loading" id="loading">Копаем…</div>
+
+<aside class="panel" id="panel">
+  <header>
+    <div class="row">
+      <div>
+        <h1>Подземный Тбилиси</h1>
+        <p class="lede" id="lede"></p>
+      </div>
+      <button class="toggle" id="tgl" type="button">Скрыть</button>
+    </div>
+    <div class="mode" role="group" aria-label="Режим">
+      <button type="button" id="m-inv" aria-pressed="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 14V3M4 7l4-4 4 4"/></svg>Вывернуто</button>
+      <button type="button" id="m-real" aria-pressed="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v11M4 9l4 4 4-4"/></svg>Как есть</button>
+    </div>
+  </header>
+  <div class="scroll">
+    <section>
+      <h2>Слои</h2>
+      <div class="layers" id="layers"></div>
+    </section>
+    <section>
+      <h2>Масштаб</h2>
+      <div style="display:grid;gap:12px">
+        <div class="ctl"><label for="vd">Глубина × <output id="vdo"></output></label><input type="range" id="vd" min="1" max="20" step="1" value="8"></div>
+        <div class="ctl"><label for="vt">Рельеф × <output id="vto"></output></label><input type="range" id="vt" min="0" max="2" step="0.1" value="1"></div>
+        <div class="ctl"><label for="op">Непрозрачность земли <output id="opo"></output></label><input type="range" id="op" min="0" max="0.95" step="0.05" value="0.75"></div>
+        <label class="layer" for="labels" style="padding-left:0"><input type="checkbox" id="labels" checked><span class="sw" style="--c:var(--accent)"></span><span>Подписи станций</span><span></span></label>
+      </div>
+    </section>
+    <section>
+      <h2>Станции по глубине</h2>
+      <div class="stations" id="stations"></div>
+      <p class="note" style="margin-top:8px">Сплошная полоса: глубина из карточки станции в Википедии. Штриховка: оценка по типу конструкции (глубокое или мелкое заложение), точной цифры в открытых источниках нет.</p>
+    </section>
+    <section>
+      <h2>Откуда данные</h2>
+      <p class="note">Геометрия: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© участники OpenStreetMap</a>, ODbL, выгрузка Overpass от 20.11.2026. Рельеф: SRTM 30 м через OpenTopoData. Глубины станций: ru.wikipedia.<br><br>
+      Между станциями глубина тоннеля интерполирована по двум ближайшим станциям и пересчитана от рельефа над точкой. Это приближение, а не продольный профиль. У остальных слоёв глубина условная, типовая для такого сооружения (переход около 5 м, коллектор около 4 м, труба около 2,5 м). В OSM нет водопровода, канализации, газа и кабелей. Эти сети принадлежат GWP, Tbilisi Energy и TbilisiGas, и их схемы закрыты.</p>
+    </section>
+  </div>
+</aside>
+
+<div class="card" id="card" hidden></div>
+<div class="hint">ЛКМ вращать · ПКМ двигать · колесо масштаб · клик по станции</div>
+
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/renderers/CSS2DRenderer.js";
+import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/addons/lines/LineMaterial.js";
+
+// model.json sits next to this page; works for /tbilisi/underground and /tbilisi/underground/
+const D = await (await fetch(location.pathname.replace(/\/(index\.html)?$/, "") + "/model.json")).json();
+document.getElementById("loading").hidden = true;
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const G0 = 400;
+// inv: "выворотка" — the deeper, the higher. Default; #real opens the true orientation.
+const S = { vd: 8, vt: 1, op: 0.75, labels: true, inv: location.hash !== "#real" };
+// per-mode defaults: the inverted skyline needs a stronger depth stretch to beat the relief
+const OP_DEFAULT = { inv: 0.75, real: 0.35 }, VD_DEFAULT = { inv: 15, real: 8 };
+S.op = OP_DEFAULT[S.inv ? "inv" : "real"]; S.vd = VD_DEFAULT[S.inv ? "inv" : "real"];
+const LEDE = {
+  inv: "Метро, реки в коллекторах, переходы и тоннели, вывернутые наружу: чем глубже лежит сооружение, тем выше оно поднимается над картой.",
+  real: "Метро, реки в коллекторах, переходы, тоннели и трубы под городом. Рельеф по SRTM; глубины по вертикали растянуты, чтобы их было видно.",
+};
+const LAYERS = [
+  { k: "metro1", name: "Метро, линия 1", sub: "Ахметели — Варкетили", c: "--m1" },
+  { k: "metro2", name: "Метро, линия 2", sub: "Садгурис моедани — Университет", c: "--m2" },
+  { k: "shaft", name: "Эскалаторы", sub: "от вестибюля к станции", c: "--accent" },
+  { k: "water", name: "Реки в коллекторах", sub: "Вере, Цавкисисцкали и ручьи", c: "--water" },
+  { k: "walk", name: "Подземные переходы", sub: "пешеходные, ≈5 м", c: "--walk" },
+  { k: "road", name: "Автотоннели и спуски", sub: "≈8 м", c: "--road" },
+  { k: "rail", name: "Ж/д тоннели", sub: "≈10 м", c: "--rail" },
+  { k: "pipe", name: "Трубопроводы", sub: "в OSM: магистральные, ≈2,5 м", c: "--pipe" },
+  { k: "cable", name: "Кабели", sub: "", c: "--cable" },
+  { k: "park", name: "Подземные парковки", sub: "≈4 м на уровень", c: "--park" },
+];
+const on = Object.fromEntries(LAYERS.map(l => [l.k, true]));
+try { const s = JSON.parse(localStorage.getItem("tbug-layers") || "null"); if (s) Object.assign(on, s); } catch (e) {}
+
+// ---------- three setup
+const host = document.getElementById("scene");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(new THREE.Color(css("--bg")));
+host.appendChild(renderer.domElement);
+const labelR = new CSS2DRenderer();
+labelR.setSize(innerWidth, innerHeight);
+Object.assign(labelR.domElement.style, { position: "absolute", top: "0", left: "0", pointerEvents: "none" });
+host.appendChild(labelR.domElement);
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(css("--bg"), 18000, 42000);
+const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 10, 80000);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxDistance = 30000;
+const homeTarget = () => new THREE.Vector3(0, S.inv ? 250 : -150, 0);
+controls.target.copy(homeTarget());
+// inverted model is a "skyline" — look at it from a lower angle so height reads
+if (S.inv) camera.position.set(6200, 3600, 9400); else camera.position.set(5200, 6200, 9800);
+scene.add(new THREE.HemisphereLight(0xfff1dc, 0x2a2018, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(-4000, 9000, 3000); scene.add(sun);
+
+// vertical placement: ground relief + depth (flipped upward in "inv" mode)
+const Y = (g, d) => (g - G0) * S.vt + (S.inv ? d : -d) * S.vd;
+const col = k => new THREE.Color(css(LAYERS.find(l => l.k === k).c));
+const groups = {};
+LAYERS.forEach(l => { groups[l.k] = new THREE.Group(); scene.add(groups[l.k]); });
+const terrainG = new THREE.Group(), surfG = new THREE.Group(), labelG = new THREE.Group();
+scene.add(terrainG, surfG, labelG);
+const lineMats = [];
+const mkLines = (segs, color, width, opacity = 1) => {
+  const g = new LineSegmentsGeometry(); g.setPositions(segs);
+  const m = new LineMaterial({ color, linewidth: width, transparent: opacity < 1, opacity, worldUnits: false });
+  m.resolution.set(innerWidth, innerHeight); lineMats.push(m);
+  return new LineSegments2(g, m);
+};
+const clear = g => { g.children.slice().forEach(c => { g.remove(c); c.geometry?.dispose(); if (c.material) { const i = lineMats.indexOf(c.material); if (i >= 0) lineMats.splice(i, 1); c.material.dispose?.(); } }); };
+
+// ---------- terrain
+let terrainMat, terrainWire;
+function buildTerrain() {
+  clear(terrainG);
+  const { nx, ny, x0, x1, z0, z1, ele } = D.dem;
+  const pos = new Float32Array(nx * ny * 3), colr = new Float32Array(nx * ny * 3);
+  const lo = new THREE.Color("#3b3326"), hi = new THREE.Color("#8d7b5c"), tmp = new THREE.Color();
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const k = j * nx + i, e = ele[k];
+    pos.set([x0 + (x1 - x0) * i / (nx - 1), Y(e, 0) + 1, z0 + (z1 - z0) * j / (ny - 1)], k * 3);
+    tmp.copy(lo).lerp(hi, Math.min(1, Math.max(0, (e - 380) / 700))); colr.set([tmp.r, tmp.g, tmp.b], k * 3);
+  }
+  const idx = [];
+  for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) { const a = j * nx + i, b = a + 1, c = a + nx, d = c + 1; idx.push(a, c, b, b, c, d); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(colr, 3));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  terrainMat = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: S.op, side: THREE.DoubleSide, depthWrite: false });
+  const mesh = new THREE.Mesh(geo, terrainMat); mesh.renderOrder = 10; terrainG.add(mesh);
+  terrainWire = new THREE.LineSegments(new THREE.WireframeGeometry(geo), new THREE.LineBasicMaterial({ color: 0xc9b28a, transparent: true, opacity: S.op * 0.25, depthWrite: false }));
+  terrainWire.renderOrder = 11; terrainG.add(terrainWire);
+  terrainG.visible = S.op > 0;
+}
+function buildSurface() {
+  clear(surfG);
+  const seg = { river: [], stream: [], road: [] };
+  for (const f of D.surface) { const p = f.p; for (let i = 0; i + 5 < p.length; i += 3) seg[f.k].push(p[i], Y(p[i + 2], 0) + 4, p[i + 1], p[i + 3], Y(p[i + 5], 0) + 4, p[i + 4]); }
+  surfG.add(mkLines(seg.river, 0x5fb4ee, 4, 0.9), mkLines(seg.stream, 0x5fb4ee, 1.2, 0.5), mkLines(seg.road, 0xd8c7a8, 1, 0.22));
+}
+
+// ---------- underground
+const stationMeshes = [];
+const depthLabel = s => s.depth > 0 ? (s.src === "e" ? "≈" : "") + "−" + s.depth : s.depth < 0 ? "+" + -s.depth : "0";
+function buildUnder() {
+  LAYERS.forEach(l => clear(groups[l.k])); clear(labelG); stationMeshes.length = 0;
+  const segs = { water: [], walk: [], road: [], rail: [], pipe: [], cable: [] };
+  const metroWays = { 1: [], 2: [] };
+  for (const f of D.feats) {
+    const p = f.p;
+    if (f.k === "metro") {
+      const pts = []; for (let i = 0; i < p.length; i += 4) pts.push(new THREE.Vector3(p[i], Y(p[i + 2], p[i + 3]), p[i + 1]));
+      metroWays[f.line].push({ f, pts });
+      if (pts.length < 2) continue;
+      const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
+      const c = col("metro" + f.line);
+      groups["metro" + f.line].add(new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(4, pts.length * 3), 16, 8, false),
+        new THREE.MeshStandardMaterial({ color: c, roughness: .5, metalness: .1, emissive: c, emissiveIntensity: .25 })));
+      continue;
+    }
+    const arr = segs[f.k]; if (!arr) continue;
+    for (let i = 0; i + 7 < p.length; i += 4) arr.push(p[i], Y(p[i + 2], p[i + 3]), p[i + 1], p[i + 4], Y(p[i + 6], p[i + 7]), p[i + 5]);
+  }
+  const W = { water: 3, walk: 2.4, road: 3, rail: 3.5, pipe: 2.2, cable: 1.6 };
+  for (const k in segs) if (segs[k].length) groups[k].add(mkLines(segs[k], col(k), W[k]));
+
+  // parkings: outline at 4 m per underground level; node-only parkings get a 50 m square
+  const pk = [];
+  for (const pr of D.parkings) {
+    const d = 4 * pr.levels, p = pr.p;
+    if (p.length >= 6) for (let i = 0; i + 5 < p.length; i += 3) pk.push(p[i], Y(p[i + 2], d), p[i + 1], p[i + 3], Y(p[i + 5], d), p[i + 4]);
+    else {
+      const s = 25, y = Y(p[2], d), c = [[-s, -s], [s, -s], [s, s], [-s, s]];
+      for (let i = 0; i < 4; i++) { const a = c[i], b = c[(i + 1) % 4]; pk.push(p[0] + a[0], y, p[1] + a[1], p[0] + b[0], y, p[1] + b[1]); }
+    }
+  }
+  if (pk.length) groups.park.add(mkLines(pk, col("park"), 2.2));
+
+  // stations + escalator shafts
+  const shafts = [];
+  for (const s of D.stations) {
+    const [x, z] = s.xz, y = Y(s.g, s.depth);
+    let best = null, bd = 1e18;
+    for (const w of metroWays[s.line]) for (const v of w.pts) { const d = (v.x - x) ** 2 + (v.z - z) ** 2; if (d < bd) { bd = d; best = w; } }
+    let ang = 0;
+    if (best && best.pts.length > 1) { const a = best.pts[0], b = best.pts[best.pts.length - 1]; ang = Math.atan2(b.z - a.z, b.x - a.x); }
+    const c = col("metro" + s.line);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(170, Math.max(10, 9 * S.vd * 0.6), 46),
+      new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .55, roughness: .4 }));
+    m.position.set(x, y, z); m.rotation.y = -ang; m.userData.st = s; stationMeshes.push(m);
+    groups["metro" + s.line].add(m);
+    const el = document.createElement("div"); el.className = "lbl"; el.style.setProperty("--c", css("--m" + s.line));
+    el.innerHTML = `${s.ru}<b>${depthLabel(s)} м</b>`;
+    const lo = new CSS2DObject(el); lo.position.set(x, y, z); lo.userData.line = s.line; labelG.add(lo);
+    if (s.depth > 3) {
+      const ents = D.entrances.filter(e => e.st === s.n);
+      if (!ents.length) shafts.push(x, Y(s.g, 0), z, x, y, z);
+      for (const e of ents) shafts.push(e.xz[0], Y(e.g, 0), e.xz[1], x, y, z);
+    }
+  }
+  if (shafts.length) groups.shaft.add(mkLines(shafts, col("shaft"), 1.6, 0.85));
+  applyVis();
+}
+function applyVis() {
+  LAYERS.forEach(l => groups[l.k].visible = on[l.k]);
+  labelG.children.forEach(o => o.visible = S.labels && on["metro" + o.userData.line]);
+}
+
+// ---------- UI
+const cnt = { metro1: D.feats.filter(f => f.k === "metro" && f.line === 1).length, metro2: D.feats.filter(f => f.k === "metro" && f.line === 2).length, shaft: D.entrances.length, park: D.parkings.length };
+D.feats.forEach(f => { if (f.k !== "metro") cnt[f.k] = (cnt[f.k] || 0) + 1; });
+const unit = { metro1: "сегм.", metro2: "сегм.", shaft: "вход.", park: "шт." };
+document.getElementById("layers").innerHTML = LAYERS.filter(l => cnt[l.k]).map(l => `
+  <label class="layer" for="ly-${l.k}"><input type="checkbox" id="ly-${l.k}" data-k="${l.k}" ${on[l.k] ? "checked" : ""}><span class="sw" style="--c:var(${l.c})"></span>
+  <span>${l.name}${l.sub ? `<small>${l.sub}</small>` : ""}</span><span class="n">${cnt[l.k]} ${unit[l.k] || "лин."}</span></label>`).join("");
+document.getElementById("layers").addEventListener("change", e => {
+  const k = e.target.dataset.k; if (!k) return; on[k] = e.target.checked; applyVis();
+  try { localStorage.setItem("tbug-layers", JSON.stringify(on)); } catch (err) {}
+});
+const sorted = [...D.stations].sort((a, b) => b.depth - a.depth);
+document.getElementById("stations").innerHTML = sorted.map(s => `
+  <button class="st" type="button" data-n="${s.n}" style="--c:var(--m${s.line})"><span>${s.ru}</span>
+  <span class="bar"><i class="${s.src === "e" ? "est" : ""}" style="width:${Math.max(0, s.depth) / 65 * 100}%"></i></span>
+  <span class="d">${depthLabel(s).replace("−", "")}</span></button>`).join("");
+document.getElementById("stations").addEventListener("click", e => { const b = e.target.closest(".st"); if (b) select(D.stations.find(s => s.n === b.dataset.n), true); });
+
+const card = document.getElementById("card");
+function select(s, fly) {
+  document.querySelectorAll(".st").forEach(b => b.classList.toggle("on", !!s && b.dataset.n === s.n));
+  if (!s) { card.hidden = true; return; }
+  const ents = D.entrances.filter(e => e.st === s.n).length;
+  card.innerHTML = `<button class="x" type="button" aria-label="Закрыть">×</button><h3>${s.ru}</h3><div class="ka">${s.ka} · линия ${s.line}</div>
+   <dl><dt>Глубина</dt><dd>${s.depth > 0 ? s.depth + " м" : s.depth < 0 ? "эстакада, +" + -s.depth + " м" : "на поверхности"}${s.src === "e" ? " (оценка)" : ""}</dd>
+   <dt>Конструкция</dt><dd style="font-family:var(--f-body);font-size:12px">${s.type}</dd>
+   <dt>Земля над ней</dt><dd>${Math.round(s.g)} м н.у.м.</dd>
+   <dt>Платформа</dt><dd>≈${Math.round(s.g - s.depth)} м н.у.м.</dd>
+   <dt>Вестибюли в OSM</dt><dd>${ents}</dd></dl>`;
+  card.hidden = false;
+  card.querySelector(".x").onclick = () => select(null);
+  if (fly) {
+    const t = new THREE.Vector3(s.xz[0], Y(s.g, s.depth), s.xz[1]);
+    tween(t, t.clone().add(new THREE.Vector3(900, 700, 1300)));
+  }
+}
+let tw = null;
+function tween(target, pos) {
+  const t0 = performance.now(), a = controls.target.clone(), b = camera.position.clone(), dur = matchMedia("(prefers-reduced-motion:reduce)").matches ? 1 : 900;
+  tw = now => { const k = Math.min(1, (now - t0) / dur), e = 1 - (1 - k) ** 3; controls.target.lerpVectors(a, target, e); camera.position.lerpVectors(b, pos, e); if (k >= 1) tw = null; };
+}
+
+const ray = new THREE.Raycaster(), mv = new THREE.Vector2();
+let down = null;
+renderer.domElement.addEventListener("pointerdown", e => down = [e.clientX, e.clientY]);
+renderer.domElement.addEventListener("pointerup", e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  mv.set(e.clientX / innerWidth * 2 - 1, -e.clientY / innerHeight * 2 + 1); ray.setFromCamera(mv, camera);
+  const hit = ray.intersectObjects(stationMeshes.filter(m => m.parent.visible))[0];
+  select(hit ? hit.object.userData.st : null, false);
+});
+
+const ranges = {};
+const bindRange = (id, f, out) => {
+  const el = document.getElementById(id), o = document.getElementById(id + "o");
+  const show = () => o.textContent = out(S[id]);
+  ranges[id] = () => { el.value = S[id]; show(); };
+  ranges[id]();
+  let t; el.addEventListener("input", () => { S[id] = parseFloat(el.value); show(); clearTimeout(t); t = setTimeout(f, 60); });
+};
+const setOpacity = () => { terrainMat.opacity = S.op; terrainWire.material.opacity = S.op * .25; terrainG.visible = S.op > 0; };
+bindRange("vd", () => buildUnder(), v => v);
+bindRange("vt", () => { buildTerrain(); buildSurface(); buildUnder(); }, v => v.toFixed(1));
+bindRange("op", setOpacity, v => Math.round(v * 100) + "%");
+document.getElementById("labels").addEventListener("change", e => { S.labels = e.target.checked; applyVis(); });
+const panel = document.getElementById("panel"), tgl = document.getElementById("tgl");
+tgl.addEventListener("click", () => { panel.classList.toggle("min"); tgl.textContent = panel.classList.contains("min") ? "Слои" : "Скрыть"; });
+
+// mode switch: keeps the camera's view, shifts it to where the model now sits
+const mInv = document.getElementById("m-inv"), mReal = document.getElementById("m-real"), lede = document.getElementById("lede");
+function setMode(inv, initial) {
+  const changed = S.inv !== inv;
+  S.inv = inv;
+  mInv.setAttribute("aria-pressed", inv); mReal.setAttribute("aria-pressed", !inv);
+  lede.textContent = LEDE[inv ? "inv" : "real"];
+  if (initial) return;
+  if (!changed) return;
+  S.op = OP_DEFAULT[inv ? "inv" : "real"]; ranges.op(); setOpacity();
+  S.vd = VD_DEFAULT[inv ? "inv" : "real"]; ranges.vd();
+  buildUnder();
+  const dy = homeTarget().y - controls.target.y;
+  tween(controls.target.clone().setY(homeTarget().y), camera.position.clone().setY(camera.position.y + dy));
+  history.replaceState(null, "", inv ? location.pathname : "#real");
+  gtag?.("event", "underground_mode", { mode: inv ? "inverted" : "real" });
+}
+mInv.addEventListener("click", () => setMode(true));
+mReal.addEventListener("click", () => setMode(false));
+addEventListener("hashchange", () => setMode(location.hash !== "#real"));
+setMode(S.inv, true);
+
+addEventListener("resize", () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight); labelR.setSize(innerWidth, innerHeight);
+  lineMats.forEach(m => m.resolution.set(innerWidth, innerHeight));
+});
+buildTerrain(); buildSurface(); buildUnder();
+renderer.setAnimationLoop(now => { tw?.(now); controls.update(); renderer.render(scene, camera); labelR.render(scene, camera); });
+</script>
+</body>
+</html>
