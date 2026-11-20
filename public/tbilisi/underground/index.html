@@ -21,7 +21,7 @@
 /* Layout: full-bleed 3D scene; a strata-coloured control sheet floats on the left (bottom sheet on phones). Single dark look by choice — we are underground. */
 :root{
   --bg:#15120f; --panel:rgba(28,24,20,.86); --line:#3a322a; --fg:#ece4d8; --muted:#a39684; --accent:#d9a55b;
-  --m1:#e5483f; --m2:#3fba6a; --water:#4fa3e0; --walk:#e8cf6a; --road:#e08a3c; --rail:#b7b0a6; --pipe:#b07ad8; --cable:#e46fa8; --park:#7f8fa3;
+  --m1:#e5483f; --m2:#3fba6a; --depot:#9a8b7a; --water:#4fa3e0; --walk:#e8cf6a; --road:#e08a3c; --rail:#b7b0a6; --pipe:#b07ad8; --cable:#e46fa8; --park:#7f8fa3;
   --f-display:"Unbounded","Manrope",system-ui,sans-serif; --f-body:"Manrope",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
   color-scheme:dark;
 }
@@ -132,7 +132,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <section>
       <h2>Откуда данные</h2>
       <p class="note">Геометрия: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© участники OpenStreetMap</a>, ODbL, выгрузка Overpass от 20.11.2026. Рельеф: SRTM 30 м через OpenTopoData. Глубины станций: ru.wikipedia.<br><br>
-      Между станциями глубина тоннеля интерполирована по двум ближайшим станциям и пересчитана от рельефа над точкой. Это приближение, а не продольный профиль. У остальных слоёв глубина условная, типовая для такого сооружения (переход около 5 м, коллектор около 4 м, труба около 2,5 м). В OSM нет водопровода, канализации, газа и кабелей. Эти сети принадлежат GWP, Tbilisi Energy и TbilisiGas, и их схемы закрыты.</p>
+      Пути и порядок станций взяты из маршрутов метро в OSM. Между соседними станциями отметка рельса меняется линейно по длине пути, а глубина в каждой точке считается от рельефа над ней. Это приближение, а не продольный профиль: под склоном между «Тависуплебис моедани» и «Руставели» модель даёт до 78 м. SRTM — модель поверхности, в плотной застройке она завышает землю на высоту крыш. У остальных слоёв глубина условная, типовая для такого сооружения (переход около 5 м, коллектор около 4 м, труба около 2,5 м). В OSM нет водопровода, канализации, газа и кабелей. Эти сети принадлежат GWP, Tbilisi Energy и TbilisiGas, и их схемы закрыты.</p>
     </section>
   </div>
 </aside>
@@ -167,6 +167,7 @@ const LEDE = {
 const LAYERS = [
   { k: "metro1", name: "Метро, линия 1", sub: "Ахметели — Варкетили", c: "--m1" },
   { k: "metro2", name: "Метро, линия 2", sub: "Садгурис моедани — Университет", c: "--m2" },
+  { k: "depot", name: "Депо и служебные пути", sub: "парки, тупики, съезды", c: "--depot" },
   { k: "shaft", name: "Эскалаторы", sub: "от вестибюля к станции", c: "--accent" },
   { k: "water", name: "Реки в коллекторах", sub: "Вере, Цавкисисцкали и ручьи", c: "--water" },
   { k: "walk", name: "Подземные переходы", sub: "пешеходные, ≈5 м", c: "--walk" },
@@ -255,17 +256,16 @@ const depthLabel = s => s.depth > 0 ? (s.src === "e" ? "≈" : "") + "−" + s.d
 function buildUnder() {
   LAYERS.forEach(l => clear(groups[l.k])); clear(labelG); stationMeshes.length = 0;
   const segs = { water: [], walk: [], road: [], rail: [], pipe: [], cable: [] };
-  const metroWays = { 1: [], 2: [] };
   for (const f of D.feats) {
     const p = f.p;
     if (f.k === "metro") {
       const pts = []; for (let i = 0; i < p.length; i += 4) pts.push(new THREE.Vector3(p[i], Y(p[i + 2], p[i + 3]), p[i + 1]));
-      metroWays[f.line].push({ f, pts });
       if (pts.length < 2) continue;
       const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal");
-      const c = col("metro" + f.line);
-      groups["metro" + f.line].add(new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(4, pts.length * 3), 16, 8, false),
-        new THREE.MeshStandardMaterial({ color: c, roughness: .5, metalness: .1, emissive: c, emissiveIntensity: .25 })));
+      // service tracks (depot yards, sidings, crossovers): thinner, line colour washed toward grey
+      const c = f.svc ? col("metro" + f.line).lerp(col("depot"), 0.6) : col("metro" + f.line);
+      (f.svc ? groups.depot : groups["metro" + f.line]).add(new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(4, pts.length * 3), f.svc ? 7 : 16, 6, false),
+        new THREE.MeshStandardMaterial({ color: c, roughness: .5, metalness: .1, emissive: c, emissiveIntensity: f.svc ? .1 : .25 })));
       continue;
     }
     const arr = segs[f.k]; if (!arr) continue;
@@ -290,10 +290,7 @@ function buildUnder() {
   const shafts = [];
   for (const s of D.stations) {
     const [x, z] = s.xz, y = Y(s.g, s.depth);
-    let best = null, bd = 1e18;
-    for (const w of metroWays[s.line]) for (const v of w.pts) { const d = (v.x - x) ** 2 + (v.z - z) ** 2; if (d < bd) { bd = d; best = w; } }
-    let ang = 0;
-    if (best && best.pts.length > 1) { const a = best.pts[0], b = best.pts[best.pts.length - 1]; ang = Math.atan2(b.z - a.z, b.x - a.x); }
+    const ang = s.ang || 0; // track direction at the station, from build.js
     const c = col("metro" + s.line);
     const m = new THREE.Mesh(new THREE.BoxGeometry(170, Math.max(10, 9 * S.vd * 0.6), 46),
       new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .55, roughness: .4 }));
@@ -317,12 +314,14 @@ function applyVis() {
 }
 
 // ---------- UI
-const cnt = { metro1: D.feats.filter(f => f.k === "metro" && f.line === 1).length, metro2: D.feats.filter(f => f.k === "metro" && f.line === 2).length, shaft: D.entrances.length, park: D.parkings.length };
+// metro lines are labelled with their length along the track; other layers with object counts
+const lineKm = n => (D.lines?.[n] / 1000).toFixed(1).replace(".", ",") + " км";
+const cnt = { metro1: lineKm(1), metro2: lineKm(2), depot: D.feats.filter(f => f.k === "metro" && f.svc).length, shaft: D.entrances.length, park: D.parkings.length };
 D.feats.forEach(f => { if (f.k !== "metro") cnt[f.k] = (cnt[f.k] || 0) + 1; });
-const unit = { metro1: "сегм.", metro2: "сегм.", shaft: "вход.", park: "шт." };
+const unit = { metro1: "", metro2: "", depot: "сегм.", shaft: "вход.", park: "шт." };
 document.getElementById("layers").innerHTML = LAYERS.filter(l => cnt[l.k]).map(l => `
   <label class="layer" for="ly-${l.k}"><input type="checkbox" id="ly-${l.k}" data-k="${l.k}" ${on[l.k] ? "checked" : ""}><span class="sw" style="--c:var(${l.c})"></span>
-  <span>${l.name}${l.sub ? `<small>${l.sub}</small>` : ""}</span><span class="n">${cnt[l.k]} ${unit[l.k] || "лин."}</span></label>`).join("");
+  <span>${l.name}${l.sub ? `<small>${l.sub}</small>` : ""}</span><span class="n">${cnt[l.k]} ${unit[l.k] ?? "лин."}</span></label>`).join("");
 document.getElementById("layers").addEventListener("change", e => {
   const k = e.target.dataset.k; if (!k) return; on[k] = e.target.checked; applyVis();
   try { localStorage.setItem("tbug-layers", JSON.stringify(on)); } catch (err) {}

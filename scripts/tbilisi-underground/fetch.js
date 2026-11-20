@@ -1,6 +1,6 @@
 // Downloads raw inputs for the Tbilisi underground 3D model (dimazvali.com/tbilisi/underground).
 // Usage: node scripts/tbilisi-underground/fetch.js <raw dir>
-// Writes <raw dir>/raw.json, raw2.json (Overpass) and dem.json (SRTM 30 m via OpenTopoData).
+// Writes <raw dir>/raw.json, raw2.json, rel.json (Overpass) and dem.json (SRTM 30 m via OpenTopoData).
 // Raw dumps are ~3 MB and are not committed; run build.js afterwards.
 const fs = require('fs');
 const path = require('path');
@@ -30,7 +30,11 @@ const Q2 = `[out:json][timeout:180];
   way["highway"~"^(motorway|trunk|primary)$"](${BB2});
 );
 out geom tags;`;
-const MIRRORS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+// metro route relations: ordered members per line (ways themselves are in raw.json)
+const Q3 = `[out:json][timeout:120];
+relation["route"="subway"](${BB});
+out body;`;
+const MIRRORS =['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function overpass(q, file) {
@@ -70,5 +74,6 @@ async function dem() {
 (async () => {
   await overpass(Q1, 'raw.json');
   await overpass(Q2, 'raw2.json');
+  await overpass(Q3, 'rel.json');
   await dem();
 })().catch(e => { console.error(e); process.exit(1); });

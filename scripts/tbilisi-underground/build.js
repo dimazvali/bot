@@ -1,5 +1,5 @@
 // Builds public/tbilisi/underground/model.json for dimazvali.com/tbilisi/underground.
-// Inputs come from fetch.js (raw.json, raw2.json, dem.json in <raw dir>).
+// Inputs come from fetch.js (raw.json, raw2.json, rel.json, dem.json in <raw dir>).
 // Usage: node scripts/tbilisi-underground/build.js <raw dir> public/tbilisi/underground/model.json
 // Coordinates: local metres around (LAT0, LON0), x east, z south. Each line point is [x, z, ground m a.s.l., depth m].
 const fs = require("fs"), path = require("path");
@@ -53,24 +53,73 @@ const stations = raw.filter(e => e.tags && e.tags.railway === "station").map(s =
   const g = ground(s.lat, s.lon);
   return { n, ru: d[4], ka: s.tags["name:ka"] || s.tags.name, line: d[3], depth: d[0], src: d[1], type: d[2], lat: s.lat, lon: s.lon, xz: proj(s.lat, s.lon).map(R), g: R(g), rail: g - d[0] };
 });
-const lineOf = (lat, lon) => {
-  let best = null, bd = 1e18;
-  for (const s of stations) { const [x, z] = proj(lat, lon), dx = x - s.xz[0], dz = z - s.xz[1], dd = dx * dx + dz * dz; if (dd < bd) { bd = dd; best = s; } }
-  return best.line;
-};
-function railAltAt(lat, lon, line) {
-  const [x, z] = proj(lat, lon);
-  const c = stations.filter(s => s.line === line || s.n.startsWith("Station Square"))
-    .map(s => ({ s, d: Math.hypot(x - s.xz[0], z - s.xz[1]) })).sort((a, b) => a.d - b.d).slice(0, 2);
-  if (c[0].d < 1) return c[0].s.rail;
-  const w0 = 1 / c[0].d, w1 = 1 / c[1].d;
-  return (c[0].s.rail * w0 + c[1].s.rail * w1) / (w0 + w1);
+// ---- metro lines from OSM route relations (route=subway, ref 1/2).
+// Each line becomes one ordered polyline ("chain") with chainage in metres. Track depth is interpolated
+// linearly by chainage between consecutive stations, then re-measured against the relief above each point.
+const rel = JSON.parse(fs.readFileSync(path.join(dir, "rel.json"))).elements;
+const wayById = {}; raw.forEach(e => { if (e.type === "way") wayById[e.id] = e; });
+const routeWayLine = {}; // way id -> line number (both directions' tracks)
+for (const r of rel) for (const m of r.members) if (m.type === "way") routeWayLine[m.ref] = +r.tags.ref;
+function buildChain(r) {
+  const key = p => p.lat.toFixed(7) + "," + p.lon.toFixed(7);
+  const segs = r.members.filter(m => m.type === "way" && wayById[m.ref]).map(m => wayById[m.ref].geometry.map(g => ({ lat: g.lat, lon: g.lon })));
+  let line = segs.shift();
+  while (segs.length) {
+    const a = key(line[0]), b = key(line[line.length - 1]);
+    const i = segs.findIndex(s => [key(s[0]), key(s[s.length - 1])].some(k => k === a || k === b));
+    if (i < 0) throw new Error(`route ${r.id}: ways do not form a continuous chain`);
+    const s = segs.splice(i, 1)[0], s0 = key(s[0]), s1 = key(s[s.length - 1]);
+    if (s0 === b) line = line.concat(s.slice(1)); else if (s1 === b) line = line.concat(s.reverse().slice(1));
+    else if (s1 === a) line = s.concat(line.slice(1)); else line = s.reverse().concat(line.slice(1));
+  }
+  let c = 0;
+  line.forEach((p, i) => { p.xz = proj(p.lat, p.lon); if (i) c += Math.hypot(p.xz[0] - line[i - 1].xz[0], p.xz[1] - line[i - 1].xz[1]); p.ch = c; });
+  return line;
+}
+function projectOn(chain, xz) {
+  let best = { d: 1e18 };
+  for (let i = 1; i < chain.length; i++) {
+    const a = chain[i - 1].xz, b = chain[i].xz, dx = b[0] - a[0], dz = b[1] - a[1], L = dx * dx + dz * dz;
+    const t = L ? Math.max(0, Math.min(1, ((xz[0] - a[0]) * dx + (xz[1] - a[1]) * dz) / L)) : 0;
+    const px = a[0] + t * dx, pz = a[1] + t * dz, d = Math.hypot(xz[0] - px, xz[1] - pz);
+    if (d < best.d) best = { d, ch: chain[i - 1].ch + t * Math.sqrt(L), x: px, z: pz, ang: Math.atan2(dz, dx) };
+  }
+  return best;
+}
+const chains = {};
+for (const lineNo of [1, 2]) {
+  const r = rel.find(x => +x.tags.ref === lineNo);
+  if (!r) throw new Error("no route relation for line " + lineNo);
+  const chain = buildChain(r);
+  // stations of this line in chainage order (Station Square-1 is line 1, -2 is line 2)
+  const st = stations.filter(s => s.line === lineNo).map(s => ({ s, ...projectOn(chain, s.xz) }));
+  for (const x of st) if (x.d > 60) throw new Error(`${x.s.n} is ${x.d.toFixed(0)} m from line ${lineNo} track`);
+  st.sort((a, b) => a.ch - b.ch);
+  for (const x of st) { x.s.ch = Math.round(x.ch); x.s.ang = R(x.ang); }
+  chains[lineNo] = { chain, st, len: chain[chain.length - 1].ch };
+  console.log(`line ${lineNo}: ${(chains[lineNo].len / 1000).toFixed(2)} km, ` + st.map(x => x.s.n).join(" → "));
+}
+function railAltAt(lineNo, ch) {
+  const st = chains[lineNo].st;
+  if (ch <= st[0].ch) return st[0].s.rail;
+  for (let i = 1; i < st.length; i++) if (ch <= st[i].ch) {
+    const a = st[i - 1], b = st[i], t = (ch - a.ch) / (b.ch - a.ch);
+    return a.s.rail + t * (b.s.rail - a.s.rail);
+  }
+  return st[st.length - 1].s.rail;
+}
+// nearest line for a point (service tracks are not in route relations)
+function nearestLine(xz) {
+  let best = null;
+  for (const n of [1, 2]) { const p = projectOn(chains[n].chain, xz); if (!best || p.d < best.d) best = { line: n, ...p }; }
+  return best;
 }
 
 const layerOf = t => { const l = parseFloat(t.layer); return isNaN(l) ? -1 : l; };
 function classify(t) {
   if (t.railway === "subway") return "metro";
   if (t.tunnel === "building_passage" || t.covered) return null;
+  if (t.railway === "construction" || t.construction) return null; // e.g. the never-built Tbilisi Railway Bypass
   const under = t.tunnel === "yes" || t.tunnel === "culvert" || /underground/.test(t.location || "") || layerOf(t) < 0;
   if (!under) return null;
   if (t.waterway) return "water";
@@ -92,15 +141,18 @@ for (const e of raw) {
   if (pts.length < 2) continue;
   const f = { k, name: t["name:ru"] || t["name:en"] || t.name || "", p: [] };
   if (k === "metro") {
-    const mid = pts[Math.floor(pts.length / 2)], line = lineOf(mid.lat, mid.lon);
+    // main = track of a route relation; everything else is service (depot yard, siding, crossover, connector)
+    const mid = pts[Math.floor(pts.length / 2)];
+    const line = routeWayLine[e.id] || nearestLine(proj(mid.lat, mid.lon)).line;
     f.line = line; f.tunnel = t.tunnel === "yes";
+    if (!routeWayLine[e.id]) f.svc = t.service || "other";
     for (const p of pts) {
-      const g = ground(p.lat, p.lon);
+      const g = ground(p.lat, p.lon), xz = proj(p.lat, p.lon);
       let d;
-      if (t.tunnel === "yes") d = Math.max(4, g - railAltAt(p.lat, p.lon, line));
+      if (t.tunnel === "yes") d = Math.max(4, g - railAltAt(line, projectOn(chains[line].chain, xz).ch));
       else if (t.bridge === "yes") d = -Math.max(1, layerOf(t)) * 7;
       else d = 0;
-      const [x, z] = proj(p.lat, p.lon); f.p.push(R(x), R(z), R(g), R(d));
+      f.p.push(R(xz[0]), R(xz[1]), R(g), R(d));
     }
   } else {
     const L = layerOf(t), extra = L < -1 ? (-L - 1) * 4 : 0;
@@ -145,8 +197,14 @@ for (const e of raw2) {
 const out = {
   origin: [LAT0, LON0], dem: { nx: dem.nx, ny: dem.ny, x0: R(proj(dem.S, dem.W)[0]), x1: R(proj(dem.S, dem.E)[0]), z0: R(proj(dem.S, dem.W)[1]), z1: R(proj(dem.N, dem.W)[1]), ele: dem.ele.map(Math.round) },
   stations: stations.map(({ rail, lat, lon, ...s }) => s), entrances, feats, surface, parkings,
+  lines: { 1: Math.round(chains[1].len), 2: Math.round(chains[2].len) },
 };
 fs.writeFileSync(outFile, JSON.stringify(out));
 const cnt = {}; feats.forEach(f => cnt[f.k] = (cnt[f.k] || 0) + 1);
 console.log("feats", cnt, "entrances", entrances.length, "surface", surface.length, "parkings", parkings.length, "bytes", fs.statSync(outFile).size);
-const met = feats.filter(f => f.k === "metro"); let maxD = 0; met.forEach(f => { for (let i = 3; i < f.p.length; i += 4) maxD = Math.max(maxD, f.p[i]); }); console.log("max metro depth", maxD);
+const met = feats.filter(f => f.k === "metro");
+console.log("metro ways: main", met.filter(f => !f.svc).length, "service", met.filter(f => f.svc).length,
+  JSON.stringify(met.filter(f => f.svc).reduce((a, f) => (a[f.svc] = (a[f.svc] || 0) + 1, a), {})));
+let maxD = { d: 0 };
+met.filter(f => !f.svc).forEach(f => { for (let i = 3; i < f.p.length; i += 4) if (f.p[i] > maxD.d) maxD = { d: f.p[i], x: f.p[i - 3], z: f.p[i - 2], g: f.p[i - 1] }; });
+console.log("max main-track depth", JSON.stringify(maxD));
