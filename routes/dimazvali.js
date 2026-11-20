@@ -1644,6 +1644,58 @@ router.get(`/robots.txt`, (req, res) => {
 router.use('/tbilisi-events', require('./tbilisi-events'));
 router.use('/tbilisi-events/admin', require('./tbilisi-events-admin'));
 
+// "Чьи улицы Тбилиси" (/lab/streets/, a static page): the server-checked endless quiz and its top-10
+var labStreets = require('../lib/lab-streets').create({
+    data: JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/data.json'), 'utf8')),
+    db: fb,
+});
+var labTg = require('../lib/photo-404');
+function labRate(map, ip, max, windowMs) { // naive per-IP limiter, plenty for honest play
+    var now = Date.now();
+    var hits = (map.get(ip) || []).filter(function (t) { return now - t < windowMs; });
+    if (hits.length >= max) return false;
+    hits.push(now);
+    map.set(ip, hits);
+    if (map.size > 5000) map.clear();
+    return true;
+}
+var labRunHits = new Map(), labAnswerHits = new Map(), labScoreHits = new Map();
+router.get('/lab/streets/scores', async (req, res, next) => {
+    try {
+        res.set('Cache-Control', 'no-store');
+        res.json({ top: await labStreets.top(String(req.query.d || '')) });
+    } catch (e) { next(e); }
+});
+router.post('/lab/streets/run', express.json({ limit: '1kb' }), (req, res) => {
+    if (!labRate(labRunHits, req.ip, 30, 60 * 1000)) return res.status(429).json({ error: 'rate' });
+    res.set('Cache-Control', 'no-store');
+    res.json(labStreets.start(req.body && req.body.deviceId));
+});
+router.post('/lab/streets/answer', express.json({ limit: '1kb' }), (req, res) => {
+    if (!labRate(labAnswerHits, req.ip, 120, 60 * 1000)) return res.status(429).json({ error: 'rate' });
+    var r = labStreets.answer(req.body && req.body.run, req.body && req.body.cat);
+    res.set('Cache-Control', 'no-store');
+    res.status(r.error ? 400 : 200).json(r);
+});
+router.post('/lab/streets/scores', express.json({ limit: '1kb' }), async (req, res, next) => {
+    try {
+        if (!labRate(labScoreHits, req.ip, 20, 10 * 60 * 1000)) return res.status(429).json({ error: 'rate' });
+        var result = await labStreets.submit(req.body);
+        if (result.error) return res.status(400).json(result);
+        var top = await labStreets.top(req.body.deviceId);
+        res.json({ ok: true, improved: result.improved, top: top });
+        var mine = top.filter(function (r) { return r.me; })[0];
+        // Telegram (same bot and chat as the blackout alerts): a new personal best that made the top-10
+        if (result.improved && mine && /^(www\.)?dimazvali\.com$/i.test(req.hostname || '')) {
+            var nickHtml = String(mine.nick).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            labTg.sendTelegram('<b>' + (mine.rank === 1 ? '🥇 Чьи улицы Тбилиси: новый лидер!' : '🏆 Чьи улицы Тбилиси: рекорд в топ-10') + '</b>\n'
+                + '<b>' + nickHtml + '</b> — серия ' + result.streak + ', за ' + Math.round(result.durationMs / 1000) + ' с\n'
+                + 'Место в таблице: ' + mine.rank + '\nhttps://dimazvali.com/lab/streets/#game')
+                .catch(function (e) { console.error('[lab-streets] tg:', e && e.message); });
+        }
+    } catch (e) { next(e); }
+});
+
 router.use(express.static(path.join(__dirname, '../public')))
 
 router.get(`/:page`, (req, res) => {
