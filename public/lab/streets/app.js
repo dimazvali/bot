@@ -4,30 +4,47 @@
   'use strict';
 
   // ── categories ──
-  // people first (these are the game's answers), then everything that is not a person
+  // people first (these are the game's answers), then everything that is not a person.
+  // n: legend label, city: "<x> Tbilisi" heading (fills T.cityOf), opt: quiz answer
   var CAT = {
-    writers:  { c: '#c0392b', ru: 'Писатели и поэты',        en: 'Writers & poets',        gru: 'писателей',            gen: 'Writers’',            opt: ['Писатель или поэт', 'A writer or poet'] },
-    royals:   { c: '#b8860b', ru: 'Цари и святые',           en: 'Kings & saints',         gru: 'царей и святых',       gen: 'Kings’ and saints’',  opt: ['Царь или святой', 'A king or a saint'] },
-    science:  { c: '#2e6fb5', ru: 'Учёные и врачи',          en: 'Scientists & doctors',   gru: 'учёных',               gen: 'Scientists’',         opt: ['Учёный или врач', 'A scientist or doctor'] },
-    military: { c: '#5b6b2a', ru: 'Военные и герои',         en: 'Soldiers & heroes',      gru: 'военных',              gen: 'Soldiers’',           opt: ['Военный или герой', 'A soldier or hero'] },
-    politics: { c: '#7d3c98', ru: 'Политики и общественники', en: 'Politicians & public figures', gru: 'политиков',     gen: 'Politicians’',        opt: ['Политик или общественник', 'A politician or public figure'] },
-    stage:    { c: '#e07b1f', ru: 'Театр и кино',            en: 'Stage & screen',         gru: 'актёров и режиссёров', gen: 'Actors’',             opt: ['Актёр или режиссёр', 'An actor or director'] },
-    artists:  { c: '#d0307a', ru: 'Художники и архитекторы', en: 'Artists & architects',   gru: 'художников',           gen: 'Artists’',            opt: ['Художник или архитектор', 'An artist or architect'] },
-    music:    { c: '#13998a', ru: 'Музыка',                  en: 'Music',                  gru: 'музыкантов',           gen: 'Musicians’',          opt: ['Композитор или музыкант', 'A composer or musician'] },
-    sport:    { c: '#2f9e44', ru: 'Спорт',                   en: 'Sport',                  gru: 'спортсменов',          gen: 'Athletes’',           opt: ['Спортсмен', 'An athlete'] },
-    person:   { c: '#8d877d', ru: 'Не знаем, кто это',       en: 'People we don’t know yet', gru: 'неизвестных людей',  gen: 'Unknown people’s' },
-    georgia:  { c: '#b39b7d', ru: 'Края и города Грузии',    en: 'Georgian places',        gru: 'грузинских мест',      gen: 'Georgian places’' },
-    world:    { c: '#5f7281', ru: 'Мир',                     en: 'The world',              gru: 'других стран',         gen: 'The world’s' },
-    dates:    { c: '#7a4e3a', ru: 'Даты и битвы',            en: 'Dates & battles',        gru: 'дат и битв',           gen: 'Dates’ and battles’' },
-    ideas:    { c: '#9aa3a8', ru: 'Идеи',                    en: 'Ideas',                  gru: 'идей',                 gen: 'Ideas’' },
-    nature:   { c: '#8fae5a', ru: 'Природа и вино',          en: 'Nature & wine',          gru: 'природы и вина',       gen: 'Nature’s' },
-    service:  { c: '#cbc5b8', ru: 'Просто улицы',            en: 'Just streets',           gru: 'просто улиц',          gen: 'Plain' },
+    writers:  { c: '#c0392b', n: { ru: 'Писатели и поэты', en: 'Writers & poets', ka: 'მწერლები და პოეტები' },
+      city: { ru: 'писателей', en: 'Writers’', ka: 'მწერლების' }, opt: { ru: 'Писатель или поэт', en: 'A writer or poet', ka: 'მწერალი ან პოეტი' } },
+    royals:   { c: '#b8860b', n: { ru: 'Цари и святые', en: 'Kings & saints', ka: 'მეფეები და წმინდანები' },
+      city: { ru: 'царей и святых', en: 'Kings’ and saints’', ka: 'მეფეებისა და წმინდანების' }, opt: { ru: 'Царь или святой', en: 'A king or a saint', ka: 'მეფე ან წმინდანი' } },
+    science:  { c: '#2e6fb5', n: { ru: 'Учёные и врачи', en: 'Scientists & doctors', ka: 'მეცნიერები და ექიმები' },
+      city: { ru: 'учёных', en: 'Scientists’', ka: 'მეცნიერების' }, opt: { ru: 'Учёный или врач', en: 'A scientist or doctor', ka: 'მეცნიერი ან ექიმი' } },
+    military: { c: '#5b6b2a', n: { ru: 'Военные и герои', en: 'Soldiers & heroes', ka: 'სამხედროები და გმირები' },
+      city: { ru: 'военных', en: 'Soldiers’', ka: 'სამხედროების' }, opt: { ru: 'Военный или герой', en: 'A soldier or hero', ka: 'სამხედრო ან გმირი' } },
+    politics: { c: '#7d3c98', n: { ru: 'Политики и общественники', en: 'Politicians & public figures', ka: 'პოლიტიკოსები და საზოგადო მოღვაწეები' },
+      city: { ru: 'политиков', en: 'Politicians’', ka: 'პოლიტიკოსების' }, opt: { ru: 'Политик или общественник', en: 'A politician or public figure', ka: 'პოლიტიკოსი ან საზოგადო მოღვაწე' } },
+    stage:    { c: '#e07b1f', n: { ru: 'Театр и кино', en: 'Stage & screen', ka: 'თეატრი და კინო' },
+      city: { ru: 'актёров и режиссёров', en: 'Actors’', ka: 'მსახიობებისა და რეჟისორების' }, opt: { ru: 'Актёр или режиссёр', en: 'An actor or director', ka: 'მსახიობი ან რეჟისორი' } },
+    artists:  { c: '#d0307a', n: { ru: 'Художники и архитекторы', en: 'Artists & architects', ka: 'მხატვრები და არქიტექტორები' },
+      city: { ru: 'художников', en: 'Artists’', ka: 'მხატვრების' }, opt: { ru: 'Художник или архитектор', en: 'An artist or architect', ka: 'მხატვარი ან არქიტექტორი' } },
+    music:    { c: '#13998a', n: { ru: 'Музыка', en: 'Music', ka: 'მუსიკა' },
+      city: { ru: 'музыкантов', en: 'Musicians’', ka: 'მუსიკოსების' }, opt: { ru: 'Композитор или музыкант', en: 'A composer or musician', ka: 'კომპოზიტორი ან მუსიკოსი' } },
+    sport:    { c: '#2f9e44', n: { ru: 'Спорт', en: 'Sport', ka: 'სპორტი' },
+      city: { ru: 'спортсменов', en: 'Athletes’', ka: 'სპორტსმენების' }, opt: { ru: 'Спортсмен', en: 'An athlete', ka: 'სპორტსმენი' } },
+    person:   { c: '#8d877d', n: { ru: 'Не знаем, кто это', en: 'People we don’t know yet', ka: 'არ ვიცით, ვინ არის' },
+      city: { ru: 'неизвестных людей', en: 'Unknown people’s', ka: 'უცნობი ადამიანების' } },
+    georgia:  { c: '#b39b7d', n: { ru: 'Края и города Грузии', en: 'Georgian places', ka: 'საქართველოს კუთხეები და ქალაქები' },
+      city: { ru: 'грузинских мест', en: 'Georgian places’', ka: 'საქართველოს ადგილების' } },
+    world:    { c: '#5f7281', n: { ru: 'Мир', en: 'The world', ka: 'მსოფლიო' },
+      city: { ru: 'других стран', en: 'The world’s', ka: 'მსოფლიოს' } },
+    dates:    { c: '#7a4e3a', n: { ru: 'Даты и битвы', en: 'Dates & battles', ka: 'თარიღები და ბრძოლები' },
+      city: { ru: 'дат и битв', en: 'Dates’ and battles’', ka: 'თარიღებისა და ბრძოლების' } },
+    ideas:    { c: '#9aa3a8', n: { ru: 'Идеи', en: 'Ideas', ka: 'იდეები' },
+      city: { ru: 'идей', en: 'Ideas’', ka: 'იდეების' } },
+    nature:   { c: '#8fae5a', n: { ru: 'Природа и вино', en: 'Nature & wine', ka: 'ბუნება და ღვინო' },
+      city: { ru: 'природы и вина', en: 'Nature’s', ka: 'ბუნებისა და ღვინის' } },
+    service:  { c: '#cbc5b8', n: { ru: 'Просто улицы', en: 'Just streets', ka: 'უბრალოდ ქუჩები' },
+      city: { ru: 'просто улиц', en: 'Plain', ka: 'უბრალო ქუჩების' } },
   };
   var PEOPLE = ['writers', 'royals', 'science', 'military', 'politics', 'stage', 'artists', 'music', 'sport'];
 
   var T = {
     ru: {
-      title: 'Чьи улицы Тбилиси', map: 'Карта', game: 'Угадайка',
+      title: 'Чьи улицы Тбилиси', map: 'Карта', game: 'Угадайка', km: 'км', bc: ' до н. э.',
       loading: 'Загружаем 2000 км улиц…',
       lead: 'Все именованные улицы города, разложенные по тем, в честь кого они названы. Нажмите на категорию, чтобы увидеть её Тбилиси, или на улицу — чтобы узнать, кто это.',
       total: '{km} км улиц с именами', people: 'Люди', things: 'Не люди', all: 'Весь Тбилиси',
@@ -47,9 +64,13 @@
       save: 'В таблицу рекордов', saved: 'Сохранено', top: 'Топ-10 на выживание', noTop: 'Пока никого — станьте первым.',
       tooFast: 'Слишком быстрые ответы — эта серия в таблицу не попадёт.', netErr: 'Нет связи с сервером. Попробуйте ещё раз.',
       perfect: 'Вы ответили на все вопросы, что у нас есть!', shareEndless: 'Моя серия в «Чьих улицах Тбилиси» — {s} подряд: ',
+      suggestUnknown: 'Знаете, кто это? Расскажите', suggestFix: 'Нашли ошибку?', sgTitle: 'Кто или что это?',
+      sgCat: 'Категория', sgCatKeep: '— не знаю —', sgText: 'Пара слов: кем был человек, чем известен, ссылка',
+      sgContact: 'Как с вами связаться (необязательно)', sgSend: 'Отправить', sgThanks: 'Спасибо! Проверим и добавим.',
+      sgEmpty: 'Выберите категорию или напишите пару слов.', personHint: 'Знаете кого-то из них? Нажмите на улицу и расскажите — добавим.',
     },
     en: {
-      title: 'Whose Streets, Tbilisi?', map: 'Map', game: 'Quiz',
+      title: 'Whose Streets, Tbilisi?', map: 'Map', game: 'Quiz', km: 'km', bc: ' BC',
       loading: 'Loading 2,000 km of streets…',
       lead: 'Every named street in the city, split by who it is named after. Tap a category to see its Tbilisi, or a street to see who it is.',
       total: '{km} km of named streets', people: 'People', things: 'Not people', all: 'All of Tbilisi',
@@ -69,9 +90,40 @@
       save: 'Save my record', saved: 'Saved', top: 'Endless top 10', noTop: 'Nobody yet — be the first.',
       tooFast: 'Answers came too fast — this streak can’t go into the table.', netErr: 'Can’t reach the server. Please try again.',
       perfect: 'You answered every question we have!', shareEndless: 'My streak in “Whose Streets, Tbilisi?”: {s} in a row: ',
+      suggestUnknown: 'Know who this is? Tell us', suggestFix: 'Spotted a mistake?', sgTitle: 'Who or what is it?',
+      sgCat: 'Category', sgCatKeep: '— not sure —', sgText: 'A few words: who the person was, what they’re known for, a link',
+      sgContact: 'How to reach you (optional)', sgSend: 'Send', sgThanks: 'Thank you! We’ll check it and add it.',
+      sgEmpty: 'Pick a category or write a few words.', personHint: 'Know any of them? Tap a street and tell us — we’ll add it.',
+    },
+    ka: {
+      title: 'ვისია თბილისის ქუჩები?', map: 'რუკა', game: 'ვიქტორინა', km: 'კმ', bc: ' ძვ. წ.',
+      loading: 'იტვირთება 2000 კმ ქუჩა…',
+      lead: 'ქალაქის ყველა სახელიანი ქუჩა, დალაგებული იმის მიხედვით, ვის სახელს ატარებს. დააჭირეთ კატეგორიას, რომ ნახოთ მისი თბილისი, ან ქუჩას — რომ გაიგოთ, ვინ არის.',
+      total: '{km} კმ სახელიანი ქუჩა', people: 'ადამიანები', things: 'არა ადამიანები', all: 'მთელი თბილისი',
+      cityOf: '{x} თბილისი', share: 'ქუჩების {p}% · {km} კმ', foreign: 'უცხოელები', female: 'ქალები',
+      foreignTag: 'უცხოელი', femaleTag: 'ქალი', guessTag: 'ვარაუდი', born: 'დაბ. {y}', wiki: 'Wikidata →',
+      note: 'მონაცემები: OpenStreetMap (ODbL) და Wikidata. პროფესიები ავტომატურად განისაზღვრა და ყველაზე გრძელ ქუჩებზე ხელით შემოწმდა — შეცდომები შესაძლებელია. „არ ვიცით, ვინ არის“ — ადამიანები, რომლებზეც ქართულ ვიკიპედიაში სტატია არ არის; ხშირად ესენი 1990-იანი წლებისა და 2008 წლის ომებში დაღუპულები არიან.',
+      hint: 'ბორბალი — მასშტაბი, გადათრევა — გადაადგილება',
+      round: 'კითხვა {n} / {t}', ask: 'ვის სახელს ატარებს ეს ქუჩა?', next: 'შემდეგი', finish: 'შედეგი',
+      right: 'სწორია!', wrongIs: 'არა — ეს არის {cat}.', again: 'თავიდან', shareBtn: 'გაზიარება', copied: 'დაკოპირდა',
+      result: '/ {t}', best: 'საუკეთესო შედეგი: {b}', start: 'დაწყება', gameLead: 'რუკაზე გაჩვენებთ ქუჩას — გამოიცანით, ვინ იყო ადამიანი, ვისი სახელიც ჰქვია. 10 კითხვა.',
+      ranks: ['ტურისტი', 'სტუმარი ქუთაისიდან', 'გამოცდილი ტაქსისტი', 'მხარეთმცოდნე', 'სოლოლაკის მოსიარულე ენციკლოპედია'],
+      shareText: '„ვისია თბილისის ქუჩები?“ — {t}-დან {s} გამოვიცანი: ',
+      unknownPerson: 'ადამიანი, რომლის შესახებაც ჯერ არაფერი ვიცით',
+      classic: '10 კითხვა', endless: 'გადარჩენა', endlessGo: 'გადარჩენის რეჟიმი →',
+      endlessLead: 'კითხვები უსასრულოდ, პირველ შეცდომამდე. რაც უფრო შორს, მით უფრო უცნობი ქუჩები. საუკეთესო სერიები ცხრილში ხვდება.',
+      streak: 'სერია', over: 'შეცდომა — სერია დასრულდა', yourStreak: 'თქვენი სერია', nick: 'სახელი ცხრილისთვის',
+      save: 'რეკორდების ცხრილში', saved: 'შენახულია', top: 'გადარჩენის ტოპ-10', noTop: 'ჯერ არავინაა — იყავით პირველი.',
+      tooFast: 'პასუხები ზედმეტად სწრაფი იყო — ეს სერია ცხრილში ვერ მოხვდება.', netErr: 'სერვერთან კავშირი არ არის. სცადეთ თავიდან.',
+      perfect: 'თქვენ ყველა კითხვას უპასუხეთ, რაც გვაქვს!', shareEndless: 'ჩემი სერია „ვისია თბილისის ქუჩები?“-ში — {s} ზედიზედ: ',
+      suggestUnknown: 'იცით, ვინ არის? მოგვიყევით', suggestFix: 'შეცდომა იპოვეთ?', sgTitle: 'ვინ ან რა არის?',
+      sgCat: 'კატეგორია', sgCatKeep: '— არ ვიცი —', sgText: 'ორიოდე სიტყვა: ვინ იყო ადამიანი, რით არის ცნობილი, ბმული',
+      sgContact: 'როგორ დაგიკავშირდეთ (არასავალდებულო)', sgSend: 'გაგზავნა', sgThanks: 'გმადლობთ! შევამოწმებთ და დავამატებთ.',
+      sgEmpty: 'აირჩიეთ კატეგორია ან დაწერეთ ორიოდე სიტყვა.', personHint: 'რომელიმე მათგანს იცნობთ? დააჭირეთ ქუჩას და მოგვიყევით — დავამატებთ.',
     },
   };
   var ROUNDS = 10;
+  var LANGS = ['ru', 'en', 'ka'];
 
   // ── helpers ──
   var $ = function (id) { return document.getElementById(id); };
@@ -82,10 +134,13 @@
   function fmtKm(v) { return v >= 100 ? Math.round(v).toLocaleString(lang) : v.toLocaleString(lang, { maximumFractionDigits: 1 }); }
   function track(ev, p) { try { window.gtag && gtag('event', ev, p || {}); } catch (e) { /* no analytics */ } }
 
+  // language: ?lang= → the visitor's earlier choice → what the server picked from Accept-Language (<html lang>)
   var qLang = new URLSearchParams(location.search).get('lang');
-  var lang = qLang === 'en' || qLang === 'ru' ? qLang : (lsGet('streets-lang') || ((navigator.language || 'ru').slice(0, 2) === 'ru' ? 'ru' : 'en'));
+  var lang = LANGS.indexOf(qLang) >= 0 ? qLang : LANGS.indexOf(lsGet('streets-lang')) >= 0 ? lsGet('streets-lang')
+    : LANGS.indexOf(document.documentElement.lang) >= 0 ? document.documentElement.lang : 'ru';
   function t(k) { return T[lang][k]; }
-  function catName(c) { return CAT[c][lang]; }
+  function catName(c) { return CAT[c].n[lang]; }
+  function catOpt(c) { return CAT[c].opt[lang]; }
 
   // ── data ──
   var D, CATS, ways = [], names = [], totalKm = 0;
@@ -94,9 +149,9 @@
 
   function decode(data) {
     D = data; CATS = data.cats;
-    names = data.names.map(function (r) {
-      return { cat: CATS[r[0]], foreign: !!(r[1] & 1), female: !!(r[1] & 2), guess: !!(r[1] & 4),
-        pru: r[2], pen: r[3], sru: r[4], sen: r[5], ska: r[6], born: r[7], wd: r[8], ways: [], len: 0,
+    names = data.names.map(function (r, i) {
+      return { idx: i, cat: CATS[r[0]], foreign: !!(r[1] & 1), female: !!(r[1] & 2), guess: !!(r[1] & 4),
+        pru: r[2], pen: r[3], sru: r[4], sen: r[5], ska: r[6], born: r[7], wd: r[8], pka: r[9] || null, ways: [], len: 0,
         bbox: [Infinity, Infinity, -Infinity, -Infinity] };
     });
     data.ways.forEach(function (w) {
@@ -310,10 +365,10 @@
   }
 
   // ── street card ──
-  function streetName(nm) { return (lang === 'ru' ? nm.sru || nm.sen : nm.sen || nm.sru) || nm.ska; }
+  function streetName(nm) { return lang === 'ka' ? nm.ska : (lang === 'ru' ? nm.sru || nm.sen : nm.sen || nm.sru) || nm.ska; }
   function personName(nm) {
     if (nm.cat === 'person' && !nm.pru && !nm.pen) return t('unknownPerson');
-    return lang === 'ru' ? nm.pru || nm.pen : nm.pen || nm.pru;
+    return lang === 'ka' ? nm.pka || nm.pen || nm.pru : lang === 'ru' ? nm.pru || nm.pen : nm.pen || nm.pru;
   }
   function tags(nm) {
     var h = '<span class="tag" style="background:' + CAT[nm.cat].c + '">' + esc(catName(nm.cat)) + '</span>';
@@ -324,19 +379,54 @@
   }
   function whoLine(nm) {
     var who = personName(nm), extra = [];
-    if (nm.born) extra.push(fill(t('born'), { y: nm.born < 0 ? -nm.born + (lang === 'ru' ? ' до н. э.' : ' BC') : nm.born }));
+    if (nm.born) extra.push(fill(t('born'), { y: nm.born < 0 ? -nm.born + t('bc') : nm.born }));
     var h = who ? '<div class="who">' + esc(who) + (extra.length ? ' <span class="muted">· ' + extra.join(' · ') + '</span>' : '') + '</div>' : '';
     if (nm.wd) h += '<div class="who"><a href="https://www.wikidata.org/wiki/' + esc(nm.wd) + '" target="_blank" rel="noopener">' + t('wiki') + '</a></div>';
     return h;
   }
+  // the small line above a street name: Georgian, or (in the Georgian version) the Latin name
+  function altName(nm) { return lang === 'ka' ? nm.sen || nm.sru || '' : nm.ska; }
   function showCard(nm) {
     var el = $('card');
     if (!nm) { el.hidden = true; return; }
+    var unknown = nm.cat === 'person' || nm.guess;
     el.innerHTML = '<button class="x" aria-label="×">×</button>' +
-      '<div class="ka">' + esc(nm.ska) + '</div><div class="street">' + esc(streetName(nm)) + '</div>' +
-      whoLine(nm) + '<div>' + tags(nm) + '</div>';
+      '<div class="ka">' + esc(altName(nm)) + '</div><div class="street">' + esc(streetName(nm)) + '</div>' +
+      whoLine(nm) + '<div>' + tags(nm) + '</div>' +
+      '<button class="sg-open' + (unknown ? ' strong' : '') + '">' + (unknown ? t('suggestUnknown') : t('suggestFix')) + '</button>' +
+      '<div class="sg" hidden></div>';
     el.hidden = false;
     el.querySelector('.x').onclick = function () { st.sel = null; el.hidden = true; draw(); };
+    el.querySelector('.sg-open').onclick = function () { openSuggest(nm, el.querySelector('.sg'), this); };
+  }
+
+  // ── "who is this?" suggestions (reviewed by hand, then folded into the data) ──
+  function openSuggest(nm, box, opener) {
+    opener.hidden = true;
+    box.hidden = false;
+    var opts = '<option value="">' + esc(t('sgCatKeep')) + '</option>' + CATS.filter(function (c) { return c !== 'person'; }).map(function (c) {
+      return '<option value="' + c + '"' + (c === nm.cat && !nm.guess ? ' selected' : '') + '>' + esc(catName(c)) + '</option>';
+    }).join('');
+    box.innerHTML = '<div class="sg-title">' + esc(t('sgTitle')) + '</div>' +
+      '<label>' + esc(t('sgCat')) + '<select class="sg-cat">' + opts + '</select></label>' +
+      '<textarea class="sg-text" rows="3" maxlength="1000" placeholder="' + esc(t('sgText')) + '"></textarea>' +
+      '<input class="sg-contact" maxlength="100" placeholder="' + esc(t('sgContact')) + '">' +
+      '<button class="primary sg-send">' + esc(t('sgSend')) + '</button><div class="sg-msg muted"></div>';
+    var send = box.querySelector('.sg-send'), msg = box.querySelector('.sg-msg');
+    box.querySelector('.sg-text').focus();
+    send.onclick = function () {
+      var cat = box.querySelector('.sg-cat').value, text = box.querySelector('.sg-text').value.trim();
+      if (cat === nm.cat && !nm.guess) cat = ''; // unchanged category is not a suggestion
+      if (!cat && text.length < 3) { msg.textContent = t('sgEmpty'); return; }
+      send.disabled = true;
+      api('suggest', { n: nm.idx, cat: cat || null, text: text, contact: box.querySelector('.sg-contact').value.trim(), lang: lang, deviceId: deviceId() })
+        .then(function (r) {
+          if (r.error) throw new Error(r.error);
+          box.innerHTML = '<div class="sg-title">' + esc(t('sgThanks')) + '</div>';
+          track('streets_suggest', { cat: cat || 'none', was: nm.cat });
+        })
+        .catch(function () { send.disabled = false; msg.textContent = t('netErr'); });
+    };
   }
 
   // ── side panel: map mode ──
@@ -344,7 +434,7 @@
   // are on, and the filter buttons count only inside the chosen category
   function kmOf(pred) { var s = 0; names.forEach(function (n) { if (pred(n)) s += n.len; }); return s; }
   function passFlags(n, skip) { return (skip === 'foreign' || !st.foreign || n.foreign) && (skip === 'female' || !st.female || n.female); }
-  function pct(v) { return (100 * v / allKm).toFixed(1).replace('.', lang === 'ru' ? ',' : '.'); }
+  function pct(v) { return (100 * v / allKm).toFixed(1).replace('.', lang === 'en' ? '.' : ','); }
   var allKm = 0;
   function renderMapSide() {
     var side = $('side');
@@ -352,7 +442,7 @@
     var catKm = {};
     CATS.forEach(function (c) { catKm[c] = kmOf(function (n) { return n.cat === c && passFlags(n); }); });
     var selKm = kmOf(matches);
-    var head = st.cat ? fill(t('cityOf'), { x: lang === 'ru' ? CAT[st.cat].gru : CAT[st.cat].gen }) : t('all');
+    var head = st.cat ? fill(t('cityOf'), { x: CAT[st.cat].city[lang] }) : t('all');
     if (!st.cat && (st.foreign || st.female)) head = [st.foreign ? t('foreign') : '', st.female ? t('female') : ''].filter(Boolean).join(' + ');
     var h = '<h1>' + esc(head) + '</h1>';
     if (filtered()) {
@@ -362,8 +452,8 @@
     }
     function flagKm(f) { return kmOf(function (n) { return n[f] && (!st.cat || n.cat === st.cat) && passFlags(n, f); }); }
     h += '<div class="filters">' +
-      '<button data-f="foreign" aria-pressed="' + st.foreign + '">' + t('foreign') + ' · ' + fmtKm(flagKm('foreign')) + ' км</button>' +
-      '<button data-f="female" aria-pressed="' + st.female + '">' + t('female') + ' · ' + fmtKm(flagKm('female')) + ' км</button></div>';
+      '<button data-f="foreign" aria-pressed="' + st.foreign + '">' + t('foreign') + ' · ' + fmtKm(flagKm('foreign')) + ' ' + t('km') + '</button>' +
+      '<button data-f="female" aria-pressed="' + st.female + '">' + t('female') + ' · ' + fmtKm(flagKm('female')) + ' ' + t('km') + '</button></div>';
     var maxKm = Math.max.apply(null, CATS.map(function (c) { return catKm[c]; })) || 1;
     function row(c) {
       return '<button class="cat" data-c="' + c + '" aria-pressed="' + (st.cat === c) + '"' + (catKm[c] ? '' : ' style="opacity:.4"') + '><i style="background:' + CAT[c].c + '"></i>' +
@@ -376,8 +466,9 @@
     ppl.splice(ppl.indexOf('person'), 1); ppl.push('person');
     h += '<div class="group">' + t('people') + '</div>' + ppl.map(row).join('');
     h += '<div class="group">' + t('things') + '</div>' + oth.map(row).join('');
+    if (st.cat === 'person') h += '<p class="lead" style="margin-top:14px">' + t('personHint') + '</p>';
     h += '<p class="note">' + t('note') + '</p>';
-    side.innerHTML = lang === 'en' ? h.replace(/ км</g, ' km<') : h;
+    side.innerHTML = h;
     side.querySelectorAll('.cat').forEach(function (b) {
       b.onclick = function () {
         var c = b.getAttribute('data-c');
@@ -440,10 +531,10 @@
   function renderGameSide() {
     var g = st.game, q = g.cur, side = $('side');
     var h = '<div class="game">' + scoreBar(g) + '<h2>' + fill(t('round'), { n: g.i + 1, t: g.qs.length }) + '</h2>' +
-      '<div class="q">' + esc(streetName(q.name)) + '</div><div class="q-ka">' + esc(q.name.ska) + '</div>' +
+      '<div class="q">' + esc(streetName(q.name)) + '</div><div class="q-ka">' + esc(altName(q.name)) + '</div>' +
       '<p class="muted">' + t('ask') + '</p><div class="opts">';
     q.opts.forEach(function (c) {
-      h += '<button data-c="' + c + '"><i style="background:' + CAT[c].c + '"></i>' + esc(CAT[c].opt[lang === 'ru' ? 0 : 1]) + '</button>';
+      h += '<button data-c="' + c + '"><i style="background:' + CAT[c].c + '"></i>' + esc(catOpt(c)) + '</button>';
     });
     h += '</div><div id="reveal"></div></div>';
     side.innerHTML = h;
@@ -463,7 +554,7 @@
       else if (bc === c) b.classList.add('wrong');
     });
     var last = g.i + 1 >= g.qs.length;
-    $('reveal').innerHTML = '<div class="reveal"><b>' + (ok ? t('right') : esc(fill(t('wrongIs'), { cat: CAT[q.name.cat].opt[lang === 'ru' ? 0 : 1].toLowerCase() }))) + '</b>' +
+    $('reveal').innerHTML = '<div class="reveal"><b>' + (ok ? t('right') : esc(fill(t('wrongIs'), { cat: catOpt(q.name.cat).toLowerCase() }))) + '</b>' +
       whoLine(q.name) + '<div>' + tags(q.name) + '</div></div>' +
       '<button class="primary" id="next">' + (last ? t('finish') : t('next')) + '</button>';
     $('next').onclick = function () { g.i++; nextQuestion(); };
@@ -558,10 +649,10 @@
   function renderEndlessSide() {
     var g = st.game, q = g.cur;
     var h = '<div class="game"><h2>' + t('streak') + '</h2><div class="big" style="font-size:44px">' + g.streak + '</div>' +
-      '<div class="q">' + esc(streetName(q.name)) + '</div><div class="q-ka">' + esc(q.name.ska) + '</div>' +
+      '<div class="q">' + esc(streetName(q.name)) + '</div><div class="q-ka">' + esc(altName(q.name)) + '</div>' +
       '<p class="muted">' + t('ask') + '</p><div class="opts">';
     q.opts.forEach(function (c) {
-      h += '<button data-c="' + c + '"><i style="background:' + CAT[c].c + '"></i>' + esc(CAT[c].opt[lang === 'ru' ? 0 : 1]) + '</button>';
+      h += '<button data-c="' + c + '"><i style="background:' + CAT[c].c + '"></i>' + esc(catOpt(c)) + '</button>';
     });
     h += '</div><div id="reveal"></div></div>';
     $('side').innerHTML = h;
@@ -664,6 +755,7 @@
     $('tab-map').textContent = t('map');
     $('tab-game').textContent = t('game');
     $('hint').textContent = t('hint');
+    $('sub').textContent = lang === 'ka' ? 'Whose streets?' : 'ვისი ქუჩებია';
     document.querySelectorAll('.lang button').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang); });
   }
   document.querySelectorAll('.lang button').forEach(function (b) {

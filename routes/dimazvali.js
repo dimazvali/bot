@@ -1659,7 +1659,40 @@ function labRate(map, ip, max, windowMs) { // naive per-IP limiter, plenty for h
     if (map.size > 5000) map.clear();
     return true;
 }
-var labRunHits = new Map(), labAnswerHits = new Map(), labScoreHits = new Map();
+var labRunHits = new Map(), labAnswerHits = new Map(), labScoreHits = new Map(), labSuggestHits = new Map();
+// the page itself, with <html lang>, title and description/og tags in the visitor's language
+var labStreetsPage = require('../lib/lab-streets-page');
+var labStreetsHtml = fs.readFileSync(path.join(__dirname, '../public/lab/streets/index.html'), 'utf8');
+router.get('/lab/streets', (req, res) => {
+    var q = req.originalUrl.indexOf('?');
+    res.redirect(301, '/lab/streets/' + (q >= 0 ? req.originalUrl.slice(q) : ''));
+});
+router.get(['/lab/streets/', '/lab/streets/index.html'], (req, res) => {
+    var lang = labStreetsPage.pickLang(req.query, function (l) { return req.acceptsLanguages(l); }, !!req.get('accept-language'));
+    res.set('Cache-Control', 'public, max-age=300');
+    res.vary('Accept-Language');
+    res.type('html').send(labStreetsPage.localize(labStreetsHtml, lang));
+});
+// "who is this street named after?" — a visitor's note, stored for review and sent to Telegram
+router.post('/lab/streets/suggest', express.json({ limit: '4kb' }), async (req, res, next) => {
+    try {
+        if (!labRate(labSuggestHits, req.ip, 10, 10 * 60 * 1000)) return res.status(429).json({ error: 'rate' });
+        var r = await labStreets.suggest(req.body);
+        if (r.error) return res.status(400).json(r);
+        res.json({ ok: true });
+        if (/^(www\.)?dimazvali\.com$/i.test(req.hostname || '')) {
+            var e = function (s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+            var row = r.row;
+            labTg.sendTelegram('<b>🗺 Чьи улицы Тбилиси: подсказка</b>\n'
+                + e(row.streetKa) + (row.streetRu ? ' / ' + e(row.streetRu) : '') + '\n'
+                + 'Сейчас: ' + row.currentCat + (row.cat ? ' → предлагают: <b>' + row.cat + '</b>' : '') + '\n'
+                + (row.text ? '«' + e(row.text) + '»\n' : '')
+                + (row.contact ? 'Контакт: ' + e(row.contact) + '\n' : '')
+                + (row.lang || '').toUpperCase())
+                .catch(function (err) { console.error('[lab-streets] tg:', err && err.message); });
+        }
+    } catch (e) { next(e); }
+});
 router.get('/lab/streets/scores', async (req, res, next) => {
     try {
         res.set('Cache-Control', 'no-store');

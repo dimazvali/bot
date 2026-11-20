@@ -10,10 +10,14 @@
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dimazvali.com/lab/streets/">
   <link rel="canonical" href="https://dimazvali.com/lab/streets/">
+  <link rel="alternate" hreflang="ru" href="https://dimazvali.com/lab/streets/?lang=ru">
+  <link rel="alternate" hreflang="en" href="https://dimazvali.com/lab/streets/?lang=en">
+  <link rel="alternate" hreflang="ka" href="https://dimazvali.com/lab/streets/?lang=ka">
+  <link rel="alternate" hreflang="x-default" href="https://dimazvali.com/lab/streets/">
   <link rel="icon" type="image/x-icon" href="/images/dimazvali/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Noto+Sans+Georgian:wght@700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Noto+Sans+Georgian:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -35,7 +39,23 @@
     header { display: flex; align-items: baseline; gap: 10px 18px; flex-wrap: wrap; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
     .logo { font-family: Oswald, sans-serif; font-weight: 700; font-size: 20px; letter-spacing: .01em; margin-right: auto; }
     .logo small { font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 8px; letter-spacing: .06em; }
+    /* Georgian: neither Oswald nor JetBrains Mono has the script */
+    html[lang=ka] body, html[lang=ka] .logo, html[lang=ka] h1, html[lang=ka] .q, html[lang=ka] .big, html[lang=ka] .total,
+    html[lang=ka] .card .street, html[lang=ka] .game h2, html[lang=ka] .reveal b, html[lang=ka] .top li em { font-family: 'Noto Sans Georgian', sans-serif; }
+    html[lang=ka] .tabs button, html[lang=ka] .primary, html[lang=ka] .game h2, html[lang=ka] .group { text-transform: none; letter-spacing: 0; }
+    html[lang=ka] h1 { font-size: 24px; }
     .tabs, .lang { display: flex; gap: 4px; }
+    /* suggestion form in the street card */
+    .sg-open { display: block; margin-top: 10px; font-size: 12px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+    .sg-open.strong { color: var(--ink); font-weight: 700; }
+    .sg-open[hidden] { display: none; }
+    .sg { margin-top: 10px; display: grid; gap: 6px; }
+    .sg[hidden] { display: none; }
+    .sg-title { font-weight: 700; }
+    .sg label { display: grid; gap: 3px; font-size: 11px; color: var(--muted); }
+    .sg select, .sg textarea, .sg input { font: inherit; font-size: 12px; padding: 7px 8px; border: 1px solid var(--ink); background: #fff; color: var(--ink); width: 100%; }
+    .sg textarea { resize: vertical; min-height: 64px; }
+    .sg .primary { margin-top: 4px; padding: 9px; }
     .tabs button, .lang button { padding: 5px 10px; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
     .tabs button[aria-pressed=true], .lang button[aria-pressed=true] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
     .back { font-size: 11px; color: var(--muted); letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
@@ -64,7 +84,7 @@
     .note { color: var(--faint); font-size: 11px; line-height: 1.5; margin-top: 18px; }
 
     .card { position: absolute; left: 16px; bottom: 16px; max-width: min(380px, calc(100% - 32px)); background: var(--paper);
-      border: 1px solid var(--ink); padding: 12px 14px; box-shadow: 4px 4px 0 var(--ink); }
+      border: 1px solid var(--ink); padding: 12px 14px; box-shadow: 4px 4px 0 var(--ink); max-height: calc(100% - 32px); overflow-y: auto; }
     .card[hidden] { display: none; }
     .card .ka { font-family: 'Noto Sans Georgian', sans-serif; font-size: 12px; color: var(--muted); }
     .card .street { font-family: Oswald, sans-serif; font-size: 20px; line-height: 1.15; margin: 2px 0 6px; }
@@ -123,6 +143,7 @@
     <div class="lang" role="group">
       <button data-lang="ru" aria-pressed="true">RU</button>
       <button data-lang="en" aria-pressed="false">EN</button>
+      <button data-lang="ka" aria-pressed="false">KA</button>
     </div>
     <a class="back" id="back" href="/">dimazvali.com</a>
   </header>
@@ -135,6 +156,6 @@
       <div class="card" id="card" hidden></div>
     </main>
   </div>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>

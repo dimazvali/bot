@@ -3,12 +3,14 @@
 // Inputs:
 //   <geom.json>  — named Tbilisi highways with geometry (0-pbf2geom.js output, Overpass `out tags geom` shape)
 //   data/tbilisi-streets/dict.json — curated "name base → category/person" dictionary (5-dict.js output)
-// Usage: node scripts/tbilisi-streets/6-build.js <geom.json> data/tbilisi-streets/dict.json public/lab/streets/data.json
+//   data/tbilisi-streets/ka-labels.json — optional, Georgian names of the Wikidata people (7-ka-labels.js output)
+// Usage: node scripts/tbilisi-streets/6-build.js <geom.json> data/tbilisi-streets/dict.json public/lab/streets/data.json [data/tbilisi-streets/ka-labels.json]
 'use strict';
 const fs = require('fs');
-const [geomPath, dictPath, out] = process.argv.slice(2);
+const [geomPath, dictPath, out, kaPath] = process.argv.slice(2);
 const ways = JSON.parse(fs.readFileSync(geomPath, 'utf8')).elements;
 const dict = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
+const kaLabels = kaPath ? JSON.parse(fs.readFileSync(kaPath, 'utf8')) : {};
 
 // order = legend order; `person` (unknown occupation) and non-people go last
 const CATS = ['writers', 'royals', 'science', 'military', 'politics', 'stage', 'artists', 'music', 'sport', 'person',
@@ -76,11 +78,11 @@ const data = {
   v: 1, q: Q, lat0: LAT0, lon0: LON0, bbox: [minX, minY, maxX, maxY],
   cats: CATS,
   km: Object.fromEntries(CATS.map(c => [c, Math.round((km[c] || 0) * 10) / 10])),
-  // [catIdx, flags(1 foreign, 2 female, 4 heuristic guess), person ru, person en, street ru, street en, street ka, born, wikidata]
+  // [catIdx, flags(1 foreign, 2 female, 4 heuristic guess), person ru, person en, street ru, street en, street ka, born, wikidata, person ka]
   names: names.map(({ base, d }) => {
     const sn = streetNames.get(base);
     return [CATS.indexOf(d.cat), (d.foreign ? 1 : 0) | (d.female ? 2 : 0) | (d.auto ? 4 : 0),
-      d.ru || null, d.en || null, top(sn.ru), top(sn.en), top(sn.ka), d.born || null, d.wd || null];
+      d.ru || null, d.en || null, top(sn.ru), top(sn.en), top(sn.ka), d.born || null, d.wd || null, (d.wd && kaLabels[d.wd]) || null];
   }),
   ways: outWays,
 };

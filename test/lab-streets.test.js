@@ -129,6 +129,25 @@ test('submit refuses unfinished, foreign, too fast and empty runs', async functi
   assert.deepStrictEqual(await x.e.submit({ run: zero, deviceId: DEV, nick: 'a' }), { error: 'score' });
 });
 
+test('suggestions: stored with the street context; bad street, category or empty notes refused', async function () {
+  var x = engine();
+  var added = [];
+  x.db.collection = (function (orig) {
+    return function (name) { var c = orig(name); c.add = async function (d) { added.push([name, d]); return { id: 'x' }; }; return c; };
+  })(x.db.collection);
+  var r = await x.e.suggest({ n: 4, cat: 'military', text: '  Погиб в 2008 <script>\n\n\n\nгерой ', contact: '@gela', lang: 'ru', deviceId: DEV });
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(added[0][0], 'lab_streets_suggestions');
+  var row = added[0][1];
+  assert.deepStrictEqual([row.n, row.currentCat, row.cat, row.text, row.contact, row.lang, row.deviceId, row.status],
+    [4, 'person', 'military', 'Погиб в 2008 script\n\nгерой', '@gela', 'ru', DEV, 'new']);
+  assert.deepStrictEqual(await x.e.suggest({ n: 99, text: 'abc' }), { error: 'street' });
+  assert.deepStrictEqual(await x.e.suggest({ n: 1, cat: 'aliens', text: 'abc' }), { error: 'cat' });
+  assert.deepStrictEqual(await x.e.suggest({ n: 1, text: ' a ' }), { error: 'empty' });
+  assert.strictEqual((await x.e.suggest({ n: 1, cat: 'writers' })).ok, true); // a category alone is enough
+  assert.strictEqual(added.length, 2);
+});
+
 test('cleanNick strips markup and control chars and caps the length', function () {
   assert.strictEqual(streets.cleanNick('  <b>Гела</b>\n '), 'bГела/b');
   assert.strictEqual(Array.from(streets.cleanNick('ა'.repeat(40))).length, 20);
