@@ -1663,11 +1663,12 @@ var labRunHits = new Map(), labAnswerHits = new Map(), labScoreHits = new Map(),
 // the page itself, with <html lang>, title and description/og tags in the visitor's language
 var labStreetsPage = require('../lib/lab-streets-page');
 var labStreetsHtml = fs.readFileSync(path.join(__dirname, '../public/lab/streets/index.html'), 'utf8');
-router.get('/lab/streets', (req, res) => {
+// (routing is not strict: '/lab/streets' also matches '/lab/streets/', so only redirect the literal no-slash path)
+router.get(['/lab/streets', '/lab/streets/index.html'], (req, res) => {
     var q = req.originalUrl.indexOf('?');
-    res.redirect(301, '/lab/streets/' + (q >= 0 ? req.originalUrl.slice(q) : ''));
-});
-router.get(['/lab/streets/', '/lab/streets/index.html'], (req, res) => {
+    if ((q >= 0 ? req.originalUrl.slice(0, q) : req.originalUrl) === '/lab/streets') {
+        return res.redirect(301, '/lab/streets/' + (q >= 0 ? req.originalUrl.slice(q) : ''));
+    }
     var lang = labStreetsPage.pickLang(req.query, function (l) { return req.acceptsLanguages(l); }, !!req.get('accept-language'));
     res.set('Cache-Control', 'public, max-age=300');
     res.vary('Accept-Language');
