@@ -21,6 +21,7 @@ var { getPhotoColorFamilies } = require('../lib/color-utils');
 var i18n = require('../lib/photo-i18n');
 var V2_UI = require('../lib/photo-v2-strings');
 var siteTexts = require('../lib/photo-site-texts');
+var pageMeta = require('../lib/photo-page-meta');
 var shoots = require('../lib/photo-shoots');
 var { getData } = require('../lib/photo-data');
 var notFound = require('../lib/photo-404');
@@ -153,6 +154,7 @@ try {
   var fbApp = require('firebase-admin/app').getApps().find(function(a) { return a.name === 'photo'; });
   var fsDb = fbApp ? require('firebase-admin/firestore').getFirestore(fbApp) : null;
   siteTexts.init(fsDb).catch(console.error);
+  pageMeta.init(fsDb).catch(console.error);
   downloads.init(fsDb).catch(console.error);
 } catch (e) { console.error('[photo-v2] site texts init:', e.message); }
 
@@ -182,6 +184,40 @@ router.post('/admin/site-texts', requireAdmin, express.urlencoded({ extended: fa
     res.redirect('/admin/site-texts?saved=1');
   } catch (e) {
     console.error('[site-texts] save failed:', e.message);
+    res.status(500).send('Не удалось сохранить');
+  }
+});
+
+// /admin/page-meta — <title> + meta description of the main pages (home, about, shoots list), RU/EN.
+// The form is pre-filled with what the site uses now; values equal to the defaults are not stored.
+router.get('/admin/page-meta', requireAdmin, function(req, res) {
+  var values = { ru: {}, en: {} };
+  ['ru', 'en'].forEach(function(lang) {
+    pageMeta.PAGES.forEach(function(p) { values[lang][p.key] = pageMeta.get(lang, p.key); });
+  });
+  res.render('photo-v2/admin-page-meta', {
+    title: 'Метатеги — photo.dimazvali.com Admin',
+    saved: !!req.query.saved,
+    adminNav: require('../lib/photo-admin-nav').navFor,
+    pages: pageMeta.PAGES,
+    values: values,
+    defaults: pageMeta.DEFAULTS,
+    max: pageMeta.MAX_LEN,
+  });
+});
+router.post('/admin/page-meta', requireAdmin, express.urlencoded({ extended: false }), async function(req, res) {
+  var raw = { ru: {}, en: {} };
+  ['ru', 'en'].forEach(function(lang) {
+    pageMeta.PAGES.forEach(function(p) {
+      raw[lang][p.key] = {};
+      pageMeta.FIELDS.forEach(function(f) { raw[lang][p.key][f] = req.body[lang + '_' + p.key + '_' + f]; });
+    });
+  });
+  try {
+    await pageMeta.save(raw);
+    res.redirect('/admin/page-meta?saved=1');
+  } catch (e) {
+    console.error('[page-meta] save failed:', e.message);
     res.status(500).send('Не удалось сохранить');
   }
 });

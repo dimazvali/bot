@@ -6,7 +6,7 @@ var nav = require('../lib/photo-admin-nav.js');
 test('menu keys are unique and cover the spec sections', function() {
   assert.equal(new Set(nav.NAV_KEYS).size, nav.NAV_KEYS.length);
   ['dashboard', 'shoots', 'series', 'images', 'people', 'tags', 'leads', 'feedback',
-    'subscribers', 'stats', 'copyright', 'site-texts', 'settings'].forEach(function(k) {
+    'subscribers', 'stats', 'copyright', 'site-texts', 'page-meta', 'settings'].forEach(function(k) {
     assert.ok(nav.NAV_KEYS.indexOf(k) !== -1, 'missing ' + k);
   });
 });

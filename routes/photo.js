@@ -4,6 +4,7 @@ var path = require('path');
 var axios = require('axios');
 var { getData } = require('../lib/photo-data');
 var { getTags } = require('../lib/photo-tags');
+var pageMeta = require('../lib/photo-page-meta');
 var { trackView, BOT_UA_RE, getStatsByType } = require('../lib/photo-stats');
 var { COLOR_FAMILIES, getPhotoColorFamilies } = require('../lib/color-utils');
 var subscriptions = require('../lib/photo-subscriptions');
@@ -167,10 +168,8 @@ router.get('/', (req, res) => {
     activeCountry: null,
     activeSeries: null,
     photos,
-    title: 'photo.dimazvali.com',
-    desc: lang === 'en'
-      ? 'Photography — Dmitry Shestakov. Documentary series and portraits.'
-      : 'Фотография — Дмитрий Шестаков. Серийная документальная фотография и портреты.',
+    title: pageMeta.get(lang, 'home').title,
+    desc: pageMeta.get(lang, 'home').desc,
     keywords: buildPageKeywords(photos, tags, Object.keys(data).map(k => data[k].label)),
     ogImage: ogImg(photos[0]),
     ogUrl: pageUrl(lang, '/'),
@@ -183,10 +182,8 @@ router.get('/about', (req, res) => {
   var lang = req.lang;
   res.render('photo/about', {
     data: i18n.localizeDataTree(getData(), lang),
-    title: lang === 'en' ? 'About — photo.dimazvali.com' : 'О себе — photo.dimazvali.com',
-    desc: lang === 'en'
-      ? 'Dmitry Shestakov — photographer. I shoot documentary series and portraits.'
-      : 'Дмитрий Шестаков — фотограф. Снимаю документальные серии и портреты.',
+    title: pageMeta.get(lang, 'about').title,
+    desc: pageMeta.get(lang, 'about').desc,
     ogImage: null,
     ogUrl: pageUrl(lang, '/about'),
     breadcrumbs: [{ name: lang === 'en' ? 'About' : 'О себе', url: pageUrl(lang, '/about') }],
@@ -563,8 +560,8 @@ router.get('/shoot', (req, res) => {
     activeSeries: null,
     isShoot: true,
     shoots: openShoots,
-    title: (lang === 'en' ? 'Shoots' : 'Съёмки') + ' — photo.dimazvali.com',
-    desc: lang === 'en' ? 'Open shoots — Dmitry Shestakov' : 'Открытые съёмки — Дмитрий Шестаков',
+    title: pageMeta.get(lang, 'shoots').title,
+    desc: pageMeta.get(lang, 'shoots').desc,
     keywords: null,
     ogImage: openShoots.length ? ogImg(openShoots[0].photos[0]) : null,
     ogUrl: pageUrl(lang, '/shoot'),
