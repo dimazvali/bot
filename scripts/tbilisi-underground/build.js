@@ -1,6 +1,6 @@
-// Builds public/tbilisi/underground/model.json for dimazvali.com/tbilisi/underground.
+// Builds public/lab/underground/model.json for dimazvali.com/lab/underground.
 // Inputs come from fetch.js (raw.json, raw2.json, rel.json, dem.json in <raw dir>).
-// Usage: node scripts/tbilisi-underground/build.js <raw dir> public/tbilisi/underground/model.json
+// Usage: node scripts/tbilisi-underground/build.js <raw dir> public/lab/underground/model.json
 // Coordinates: local metres around (LAT0, LON0), x east, z south. Each line point is [x, z, ground m a.s.l., depth m].
 const fs = require("fs"), path = require("path");
 const dir = process.argv[2], outFile = process.argv[3];

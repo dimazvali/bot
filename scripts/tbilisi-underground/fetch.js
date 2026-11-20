@@ -1,4 +1,4 @@
-// Downloads raw inputs for the Tbilisi underground 3D model (dimazvali.com/tbilisi/underground).
+// Downloads raw inputs for the Tbilisi underground 3D model (dimazvali.com/lab/underground).
 // Usage: node scripts/tbilisi-underground/fetch.js <raw dir>
 // Writes <raw dir>/raw.json, raw2.json, rel.json (Overpass) and dem.json (SRTM 30 m via OpenTopoData).
 // Raw dumps are ~3 MB and are not committed; run build.js afterwards.

@@ -8,6 +8,9 @@
 <meta property="og:title" content="Подземный Тбилиси">
 <meta property="og:description" content="Метро, реки в коллекторах, переходы и тоннели под городом — в 3D. Можно вывернуть: чем глубже, тем выше.">
 <meta property="og:type" content="website">
+<!-- public/ is also served on other vhosts (e.g. it.dimazvali.com), so pin the canonical address -->
+<link rel="canonical" href="https://dimazvali.com/lab/underground/">
+<meta property="og:url" content="https://dimazvali.com/lab/underground/">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -34,6 +37,10 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14
 .panel{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:calc(12px + env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));width:340px;max-width:calc(100vw - 24px);
   background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:10px;display:flex;flex-direction:column;overflow:hidden;z-index:5}
 .panel header{padding:18px 18px 12px;border-bottom:1px solid var(--line)}
+.home{display:inline-block;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:var(--muted);text-decoration:none;margin-bottom:6px}
+.home::before{content:"← "}
+.home:hover{color:var(--accent)}
+.home:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 h1{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.01em;margin:0 0 6px;text-wrap:balance}
 .lede{margin:0;color:var(--muted);font-size:12.5px;line-height:1.5}
 .scroll{overflow-y:auto;padding:4px 18px 18px;display:flex;flex-direction:column;gap:18px}
@@ -100,6 +107,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <header>
     <div class="row">
       <div>
+        <a class="home" href="https://dimazvali.com/">dimazvali.com</a>
         <h1>Подземный Тбилиси</h1>
         <p class="lede" id="lede"></p>
       </div>
@@ -130,6 +138,10 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <p class="note" style="margin-top:8px">Сплошная полоса: глубина из карточки станции в Википедии. Штриховка: оценка по типу конструкции (глубокое или мелкое заложение), точной цифры в открытых источниках нет.</p>
     </section>
     <section>
+      <h2>Ещё про Тбилиси</h2>
+      <p class="note"><a href="https://it.dimazvali.com/blackout">Kaladze Simulator</a>: игра про то, как удержать свет в городе во время блэкаута.</p>
+    </section>
+    <section>
       <h2>Откуда данные</h2>
       <p class="note">Геометрия: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© участники OpenStreetMap</a>, ODbL, выгрузка Overpass от 20.11.2026. Рельеф: SRTM 30 м через OpenTopoData. Глубины станций: ru.wikipedia.<br><br>
       Пути и порядок станций взяты из маршрутов метро в OSM. Между соседними станциями отметка рельса меняется линейно по длине пути, а глубина в каждой точке считается от рельефа над ней. Это приближение, а не продольный профиль: под склоном между «Тависуплебис моедани» и «Руставели» модель даёт до 78 м. SRTM — модель поверхности, в плотной застройке она завышает землю на высоту крыш. У остальных слоёв глубина условная, типовая для такого сооружения (переход около 5 м, коллектор около 4 м, труба около 2,5 м). В OSM нет водопровода, канализации, газа и кабелей. Эти сети принадлежат GWP, Tbilisi Energy и TbilisiGas, и их схемы закрыты.</p>
@@ -149,7 +161,7 @@ import { LineSegments2 } from "three/addons/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/addons/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/addons/lines/LineMaterial.js";
 
-// model.json sits next to this page; works for /tbilisi/underground and /tbilisi/underground/
+// model.json sits next to this page; works for /lab/underground and /lab/underground/
 const D = await (await fetch(location.pathname.replace(/\/(index\.html)?$/, "") + "/model.json")).json();
 document.getElementById("loading").hidden = true;
 
