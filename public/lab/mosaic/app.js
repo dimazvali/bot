@@ -318,6 +318,7 @@
   // ---------- modes ----------
   function enterOverview() {
     mode = 'overview'; S = null; drag = null; hover = -1;
+    hideBubble();
     $('card').hidden = true;
     layoutOverview();
     syncUI();
@@ -348,6 +349,7 @@
     S.order = S.stones.filter(function (st) { return !st.locked; });
     S.placed = S.stones.length - S.order.length;
     mode = 'section'; drag = null;
+    hideBubble();
     $('card').hidden = true;
     layoutSection(true);
     syncUI();
@@ -362,6 +364,8 @@
     var part = P.partial[S.k] || (P.partial[S.k] = []);
     part.push(st.t);
     click();
+    if (S.placed < S.stones.length) maybeBubble(st);
+    else hideBubble();
     if (S.placed === S.stones.length) {
       delete P.partial[S.k];
       if (!isRestored(S.k)) P.restored.push(S.k);
@@ -382,6 +386,62 @@
       if (d < bd) { bd = d; best = s; }
     }
     return best;
+  }
+
+  // ---------- fact bubbles ----------
+  // Now and then a stone going home brings a bubble: a fact about Rome, Greece and Georgia, or
+  // (about a third of the time) "news" of the 3rd century with the cook Tsira's comment (facts.js).
+  var F = window.MOSAIC_FACTS, bubble = null, bubbleTimer = 0, sinceBubble = 0, nextBubbleAt = 4;
+  var seen = (function () { try { return JSON.parse(sget('lab-mosaic-seen')) || []; } catch (e) { return []; } })();
+  function pickFact() {
+    var news = Math.random() < 0.38, list = news ? F.news : F.links, pre = news ? 'n' : 'l', fresh = [];
+    list.forEach(function (_, i) { if (seen.indexOf(pre + i) < 0) fresh.push(i); });
+    if (!fresh.length) {   // all shown: start that list over
+      seen = seen.filter(function (k) { return k.charAt(0) !== pre; });
+      fresh = list.map(function (_, i) { return i; });
+    }
+    var i = fresh[Math.floor(Math.random() * fresh.length)];
+    seen.push(pre + i);
+    sset('lab-mosaic-seen', JSON.stringify(seen));
+    return { news: news, item: list[i] };
+  }
+  function hideBubble() {
+    clearTimeout(bubbleTimer);
+    if (!bubble) return;
+    var b = bubble; bubble = null;
+    b.classList.add('out');
+    setTimeout(function () { if (b.parentNode) b.parentNode.removeChild(b); }, 300);
+  }
+  function maybeBubble(st) {
+    if (!F) return;
+    if (++sinceBubble < nextBubbleAt) return;
+    sinceBubble = 0; nextBubbleAt = 7 + Math.floor(Math.random() * 6);
+    showBubble(st);
+  }
+  function showBubble(st) {
+    hideBubble();
+    var f = pickFact(), lb = F.labels[lang], b = document.createElement('div'), len;
+    b.className = 'bubble' + (f.news ? ' news' : '');
+    if (f.news) {
+      var n = f.item[lang];
+      len = n[0].length + n[1].length;
+      b.innerHTML = '<div class="bh"><span>' + lb.news + '</span><b>' + lb.year(f.item.y, f.item.approx) + '</b></div>' +
+        '<p>' + n[0] + '</p><div class="say">' + n[1] + '<small>' + lb.who + '</small></div>';
+    } else {
+      len = f.item[lang].length;
+      b.innerHTML = '<div class="bh"><span>' + lb.link + '</span></div><p>' + f.item[lang] + '</p>';
+    }
+    main.appendChild(b);
+    // next to the stone that was just set: above it if there is room, else below
+    var ax = L.ox + D.cx[st.t] * L.s, ay = L.oy + D.cy[st.t] * L.s, w = b.offsetWidth, h = b.offsetHeight;
+    var gap = L.s * 2.5 + 12, up = ay - gap - h > 44;
+    var left = Math.max(12, Math.min(L.cw - w - 12, ax - w / 2));
+    var top = up ? ay - gap - h : Math.max(44, Math.min(L.ch - h - 12, ay + gap));
+    b.style.left = left + 'px'; b.style.top = top + 'px';
+    b.classList.add(up ? 'up' : 'down');
+    b.style.setProperty('--tx', Math.max(16, Math.min(w - 16, ax - left)) + 'px');
+    bubble = b;   // it lets clicks through (stones under it stay playable); a click on empty table closes it
+    bubbleTimer = setTimeout(hideBubble, Math.min(22000, 5000 + len * 45));
   }
 
   // ---------- cards ----------
@@ -462,7 +522,7 @@
     }
   };
   Array.prototype.forEach.call(document.querySelectorAll('#langs button'), function (b) {
-    b.onclick = function () { lang = b.dataset.lang; sset('lab-mosaic-lang', lang); syncUI(); };
+    b.onclick = function () { lang = b.dataset.lang; sset('lab-mosaic-lang', lang); hideBubble(); syncUI(); };
   });
 
   // ---------- input ----------
@@ -498,7 +558,7 @@
     if (mode === 'overview') { press = { x: pt.sx, y: pt.sy, id: e.pointerId }; return; }
     if (mode !== 'section') return;
     var st = stoneAt(pt, e.pointerType === 'touch');
-    if (!st) return;
+    if (!st) { hideBubble(); return; }
     e.preventDefault();
     drag = { st: st, gx: pt.x - st.dx, gy: pt.y - st.dy, id: e.pointerId, touch: e.pointerType === 'touch' };
     S.order.splice(S.order.indexOf(st), 1); S.order.push(st);
@@ -623,8 +683,7 @@
     mode = 'overview';
     resize();
     enterOverview();
-    requestAnimationFrame(frame);
-  }).catch(function (e) {
+    requestAnimationFrame(frame);  }).catch(function (e) {
     $('status').textContent = String(e && e.message || e);
   });
 })();

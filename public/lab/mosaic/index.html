@@ -14,7 +14,7 @@
   <link rel="icon" type="image/x-icon" href="/images/dimazvali/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Noto+Sans+Georgian:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Lora:ital,wght@0,400;1,400&family=Noto+Sans+Georgian:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -63,6 +63,27 @@
     .primary { flex: 1; padding: 11px; background: var(--ink); color: var(--paper); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; }
     .primary.ghost { background: none; color: var(--ink); border: 1px solid var(--ink); }
 
+    /* fact bubbles popping up when a stone goes home */
+    .bubble { position: absolute; z-index: 5; width: min(310px, calc(100% - 24px)); background: var(--paper); border: 1px solid var(--ink);
+      box-shadow: 4px 4px 0 var(--ink); padding: 10px 12px 12px; pointer-events: none; animation: pop .22s ease-out;
+      transition: opacity .3s ease; --tx: 50%; }
+    .bubble.out { opacity: 0; }
+    .bubble .bh { display: flex; justify-content: space-between; gap: 10px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+    .bubble .bh b { font-weight: 400; color: var(--ink); }
+    .bubble.news .bh span { color: #9a3d1c; }
+    .bubble p { margin: 6px 0 0; font-family: Lora, serif; font-size: 15px; line-height: 1.45; }
+    .bubble .say { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); font-family: Lora, serif; font-style: italic; font-size: 14px; line-height: 1.45; color: var(--muted); }
+    .bubble .say small { display: block; margin-top: 4px; font-family: 'JetBrains Mono', monospace; font-style: normal; font-size: 10px; letter-spacing: .04em; color: var(--faint); }
+    html[lang=ka] .bubble .say { font-family: 'Noto Sans Georgian', sans-serif; font-style: normal; font-size: 13px; }
+    .bubble::after { content: ''; position: absolute; left: var(--tx); width: 12px; height: 12px; background: var(--paper);
+      border: solid var(--ink); transform: translateX(-50%) rotate(45deg); }
+    .bubble.up::after { bottom: -7px; border-width: 0 1px 1px 0; }
+    .bubble.down::after { top: -7px; border-width: 1px 0 0 1px; }
+    html[lang=ka] .bubble p { font-family: 'Noto Sans Georgian', sans-serif; font-style: normal; font-size: 14px; }
+    html[lang=ka] .bubble .bh { text-transform: none; letter-spacing: 0; }
+    @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .bubble { animation: none; } }
+
     @media (max-width: 600px) {
       .logo small { display: block; margin: 2px 0 0; }
       .caption { display: none; }
@@ -89,6 +110,7 @@
     </div>
     <div class="card" id="card" hidden></div>
   </main>
-  <script src="app.js?v=9"></script>
+  <script src="facts.js?v=1"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>
