@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Дионис и Ариадна — реставрация мозаики Дзалиси — dimazvali.com</title>
+  <meta name="description" content="Римская мозаика III века из Дзалиси, Дионис и Ариадна, разобрана на 4 тысячи камешков. Восстановите её по участкам, камень за камнем.">
+  <meta property="og:title" content="Дионис и Ариадна: реставрация мозаики Дзалиси">
+  <meta property="og:description" content="4 тысячи камешков римской мозаики из Мухранской долины. Верните их на место.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dimazvali.com/lab/mosaic/">
+  <meta property="og:image" content="https://dimazvali.com/lab/mosaic/mosaic.png">
+  <link rel="canonical" href="https://dimazvali.com/lab/mosaic/">
+  <link rel="icon" type="image/x-icon" href="/images/dimazvali/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Noto+Sans+Georgian:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-LDMN4XFB42');
+  </script>
+  <style>
+    :root { --paper: #f4f1ea; --ink: #15120f; --muted: #56514a; --faint: #9a948b; --line: #c8c3b8; --ok: #2f8f4e; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body { background: var(--paper); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      display: flex; flex-direction: column; height: 100dvh; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+    header { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; padding: 12px 16px 10px; border-bottom: 1px solid var(--line); }
+    .logo { font-family: Oswald, sans-serif; font-weight: 700; font-size: 20px; letter-spacing: .01em; margin-right: auto; }
+    .logo small { font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 8px; letter-spacing: .06em; }
+    .seg { display: flex; gap: 4px; align-items: center; }
+    .seg button { padding: 5px 10px; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+    .seg button[aria-pressed=true] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .back { font-size: 11px; color: var(--muted); letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
+    html[lang=ka] body, html[lang=ka] .logo, html[lang=ka] .card h2 { font-family: 'Noto Sans Georgian', sans-serif; }
+    html[lang=ka] .seg button, html[lang=ka] .primary { text-transform: none; letter-spacing: 0; }
+
+    main { position: relative; flex: 1; min-height: 0; }
+    canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; }
+    .status { position: absolute; left: 16px; top: 12px; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; pointer-events: none; }
+    .status b { color: var(--ink); }
+    .caption { position: absolute; left: 16px; bottom: 14px; font-size: 11px; color: var(--faint); pointer-events: none; max-width: 50%; }
+    .caption[hidden] { display: none; }
+    .tools { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 6px; }
+    .tools button { padding: 8px 12px; border: 1px solid var(--ink); background: var(--paper); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .tools button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
+    html[lang=ka] .tools button { text-transform: none; letter-spacing: 0; }
+
+    .card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(100% - 32px));
+      background: var(--paper); border: 1px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); padding: 16px 18px 18px; max-height: calc(100% - 32px); overflow-y: auto; }
+    .card[hidden] { display: none; }
+    .card h2 { font-family: Oswald, sans-serif; font-weight: 700; font-size: 30px; line-height: 1; margin: 0 0 8px; }
+    .card .res { font-size: 14px; line-height: 1.5; }
+    .card .about { color: var(--muted); line-height: 1.55; margin: 12px 0 0; font-size: 12px; }
+    .card .greek { font-family: Georgia, serif; letter-spacing: .12em; color: var(--ink); white-space: nowrap; }
+    .card .x { position: absolute; top: 6px; right: 10px; font-size: 20px; color: var(--muted); }
+    .card .row { display: flex; gap: 8px; margin-top: 14px; }
+    .primary { flex: 1; padding: 11px; background: var(--ink); color: var(--paper); text-transform: uppercase; letter-spacing: .1em; font-size: 12px; }
+    .primary.ghost { background: none; color: var(--ink); border: 1px solid var(--ink); }
+
+    @media (max-width: 600px) {
+      .logo small { display: block; margin: 2px 0 0; }
+      .caption { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo"><span id="t-title">Дионис и Ариадна</span><small id="t-sub">реставрация мозаики Дзалиси</small></div>
+    <div class="seg" id="langs" role="group">
+      <button data-lang="ru" aria-pressed="true">RU</button>
+      <button data-lang="en" aria-pressed="false">EN</button>
+      <button data-lang="ka" aria-pressed="false">KA</button>
+    </div>
+    <a class="back" href="/">dimazvali.com</a>
+  </header>
+  <main id="main">
+    <canvas id="c"></canvas>
+    <div class="status" id="status"></div>
+    <div class="caption" id="caption"></div>
+    <div class="tools">
+      <button id="b1">О мозаике</button>
+      <button id="b2">Случайный участок</button>
+    </div>
+    <div class="card" id="card" hidden></div>
+  </main>
+  <script src="app.js?v=9"></script>
+</body>
+</html>
