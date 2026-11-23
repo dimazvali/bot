@@ -80,6 +80,15 @@ html(lang='ru')
       .card-domain             { font-size: clamp(13px,1.5vw,17px); letter-spacing: .06em; color: #b7b2aa; margin-top: 6px; }
       .card-desc               { margin: 12px 0 0; font-family: Lora, serif; font-size: 16px; line-height: 1.55; color: #dedad3; max-width: 420px; }
 
+      /* ── Lab strip ── */
+      .lab-link                { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 22px; margin-top: 16px; padding: 22px clamp(24px,3vw,38px); border: 1px solid #15120f; transition: background .25s ease, color .25s ease; }
+      .lab-link:hover          { background: #15120f; color: #f4f1ea; }
+      .lab-link-meta           { font-size: 12px; letter-spacing: .14em; color: #9a948b; }
+      .lab-link-title          { font-family: Oswald, sans-serif; font-weight: 700; font-size: clamp(22px,2.6vw,32px); text-transform: uppercase; line-height: 1; }
+      .lab-link-desc           { font-family: Lora, serif; font-size: 16px; color: #56514a; flex: 1 1 260px; }
+      .lab-link:hover .lab-link-desc { color: #b7b2aa; }
+      .lab-link .card-arrow    { margin-left: auto; }
+
       /* ── Footer ── */
       .site-footer          { background: #15120f; color: #f4f1ea; margin-top: clamp(40px,6vw,80px); background-image: url(https://storage.googleapis.com/photo-dimazvalimisc-eu/images/ks-05287-1781288494378-2400.webp); background-size: cover; background-position: 50%; }
       .footer-top           { max-width: 1320px; margin: 0 auto; padding: clamp(40px,5vw,68px) 28px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; justify-content: space-between; }
@@ -206,6 +215,12 @@ html(lang='ru')
               .card-keyword IT&nbsp;/&nbsp;PM
               .card-domain it.dimazvali.com
               p.card-desc Истории про продукты, команды и&nbsp;разработку. Как доводить сложное до&nbsp;запуска.
+
+      a.lab-link(href='/lab/')
+        span.lab-link-meta 03 — ЭКСПЕРИМЕНТЫ
+        span.lab-link-title Лаборатория
+        span.lab-link-desc Карты, игры и&nbsp;прочие эксперименты: подземный Тбилиси, чьи улицы, мозаика из&nbsp;Дзалиси.
+        span.card-arrow →
 
     //- -
     //-   var globeCountries = [

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Лаборатория — dimazvali.com</title>
+  <meta name="description" content="Карты, игры и прочие эксперименты: подземный Тбилиси в 3D, чьи имена носят улицы Тбилиси, мозаика из Дзалиси камень за камнем.">
+  <meta property="og:title" content="Лаборатория dimazvali.com">
+  <meta property="og:description" content="Карты, игры и прочие эксперименты про Тбилиси и не только.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dimazvali.com/lab/">
+  <meta property="og:image" content="https://dimazvali.com/lab/thumbs/mosaic.webp">
+  <link rel="canonical" href="https://dimazvali.com/lab/">
+  <link rel="icon" type="image/x-icon" href="/images/dimazvali/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Lora:ital,wght@0,400;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-LDMN4XFB42');
+  </script>
+  <style>
+    :root { --paper: #f4f1ea; --ink: #15120f; --muted: #56514a; --faint: #9a948b; --line: #c8c3b8; --rule: #d8d3c8; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--paper); color: var(--ink); font-family: 'JetBrains Mono', monospace; }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: var(--ink); color: var(--paper); }
+    .wrap { max-width: 1320px; margin: 0 auto; padding: 0 28px; }
+
+    header { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; }
+    .logo { font-family: Oswald, sans-serif; font-weight: 700; font-size: 17px; letter-spacing: .02em; }
+    .crumb { font-size: 12px; letter-spacing: .08em; color: var(--muted); }
+
+    .hero { padding: clamp(18px, 3vw, 44px) 0 clamp(30px, 4vw, 56px); display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 48px; }
+    h1 { margin: 0; font-family: Oswald, sans-serif; font-weight: 700; font-size: clamp(64px, 12vw, 160px); line-height: .85; letter-spacing: -.01em; text-transform: uppercase; }
+    .intro { margin: 0; max-width: 520px; font-family: Lora, serif; font-size: clamp(19px, 1.9vw, 25px); line-height: 1.42; }
+
+    .bar { display: flex; align-items: baseline; gap: 14px; margin-bottom: 24px; }
+    .bar h2 { margin: 0; font-family: Oswald, sans-serif; font-weight: 700; font-size: clamp(18px, 2.2vw, 24px); letter-spacing: .04em; text-transform: uppercase; }
+    .bar i { flex: 1; height: 1px; background: var(--rule); }
+    .bar span { font-size: 11px; letter-spacing: .12em; color: var(--faint); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 36px 24px; padding-bottom: clamp(48px, 7vw, 96px); }
+    .item { display: flex; flex-direction: column; }
+    .shot { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: #e2dacb; border: 1px solid var(--ink); }
+    .shot img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s ease; }
+    .item:hover .shot img, .item:focus-visible .shot img { transform: scale(1.035); }
+    .meta { display: flex; justify-content: space-between; margin-top: 14px; font-size: 11px; letter-spacing: .14em; color: var(--muted); text-transform: uppercase; }
+    .meta b { font-weight: 400; color: var(--ink); transition: transform .25s ease; }
+    .item:hover .meta b { transform: translateX(4px); }
+    .item h3 { margin: 8px 0 0; font-family: Oswald, sans-serif; font-weight: 700; font-size: clamp(28px, 3vw, 38px); line-height: 1; text-transform: uppercase; }
+    .item p { margin: 10px 0 0; font-family: Lora, serif; font-size: 16px; line-height: 1.55; color: var(--muted); max-width: 480px; }
+    .item:focus-visible { outline: 2px solid var(--ink); outline-offset: 6px; }
+
+    footer { border-top: 1px solid var(--rule); }
+    footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; padding-top: 16px; padding-bottom: 20px; font-size: 11px; letter-spacing: .08em; color: var(--faint); }
+
+    @media (max-width: 600px) { .wrap { padding: 0 16px; } }
+    @media (prefers-reduced-motion: reduce) { .shot img, .meta b { transition: none; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <a class="logo" href="/">dimazvali.com</a>
+      <span class="crumb">/lab</span>
+    </header>
+
+    <section class="hero">
+      <h1>Лаборатория</h1>
+      <p class="intro">Карты, игры и прочие эксперименты — про Тбилиси и&nbsp;не только.</p>
+    </section>
+
+    <div class="bar"><h2>Проекты</h2><i></i><span>3 штуки</span></div>
+
+    <main class="grid">
+      <a class="item" href="/lab/mosaic/">
+        <div class="shot"><img src="/lab/thumbs/mosaic.webp" alt="Мозаика «Дионис и Ариадна» из Дзалиси" width="960" height="600" loading="lazy"></div>
+        <div class="meta"><span>03 — игра</span><b>→</b></div>
+        <h3>Дионис и Ариадна</h3>
+        <p>Римская мозаика III&nbsp;века из&nbsp;Дзалиси, разобранная на 4&nbsp;тысячи камешков. Восстановите её&nbsp;по&nbsp;участкам, камень за&nbsp;камнем.</p>
+      </a>
+
+      <a class="item" href="/lab/streets/">
+        <div class="shot"><img src="/lab/thumbs/streets.webp" alt="Карта улиц Тбилиси, раскрашенная по профессиям" width="960" height="600" loading="lazy"></div>
+        <div class="meta"><span>02 — карта и угадайка</span><b>→</b></div>
+        <h3>Чьи улицы Тбилиси</h3>
+        <p>2&nbsp;300&nbsp;км улиц, разложенных по&nbsp;тем, в&nbsp;честь кого они названы: писатели, цари, учёные, военные. И&nbsp;угадайка — кем был тот, чьё имя на&nbsp;табличке.</p>
+      </a>
+
+      <a class="item" href="/lab/underground/">
+        <div class="shot"><img src="/lab/thumbs/underground.webp" alt="3D-модель метро и подземных сооружений Тбилиси" width="960" height="600" loading="lazy"></div>
+        <div class="meta"><span>01 — 3D-модель</span><b>→</b></div>
+        <h3>Подземный Тбилиси</h3>
+        <p>Метро с&nbsp;глубинами станций, реки в&nbsp;коллекторах, переходы и&nbsp;тоннели — вывернутые наружу: чем глубже сооружение, тем выше оно над картой.</p>
+      </a>
+    </main>
+  </div>
+
+  <footer>
+    <div class="wrap">
+      <a href="/">← dimazvali.com</a>
+      <span>© dimazvali.com</span>
+    </div>
+  </footer>
+</body>
+</html>
