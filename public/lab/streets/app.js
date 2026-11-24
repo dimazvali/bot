@@ -884,6 +884,10 @@
     applyView(BOOT.slug);
     fit(D.bbox, 12, false);
     setMode(location.hash === '#game' ? 'game' : 'map');
+    // ?focus=<street's local name> (the admin's "show on the map"): select that street and zoom to it
+    var focus = new URLSearchParams(location.search).get('focus');
+    var hit = focus && names.filter(function (n) { return (CITY === 'spb' ? n.sru : n.ska) === focus; })[0];
+    if (hit && st.mode === 'map') { st.sel = hit; showCard(hit); fit(hit.bbox, 80, false); }
   }).catch(function (e) {
     $('side').innerHTML = '<p class="muted">Не получилось загрузить данные: ' + esc(e.message) + '</p>';
   });

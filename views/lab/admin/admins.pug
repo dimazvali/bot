@@ -1,0 +1,33 @@
+include _layout.pug
+
++labAdmin({ title: 'Админы — Чьи улицы', nav: 'admins' })
+  .wrap
+    h2 Администраторы
+    p Главный пароль — переменная окружения LAB_ADMIN_PASS. Здесь — дополнительные проверяющие.
+    table
+      tr
+        th Имя
+        th Роль
+        th
+      each a in admins
+        tr
+          td= a.name
+          td= a.superadmin ? 'суперадмин' : 'проверяющий'
+          td
+            if a.id !== currentAdminId
+              form(method='POST' action=base + '/admins/' + a.id + '/delete' onsubmit="return confirm('Удалить ' + " + JSON.stringify(a.name) + " + '?')")
+                button.btn(type='submit') Удалить
+      if !admins.length
+        tr
+          td(colspan=3) Пока никого.
+    h3 Добавить
+    form(method='POST' action=base + '/admins')
+      label(for='name') Имя
+      input#name(type='text' name='name' required maxlength=60)
+      label(for='password') Пароль (не короче 8 символов)
+      input#password(type='password' name='password' required minlength=8)
+      label
+        input(type='checkbox' name='superadmin')
+        |  суперадмин (может добавлять админов)
+      p
+        button.btn.solid(type='submit') Добавить

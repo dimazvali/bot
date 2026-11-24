@@ -1664,14 +1664,40 @@ var LAB_CITIES = {
     tbilisi: { file: 'data.json', prefix: 'lab_streets', name: 'Чьи улицы Тбилиси' },
     spb: { file: 'data-spb.json', prefix: 'lab_streets_spb', name: 'Чьи улицы Петербурга' },
 };
+var labStreetsAdminLib = require('../lib/lab-streets-admin');
 Object.keys(LAB_CITIES).forEach(function (id) {
     var c = LAB_CITIES[id];
-    var data = JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/' + c.file), 'utf8'));
-    c.engine = require('../lib/lab-streets').create({ data: data, db: fb, prefix: c.prefix });
+    c.baseData = JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/' + c.file), 'utf8'));
+    c.engine = require('../lib/lab-streets').create({ data: c.baseData, db: fb, prefix: c.prefix });
+    c.path = labStreetsPageLib.CITIES[id].path; // '/lab/streets/' or '/lab/streets/spb/'
+    labUse(c, id, c.baseData, {});
+});
+// what is served: the pipeline's data with the admins' corrections (lab_streets_reviews) on top
+function labUse(c, id, data, reviews) {
+    c.reviews = reviews;
+    c.data = data;
+    c.json = JSON.stringify(data);
     c.page = labStreetsPageLib.create(data, id);
     c.sitemap = c.page.sitemap();
-    c.path = labStreetsPageLib.CITIES[id].path; // '/lab/streets/' or '/lab/streets/spb/'
+    c.engine.reload(data);
+}
+var labReviews = labStreetsAdminLib.create(fb);
+function labRefresh(id) {
+    var c = LAB_CITIES[id];
+    return labReviews.loadReviews(id).then(function (reviews) {
+        labUse(c, id, labStreetsAdminLib.applyReviews(c.baseData, reviews, id), reviews);
+    });
+}
+Object.keys(LAB_CITIES).forEach(function (id) {
+    labRefresh(id).catch(function (e) { console.error('[lab-streets] reviews for ' + id + ':', e.message); });
 });
+router.get(['/lab/streets/data.json', '/lab/streets/data-spb.json'], (req, res) => {
+    var c = LAB_CITIES[/data-spb/.test(req.path) ? 'spb' : 'tbilisi'];
+    res.set('Cache-Control', 'public, max-age=300');
+    res.type('application/json').send(c.json);
+});
+// the labelling review (ok / not ok / later + corrections), for every city
+router.use('/lab/streets/admin', require('./lab-streets-admin')({ db: fb, cities: LAB_CITIES, refresh: labRefresh }));
 function labRate(map, ip, max, windowMs) { // naive per-IP limiter, plenty for honest play
     var now = Date.now();
     var hits = (map.get(ip) || []).filter(function (t) { return now - t < windowMs; });

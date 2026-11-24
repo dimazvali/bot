@@ -1,0 +1,72 @@
+include _layout.pug
+
++labAdmin({ title: 'Проверка разметки — Чьи улицы', nav: 'review' })
+  style.
+    .rv { display: grid; grid-template-columns: minmax(340px, 1fr) minmax(380px, 1.1fr); height: calc(100vh - 49px); }
+    .rv-left { display: flex; flex-direction: column; border-right: 1px solid var(--line); min-height: 0; }
+    .cities { display: flex; gap: 4px; padding: 10px 12px 0; }
+    .cities button { padding: 5px 10px; border: 1px solid var(--line); background: none; font-size: 12px; }
+    .cities button[aria-pressed=true] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .stats { padding: 8px 12px; color: var(--muted); font-size: 12px; }
+    .stats b { color: var(--ink); }
+    .progress { height: 4px; background: var(--base); margin: 0 12px 8px; display: flex; }
+    .progress i { display: block; height: 100%; }
+    .filters { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 0 12px 8px; }
+    .filters input { grid-column: 1 / 4; }
+    .filters select, .filters input { padding: 5px 8px; }
+    .list { overflow-y: auto; flex: 1; border-top: 1px solid var(--line); }
+    .row { display: grid; grid-template-columns: 8px 1fr auto; gap: 2px 10px; padding: 7px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+    .row:hover { background: rgba(0,0,0,.03); }
+    .row[aria-selected=true] { background: rgba(0,0,0,.08); }
+    .row .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; background: var(--base); }
+    .row .dot.ok { background: var(--ok); } .row .dot.bad { background: var(--bad); } .row .dot.later { background: var(--later); }
+    .row .st { font-weight: 700; }
+    .row .who { grid-column: 2 / 4; color: var(--muted); font-size: 12px; }
+    .row .km { color: var(--faint); font-size: 12px; }
+    .more { padding: 10px 12px; }
+    .rv-right { overflow-y: auto; padding: 14px 18px 30px; }
+    .empty { color: var(--faint); margin-top: 30vh; text-align: center; }
+    .d-alt { color: var(--muted); font-size: 12px; }
+    .d-street { font-family: Oswald, 'Noto Sans Georgian', sans-serif; font-size: 24px; line-height: 1.15; margin: 2px 0 6px; }
+    .tag { display: inline-block; padding: 1px 6px; margin: 4px 4px 0 0; font-size: 11px; color: #fff; background: var(--muted); }
+    .tag.was { background: none; color: var(--muted); border: 1px dashed var(--line); text-decoration: line-through; }
+    canvas#mini { width: 100%; height: 220px; border: 1px solid var(--line); margin: 10px 0; display: block; }
+    .sugg { border: 1px solid var(--later); padding: 8px 10px; margin: 8px 0; }
+    .sugg .acts { margin-top: 6px; display: flex; gap: 6px; }
+    .form { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; margin-top: 8px; }
+    .form .full { grid-column: 1 / 3; }
+    .form .checks { display: flex; gap: 16px; align-items: center; margin-top: 10px; }
+    .form .checks label { display: inline; margin: 0; color: var(--ink); font-size: 13px; }
+    .verdict { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+    .verdict button { padding: 12px; border: 1px solid var(--ink); background: none; font-weight: 700; }
+    .verdict .ok { background: var(--ok); border-color: var(--ok); color: #fff; }
+    .verdict .bad { background: var(--bad); border-color: var(--bad); color: #fff; }
+    .verdict .later { background: var(--later); border-color: var(--later); color: #fff; }
+    .verdict kbd { font-weight: 400; opacity: .7; margin-left: 6px; }
+    .hint { color: var(--faint); font-size: 11px; margin-top: 8px; }
+    .msg { margin-top: 8px; min-height: 1.4em; }
+    .msg.err { color: var(--bad); }
+    @media (max-width: 860px) { .rv { grid-template-columns: 1fr; height: auto; } .list { max-height: 50vh; } }
+  .rv
+    .rv-left
+      .cities#cities
+      .stats#stats …
+      .progress#progress
+      .filters
+        select#f-status(title='Статус')
+          option(value='todo') Не проверено
+          option(value='later') Отложено
+          option(value='bad') Не ок
+          option(value='ok') Ок
+          option(value='all') Все
+        select#f-cat(title='Категория')
+        select#f-flag(title='Отметки')
+          option(value='') Все отметки
+          option(value='guess') Догадки эвристики
+          option(value='suggested') С подсказками посетителей
+        input#f-q(type='search' placeholder='Поиск: улица, человек, Q-номер')
+      .list#list
+    .rv-right#detail
+      .empty Выберите улицу слева
+  script#boot(type='application/json')!= JSON.stringify({ base: base, cities: cities }).replace(/</g, '\\u003c')
+  script(src='/lab/streets/admin.js?v=1')

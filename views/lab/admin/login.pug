@@ -1,0 +1,11 @@
+include _layout.pug
+
++labAdmin({ title: 'Вход — Чьи улицы, админка', bare: true })
+  form.card(method='POST' action=base + '/login')
+    h1 Чьи улицы · админка
+    if error
+      .error= error
+    label(for='pass') Пароль
+    input#pass(type='password' name='pass' autofocus required)
+    p
+      button.btn.solid(type='submit') Войти

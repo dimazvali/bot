@@ -1,0 +1,47 @@
+//- Page shell for the /lab admin screens (paper & ink, like the lab pages themselves).
+//- +labAdmin({ title, bare, nav: 'review' | 'admins' })
+mixin labAdmin(opts)
+  - opts = opts || {}
+  doctype html
+  html(lang='ru')
+    head
+      meta(charset='utf-8')
+      meta(name='viewport' content='width=device-width,initial-scale=1')
+      meta(name='robots' content='noindex')
+      title= opts.title
+      link(rel='preconnect' href='https://fonts.googleapis.com')
+      link(rel='preconnect' href='https://fonts.gstatic.com' crossorigin)
+      link(href='https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+Georgian:wght@400;700&display=swap' rel='stylesheet')
+      style.
+        :root { --paper: #f4f1ea; --ink: #15120f; --muted: #56514a; --faint: #9a948b; --line: #c8c3b8; --base: #d9d3c6; --ok: #2f8f4e; --bad: #c9302c; --later: #b8860b; }
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { margin: 0; }
+        body { background: var(--paper); color: var(--ink); font: 13px/1.45 'JetBrains Mono', 'Noto Sans Georgian', monospace; }
+        a { color: inherit; }
+        button, input, select, textarea { font: inherit; color: inherit; }
+        button { cursor: pointer; }
+        .bar { display: flex; align-items: baseline; gap: 10px 18px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+        .bar .brand { font-family: Oswald, sans-serif; font-weight: 700; font-size: 18px; text-decoration: none; margin-right: auto; }
+        .bar a.nav { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
+        .bar a.nav[aria-current=page] { color: var(--ink); text-decoration: underline; }
+        .card { max-width: 380px; margin: 12vh auto; border: 1px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); padding: 22px; background: var(--paper); }
+        .card h1 { font-family: Oswald, sans-serif; margin: 0 0 14px; }
+        label { display: block; font-size: 11px; color: var(--muted); margin: 10px 0 4px; }
+        input[type=text], input[type=password], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--ink); background: #fff; }
+        .btn { padding: 8px 14px; border: 1px solid var(--ink); background: none; }
+        .btn.solid { background: var(--ink); color: var(--paper); }
+        .error { color: var(--bad); margin: 8px 0; }
+        .wrap { max-width: 760px; margin: 20px auto; padding: 0 16px; }
+        table { width: 100%; border-collapse: collapse; }
+        td, th { text-align: left; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+    body
+      if !opts.bare
+        header.bar
+          a.brand(href=base + '/') Чьи улицы · админка
+          a.nav(href=base + '/' aria-current=(opts.nav === 'review' ? 'page' : false)) Проверка
+          if isSuperadmin || opts.nav === 'admins'
+            a.nav(href=base + '/admins' aria-current=(opts.nav === 'admins' ? 'page' : false)) Админы
+          a.nav(href='/lab/streets/' target='_blank') Сайт ↗
+          span.nav= (typeof adminName !== 'undefined' && adminName) ? adminName : ''
+          a.nav(href=base + '/logout') Выйти
+      block

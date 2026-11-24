@@ -148,6 +148,15 @@ test('suggestions: stored with the street context; bad street, category or empty
   assert.strictEqual(added.length, 2);
 });
 
+test('reload: corrected data changes the question pool', function () {
+  var x = engine();
+  assert.strictEqual(x.e.poolSize, 3);
+  var d = data(ROWS);
+  d.names[4][0] = CATS.indexOf('military'); // "Unknown" got an occupation from an admin
+  x.e.reload(d);
+  assert.strictEqual(x.e.poolSize, 4);
+});
+
 test('cleanNick strips markup and control chars and caps the length', function () {
   assert.strictEqual(streets.cleanNick('  <b>Гела</b>\n '), 'bГела/b');
   assert.strictEqual(Array.from(streets.cleanNick('ა'.repeat(40))).length, 20);
