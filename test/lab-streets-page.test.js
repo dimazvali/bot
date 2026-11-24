@@ -6,22 +6,71 @@ var path = require('path');
 var page = require('../lib/lab-streets-page');
 
 var HTML = fs.readFileSync(path.join(__dirname, '../public/lab/streets/index.html'), 'utf8');
+var DATA = JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/data.json'), 'utf8'));
+var P = page.create(DATA);
 
-test('the shipped page localizes into every language', function () {
-  page.LANGS.forEach(function (lang) {
-    var out = page.localize(HTML, lang);
-    assert.ok(out.indexOf('<html lang="' + lang + '">') >= 0);
-    assert.ok(out.indexOf('content="' + page.META[lang].ogTitle + '"') >= 0, lang + ' og:title');
-    assert.ok(out.indexOf('og:url" content="https://dimazvali.com/lab/streets/?lang=' + lang + '"') >= 0);
+function between(html, a, b) { var i = html.indexOf(a); return i < 0 ? null : html.slice(i + a.length, html.indexOf(b, i + a.length)); }
+
+test('every view renders in every language with its own canonical, hreflang and boot state', function () {
+  [''].concat(Object.keys(page.VIEWS)).forEach(function (slug) {
+    page.LANGS.forEach(function (lang) {
+      var out = P.render(HTML, lang, slug);
+      var self = 'https://dimazvali.com/lab/streets/' + (slug ? slug + '/' : '') + '?lang=' + lang;
+      assert.ok(out.indexOf('<html lang="' + lang + '">') >= 0, slug + ' ' + lang);
+      assert.ok(out.indexOf('<link rel="canonical" href="' + self + '">') >= 0, slug + ' ' + lang + ' canonical');
+      assert.ok(out.indexOf('hreflang="x-default"') >= 0);
+      ['<!--META-->', '<!--SIDE-->', '<!--VIEW-->'].forEach(function (m) { assert.strictEqual(out.indexOf(m), -1, m); });
+      var boot = JSON.parse(between(out, 'window.STREETS_VIEW = ', ';</script>'));
+      assert.strictEqual(boot.slug, slug);
+      assert.strictEqual(boot.slugs.artists, 'artists');
+      assert.strictEqual(boot.slugs.female, 'women');
+    });
   });
-  var en = page.localize(HTML, 'en');
-  assert.ok(en.indexOf('<title>Whose Streets, Tbilisi? — dimazvali.com</title>') >= 0);
-  assert.ok(en.indexOf('Tbilisi’s road network split by who the streets are named after') >= 0);
-  assert.strictEqual(en.indexOf('Дорожная сеть'), -1);
 });
 
-test('localize fails loudly when the page no longer has the Russian strings', function () {
-  assert.throws(function () { page.localize('<html lang="en"><title>x</title>', 'en'); }, /not found/);
+test('the artists view: SEO title, description with real names, crawlable street list', function () {
+  var out = P.render(HTML, 'ru', 'artists');
+  var title = between(out, '<title>', '</title>');
+  assert.match(title, /^Тбилиси художников: \d+ улиц[аы]?, [\d,]+ км — Чьи улицы Тбилиси$/);
+  var desc = between(out, '<meta name="description" content="', '">');
+  assert.match(desc, /^Улицы Тбилиси, названные в честь художников и архитекторов: .+ и ещё \d+\. Карта всех \d+ улиц/);
+  assert.ok(desc.indexOf('Пиросмани') >= 0, desc);
+  var side = between(out, '<aside id="side">', '</aside>');
+  assert.ok(side.indexOf('<h1>Тбилиси художников</h1>') >= 0);
+  assert.ok(side.indexOf('href="https://dimazvali.com/lab/streets/writers/?lang=ru"') >= 0, 'links to other views');
+  assert.ok((side.match(/<li>/g) || []).length > 20);
+  var en = P.render(HTML, 'en', 'artists');
+  assert.match(between(en, '<title>', '</title>'), /^Artists’ Tbilisi: \d+ streets, [\d.]+ km — Whose Streets, Tbilisi\?$/);
+  assert.ok(between(en, '<meta name="description" content="', '">').indexOf('Pirosmani') >= 0);
+  var ka = P.render(HTML, 'ka', 'artists');
+  assert.match(between(ka, '<title>', '</title>'), /^მხატვრების თბილისი: \d+ ქუჩა/);
+});
+
+test('flag views and non-people categories', function () {
+  var women = P.meta('women', 'en');
+  assert.strictEqual(women.h1, 'Women’s Tbilisi');
+  assert.match(women.desc, /^Tbilisi streets named after women: /);
+  var places = P.meta('georgian-places', 'ru');
+  assert.match(places.desc, /в честь краёв и городов Грузии: .*(шоссе|улица|проспект)/i); // places list street names, not people
+  assert.match(P.meta('plain-streets', 'ka').desc, /განსაკუთრებულ არაფერს ეძღვნება/);
+});
+
+test('unknown slugs are refused; markers missing from the page fail loudly', function () {
+  assert.strictEqual(P.render(HTML, 'ru', 'data.json'), null);
+  assert.strictEqual(P.render(HTML, 'ru', 'constructor'), null);
+  assert.throws(function () { P.render('<html lang="ru"><!--META-->', 'en', ''); }, /marker not found/);
+});
+
+test('sitemap lists every view in every language with alternates', function () {
+  var xml = P.sitemap();
+  var n = (1 + Object.keys(page.VIEWS).length) * page.LANGS.length;
+  assert.strictEqual((xml.match(/<url>/g) || []).length, n);
+  assert.ok(xml.indexOf('<loc>https://dimazvali.com/lab/streets/artists/?lang=ka</loc>') >= 0);
+});
+
+test('Russian plural for streets', function () {
+  assert.deepStrictEqual([1, 2, 5, 11, 21, 22, 25, 112].map(function (n) { return page.streetsWord('ru', n); }),
+    ['улица', 'улицы', 'улиц', 'улиц', 'улица', 'улицы', 'улиц', 'улиц']);
 });
 
 test('language: ?lang wins, then Accept-Language, then Russian', function () {
@@ -29,6 +78,6 @@ test('language: ?lang wins, then Accept-Language, then Russian', function () {
   assert.strictEqual(page.pickLang({ lang: 'ka' }, accepts('en'), true), 'ka');
   assert.strictEqual(page.pickLang({ lang: 'fr' }, accepts('en'), true), 'en');
   assert.strictEqual(page.pickLang({}, accepts('ka'), true), 'ka');
-  assert.strictEqual(page.pickLang({}, accepts('de'), true), 'en'); // a non-Russian speaker gets English
-  assert.strictEqual(page.pickLang({}, accepts('de'), false), 'ru'); // no header at all (bots): Russian
+  assert.strictEqual(page.pickLang({}, accepts('de'), true), 'en');
+  assert.strictEqual(page.pickLang({}, accepts('de'), false), 'ru');
 });

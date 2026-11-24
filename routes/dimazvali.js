@@ -1635,7 +1635,7 @@ router.post(`/tgStats`,(req,res)=>{
 
 router.get(`/robots.txt`, (req, res) => {
     res.set('Content-Type', 'text/plain');
-    res.send('User-agent: *\nAllow: /\nSitemap: https://dimazvali.com/sitemap.xml\n');
+    res.send('User-agent: *\nAllow: /\nSitemap: https://dimazvali.com/sitemap.xml\nSitemap: https://dimazvali.com/lab/streets/sitemap.xml\n');
 })
 
 // the home page and the /lab/ projects (static pages in public/lab/). /lab/streets/ has its own
@@ -1656,10 +1656,8 @@ router.use('/tbilisi-events', require('./tbilisi-events'));
 router.use('/tbilisi-events/admin', require('./tbilisi-events-admin'));
 
 // "Чьи улицы Тбилиси" (/lab/streets/, a static page): the server-checked endless quiz and its top-10
-var labStreets = require('../lib/lab-streets').create({
-    data: JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/data.json'), 'utf8')),
-    db: fb,
-});
+var labStreetsData = JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/data.json'), 'utf8'));
+var labStreets = require('../lib/lab-streets').create({ data: labStreetsData, db: fb });
 var labTg = require('../lib/photo-404');
 function labRate(map, ip, max, windowMs) { // naive per-IP limiter, plenty for honest play
     var now = Date.now();
@@ -1671,19 +1669,32 @@ function labRate(map, ip, max, windowMs) { // naive per-IP limiter, plenty for h
     return true;
 }
 var labRunHits = new Map(), labAnswerHits = new Map(), labScoreHits = new Map(), labSuggestHits = new Map();
-// the page itself, with <html lang>, title and description/og tags in the visitor's language
-var labStreetsPage = require('../lib/lab-streets-page');
+// the page itself: / and one URL per "Tbilisi of X" view (/lab/streets/artists/ …), with title,
+// description, canonical/hreflang and a crawlable street list in the visitor's language
+var labStreetsPageLib = require('../lib/lab-streets-page');
+var labStreetsPage = labStreetsPageLib.create(labStreetsData);
 var labStreetsHtml = fs.readFileSync(path.join(__dirname, '../public/lab/streets/index.html'), 'utf8');
-// (routing is not strict: '/lab/streets' also matches '/lab/streets/', so only redirect the literal no-slash path)
-router.get(['/lab/streets', '/lab/streets/index.html'], (req, res) => {
+var labStreetsSitemap = labStreetsPage.sitemap();
+router.get('/lab/streets/sitemap.xml', (req, res) => {
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.type('application/xml').send(labStreetsSitemap);
+});
+// routing is not strict ('/lab/streets' also matches '/lab/streets/'), so look at the literal path:
+// views are '/lab/streets/' and '/lab/streets/<slug>/'; the same without the slash redirects; the rest
+// (data.json, app.js, unknown slugs) falls through to static files and the 404
+router.get(['/lab/streets', '/lab/streets/index.html', '/lab/streets/:slug'], (req, res, next) => {
     var q = req.originalUrl.indexOf('?');
-    if ((q >= 0 ? req.originalUrl.slice(0, q) : req.originalUrl) === '/lab/streets') {
-        return res.redirect(301, '/lab/streets/' + (q >= 0 ? req.originalUrl.slice(q) : ''));
-    }
-    var lang = labStreetsPage.pickLang(req.query, function (l) { return req.acceptsLanguages(l); }, !!req.get('accept-language'));
+    var p = q >= 0 ? req.originalUrl.slice(0, q) : req.originalUrl;
+    var query = q >= 0 ? req.originalUrl.slice(q) : '';
+    var m = /^\/lab\/streets(?:\/([a-z-]+))?(\/(?:index\.html)?)?$/.exec(p);
+    if (!m) return next();
+    var slug = m[1] || '';
+    if (slug && !Object.prototype.hasOwnProperty.call(labStreetsPageLib.VIEWS, slug)) return next();
+    if (!m[2]) return res.redirect(301, '/lab/streets/' + (slug ? slug + '/' : '') + query);
+    var lang = labStreetsPageLib.pickLang(req.query, function (l) { return req.acceptsLanguages(l); }, !!req.get('accept-language'));
     res.set('Cache-Control', 'public, max-age=300');
     res.vary('Accept-Language');
-    res.type('html').send(labStreetsPage.localize(labStreetsHtml, lang));
+    res.type('html').send(labStreetsPage.render(labStreetsHtml, lang, slug));
 });
 // "who is this street named after?" — a visitor's note, stored for review and sent to Telegram
 router.post('/lab/streets/suggest', express.json({ limit: '4kb' }), async (req, res, next) => {

@@ -3,17 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Чьи улицы Тбилиси — dimazvali.com</title>
-  <meta name="description" content="Дорожная сеть Тбилиси, разделённая по тем, в честь кого названы улицы: Тбилиси писателей, царей, учёных, военных, актёров и иностранцев. Карта и угадайка.">
-  <meta property="og:title" content="Чьи улицы Тбилиси">
-  <meta property="og:description" content="2200 км улиц, разложенных по профессиям людей, в честь которых они названы. Угадаете, кем был Чичико Бенделиани?">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://dimazvali.com/lab/streets/">
-  <link rel="canonical" href="https://dimazvali.com/lab/streets/">
-  <link rel="alternate" hreflang="ru" href="https://dimazvali.com/lab/streets/?lang=ru">
-  <link rel="alternate" hreflang="en" href="https://dimazvali.com/lab/streets/?lang=en">
-  <link rel="alternate" hreflang="ka" href="https://dimazvali.com/lab/streets/?lang=ka">
-  <link rel="alternate" hreflang="x-default" href="https://dimazvali.com/lab/streets/">
+  <!--META-->
   <link rel="icon" type="image/x-icon" href="/images/dimazvali/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,7 +64,11 @@
     .filters button[aria-pressed=true] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
     .group { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 14px 0 4px; }
     .cat { display: grid; grid-template-columns: 12px 1fr auto; gap: 2px 8px; align-items: center; width: 100%; text-align: left; padding: 5px 6px; margin: 0 -6px; border-radius: 3px; }
+    a.cat { color: inherit; text-decoration: none; }
     .cat:hover { background: rgba(0,0,0,.04); }
+    /* server-rendered panel for crawlers (replaced by the interactive one) */
+    .seo-list { margin: 0 0 12px; padding-left: 20px; line-height: 1.7; }
+    h2.group { font-weight: 400; }
     .cat[aria-pressed=true] { background: rgba(0,0,0,.07); }
     .cat i { width: 12px; height: 12px; border-radius: 2px; }
     .cat b { font-weight: 400; }
@@ -148,7 +142,7 @@
     <span class="crumbs"><a class="back" id="back" href="/">dimazvali.com</a> <span class="back">/</span> <a class="back" id="allp" href="/lab/">все проекты</a></span>
   </header>
   <div class="wrap">
-    <aside id="side"><p class="muted">Загружаем 2000 км улиц…</p></aside>
+    <aside id="side"><!--SIDE--></aside>
     <main>
       <canvas id="map"></canvas>
       <div class="hint" id="hint"></div>
@@ -156,6 +150,7 @@
       <div class="card" id="card" hidden></div>
     </main>
   </div>
-  <script src="app.js?v=4"></script>
+  <!--VIEW-->
+  <script src="/lab/streets/app.js?v=5"></script>
 </body>
 </html>

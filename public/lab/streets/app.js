@@ -429,6 +429,42 @@
     };
   }
 
+  // ── view URLs: /lab/streets/<slug>/ per category or flag (slugs come from the server) ──
+  var BOOT = window.STREETS_VIEW || { slug: '', slugs: {} };
+  var FLAG_CITY = { foreign: { ru: 'иностранцев', en: 'Foreigners’', ka: 'უცხოელების' }, female: { ru: 'женщин', en: 'Women’s', ka: 'ქალების' } };
+  // the URL for a view; a category wins over flags, and combinations fall back to the closest single view
+  function viewUrl(cat, flag) {
+    var key = cat || flag;
+    var slug = key && BOOT.slugs[key];
+    return '/lab/streets/' + (slug ? slug + '/' : '') + location.search;
+  }
+  function currentUrl() {
+    var flag = !st.cat && st.foreign !== st.female ? (st.foreign ? 'foreign' : 'female') : null;
+    return viewUrl(st.cat, flag);
+  }
+  var titleDirty = false; // set once the visitor moves between views
+  function pushView() {
+    titleDirty = true;
+    var u = currentUrl();
+    if (u !== location.pathname + location.search) history.pushState(null, '', u);
+  }
+  function applyView(slug) {
+    var key = null;
+    Object.keys(BOOT.slugs).forEach(function (k) { if (BOOT.slugs[k] === slug) key = k; });
+    st.cat = key && key !== 'foreign' && key !== 'female' ? key : null;
+    st.foreign = key === 'foreign';
+    st.female = key === 'female';
+  }
+  window.addEventListener('popstate', function () {
+    if (!D) return;
+    var m = /^\/lab\/streets\/([a-z-]+)\//.exec(location.pathname);
+    applyView(m ? m[1] : '');
+    titleDirty = true;
+    st.sel = null; showCard(null);
+    if (location.hash === '#game') { setMode('game'); return; }
+    if (st.mode !== 'map') setMode('map'); else { renderMapSide(); draw(); }
+  });
+
   // ── side panel: map mode ──
   // every counter follows the active filters: category rows count only foreigners/women when those
   // are on, and the filter buttons count only inside the chosen category
@@ -443,7 +479,10 @@
     CATS.forEach(function (c) { catKm[c] = kmOf(function (n) { return n.cat === c && passFlags(n); }); });
     var selKm = kmOf(matches);
     var head = st.cat ? fill(t('cityOf'), { x: CAT[st.cat].city[lang] }) : t('all');
-    if (!st.cat && (st.foreign || st.female)) head = [st.foreign ? t('foreign') : '', st.female ? t('female') : ''].filter(Boolean).join(' + ');
+    if (!st.cat && st.foreign !== st.female) head = fill(t('cityOf'), { x: FLAG_CITY[st.foreign ? 'foreign' : 'female'][lang] });
+    else if (!st.cat && st.foreign && st.female) head = t('foreign') + ' + ' + t('female');
+    // the first render keeps the server's SEO title (it has the street count and km); later views set their own
+    if (titleDirty) document.title = (filtered() ? head + ' — ' : '') + t('title') + ' — dimazvali.com';
     var h = '<h1>' + esc(head) + '</h1>';
     if (filtered()) {
       h += '<div class="total">' + fill(t('share'), { p: pct(selKm), km: fmtKm(selKm) }) + '</div>';
@@ -456,9 +495,9 @@
       '<button data-f="female" aria-pressed="' + st.female + '">' + t('female') + ' · ' + fmtKm(flagKm('female')) + ' ' + t('km') + '</button></div>';
     var maxKm = Math.max.apply(null, CATS.map(function (c) { return catKm[c]; })) || 1;
     function row(c) {
-      return '<button class="cat" data-c="' + c + '" aria-pressed="' + (st.cat === c) + '"' + (catKm[c] ? '' : ' style="opacity:.4"') + '><i style="background:' + CAT[c].c + '"></i>' +
+      return '<a class="cat" href="' + esc(viewUrl(st.cat === c ? null : c, null)) + '" data-c="' + c + '" aria-pressed="' + (st.cat === c) + '"' + (catKm[c] ? '' : ' style="opacity:.4"') + '><i style="background:' + CAT[c].c + '"></i>' +
         '<b>' + esc(catName(c)) + '</b><em>' + fmtKm(catKm[c]) + '</em>' +
-        '<span class="bar"><span style="width:' + (100 * catKm[c] / maxKm).toFixed(1) + '%;background:' + CAT[c].c + '"></span></span></button>';
+        '<span class="bar"><span style="width:' + (100 * catKm[c] / maxKm).toFixed(1) + '%;background:' + CAT[c].c + '"></span></span></a>';
     }
     var ppl = CATS.filter(function (c) { return PEOPLE.indexOf(c) >= 0 || c === 'person'; }).sort(function (a, b) { return catKm[b] - catKm[a]; });
     var oth = CATS.filter(function (c) { return ppl.indexOf(c) < 0; }).sort(function (a, b) { return catKm[b] - catKm[a]; });
@@ -470,10 +509,13 @@
     h += '<p class="note">' + t('note') + '</p>';
     side.innerHTML = h;
     side.querySelectorAll('.cat').forEach(function (b) {
-      b.onclick = function () {
+      b.onclick = function (e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return; // let "open in new tab" work
+        e.preventDefault();
         var c = b.getAttribute('data-c');
         st.cat = st.cat === c ? null : c;
         if (st.sel && !matches(st.sel)) { st.sel = null; showCard(null); }
+        pushView();
         renderMapSide(); draw();
         if (st.cat) track('streets_cat', { cat: st.cat });
       };
@@ -483,6 +525,7 @@
         var f = b.getAttribute('data-f');
         st[f] = !st[f];
         if (st.sel && !matches(st.sel)) { st.sel = null; showCard(null); }
+        pushView();
         renderMapSide(); draw();
       };
     });
@@ -750,7 +793,7 @@
   }
   function applyLang() {
     document.documentElement.lang = lang;
-    document.title = t('title') + ' — dimazvali.com';
+    if (titleDirty) document.title = t('title') + ' — dimazvali.com';
     document.querySelector('.logo').firstChild.nodeValue = t('title');
     $('tab-map').textContent = t('map');
     $('tab-game').textContent = t('game');
@@ -761,7 +804,7 @@
   }
   document.querySelectorAll('.lang button').forEach(function (b) {
     b.onclick = function () {
-      lang = b.getAttribute('data-lang'); lsSet('streets-lang', lang); applyLang();
+      lang = b.getAttribute('data-lang'); lsSet('streets-lang', lang); titleDirty = true; applyLang();
       if (!D) return;
       if (st.mode === 'map') { renderMapSide(); showCard(st.sel); }
       else renderGame();
@@ -777,10 +820,10 @@
   });
 
   applyLang();
-  $('side').innerHTML = '<p class="muted">' + t('loading') + '</p>';
   resize();
-  fetch('data.json?v=1').then(function (r) { return r.json(); }).then(function (data) {
+  fetch('/lab/streets/data.json?v=2').then(function (r) { return r.json(); }).then(function (data) {
     decode(data);
+    applyView(BOOT.slug);
     fit(D.bbox, 12, false);
     setMode(location.hash === '#game' ? 'game' : 'map');
   }).catch(function (e) {
