@@ -5,9 +5,12 @@
 //   data/tbilisi-streets/dict.json — curated "name base → category/person" dictionary (5-dict.js output)
 //   data/tbilisi-streets/ka-labels.json — optional, Georgian names of the Wikidata people (7-ka-labels.js output)
 // Usage: node scripts/tbilisi-streets/6-build.js <geom.json> data/tbilisi-streets/dict.json public/lab/streets/data.json [data/tbilisi-streets/ka-labels.json]
+// St Petersburg (same format, Russian street names, no Georgian):
+//        node scripts/tbilisi-streets/6-build.js --city=spb <geom.json> data/spb-streets/dict.json public/lab/streets/data-spb.json
 'use strict';
 const fs = require('fs');
-const [geomPath, dictPath, out, kaPath] = process.argv.slice(2);
+const SPB = process.argv.includes('--city=spb');
+const [geomPath, dictPath, out, kaPath] = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const ways = JSON.parse(fs.readFileSync(geomPath, 'utf8')).elements;
 const dict = JSON.parse(fs.readFileSync(dictPath, 'utf8'));
 const kaLabels = kaPath ? JSON.parse(fs.readFileSync(kaPath, 'utf8')) : {};
@@ -21,9 +24,15 @@ const RANK = { motorway: 3, trunk: 3, primary: 3, secondary: 2, tertiary: 2, mot
 // same normalisation as 2-wikidata-ka.js: "გალაკტიონ ტაბიძის ქუჩა" → "გალაკტიონ ტაბიძის"
 const TYPE = /\s*(ქუჩა|გამზირი|შესახვევი|ჩიხი|მოედანი|ხეივანი|სანაპირო|აღმართი|დაღმართი|გზატკეცილი|გასასვლელი|ბაღი|პარკი|ხიდი|კვარტალი|დასახლება|გზა|ბულვარი|მიკრორაიონი|ქ\.)\s*/g;
 const kaBase = s => s.replace(/[0-9IVX№#.,-]+(-?ე|-?ლი)?/g, ' ').replace(TYPE, ' ').replace(/\s+/g, ' ').trim();
+// SPb: same normalisation as scripts/spb-streets/2-classify.js: "улица Рубинштейна" → "Рубинштейна"
+const RU_TYPES = /(^|\s)(улица|проспект|переулок|набережная|площадь|бульвар|шоссе|проезд|аллея|мост|дорога|тупик|спуск|линия|канал|сад|сквер|парк|въезд|дамба|путепровод|тоннель|развязка|подъезд|ул\.|пр\.|пер\.)(?=\s|$)/gi;
+const ruBase = s => s.replace(RU_TYPES, ' ').replace(/\s+/g, ' ').trim() || s;
+const baseOf = SPB ? ruBase : kaBase;
+// Wikidata's Russian labels are often "Фамилия, Имя Отчество"
+const ruName = s => s && s.replace(/^([^,]+), ([^,(]+)$/, '$2 $1');
 
 // local metric projection around the city centre, 1 unit = 2 m
-const LAT0 = 41.72, LON0 = 44.80, Q = 2;
+const LAT0 = SPB ? 59.94 : 41.72, LON0 = SPB ? 30.31 : 44.80, Q = 2;
 const KX = Math.cos(LAT0 * Math.PI / 180) * 111320 / Q, KY = 110540 / Q;
 const proj = p => [Math.round((p.lon - LON0) * KX), Math.round(-(p.lat - LAT0) * KY)];
 
@@ -48,7 +57,7 @@ const km = {};
 let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity, pts = 0;
 for (const w of ways) {
   if (SKIP.has(w.tags.highway)) continue;
-  const base = kaBase(w.tags.name);
+  const base = baseOf(w.tags.name);
   const d = dict[base];
   if (!d) continue;
   if (!nameIdx.has(base)) {
@@ -57,8 +66,8 @@ for (const w of ways) {
     streetNames.set(base, { ru: {}, en: {}, ka: {} });
   }
   const sn = streetNames.get(base);
-  for (const l of ['ru', 'en']) { const v = w.tags['name:' + l]; if (v) sn[l][v] = (sn[l][v] || 0) + 1; }
-  sn.ka[w.tags.name] = (sn.ka[w.tags.name] || 0) + 1;
+  for (const l of ['ru', 'en']) { const v = w.tags['name:' + l] || (SPB && l === 'ru' ? w.tags.name : null); if (v) sn[l][v] = (sn[l][v] || 0) + 1; }
+  if (!SPB) sn.ka[w.tags.name] = (sn.ka[w.tags.name] || 0) + 1;
 
   let line = simplify(w.geometry.map(proj), 2); // 4 m tolerance
   const flat = [];
@@ -82,7 +91,7 @@ const data = {
   names: names.map(({ base, d }) => {
     const sn = streetNames.get(base);
     return [CATS.indexOf(d.cat), (d.foreign ? 1 : 0) | (d.female ? 2 : 0) | (d.auto ? 4 : 0),
-      d.ru || null, d.en || null, top(sn.ru), top(sn.en), top(sn.ka), d.born || null, d.wd || null, (d.wd && kaLabels[d.wd]) || null];
+      (SPB ? ruName(d.ru) : d.ru) || null, d.en || null, top(sn.ru), top(sn.en) || (SPB && d.streetEn) || null, top(sn.ka), d.born || null, d.wd || null, (d.wd && kaLabels[d.wd]) || null];
   }),
   ways: outWays,
 };

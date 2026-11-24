@@ -68,6 +68,25 @@ test('sitemap lists every view in every language with alternates', function () {
   assert.ok(xml.indexOf('<loc>https://dimazvali.com/lab/streets/artists/?lang=ka</loc>') >= 0);
 });
 
+test('St Petersburg: its own URLs, texts, languages and slugs; links to Tbilisi and back', function () {
+  var SPB = page.create(JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/data-spb.json'), 'utf8')), 'spb');
+  assert.deepStrictEqual(SPB.langs, ['ru', 'en']);
+  assert.ok(SPB.hasView('russian-places') && !SPB.hasView('georgian-places') && SPB.hasView('writers') && !SPB.hasView('constructor'));
+  var out = SPB.render(HTML, 'ru', 'writers');
+  assert.match(between(out, '<title>', '</title>'), /^Петербург писателей: \d+ улиц[аы]?, [\d,]+ км — Чьи улицы Петербурга$/);
+  assert.ok(out.indexOf('<link rel="canonical" href="https://dimazvali.com/lab/streets/spb/writers/?lang=ru">') >= 0);
+  assert.strictEqual(out.indexOf('hreflang="ka"'), -1, 'no Georgian version of Petersburg');
+  assert.ok(out.indexOf('href="https://dimazvali.com/lab/streets/?lang=ru"') >= 0, 'links to Tbilisi');
+  var boot = JSON.parse(between(out, 'window.STREETS_VIEW = ', ';</script>'));
+  assert.deepStrictEqual([boot.city, boot.base, boot.api, boot.slugs.georgia], ['spb', '/lab/streets/spb/', '/lab/streets/spb/', 'russian-places']);
+  assert.match(SPB.meta('russian-places', 'en').desc, /^St Petersburg streets named after Russian towns and regions: /);
+  var xml = SPB.sitemap();
+  assert.ok(xml.indexOf('<loc>https://dimazvali.com/lab/streets/spb/russian-places/?lang=en</loc>') >= 0);
+  assert.strictEqual(xml.indexOf('lang=ka'), -1);
+  // and Tbilisi links to Petersburg (Georgian visitors land on its Russian version)
+  assert.ok(P.render(HTML, 'ka', '').indexOf('href="https://dimazvali.com/lab/streets/spb/?lang=ru"') >= 0);
+});
+
 test('Russian plural for streets', function () {
   assert.deepStrictEqual([1, 2, 5, 11, 21, 22, 25, 112].map(function (n) { return page.streetsWord('ru', n); }),
     ['улица', 'улицы', 'улиц', 'улиц', 'улица', 'улицы', 'улиц', 'улиц']);

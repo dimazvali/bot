@@ -125,6 +125,45 @@
   var ROUNDS = 10;
   var LANGS = ['ru', 'en', 'ka'];
 
+  // ── city: Tbilisi (/lab/streets/) or St Petersburg (/lab/streets/spb/); the server says which ──
+  var CITY_BOOT = window.STREETS_VIEW || {};
+  var CITY = CITY_BOOT.city || 'tbilisi';
+  if (CITY_BOOT.langs) LANGS = CITY_BOOT.langs;
+  var CITY_TEXTS = {
+    spb: {
+      ru: {
+        title: 'Чьи улицы Петербурга', loading: 'Загружаем 3000 км улиц…', all: 'Весь Петербург', cityOf: 'Петербург {x}',
+        lead: 'Все именованные улицы города, разложенные по тем, в честь кого они названы. Нажмите на категорию, чтобы увидеть её Петербург, или на улицу — чтобы узнать, кто это.',
+        note: 'Данные: OpenStreetMap (ODbL) и Wikidata — в чью честь названа улица, чаще всего уже отмечено в OSM. Остальное определено автоматически, ошибки возможны. «Не знаем, кто это» — люди без описания в Wikidata.',
+        ranks: ['Турист', 'Гость из Москвы', 'Таксист со стажем', 'Краевед', 'Ходячая энциклопедия Коломны'],
+        shareText: 'Я угадал {s} из {t} в «Чьих улицах Петербурга»: ', shareEndless: 'Моя серия в «Чьих улицах Петербурга» — {s} подряд: ',
+      },
+      en: {
+        title: 'Whose Streets, St Petersburg?', loading: 'Loading 3,000 km of streets…', all: 'All of St Petersburg', cityOf: '{x} St Petersburg',
+        lead: 'Every named street in the city, split by who it is named after. Tap a category to see its St Petersburg, or a street to see who it is.',
+        note: 'Data: OpenStreetMap (ODbL) and Wikidata — who a street is named after is mostly tagged in OSM already. The rest was matched automatically, so mistakes are possible. “People we don’t know yet” have no description on Wikidata.',
+        ranks: ['Tourist', 'Weekend visitor from Moscow', 'Seasoned taxi driver', 'Local historian', 'Walking encyclopedia of Kolomna'],
+        shareText: 'I got {s} of {t} in “Whose Streets, St Petersburg?”: ', shareEndless: 'My streak in “Whose Streets, St Petersburg?”: {s} in a row: ',
+      },
+    },
+  };
+  var CITY_CATS = {
+    spb: {
+      georgia: { n: { ru: 'Города и края России', en: 'Russian places' }, city: { ru: 'российских мест', en: 'Russian places’' } },
+      ideas: { n: { ru: 'Идеи, профессии и заводы', en: 'Ideas, trades and factories' }, city: { ru: 'идей и профессий', en: 'Ideas’ and trades’' } },
+      nature: { n: { ru: 'Реки, острова и природа', en: 'Rivers, islands and nature' }, city: { ru: 'рек и островов', en: 'Rivers’ and islands’' } },
+      politics: { n: { ru: 'Политики и революционеры', en: 'Politicians & revolutionaries' }, city: { ru: 'политиков и революционеров', en: 'Politicians’ and revolutionaries’' } },
+    },
+  };
+  // key for this city's records in localStorage (Tbilisi keeps the original keys)
+  function cityKey(k) { return CITY === 'tbilisi' ? k : k + '-' + CITY; }
+  Object.keys(CITY_TEXTS[CITY] || {}).forEach(function (l) { Object.assign(T[l], CITY_TEXTS[CITY][l]); });
+  Object.keys(CITY_CATS[CITY] || {}).forEach(function (c) {
+    var o = CITY_CATS[CITY][c];
+    Object.assign(CAT[c].n, o.n);
+    Object.assign(CAT[c].city, o.city);
+  });
+
   // ── helpers ──
   var $ = function (id) { return document.getElementById(id); };
   function fill(s, v) { return s.replace(/\{(\w+)\}/g, function (m, k) { return v[k]; }); }
@@ -385,7 +424,13 @@
     return h;
   }
   // the small line above a street name: Georgian, or (in the Georgian version) the Latin name
-  function altName(nm) { return lang === 'ka' ? nm.sen || nm.sru || '' : nm.ska; }
+  // (Petersburg has no Georgian names: the other language's name instead)
+  function altName(nm) {
+    if (lang === 'ka') return nm.sen || nm.sru || '';
+    if (nm.ska) return nm.ska;
+    var other = lang === 'ru' ? nm.sen : nm.sru;
+    return other && other !== streetName(nm) ? other : '';
+  }
   function showCard(nm) {
     var el = $('card');
     if (!nm) { el.hidden = true; return; }
@@ -436,7 +481,7 @@
   function viewUrl(cat, flag) {
     var key = cat || flag;
     var slug = key && BOOT.slugs[key];
-    return '/lab/streets/' + (slug ? slug + '/' : '') + location.search;
+    return (BOOT.base || '/lab/streets/') + (slug ? slug + '/' : '') + location.search;
   }
   function currentUrl() {
     var flag = !st.cat && st.foreign !== st.female ? (st.foreign ? 'foreign' : 'female') : null;
@@ -457,7 +502,9 @@
   }
   window.addEventListener('popstate', function () {
     if (!D) return;
-    var m = /^\/lab\/streets\/([a-z-]+)\//.exec(location.pathname);
+    var base = BOOT.base || '/lab/streets/';
+    var rest = location.pathname.indexOf(base) === 0 ? location.pathname.slice(base.length) : '';
+    var m = /^([a-z-]+)\//.exec(rest);
     applyView(m ? m[1] : '');
     titleDirty = true;
     st.sel = null; showCard(null);
@@ -607,8 +654,8 @@
   }
   function scoreRefresh() { var el = $('side').querySelector('.score'); if (el) el.outerHTML = scoreBar(st.game); }
   function renderGameEnd() {
-    var g = st.game, s = g.score.filter(Boolean).length, best = Math.max(+lsGet('streets-best') || 0, s);
-    lsSet('streets-best', String(best));
+    var g = st.game, s = g.score.filter(Boolean).length, best = Math.max(+lsGet(cityKey('streets-best')) || 0, s);
+    lsSet(cityKey('streets-best'), String(best));
     g.cur = null;
     var rank = t('ranks')[Math.min(4, Math.floor(s / 2.5))];
     $('side').innerHTML = '<div class="game">' + scoreBar(g) + '<h2>' + t('finish') + '</h2>' +
@@ -632,7 +679,7 @@
   }
   function renderGameIntro() {
     $('side').innerHTML = '<div class="game"><h1>' + t('game') + '</h1><p class="lead">' + t('gameLead') + '</p>' +
-      (lsGet('streets-best') ? '<p class="muted">' + fill(t('best'), { b: lsGet('streets-best') }) + '</p>' : '') +
+      (lsGet(cityKey('streets-best')) ? '<p class="muted">' + fill(t('best'), { b: lsGet(cityKey('streets-best')) }) + '</p>' : '') +
       '<button class="primary" id="start">' + t('classic') + '</button>' +
       '<p class="lead" style="margin-top:22px">' + t('endlessLead') + '</p>' +
       '<button class="primary ghost" id="endless">' + t('endless') + '</button>' +
@@ -652,7 +699,7 @@
     }
     return d;
   }
-  var API = '/lab/streets/';
+  var API = CITY_BOOT.api || '/lab/streets/';
   function api(path, body) {
     var opts = body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {};
     return fetch(API + path, opts).then(function (r) {
@@ -732,8 +779,8 @@
     });
   }
   function renderEndlessEnd() {
-    var g = st.game, s = g.streak, best = Math.max(+lsGet('streets-best-endless') || 0, s);
-    lsSet('streets-best-endless', String(best));
+    var g = st.game, s = g.streak, best = Math.max(+lsGet(cityKey('streets-best-endless')) || 0, s);
+    lsSet(cityKey('streets-best-endless'), String(best));
     g.cur = null; g.over = true;
     var h = '<div class="game"><h2>' + t('yourStreak') + '</h2><div class="big">' + s + '</div>' +
       '<p class="muted">' + fill(t('best'), { b: best }) + '</p>';
@@ -799,8 +846,19 @@
     $('tab-game').textContent = t('game');
     $('hint').textContent = t('hint');
     if ($('allp')) $('allp').textContent = t('allProjects');
-    $('sub').textContent = lang === 'ka' ? 'Whose streets?' : 'ვისი ქუჩებია';
-    document.querySelectorAll('.lang button').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang); });
+    $('sub').textContent = CITY === 'spb' ? (lang === 'ru' ? 'Whose streets?' : 'Чьи улицы?') : lang === 'ka' ? 'Whose streets?' : 'ვისი ქუჩებია';
+    document.querySelectorAll('.lang button').forEach(function (b) {
+      b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang);
+      b.hidden = LANGS.indexOf(b.getAttribute('data-lang')) < 0; // no Georgian for Petersburg
+    });
+    // the city switcher in the header
+    var CITY_NAMES = { tbilisi: { ru: 'Тбилиси', en: 'Tbilisi', ka: 'თბილისი' }, spb: { ru: 'Петербург', en: 'St Petersburg', ka: 'პეტერბურგი' } };
+    ['tbilisi', 'spb'].forEach(function (c) {
+      var a = $('c-' + c);
+      if (!a) return;
+      a.textContent = CITY_NAMES[c][lang];
+      if (c === CITY) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
   }
   document.querySelectorAll('.lang button').forEach(function (b) {
     b.onclick = function () {
@@ -821,7 +879,7 @@
 
   applyLang();
   resize();
-  fetch('/lab/streets/data.json?v=2').then(function (r) { return r.json(); }).then(function (data) {
+  fetch(CITY_BOOT.data || '/lab/streets/data.json?v=2').then(function (r) { return r.json(); }).then(function (data) {
     decode(data);
     applyView(BOOT.slug);
     fit(D.bbox, 12, false);
