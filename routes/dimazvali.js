@@ -1641,7 +1641,7 @@ router.get(`/robots.txt`, (req, res) => {
 // the home page and the /lab/ projects (static pages in public/lab/). /lab/streets/ has its own
 // sitemap with every view and language (above in robots.txt). Same-host URLs only: the blackout
 // game lives on it.dimazvali.com and is listed in that host's sitemap.
-var SITEMAP_PATHS = ['/', '/lab/', '/lab/mosaic/', '/lab/underground/'];
+var SITEMAP_PATHS = ['/', '/lab/', '/lab/twins/', '/lab/mosaic/', '/lab/underground/'];
 router.get(`/sitemap.xml`, (req, res) => {
     res.set('Content-Type', 'application/xml');
     res.set('Cache-Control', 'public, max-age=3600');

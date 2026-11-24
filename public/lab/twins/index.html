@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Города-побратимы мира: карта и рукопожатия — dimazvali.com</title>
+  <meta name="description" content="20 тысяч городов и 29 тысяч побратимских связей на одной карте. Посмотрите, как расходятся связи от любого города, и пройдите от Тбилиси до Буэнос-Айреса через побратимов.">
+  <meta property="og:title" content="Города-побратимы мира: сколько рукопожатий от города до города">
+  <meta property="og:description" content="20 тысяч городов, 29 тысяч связей. Дойдите от одного города до другого через побратимов.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dimazvali.com/lab/twins/">
+  <meta property="og:image" content="https://dimazvali.com/lab/thumbs/twins.webp">
+  <link rel="canonical" href="https://dimazvali.com/lab/twins/">
+  <link rel="icon" type="image/x-icon" href="/images/dimazvali/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Lora:ital,wght@0,400;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-LDMN4XFB42"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-LDMN4XFB42');
+  </script>
+  <style>
+    :root { --paper: #f4f1ea; --ink: #15120f; --muted: #56514a; --faint: #9a948b; --line: #c8c3b8;
+      --r1: #d23f26; --r2: #d99a1e; --r3: #2f8a86; --ok: #2f8f4e; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; }
+    body { background: var(--paper); color: var(--ink); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+      display: flex; flex-direction: column; height: 100dvh; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+    a { color: inherit; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+    input { font: inherit; color: inherit; }
+    header { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; padding: 12px 16px 10px; border-bottom: 1px solid var(--line); }
+    .logo { font-family: Oswald, sans-serif; font-weight: 700; font-size: 20px; letter-spacing: .01em; margin-right: auto; text-transform: uppercase; text-decoration: none; }
+    .logo small { font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 11px; color: var(--muted); margin-left: 8px; letter-spacing: .06em; text-transform: none; }
+    .seg { display: flex; gap: 4px; align-items: center; }
+    .seg button { padding: 5px 10px; border: 1px solid var(--line); text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+    .seg button[aria-pressed=true] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .back { font-size: 11px; color: var(--muted); letter-spacing: .08em; text-decoration: none; text-transform: uppercase; }
+
+    main { position: relative; flex: 1; min-height: 0; }
+    canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab; }
+    canvas.drag { cursor: grabbing; }
+    canvas.hot { cursor: pointer; }
+    .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+    .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); padding: 4px 8px; font-size: 11px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); }
+    .tip[hidden] { display: none; }
+    .tip small { color: #bdb6aa; }
+    .zoom { position: absolute; right: 16px; bottom: 16px; display: flex; flex-direction: column; border: 1px solid var(--ink); background: var(--paper); }
+    .zoom button { width: 34px; height: 34px; font-size: 16px; }
+    .zoom button + button { border-top: 1px solid var(--line); }
+
+    .panel { position: absolute; left: 16px; top: 16px; width: 360px; max-height: calc(100% - 32px); overflow-y: auto;
+      background: var(--paper); border: 1px solid var(--ink); box-shadow: 5px 5px 0 var(--ink); padding: 14px 16px 16px; }
+    .panel[hidden] { display: none; }
+    .panel h2 { font-family: Oswald, sans-serif; font-weight: 700; font-size: 30px; line-height: 1; margin: 0; text-transform: uppercase; overflow-wrap: anywhere; }
+    .panel h3 { font-family: Oswald, sans-serif; font-weight: 500; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; margin: 16px 0 6px; color: var(--muted); }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .lede { font-family: Lora, serif; font-size: 15px; line-height: 1.45; margin: 0 0 12px; }
+
+    .search { position: relative; margin-bottom: 12px; }
+    .search input { width: 100%; padding: 8px 10px; border: 1px solid var(--ink); background: #fff; font-size: 13px; border-radius: 0; }
+    .search input:focus { outline: 2px solid var(--ink); outline-offset: -2px; }
+    .sugg { position: absolute; left: 0; right: 0; top: 100%; z-index: 3; background: #fff; border: 1px solid var(--ink); border-top: 0; margin: 0; padding: 0; list-style: none; max-height: 280px; overflow-y: auto; }
+    .sugg[hidden] { display: none; }
+    .sugg li { padding: 7px 10px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
+    .sugg li small { color: var(--faint); white-space: nowrap; }
+    .sugg li[aria-selected=true], .sugg li:hover { background: var(--ink); color: var(--paper); }
+    .sugg li[aria-selected=true] small, .sugg li:hover small { color: #bdb6aa; }
+
+    .rings { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+    .rings button { border: 1px solid var(--line); padding: 6px 4px 5px; text-align: left; }
+    .rings button[aria-pressed=true] { border-color: var(--ink); background: #fff; }
+    .rings b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+    .rings span { font-size: 10px; color: var(--muted); letter-spacing: .04em; }
+    .rings i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+    .note { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 10px 0 0; }
+    .note b { color: var(--ink); font-weight: 700; }
+    .link { text-decoration: underline; text-underline-offset: 2px; text-decoration-color: var(--line); cursor: pointer; }
+    .link:hover { text-decoration-color: var(--ink); }
+
+    .list { list-style: none; margin: 0; padding: 0; }
+    .list li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px dotted var(--line); }
+    .list li button { text-align: left; }
+    .list li button:hover { text-decoration: underline; }
+    .list li small { color: var(--faint); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%; }
+    .list li.closer button { color: var(--ok); font-weight: 700; }
+    .list li.seen button { color: var(--faint); }
+    .more { margin-top: 6px; font-size: 12px; color: var(--muted); }
+
+    .route { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 10px 0 0; font-size: 12px; }
+    .route span { padding: 2px 6px; border: 1px solid var(--line); }
+    .route span.cur { border-color: var(--r1); color: var(--r1); }
+    .route span.end { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+    .route em { color: var(--faint); font-style: normal; }
+    .goal { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; font-family: Oswald, sans-serif; font-size: 22px; text-transform: uppercase; line-height: 1.1; flex-wrap: wrap; }
+    .goal span { color: var(--faint); font-family: 'JetBrains Mono', monospace; font-size: 13px; text-transform: none; }
+    .score { font-size: 12px; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+    .score b { color: var(--ink); }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+    .btn { padding: 7px 11px; border: 1px solid var(--ink); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; background: var(--paper); }
+    .btn.primary { background: var(--ink); color: var(--paper); }
+    .btn:disabled { opacity: .4; cursor: default; }
+    .win { border: 1px solid var(--ok); padding: 10px 12px; margin-top: 12px; background: #fff; }
+    .win h4 { margin: 0 0 4px; font-family: Oswald, sans-serif; font-size: 22px; text-transform: uppercase; color: var(--ok); }
+    .win.lost { border-color: var(--line); }
+    .win.lost h4 { color: var(--ink); }
+    .filter { width: 100%; padding: 6px 8px; border: 1px solid var(--line); background: #fff; margin-bottom: 6px; border-radius: 0; }
+    .about { color: var(--faint); font-size: 11px; line-height: 1.5; margin: 16px 0 0; }
+
+    @media (max-width: 700px) {
+      header { padding: 10px 16px 8px; }
+      .logo small { display: none; }
+      main { display: flex; flex-direction: column; }
+      .panel { position: absolute; left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 52%; border-width: 1px 0 0; box-shadow: none; padding: 12px 16px 16px; }
+      .panel h2 { font-size: 24px; }
+      .zoom { top: 12px; bottom: auto; right: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="logo" href="/lab/twins/"><span data-i="title">Побратимы</span><small data-i="tagline">города-побратимы всего мира</small></a>
+    <div class="seg" role="group">
+      <button type="button" data-mode="map" aria-pressed="true" data-i="modeMap">Карта</button>
+      <button type="button" data-mode="game" aria-pressed="false" data-i="modeGame">Рукопожатия</button>
+    </div>
+    <div class="seg" role="group">
+      <button type="button" data-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+    <a class="back" href="/lab/" data-i="back">← все проекты</a>
+  </header>
+  <main>
+    <canvas id="map" aria-label="Карта городов-побратимов"></canvas>
+    <div class="loading" id="loading" data-i="loading">Загружаем 20 тысяч городов…</div>
+    <div class="tip" id="tip" hidden></div>
+    <div class="zoom"><button type="button" id="zin" aria-label="+">+</button><button type="button" id="zout" aria-label="−">−</button></div>
+    <section class="panel" id="panel" hidden></section>
+  </main>
+  <script src="/lab/twins/app.js?v=1"></script>
+</body>
+</html>
