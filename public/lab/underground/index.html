@@ -39,6 +39,7 @@ body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14
 .panel header{padding:18px 18px 12px;border-bottom:1px solid var(--line)}
 .home{display:inline-block;font-family:var(--f-mono);font-size:11px;letter-spacing:.06em;color:var(--muted);text-decoration:none;margin-bottom:6px}
 .home::before{content:"← "}
+.home.lab::before{content:"/ "}
 .home:hover{color:var(--accent)}
 .home:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 h1{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.01em;margin:0 0 6px;text-wrap:balance}
@@ -107,7 +108,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <header>
     <div class="row">
       <div>
-        <a class="home" href="https://dimazvali.com/">dimazvali.com</a>
+        <a class="home" href="https://dimazvali.com/">dimazvali.com</a> <a class="home lab" href="/lab/">все проекты</a>
         <h1>Подземный Тбилиси</h1>
         <p class="lede" id="lede"></p>
       </div>

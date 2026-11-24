@@ -10,7 +10,7 @@
 
   var T = {
     ru: {
-      title: 'Дионис и Ариадна', sub: 'реставрация мозаики Дзалиси',
+      title: 'Дионис и Ариадна', sub: 'реставрация мозаики Дзалиси', allProjects: 'все проекты',
       pickHint: 'Выберите участок — и верните его камешки на место',
       overview: function (a, n, s, sn) { return 'Восстановлено участков: <b>' + a + '</b> из ' + n + ' · камешков: ' + s + ' из ' + sn; },
       section: function (k, a, n) { return 'Участок ' + k + ' · <b>' + a + '</b> из ' + n + ' камешков'; },
@@ -25,7 +25,7 @@
       loading: 'Раскладываем камешки…', confirmReset: 'Стереть весь прогресс?'
     },
     en: {
-      title: 'Dionysus and Ariadne', sub: 'restoring the Dzalisa mosaic',
+      title: 'Dionysus and Ariadne', sub: 'restoring the Dzalisa mosaic', allProjects: 'all projects',
       pickHint: 'Pick a section and put its stones back',
       overview: function (a, n, s, sn) { return 'Sections restored: <b>' + a + '</b> of ' + n + ' · stones: ' + s + ' of ' + sn; },
       section: function (k, a, n) { return 'Section ' + k + ' · <b>' + a + '</b> of ' + n + ' stones'; },
@@ -40,7 +40,7 @@
       loading: 'Laying out the stones…', confirmReset: 'Erase all progress?'
     },
     ka: {
-      title: 'დიონისე და არიადნა', sub: 'ძალისის მოზაიკის რესტავრაცია',
+      title: 'დიონისე და არიადნა', sub: 'ძალისის მოზაიკის რესტავრაცია', allProjects: 'ყველა პროექტი',
       pickHint: 'აირჩიეთ მონაკვეთი და ქვები თავის ადგილზე დააბრუნეთ',
       overview: function (a, n, s, sn) { return 'აღდგენილი მონაკვეთები: <b>' + a + '</b> / ' + n + ' · ქვები: ' + s + ' / ' + sn; },
       section: function (k, a, n) { return 'მონაკვეთი ' + k + ' · <b>' + a + '</b> / ' + n + ' ქვა'; },
@@ -488,6 +488,7 @@
     document.documentElement.lang = lang;
     $('t-title').textContent = tr.title;
     $('t-sub').textContent = tr.sub;
+    if ($('allp')) $('allp').textContent = tr.allProjects;
     $('caption').textContent = tr.caption;
     Array.prototype.forEach.call(document.querySelectorAll('#langs button'), function (b) {
       b.setAttribute('aria-pressed', b.dataset.lang === lang ? 'true' : 'false');

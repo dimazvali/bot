@@ -49,7 +49,7 @@
       lead: 'Все именованные улицы города, разложенные по тем, в честь кого они названы. Нажмите на категорию, чтобы увидеть её Тбилиси, или на улицу — чтобы узнать, кто это.',
       total: '{km} км улиц с именами', people: 'Люди', things: 'Не люди', all: 'Весь Тбилиси',
       cityOf: 'Тбилиси {x}', share: '{p}% улиц · {km} км', foreign: 'Иностранцы', female: 'Женщины',
-      foreignTag: 'иностранец', femaleTag: 'женщина', guessTag: 'догадка', born: 'род. {y}', wiki: 'Wikidata →',
+      foreignTag: 'иностранец', femaleTag: 'женщина', guessTag: 'догадка', born: 'род. {y}', wiki: 'Wikidata →', allProjects: 'все проекты',
       note: 'Данные: OpenStreetMap (ODbL) и Wikidata. Профессии определены автоматически и вычитаны вручную у самых длинных улиц — ошибки возможны. «Не знаем, кто это» — люди без статьи в грузинской Википедии; часто это погибшие в войнах 1990-х и 2008 года.',
       hint: 'колесо — масштаб, перетаскивание — сдвиг',
       round: 'Вопрос {n} из {t}', ask: 'В честь кого названа эта улица?', next: 'Дальше', finish: 'Итог',
@@ -75,7 +75,7 @@
       lead: 'Every named street in the city, split by who it is named after. Tap a category to see its Tbilisi, or a street to see who it is.',
       total: '{km} km of named streets', people: 'People', things: 'Not people', all: 'All of Tbilisi',
       cityOf: '{x} Tbilisi', share: '{p}% of streets · {km} km', foreign: 'Foreigners', female: 'Women',
-      foreignTag: 'foreigner', femaleTag: 'woman', guessTag: 'guess', born: 'b. {y}', wiki: 'Wikidata →',
+      foreignTag: 'foreigner', femaleTag: 'woman', guessTag: 'guess', born: 'b. {y}', wiki: 'Wikidata →', allProjects: 'all projects',
       note: 'Data: OpenStreetMap (ODbL) and Wikidata. Occupations were matched automatically and hand-checked for the longest streets — mistakes are possible. “People we don’t know yet” have no Georgian Wikipedia article; many died in the wars of the 1990s and 2008.',
       hint: 'wheel to zoom, drag to pan',
       round: 'Question {n} of {t}', ask: 'Who is this street named after?', next: 'Next', finish: 'Result',
@@ -101,7 +101,7 @@
       lead: 'ქალაქის ყველა სახელიანი ქუჩა, დალაგებული იმის მიხედვით, ვის სახელს ატარებს. დააჭირეთ კატეგორიას, რომ ნახოთ მისი თბილისი, ან ქუჩას — რომ გაიგოთ, ვინ არის.',
       total: '{km} კმ სახელიანი ქუჩა', people: 'ადამიანები', things: 'არა ადამიანები', all: 'მთელი თბილისი',
       cityOf: '{x} თბილისი', share: 'ქუჩების {p}% · {km} კმ', foreign: 'უცხოელები', female: 'ქალები',
-      foreignTag: 'უცხოელი', femaleTag: 'ქალი', guessTag: 'ვარაუდი', born: 'დაბ. {y}', wiki: 'Wikidata →',
+      foreignTag: 'უცხოელი', femaleTag: 'ქალი', guessTag: 'ვარაუდი', born: 'დაბ. {y}', wiki: 'Wikidata →', allProjects: 'ყველა პროექტი',
       note: 'მონაცემები: OpenStreetMap (ODbL) და Wikidata. პროფესიები ავტომატურად განისაზღვრა და ყველაზე გრძელ ქუჩებზე ხელით შემოწმდა — შეცდომები შესაძლებელია. „არ ვიცით, ვინ არის“ — ადამიანები, რომლებზეც ქართულ ვიკიპედიაში სტატია არ არის; ხშირად ესენი 1990-იანი წლებისა და 2008 წლის ომებში დაღუპულები არიან.',
       hint: 'ბორბალი — მასშტაბი, გადათრევა — გადაადგილება',
       round: 'კითხვა {n} / {t}', ask: 'ვის სახელს ატარებს ეს ქუჩა?', next: 'შემდეგი', finish: 'შედეგი',
@@ -755,6 +755,7 @@
     $('tab-map').textContent = t('map');
     $('tab-game').textContent = t('game');
     $('hint').textContent = t('hint');
+    if ($('allp')) $('allp').textContent = t('allProjects');
     $('sub').textContent = lang === 'ka' ? 'Whose streets?' : 'ვისი ქუჩებია';
     document.querySelectorAll('.lang button').forEach(function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang); });
   }

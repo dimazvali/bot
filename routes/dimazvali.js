@@ -1635,7 +1635,18 @@ router.post(`/tgStats`,(req,res)=>{
 
 router.get(`/robots.txt`, (req, res) => {
     res.set('Content-Type', 'text/plain');
-    res.send('User-agent: *\nAllow: /\n');
+    res.send('User-agent: *\nAllow: /\nSitemap: https://dimazvali.com/sitemap.xml\n');
+})
+
+// the home page and the /lab/ projects (static pages in public/lab/). /lab/streets/ has its own
+// sitemap with every view and language (above in robots.txt). Same-host URLs only: the blackout
+// game lives on it.dimazvali.com and is listed in that host's sitemap.
+var SITEMAP_PATHS = ['/', '/lab/', '/lab/mosaic/', '/lab/underground/'];
+router.get(`/sitemap.xml`, (req, res) => {
+    res.set('Content-Type', 'application/xml');
+    res.set('Cache-Control', 'public, max-age=3600');
+    res.send('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+        SITEMAP_PATHS.map(p => '  <url><loc>https://dimazvali.com' + p + '</loc></url>').join('\n') + '\n</urlset>\n');
 })
 
 // Tbilisi events afisha — mounted here (before the /:page catch-all below) so it
