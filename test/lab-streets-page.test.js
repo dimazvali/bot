@@ -100,3 +100,23 @@ test('language: ?lang wins, then Accept-Language, then Russian', function () {
   assert.strictEqual(page.pickLang({}, accepts('de'), true), 'en');
   assert.strictEqual(page.pickLang({}, accepts('de'), false), 'ru');
 });
+
+test('St Petersburg 1914: Russian only, its own views and texts, no people; linked from today\'s Petersburg', function () {
+  var D14 = JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/data-spb-1914.json'), 'utf8'));
+  var P14 = page.create(D14, 'spb1914');
+  assert.deepStrictEqual(P14.langs, ['ru']);
+  assert.ok(P14.hasView('romanovs') && P14.hasView('churches-and-saints') && !P14.hasView('artists') && !P14.hasView('women'));
+  var out = P14.render(HTML, 'ru', 'churches-and-saints');
+  assert.match(between(out, '<title>', '</title>'), /^Петербург храмов и святых в 1914 году: \d+ улиц/);
+  assert.ok(out.indexOf('<link rel="canonical" href="https://dimazvali.com/lab/streets/spb/1914/churches-and-saints/?lang=ru">') >= 0);
+  var side = between(out, '<aside id="side">', '</aside>');
+  assert.ok(side.indexOf('Знаменская улица') >= 0, 'lists 1914 names');
+  assert.ok(side.indexOf('Петербург сегодня') >= 0, 'links back to today');
+  var boot = JSON.parse(between(out, 'window.STREETS_VIEW = ', ';</script>'));
+  assert.strictEqual(boot.city, 'spb1914');
+  assert.ok(boot.quiz.indexOf('church') >= 0);
+  // an English browser still gets the Russian page: there is no other
+  assert.strictEqual(page.pickLang({}, function () { return false; }, true, P14.langs), 'ru');
+  var SPB = page.create(JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/data-spb.json'), 'utf8')), 'spb');
+  assert.ok(SPB.render(HTML, 'ru', '').indexOf('href="https://dimazvali.com/lab/streets/spb/1914/?lang=ru"') >= 0);
+});

@@ -39,6 +39,13 @@
       city: { ru: 'природы и вина', en: 'Nature’s', ka: 'ბუნებისა და ღვინის' } },
     service:  { c: '#cbc5b8', n: { ru: 'Просто улицы', en: 'Just streets', ka: 'უბრალოდ ქუჩები' },
       city: { ru: 'просто улиц', en: 'Plain', ka: 'უბრალო ქუჩების' } },
+    // Petersburg 1914 only
+    church:   { c: '#0e7c86', n: { ru: 'Храмы и святые', en: 'Churches & saints', ka: 'ტაძრები და წმინდანები' },
+      city: { ru: 'храмов и святых', en: 'Churches’ and saints’', ka: 'ტაძრებისა და წმინდანების' }, opt: { ru: 'Храм или святой', en: 'A church or a saint', ka: 'ტაძარი ან წმინდანი' } },
+    owners:   { c: '#a0522d', n: { ru: 'Владельцы и купцы', en: 'Landowners & merchants', ka: 'მესაკუთრეები და ვაჭრები' },
+      city: { ru: 'домовладельцев', en: 'Landowners’', ka: 'მესაკუთრეების' }, opt: { ru: 'Владелец участка или купец', en: 'A landowner or merchant', ka: 'მესაკუთრე ან ვაჭარი' } },
+    absent:   { c: '#e4dfd4', n: { ru: 'Ещё не было', en: 'Not there yet', ka: 'ჯერ არ იყო' },
+      city: { ru: 'улиц, которых ещё не было', en: 'Not-yet', ka: 'ჯერ არარსებული ქუჩების' } },
   };
   var PEOPLE = ['writers', 'royals', 'science', 'military', 'politics', 'stage', 'artists', 'music', 'sport'];
 
@@ -146,6 +153,19 @@
         shareText: 'I got {s} of {t} in “Whose Streets, St Petersburg?”: ', shareEndless: 'My streak in “Whose Streets, St Petersburg?”: {s} in a row: ',
       },
     },
+    spb1914: {
+      ru: {
+        title: 'Чьи улицы Петербурга в 1914 году', loading: 'Загружаем Петербург 1914 года…', all: 'Петербург 1914 года', cityOf: 'Петербург {x}',
+        lead: 'Сегодняшние улицы города с теми названиями, что были у них 1 января 1914 года, — по тому, в честь кого или чего их назвали. Улиц, которых тогда ещё не было, почти не видно.',
+        total: '{km} км улиц существовали в 1914 году', people: 'Люди', things: 'Не люди',
+        note: 'Названия на 1 января 1914 года (до военных переименований немецких названий) взяты из статей Википедии об улицах и вычитаны вручную — ошибки возможны. Сетка улиц сегодняшняя (OpenStreetMap): исчезнувших с тех пор улиц на карте нет, а «ещё не было» — это ещё и улицы, о прошлом которых мы ничего не нашли.',
+        ask: 'В честь кого или чего так назвали улицу?', gameLead: 'Покажем улицу на карте и её название в 1914 году — угадайте, в честь кого или чего её так назвали. 10 вопросов.',
+        ranks: ['Турист', 'Гимназист', 'Извозчик со стажем', 'Городовой', 'Ходячий справочник «Весь Петербург»'],
+        shareText: 'Я угадал {s} из {t} в «Чьих улицах Петербурга 1914 года»: ', shareEndless: 'Моя серия в «Чьих улицах Петербурга 1914 года» — {s} подряд: ',
+        nowIs: 'сейчас — {x}', sameNow: 'так называется и сейчас', partTag: 'тогда — только часть улицы', absentLine: 'В 1914 году этой улицы ещё не было — или мы не знаем, как она называлась.',
+        sgTitle: 'Как она называлась и в честь чего?', sgText: 'Пара слов: название в 1914 году, в честь кого или чего, источник',
+      },
+    },
   };
   var CITY_CATS = {
     spb: {
@@ -154,7 +174,19 @@
       nature: { n: { ru: 'Реки, острова и природа', en: 'Rivers, islands and nature' }, city: { ru: 'рек и островов', en: 'Rivers’ and islands’' } },
       politics: { n: { ru: 'Политики и революционеры', en: 'Politicians & revolutionaries' }, city: { ru: 'политиков и революционеров', en: 'Politicians’ and revolutionaries’' } },
     },
+    spb1914: {
+      royals: { n: { ru: 'Романовы' }, city: { ru: 'Романовых' }, opt: { ru: 'Романовы' } },
+      military: { n: { ru: 'Полки и военные' }, city: { ru: 'полков' }, opt: { ru: 'Полк или военный' } },
+      politics: { n: { ru: 'Сановники и деятели' }, city: { ru: 'сановников' }, opt: { ru: 'Сановник или деятель' } },
+      writers: { n: { ru: 'Писатели' }, city: { ru: 'писателей' }, opt: { ru: 'Писатель' } },
+      georgia: { n: { ru: 'Города и губернии' }, city: { ru: 'российских мест' }, opt: { ru: 'Город или губерния' } },
+      ideas: { n: { ru: 'Ремёсла и заведения' }, city: { ru: 'ремёсел и заведений' }, opt: { ru: 'Ремесло, рынок или заведение' } },
+      nature: { n: { ru: 'Реки, острова и местность' }, city: { ru: 'рек и островов' }, opt: { ru: 'Река, остров или местность' } },
+    },
   };
+  // the quiz's answer options (Petersburg 1914 asks "named after what?" among its own categories)
+  var QUIZ = CITY_BOOT.quiz || PEOPLE;
+  var Y1914 = CITY === 'spb1914';
   // key for this city's records in localStorage (Tbilisi keeps the original keys)
   function cityKey(k) { return CITY === 'tbilisi' ? k : k + '-' + CITY; }
   Object.keys(CITY_TEXTS[CITY] || {}).forEach(function (l) { Object.assign(T[l], CITY_TEXTS[CITY][l]); });
@@ -162,6 +194,7 @@
     var o = CITY_CATS[CITY][c];
     Object.assign(CAT[c].n, o.n);
     Object.assign(CAT[c].city, o.city);
+    if (o.opt) CAT[c].opt = Object.assign({}, CAT[c].opt, o.opt);
   });
 
   // ── helpers ──
@@ -321,7 +354,7 @@
         if (nm === game.name) { order.push(w); continue; }
         add(w, '#d9d3c6', wd * 0.8);
       } else if (st.mode !== 'map' || !filtered()) {
-        add(w, CAT[nm.cat].c, wd);
+        add(w, CAT[nm.cat].c, nm.cat === 'absent' ? wd * 0.7 : wd);
       } else if (matches(nm)) {
         order.push(w);
       } else {
@@ -414,9 +447,11 @@
     if (nm.foreign) h += '<span class="tag" style="background:#15120f">' + t('foreignTag') + '</span>';
     if (nm.female) h += '<span class="tag" style="background:#9b2c5a">' + t('femaleTag') + '</span>';
     if (nm.guess) h += '<span class="tag" style="background:#9a948b">' + t('guessTag') + '</span>';
+    if (Y1914 && nm.pka === 1) h += '<span class="tag" style="background:#9a948b">' + t('partTag') + '</span>';
     return h;
   }
   function whoLine(nm) {
+    if (Y1914) return nm.cat === 'absent' ? '<div class="who muted">' + esc(t('absentLine')) + '</div>' : '';
     var who = personName(nm), extra = [];
     if (nm.born) extra.push(fill(t('born'), { y: nm.born < 0 ? -nm.born + t('bc') : nm.born }));
     var h = who ? '<div class="who">' + esc(who) + (extra.length ? ' <span class="muted">· ' + extra.join(' · ') + '</span>' : '') + '</div>' : '';
@@ -426,6 +461,8 @@
   // the small line above a street name: Georgian, or (in the Georgian version) the Latin name
   // (Petersburg has no Georgian names: the other language's name instead)
   function altName(nm) {
+    // Petersburg 1914: the name it has today
+    if (Y1914) return nm.cat === 'absent' ? '' : nm.ska && nm.ska !== nm.sru ? fill(t('nowIs'), { x: nm.ska }) : t('sameNow');
     if (lang === 'ka') return nm.sen || nm.sru || '';
     if (nm.ska) return nm.ska;
     var other = lang === 'ru' ? nm.sen : nm.sru;
@@ -521,7 +558,8 @@
   var allKm = 0;
   function renderMapSide() {
     var side = $('side');
-    if (!allKm) allKm = kmOf(function () { return true; });
+    // Petersburg 1914: the city is what existed then
+    if (!allKm) allKm = kmOf(function (n) { return n.cat !== 'absent'; });
     var catKm = {};
     CATS.forEach(function (c) { catKm[c] = kmOf(function (n) { return n.cat === c && passFlags(n); }); });
     var selKm = kmOf(matches);
@@ -537,7 +575,7 @@
       h += '<p class="lead">' + t('lead') + '</p><div class="total">' + fill(t('total'), { km: fmtKm(allKm) }) + '</div>';
     }
     function flagKm(f) { return kmOf(function (n) { return n[f] && (!st.cat || n.cat === st.cat) && passFlags(n, f); }); }
-    h += '<div class="filters">' +
+    if (!Y1914) h += '<div class="filters">' + // 1914 has no people's names, so no foreigners / women
       '<button data-f="foreign" aria-pressed="' + st.foreign + '">' + t('foreign') + ' · ' + fmtKm(flagKm('foreign')) + ' ' + t('km') + '</button>' +
       '<button data-f="female" aria-pressed="' + st.female + '">' + t('female') + ' · ' + fmtKm(flagKm('female')) + ' ' + t('km') + '</button></div>';
     var maxKm = Math.max.apply(null, CATS.map(function (c) { return catKm[c]; })) || 1;
@@ -546,10 +584,11 @@
         '<b>' + esc(catName(c)) + '</b><em>' + fmtKm(catKm[c]) + '</em>' +
         '<span class="bar"><span style="width:' + (100 * catKm[c] / maxKm).toFixed(1) + '%;background:' + CAT[c].c + '"></span></span></a>';
     }
-    var ppl = CATS.filter(function (c) { return PEOPLE.indexOf(c) >= 0 || c === 'person'; }).sort(function (a, b) { return catKm[b] - catKm[a]; });
-    var oth = CATS.filter(function (c) { return ppl.indexOf(c) < 0; }).sort(function (a, b) { return catKm[b] - catKm[a]; });
+    var ppl = CATS.filter(function (c) { return PEOPLE.indexOf(c) >= 0 || c === 'person' || c === 'owners'; }).sort(function (a, b) { return catKm[b] - catKm[a]; });
+    var oth = CATS.filter(function (c) { return ppl.indexOf(c) < 0 && c !== 'absent'; }).sort(function (a, b) { return catKm[b] - catKm[a]; });
+    if (CATS.indexOf('absent') >= 0) oth.push('absent');
     // keep "unknown people" at the bottom of the people list
-    ppl.splice(ppl.indexOf('person'), 1); ppl.push('person');
+    if (ppl.indexOf('person') >= 0) { ppl.splice(ppl.indexOf('person'), 1); ppl.push('person'); }
     h += '<div class="group">' + t('people') + '</div>' + ppl.map(row).join('');
     h += '<div class="group">' + t('things') + '</div>' + oth.map(row).join('');
     if (st.cat === 'person') h += '<p class="lead" style="margin-top:14px">' + t('personHint') + '</p>';
@@ -582,7 +621,8 @@
   function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = a[i]; a[i] = a[j]; a[j] = x; } return a; }
   function pickQuestions() {
     // people with a known occupation, weighted towards longer (better-known) streets
-    var pool = names.filter(function (n) { return PEOPLE.indexOf(n.cat) >= 0 && !n.guess && n.len > 0.25 && (n.pru || n.pen); });
+    var pool = names.filter(function (n) { return QUIZ.indexOf(n.cat) >= 0 && !n.guess && n.len > 0.25 && (Y1914 ? n.sru : n.pru || n.pen); });
+    function qKey(n) { return Y1914 ? n.sru : personName(n); }
     var picked = [], used = {}, cats = {};
     var tries = 0;
     while (picked.length < ROUNDS && tries++ < 5000) {
@@ -590,9 +630,9 @@
       pool.forEach(function (n) { tot += Math.sqrt(n.len); });
       var r = Math.random() * tot, n = null;
       for (var i = 0; i < pool.length; i++) { r -= Math.sqrt(pool[i].len); if (r <= 0) { n = pool[i]; break; } }
-      if (!n || used[personName(n)]) continue;
+      if (!n || used[qKey(n)]) continue;
       if ((cats[n.cat] || 0) >= 3) continue; // not ten writers in a row
-      used[personName(n)] = 1; cats[n.cat] = (cats[n.cat] || 0) + 1;
+      used[qKey(n)] = 1; cats[n.cat] = (cats[n.cat] || 0) + 1;
       picked.push(n);
     }
     return picked;
@@ -607,7 +647,7 @@
     var g = st.game;
     if (g.i >= g.qs.length) return renderGameEnd();
     var name = g.qs[g.i];
-    var opts = shuffle(PEOPLE.filter(function (c) { return c !== name.cat; })).slice(0, 3).concat([name.cat]);
+    var opts = shuffle(QUIZ.filter(function (c) { return c !== name.cat; })).slice(0, 3).concat([name.cat]);
     g.cur = { name: name, opts: shuffle(opts) };
     g.answered = false;
     renderGameSide();
@@ -846,14 +886,15 @@
     $('tab-game').textContent = t('game');
     $('hint').textContent = t('hint');
     if ($('allp')) $('allp').textContent = t('allProjects');
-    $('sub').textContent = CITY === 'spb' ? (lang === 'ru' ? 'Whose streets?' : 'Чьи улицы?') : lang === 'ka' ? 'Whose streets?' : 'ვისი ქუჩებია';
+    $('sub').textContent = CITY !== 'tbilisi' ? (lang === 'ru' ? 'Whose streets?' : 'Чьи улицы?') : lang === 'ka' ? 'Whose streets?' : 'ვისი ქუჩებია';
     document.querySelectorAll('.lang button').forEach(function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-lang') === lang);
-      b.hidden = LANGS.indexOf(b.getAttribute('data-lang')) < 0; // no Georgian for Petersburg
+      b.hidden = LANGS.length < 2 || LANGS.indexOf(b.getAttribute('data-lang')) < 0; // no Georgian for Petersburg; 1914 is Russian only
     });
     // the city switcher in the header
-    var CITY_NAMES = { tbilisi: { ru: 'Тбилиси', en: 'Tbilisi', ka: 'თბილისი' }, spb: { ru: 'Петербург', en: 'St Petersburg', ka: 'პეტერბურგი' } };
-    ['tbilisi', 'spb'].forEach(function (c) {
+    var CITY_NAMES = { tbilisi: { ru: 'Тбилиси', en: 'Tbilisi', ka: 'თბილისი' }, spb: { ru: 'Петербург', en: 'St Petersburg', ka: 'პეტერბურგი' },
+      spb1914: { ru: 'Петербург 1914', en: 'St Petersburg 1914', ka: 'პეტერბურგი 1914' } };
+    ['tbilisi', 'spb', 'spb1914'].forEach(function (c) {
       var a = $('c-' + c);
       if (!a) return;
       a.textContent = CITY_NAMES[c][lang];

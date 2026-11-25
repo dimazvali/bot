@@ -161,3 +161,15 @@ test('cleanNick strips markup and control chars and caps the length', function (
   assert.strictEqual(streets.cleanNick('  <b>Гела</b>\n '), 'bГела/b');
   assert.strictEqual(Array.from(streets.cleanNick('ა'.repeat(40))).length, 20);
 });
+
+test('a city can quiz its own categories and key questions by street (Petersburg 1914)', function () {
+  var data = { q: 2, cats: ['church', 'royals', 'absent'], names: [
+    [0, 0, '', '', 'Знаменская улица', '', 'улица Восстания'], [1, 0, '', '', 'Николаевская улица', '', 'улица Марата'],
+    [2, 0, '', '', 'улица Новая', '', 'улица Новая']],
+    ways: [[0, 1, [0, 0, 300, 0]], [1, 1, [0, 0, 300, 0]], [2, 1, [0, 0, 300, 0]]] };
+  var pool = streets.buildPool(data, ['church', 'royals'], 'street');
+  assert.deepStrictEqual(pool.map(function (p) { return p.who; }), ['Знаменская улица', 'Николаевская улица']);
+  var e = streets.create({ data: data, db: null, quizCats: ['church', 'royals'], quizBy: 'street' });
+  var q = e.start('x').q;
+  assert.deepStrictEqual(q.opts.slice().sort(), ['church', 'royals']);
+});

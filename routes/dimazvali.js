@@ -1635,7 +1635,7 @@ router.post(`/tgStats`,(req,res)=>{
 
 router.get(`/robots.txt`, (req, res) => {
     res.set('Content-Type', 'text/plain');
-    res.send('User-agent: *\nAllow: /\nSitemap: https://dimazvali.com/sitemap.xml\nSitemap: https://dimazvali.com/lab/streets/sitemap.xml\nSitemap: https://dimazvali.com/lab/streets/spb/sitemap.xml\n');
+    res.send('User-agent: *\nAllow: /\nSitemap: https://dimazvali.com/sitemap.xml\nSitemap: https://dimazvali.com/lab/streets/sitemap.xml\nSitemap: https://dimazvali.com/lab/streets/spb/sitemap.xml\nSitemap: https://dimazvali.com/lab/streets/spb/1914/sitemap.xml\n');
 })
 
 // the home page and the /lab/ projects (static pages in public/lab/). /lab/streets/ has its own
@@ -1663,12 +1663,14 @@ var labStreetsHtml = fs.readFileSync(path.join(__dirname, '../public/lab/streets
 var LAB_CITIES = {
     tbilisi: { file: 'data.json', prefix: 'lab_streets', name: 'Чьи улицы Тбилиси' },
     spb: { file: 'data-spb.json', prefix: 'lab_streets_spb', name: 'Чьи улицы Петербурга' },
+    spb1914: { file: 'data-spb-1914.json', prefix: 'lab_streets_spb1914', name: 'Чьи улицы Петербурга в 1914 году', quizBy: 'street' },
 };
 var labStreetsAdminLib = require('../lib/lab-streets-admin');
 Object.keys(LAB_CITIES).forEach(function (id) {
     var c = LAB_CITIES[id];
     c.baseData = JSON.parse(fs.readFileSync(path.join(__dirname, '../public/lab/streets/' + c.file), 'utf8'));
-    c.engine = require('../lib/lab-streets').create({ data: c.baseData, db: fb, prefix: c.prefix });
+    c.engine = require('../lib/lab-streets').create({ data: c.baseData, db: fb, prefix: c.prefix,
+        quizCats: labStreetsPageLib.CITIES[id].quiz, quizBy: c.quizBy });
     c.path = labStreetsPageLib.CITIES[id].path; // '/lab/streets/' or '/lab/streets/spb/'
     labUse(c, id, c.baseData, {});
 });
@@ -1691,8 +1693,8 @@ function labRefresh(id) {
 Object.keys(LAB_CITIES).forEach(function (id) {
     labRefresh(id).catch(function (e) { console.error('[lab-streets] reviews for ' + id + ':', e.message); });
 });
-router.get(['/lab/streets/data.json', '/lab/streets/data-spb.json'], (req, res) => {
-    var c = LAB_CITIES[/data-spb/.test(req.path) ? 'spb' : 'tbilisi'];
+router.get(['/lab/streets/data.json', '/lab/streets/data-spb.json', '/lab/streets/data-spb-1914.json'], (req, res) => {
+    var c = LAB_CITIES[/data-spb-1914/.test(req.path) ? 'spb1914' : /data-spb/.test(req.path) ? 'spb' : 'tbilisi'];
     res.set('Cache-Control', 'public, max-age=300');
     res.type('application/json').send(c.json);
 });
@@ -1711,22 +1713,22 @@ var labRunHits = new Map(), labAnswerHits = new Map(), labScoreHits = new Map(),
 function labEsc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function labProd(req) { return /^(www\.)?dimazvali\.com$/i.test(req.hostname || ''); }
 
-router.get(['/lab/streets/sitemap.xml', '/lab/streets/spb/sitemap.xml'], (req, res) => {
-    var c = LAB_CITIES[/\/spb\//.test(req.path) ? 'spb' : 'tbilisi'];
+router.get(['/lab/streets/sitemap.xml', '/lab/streets/spb/sitemap.xml', '/lab/streets/spb/1914/sitemap.xml'], (req, res) => {
+    var c = LAB_CITIES[/\/1914\//.test(req.path) ? 'spb1914' : /\/spb\//.test(req.path) ? 'spb' : 'tbilisi'];
     res.set('Cache-Control', 'public, max-age=3600');
     res.type('application/xml').send(c.sitemap);
 });
 // The pages. Routing is not strict ('/x' also matches '/x/'), so look at the literal path:
-// views are '/lab/streets/[spb/][<slug>/]'; the same without the trailing slash redirects; the rest
+// views are '/lab/streets/[spb/[1914/]][<slug>/]'; the same without the trailing slash redirects; the rest
 // (data.json, app.js, unknown slugs) falls through to static files and the 404
-router.get(['/lab/streets', '/lab/streets/index.html', '/lab/streets/:a', '/lab/streets/:a/:b'], (req, res, next) => {
+router.get(['/lab/streets', '/lab/streets/index.html', '/lab/streets/:a', '/lab/streets/:a/:b', '/lab/streets/:a/:b/:c'], (req, res, next) => {
     var q = req.originalUrl.indexOf('?');
     var p = q >= 0 ? req.originalUrl.slice(0, q) : req.originalUrl;
     var query = q >= 0 ? req.originalUrl.slice(q) : '';
-    var m = /^\/lab\/streets(\/spb)?(?:\/([a-z-]+))?(\/(?:index\.html)?)?$/.exec(p);
+    var m = /^\/lab\/streets(\/spb(?:\/1914)?)?(?:\/([a-z-]+))?(\/(?:index\.html)?)?$/.exec(p);
     if (!m) return next();
     if (m[2] === 'spb' && !m[1]) { m[1] = '/spb'; m[2] = undefined; } // '/lab/streets/spb' without the slash
-    var c = LAB_CITIES[m[1] ? 'spb' : 'tbilisi'];
+    var c = LAB_CITIES[m[1] === '/spb/1914' ? 'spb1914' : m[1] ? 'spb' : 'tbilisi'];
     var slug = m[2] || '';
     if (slug && !c.page.hasView(slug)) return next();
     if (!m[3]) return res.redirect(301, c.path + (slug ? slug + '/' : '') + query);

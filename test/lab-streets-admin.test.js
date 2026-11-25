@@ -85,3 +85,14 @@ test('saveReview keeps earlier corrections when a later verdict adds none', asyn
   assert.strictEqual(saved.note, 'погиб в 2008');
   assert.strictEqual(stored[A.reviewId('tbilisi', KEY_SHANAVA)].by, 'dima');
 });
+
+test('Petersburg 1914: keyed by today\'s name; an admin can correct the 1914 name', function () {
+  var row = [0, 0, '', '', 'Знаменская улица', '', 'улица Восстания'];
+  assert.strictEqual(A.streetKey('spb1914', row), 'улица Восстания');
+  var clean = A.cleanReview({ status: 'bad', streetRu: ' Знаменская <b>улица</b> ' }, ['church']);
+  assert.strictEqual(clean.fix.streetRu, 'Знаменская bулица/b');
+  var data = { q: 2, cats: ['church'], names: [row], ways: [] };
+  var out = A.applyReviews(data, { 'улица Восстания': { status: 'bad', fix: { streetRu: 'Знаменская ул.' } } }, 'spb1914');
+  assert.strictEqual(out.names[0][4], 'Знаменская ул.');
+  assert.strictEqual(data.names[0][4], 'Знаменская улица', 'not mutated');
+});

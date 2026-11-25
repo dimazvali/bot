@@ -11,20 +11,24 @@
     politics: 'Политики и общественники', stage: 'Театр и кино', artists: 'Художники и архитекторы', music: 'Музыка',
     sport: 'Спорт', person: 'Не знаем, кто это', georgia: 'Края и города Грузии', world: 'Мир', dates: 'Даты и битвы',
     ideas: 'Идеи', nature: 'Природа и вино', service: 'Просто улицы',
+    church: 'Храмы и святые', owners: 'Владельцы и купцы', absent: 'Не было в 1914',
   };
   var CAT_RU_SPB = { georgia: 'Города и края России', ideas: 'Идеи, профессии и заводы', nature: 'Реки, острова и природа', politics: 'Политики и революционеры' };
+  var CAT_RU_1914 = { royals: 'Романовы', military: 'Полки и военные', politics: 'Сановники', georgia: 'Города и губернии', ideas: 'Ремёсла и заведения', nature: 'Реки, острова и местность' };
   var CAT_COLOR = {
     writers: '#c0392b', royals: '#b8860b', science: '#2e6fb5', military: '#5b6b2a', politics: '#7d3c98', stage: '#e07b1f',
     artists: '#d0307a', music: '#13998a', sport: '#2f9e44', person: '#8d877d', georgia: '#b39b7d', world: '#5f7281',
-    dates: '#7a4e3a', ideas: '#9aa3a8', nature: '#8fae5a', service: '#cbc5b8',
+    dates: '#7a4e3a', ideas: '#9aa3a8', nature: '#8fae5a', service: '#cbc5b8', church: '#0e7c86', owners: '#a0522d', absent: '#e2ddd2',
   };
-  var DATA_URL = { tbilisi: '/lab/streets/data.json?v=2', spb: '/lab/streets/data-spb.json?v=1' };
-  var PUBLIC = { tbilisi: '/lab/streets/', spb: '/lab/streets/spb/' };
+  var DATA_URL = { tbilisi: '/lab/streets/data.json?v=2', spb: '/lab/streets/data-spb.json?v=1', spb1914: '/lab/streets/data-spb-1914.json?v=1' };
+  var PUBLIC = { tbilisi: '/lab/streets/', spb: '/lab/streets/spb/', spb1914: '/lab/streets/spb/1914/' };
   var STATUS_RU = { ok: 'ок', bad: 'не ок', later: 'отложено' };
 
   var st = { city: localStorage.getItem('lab-admin-city') || BOOT.cities[0].id, rows: [], total: 0, sel: -1, loading: false, stats: {} };
   if (!BOOT.cities.some(function (c) { return c.id === st.city; })) st.city = BOOT.cities[0].id;
-  function catName(c) { return (st.city === 'spb' && CAT_RU_SPB[c]) || CAT_RU[c] || c; }
+  // Petersburg 1914: no people, the form edits the street's 1914 name instead
+  function is1914() { return st.city === 'spb1914'; }
+  function catName(c) { return (is1914() && CAT_RU_1914[c]) || (st.city !== 'tbilisi' && CAT_RU_SPB[c]) || CAT_RU[c] || c; }
   function cityConf() { return BOOT.cities.filter(function (c) { return c.id === st.city; })[0]; }
 
   function api(path, body) {
@@ -132,10 +136,12 @@
       '<div class="full"><label for="e-cat">Категория</label><select id="e-cat">' + cityConf().cats.map(function (c) {
         return '<option value="' + c + '"' + (c === r.cat ? ' selected' : '') + '>' + esc(catName(c)) + '</option>';
       }).join('') + '</select></div>' +
-      '<div><label for="e-ru">Человек (рус.)</label><input type="text" id="e-ru" value="' + esc(r.personRu || '') + '"></div>' +
-      '<div><label for="e-en">Человек (англ.)</label><input type="text" id="e-en" value="' + esc(r.personEn || '') + '"></div>' +
-      '<div class="full checks"><label><input type="checkbox" id="e-foreign"' + (r.foreign ? ' checked' : '') + '> иностранец</label>' +
-      '<label><input type="checkbox" id="e-female"' + (r.female ? ' checked' : '') + '> женщина</label></div>' +
+      (is1914()
+        ? '<div class="full"><label for="e-street">Название на 1 января 1914 (несколько — через « / »)</label><input type="text" id="e-street" value="' + esc(r.streetRu || '') + '"></div>'
+        : '<div><label for="e-ru">Человек (рус.)</label><input type="text" id="e-ru" value="' + esc(r.personRu || '') + '"></div>' +
+          '<div><label for="e-en">Человек (англ.)</label><input type="text" id="e-en" value="' + esc(r.personEn || '') + '"></div>' +
+          '<div class="full checks"><label><input type="checkbox" id="e-foreign"' + (r.foreign ? ' checked' : '') + '> иностранец</label>' +
+          '<label><input type="checkbox" id="e-female"' + (r.female ? ' checked' : '') + '> женщина</label></div>') +
       '<div class="full"><label for="e-note">Заметка</label><input type="text" id="e-note" value="' + esc((r.review && r.review.note) || '') + '" placeholder="что не так, источник…"></div>' +
       '</div>' +
       '<div class="verdict"><button class="ok" data-v="ok">Ок<kbd>1</kbd></button><button class="bad" data-v="bad">Не ок<kbd>2</kbd></button><button class="later" data-v="later">Отложить<kbd>3</kbd></button></div>' +
@@ -171,10 +177,14 @@
     if (!r) return;
     var body = { city: st.city, key: r.key, status: status, note: $('e-note').value };
     if ($('e-cat').value !== r.cat) body.cat = $('e-cat').value;
-    if ($('e-ru').value.trim() !== (r.personRu || '')) body.personRu = $('e-ru').value;
-    if ($('e-en').value.trim() !== (r.personEn || '')) body.personEn = $('e-en').value;
-    if ($('e-foreign').checked !== r.foreign) body.foreign = $('e-foreign').checked;
-    if ($('e-female').checked !== r.female) body.female = $('e-female').checked;
+    if (is1914()) {
+      if ($('e-street').value.trim() && $('e-street').value.trim() !== (r.streetRu || '')) body.streetRu = $('e-street').value;
+    } else {
+      if ($('e-ru').value.trim() !== (r.personRu || '')) body.personRu = $('e-ru').value;
+      if ($('e-en').value.trim() !== (r.personEn || '')) body.personEn = $('e-en').value;
+      if ($('e-foreign').checked !== r.foreign) body.foreign = $('e-foreign').checked;
+      if ($('e-female').checked !== r.female) body.female = $('e-female').checked;
+    }
     $('msg').textContent = 'Сохраняю…'; $('msg').className = 'msg';
     document.querySelectorAll('.verdict button').forEach(function (b) { b.disabled = true; });
     api('review', body).then(function (j) {
@@ -182,6 +192,7 @@
       if (body.cat) r.cat = body.cat;
       if (body.personRu !== undefined) r.personRu = body.personRu.trim();
       if (body.personEn !== undefined) r.personEn = body.personEn.trim();
+      if (body.streetRu !== undefined) r.streetRu = body.streetRu.trim();
       if (body.foreign !== undefined) r.foreign = body.foreign;
       if (body.female !== undefined) r.female = body.female;
       r.guess = false;
