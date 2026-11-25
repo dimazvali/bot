@@ -327,6 +327,14 @@
   }
   function visibleWay(w) { return st.mode === 'game' ? false : (!filtered() || matches(names[w.n])); }
 
+  // ── the streets grow out from the centre: the whole city on load, the chosen layer on a filter change ──
+  var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var anim = null; // { t0, dur, all }
+  function grow(all) {
+    if (REDUCED || !D) return;
+    anim = { t0: performance.now(), dur: all ? 1800 : 900, all: all };
+    draw();
+  }
   var raf = 0;
   function draw() { if (!raf) raf = requestAnimationFrame(render); }
   function render() {
@@ -337,12 +345,34 @@
     var s = view.s, vx0 = view.x, vy0 = view.y, vx1 = vx0 + W / s, vy1 = vy0 + H / s;
     var zoomW = Math.max(0.6, Math.min(3.2, Math.sqrt(s * 6)));
     var groups = {}; // "color|width" → Path2D
-    function add(w, color, width) {
+    // the growth front: a circle around the city centre; points outside it are not drawn yet
+    var front = Infinity, ax = 0, ay = 0, growAll = false, growing = false;
+    if (anim) {
+      var k = Math.min(1, (performance.now() - anim.t0) / anim.dur);
+      var bb = D.bbox;
+      ax = (bb[0] + bb[2]) / 2; ay = (bb[1] + bb[3]) / 2;
+      front = (1 - Math.pow(1 - k, 3)) * Math.hypot(bb[2] - bb[0], bb[3] - bb[1]) / 2 * 1.02;
+      growAll = anim.all; growing = true;
+      if (k >= 1) anim = null;
+    }
+    function add(w, color, width, grows) {
       if (w.x1 < vx0 || w.x0 > vx1 || w.y1 < vy0 || w.y0 > vy1) return;
       var key = color + '|' + width, path = groups[key] || (groups[key] = new Path2D());
       var p = w.p;
-      path.moveTo((p[0] - vx0) * s, (p[1] - vy0) * s);
-      for (var i = 2; i < p.length; i += 2) path.lineTo((p[i] - vx0) * s, (p[i + 1] - vy0) * s);
+      if (!(grows && growing)) {
+        path.moveTo((p[0] - vx0) * s, (p[1] - vy0) * s);
+        for (var i = 2; i < p.length; i += 2) path.lineTo((p[i] - vx0) * s, (p[i + 1] - vy0) * s);
+        return;
+      }
+      var prev = false;
+      for (var j = 0; j < p.length; j += 2) {
+        var inside = Math.hypot(p[j] - ax, p[j + 1] - ay) <= front;
+        if (inside) {
+          if (prev) path.lineTo((p[j] - vx0) * s, (p[j + 1] - vy0) * s);
+          else path.moveTo((p[j] - vx0) * s, (p[j + 1] - vy0) * s);
+        }
+        prev = inside;
+      }
     }
     var widths = [0, 0.7, 1.2, 1.9];
     var game = st.mode === 'game' && st.game && st.game.cur;
@@ -354,17 +384,17 @@
         if (nm === game.name) { order.push(w); continue; }
         add(w, '#d9d3c6', wd * 0.8);
       } else if (st.mode !== 'map' || !filtered()) {
-        add(w, CAT[nm.cat].c, nm.cat === 'absent' ? wd * 0.7 : wd);
+        add(w, CAT[nm.cat].c, nm.cat === 'absent' ? wd * 0.7 : wd, growAll);
       } else if (matches(nm)) {
         order.push(w);
       } else {
-        add(w, '#ddd7cb', wd * 0.8);
+        add(w, '#ddd7cb', wd * 0.8, growAll);
       }
     }
     order.forEach(function (w) {
       var nm = names[w.n];
       var color = game ? (revealed ? CAT[nm.cat].c : '#15120f') : CAT[nm.cat].c;
-      add(w, color, Math.max(2.2, widths[w.r] * zoomW * 1.6));
+      add(w, color, Math.max(2.2, widths[w.r] * zoomW * 1.6), !game);
     });
     if (st.sel && !game) st.sel.ways.forEach(function (w) { add(w, '#15120f', Math.max(3.5, widths[w.r] * zoomW * 2.4)); });
     // stable z-order: thin base first, then by insertion (highlight/selection were added last)
@@ -379,6 +409,7 @@
       ctx.strokeStyle = 'rgba(21,18,15,.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 5]);
       ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     }
+    if (anim) draw(); // the next frame of the growth
   }
 
   // ── pointer: pan, pinch, wheel, tap ──
@@ -603,6 +634,7 @@
         if (st.sel && !matches(st.sel)) { st.sel = null; showCard(null); }
         pushView();
         renderMapSide(); draw();
+        if (filtered()) grow(false);
         if (st.cat) track('streets_cat', { cat: st.cat });
       };
     });
@@ -613,6 +645,7 @@
         if (st.sel && !matches(st.sel)) { st.sel = null; showCard(null); }
         pushView();
         renderMapSide(); draw();
+        if (filtered()) grow(false);
       };
     });
   }
@@ -929,6 +962,7 @@
     var focus = new URLSearchParams(location.search).get('focus');
     var hit = focus && names.filter(function (n) { return (CITY === 'spb' ? n.sru : n.ska) === focus; })[0];
     if (hit && st.mode === 'map') { st.sel = hit; showCard(hit); fit(hit.bbox, 80, false); }
+    else if (st.mode === 'map') grow(true); // the city grows out from its centre
   }).catch(function (e) {
     $('side').innerHTML = '<p class="muted">Не получилось загрузить данные: ' + esc(e.message) + '</p>';
   });
